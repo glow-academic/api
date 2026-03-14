@@ -1,1 +1,0 @@
-"""Activity artifact infra package."""

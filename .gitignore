@@ -1,36 +1,4 @@
-config.yaml
-install-config.yaml
-keys.txt
-.env
-.env.prod
-.env.beta
-.env.alpha
-.cursorignore
-
-history/
-database/seeds/seed_modules.sql
-database/schema.sql
-server/tests/test-schema.sql
-.venv/
-uploads/tus_uploads/
-server/uploads/tus_uploads/
-uploads/audio/
-uploads/image
-uploads/video/
-
-# Python bytecode
 __pycache__/
 *.pyc
-
-# Server cache and coverage files
-server/.mypy_cache/
-server/.pytest_cache/
-server/.ruff_cache/
-server/.coverage
-server/htmlcov/
-server/dump.rdb
-
-# SQL types compilation flag file
-.sql-types-checked
-# Allow theme files to be tracked
-!uploads/themes/
+.venv/
+.env

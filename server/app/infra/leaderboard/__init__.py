@@ -1,1 +1,0 @@
-"""Leaderboard artifact infra package."""

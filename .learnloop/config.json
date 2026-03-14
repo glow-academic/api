@@ -1,0 +1,5 @@
+{
+  "deployment_name": "template",
+  "subdomain": "CHANGE_ME",
+  "base_domain": "learn-loop.org"
+}

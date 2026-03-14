@@ -1,2 +1,0 @@
-agent_id,name,description,active,departments,models,reasoning_levels,temperature_levels,tools,voices
-019cde37-b506-713d-a497-9c7965dfcb54,Route Agent 64cc1395,Route agent description 64cc1395,Yes,department-ed23442a,Route Model 64cc1395,,,route-tool-64cc1395,

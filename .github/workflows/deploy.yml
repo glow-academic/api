@@ -1,0 +1,70 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+env:
+  PROVISION_BIN: /srv/deploy/provisioner/.venv/bin/provision
+  LIVE_DIR: /srv/deploy/live
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read config
+        id: config
+        run: |
+          SUBDOMAIN=$(jq -r '.subdomain // ""' .learnloop/config.json)
+          BASE_DOMAIN=$(jq -r '.base_domain // "learn-loop.org"' .learnloop/config.json)
+          DEPLOY_NAME=$(jq -r '.deployment_name // ""' .learnloop/config.json)
+          # Fall back to repo name if deployment_name is empty or "template"
+          if [ -z "$DEPLOY_NAME" ] || [ "$DEPLOY_NAME" = "template" ]; then
+            DEPLOY_NAME="${{ github.event.repository.name }}"
+          fi
+          echo "subdomain=$SUBDOMAIN" >> "$GITHUB_OUTPUT"
+          echo "base_domain=$BASE_DOMAIN" >> "$GITHUB_OUTPUT"
+          echo "deploy_name=$DEPLOY_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Stage release
+        run: |
+          DEST="${LIVE_DIR}/${{ steps.config.outputs.deploy_name }}"
+          mkdir -p "$DEST"
+          rsync -a --delete \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude 'docker-compose.override.yml' \
+            ./ "$DEST/"
+          echo "${{ github.sha }}" > "$DEST/DEPLOYED_SHA"
+
+      - name: Deploy via provisioner
+        run: |
+          $PROVISION_BIN deploy \
+            --name "${{ steps.config.outputs.deploy_name }}" \
+            --subdomain "${{ steps.config.outputs.subdomain }}" \
+            --base-domain "${{ steps.config.outputs.base_domain }}" \
+            --compose-dir "${LIVE_DIR}/${{ steps.config.outputs.deploy_name }}" \
+            --entry-service app \
+            --entry-port 8080
+
+      - name: Verify deployment
+        run: |
+          SUBDOMAIN="${{ steps.config.outputs.subdomain }}"
+          BASE_DOMAIN="${{ steps.config.outputs.base_domain }}"
+          if [ -n "$SUBDOMAIN" ]; then
+            DOMAIN="${SUBDOMAIN}.${BASE_DOMAIN}"
+          else
+            DOMAIN="${BASE_DOMAIN}"
+          fi
+          echo "Checking https://${DOMAIN}/health ..."
+          for i in $(seq 1 30); do
+            if curl -sf "https://${DOMAIN}/health" 2>/dev/null; then
+              echo ""
+              echo "Deployment verified!"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Warning: Health check did not pass within 60s (may still be starting)"

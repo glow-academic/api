@@ -1,2 +1,0 @@
-agent_id,name,description,active,departments,models,reasoning_levels,temperature_levels,tools,voices
-019cd8a0-4767-7a6e-937c-2b593b18f4e0,Route Agent bc732da1,Route agent description bc732da1,Yes,department-0d6ea496,Route Model bc732da1,,,route-tool-bc732da1,

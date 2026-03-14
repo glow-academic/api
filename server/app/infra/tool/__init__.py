@@ -1,1 +1,0 @@
-"""Tool artifact infra package."""

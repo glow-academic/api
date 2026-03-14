@@ -1,1 +1,0 @@
-"""Simulation artifact infra package."""

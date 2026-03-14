@@ -1,1 +1,0 @@
-{"results": [{"success": false, "persona_id": null, "message": "Item 0: Validation errors", "errors": [{"field": "color", "message": "Color \"#3b82f6\" not found"}, {"field": "instructions", "message": "Instructions is required"}]}]}

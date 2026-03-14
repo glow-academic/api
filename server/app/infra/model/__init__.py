@@ -1,1 +1,0 @@
-"""Canonical model infra package."""

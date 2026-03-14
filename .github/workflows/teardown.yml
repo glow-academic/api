@@ -1,0 +1,41 @@
+name: Teardown
+
+on:
+  workflow_dispatch:
+
+env:
+  PROVISION_BIN: /srv/deploy/provisioner/.venv/bin/provision
+  LIVE_DIR: /srv/deploy/live
+
+jobs:
+  teardown:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read config
+        id: config
+        run: |
+          DEPLOY_NAME=$(jq -r '.deployment_name // ""' .learnloop/config.json)
+          if [ -z "$DEPLOY_NAME" ] || [ "$DEPLOY_NAME" = "template" ]; then
+            DEPLOY_NAME="${{ github.event.repository.name }}"
+          fi
+          echo "deploy_name=$DEPLOY_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Teardown via provisioner
+        run: |
+          $PROVISION_BIN teardown \
+            --name "${{ steps.config.outputs.deploy_name }}" \
+            --compose-dir "${LIVE_DIR}/${{ steps.config.outputs.deploy_name }}"
+
+      - name: Clean up deployment directory
+        run: |
+          DEST="${LIVE_DIR}/${{ steps.config.outputs.deploy_name }}"
+          if [ -d "$DEST" ]; then
+            rm -rf "$DEST"
+            echo "Deployment directory removed."
+          fi
+
+      - name: Teardown complete
+        run: echo "Teardown complete for ${{ steps.config.outputs.deploy_name }}"

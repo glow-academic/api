@@ -1,2 +1,0 @@
-agent_id,name,description,active,departments,models,reasoning_levels,temperature_levels,tools,voices
-019ce3f7-af8d-778d-bc6a-1bfd67b4222a,Route Agent 850a6d1e,Route agent description 850a6d1e,Yes,department-3ecab987,Route Model 850a6d1e,,,route-tool-850a6d1e,
