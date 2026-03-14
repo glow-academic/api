@@ -2,34 +2,24 @@ name: Stop
 
 on:
   workflow_dispatch:
+    inputs:
+      deployment_name:
+        description: 'Deployment name'
+        required: true
 
 env:
-  PROVISION_BIN: /srv/deploy/provisioner/.venv/bin/provision
   LIVE_DIR: /srv/deploy/live
 
 jobs:
   stop:
     runs-on: self-hosted
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Read config
-        id: config
+      - name: Stop containers
         run: |
-          DEPLOY_NAME=$(jq -r '.deployment_name // ""' .learnloop/config.json)
-          if [ -z "$DEPLOY_NAME" ] || [ "$DEPLOY_NAME" = "template" ]; then
-            DEPLOY_NAME="${{ github.event.repository.name }}"
-          fi
-          echo "deploy_name=$DEPLOY_NAME" >> "$GITHUB_OUTPUT"
-
-      - name: Stop via provisioner
-        run: |
-          DEST="${LIVE_DIR}/${{ steps.config.outputs.deploy_name }}"
+          DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
           if [ -d "$DEST" ]; then
             cd "$DEST"
-            docker compose -f docker-compose.yml -f docker-compose.override.yml stop 2>/dev/null || \
-              docker compose stop 2>/dev/null || true
+            docker compose stop 2>/dev/null || true
             echo "Containers stopped."
           else
             echo "No deployment directory found at $DEST"

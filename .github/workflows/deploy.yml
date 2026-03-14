@@ -2,62 +2,74 @@ name: Deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      deployment_name:
+        description: 'Deployment name (used as project directory name)'
+        required: true
+      subdomain:
+        description: 'Subdomain for routing'
+        required: true
+      base_domain:
+        description: 'Base domain'
+        required: false
+        default: 'learn-loop.org'
+      version:
+        description: 'Image version tag (e.g. v1.0.0)'
+        required: true
 
 env:
   PROVISION_BIN: /srv/deploy/provisioner/.venv/bin/provision
   LIVE_DIR: /srv/deploy/live
+  REGISTRY: ghcr.io
+  IMAGE_NAME: learnloopllc/glow-api
 
 jobs:
   deploy:
     runs-on: self-hosted
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Read config
-        id: config
+      - name: Pull image
         run: |
-          SUBDOMAIN=$(jq -r '.subdomain // ""' .learnloop/config.json)
-          BASE_DOMAIN=$(jq -r '.base_domain // "learn-loop.org"' .learnloop/config.json)
-          DEPLOY_NAME=$(jq -r '.deployment_name // ""' .learnloop/config.json)
-          # Fall back to repo name if deployment_name is empty or "template"
-          if [ -z "$DEPLOY_NAME" ] || [ "$DEPLOY_NAME" = "template" ]; then
-            DEPLOY_NAME="${{ github.event.repository.name }}"
-          fi
-          echo "subdomain=$SUBDOMAIN" >> "$GITHUB_OUTPUT"
-          echo "base_domain=$BASE_DOMAIN" >> "$GITHUB_OUTPUT"
-          echo "deploy_name=$DEPLOY_NAME" >> "$GITHUB_OUTPUT"
+          docker pull "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.version }}"
 
-      - name: Stage release
+      - name: Stage deployment
         run: |
-          DEST="${LIVE_DIR}/${{ steps.config.outputs.deploy_name }}"
+          DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
           mkdir -p "$DEST"
-          rsync -a --delete \
-            --exclude '.git' \
-            --exclude '.github' \
-            --exclude 'docker-compose.override.yml' \
-            ./ "$DEST/"
-          echo "${{ github.sha }}" > "$DEST/DEPLOYED_SHA"
+
+          # Generate docker-compose.yml pointing to pre-built GHCR image
+          cat > "$DEST/docker-compose.yml" << 'DCOMPOSE'
+services:
+  app:
+    image: IMAGE_PLACEHOLDER
+    restart: unless-stopped
+    environment:
+      - DEPLOYMENT_NAME=NAME_PLACEHOLDER
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+DCOMPOSE
+
+          sed -i "s|IMAGE_PLACEHOLDER|${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.version }}|" "$DEST/docker-compose.yml"
+          sed -i "s|NAME_PLACEHOLDER|${{ inputs.deployment_name }}|" "$DEST/docker-compose.yml"
+
+          echo "${{ inputs.version }}" > "$DEST/DEPLOYED_VERSION"
 
       - name: Deploy via provisioner
         run: |
-          $PROVISION_BIN deploy \
-            --name "${{ steps.config.outputs.deploy_name }}" \
-            --subdomain "${{ steps.config.outputs.subdomain }}" \
-            --base-domain "${{ steps.config.outputs.base_domain }}" \
-            --compose-dir "${LIVE_DIR}/${{ steps.config.outputs.deploy_name }}" \
+          ${{ env.PROVISION_BIN }} deploy \
+            --name "${{ inputs.deployment_name }}" \
+            --subdomain "${{ inputs.subdomain }}" \
+            --base-domain "${{ inputs.base_domain }}" \
+            --compose-dir "${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}" \
             --entry-service app \
             --entry-port 8080
 
       - name: Verify deployment
         run: |
-          SUBDOMAIN="${{ steps.config.outputs.subdomain }}"
-          BASE_DOMAIN="${{ steps.config.outputs.base_domain }}"
-          if [ -n "$SUBDOMAIN" ]; then
-            DOMAIN="${SUBDOMAIN}.${BASE_DOMAIN}"
-          else
-            DOMAIN="${BASE_DOMAIN}"
-          fi
+          DOMAIN="${{ inputs.subdomain }}.${{ inputs.base_domain }}"
           echo "Checking https://${DOMAIN}/health ..."
           for i in $(seq 1 30); do
             if curl -sf "https://${DOMAIN}/health" 2>/dev/null; then
