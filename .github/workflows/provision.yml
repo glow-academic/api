@@ -28,35 +28,21 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Pull image
-        run: |
-          docker pull "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.version }}"
+        run: docker pull "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.version }}"
 
       - name: Stage deployment
         run: |
           DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
           mkdir -p "$DEST"
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.version }}"
+          NAME="${{ inputs.deployment_name }}"
+          VERSION="${{ inputs.version }}"
 
-          cat > "$DEST/docker-compose.yml" << 'DCOMPOSE'
-services:
-  app:
-    image: IMAGE_PLACEHOLDER
-    restart: unless-stopped
-    environment:
-      - DEPLOYMENT_NAME=NAME_PLACEHOLDER
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-DCOMPOSE
+          printf 'services:\n  app:\n    image: "%s"\n    restart: unless-stopped\n    environment:\n      - DEPLOYMENT_NAME=%s\n      - DEPLOYMENT_VERSION=%s\n    healthcheck:\n      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]\n      interval: 10s\n      timeout: 5s\n      retries: 3\n      start_period: 10s\n' "$IMAGE" "$NAME" "$VERSION" > "$DEST/docker-compose.yml"
 
-          sed -i "s|IMAGE_PLACEHOLDER|${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.version }}|" "$DEST/docker-compose.yml"
-          sed -i "s|NAME_PLACEHOLDER|${{ inputs.deployment_name }}|" "$DEST/docker-compose.yml"
+          echo "$VERSION" > "$DEST/DEPLOYED_VERSION"
 
-          echo "${{ inputs.version }}" > "$DEST/DEPLOYED_VERSION"
-
-      - name: Provision via provisioner
+      - name: Deploy via provisioner
         run: |
           ${{ env.PROVISION_BIN }} deploy \
             --name "${{ inputs.deployment_name }}" \
