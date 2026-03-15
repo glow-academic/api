@@ -1,4 +1,4 @@
-name: Stop
+name: Halt
 
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ jobs:
   stop:
     runs-on: self-hosted
     steps:
-      - name: Stop containers
+      - name: Halt containers
         run: |
           DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
           if [ -d "$DEST" ]; then

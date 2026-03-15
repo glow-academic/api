@@ -1,4 +1,4 @@
-name: Teardown
+name: Destroy
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
   teardown:
     runs-on: self-hosted
     steps:
-      - name: Teardown via provisioner
+      - name: Destroy via provisioner
         run: |
           ${{ env.PROVISION_BIN }} teardown \
             --name "${{ inputs.deployment_name }}" \
@@ -29,5 +29,5 @@ jobs:
             echo "Deployment directory removed."
           fi
 
-      - name: Teardown complete
+      - name: Destroy complete
         run: echo "Teardown complete for ${{ inputs.deployment_name }}"

@@ -1,4 +1,4 @@
-name: Deploy
+name: Provision
 
 on:
   workflow_dispatch:
@@ -56,7 +56,7 @@ DCOMPOSE
 
           echo "${{ inputs.version }}" > "$DEST/DEPLOYED_VERSION"
 
-      - name: Deploy via provisioner
+      - name: Provision via provisioner
         run: |
           ${{ env.PROVISION_BIN }} deploy \
             --name "${{ inputs.deployment_name }}" \
