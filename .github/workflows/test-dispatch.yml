@@ -1,14 +1,24 @@
-name: Test Dispatch
+name: Test Deploy
 
 on:
   workflow_dispatch:
     inputs:
-      test_input:
-        description: 'Test input'
+      deployment_name:
+        description: 'Deployment name (used as project directory name)'
+        required: true
+      subdomain:
+        description: 'Subdomain for routing'
+        required: true
+      base_domain:
+        description: 'Base domain'
+        required: false
+        default: 'learn-loop.org'
+      version:
+        description: 'Image version tag (e.g. v1.0.0)'
         required: true
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: self-hosted
     steps:
-      - run: echo "Input is ${{ inputs.test_input }}"
+      - run: echo "Deploy ${{ inputs.deployment_name }} version ${{ inputs.version }}"
