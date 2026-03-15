@@ -28,7 +28,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Log in to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Pull image
         run: docker pull "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.version }}"
