@@ -2,9 +2,13 @@ name: Test Dispatch
 
 on:
   workflow_dispatch:
+    inputs:
+      test_input:
+        description: 'Test input'
+        required: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Dispatch works!"
+      - run: echo "Input is ${{ inputs.test_input }}"
