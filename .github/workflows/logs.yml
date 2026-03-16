@@ -42,6 +42,18 @@ jobs:
           echo "=== Server-green logs ==="
           docker compose logs server-green --tail=50 2>&1
 
+      - name: Database logs
+        run: |
+          cd "${LIVE_DIR}/${{ inputs.deployment_name }}"
+          echo "=== Database logs ==="
+          docker compose logs database --tail=50 2>&1
+
+      - name: Keycloak logs
+        run: |
+          cd "${LIVE_DIR}/${{ inputs.deployment_name }}"
+          echo "=== Keycloak logs ==="
+          docker compose logs keycloak --tail=50 2>&1
+
       - name: Docker-gen logs
         run: |
           cd "${LIVE_DIR}/${{ inputs.deployment_name }}"

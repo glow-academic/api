@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'server/**'
+      - 'core/**'
       - 'database/**'
       - 'web/**'
       - 'scripts/**'
@@ -43,10 +43,10 @@ jobs:
             fi
           }
 
-          set_flag "server" "server"
+          set_flag "core" "server"
           set_flag "database" "database"
 
-          if echo "$CHANGED_FILES" | grep -qE '^(server|database|web|docker-compose|\.github)'; then
+          if echo "$CHANGED_FILES" | grep -qE '^(core|database|web|docker-compose|\.github)'; then
             echo "any=true" >> $GITHUB_OUTPUT
           else
             echo "any=false" >> $GITHUB_OUTPUT
@@ -57,6 +57,8 @@ jobs:
     outputs:
       active-env: ${{ steps.detect.outputs.active-env }}
       target-env: ${{ steps.detect.outputs.target-env }}
+      has-migrations: ${{ steps.detect.outputs.has-migrations }}
+      has-remove-migrations: ${{ steps.detect.outputs.has-remove-migrations }}
     steps:
       - name: Detect active environment
         id: detect
@@ -73,6 +75,8 @@ jobs:
           echo "Target environment: $TARGET_ENV"
           echo "active-env=$ACTIVE_ENV" >> $GITHUB_OUTPUT
           echo "target-env=$TARGET_ENV" >> $GITHUB_OUTPUT
+          echo "has-migrations=${HAS_MIGRATIONS:-false}" >> $GITHUB_OUTPUT
+          echo "has-remove-migrations=${HAS_REMOVE_MIGRATIONS:-false}" >> $GITHUB_OUTPUT
 
   build-server:
     runs-on: ubuntu-latest
@@ -102,7 +106,7 @@ jobs:
       - name: Build & push (server)
         uses: docker/build-push-action@v5
         with:
-          context: ./server
+          context: ./core
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -197,6 +201,11 @@ jobs:
         working-directory: /srv/deploy/live/glow-api
         run: make pull-images
 
+      - name: Apply add migrations
+        working-directory: /srv/deploy/live/glow-api
+        if: needs.detect-active-environment.outputs.has-migrations == 'true'
+        run: make migrate-docker TYPE=add
+
       - name: Deploy target environment
         working-directory: /srv/deploy/live/glow-api
         run: make deploy-target ENV=${{ needs.detect-active-environment.outputs.target-env }}
@@ -220,7 +229,13 @@ jobs:
         working-directory: /srv/deploy/live/glow-api
         run: make monitor ENV=${{ needs.detect-active-environment.outputs.target-env }} ROLLBACK_ENV=${{ needs.detect-active-environment.outputs.active-env }}
 
+      - name: Apply remove migrations
+        working-directory: /srv/deploy/live/glow-api
+        if: success() && needs.detect-active-environment.outputs.has-remove-migrations == 'true'
+        run: make migrate-docker TYPE=remove
+
       - name: Cleanup old environment
+        working-directory: /srv/deploy/live/glow-api
         if: success()
         run: |
           echo "Keeping ${{ needs.detect-active-environment.outputs.active-env }} running for rollback capability"

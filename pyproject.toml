@@ -72,7 +72,7 @@ packages = ["app"]
 [tool.ruff]
 target-version = "py311"
 line-length = 88
-cache-dir = "server/.ruff_cache"
+cache-dir = "core/.ruff_cache"
 
 [tool.ruff.lint]
 select = [
@@ -117,7 +117,7 @@ check_untyped_defs = true
 no_implicit_optional = true
 strict_equality = true
 show_error_codes = true
-cache_dir = "server/.mypy_cache"
+cache_dir = "core/.mypy_cache"
 
 # This is more precise than a global `ignore_missing_imports = true`
 [[tool.mypy.overrides]]
@@ -137,12 +137,12 @@ module = [
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-testpaths = ["server/tests"]
+testpaths = ["core/tests"]
 python_files = "test_*.py"
 # Be explicit about asyncio mode for pytest-asyncio >= 0.24
 asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "session"
-cache_dir = "server/.pytest_cache"
+cache_dir = "core/.pytest_cache"
 addopts = [
     "--strict-markers",
     "--tb=short",
@@ -156,12 +156,12 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["server/app", "server/utils"]
+source = ["core/app", "core/utils"]
 omit = [
     "*/tests/*",
     "*/migrations/*",
 ]
-data_file = "server/.coverage"
+data_file = "core/.coverage"
 
 [tool.coverage.report]
 exclude_lines = [
@@ -169,4 +169,4 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "@(abc\\.)?abstractmethod",
 ]
-html_dir = "server/htmlcov"
+html_dir = "core/htmlcov"

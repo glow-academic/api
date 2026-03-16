@@ -56,7 +56,7 @@ uploads/text/
 uploads/tus_uploads/
 
 # Server uploads (runtime)
-server/uploads/
+core/uploads/
 
 # Database output
 database/output/

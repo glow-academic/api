@@ -102,14 +102,14 @@ lint: check-venv
 # Run MyPy for static type checking
 typecheck: check-venv
 	@echo "Type checking..."
-	@$(VENV_PYTHON) -m mypy server/app server/utils
+	@$(VENV_PYTHON) -m mypy core/app core/utils
 	@echo "✅ Type checking complete"
 
 
 # Generate pytest tests for routes and services
 generate-tests: check-venv
 	@echo "Generating pytest tests..."
-	@$(VENV_PYTHON) server/scripts/generate_pytest_tests.py
+	@$(VENV_PYTHON) core/scripts/generate_pytest_tests.py
 	@echo "✅ Tests generated"
 
 
@@ -120,24 +120,24 @@ test: check-venv
 		$(VENV_PYTHON) -m pytest $(ARGS) -v; \
 	else \
 		echo "Running tests..."; \
-		$(VENV_PYTHON) -m pytest server/tests/ -v; \
+		$(VENV_PYTHON) -m pytest core/tests/ -v; \
 	fi
 
 # Run tests with coverage
 test-cov: check-venv
 	@if [ -n "$(ARGS)" ]; then \
 		echo "Running tests with coverage: $(ARGS)"; \
-		COVERAGE_FILE=server/.coverage $(VENV_PYTHON) -m pytest $(ARGS) --cov=server/app --cov-report=term-missing --cov-report=html:server/htmlcov; \
+		COVERAGE_FILE=core/.coverage $(VENV_PYTHON) -m pytest $(ARGS) --cov=core/app --cov-report=term-missing --cov-report=html:core/htmlcov; \
 	else \
 		echo "Running tests with coverage..."; \
-		COVERAGE_FILE=server/.coverage $(VENV_PYTHON) -m pytest server/tests/ --cov=server/app --cov-report=term-missing --cov-report=html:server/htmlcov; \
+		COVERAGE_FILE=core/.coverage $(VENV_PYTHON) -m pytest core/tests/ --cov=core/app --cov-report=term-missing --cov-report=html:core/htmlcov; \
 	fi
-	@echo "✅ Coverage report generated at server/htmlcov/index.html"
+	@echo "✅ Coverage report generated at core/htmlcov/index.html"
 
 # Generate OpenAPI schema manually
 openapi-gen: check-venv
 	@echo "📝 Generating OpenAPI schema..."
-	@cd server && $(PWD)/$(VENV_PYTHON) -c "import json; \
+	@cd core && $(PWD)/$(VENV_PYTHON) -c "import json; \
 from fastapi.openapi.utils import get_openapi; \
 from app.main import fastapi_app; \
 import pathlib; \
@@ -198,8 +198,8 @@ run: check-venv
 		fi; \
 		sleep 2; \
 	done; \
-	(cd server && redis-server --port $(REDIS_PORT) --dir . --dbfilename dump.rdb 2>&1 | while IFS= read -r line; do echo "$$(printf '\033[0;31m[REDIS]\033[0m %s' "$$line")"; done) & \
-	(cd server && ( $(PWD)/$(VENV_PYTHON) -m uvicorn app.main:app --reload --host 0.0.0.0 --port $(SERVER_PORT) --reload-exclude server/openapi.json --reload-exclude 'app/sql/types.py' --reload-exclude 'tests/sql/types.py') 2>&1 | while IFS= read -r line; do echo "$$(printf '\033[0;32m[SERVER]\033[0m %s' "$$line")"; done) & \
+	(cd core && redis-server --port $(REDIS_PORT) --dir . --dbfilename dump.rdb 2>&1 | while IFS= read -r line; do echo "$$(printf '\033[0;31m[REDIS]\033[0m %s' "$$line")"; done) & \
+	(cd core && ( $(PWD)/$(VENV_PYTHON) -m uvicorn app.main:app --reload --host 0.0.0.0 --port $(SERVER_PORT) --reload-exclude core/openapi.json --reload-exclude 'app/sql/types.py' --reload-exclude 'tests/sql/types.py') 2>&1 | while IFS= read -r line; do echo "$$(printf '\033[0;32m[SERVER]\033[0m %s' "$$line")"; done) & \
 	(cd database && READS=1 MIN_MS=0 SAMPLE_MS=150 DEBUG_READS=1 yarn logs 2>&1 | while IFS= read -r line; do echo "$$(printf '\033[0;33m[DATABASE]\033[0m %s' "$$line")"; done) & \
 	wait
 
@@ -237,9 +237,9 @@ cleanup:
 	@find . -type f -name "*.pyo" -delete 2>/dev/null || true
 	@find . -type f -name "*.pyd" -delete 2>/dev/null || true
 	@find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
-	@rm -rf server/.pytest_cache server/.mypy_cache server/.ruff_cache 2>/dev/null || true
-	@rm -rf server/htmlcov server/.coverage 2>/dev/null || true
-	@rm -f server/dump.rdb 2>/dev/null || true
+	@rm -rf core/.pytest_cache core/.mypy_cache core/.ruff_cache 2>/dev/null || true
+	@rm -rf core/htmlcov core/.coverage 2>/dev/null || true
+	@rm -f core/dump.rdb 2>/dev/null || true
 	@echo "✅ Cleanup complete"
 
 # Restore database from latest backup
@@ -286,23 +286,23 @@ concat-schema:
 # Generate registry files from DB introspection + filesystem scanning
 registry: check-venv
 	@echo "Generating registry files..."
-	@PYTHONPATH=server DB_USER="$${DB_USER:-myuser}" \
+	@PYTHONPATH=core DB_USER="$${DB_USER:-myuser}" \
 	 DB_PASSWORD="$${DB_PASSWORD:-mypassword}" \
 	 DB_NAME="$${DB_NAME:-mydb}" \
 	 DB_HOST="$${DB_HOST:-localhost}" \
 	 DB_PORT="$${DB_PORT:-5432}" \
-	 $(VENV_PYTHON) server/scripts/generate_registry.py all
+	 $(VENV_PYTHON) core/scripts/generate_registry.py all
 	@echo "✅ Registry generation complete"
 
 # Validate registry files match DB state
 registry-validate: check-venv
 	@echo "Validating registry files..."
-	@PYTHONPATH=server DB_USER="$${DB_USER:-myuser}" \
+	@PYTHONPATH=core DB_USER="$${DB_USER:-myuser}" \
 	 DB_PASSWORD="$${DB_PASSWORD:-mypassword}" \
 	 DB_NAME="$${DB_NAME:-mydb}" \
 	 DB_HOST="$${DB_HOST:-localhost}" \
 	 DB_PORT="$${DB_PORT:-5432}" \
-	 $(VENV_PYTHON) server/scripts/generate_registry.py validate
+	 $(VENV_PYTHON) core/scripts/generate_registry.py validate
 	@echo "✅ Registry validation complete"
 
 
@@ -315,7 +315,7 @@ connect-db:
 # Regenerate all seed SQL files (base + all setups) via testcontainers
 seed-gen: check-venv
 	@echo "Regenerating all seed SQL files..."
-	@PYTHONPATH=server $(VENV_PYTHON) -m database.scripts.runner --all
+	@PYTHONPATH=core $(VENV_PYTHON) -m database.scripts.runner --all
 
 # Load seed data into local database
 load-seeds:
@@ -333,7 +333,7 @@ fresh-db:
 mcp: check-venv
 	@echo "Setting up MCP for Cursor IDE..."
 	@echo "1. Configuring Keycloak token lifespan..."
-	@$(VENV_PYTHON) server/scripts/configure-mcp-token-lifespan.py || echo "⚠️  Could not configure token lifespan (Keycloak may not be running)"
+	@$(VENV_PYTHON) core/scripts/configure-mcp-token-lifespan.py || echo "⚠️  Could not configure token lifespan (Keycloak may not be running)"
 	@echo "2. Getting token and updating Cursor config..."
 	@$(VENV_PYTHON) scripts/setup-cursor-mcp.py
 	@echo ""
