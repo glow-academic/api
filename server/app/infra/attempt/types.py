@@ -862,6 +862,33 @@ class SearchAttemptApiResponse(BaseModel):
 # =============================================================================
 
 
+class ExportAttemptApiRequest(BaseModel):
+    """Request model for attempt export."""
+
+    attempt_id: UUID
+
+
+class SearchAttemptApiRequest(BaseModel):
+    """Request model for attempt search."""
+
+    search: str | None = None
+    simulation_ids: list[UUID] | None = None
+    department_ids: list[UUID] | None = None
+    practice: bool | None = None
+    is_archived: bool | None = None
+    infinite_mode: bool | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    simulation_search: str | None = None
+    department_search: str | None = None
+    page_size: int = 20
+    page_offset: int = 0
+
+
+# Alias for ws handler compatibility
+GetAttemptApiRequest = GetAttemptDetailRequest
+
+
 class ExportAttemptApiResponse(BaseModel):
     """Response model for attempt export."""
 
