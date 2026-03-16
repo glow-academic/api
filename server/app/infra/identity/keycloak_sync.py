@@ -1046,15 +1046,14 @@ async def sync_identity_provider_for_realm_level(
                 config_map[item.name] = item.value
 
         # Build IdP payload
-        # Set hideOnLogin=False - theme controls visibility via filtering
-        # If we hide IdPs, Keycloak 26.0 excludes them from social.providers, so theme can't render them
+        # Theme controls visibility via filtering
         payload: dict[str, Any] = {
             "alias": slug,
             "providerId": provider_id,
             "displayName": display_name,
             "enabled": True,
             "trustEmail": True,
-            "hideOnLogin": False,  # Must be False so IdPs appear in social.providers for theme filtering
+
             "config": {},
         }
 
@@ -1149,8 +1148,7 @@ async def sync_identity_provider_for_org(
                 config_map[item.name] = item.value
 
         # Build IdP payload (no organizationId - shared IdP across departments)
-        # Set hideOnLogin=False - theme controls visibility via filtering
-        # If we hide IdPs, Keycloak 26.0 excludes them from social.providers, so theme can't render them
+        # Theme controls visibility via filtering
         payload: dict[str, Any] = {
             "alias": unique_alias,
             "providerId": provider_id,
@@ -1158,7 +1156,7 @@ async def sync_identity_provider_for_org(
             "enabled": True,
             "trustEmail": True,
             # No organizationId - removed org concept, client-id scoping handles routing
-            "hideOnLogin": False,  # Must be False so IdPs appear in social.providers for theme filtering
+
             "config": {},
         }
 
@@ -1316,7 +1314,7 @@ async def sync_default_idp_for_profile(
             "displayName": display_name,
             "enabled": True,
             "trustEmail": True,
-            "hideOnLogin": False,
+
             "config": {
                 "authorizationUrl": auth_url,
                 "tokenUrl": f"{idp_internal_url}/token",
@@ -1436,7 +1434,6 @@ async def sync_emulation_default_idp(kc_admin: Any, config: KeycloakSyncConfig) 
             "enabled": True,
             "trustEmail": True,
             # Hidden from login page - only used for emulation via redirect
-            "hideOnLogin": True,
             # Use our custom flow that skips profile review
             "firstBrokerLoginFlowAlias": first_login_flow,
             "config": {
@@ -1678,7 +1675,7 @@ async def sync_identity_providers(
     - Default-idp: Custom OIDC IdP instances per setting profile
       - Alias format: default-idp-profile-{profile_id}
 
-    All IdPs have hideOnLogin=False so they appear in social.providers for theme filtering.
+    All IdPs appear in social.providers for theme filtering.
     Theme controls visibility based on department selection and authorization checks.
 
     Args:
