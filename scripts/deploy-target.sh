@@ -21,9 +21,51 @@ fi
 
 echo "Deploying $TARGET_ENV environment..."
 
+# Start infrastructure services first (database, redis, keycloak, pgbouncer, volume-init)
+echo "Starting infrastructure services..."
+docker compose up -d volume-init database redis
+sleep 5
+
+echo "Waiting for database to be healthy..."
+ELAPSED=0
+while [ $ELAPSED -lt 120 ]; do
+  DB_HEALTHY=$(docker compose ps database --format json 2>/dev/null | jq -r '.Health // "unknown"' || echo "unknown")
+  if [ "$DB_HEALTHY" = "healthy" ]; then
+    echo "Database is healthy"
+    break
+  fi
+  sleep 5
+  ELAPSED=$((ELAPSED + 5))
+done
+
+echo "Starting keycloak and pgbouncer..."
+docker compose up -d keycloak pgbouncer
+
+echo "Waiting for keycloak to be healthy..."
+ELAPSED=0
+while [ $ELAPSED -lt 180 ]; do
+  KC_HEALTHY=$(docker compose ps keycloak --format json 2>/dev/null | jq -r '.Health // "unknown"' || echo "unknown")
+  if [ "$KC_HEALTHY" = "healthy" ]; then
+    echo "Keycloak is healthy"
+    break
+  fi
+  echo "Waiting for keycloak... (${ELAPSED}s/180s)"
+  sleep 10
+  ELAPSED=$((ELAPSED + 10))
+done
+
+if [ "$KC_HEALTHY" != "healthy" ]; then
+  echo "Keycloak failed to become healthy, checking logs..."
+  docker compose logs keycloak --tail 20 2>/dev/null || true
+  echo "Continuing anyway..."
+fi
+
+# Now start the server and docker-gen
+echo "Starting server-$TARGET_ENV and docker-gen..."
 docker compose up -d "server-$TARGET_ENV" docker-gen
 sleep 5
 
+# Wait for server to be healthy
 echo "Waiting for $TARGET_ENV services to be healthy..."
 ELAPSED=0
 
