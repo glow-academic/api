@@ -744,8 +744,8 @@ async def attempt_start_impl(
     session_id: str,
 ) -> None:
     """Create attempt via black boxes, then delegate to attempt_proceed."""
-    from app.infra.profile_identity_context import resolve_profile_identity_context
     from app.infra.attempt.client_types import AttemptStartPayload
+    from app.infra.profile_identity_context import resolve_profile_identity_context
     from app.tools.entries.attempt.create import create_attempt
     from app.tools.entries.attempt.refresh import refresh_attempt
     from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
@@ -1404,20 +1404,6 @@ async def attempt_proceed_impl(
                     session_id=session_id_uuid,
                 )
 
-        await emit(
-            [
-                internal_event(
-                    "attempt_chat_started",
-                    {
-                        "sid": sid,
-                        "attempt_id": str(attempt_id),
-                        "chat_id": str(attempt_chat_id),
-                        "rooms": [sid, f"attempt_{attempt_chat_id}"] if sid else None,
-                    },
-                )
-            ]
-        )
-
         if needs_generation:
             await emit_chat_generate_impl(
                 emit=emit,
@@ -1432,9 +1418,23 @@ async def attempt_proceed_impl(
                 attempt_chat_id=attempt_chat_id,
                 draft_id=draft_id,
                 resource_types=resource_types_to_generate,
-                chat_started_emitted=True,
             )
         else:
+            await emit(
+                [
+                    internal_event(
+                        "attempt_chat_started",
+                        {
+                            "sid": sid,
+                            "attempt_id": str(attempt_id),
+                            "chat_id": str(attempt_chat_id),
+                            "rooms": [sid, f"attempt_{attempt_chat_id}"]
+                            if sid
+                            else None,
+                        },
+                    )
+                ]
+            )
             async with pool.acquire() as conn:
                 await refresh_attempt(conn)
                 await refresh_attempt_chat(conn)

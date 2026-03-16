@@ -87,6 +87,13 @@ async def stream_litellm_events(
     )
 
     async for chunk in stream:
+        chunk_type_hint = None
+        if hasattr(chunk, "type"):
+            chunk_type_hint = chunk.type
+        elif isinstance(chunk, dict):
+            chunk_type_hint = chunk.get("type")
+        is_responses_chunk = bool(chunk_type_hint)
+
         # Check every chunk for usage
         # LiteLLM docs: final chunk has usage field with token stats, choices is empty array
         chunk_dict_for_usage_check = None
@@ -128,7 +135,7 @@ async def stream_litellm_events(
 
                 # Usage represents completion - emit message_complete with usage immediately
                 # This is centralized: usage = completion, regardless of when it arrives
-                if final_usage_data:
+                if final_usage_data and not is_responses_chunk:
                     # Get finish_reason from the last choice state if available
                     finish_reason = "stop"
                     if choices:
@@ -164,7 +171,7 @@ async def stream_litellm_events(
                     }
 
                 # Usage represents completion - emit message_complete with usage immediately
-                if final_usage_data:
+                if final_usage_data and not is_responses_chunk:
                     # Get finish_reason from the last choice state if available
                     finish_reason = "stop"
                     if choices:
@@ -202,6 +209,7 @@ async def stream_litellm_events(
                 # Track if response.completed was received (signals stream completion for Responses API)
                 if event.get("type") == "message_complete":
                     response_completed_received = True
+                    usage_event_emitted = True
                 yield event
             # For Responses API, break after response.completed (message_complete) is received
             # The stream may not properly signal completion, so we break manually
@@ -519,9 +527,10 @@ async def _parse_responses_chunk(
             }
         elif item_state.get("type") == "function_call":
             item_state["done"] = True
+            call_id = item_state.get("call_id") or item_id
             yield {
                 "type": "tool_call_complete",
-                "tool_call_id": item_id,
+                "tool_call_id": call_id,
                 "name": item_state.get("name"),
                 "arguments": item_state.get("arguments", ""),
             }

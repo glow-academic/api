@@ -23,25 +23,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from app.infra.events.store import build_event_cursor, read_artifact_events
-from app.infra.identity.middleware import require_auth
-from app.infra.globals import get_pool, get_redis_client
-from app.infra.stream.hub import subscribe as subscribe_live_events
-from app.infra.stream.hub import unsubscribe as unsubscribe_live_events
-from app.infra.stream.registry import EVENT_REGISTRY
-from app.infra.stream.session import get_joined_entities, get_session_profile
-
-# --- Socket types not yet modeled as artifact operations ----------------
-from app.infra.test.client_types import (
-    TestEndAllPayload,
-    TestGroupPayload,
-    TestJoinedEvent,
-    TestJoinPayload,
-    TestLeavePayload,
-    TestNextPayload,
-    TestRunDeltaEvent,
-    TestRunPayload,
-)
 from app.infra.attempt.client_types import (
     AttemptAssistantHintsEvent,
     AttemptAudioStopPayload,
@@ -57,7 +38,25 @@ from app.infra.attempt.client_types import (
     AttemptUserProgressEvent,
     AttemptUserStartEvent,
 )
+from app.infra.events.store import build_event_cursor, read_artifact_events
+from app.infra.globals import get_pool, get_redis_client
+from app.infra.identity.middleware import require_auth
 from app.infra.session.client_types import ConnectionConfirmedPayload
+from app.infra.stream.hub import subscribe as subscribe_live_events
+from app.infra.stream.hub import unsubscribe as unsubscribe_live_events
+from app.infra.stream.registry import EVENT_REGISTRY
+from app.infra.stream.session import get_joined_entities, get_session_profile
+from app.infra.stream.shared import resolve_subscription
+from app.infra.test.client_types import (
+    TestEndAllPayload,
+    TestGroupPayload,
+    TestJoinedEvent,
+    TestJoinPayload,
+    TestLeavePayload,
+    TestNextPayload,
+    TestRunDeltaEvent,
+    TestRunPayload,
+)
 from app.infra.websocket.generation_types import (
     GeneratePayload,
     GenerationCompleteEvent,
@@ -68,6 +67,7 @@ from app.infra.websocket.generation_types import (
     GenerationSavedEvent,
 )
 
+# --- Socket types not yet modeled as artifact operations ----------------
 router = APIRouter(
     prefix="/v5/stream",
     tags=["stream"],
@@ -82,7 +82,10 @@ router = APIRouter(
 @router.get("/")
 async def stream_events(
     http_request: Request,
-    sid: str = Query(...),
+    sid: str | None = Query(default=None),
+    artifact: str | None = Query(default=None),
+    operation: str | None = Query(default=None),
+    entity_id: UUID | None = Query(default=None),
     cursor: str | None = Query(default=None),
     types: list[str] | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
@@ -93,35 +96,78 @@ async def stream_events(
     entities via POST /v5/attempt/join or POST /v5/test/join.  Only events
     matching joined entities are delivered.
     """
-    profile_id: UUID | None = getattr(http_request.state, "profile_id", None)
-    if not profile_id:
+    profile_id_raw: UUID | str | None = getattr(http_request.state, "profile_id", None)
+    if not profile_id_raw:
         raise HTTPException(status_code=401, detail="Profile ID is required.")
 
-    profile_id = UUID(str(profile_id))
+    profile_id = UUID(str(profile_id_raw))
+    session_id_raw: UUID | str | None = getattr(http_request.state, "session_id", None)
+    session_id = UUID(str(session_id_raw)) if session_id_raw else None
 
-    # Validate session ownership
-    session_profile = await get_session_profile(sid)
-    if not session_profile or session_profile != profile_id:
-        raise HTTPException(status_code=403, detail="Session not found or not owned.")
+    historical_queries: list[tuple[str, str, UUID | None]] = []
+    live_subscriptions: list[tuple[str, str, UUID | None]] = []
 
-    # Resolve joined entities for this session
-    joined = await get_joined_entities(sid)
-    if not joined:
-        raise HTTPException(
-            status_code=400,
-            detail="No entities joined. Use /v5/attempt/join or /v5/test/join first.",
+    if artifact or operation or entity_id is not None:
+        if not artifact or not operation:
+            raise HTTPException(
+                status_code=400,
+                detail="artifact and operation are required for direct stream subscriptions.",
+            )
+
+        await resolve_subscription(
+            artifact=artifact,
+            operation=operation,
+            entity_id=entity_id,
+            profile_id=profile_id,
+            session_id=session_id,
+            event_types=types,
         )
+        historical_queries.append((artifact, operation, entity_id))
+        live_subscriptions.append((artifact, operation, entity_id))
+    else:
+        if not sid:
+            raise HTTPException(
+                status_code=400,
+                detail="sid is required when no artifact subscription is provided.",
+            )
 
-    # Subscribe to live events for each joined entity
+        # Validate session ownership
+        session_profile = await get_session_profile(sid)
+        if not session_profile or session_profile != profile_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Session not found or not owned.",
+            )
+
+        # Resolve joined entities for this session
+        joined = await get_joined_entities(sid)
+        if not joined:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "No entities joined. Use /v5/attempt/join or /v5/test/join first."
+                ),
+            )
+
+        for key in joined:
+            joined_artifact, entity_id_str = key.split(":", 1)
+            joined_entity_id = UUID(entity_id_str)
+            config = EVENT_REGISTRY.get(joined_artifact)
+            if not config:
+                continue
+            for joined_operation in config.operations:
+                historical_queries.append(
+                    (joined_artifact, joined_operation, joined_entity_id)
+                )
+            live_subscriptions.append((joined_artifact, "*", joined_entity_id))
+
     type_filter = set(types) if types else None
     queues = []
-    for key in joined:
-        artifact, entity_id_str = key.split(":", 1)
-        entity_id = UUID(entity_id_str)
+    for sub_artifact, sub_operation, sub_entity_id in live_subscriptions:
         queue = subscribe_live_events(
-            artifact=artifact,
-            operation="*",
-            entity_id=entity_id,
+            artifact=sub_artifact,
+            operation=sub_operation,
+            entity_id=sub_entity_id,
             event_types=types,
         )
         queues.append(queue)
@@ -134,24 +180,18 @@ async def stream_events(
                 all_events = []
                 pool = get_pool()
                 redis = get_redis_client()
-                for key in await get_joined_entities(sid):
-                    artifact, entity_id_str = key.split(":", 1)
-                    entity_id = UUID(entity_id_str)
-                    config = EVENT_REGISTRY.get(artifact)
-                    if not config:
-                        continue
-                    for operation in config.operations:
-                        events = await read_artifact_events(
-                            pool,
-                            redis,
-                            artifact=artifact,
-                            operation=operation,
-                            entity_id=entity_id,
-                            cursor=current_cursor,
-                            event_types=types,
-                            limit=limit,
-                        )
-                        all_events.extend(events)
+                for hist_artifact, hist_operation, hist_entity_id in historical_queries:
+                    events = await read_artifact_events(
+                        pool,
+                        redis,
+                        artifact=hist_artifact,
+                        operation=hist_operation,
+                        entity_id=hist_entity_id,
+                        cursor=current_cursor,
+                        event_types=types,
+                        limit=limit,
+                    )
+                    all_events.extend(events)
 
                 # Sort by created_at for consistent ordering
                 all_events.sort(key=lambda e: e.created_at)

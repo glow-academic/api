@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
 import pytest_asyncio
+from fastapi import HTTPException
 from starlette.requests import Request as StarletteRequest
 from tests.infra.route_helpers import create_admin_route_actor
 
-from app.infra.stream.types import EventEnvelope
 from app.infra.stream.emitter import emit_artifact_operation_events
 from app.infra.stream.registry import get_artifact_events_config
+from app.infra.stream.types import EventEnvelope
 from app.routes.stream import stream_events
 
 
@@ -80,6 +81,100 @@ def _build_stream_request(profile_id: UUID, session_id: UUID) -> StarletteReques
 
 @pytest.mark.asyncio
 class TestEventsRoutes:
+    async def test_stream_session_subscriptions_require_sid(self, events_route_actor):
+        request = _build_stream_request(
+            events_route_actor.profile_id,
+            events_route_actor.session_id,
+        )
+
+        with pytest.raises(HTTPException) as excinfo:
+            await stream_events(
+                request,
+                sid=None,
+                artifact=None,
+                operation=None,
+                entity_id=None,
+                cursor=None,
+                types=None,
+                limit=10,
+            )
+
+        assert excinfo.value.status_code == 400
+        assert "sid is required" in excinfo.value.detail
+
+    async def test_stream_session_subscriptions_reject_unowned_sid(
+        self,
+        monkeypatch,
+        events_route_actor,
+    ):
+        async def _get_session_profile(_sid: str):
+            return uuid4()
+
+        monkeypatch.setattr(
+            "app.routes.stream.get_session_profile",
+            _get_session_profile,
+        )
+
+        request = _build_stream_request(
+            events_route_actor.profile_id,
+            events_route_actor.session_id,
+        )
+
+        with pytest.raises(HTTPException) as excinfo:
+            await stream_events(
+                request,
+                sid="sid-1",
+                artifact=None,
+                operation=None,
+                entity_id=None,
+                cursor=None,
+                types=None,
+                limit=10,
+            )
+
+        assert excinfo.value.status_code == 403
+        assert "Session not found or not owned." == excinfo.value.detail
+
+    async def test_stream_session_subscriptions_require_joined_entities(
+        self,
+        monkeypatch,
+        events_route_actor,
+    ):
+        async def _get_session_profile(_sid: str):
+            return events_route_actor.profile_id
+
+        async def _get_joined_entities(_sid: str):
+            return []
+
+        monkeypatch.setattr(
+            "app.routes.stream.get_session_profile",
+            _get_session_profile,
+        )
+        monkeypatch.setattr(
+            "app.routes.stream.get_joined_entities",
+            _get_joined_entities,
+        )
+
+        request = _build_stream_request(
+            events_route_actor.profile_id,
+            events_route_actor.session_id,
+        )
+
+        with pytest.raises(HTTPException) as excinfo:
+            await stream_events(
+                request,
+                sid="sid-1",
+                artifact=None,
+                operation=None,
+                entity_id=None,
+                cursor=None,
+                types=None,
+                limit=10,
+            )
+
+        assert excinfo.value.status_code == 400
+        assert "No entities joined" in excinfo.value.detail
+
     async def test_stream_requires_entity_id_for_entity_scoped_operations(
         self,
         v5_events_route_client,
@@ -317,3 +412,87 @@ class TestEventsRoutes:
             "artifacts.persona.create.completed",
             "artifacts.persona.created",
         ]
+
+    async def test_stream_session_subscriptions_read_joined_history_and_skip_unknown_artifacts(
+        self,
+        monkeypatch,
+        pool,
+        redis_client,
+        events_route_actor,
+    ):
+        persona_id = await _create_persona_id(
+            pool,
+            redis_client,
+            events_route_actor.department_id,
+        )
+        expected_event = EventEnvelope(
+            id=f"{uuid4()}:completed",
+            event_type="artifacts.persona.get.completed",
+            artifact="persona",
+            operation="get",
+            created_at=datetime.now(UTC),
+            entity_id=persona_id,
+            call_id=uuid4(),
+            tool_id=uuid4(),
+            payload={"output": {"ok": True}},
+        )
+        read_calls: list[tuple[str, str, UUID | None]] = []
+
+        async def _get_session_profile(_sid: str):
+            return events_route_actor.profile_id
+
+        async def _get_joined_entities(_sid: str):
+            return [f"persona:{persona_id}", f"unknown:{uuid4()}"]
+
+        async def _read_artifact_events(
+            _pool,
+            _redis,
+            *,
+            artifact,
+            operation,
+            entity_id,
+            cursor,
+            event_types,
+            limit,
+        ):
+            read_calls.append((artifact, operation, entity_id))
+            if artifact == "persona" and operation == "get":
+                return [expected_event]
+            return []
+
+        monkeypatch.setattr(
+            "app.routes.stream.get_session_profile",
+            _get_session_profile,
+        )
+        monkeypatch.setattr(
+            "app.routes.stream.get_joined_entities",
+            _get_joined_entities,
+        )
+        monkeypatch.setattr(
+            "app.routes.stream.read_artifact_events",
+            _read_artifact_events,
+        )
+
+        request = _build_stream_request(
+            events_route_actor.profile_id,
+            events_route_actor.session_id,
+        )
+        response = await stream_events(
+            request,
+            sid="sid-1",
+            artifact=None,
+            operation=None,
+            entity_id=None,
+            cursor=None,
+            types=None,
+            limit=10,
+        )
+        events = await _collect_stream_events(
+            response,
+            stop_event="artifacts.persona.get.completed",
+            max_chunks=3,
+        )
+
+        assert events == ["artifacts.persona.get.completed"]
+        assert all(call[0] != "unknown" for call in read_calls)
+        assert any(call[0] == "persona" for call in read_calls)

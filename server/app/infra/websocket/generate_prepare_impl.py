@@ -205,6 +205,8 @@ async def generate_prepare_impl(
         artifact_config: ArtifactGenerateConfig from the registry for this artifact_type.
     """
     sid = data.get("sid", "")
+    if not sid:
+        return
 
     artifact_type = resolve_primary_artifact_type(data)
 

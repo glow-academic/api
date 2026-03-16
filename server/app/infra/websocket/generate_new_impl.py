@@ -29,6 +29,8 @@ async def generate_new_impl(
       profile_id, profiles_id, session_id, group_id, requests_per_day
     """
     sid = data.get("sid", "")
+    if not sid:
+        return
 
     artifact_types_raw = data.get("artifact_types") or []
     artifact_type = (

@@ -5,7 +5,11 @@ Usage:
     uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 """
 
-from app.server import app, fastapi_app  # noqa: F401
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from app.server import app, fastapi_app  # noqa: F401, E402
 
 if __name__ == "__main__":
     import uvicorn

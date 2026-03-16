@@ -16,6 +16,9 @@ from tests.helpers import nonexistent_id
 import app.infra.globals as globals_mod
 import app.infra.websocket.audio_lifecycle as audio_lifecycle
 from app.infra.websocket.attempt_events_impl import (
+    attempt_message_impl as _attempt_message_impl,
+)
+from app.infra.websocket.attempt_events_impl import (
     attempt_next_impl,
     audio_delta_impl,
     audio_error_impl,
@@ -94,10 +97,14 @@ from app.tools.entries.attempt_chat_bridge.create import (
 from app.tools.entries.attempt_chat_bridge.search import (
     search_attempt_chat_bridges,
 )
+from app.tools.entries.attempt_chat_completion.create import (
+    create_attempt_chat_completion,
+)
 from app.tools.entries.attempt_chat_completion.search import (
     search_attempt_chat_completions,
 )
 from app.tools.entries.attempt_content.search import search_attempt_contents
+from app.tools.entries.attempt_home.create import create_attempt_home
 from app.tools.entries.attempt_message.create import create_attempt_message
 from app.tools.entries.attempt_message.search import search_attempt_messages
 from app.tools.entries.attempt_message_completion.create import (
@@ -115,6 +122,10 @@ from app.tools.entries.chat.create import create_chat
 from app.tools.entries.chat.refresh import refresh_chat
 from app.tools.entries.groups.create import create_group
 from app.tools.entries.groups.get import get_groups
+from app.tools.entries.home.create import create_home
+from app.tools.entries.home.refresh import refresh_home
+from app.tools.entries.home_chat.create import create_home_chat
+from app.tools.entries.home_chat.refresh import refresh_home_chat
 from app.tools.entries.messages.create import create_message
 from app.tools.entries.messages.get import get_message
 from app.tools.entries.messages.search import search_messages
@@ -141,12 +152,16 @@ from app.tools.entries.tokens.refresh import refresh_tokens
 from app.tools.entries.tokens.search import search_tokens
 from app.tools.entries.uploads.get import get_upload
 from app.tools.resources.departments.create import create_department
+from app.tools.resources.documents.create import create_document
 from app.tools.resources.personas.create import (
     create_persona as create_persona_resource,
 )
 from app.tools.resources.profile_personas.create import create_profile_persona
 from app.tools.resources.profiles.create import create_profile
+from app.tools.resources.rubrics.create import create_rubric
 from app.tools.resources.simulations.create import create_simulation
+from app.tools.resources.standard_groups.create import create_standard_group
+from app.tools.resources.standards.create import create_standard
 
 _P = "app.infra.websocket.attempt_events_impl"
 
@@ -1925,6 +1940,269 @@ class TestSpeechCompleteImpl:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# attempt_message_impl
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+class TestAttemptMessageImpl:
+    async def _setup_attempt_message_graph(
+        self,
+        pool,
+        redis_client,
+        profile_identity_factory,
+        *,
+        with_department: bool,
+    ):
+        fixture = await profile_identity_factory()
+
+        async with pool.acquire() as conn:
+            session = await create_session(conn, profile_id=fixture.profile_resource_id)
+            group = await create_group(conn, session_id=session.id)
+            base_run = await create_run(
+                conn,
+                group_id=group.id,
+                session_id=session.id,
+                profiles_id=fixture.profile_resource_id,
+            )
+            call = await create_call(
+                conn,
+                run_id=base_run.id,
+                session_id=session.id,
+            )
+            persona = await create_persona(conn, session_id=session.id)
+            attempt = await create_attempt(
+                conn,
+                call_id=call.id,
+                user_persona_id=persona.id,
+                profiles_id=fixture.profile_resource_id,
+                practice=with_department,
+            )
+            department = (
+                await create_department(conn, redis=redis_client)
+                if with_department
+                else None
+            )
+            chat = await create_chat(
+                conn,
+                session_id=session.id,
+                department_ids=[department.id] if department else [],
+            )
+            attempt_chat_call = await create_call(
+                conn,
+                run_id=base_run.id,
+                session_id=session.id,
+            )
+            attempt_chat = await create_attempt_chat(
+                conn,
+                call_id=attempt_chat_call.id,
+                group_id=group.id,
+                chat_id=chat.id,
+                departments_ids=[department.id] if department else None,
+            )
+            await create_attempt_chat_bridge(
+                conn,
+                attempt_id=attempt.id,
+                attempt_chat_id=attempt_chat.id,
+                session_id=session.id,
+            )
+            practice = None
+            if department is not None:
+                practice = await create_practice(
+                    conn,
+                    session_id=session.id,
+                    cohorts_ids=[],
+                    departments_ids=[department.id],
+                    simulations_ids=[],
+                    profiles_ids=[fixture.profile_resource_id],
+                    profile_personas_ids=[],
+                    simulation_availability_ids=[],
+                    simulation_positions_ids=[],
+                )
+                await create_practice_chat(
+                    conn,
+                    practice_id=practice.id,
+                    chat_id=chat.id,
+                    session_id=session.id,
+                )
+                await create_attempt_practice(
+                    conn,
+                    attempt_id=attempt.id,
+                    practice_id=practice.id,
+                    session_id=session.id,
+                )
+
+        return SimpleNamespace(
+            fixture=fixture,
+            session=session,
+            group=group,
+            base_run=base_run,
+            attempt=attempt,
+            chat=chat,
+            department=department,
+            practice=practice,
+            attempt_chat=attempt_chat,
+        )
+
+    async def test_invalid_payload_returns_early(self):
+        emit, events = recording_emit()
+
+        await _attempt_message_impl(
+            {
+                "sid": "s1",
+                "attempt_id": "",
+                "chat_id": "",
+                "message": "   ",
+            },
+            emit=emit,
+            pool=object(),
+            profile_id="019b3be4-36f0-788c-9df2-481eb5917941",
+            session_id="019b3be4-36f0-788c-9df2-481eb5917942",
+        )
+
+        assert events == []
+
+    async def test_without_run_id_creates_run_persists_message_and_emits_generate(
+        self,
+        pool,
+        redis_client,
+        profile_identity_factory,
+    ):
+        graph = await self._setup_attempt_message_graph(
+            pool,
+            redis_client,
+            profile_identity_factory,
+            with_department=True,
+        )
+        async with pool.acquire() as conn:
+            attempt_chats, _ = await search_attempt_chats(
+                conn,
+                attempt_chat_ids=[graph.attempt_chat.id],
+                bypass_mv=True,
+                limit=10,
+            )
+
+        assert len(attempt_chats) == 1
+        assert attempt_chats[0].chat_entry_id == graph.chat.id
+        assert attempt_chats[0].department_id == graph.department.id
+
+        emit, events = recording_emit()
+        await _attempt_message_impl(
+            {
+                "sid": "s1",
+                "attempt_id": str(graph.attempt.id),
+                "chat_id": str(graph.attempt_chat.id),
+                "message": "  hello from attempt message  ",
+            },
+            emit=emit,
+            pool=pool,
+            redis=redis_client,
+            profile_id=str(graph.fixture.artifact_id),
+            session_id=str(graph.session.id),
+        )
+
+        assert [event.event for event in events] == [
+            "attempt_user_start",
+            "attempt_user_complete",
+            "generate",
+        ]
+        assert events[1].data["content"] == "hello from attempt message"
+        assert events[2].data["user_instructions"] == ["hello from attempt message"]
+        assert events[2].data["metadata"]["attempt_id"] == str(graph.attempt.id)
+        assert events[2].data["metadata"]["attempt_chat_id"] == str(graph.attempt_chat.id)
+
+        message_id = UUID(events[0].data["message_id"])
+        generated_group_id = UUID(events[2].data["group_id"])
+        generated_run_id = UUID(events[2].data["run_id"])
+
+        async with pool.acquire() as conn:
+            message = await get_message(conn, message_id)
+            content_rows = await search_attempt_contents(
+                conn,
+                message_ids=[message_id],
+                bypass_mv=True,
+                limit=10,
+            )
+            completion_rows = await search_attempt_message_completions(
+                conn,
+                attempt_message_ids=[message_id],
+                bypass_mv=True,
+                limit=10,
+            )
+            generated_run = await get_run(conn, generated_run_id)
+            created_run = await get_run(conn, message.run_id)
+
+        assert message is not None
+        assert message.run_id != graph.base_run.id
+        assert created_run is not None
+        assert created_run.session_id == graph.session.id
+        assert len(content_rows) == 1
+        assert content_rows[0].content == "hello from attempt message"
+        assert len(completion_rows) == 1
+        assert completion_rows[0].attempt_message_id == message_id
+        assert generated_run is not None
+        assert generated_run.group_id == generated_group_id
+        assert generated_run.session_id == graph.session.id
+
+    async def test_with_existing_run_id_persists_message_without_generation_when_no_department(
+        self,
+        pool,
+        redis_client,
+        profile_identity_factory,
+    ):
+        graph = await self._setup_attempt_message_graph(
+            pool,
+            redis_client,
+            profile_identity_factory,
+            with_department=False,
+        )
+
+        emit, events = recording_emit()
+        await _attempt_message_impl(
+            {
+                "sid": "s1",
+                "attempt_id": str(graph.attempt.id),
+                "chat_id": str(graph.attempt_chat.id),
+                "run_id": str(graph.base_run.id),
+                "message": "message without generation",
+            },
+            emit=emit,
+            pool=pool,
+            redis=redis_client,
+            profile_id=str(graph.fixture.artifact_id),
+            session_id=str(graph.session.id),
+        )
+
+        assert [event.event for event in events] == [
+            "attempt_user_start",
+            "attempt_user_complete",
+        ]
+
+        message_id = UUID(events[0].data["message_id"])
+        async with pool.acquire() as conn:
+            message = await get_message(conn, message_id)
+            content_rows = await search_attempt_contents(
+                conn,
+                message_ids=[message_id],
+                bypass_mv=True,
+                limit=10,
+            )
+            completion_rows = await search_attempt_message_completions(
+                conn,
+                attempt_message_ids=[message_id],
+                bypass_mv=True,
+                limit=10,
+            )
+
+        assert message is not None
+        assert message.run_id == graph.base_run.id
+        assert len(content_rows) == 1
+        assert content_rows[0].content == "message without generation"
+        assert len(completion_rows) == 1
+        assert completion_rows[0].attempt_message_id == message_id
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # attempt_start_impl
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -2064,6 +2342,89 @@ class TestAttemptStartImpl:
         assert len(attempts) == 1
         assert attempts[0].profile_id == fixture.profile_resource_id
         assert attempts[0].practice is True
+        assert attempts[0].num_chats == 2
+
+    async def test_happy_path_home_emits_proceed(
+        self,
+        pool,
+        redis_client,
+        profile_identity_factory,
+    ):
+        fixture = await profile_identity_factory()
+
+        async with pool.acquire() as conn:
+            session = await create_session(conn, profile_id=fixture.profile_resource_id)
+            group = await create_group(conn, session_id=session.id)
+            persona_resource = await create_persona_resource(
+                conn,
+                redis_client,
+                name="attempt-start-home-persona",
+            )
+            profile_persona = await create_profile_persona(
+                conn,
+                profile_id=fixture.profile_resource_id,
+                persona_id=persona_resource.id,
+                redis=redis_client,
+            )
+            simulation = await create_simulation(
+                conn,
+                redis_client,
+                name="Attempt Start Home Sim",
+                description="Attempt Start Home Description",
+            )
+            home = await create_home(
+                conn,
+                session_id=session.id,
+                cohorts_ids=[],
+                departments_ids=[],
+                simulations_ids=[simulation.id],
+                profiles_ids=[fixture.profile_resource_id],
+                profile_personas_ids=[profile_persona.id],
+                simulation_availability_ids=[],
+                simulation_positions_ids=[],
+            )
+            chat_one = await create_chat(conn, session_id=session.id)
+            chat_two = await create_chat(conn, session_id=session.id)
+            await create_home_chat(
+                conn,
+                home_id=home.id,
+                chat_id=chat_one.id,
+                session_id=session.id,
+            )
+            await create_home_chat(
+                conn,
+                home_id=home.id,
+                chat_id=chat_two.id,
+                session_id=session.id,
+            )
+            await refresh_home_chat(conn)
+            await refresh_home(conn)
+            await refresh_attempt(conn)
+
+        emit, events = recording_emit()
+        await _attempt_start_impl(
+            {
+                "sid": "s1",
+                "home_id": str(home.id),
+                "group_id": str(group.id),
+            },
+            emit=emit,
+            pool=pool,
+            redis=redis_client,
+            profile_id=str(fixture.artifact_id),
+            session_id=str(session.id),
+        )
+
+        assert len(events) == 1
+        assert events[0].event == "attempt_proceed"
+        attempt_id = UUID(events[0].data["attempt_id"])
+
+        async with pool.acquire() as conn:
+            attempts = await get_attempts(conn, [attempt_id])
+
+        assert len(attempts) == 1
+        assert attempts[0].profile_id == fixture.profile_resource_id
+        assert attempts[0].practice is False
         assert attempts[0].num_chats == 2
 
     async def test_error_emits_attempt_error(
@@ -2510,6 +2871,7 @@ class TestAttemptProceedImpl:
         assert len(events) == 1
         assert events[0].event == "generate"
         assert events[0].data["resource_types"] == ["personas"]
+        assert events[0].data["metadata"]["chat_started_emitted"] is False
         generated_attempt_chat_id = UUID(events[0].data["metadata"]["attempt_chat_id"])
         async with pool.acquire() as conn:
             bridges = await search_attempt_chat_bridges(
@@ -2571,3 +2933,383 @@ class TestAttemptProceedImpl:
         assert len(events) == 1
         assert events[0].event == "attempt_error"
         assert events[0].data["error_type"] == "proceed"
+
+    async def test_complete_all_ignores_duplicate_chat_completions(
+        self,
+        pool,
+        attempt_chat_factory,
+    ):
+        graph = await attempt_chat_factory()
+        async with pool.acquire() as conn:
+            completion_call = await create_call(
+                conn,
+                run_id=graph.run.id,
+                session_id=graph.session.id,
+            )
+            await create_attempt_chat_completion(
+                conn,
+                chat_id=graph.attempt_chat.id,
+                call_id=completion_call.id,
+            )
+
+        emit, events = recording_emit()
+        await _attempt_proceed_impl(
+            {
+                "sid": "s1",
+                "attempt_id": str(graph.attempt.id),
+                "group_id": str(graph.group.id),
+                "completed_chat_id": str(graph.attempt_chat.id),
+                "complete_all": True,
+            },
+            emit=emit,
+            pool=pool,
+            profile_id=str(graph.profile.id),
+            session_id=str(graph.session.id),
+            profiles_id=graph.profile.id,
+        )
+
+        assert len(events) == 1
+        assert events[0].event == "attempt_ended"
+        assert events[0].data["all_scenarios_complete"] is True
+
+    async def test_missing_home_link_emits_attempt_error(self, pool, redis_client):
+        async with pool.acquire() as conn:
+            profile = await create_profile(conn, redis_client)
+            session = await create_session(conn, profile_id=profile.id)
+            group = await create_group(conn, session_id=session.id)
+            run = await create_run(
+                conn,
+                group_id=group.id,
+                session_id=session.id,
+                profiles_id=profile.id,
+            )
+            attempt_call = await create_call(
+                conn,
+                run_id=run.id,
+                session_id=session.id,
+            )
+            persona = await create_persona(conn, session_id=session.id)
+            attempt = await create_attempt(
+                conn,
+                call_id=attempt_call.id,
+                user_persona_id=persona.id,
+                profiles_id=profile.id,
+                practice=False,
+            )
+            await refresh_attempt(conn)
+
+        emit, events = recording_emit()
+        await _attempt_proceed_impl(
+            {
+                "sid": "s1",
+                "attempt_id": str(attempt.id),
+                "group_id": str(group.id),
+            },
+            emit=emit,
+            pool=pool,
+            profile_id=str(profile.id),
+            session_id=str(session.id),
+            profiles_id=profile.id,
+        )
+
+        assert len(events) == 1
+        assert events[0].event == "attempt_error"
+        assert events[0].data["message"] == "Failed to proceed: No home link for this attempt"
+
+    async def test_no_department_emits_attempt_error(self, pool, redis_client):
+        async with pool.acquire() as conn:
+            profile = await create_profile(conn, redis_client)
+            session = await create_session(conn, profile_id=profile.id)
+            group = await create_group(conn, session_id=session.id)
+            run = await create_run(
+                conn,
+                group_id=group.id,
+                session_id=session.id,
+                profiles_id=profile.id,
+            )
+            attempt_call = await create_call(conn, run_id=run.id, session_id=session.id)
+            persona = await create_persona(conn, session_id=session.id)
+            attempt = await create_attempt(
+                conn,
+                call_id=attempt_call.id,
+                user_persona_id=persona.id,
+                profiles_id=profile.id,
+                practice=True,
+                num_chats=1,
+            )
+            practice = await create_practice(
+                conn,
+                session_id=session.id,
+                cohorts_ids=[],
+                departments_ids=[],
+                simulations_ids=[],
+                profiles_ids=[profile.id],
+                profile_personas_ids=[],
+                simulation_availability_ids=[],
+                simulation_positions_ids=[],
+            )
+            parent_chat = await create_chat(
+                conn,
+                session_id=session.id,
+                department_ids=[],
+            )
+            await create_practice_chat(
+                conn,
+                practice_id=practice.id,
+                chat_id=parent_chat.id,
+                session_id=session.id,
+            )
+            await create_attempt_practice(
+                conn,
+                attempt_id=attempt.id,
+                practice_id=practice.id,
+                session_id=session.id,
+            )
+            await refresh_chat(conn)
+            await refresh_attempt(conn)
+
+        emit, events = recording_emit()
+        await _attempt_proceed_impl(
+            {
+                "sid": "s1",
+                "attempt_id": str(attempt.id),
+                "group_id": str(group.id),
+            },
+            emit=emit,
+            pool=pool,
+            profile_id=str(profile.id),
+            session_id=str(session.id),
+            profiles_id=profile.id,
+        )
+
+        assert len(events) == 1
+        assert events[0].event == "attempt_error"
+        assert events[0].data["message"] == "No department could be resolved for this chat"
+
+    async def test_home_attempt_emits_chat_started(self, pool, redis_client):
+        async with pool.acquire() as conn:
+            profile = await create_profile(conn, redis_client)
+            session = await create_session(conn, profile_id=profile.id)
+            group = await create_group(conn, session_id=session.id)
+            run = await create_run(
+                conn,
+                group_id=group.id,
+                session_id=session.id,
+                profiles_id=profile.id,
+            )
+            attempt_call = await create_call(conn, run_id=run.id, session_id=session.id)
+            persona = await create_persona(conn, session_id=session.id)
+            attempt = await create_attempt(
+                conn,
+                call_id=attempt_call.id,
+                user_persona_id=persona.id,
+                profiles_id=profile.id,
+                practice=False,
+                num_chats=1,
+            )
+            department = await create_department(conn, redis=redis_client)
+            home = await create_home(
+                conn,
+                session_id=session.id,
+                cohorts_ids=[],
+                departments_ids=[department.id],
+                simulations_ids=[],
+                profiles_ids=[profile.id],
+                profile_personas_ids=[],
+                simulation_availability_ids=[],
+                simulation_positions_ids=[],
+            )
+            parent_chat = await create_chat(
+                conn,
+                session_id=session.id,
+                department_ids=[department.id],
+            )
+            await create_home_chat(
+                conn,
+                home_id=home.id,
+                chat_id=parent_chat.id,
+                session_id=session.id,
+            )
+            await create_attempt_home(
+                conn,
+                attempt_id=attempt.id,
+                home_id=home.id,
+                session_id=session.id,
+            )
+            await refresh_chat(conn)
+            await refresh_attempt(conn)
+
+        emit, events = recording_emit()
+        await _attempt_proceed_impl(
+            {
+                "sid": "s1",
+                "attempt_id": str(attempt.id),
+                "group_id": str(group.id),
+            },
+            emit=emit,
+            pool=pool,
+            profile_id=str(profile.id),
+            session_id=str(session.id),
+            profiles_id=profile.id,
+        )
+
+        assert len(events) == 1
+        assert events[0].event == "attempt_chat_started"
+
+    async def test_attempt_department_fallback_generates_when_chat_has_no_department(
+        self,
+        pool,
+        redis_client,
+    ):
+        async with pool.acquire() as conn:
+            profile = await create_profile(conn, redis_client)
+            session = await create_session(conn, profile_id=profile.id)
+            group = await create_group(conn, session_id=session.id)
+            run = await create_run(
+                conn,
+                group_id=group.id,
+                session_id=session.id,
+                profiles_id=profile.id,
+            )
+            attempt_call = await create_call(conn, run_id=run.id, session_id=session.id)
+            persona = await create_persona(conn, session_id=session.id)
+            attempt = await create_attempt(
+                conn,
+                call_id=attempt_call.id,
+                user_persona_id=persona.id,
+                profiles_id=profile.id,
+                practice=True,
+                num_chats=1,
+            )
+            department = await create_department(conn, redis=redis_client)
+            practice = await create_practice(
+                conn,
+                session_id=session.id,
+                cohorts_ids=[],
+                departments_ids=[department.id],
+                simulations_ids=[],
+                profiles_ids=[profile.id],
+                profile_personas_ids=[],
+                simulation_availability_ids=[],
+                simulation_positions_ids=[],
+            )
+            parent_chat = await create_chat(
+                conn,
+                session_id=session.id,
+                department_ids=[],
+                generate_personas=True,
+            )
+            await create_practice_chat(
+                conn,
+                practice_id=practice.id,
+                chat_id=parent_chat.id,
+                session_id=session.id,
+            )
+            await create_attempt_practice(
+                conn,
+                attempt_id=attempt.id,
+                practice_id=practice.id,
+                session_id=session.id,
+            )
+            await refresh_chat(conn)
+            await refresh_attempt(conn)
+
+        emit, events = recording_emit()
+        await _attempt_proceed_impl(
+            {
+                "sid": "s1",
+                "attempt_id": str(attempt.id),
+                "group_id": str(group.id),
+            },
+            emit=emit,
+            pool=pool,
+            profile_id=str(profile.id),
+            session_id=str(session.id),
+            profiles_id=profile.id,
+        )
+
+        assert len(events) == 1
+        assert events[0].event == "generate"
+        assert events[0].data["resource_types"] == ["personas"]
+        generated_attempt_chat_id = UUID(events[0].data["metadata"]["attempt_chat_id"])
+        async with pool.acquire() as conn:
+            attempt_chats, _ = await search_attempt_chats(
+                conn,
+                attempt_chat_ids=[generated_attempt_chat_id],
+                bypass_mv=True,
+                limit=10,
+            )
+
+        assert len(attempt_chats) == 1
+        assert attempt_chats[0].department_id == department.id
+
+    async def test_copies_parent_chat_resources_into_attempt_chat(
+        self,
+        pool,
+        redis_client,
+    ):
+        async with pool.acquire() as conn:
+            rubric = await create_rubric(conn, redis_client, name="attempt-rubric")
+            standard_group = await create_standard_group(
+                conn,
+                "Attempt Group",
+                "AG",
+                "attempt group",
+                10,
+                5,
+                redis_client,
+            )
+            standard = await create_standard(
+                conn,
+                "Attempt Standard",
+                "attempt standard",
+                10,
+                standard_group.id,
+                redis_client,
+            )
+            document = await create_document(
+                conn,
+                redis_client,
+                name="attempt document resource",
+            )
+            graph = await self._setup_practice_attempt(
+                conn,
+                redis_client,
+                parent_chat_overrides={
+                    "rubric_ids": [rubric.id],
+                    "standard_ids": [standard.id],
+                    "standard_group_ids": [standard_group.id],
+                    "document_ids": [document.id],
+                },
+            )
+
+        emit, events = recording_emit()
+        await _attempt_proceed_impl(
+            {
+                "sid": "s1",
+                "attempt_id": str(graph.attempt.id),
+                "group_id": str(graph.group.id),
+            },
+            emit=emit,
+            pool=pool,
+            profile_id=str(graph.profile.id),
+            session_id=str(graph.session.id),
+            profiles_id=graph.profile.id,
+        )
+
+        assert len(events) == 1
+        assert events[0].event == "attempt_chat_started"
+        generated_attempt_chat_id = UUID(events[0].data["chat_id"])
+        async with pool.acquire() as conn:
+            attempt_chats, _ = await search_attempt_chats(
+                conn,
+                attempt_chat_ids=[generated_attempt_chat_id],
+                bypass_mv=True,
+                limit=10,
+            )
+
+        assert len(attempt_chats) == 1
+        assert attempt_chats[0].rubric_id == rubric.id
+        assert attempt_chats[0].standard_ids == [standard.id]
+        assert attempt_chats[0].standard_group_ids == [standard_group.id]
+        assert attempt_chats[0].document_ids == [document.id]

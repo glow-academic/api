@@ -490,6 +490,129 @@ async def test_responses_stream_supports_object_style_chunks() -> None:
 
 
 @pytest.mark.asyncio
+async def test_responses_stream_top_level_usage_emits_single_completion_event() -> None:
+    events = await _collect_events(
+        [
+            {
+                "type": "response.output_item.added",
+                "item": {
+                    "id": "text_1",
+                    "type": "text",
+                },
+            },
+            {
+                "type": "response.output_text.delta",
+                "item_id": "text_1",
+                "delta": "Hello from top-level usage",
+            },
+            {
+                "type": "response.completed",
+                "usage": {
+                    "input_tokens": 3,
+                    "output_tokens": 2,
+                },
+            },
+        ]
+    )
+
+    message_complete_events = [
+        event for event in events if event["type"] == "message_complete"
+    ]
+
+    assert message_complete_events == [
+        {
+            "type": "message_complete",
+            "finish_reason": "stop",
+            "usage": {
+                "prompt_tokens": 3,
+                "completion_tokens": 2,
+            },
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_responses_stream_uses_chunk_level_item_id_for_added_items() -> None:
+    events = await _collect_events(
+        [
+            {
+                "type": "response.output_item.added",
+                "item_id": "text_1",
+                "item": {
+                    "type": "text",
+                },
+            },
+            {
+                "type": "response.output_text.delta",
+                "item_id": "text_1",
+                "delta": "chunk level id",
+            },
+        ]
+    )
+
+    assert events == [
+        {"type": "text_start"},
+        {"type": "text_delta", "delta": "chunk level id"},
+        {"type": "text_complete", "text": "chunk level id"},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_responses_stream_creates_missing_text_item_from_delta_item_id() -> None:
+    events = await _collect_events(
+        [
+            {
+                "type": "response.output_text.delta",
+                "item_id": "text_1",
+                "delta": "late text",
+            }
+        ]
+    )
+
+    assert events == [
+        {"type": "text_start"},
+        {"type": "text_delta", "delta": "late text"},
+        {"type": "text_complete", "text": "late text"},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_completions_stream_reads_direct_usage_dict_and_finish_reason() -> None:
+    events = await _collect_events(
+        [
+            {
+                "choices": [
+                    {
+                        "index": 0,
+                        "delta": {"content": "Hi"},
+                        "finish_reason": "length",
+                    }
+                ]
+            },
+            SimpleNamespace(
+                usage={"input_tokens": 4, "output_tokens": 2},
+            ),
+        ]
+    )
+
+    message_complete_events = [
+        event for event in events if event["type"] == "message_complete"
+    ]
+
+    assert message_complete_events == [
+        {
+            "type": "message_complete",
+            "choice_index": 0,
+            "finish_reason": "length",
+            "usage": {
+                "prompt_tokens": 4,
+                "completion_tokens": 2,
+            },
+        }
+    ]
+
+
+@pytest.mark.asyncio
 async def test_responses_stream_legacy_output_item_done_completes_text() -> None:
     events = await _collect_events(
         [
@@ -558,6 +681,52 @@ async def test_responses_stream_legacy_output_item_done_completes_function_call(
         {
             "type": "tool_call_complete",
             "tool_call_id": "tool_legacy",
+            "name": "lookup_user",
+            "arguments": '{"user_id":"42"}',
+        },
+    ]
+
+
+@pytest.mark.asyncio
+async def test_responses_stream_legacy_output_item_done_prefers_call_id() -> None:
+    events = await _collect_events(
+        [
+            {
+                "type": "response.output_item.added",
+                "item": {
+                    "id": "tool_legacy",
+                    "type": "function_call",
+                    "name": "lookup_user",
+                    "call_id": "call_legacy",
+                },
+            },
+            {
+                "type": "response.function_call_arguments.delta",
+                "item_id": "tool_legacy",
+                "delta": '{"user_id":"42"}',
+            },
+            {
+                "type": "response.output_item.done",
+                "item_id": "tool_legacy",
+            },
+        ]
+    )
+
+    assert events == [
+        {
+            "type": "tool_call_start",
+            "tool_call_id": "tool_legacy",
+            "tool_name": "lookup_user",
+        },
+        {
+            "type": "tool_call_delta",
+            "tool_call_id": "tool_legacy",
+            "delta": '{"user_id":"42"}',
+            "tool_name": "lookup_user",
+        },
+        {
+            "type": "tool_call_complete",
+            "tool_call_id": "call_legacy",
             "name": "lookup_user",
             "arguments": '{"user_id":"42"}',
         },

@@ -1,4 +1,4 @@
-.PHONY: help setup install clean format lint typecheck run test test-cov cleanup generate-tests stop install-client restore-db migrate-db migrate-db-only migrate-db-all connect-db fresh-db typecheck-client build-client openapi-gen gen-client-types configure deploy deploy-clean seed-gen
+.PHONY: help setup install clean format lint typecheck run test test-cov cleanup generate-tests stop restore-db migrate-db migrate-db-only migrate-db-all connect-db fresh-db openapi-gen configure deploy deploy-clean seed-gen
 
 # Default Python interpreter
 PYTHON := python3.11
@@ -9,7 +9,6 @@ VENV_PIP := $(VENV_BIN)/pip
 
 # Service ports
 SERVER_PORT := 8000
-CLIENT_PORT := 3000
 REDIS_PORT := 6380
 DATABASE_PORT := 5432
 KEYCLOAK_PORT := 8080
@@ -130,18 +129,6 @@ test-cov: check-venv
 	fi
 	@echo "✅ Coverage report generated at server/htmlcov/index.html"
 
-# Run client typecheck
-typecheck-client:
-	@echo "Running client typecheck..."
-	@cd client && yarn typecheck
-	@echo "✅ Client typecheck complete"
-
-# Build client for production
-build-client:
-	@echo "Building client for production..."
-	@cd client && yarn build
-	@echo "✅ Client build complete"
-
 # Generate OpenAPI schema manually
 openapi-gen: check-venv
 	@echo "📝 Generating OpenAPI schema..."
@@ -153,25 +140,17 @@ p = pathlib.Path('openapi.json'); \
 p.write_text(json.dumps(get_openapi(title=fastapi_app.title, version='0.1.0', routes=fastapi_app.routes, description='Auto-generated OpenAPI schema'), indent=2)); \
 print('✅ openapi.json written to', p.resolve())"
 
-# Generate client TypeScript types from OpenAPI
-gen-client-types:
-	@echo "📝 Generating client TypeScript types from OpenAPI..."
-	@cd client && yarn gen:types
-	@echo "✅ Client types updated in lib/api/schema.ts"
-
-
 # Start all services in foreground with combined logs
 run: check-venv
-	@echo "🚀 Starting all GLOW services..."
+	@echo "🚀 Starting GLOW API services..."
 	@echo "  Redis:    localhost:$(REDIS_PORT)"
 	@echo "  Server:   http://localhost:$(SERVER_PORT)"
-	@echo "  Client:   http://localhost:$(CLIENT_PORT)"
 	@echo "  Database: localhost:$(DATABASE_PORT)"
 	@echo "  Keycloak: http://localhost:$(KEYCLOAK_PORT)"
 	@echo ""
 	@echo "Press Ctrl+C to stop all services"
 	@echo "----------------------------------------"
-	@trap 'echo ""; echo "🛑 Stopping all services..."; pkill -f "redis-server.*$(REDIS_PORT)" 2>/dev/null || true; pkill -f "uvicorn.*$(SERVER_PORT)" 2>/dev/null || true; pkill -f "next dev" 2>/dev/null || true; pkill -f "chokidar.*openapi.json" 2>/dev/null || true; pkill -f "chokidar.*sql" 2>/dev/null || true; pkill -f "stream-logs.js" 2>/dev/null || true; pkill -f "docker logs.*glow-keycloak" 2>/dev/null || true; docker stop glow-keycloak 2>/dev/null; docker rm glow-keycloak 2>/dev/null; echo "✅ All services stopped"; exit 0' INT; \
+	@trap 'echo ""; echo "🛑 Stopping all services..."; pkill -f "redis-server.*$(REDIS_PORT)" 2>/dev/null || true; pkill -f "uvicorn.*$(SERVER_PORT)" 2>/dev/null || true; pkill -f "stream-logs.js" 2>/dev/null || true; pkill -f "docker logs.*glow-keycloak" 2>/dev/null || true; docker stop glow-keycloak 2>/dev/null; docker rm glow-keycloak 2>/dev/null; echo "✅ All services stopped"; exit 0' INT; \
 	exec 2>/dev/null; \
 	if docker ps --filter name=glow-keycloak --format "{{.Names}}" | grep -q "^glow-keycloak$$"; then \
 		echo "✅ Keycloak already running, attaching to logs..."; \
@@ -185,7 +164,6 @@ run: check-venv
 		echo "🚀 Creating new Keycloak container..."; \
 		DB_USER=$${DB_USER:-myuser}; \
 		DB_PASSWORD=$${DB_PASSWORD:-mypassword}; \
-		CLIENT_PORT=$${CLIENT_PORT:-3000}; \
 		APP_PREFIX=$${APP_PREFIX:-}; \
 		docker run -d --name glow-keycloak -p $(KEYCLOAK_PORT):8080 \
 			-v "$(PWD)/uploads/themes:/opt/keycloak/themes:ro" \
@@ -217,9 +195,6 @@ run: check-venv
 	done; \
 	(cd server && redis-server --port $(REDIS_PORT) --dir . --dbfilename dump.rdb 2>&1 | while IFS= read -r line; do echo "$$(printf '\033[0;31m[REDIS]\033[0m %s' "$$line")"; done) & \
 	(cd server && ( $(PWD)/$(VENV_PYTHON) -m uvicorn app.main:app --reload --host 0.0.0.0 --port $(SERVER_PORT) --reload-exclude server/openapi.json --reload-exclude 'app/sql/types.py' --reload-exclude 'tests/sql/types.py') 2>&1 | while IFS= read -r line; do echo "$$(printf '\033[0;32m[SERVER]\033[0m %s' "$$line")"; done) & \
-	(cd client && yarn watch:openapi 2>&1 | while IFS= read -r line; do echo "$$(printf '\033[0;36m[OPENAPI]\033[0m %s' "$$line")"; done) & \
-	(cd client && yarn watch:sql-types 2>&1 | while IFS= read -r line; do echo "$$(printf '\033[0;36m[SQL-TYPES]\033[0m %s' "$$line")"; done) & \
-	(cd client && APP_PREFIX=$${APP_PREFIX:-}; KEYCLOAK_PUBLIC_URL=http://localhost:8080/auth NEXT_PUBLIC_KEYCLOAK_URL=http://localhost:8080/auth NODE_OPTIONS='--dns-result-order=ipv4first' yarn dev 2>&1 | while IFS= read -r line; do echo "$$(printf '\033[0;35m[CLIENT]\033[0m %s' "$$line")"; done) & \
 	(cd database && READS=1 MIN_MS=0 SAMPLE_MS=150 DEBUG_READS=1 yarn logs 2>&1 | while IFS= read -r line; do echo "$$(printf '\033[0;33m[DATABASE]\033[0m %s' "$$line")"; done) & \
 	wait
 
@@ -238,16 +213,8 @@ stop:
 	else \
 		echo "⚠️  No process found on port $(SERVER_PORT)"; \
 	fi
-	@echo "Stopping Client on port $(CLIENT_PORT)..."
-	@if lsof -ti:$(CLIENT_PORT) >/dev/null 2>&1; then \
-		kill -9 $$(lsof -ti:$(CLIENT_PORT)) 2>/dev/null && echo "✅ Client stopped" || echo "⚠️  Client process not found"; \
-	else \
-		echo "⚠️  No process found on port $(CLIENT_PORT)"; \
-	fi
 	@echo "Stopping Database logs..."
 	@pkill -f "stream-logs.js" 2>/dev/null && echo "✅ Database logs stopped" || echo "⚠️  Database logs process not found"
-	@echo "Stopping SQL types watcher..."
-	@pkill -f "chokidar.*sql" 2>/dev/null && echo "✅ SQL types watcher stopped" || echo "⚠️  SQL types watcher process not found"
 	@echo "Stopping Keycloak..."
 	@if docker ps -a --filter name=glow-keycloak --format "{{.Names}}" | grep -q "^glow-keycloak$$"; then \
 		docker stop glow-keycloak >/dev/null 2>&1 && echo "✅ Keycloak stopped" || echo "⚠️  Failed to stop Keycloak"; \
@@ -269,12 +236,6 @@ cleanup:
 	@rm -rf server/htmlcov server/.coverage 2>/dev/null || true
 	@rm -f server/dump.rdb 2>/dev/null || true
 	@echo "✅ Cleanup complete"
-
-# Install client dependencies
-install-client:
-	@echo "Installing client dependencies..."
-	@cd client && yarn install
-	@echo "✅ Client dependencies installed"
 
 # Restore database from latest backup
 restore-db:
@@ -391,9 +352,6 @@ help:
 	@echo "  install      - Install all dependencies in venv"
 	@echo "  clean        - Remove virtual environment"
 	@echo ""
-	@echo "Client setup:"
-	@echo "  install-client - Install client dependencies with yarn"
-	@echo ""
 	@echo "Database:"
 	@echo "  restore-db       - Restore database from latest backup"
 	@echo "  migrate-db       - Run most recent database migration"
@@ -411,14 +369,9 @@ help:
 	@echo "  format       - Format code with Ruff"
 	@echo "  lint         - Run linter checks"
 	@echo "  typecheck    - Run MyPy for static type checking"
-	@echo "  typecheck-client - Run TypeScript type checking for client"
-	@echo ""
 	@echo "Testing:"
 	@echo "  test         - Run server unit tests (pytest)"
 	@echo "  test-cov     - Run server tests with coverage"
-	@echo ""
-	@echo "Build:"
-	@echo "  build-client - Build client for production"
 	@echo ""
 	@echo "Utilities:"
 	@echo "  cleanup      - Clean up generated files and cache"
@@ -427,12 +380,9 @@ help:
 	@echo "Code generation:"
 	@echo "  generate-tests  - Generate pytest tests"
 	@echo "  openapi-gen      - Generate OpenAPI schema manually"
-	@echo "  gen-client-types - Generate client TypeScript types from OpenAPI"
-	@echo ""
 	@echo "Service URLs:"
 	@echo "  Redis:     localhost:$(REDIS_PORT)"
 	@echo "  Server:    http://localhost:$(SERVER_PORT)"
-	@echo "  Client:    http://localhost:$(CLIENT_PORT)"
 	@echo "  Database:  localhost:$(DATABASE_PORT)"
 	@echo "  Keycloak:  http://localhost:$(KEYCLOAK_PORT)"
 	@echo ""
