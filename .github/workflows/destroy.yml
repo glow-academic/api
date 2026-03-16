@@ -15,6 +15,14 @@ jobs:
   teardown:
     runs-on: self-hosted
     steps:
+      - name: Stop containers and remove volumes
+        run: |
+          DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
+          if [ -d "$DEST" ]; then
+            cd "$DEST"
+            docker compose down -v --remove-orphans 2>/dev/null || true
+          fi
+
       - name: Destroy via provisioner
         run: |
           ${{ env.PROVISION_BIN }} teardown \

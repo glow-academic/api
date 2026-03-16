@@ -89,6 +89,8 @@ jobs:
         run: |
           DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
           cd "$DEST"
+          # Clean up any leftover containers/volumes from previous deploys
+          docker compose down -v --remove-orphans 2>/dev/null || true
           docker compose pull --ignore-pull-failures
           docker compose up -d --no-build
 
