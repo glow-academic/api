@@ -1,0 +1,1 @@
+"""Test artifact infra package."""

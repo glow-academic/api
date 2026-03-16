@@ -1,0 +1,199 @@
+## Current Form State
+
+The user is currently editing a model with the following selections:
+
+{% set draft = views.draft_model if views and views.draft_model else None %}
+
+{% if names and names|length > 0 %}
+**Current Names:** {% for name in names %}{{ name.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.name_ids and draft.name_ids|length > 0 %}
+**Current Names IDs:** {% for id in draft.name_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Names:** (not selected)
+{% endif %}
+
+{% if descriptions and descriptions|length > 0 %}
+**Current Descriptions:** {% for desc in descriptions %}{{ desc.description[:100] }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.description_ids and draft.description_ids|length > 0 %}
+**Current Descriptions IDs:** {% for id in draft.description_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Descriptions:** (not selected)
+{% endif %}
+
+{% if values and values|length > 0 %}
+**Current Values:** {% for item in values %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.value_ids and draft.value_ids|length > 0 %}
+**Current Values IDs:** {% for id in draft.value_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Values:** (not selected)
+{% endif %}
+
+{% if providers and providers|length > 0 %}
+**Current Providers:** {% for item in providers %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.provider_ids and draft.provider_ids|length > 0 %}
+**Current Providers IDs:** {% for id in draft.provider_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Providers:** (not selected)
+{% endif %}
+
+{% if flags and flags|length > 0 %}
+**Current Flags:** {% for item in flags %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.flag_ids and draft.flag_ids|length > 0 %}
+**Current Flags IDs:** {% for id in draft.flag_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Flags:** (not selected)
+{% endif %}
+
+{% if departments and departments|length > 0 %}
+**Current Departments:** {% for item in departments %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.department_ids and draft.department_ids|length > 0 %}
+**Current Departments IDs:** {% for id in draft.department_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Departments:** (not selected)
+{% endif %}
+
+{% if modalities and modalities|length > 0 %}
+**Current Modalities:** {% for item in modalities %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.modalities_ids and draft.modalities_ids|length > 0 %}
+**Current Modalities IDs:** {% for id in draft.modalities_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Modalities:** (not selected)
+{% endif %}
+
+{% if temperature_levels and temperature_levels|length > 0 %}
+**Current Temperature Levels:** {% for item in temperature_levels %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.temperature_level_ids and draft.temperature_level_ids|length > 0 %}
+**Current Temperature Levels IDs:** {% for id in draft.temperature_level_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Temperature Levels:** (not selected)
+{% endif %}
+
+{% if pricing and pricing|length > 0 %}
+**Current Pricing:** {% for item in pricing %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.pricing_ids and draft.pricing_ids|length > 0 %}
+**Current Pricing IDs:** {% for id in draft.pricing_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Pricing:** (not selected)
+{% endif %}
+
+{% if reasoning_levels and reasoning_levels|length > 0 %}
+**Current Reasoning Levels:** {% for item in reasoning_levels %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.reasoning_level_ids and draft.reasoning_level_ids|length > 0 %}
+**Current Reasoning Levels IDs:** {% for id in draft.reasoning_level_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Reasoning Levels:** (not selected)
+{% endif %}
+
+{% if qualities and qualities|length > 0 %}
+**Current Qualities:** {% for item in qualities %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.qualities_ids and draft.qualities_ids|length > 0 %}
+**Current Qualities IDs:** {% for id in draft.qualities_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Qualities:** (not selected)
+{% endif %}
+
+{% if voices and voices|length > 0 %}
+**Current Voices:** {% for item in voices %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.voice_ids and draft.voice_ids|length > 0 %}
+**Current Voices IDs:** {% for id in draft.voice_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Voices:** (not selected)
+{% endif %}
+
+---
+
+## Available Context Resources
+
+You have access to the following existing resources. Either **use_*** an existing resource OR **create_*** a new one — you only need to do ONE.
+
+{% if names and names|length > 0 %}
+### Available Names
+{% for item in names %}
+- id: {{ item.id }} | name: {{ item.name }}
+{% endfor %}
+{% endif %}
+
+{% if descriptions and descriptions|length > 0 %}
+### Available Descriptions
+{% for item in descriptions %}
+- id: {{ item.id }} | description: {{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if values and values|length > 0 %}
+### Available Values
+{% for item in values %}
+- id: {{ item.id }} | value: {{ item.value if item.value is defined else item.id }}
+{% endfor %}
+{% endif %}
+
+{% if providers and providers|length > 0 %}
+### Available Providers
+{% for item in providers %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if flags and flags|length > 0 %}
+### Available Flags
+{% for item in flags %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if departments and departments|length > 0 %}
+### Available Departments
+{% for item in departments %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if modalities and modalities|length > 0 %}
+### Available Modalities
+{% for item in modalities %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if temperature_levels and temperature_levels|length > 0 %}
+### Available Temperature Levels
+{% for item in temperature_levels %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if pricing and pricing|length > 0 %}
+### Available Pricing
+{% for item in pricing %}
+- id: {{ item.id }} | value: {{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if reasoning_levels and reasoning_levels|length > 0 %}
+### Available Reasoning Levels
+{% for item in reasoning_levels %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if qualities and qualities|length > 0 %}
+### Available Qualities
+{% for item in qualities %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if voices and voices|length > 0 %}
+### Available Voices
+{% for item in voices %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+## Tool Usage (Either/Or)
+
+For each resource, choose ONE approach:
+- **use_*** tools: When a suitable resource ALREADY EXISTS above (pass the existing id)
+- **create_*** tools: When you need to generate NEW content (nothing suitable exists)
+
+You do NOT need to both create and use — pick one based on whether a suitable resource exists.

@@ -1,10 +1,312 @@
+# Define networks for isolation
+networks:
+  internal:
+    driver: bridge
+    internal: true
+  public_net:
+    driver: bridge
+
 services:
-  app:
-    build: .
+  # --------------------
+  # Redis – pub/sub bus for Socket.IO
+  # --------------------
+  redis:
+    image: redis:7-alpine
     restart: unless-stopped
+    networks:
+      - internal
+
+  # --------------------
+  # Database Service
+  # --------------------
+  # DB_OPERATION environment variable (optional, defaults to empty/unset):
+  #   - RESTORE: Restore from latest backup in history volume (must be explicitly set)
+  #   - "" (empty string) OR unset: Skip initialization, use existing database (default behavior)
+  #   - seed_*.sql: Clean database and load specified seed file from seeds/ directory
+  database:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - HISTORY_DIR=/database/history
+      # DB_OPERATION can be set via .env file or docker run -e DB_OPERATION=...
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - history:/database/history
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      # Ensure PostgreSQL is stable AFTER initialization restart
+      # When DB_OPERATION is set, wait for .restore_complete AND verify queries work
+      # When DB_OPERATION is empty, just check PostgreSQL readiness
+      # The restore script creates /var/lib/postgresql/.restore_complete when done
+      test: >
+        if [ -n "${DB_OPERATION:-}" ] && [ ! -f /var/lib/postgresql/.restore_complete ]; then
+          exit 1
+        fi &&
+        pg_isready -U ${DB_USER} -d ${DB_NAME} &&
+        psql -U ${DB_USER} -d ${DB_NAME} -tc 'SELECT 1' >/dev/null 2>&1
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
+    networks:
+      - internal
+
+  # --------------------
+  # Keycloak
+  # --------------------
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    restart: unless-stopped
+    # Copy themes from Docker volume before starting Keycloak
+    entrypoint: >
+      /bin/sh -c "
+        if [ -d /opt/keycloak/data/uploads/themes ]; then
+          cp -r /opt/keycloak/data/uploads/themes/* /opt/keycloak/themes/ 2>/dev/null || true
+        fi &&
+        exec /opt/keycloak/bin/kc.sh start-dev
+      "
+    volumes:
+      - uploads:/opt/keycloak/data/uploads:ro
+    environment:
+      # Admin bootstrap (Keycloak 26.0 uses KC_BOOTSTRAP_* instead of KEYCLOAK_*)
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+
+      # DB connection (uses existing database service, keycloak schema in same database)
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://database:5432/${DB_NAME}?currentSchema=keycloak
+      KC_DB_USERNAME: ${DB_USER}
+      KC_DB_PASSWORD: ${DB_PASSWORD}
+      KC_DB_SCHEMA: keycloak
+
+      # IMPORTANT: run behind nginx at ${APP_PREFIX}/auth
+      # Keycloak 26.0: Use KC_PROXY_HEADERS instead of deprecated KC_PROXY
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_RELATIVE_PATH: ${APP_PREFIX}/auth
+
+      # Tell Keycloak its public URL (Keycloak 26.0 uses KC_HOSTNAME instead of KC_HOSTNAME_URL)
+      KC_HOSTNAME: ${ORIGIN}${APP_PREFIX}/auth
+
+      # Less strict for local dev
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+      
+      # Enable health endpoints for readiness checks
+      KC_HEALTH_ENABLED: "true"
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+      database:
+        condition: service_healthy
+    healthcheck:
+      # Keycloak exposes health endpoint at /health/ready but container has no wget/curl
+      # Check management port 9000 instead (always available when Keycloak is ready)
+      # Use /dev/tcp to check if port is listening (works in bash/sh)
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 2>/dev/null && exec 3<&- && exec 3>&- || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 45s
+    networks:
+      - internal
+      - public_net
+
+  # --------------------
+  # PgBouncer - Connection Pooler (Session Mode for Prepared Statements)
+  # --------------------
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@database:5432/${DB_NAME}
+      - POOL_MODE=session
+      - MAX_CLIENT_CONN=1000
+      - DEFAULT_POOL_SIZE=25
+      - MIN_POOL_SIZE=5
+      - RESERVE_POOL_SIZE=5
+      - RESERVE_POOL_TIMEOUT=3
+      - MAX_DB_CONNECTIONS=100
+      - SERVER_IDLE_TIMEOUT=600
+      - AUTH_TYPE=scram-sha-256
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "pgrep", "pgbouncer"]
       interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 10s
+      retries: 5
+
+  # --------------------
+  # Volume Init Service
+  # --------------------
+  volume-init:
+    image: busybox:1.36   # tiny, has cp ‑a
+    volumes:
+      # writable named volumes
+      - uploads:/app/uploads
+      - history:/app/history
+
+      # read‑only seed folders that live in your repo
+      - ./uploads:/seed/uploads:ro
+      - ./history:/seed/history:ro
+    command: >
+      sh -c '
+        set -e
+
+        # Copy uploads if the volume is still empty
+        if [ -z "$$(ls -A /app/uploads 2>/dev/null)" ]; then
+          echo "[init] Seeding uploads volume…"
+          # Only copy if source directory exists and has content
+          if [ -d "/seed/uploads" ] && [ -n "$$(ls -A /seed/uploads 2>/dev/null)" ]; then
+            cp -a /seed/uploads/. /app/uploads/
+          fi
+        fi
+
+        # Copy history if the volume is still empty
+        if [ -z "$$(ls -A /app/history 2>/dev/null)" ]; then
+          echo "[init] Seeding history volume…"
+          # Only copy if source directory exists and has content
+          if [ -d "/seed/history" ] && [ -n "$$(ls -A /seed/history 2>/dev/null)" ]; then
+            cp -a /seed/history/. /app/history/
+          fi
+        fi
+
+        # Always ensure perms for FastAPI UID/GID 1001
+        chown -R 1001:1001 /app/uploads /app/history
+        chmod -R 775 /app/uploads /app/history
+
+        echo "[init] Volume permissions & seeds ready."
+      '
+    networks:
+      - internal
+
+  # --------------------
+  # API Server (No contianer name, since redis will clone replicas)
+  # --------------------
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      args:
+        APP_UID: 1001
+        APP_GID: 1001
+    env_file:
+      - .env
+    environment:
+      - DB_PORT=5432
+      - DB_HOST=pgbouncer
+      - PGPOOL_MODE=session
+      - DOCKER_ENV=1
+      - APP_PREFIX=${APP_PREFIX}
+      - INTERNAL_API_BASE=http://server:8000
+      - REDIS_URL=redis://redis:6379
+      - KEYCLOAK_INTERNAL_URL=http://keycloak:8080
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM:-master}
+    volumes:
+      - uploads:/app/uploads   # Docker volume for uploads
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      volume-init:
+        condition: service_completed_successfully
+    command: >
+      gunicorn app.main:app -w 1 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 --log-level info
+    networks:
+      - internal
+      - public_net
+  # --------------------
+  # Next.js Client (pulled from glow-client GHCR image)
+  # --------------------
+  client:
+    image: ${GLOW_CLIENT_IMAGE:-ghcr.io/learnloopllc/glow-client:latest}
+    env_file:
+      - .env
+    environment:
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
+      - INTERNAL_API_BASE=http://server:8000
+      - APP_PREFIX=${APP_PREFIX}
+      - NEXT_PUBLIC_APP_PREFIX=${APP_PREFIX}
+      - ORIGIN=${ORIGIN}
+      - KEYCLOAK_PUBLIC_URL=${ORIGIN}${APP_PREFIX}/auth
+      - NEXT_PUBLIC_KEYCLOAK_URL=${ORIGIN}${APP_PREFIX}/auth
+      - AUTH_KEYCLOAK_ID=${AUTH_KEYCLOAK_ID:-glow-client}
+      - NEXT_PUBLIC_AUTH_KEYCLOAK_ID=${AUTH_KEYCLOAK_ID:-glow-client}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    depends_on:
+      server:
+        condition: service_healthy
+    networks:
+      - internal
+      - public_net
+  # --------------------
+  # Nginx Service
+  # --------------------
+  nginx:
+    image: nginx:1.25
+    container_name: ${COMPOSE_PROJECT_NAME}-nginx
+    env_file:
+      - .env
+    volumes:
+      - ./web/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./web/generated:/etc/nginx/conf.d/generated:rw
+    ports:
+      - "${CLIENT_PORT}:80"
+    depends_on:
+      - client
+      - server
+      - keycloak
+    networks:
+      - internal
+      - public_net
+
+  docker-gen:
+    image: jwilder/docker-gen:0.7.6
+    container_name: ${COMPOSE_PROJECT_NAME}-docker-gen
+    restart: unless-stopped
+    environment:
+    - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./web/templates:/etc/docker-gen/templates:ro
+      - ./web/generated:/etc/nginx/conf.d/generated:rw
+    command: >
+      -notify-sighup ${COMPOSE_PROJECT_NAME}-nginx
+      -watch
+      /etc/docker-gen/templates/api_socketio.upstream.tmpl
+      /etc/nginx/conf.d/generated/api_socketio.upstream.conf
+    networks:
+      - internal
+      - public_net
+
+volumes:
+  pgdata:
+  history:
+  uploads:

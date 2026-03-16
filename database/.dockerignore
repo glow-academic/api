@@ -1,0 +1,72 @@
+# Cypress test files and outputs
+cypress/
+cypress.config.ts
+Dockerfile.cypress
+
+# Node.js files (not needed for database)
+node_modules/
+package*.json
+yarn.lock
+
+# Build outputs and caches
+dist/
+build/
+.next/
+coverage/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+*.md
+docs/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Logs
+logs/
+*.log
+
+# Environment files (secrets should not be in image)
+.env*
+!.env.example
+
+# History and temporary files
+history/
+tmp/
+temp/
+
+# Drizzle migration artifacts that might not be needed in container
+drizzle/meta/
+
+# Test artifacts
+.pytest_cache/
+__pycache__/
+*.pyc 

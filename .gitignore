@@ -1,4 +1,62 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
 .venv/
+venv/
+ENV/
+
+# Environment files
 .env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing / Coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.json
+
+# Redis
+dump.rdb
+
+# Node (database tooling)
+node_modules/
+
+# Docker
+*.log
+
+# Uploads (large binary files - keep themes/ for Keycloak)
+uploads/audio/
+uploads/*.pdf
+uploads/image/
+uploads/video/
+uploads/text/
+uploads/tus_uploads/
+
+# Server uploads (runtime)
+server/uploads/
+
+# Database output
+database/output/

@@ -1,0 +1,82 @@
+"""Tests for parameter event declarations."""
+
+from app.events.types import build_default_lifecycle_event_types
+from app.events.parameter import (
+    PARAMETER_EVENT_CONFIGS,
+    _parameter_draft_entity_ids,
+    _parameter_result_entity_ids,
+    get_parameter_event_config,
+)
+
+
+def test_get_parameter_event_config_maps_domain_event_and_entity_scope() -> None:
+    config = get_parameter_event_config("get")
+
+    assert config is not None
+    assert config.domain_event_names == ("artifacts.parameter.viewed",)
+    assert config.scope == "entity"
+    assert config.entity_key == "parameter_id"
+    assert config.include_call_lifecycle is True
+
+
+def test_drafts_parameter_event_config_is_collection_scoped() -> None:
+    config = PARAMETER_EVENT_CONFIGS["drafts"]
+
+    assert config.domain_event_names == ("artifacts.parameter.drafts.viewed",)
+    assert config.scope == "collection"
+    assert config.entity_key is None
+    assert config.include_call_lifecycle is False
+
+
+def test_parameter_event_types_include_domain_and_lifecycle_events() -> None:
+    event_types = tuple(
+        dict.fromkeys(
+            event_type
+            for operation in PARAMETER_EVENT_CONFIGS.values()
+            for event_type in (
+                *operation.domain_event_names,
+                *(
+                    build_default_lifecycle_event_types(
+                        "parameter", operation.operation
+                    )
+                    if operation.include_call_lifecycle
+                    else ()
+                ),
+            )
+        )
+    )
+
+    assert "artifacts.parameter.created" in event_types
+    assert "artifacts.parameter.updated" in event_types
+    assert "artifacts.parameter.drafts.viewed" in event_types
+    for event_type in build_default_lifecycle_event_types("parameter", "get"):
+        assert event_type in event_types
+
+
+def test_create_event_config_resolves_bulk_parameter_ids_from_output() -> None:
+    ids = _parameter_result_entity_ids(
+        {},
+        {
+            "results": [
+                {"parameter_id": "965bd24f-dfae-4063-b370-e1373df46322"},
+                {"parameter_id": "0c6a4d42-bc9a-4fb3-a00c-4ad1a1726752"},
+            ]
+        },
+    )
+
+    assert [str(parameter_id) for parameter_id in ids] == [
+        "965bd24f-dfae-4063-b370-e1373df46322",
+        "0c6a4d42-bc9a-4fb3-a00c-4ad1a1726752",
+    ]
+
+
+def test_draft_event_config_resolves_output_or_input_draft_id() -> None:
+    ids = _parameter_draft_entity_ids(
+        {"input_draft_id": "965bd24f-dfae-4063-b370-e1373df46322"},
+        {"draft_id": "0c6a4d42-bc9a-4fb3-a00c-4ad1a1726752"},
+    )
+
+    assert [str(draft_id) for draft_id in ids] == [
+        "0c6a4d42-bc9a-4fb3-a00c-4ad1a1726752",
+        "965bd24f-dfae-4063-b370-e1373df46322",
+    ]

@@ -1,0 +1,10 @@
+## Context
+
+{% set draft = views.draft_practice if views and views.draft_practice else None %}
+
+{% if draft %}
+### Current State
+{{ draft | tojson }}
+{% endif %}
+
+No additional resource context is available for this artifact type.

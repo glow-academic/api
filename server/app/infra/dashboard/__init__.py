@@ -1,0 +1,1 @@
+"""Dashboard artifact infra package."""

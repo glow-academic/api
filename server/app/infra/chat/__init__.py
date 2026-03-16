@@ -1,0 +1,1 @@
+"""Chat formatting utilities."""

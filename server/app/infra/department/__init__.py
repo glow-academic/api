@@ -1,0 +1,1 @@
+"""Canonical department infra package."""

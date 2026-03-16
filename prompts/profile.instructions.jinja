@@ -1,0 +1,124 @@
+## Current Form State
+
+The user is currently editing a profile with the following selections:
+
+{% set draft = views.draft_profile if views and views.draft_profile else None %}
+
+{% if names and names|length > 0 %}
+**Current Names:** {% for name in names %}{{ name.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.name_ids and draft.name_ids|length > 0 %}
+**Current Names IDs:** {% for id in draft.name_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Names:** (not selected)
+{% endif %}
+
+{% if flags and flags|length > 0 %}
+**Current Flags:** {% for item in flags %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.flag_ids and draft.flag_ids|length > 0 %}
+**Current Flags IDs:** {% for id in draft.flag_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Flags:** (not selected)
+{% endif %}
+
+{% if departments and departments|length > 0 %}
+**Current Departments:** {% for item in departments %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.department_ids and draft.department_ids|length > 0 %}
+**Current Departments IDs:** {% for id in draft.department_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Departments:** (not selected)
+{% endif %}
+
+{% if emails and emails|length > 0 %}
+**Current Emails:** {% for item in emails %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.email_ids and draft.email_ids|length > 0 %}
+**Current Emails IDs:** {% for id in draft.email_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Emails:** (not selected)
+{% endif %}
+
+{% if cohorts and cohorts|length > 0 %}
+**Current Cohorts:** {% for item in cohorts %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.cohort_ids and draft.cohort_ids|length > 0 %}
+**Current Cohorts IDs:** {% for id in draft.cohort_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Cohorts:** (not selected)
+{% endif %}
+
+{% if request_limits and request_limits|length > 0 %}
+**Current Request Limits:** {% for item in request_limits %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.request_limit_ids and draft.request_limit_ids|length > 0 %}
+**Current Request Limits IDs:** {% for id in draft.request_limit_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Request Limits:** (not selected)
+{% endif %}
+
+{% if roles and roles|length > 0 %}
+**Current Roles:** {% for item in roles %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.role_ids and draft.role_ids|length > 0 %}
+**Current Roles IDs:** {% for id in draft.role_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Roles:** (not selected)
+{% endif %}
+
+---
+
+## Available Context Resources
+
+You have access to the following existing resources. Either **use_*** an existing resource OR **create_*** a new one — you only need to do ONE.
+
+{% if names and names|length > 0 %}
+### Available Names
+{% for item in names %}
+- id: {{ item.id }} | name: {{ item.name }}
+{% endfor %}
+{% endif %}
+
+{% if flags and flags|length > 0 %}
+### Available Flags
+{% for item in flags %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if departments and departments|length > 0 %}
+### Available Departments
+{% for item in departments %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if emails and emails|length > 0 %}
+### Available Emails
+{% for item in emails %}
+- id: {{ item.id }} | value: {{ item.value if item.value is defined else item.id }}
+{% endfor %}
+{% endif %}
+
+{% if cohorts and cohorts|length > 0 %}
+### Available Cohorts
+{% for item in cohorts %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if request_limits and request_limits|length > 0 %}
+### Available Request Limits
+{% for item in request_limits %}
+- id: {{ item.id }} | value: {{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if roles and roles|length > 0 %}
+### Available Roles
+{% for item in roles %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+## Tool Usage (Either/Or)
+
+For each resource, choose ONE approach:
+- **use_*** tools: When a suitable resource ALREADY EXISTS above (pass the existing id)
+- **create_*** tools: When you need to generate NEW content (nothing suitable exists)
+
+You do NOT need to both create and use — pick one based on whether a suitable resource exists.
