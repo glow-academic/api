@@ -22,9 +22,6 @@ map $http_x_forwarded_proto $forwarded_proto {
 
 
 # ----------  upstreams -------------
-upstream next_client  {
-  server client:3000;
-}
 upstream api_socketio {
   hash $socketio_session_id  consistent;
   include /etc/nginx/conf.d/generated/api_socketio.upstream.conf;
@@ -41,9 +38,15 @@ server {
     proxy_temp_file_write_size 256k;    # optional, keep consistent
     # ---------------------------------
 
-    # API traffic (prefixed)
-    location ^~ ${APP_PREFIX}/api/ {
-        proxy_pass         http://next_client;
+    # Health check endpoint
+    location = /health {
+        return 200 'ok';
+        add_header Content-Type text/plain;
+    }
+
+    # FastAPI server — all /v5/ API routes
+    location ^~ ${APP_PREFIX}/v5/ {
+        proxy_pass         http://server:8000;
         proxy_http_version 1.1;
         proxy_set_header   Host              $http_host;
         proxy_set_header   X-Real-IP         $remote_addr;
@@ -92,16 +95,16 @@ server {
         proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto $forwarded_proto;
         proxy_set_header   X-Forwarded-Host  $host;
-        
+
         # SSE: prevent buffering
         proxy_buffering    off;
         proxy_cache        off;
-        
+
         # Long-lived connections for SSE
         proxy_read_timeout 3600;
         proxy_send_timeout 3600;
     }
-    
+
     location ^~ ${APP_PREFIX}/mcp/ {
         proxy_pass         http://server:8000;
         proxy_http_version 1.1;
@@ -110,11 +113,11 @@ server {
         proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto $forwarded_proto;
         proxy_set_header   X-Forwarded-Host  $host;
-        
+
         # SSE: prevent buffering
         proxy_buffering    off;
         proxy_cache        off;
-        
+
         # Long-lived connections for SSE
         proxy_read_timeout 3600;
         proxy_send_timeout 3600;
@@ -144,7 +147,7 @@ server {
         proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto $forwarded_proto;
         proxy_set_header   X-Forwarded-Host  $host;
-        
+
         # OAuth/OIDC endpoints may have long query strings
         proxy_buffering    off;
     }
@@ -157,19 +160,15 @@ server {
         proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto $forwarded_proto;
         proxy_set_header   X-Forwarded-Host  $host;
-        
+
         # OAuth/OIDC endpoints may have long query strings
         proxy_buffering    off;
     }
 
-    # All other app traffic (handles trailing slash correctly)
-    location ~ ^${APP_PREFIX}(/.*)?$ {
-        proxy_pass         http://next_client;
-        proxy_http_version 1.1;
-        proxy_set_header   Host              $http_host;
-        proxy_set_header   X-Real-IP         $remote_addr;
-        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
-        proxy_set_header   X-Forwarded-Host  $host;
+    # No client routes — glow-api serves only API endpoints
+    # Client is deployed independently at glow-client.learn-loop.org
+    location / {
+        return 404 '{"error": "not found", "hint": "glow-api serves API endpoints only"}';
+        add_header Content-Type application/json;
     }
 }

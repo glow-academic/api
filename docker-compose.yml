@@ -201,6 +201,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - KEYCLOAK_INTERNAL_URL=http://keycloak:8080
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-master}
+      - CLIENT_ORIGIN=${CLIENT_ORIGIN:-}
     volumes:
       - uploads:/app/uploads   # Docker volume for uploads
     healthcheck:
@@ -224,36 +225,6 @@ services:
       - internal
       - public_net
   # --------------------
-  # Next.js Client (pulled from glow-client GHCR image)
-  # --------------------
-  client:
-    image: ${GLOW_CLIENT_IMAGE:-ghcr.io/learnloopllc/glow-client:latest}
-    env_file:
-      - .env
-    environment:
-      - HOSTNAME=0.0.0.0
-      - PORT=3000
-      - INTERNAL_API_BASE=http://server:8000
-      - APP_PREFIX=${APP_PREFIX}
-      - NEXT_PUBLIC_APP_PREFIX=${APP_PREFIX}
-      - ORIGIN=${ORIGIN}
-      - KEYCLOAK_PUBLIC_URL=${ORIGIN}${APP_PREFIX}/auth
-      - NEXT_PUBLIC_KEYCLOAK_URL=${ORIGIN}${APP_PREFIX}/auth
-      - AUTH_KEYCLOAK_ID=${AUTH_KEYCLOAK_ID:-glow-client}
-      - NEXT_PUBLIC_AUTH_KEYCLOAK_ID=${AUTH_KEYCLOAK_ID:-glow-client}
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 45s
-    depends_on:
-      server:
-        condition: service_healthy
-    networks:
-      - internal
-      - public_net
-  # --------------------
   # Nginx Service
   # --------------------
   nginx:
@@ -265,7 +236,6 @@ services:
       - ./web/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./web/generated:/etc/nginx/conf.d/generated:rw
     depends_on:
-      - client
       - server
       - keycloak
     networks:

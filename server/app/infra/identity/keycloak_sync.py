@@ -46,6 +46,7 @@ class KeycloakSyncConfig:
     client_port: str = "3000"
     app_prefix: str = ""
     origin: str = ""
+    client_origin: str = ""  # separate client deployment origin (e.g. https://glow-client.learn-loop.org)
     auth_secret: str | None = None
     keycloak_url: str | None = None
     keycloak_internal_url: str | None = None
@@ -64,6 +65,7 @@ class KeycloakSyncConfig:
             client_port=client_port,
             app_prefix=os.getenv("APP_PREFIX", ""),
             origin=os.getenv("ORIGIN", f"http://localhost:{client_port}"),
+            client_origin=os.getenv("CLIENT_ORIGIN", ""),
             auth_secret=os.getenv("AUTH_SECRET"),
             keycloak_url=os.getenv("KEYCLOAK_URL"),
             keycloak_internal_url=os.getenv("KEYCLOAK_INTERNAL_URL"),
@@ -165,6 +167,15 @@ async def ensure_department_client(
         )
         redirect_uris = [redirect_uri, f"{base_url}{config.app_prefix}/*"]
         post_logout_uris = f"{base_url}{config.app_prefix}/*"
+
+        # If client is deployed separately, add its redirect URIs too
+        if config.client_origin:
+            client_base = config.client_origin.rstrip("/")
+            redirect_uris += [
+                f"{client_base}{config.app_prefix}/api/auth/callback/keycloak",
+                f"{client_base}{config.app_prefix}/*",
+            ]
+            post_logout_uris += f"##{client_base}{config.app_prefix}/*"
 
         clients = kc_admin.get_clients()
         existing_client = next(
@@ -274,6 +285,14 @@ async def ensure_glow_client_in_master_realm(
         redirect_uri = f"{base_url}{config.app_prefix}/api/auth/callback/keycloak"
         redirect_uris = [redirect_uri, f"{base_url}{config.app_prefix}/*"]
 
+        # If client is deployed separately, add its redirect URIs too
+        if config.client_origin:
+            client_base = config.client_origin.rstrip("/")
+            redirect_uris += [
+                f"{client_base}{config.app_prefix}/api/auth/callback/keycloak",
+                f"{client_base}{config.app_prefix}/*",
+            ]
+
         clients = kc_admin.get_clients()
         existing_client = next(
             (c for c in clients if c.get("clientId") == target_client_id),
@@ -285,6 +304,9 @@ async def ensure_glow_client_in_master_realm(
             f"{base_url}{config.app_prefix}/api/auth/emulate-redirect*"
         )
         post_logout_uris = f"{base_url}{config.app_prefix}/*"
+        if config.client_origin:
+            client_base = config.client_origin.rstrip("/")
+            post_logout_uris += f"##{client_base}{config.app_prefix}/*"
 
         client_payload: dict[str, Any] = {
             "clientId": target_client_id,
