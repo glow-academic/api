@@ -24,6 +24,8 @@ map $http_x_forwarded_proto $forwarded_proto {
 # ----------  upstreams -------------
 upstream api_socketio {
   hash $socketio_session_id  consistent;
+  # Default fallback — docker-gen overwrites the included file at runtime
+  server server:8000;
   include /etc/nginx/conf.d/generated/api_socketio.upstream.conf;
 }
 
