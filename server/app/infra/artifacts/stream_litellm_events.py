@@ -4,7 +4,7 @@ Handles both completions() API (choices-based) and responses() API (response-bas
 Pure parsing/transformation only - no AI calls, no DB, no emits.
 """
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -228,7 +228,7 @@ async def stream_litellm_events(
                 # Parse chunk for progress events (text_delta, tool_call_delta, etc.)
                 # These are all progress events, not completion events
                 async for event in _parse_completions_chunk(
-                    chunk, choices, get_choice_state, stable_tool_key
+                    chunk, get_choice_state, stable_tool_key
                 ):
                     # Don't emit message_complete from parser - usage is the completion signal
                     # Only emit message_complete when we find usage (handled above)
@@ -258,7 +258,7 @@ async def stream_litellm_events(
                     "text": item_state.get("buffer", ""),
                 }
             elif item_state.get("type") == "function_call":
-                call_id = item_state.get("call_id", item_id)
+                call_id = item_state.get("call_id") or item_id
                 yield {
                     "type": "tool_call_complete",
                     "tool_call_id": call_id,
@@ -268,7 +268,7 @@ async def stream_litellm_events(
 
 
 async def _parse_responses_chunk(
-    chunk: Any,
+    chunk: object,
     response_items: dict[str, dict[str, Any]],
 ) -> AsyncIterator[dict[str, Any]]:
     """Parse responses() API format chunks.
@@ -479,7 +479,7 @@ async def _parse_responses_chunk(
                     else item_state.get("arguments", "")
                 )
                 # Get the call_id from the item state (set during response.output_item.added)
-                call_id = item_state.get("call_id", item_id)
+                call_id = item_state.get("call_id") or item_id
                 # Mark as done to prevent duplicate emission in cleanup loop
                 item_state["done"] = True
                 yield {
@@ -512,11 +512,13 @@ async def _parse_responses_chunk(
 
         item_state = response_items[item_id]
         if item_state.get("type") == "text":
+            item_state["done"] = True
             yield {
                 "type": "text_complete",
                 "text": item_state.get("buffer", ""),
             }
         elif item_state.get("type") == "function_call":
+            item_state["done"] = True
             yield {
                 "type": "tool_call_complete",
                 "tool_call_id": item_id,
@@ -578,10 +580,9 @@ async def _parse_responses_chunk(
 
 
 async def _parse_completions_chunk(
-    chunk: Any,
-    choices: dict[int, ChoiceState],
-    get_choice_state: Any,
-    stable_tool_key: Any,
+    chunk: object,
+    get_choice_state: Callable[[int], ChoiceState],
+    stable_tool_key: Callable[[int, int], str],
 ) -> AsyncIterator[dict[str, Any]]:
     """Parse completions() API format chunks (original implementation)."""
     # Normalize chunk choices
@@ -642,14 +643,6 @@ async def _parse_completions_chunk(
             choice_tool_calls = ch.tool_calls
         elif isinstance(ch, dict):
             choice_tool_calls = ch.get("tool_calls")
-
-        # Also check if tool_calls are in the accumulated choice state
-        # When finish_reason is "tool_calls", the complete tool_calls might be in the choice state
-        accumulated_tool_calls = None
-        if hasattr(st, "tool_calls"):
-            accumulated_tool_calls = st.tool_calls
-        elif hasattr(st, "__dict__"):
-            accumulated_tool_calls = getattr(st, "tool_calls", None)
 
         if not isinstance(delta, dict):
             delta = {}
@@ -727,47 +720,6 @@ async def _parse_completions_chunk(
         # -------- COMPLETION
         if finish_reason is not None:
             st.finish_reason = finish_reason
-
-            # usage extraction
-            usage_data: dict[str, Any] | None = None
-            # Try to get usage from model_dump/dict first (for Pydantic models)
-            chunk_dict_for_usage = None
-            if hasattr(chunk, "model_dump"):
-                try:
-                    chunk_dict_for_usage = chunk.model_dump()
-                except:
-                    pass
-            elif hasattr(chunk, "dict"):
-                try:
-                    chunk_dict_for_usage = chunk.dict()
-                except:
-                    pass
-
-            if (
-                chunk_dict_for_usage
-                and isinstance(chunk_dict_for_usage, dict)
-                and "usage" in chunk_dict_for_usage
-            ):
-                usage_obj = chunk_dict_for_usage["usage"]
-                if isinstance(usage_obj, dict):
-                    usage_data = {
-                        "prompt_tokens": usage_obj.get("prompt_tokens", 0),
-                        "completion_tokens": usage_obj.get("completion_tokens", 0),
-                    }
-                elif hasattr(usage_obj, "prompt_tokens"):
-                    usage_data = {
-                        "prompt_tokens": getattr(usage_obj, "prompt_tokens", 0),
-                        "completion_tokens": getattr(usage_obj, "completion_tokens", 0),
-                    }
-            elif hasattr(chunk, "usage"):
-                usage_obj = chunk.usage
-                if hasattr(usage_obj, "prompt_tokens"):
-                    usage_data = {
-                        "prompt_tokens": usage_obj.prompt_tokens,
-                        "completion_tokens": getattr(usage_obj, "completion_tokens", 0),
-                    }
-            elif isinstance(chunk, dict):
-                usage_data = chunk.get("usage")
 
             # Don't emit message_complete here - usage is the completion signal
             # message_complete will be emitted when we find usage (handled in main loop)

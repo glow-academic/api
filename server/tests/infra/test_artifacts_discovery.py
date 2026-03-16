@@ -1,6 +1,8 @@
 """Tests for artifact discovery helpers."""
 
+import asyncpg
 import pytest
+from redis.asyncio import Redis
 
 from app.infra.artifacts.discovery import (
     extract_template_variable_name,
@@ -19,7 +21,9 @@ from app.tools.resources.tools.create import create_tool
 pytestmark = pytest.mark.asyncio
 
 
-async def test_get_resource_sql_function_name_discovers_real_function(conn):
+async def test_get_resource_sql_function_name_discovers_real_function(
+    conn: asyncpg.Connection,
+) -> None:
     await conn.execute(
         """
         CREATE FUNCTION public.api_create_names_v4()
@@ -33,7 +37,32 @@ async def test_get_resource_sql_function_name_discovers_real_function(conn):
     assert await get_resource_sql_function_name(conn, "totally_missing") is None
 
 
-async def test_get_resource_table_columns_reads_real_table_shape(conn):
+async def test_get_resource_sql_function_name_prefers_singular_match(
+    conn: asyncpg.Connection,
+) -> None:
+    await conn.execute(
+        """
+        CREATE FUNCTION public.api_create_widget_v4()
+        RETURNS integer
+        LANGUAGE sql
+        AS $$ SELECT 1 $$;
+        """
+    )
+    await conn.execute(
+        """
+        CREATE FUNCTION public.api_create_widgets_v4()
+        RETURNS integer
+        LANGUAGE sql
+        AS $$ SELECT 2 $$;
+        """
+    )
+
+    assert await get_resource_sql_function_name(conn, "widget") == "api_create_widget_v4"
+
+
+async def test_get_resource_table_columns_reads_real_table_shape(
+    conn: asyncpg.Connection,
+) -> None:
     columns = await get_resource_table_columns(conn, "names")
     column_names = {column["name"] for column in columns}
 
@@ -42,7 +71,9 @@ async def test_get_resource_table_columns_reads_real_table_shape(conn):
     assert "created_at" not in column_names
 
 
-async def test_get_entry_table_columns_reads_real_table_shape(conn):
+async def test_get_entry_table_columns_reads_real_table_shape(
+    conn: asyncpg.Connection,
+) -> None:
     columns = await get_entry_table_columns(conn, "messages")
     column_names = {column["name"] for column in columns}
 
@@ -51,7 +82,7 @@ async def test_get_entry_table_columns_reads_real_table_shape(conn):
     assert "created_at" not in column_names
 
 
-async def test_get_resource_schema_fields_uses_registry():
+async def test_get_resource_schema_fields_uses_registry() -> None:
     fields = get_resource_schema_fields("emails")
 
     assert fields == [
@@ -65,13 +96,15 @@ async def test_get_resource_schema_fields_uses_registry():
     ]
 
 
-async def test_extract_template_variable_name_handles_basic_cases():
+async def test_extract_template_variable_name_handles_basic_cases() -> None:
     assert extract_template_variable_name("{{ content }}") == "content"
     assert extract_template_variable_name("{{ value.name|trim }}") == "value"
     assert extract_template_variable_name("plain text") is None
 
 
-async def test_map_template_values_to_table_columns_direct_and_template_match(conn):
+async def test_map_template_values_to_table_columns_direct_and_template_match(
+    conn: asyncpg.Connection,
+) -> None:
     mapped = await map_template_values_to_table_columns(
         conn,
         "names",
@@ -89,8 +122,9 @@ async def test_map_template_values_to_table_columns_direct_and_template_match(co
 
 
 async def test_get_resource_output_schema_fields_reads_tool_args_outputs(
-    conn, redis_client
-):
+    conn: asyncpg.Connection,
+    redis_client: Redis,
+) -> None:
     arg = await create_arg(conn, name="query", field_type="string", redis=redis_client)
     output_one = await create_args_output(
         conn,
@@ -136,8 +170,9 @@ async def test_get_resource_output_schema_fields_reads_tool_args_outputs(
 
 
 async def test_map_template_values_to_table_columns_uses_tool_output_template_mapping(
-    conn, redis_client
-):
+    conn: asyncpg.Connection,
+    redis_client: Redis,
+) -> None:
     arg = await create_arg(conn, name="query", field_type="string", redis=redis_client)
     output = await create_args_output(
         conn,
@@ -166,8 +201,9 @@ async def test_map_template_values_to_table_columns_uses_tool_output_template_ma
 
 
 async def test_map_template_values_to_table_columns_falls_back_when_column_missing(
-    conn, redis_client
-):
+    conn: asyncpg.Connection,
+    redis_client: Redis,
+) -> None:
     arg = await create_arg(conn, name="query", field_type="string", redis=redis_client)
     output = await create_args_output(
         conn,
@@ -195,7 +231,9 @@ async def test_map_template_values_to_table_columns_falls_back_when_column_missi
     assert mapped == {"custom_value": "Alice"}
 
 
-async def test_get_agent_end_event_name_handles_known_and_special_cases(conn):
+async def test_get_agent_end_event_name_handles_known_and_special_cases(
+    conn: asyncpg.Connection,
+) -> None:
     assert await get_agent_end_event_name(conn, "audio") == "voice_end"
     assert await get_agent_end_event_name(conn, "persona") == "persona_end"
     assert await get_agent_end_event_name(conn, "missing_artifact") == "text_end"
