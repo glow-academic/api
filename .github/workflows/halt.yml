@@ -14,13 +14,80 @@ jobs:
   stop:
     runs-on: self-hosted
     steps:
-      - name: Halt containers
+      - name: Update Keycloak glow-client redirect URIs
         run: |
           DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
-          if [ -d "$DEST" ]; then
-            cd "$DEST"
-            docker compose stop 2>/dev/null || true
-            echo "Containers stopped."
-          else
-            echo "No deployment directory found at $DEST"
+          cd "$DEST"
+
+          KC_CONTAINER=$(docker compose ps -q keycloak)
+          echo "Keycloak container: $KC_CONTAINER"
+
+          # Get admin token from inside the container (has env vars)
+          TOKEN=$(docker exec "$KC_CONTAINER" sh -c '
+            wget -qO- --post-data "grant_type=password&client_id=admin-cli&username='"'"'${KEYCLOAK_ADMIN}'"'"'&password='"'"'${KEYCLOAK_ADMIN_PASSWORD}'"'"'" \
+              http://localhost:8080/auth/realms/master/protocol/openid-connect/token 2>&1
+          ')
+          echo "Token response (truncated): $(echo $TOKEN | head -c 100)"
+
+          ACCESS=$(echo "$TOKEN" | python3 -c "import json,sys; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null)
+          if [ -z "$ACCESS" ]; then
+            echo "Failed to get admin token"
+            exit 1
           fi
+          echo "Got admin token"
+
+          # Get current glow-client config
+          CLIENT_JSON=$(docker exec "$KC_CONTAINER" sh -c "
+            wget -qO- --header='Authorization: Bearer $ACCESS' \
+              'http://localhost:8080/auth/admin/realms/master/clients?clientId=glow-client'
+          ")
+
+          CLIENT_UUID=$(echo "$CLIENT_JSON" | python3 -c "import json,sys; clients=json.load(sys.stdin); print(clients[0]['id'] if clients else '')" 2>/dev/null)
+          echo "Client UUID: $CLIENT_UUID"
+
+          if [ -z "$CLIENT_UUID" ]; then
+            echo "glow-client not found in Keycloak"
+            echo "All clients:"
+            echo "$CLIENT_JSON" | python3 -c "import json,sys; [print(c.get('clientId')) for c in json.load(sys.stdin)]" 2>/dev/null
+            exit 1
+          fi
+
+          # Show current redirect URIs
+          echo "Current config:"
+          echo "$CLIENT_JSON" | python3 -c "
+import json,sys
+c = json.load(sys.stdin)[0]
+print('Redirect URIs:', json.dumps(c.get('redirectUris', []), indent=2))
+print('Web Origins:', json.dumps(c.get('webOrigins', []), indent=2))
+"
+
+          # Update redirect URIs to include glow-client.learn-loop.org
+          echo "Updating redirect URIs..."
+          docker exec "$KC_CONTAINER" sh -c "
+            wget -qO- --method=PUT \
+              --header='Authorization: Bearer $ACCESS' \
+              --header='Content-Type: application/json' \
+              --body-data='{
+                \"redirectUris\": [
+                  \"https://glow-api.learn-loop.org/api/auth/callback/keycloak\",
+                  \"https://glow-api.learn-loop.org/*\",
+                  \"https://glow-api.learn-loop.org/api/auth/emulate-redirect*\",
+                  \"https://glow-client.learn-loop.org/api/auth/callback/keycloak\",
+                  \"https://glow-client.learn-loop.org/*\"
+                ],
+                \"webOrigins\": [\"+\"]
+              }' \
+              'http://localhost:8080/auth/admin/realms/master/clients/$CLIENT_UUID' 2>&1
+          " || echo "wget PUT might not output on success"
+
+          # Verify
+          echo "Verifying..."
+          UPDATED=$(docker exec "$KC_CONTAINER" sh -c "
+            wget -qO- --header='Authorization: Bearer $ACCESS' \
+              'http://localhost:8080/auth/admin/realms/master/clients?clientId=glow-client'
+          ")
+          echo "$UPDATED" | python3 -c "
+import json,sys
+c = json.load(sys.stdin)[0]
+print('Updated Redirect URIs:', json.dumps(c.get('redirectUris', []), indent=2))
+"
