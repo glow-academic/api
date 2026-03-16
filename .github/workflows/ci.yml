@@ -43,10 +43,66 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  build-database:
+  generate-seeds:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install seed dependencies
+        run: |
+          pip install asyncpg redis testcontainers[postgres,redis]
+          pip install -r server/requirements.txt
+
+      - name: Generate base seeds
+        run: |
+          cd "$(pwd)"
+          python -m database.scripts.runner --modules
+        env:
+          PYTHONPATH: ${{ github.workspace }}/server
+
+      - name: Generate university setup seeds
+        run: |
+          python -m database.scripts.runner --setup university
+        env:
+          PYTHONPATH: ${{ github.workspace }}/server
+
+      - name: Generate organization setup seeds
+        run: |
+          python -m database.scripts.runner --setup organization
+        env:
+          PYTHONPATH: ${{ github.workspace }}/server
+
+      - name: Assemble seed_modules.sql
+        run: |
+          SEED_SETUP=university bash database/scripts/load-modules.sh --output database/seeds/seed_modules.sql
+
+      - name: Upload seed artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: seed-modules
+          path: database/seeds/seed_modules.sql
+          retention-days: 5
+
+  build-database:
+    runs-on: ubuntu-latest
+    needs: generate-seeds
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download seed artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: seed-modules
+          path: database/seeds/
+
+      - name: Verify seed file
+        run: |
+          ls -la database/seeds/seed_modules.sql
+          wc -l database/seeds/seed_modules.sql
 
       - uses: docker/setup-buildx-action@v3
 
