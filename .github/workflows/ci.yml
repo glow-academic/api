@@ -74,9 +74,10 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}/server
 
-      - name: Create placeholder upload dirs for setup seeds
+      - name: Create placeholder upload files for setup seeds
         run: |
           mkdir -p database/output/setups/university/uploads/files/text
+          mkdir -p database/output/setups/university/uploads/files
           mkdir -p database/output/setups/organization/uploads/files/text
           # Create placeholder text files referenced by university documents
           for f in \
@@ -89,6 +90,10 @@ jobs:
             c27ec685-ca41-445a-9f51-ea383b32df54 \
             5ac95858-9590-4164-b7d3-ca4285f1e0bf; do
             echo "<p>Placeholder content</p>" > "database/output/setups/university/uploads/files/text/${f}.txt"
+          done
+          # Create placeholder PDFs referenced by university file seeds
+          for pdf in FERPA.pdf integrity.pdf; do
+            echo "%PDF-1.4 placeholder" > "database/output/setups/university/uploads/files/${pdf}"
           done
 
       - name: Generate organization setup seeds
