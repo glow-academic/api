@@ -18,7 +18,6 @@ on:
         required: true
 
 env:
-  PROVISION_BIN: /srv/deploy/provisioner/.venv/bin/provision
   LIVE_DIR: /srv/deploy/live
   REGISTRY: ghcr.io
 
@@ -41,24 +40,17 @@ jobs:
           DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
           if [ -d "$DEST" ]; then
             cd "$DEST"
-            # Stop using OLD compose file before overwriting (handles service removals)
             docker compose down -v --remove-orphans 2>/dev/null || true
           fi
 
-      - name: Stage deployment
+      - name: Stage release
         run: |
           DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
-          mkdir -p "$DEST"
+          ./scripts/stage-release.sh "$(pwd)" "$DEST" "${{ inputs.version }}"
 
-          # Copy compose stack files (clean destination first to remove stale files)
-          cp docker-compose.yml "$DEST/"
-          rm -rf "$DEST/web"
-          cp -r web/ "$DEST/web/"
-          cp -r uploads/ "$DEST/uploads/" 2>/dev/null || mkdir -p "$DEST/uploads"
-          mkdir -p "$DEST/web/generated"
-          rm -f "$DEST/docker-compose.override.yml" "$DEST/docker-compose.override.yaml"
-
-          # Write .env with deployment config
+      - name: Write .env
+        run: |
+          DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
           cat > "$DEST/.env" <<ENVEOF
           COMPOSE_PROJECT_NAME=${{ inputs.deployment_name }}
           ORIGIN=https://${{ inputs.subdomain }}.${{ inputs.base_domain }}
@@ -84,32 +76,31 @@ jobs:
           ENVEOF
           sed -i 's/^[[:space:]]*//' "$DEST/.env"
 
-          echo "${{ inputs.version }}" > "$DEST/DEPLOYED_VERSION"
-
       - name: Start stack
         run: |
           DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
           cd "$DEST"
           docker compose pull --ignore-pull-failures
-          docker compose up -d --no-build || {
-            echo "=== Docker Compose failed. Collecting container logs ==="
-            docker compose logs --tail=100 2>&1 || true
-            echo "=== Container status ==="
-            docker compose ps -a 2>&1 || true
-            exit 1
-          }
-          # Give services a moment to stabilize
+          docker compose up -d --no-build
           sleep 10
 
       - name: Deploy via provisioner
         run: |
-          ${{ env.PROVISION_BIN }} deploy \
+          DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
+          cd "$DEST"
+          bash scripts/provision.sh deploy \
             --name "${{ inputs.deployment_name }}" \
             --subdomain "${{ inputs.subdomain }}" \
             --base-domain "${{ inputs.base_domain }}" \
-            --compose-dir "${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}" \
+            --compose-dir "$DEST" \
             --entry-service nginx \
             --entry-port 80
+
+      - name: Monitor deployment
+        run: |
+          DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
+          cd "$DEST"
+          bash scripts/monitor.sh blue green 45
 
       - name: Verify deployment
         run: |
