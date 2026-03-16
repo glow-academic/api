@@ -173,7 +173,7 @@ async def _run_resource_seeds(
 async def _seed_colors(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.colors.create import create_color
+    from app.tools.resources.colors.create import create_color
 
     for item in items:
         color_type = item.pop("type", "primary")
@@ -184,7 +184,7 @@ async def _seed_colors(
 async def _seed_icons(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.icons.create import create_icon
+    from app.tools.resources.icons.create import create_icon
 
     for item in items:
         await create_icon(conn, redis=redis, **item)
@@ -194,7 +194,7 @@ async def _seed_icons(
 async def _seed_flags(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.flags.create import create_flag
+    from app.tools.resources.flags.create import create_flag
 
     for item in items:
         flag_type = item.pop("type", "active")
@@ -205,7 +205,7 @@ async def _seed_flags(
 async def _seed_roles(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.roles.create import create_role
+    from app.tools.resources.roles.create import create_role
 
     for item in items:
         await create_role(conn, redis=redis, **item)
@@ -215,7 +215,7 @@ async def _seed_roles(
 async def _seed_modalities(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.modalities.create import create_modality
+    from app.tools.resources.modalities.create import create_modality
 
     for item in items:
         await create_modality(conn, redis=redis, **item)
@@ -225,7 +225,7 @@ async def _seed_modalities(
 async def _seed_qualities(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.qualities.create import create_quality
+    from app.tools.resources.qualities.create import create_quality
 
     for item in items:
         await create_quality(conn, redis=redis, **item)
@@ -235,7 +235,7 @@ async def _seed_qualities(
 async def _seed_thresholds(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.thresholds.create import create_threshold
+    from app.tools.resources.thresholds.create import create_threshold
 
     for item in items:
         threshold_type = item.pop("type", "success")
@@ -246,7 +246,7 @@ async def _seed_thresholds(
 async def _seed_points(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.points.create import create_point
+    from app.tools.resources.points.create import create_point
 
     for item in items:
         point_type = item.pop("type", "total")
@@ -257,7 +257,7 @@ async def _seed_points(
 async def _seed_request_limits(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.request_limits.create import create_request_limit
+    from app.tools.resources.request_limits.create import create_request_limit
 
     for item in items:
         await create_request_limit(conn, redis=redis, **item)
@@ -267,7 +267,7 @@ async def _seed_request_limits(
 async def _seed_voices(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.voices.create import create_voice
+    from app.tools.resources.voices.create import create_voice
 
     for item in items:
         await create_voice(conn, redis=redis, **item)
@@ -277,7 +277,7 @@ async def _seed_voices(
 async def _seed_pricing(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.pricing.create import create_pricing
+    from app.tools.resources.pricing.create import create_pricing
 
     for item in items:
         await create_pricing(conn, redis=redis, **item)
@@ -287,7 +287,7 @@ async def _seed_pricing(
 async def _seed_reasoning_levels(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.reasoning_levels.create import (
+    from app.tools.resources.reasoning_levels.create import (
         create_reasoning_level,
     )
 
@@ -299,7 +299,7 @@ async def _seed_reasoning_levels(
 async def _seed_temperature_levels(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.temperature_levels.create import (
+    from app.tools.resources.temperature_levels.create import (
         create_temperature_level,
     )
 
@@ -311,7 +311,7 @@ async def _seed_temperature_levels(
 async def _seed_operations(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.operations.create import create_operation
+    from app.tools.resources.operations.create import create_operation
 
     for item in items:
         await create_operation(conn, redis=redis, **item)
@@ -321,7 +321,7 @@ async def _seed_operations(
 async def _seed_artifacts(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.artifacts.create import create_artifact
+    from app.tools.resources.artifacts.create import create_artifact
 
     for item in items:
         await create_artifact(conn, redis=redis, **item)
@@ -331,7 +331,7 @@ async def _seed_artifacts(
 async def _seed_standard_groups(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.standard_groups.create import (
+    from app.tools.resources.standard_groups.create import (
         create_standard_group,
     )
 
@@ -343,7 +343,7 @@ async def _seed_standard_groups(
 async def _seed_standards(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.standards.create import create_standard
+    from app.tools.resources.standards.create import create_standard
 
     for item in items:
         await create_standard(conn, redis=redis, **item)
@@ -351,7 +351,7 @@ async def _seed_standards(
 
 
 async def _seed_keys(conn: asyncpg.Connection, redis: Redis, items: list[dict]) -> None:
-    from app.routes.v5.tools.resources.keys.create import create_key
+    from app.tools.resources.keys.create import create_key
 
     for item in items:
         await create_key(conn, redis=redis, **item)
@@ -361,7 +361,7 @@ async def _seed_keys(conn: asyncpg.Connection, redis: Redis, items: list[dict]) 
 async def _seed_items(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.routes.v5.tools.resources.items.create import create_item
+    from app.tools.resources.items.create import create_item
 
     for item in items:
         await create_item(conn, redis=redis, **item)
@@ -383,11 +383,11 @@ async def _run_profile_bootstrap(
     profile_id, but no profiles exist yet. This creates the Default Superadmin
     first, then remaining profiles.
     """
-    from app.routes.v5.tools.artifacts.profile.create import (
+    from app.tools.artifacts.profile.create import (
         create_profile as create_profile_artifact,
     )
-    from app.routes.v5.tools.resources.names.create import create_name
-    from app.routes.v5.tools.resources.profiles.create import (
+    from app.tools.resources.names.create import create_name
+    from app.tools.resources.profiles.create import (
         create_profile as create_profile_resource,
     )
     from database.seeds.profiles import profiles
@@ -518,7 +518,7 @@ async def _run_system_module_seeds(
     redis: Redis,
 ) -> None:
     """Module 10 — Create systems via tool-level create."""
-    from app.routes.v5.tools.resources.systems.create import create_system
+    from app.tools.resources.systems.create import create_system
     from database.seeds.systems import systems
 
     async with pool.acquire() as conn:
@@ -729,7 +729,7 @@ async def _run_scenario_rubric_seeds(
     scenario_rubric_defs: list[dict],
 ) -> list[UUID]:
     """Run scenario_rubric seed definitions (resource-level create)."""
-    from app.routes.v5.tools.resources.scenario_rubrics.create import (
+    from app.tools.resources.scenario_rubrics.create import (
         create_scenario_rubric,
     )
 
@@ -822,7 +822,7 @@ async def _run_objective_seeds(
     objective_defs: list[dict],
 ) -> list[UUID]:
     """Run objective seed definitions (resource-level create)."""
-    from app.routes.v5.tools.resources.objectives.create import create_objective
+    from app.tools.resources.objectives.create import create_objective
 
     created_ids: list[UUID] = []
     for o in objective_defs:
@@ -845,7 +845,7 @@ async def _run_question_seeds(
     question_defs: list[dict],
 ) -> list[UUID]:
     """Run question seed definitions (resource-level create)."""
-    from app.routes.v5.tools.resources.questions.create import create_question
+    from app.tools.resources.questions.create import create_question
 
     created_ids: list[UUID] = []
     for q in question_defs:
@@ -870,7 +870,7 @@ async def _run_option_seeds(
     option_defs: list[dict],
 ) -> list[UUID]:
     """Run option seed definitions (resource-level create)."""
-    from app.routes.v5.tools.resources.options.create import create_option
+    from app.tools.resources.options.create import create_option
 
     created_ids: list[UUID] = []
     for o in option_defs:
@@ -958,10 +958,10 @@ async def _run_key_seeds(
     mod: object,
 ) -> None:
     """Run provider_keys, auth_item_keys, and auth_item_values seed definitions."""
-    from app.routes.v5.tools.resources.auth_item_keys.create import (
+    from app.tools.resources.auth_item_keys.create import (
         create_auth_item_key,
     )
-    from app.routes.v5.tools.resources.provider_keys.create import create_provider_key
+    from app.tools.resources.provider_keys.create import create_provider_key
 
     async with pool.acquire() as conn:
         for pk in mod.provider_keys:
@@ -974,7 +974,7 @@ async def _run_key_seeds(
 
         # Auth item values (non-encrypted OIDC config) — optional per setup
         if hasattr(mod, "auth_item_values") and mod.auth_item_values:
-            from app.routes.v5.tools.resources.auth_item_values.create import (
+            from app.tools.resources.auth_item_values.create import (
                 create_auth_item_value,
             )
 
@@ -1021,7 +1021,7 @@ async def _run_color_seeds(
     color_defs: list[dict],
 ) -> list[UUID]:
     """Run color seed definitions (resource-level create)."""
-    from app.routes.v5.tools.resources.colors.create import create_color
+    from app.tools.resources.colors.create import create_color
 
     created_ids: list[UUID] = []
     for c in color_defs:
@@ -1054,8 +1054,8 @@ async def _run_text_seeds(
       3. Calls update_document to link text_ids
     """
     from app.infra.tools.entries.create_document_text import create_document_text
-    from app.routes.v5.tools.artifacts.document.update import update_document
-    from app.routes.v5.tools.entries.sessions.create import create_session
+    from app.tools.artifacts.document.update import update_document
+    from app.tools.entries.sessions.create import create_session
 
     # Create a temp upload folder for text file writes
     upload_folder = Path(tempfile.mkdtemp(prefix="seed_uploads_"))
@@ -1102,8 +1102,8 @@ async def _run_file_seeds(
       3. Links result to document via document_files_junction
     """
     from app.infra.tools.entries.create_document_file import create_document_file
-    from app.routes.v5.tools.artifacts.document.update import update_document
-    from app.routes.v5.tools.entries.sessions.create import create_session
+    from app.tools.artifacts.document.update import update_document
+    from app.tools.entries.sessions.create import create_session
 
     # Create a temp upload folder for file copies
     upload_folder = Path(tempfile.mkdtemp(prefix="seed_uploads_"))
@@ -1240,7 +1240,7 @@ async def _run_update_pass(
         mod = importlib.import_module(f"database.seeds.setups.{setup}.departments")
         if hasattr(mod, "get_department_updates"):
             from app.infra.department.update import update_department_impl
-            from app.routes.v5.api.main.department.types import UpdateDepartmentItem
+            from app.infra.department.types import UpdateDepartmentItem
 
             dept_updates = mod.get_department_updates()
             if dept_updates:
@@ -1264,11 +1264,11 @@ async def _run_update_pass(
         mod = importlib.import_module(f"database.seeds.setups.{setup}.settings")
         if hasattr(mod, "get_setting_updates"):
             from app.infra.setting.update import update_setting_impl
-            from app.routes.v5.api.main.setting.types import UpdateSettingItem
+            from app.infra.setting.types import UpdateSettingItem
 
             setting_updates = mod.get_setting_updates()
             if setting_updates:
-                from app.routes.v5.tools.artifacts.profile.get import get_profiles
+                from app.tools.artifacts.profile.get import get_profiles
 
                 items = []
                 for s in setting_updates:
@@ -1304,8 +1304,8 @@ async def _run_update_pass(
         mod = importlib.import_module(f"database.seeds.setups.{setup}.profiles")
         if hasattr(mod, "profile_updates"):
             from app.infra.profile.update import update_profile_impl
-            from app.routes.v5.api.main.profile.types import UpdateProfileItem
-            from app.routes.v5.tools.resources.emails.create import create_email
+            from app.infra.profile.types import UpdateProfileItem
+            from app.tools.resources.emails.create import create_email
 
             update_items: list[UpdateProfileItem] = []
             for p in mod.profile_updates:
@@ -1380,7 +1380,7 @@ async def _run_tool_module_seeds(
 ) -> None:
     """Create tools from static definitions in tools_data.py."""
     from app.infra.tool.create import CreateToolItem, create_tool_impl
-    from app.routes.v5.tools.resources.args.create import create_arg
+    from app.tools.resources.args.create import create_arg
     from database.seeds.tools import tools
 
     print(f"  Loading {len(tools)} tool definitions.")
