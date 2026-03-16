@@ -25,11 +25,17 @@ jobs:
           echo "=== Nginx logs ==="
           docker compose logs nginx --tail=50 2>&1
 
-      - name: Server logs
+      - name: Server-blue logs
         run: |
           cd "${LIVE_DIR}/glow-api"
-          echo "=== Server logs ==="
-          docker compose logs server --tail=30 2>&1
+          echo "=== Server-blue logs ==="
+          docker compose logs server-blue --tail=50 2>&1
+
+      - name: Server-green logs
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          echo "=== Server-green logs ==="
+          docker compose logs server-green --tail=50 2>&1
 
       - name: Docker-gen logs
         run: |
