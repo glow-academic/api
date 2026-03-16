@@ -170,6 +170,20 @@ jobs:
       - name: Stage release
         run: make stage-release DEST=/srv/deploy/live/glow-api SHA=${{ github.sha }}
 
+      - name: Ensure Traefik is running
+        run: |
+          if docker ps --filter name=traefik --format '{{.Names}}' | grep -q '^traefik$'; then
+            echo "Traefik is already running"
+          else
+            echo "Starting Traefik from api deployment..."
+            if [ -f /srv/deploy/live/api/traefik/setup.sh ]; then
+              bash /srv/deploy/live/api/traefik/setup.sh "${{ secrets.ACME_EMAIL }}"
+            else
+              echo "WARNING: Traefik setup not found at /srv/deploy/live/api/traefik/setup.sh"
+              echo "Deploy the api repo first to set up Traefik"
+            fi
+          fi
+
       - name: Write .env from secrets
         working-directory: /srv/deploy/live/glow-api
         run: |
