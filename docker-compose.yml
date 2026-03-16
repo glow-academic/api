@@ -24,9 +24,7 @@ services:
   #   - "" (empty string) OR unset: Skip initialization, use existing database (default behavior)
   #   - seed_*.sql: Clean database and load specified seed file from seeds/ directory
   database:
-    build:
-      context: ./database
-      dockerfile: Dockerfile
+    image: ${API_DATABASE_IMAGE:-ghcr.io/learnloopllc/glow-api-database:latest}
     env_file:
       - .env
     environment:
@@ -190,12 +188,7 @@ services:
   # API Server (No contianer name, since redis will clone replicas)
   # --------------------
   server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-      args:
-        APP_UID: 1001
-        APP_GID: 1001
+    image: ${API_SERVER_IMAGE:-ghcr.io/learnloopllc/glow-api-server:latest}
     env_file:
       - .env
     environment:

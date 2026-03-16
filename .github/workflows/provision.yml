@@ -67,21 +67,11 @@ jobs:
           AUTH_CLIENT_ID=${{ secrets.AUTH_KEYCLOAK_ID }}
           AUTH_CLIENT_SECRET=${{ secrets.AUTH_CLIENT_SECRET }}
           DB_OPERATION=auto
+          API_SERVER_IMAGE=${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ inputs.version }}
+          API_DATABASE_IMAGE=${{ env.REGISTRY }}/learnloopllc/glow-api-database:${{ inputs.version }}
           GLOW_CLIENT_IMAGE=${{ env.REGISTRY }}/learnloopllc/glow-client:${{ inputs.version }}
           ENVEOF
           sed -i 's/^[[:space:]]*//' "$DEST/.env"
-
-          # Write docker-compose.override.yml to use pre-built images
-          cat > "$DEST/docker-compose.override.yml" <<'OVERRIDE'
-          services:
-            server:
-              image: ghcr.io/learnloopllc/glow-api-server:VERSION
-              build: !reset null
-            database:
-              image: ghcr.io/learnloopllc/glow-api-database:VERSION
-              build: !reset null
-          OVERRIDE
-          sed -i "s/VERSION/${{ inputs.version }}/g" "$DEST/docker-compose.override.yml"
 
           echo "${{ inputs.version }}" > "$DEST/DEPLOYED_VERSION"
 
