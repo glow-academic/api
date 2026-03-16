@@ -61,7 +61,7 @@ services:
   # Keycloak
   # --------------------
   keycloak:
-    image: quay.io/keycloak/keycloak:25.0
+    image: quay.io/keycloak/keycloak:26.0
     restart: unless-stopped
     # Copy themes from Docker volume before starting Keycloak
     entrypoint: >
