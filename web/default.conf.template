@@ -7,12 +7,6 @@ map $http_upgrade $connection_upgrade {
   ""        close;
 }
 
-# Sticky-session key built from the Socket.IO cookie
-map $http_cookie $socketio_session_id {
-    "~io=([^;]+)"  $1;
-    default        $remote_addr;  # fallback
-}
-
 # Preserve upstream proto (e.g., Apache SSL) so we don't downgrade https -> http.
 # If no upstream header, fall back to this hop's $scheme.
 map $http_x_forwarded_proto $forwarded_proto {
@@ -20,13 +14,13 @@ map $http_x_forwarded_proto $forwarded_proto {
     ""      $scheme;
 }
 
+# Include dynamically generated upstreams (from docker-gen)
+include /etc/nginx/conf.d/generated/upstreams.conf;
 
-# ----------  upstreams -------------
-upstream api_socketio {
-  hash $socketio_session_id  consistent;
-  # Default fallback — docker-gen overwrites the included file at runtime
-  server server:8000;
-  include /etc/nginx/conf.d/generated/api_socketio.upstream.conf;
+# Routing based on ACTIVE_ENV
+map "${ACTIVE_ENV}" $server_backend {
+    "green" green_server;
+    default blue_server;
 }
 
 server {
@@ -48,7 +42,7 @@ server {
 
     # FastAPI server — all /v5/ API routes
     location ^~ ${APP_PREFIX}/v5/ {
-        proxy_pass         http://server:8000;
+        proxy_pass         http://$server_backend;
         proxy_http_version 1.1;
         proxy_set_header   Host              $http_host;
         proxy_set_header   X-Real-IP         $remote_addr;
@@ -59,7 +53,7 @@ server {
 
     # WebSocket traffic (prefixed)
     location ^~ ${APP_PREFIX}/socket.io/ {
-        proxy_pass         http://api_socketio;
+        proxy_pass         http://$server_backend;
         proxy_http_version 1.1;
         proxy_set_header   Upgrade           $http_upgrade;
         proxy_set_header   Connection        $connection_upgrade;
@@ -90,7 +84,7 @@ server {
     # HTTP clients strip Authorization headers on redirects (security feature)
     # ChatGPT sends Authorization header, but redirects cause it to be dropped
     location = ${APP_PREFIX}/mcp {
-        proxy_pass         http://server:8000/mcp;
+        proxy_pass         http://$server_backend/mcp;
         proxy_http_version 1.1;
         proxy_set_header   Host              $http_host;
         proxy_set_header   X-Real-IP         $remote_addr;
@@ -108,7 +102,7 @@ server {
     }
 
     location ^~ ${APP_PREFIX}/mcp/ {
-        proxy_pass         http://server:8000;
+        proxy_pass         http://$server_backend;
         proxy_http_version 1.1;
         proxy_set_header   Host              $http_host;
         proxy_set_header   X-Real-IP         $remote_addr;
@@ -127,14 +121,14 @@ server {
 
     # MCP PRM discovery endpoint (RFC 9728) - if served at root
     location = ${APP_PREFIX}/.well-known/oauth-protected-resource {
-        proxy_pass         http://server:8000;
+        proxy_pass         http://$server_backend;
         proxy_set_header   Host              $http_host;
         proxy_set_header   X-Forwarded-Proto $forwarded_proto;
     }
 
     # OAuth Authorization Server Metadata endpoint (RFC 8414) - REQUIRED for ChatGPT Dev Mode
     location = ${APP_PREFIX}/.well-known/oauth-authorization-server {
-        proxy_pass         http://server:8000;
+        proxy_pass         http://$server_backend;
         proxy_set_header   Host              $http_host;
         proxy_set_header   X-Forwarded-Proto $forwarded_proto;
     }
@@ -142,7 +136,7 @@ server {
     # Default-IdP OIDC endpoints (public access required for Keycloak redirects)
     # Pattern matches MCP routing - root level, not under /api/
     location = ${APP_PREFIX}/default-idp {
-        proxy_pass         http://server:8000/default-idp;
+        proxy_pass         http://$server_backend/default-idp;
         proxy_http_version 1.1;
         proxy_set_header   Host              $http_host;
         proxy_set_header   X-Real-IP         $remote_addr;
@@ -155,7 +149,7 @@ server {
     }
 
     location ^~ ${APP_PREFIX}/default-idp/ {
-        proxy_pass         http://server:8000;
+        proxy_pass         http://$server_backend;
         proxy_http_version 1.1;
         proxy_set_header   Host              $http_host;
         proxy_set_header   X-Real-IP         $remote_addr;

@@ -76,6 +76,7 @@ jobs:
           AUTH_CLIENT_SECRET=${{ secrets.AUTH_CLIENT_SECRET }}
           SECRET_KEY=${{ secrets.SECRET_KEY }}
           CLIENT_ORIGIN=https://glow-client.${{ inputs.base_domain }}
+          ACTIVE_ENV=blue
           DB_OPERATION=auto
           API_SERVER_IMAGE=${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ inputs.version }}
           API_DATABASE_IMAGE=${{ env.REGISTRY }}/learnloopllc/glow-api-database:${{ inputs.version }}

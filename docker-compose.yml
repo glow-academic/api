@@ -185,9 +185,9 @@ services:
       - internal
 
   # --------------------
-  # API Server (No contianer name, since redis will clone replicas)
+  # API Server (Blue)
   # --------------------
-  server:
+  server-blue:
     image: ${API_SERVER_IMAGE:-ghcr.io/learnloopllc/glow-api-server:latest}
     env_file:
       - .env
@@ -197,11 +197,58 @@ services:
       - PGPOOL_MODE=session
       - DOCKER_ENV=1
       - APP_PREFIX=${APP_PREFIX}
-      - INTERNAL_API_BASE=http://server:8000
+      - INTERNAL_API_BASE=http://server-blue:8000
       - REDIS_URL=redis://redis:6379
       - KEYCLOAK_INTERNAL_URL=http://keycloak:8080
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-master}
       - CLIENT_ORIGIN=${CLIENT_ORIGIN:-}
+    labels:
+      - "com.docker.compose.service=server-blue"
+      - "com.docker.compose.project=${COMPOSE_PROJECT_NAME}"
+    volumes:
+      - uploads:/app/uploads   # Docker volume for uploads
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      volume-init:
+        condition: service_completed_successfully
+    command: >
+      gunicorn app.main:app -w 1 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 --log-level info
+    networks:
+      - internal
+      - public_net
+
+  # --------------------
+  # API Server (Green)
+  # --------------------
+  server-green:
+    image: ${API_SERVER_IMAGE:-ghcr.io/learnloopllc/glow-api-server:latest}
+    env_file:
+      - .env
+    environment:
+      - DB_PORT=5432
+      - DB_HOST=pgbouncer
+      - PGPOOL_MODE=session
+      - DOCKER_ENV=1
+      - APP_PREFIX=${APP_PREFIX}
+      - INTERNAL_API_BASE=http://server-green:8000
+      - REDIS_URL=redis://redis:6379
+      - KEYCLOAK_INTERNAL_URL=http://keycloak:8080
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM:-master}
+      - CLIENT_ORIGIN=${CLIENT_ORIGIN:-}
+    labels:
+      - "com.docker.compose.service=server-green"
+      - "com.docker.compose.project=${COMPOSE_PROJECT_NAME}"
     volumes:
       - uploads:/app/uploads   # Docker volume for uploads
     healthcheck:
@@ -232,11 +279,14 @@ services:
     container_name: ${COMPOSE_PROJECT_NAME}-nginx
     env_file:
       - .env
+    environment:
+      - ACTIVE_ENV=${ACTIVE_ENV:-blue}
     volumes:
       - ./web/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./web/generated:/etc/nginx/conf.d/generated:rw
     depends_on:
-      - server
+      - server-blue
+      - server-green
       - keycloak
     networks:
       - internal
@@ -255,8 +305,8 @@ services:
     command: >
       -notify-sighup ${COMPOSE_PROJECT_NAME}-nginx
       -watch
-      /etc/docker-gen/templates/api_socketio.upstream.tmpl
-      /etc/nginx/conf.d/generated/api_socketio.upstream.conf
+      /etc/docker-gen/templates/upstreams.tmpl
+      /etc/nginx/conf.d/generated/upstreams.conf
     networks:
       - internal
       - public_net
