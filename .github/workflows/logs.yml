@@ -31,13 +31,17 @@ jobs:
           echo "=== Server logs ==="
           docker compose logs server --tail=30 2>&1
 
-      - name: Test from inside
+      - name: Docker-gen logs
         run: |
           cd "${LIVE_DIR}/glow-api"
-          NGINX=$(docker compose ps -q nginx 2>/dev/null)
-          if [ -n "$NGINX" ]; then
-            echo "=== Nginx internal test ==="
-            docker exec "$NGINX" curl -s http://localhost:80/health 2>&1 || echo "curl failed"
-          else
-            echo "Nginx container not running"
-          fi
+          echo "=== Docker-gen logs ==="
+          docker compose logs docker-gen --tail=30 2>&1
+
+      - name: Check generated upstream
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          echo "=== Generated upstreams.conf ==="
+          cat web/generated/upstreams.conf 2>/dev/null || echo "File not found"
+          echo ""
+          echo "=== Templates dir ==="
+          ls -la web/templates/ 2>/dev/null || echo "Dir not found"
