@@ -1,0 +1,43 @@
+name: Container Logs
+
+on:
+  workflow_dispatch:
+
+env:
+  LIVE_DIR: /srv/deploy/live
+
+jobs:
+  logs:
+    runs-on: self-hosted
+    steps:
+      - name: Container status
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          echo "=== Container status ==="
+          docker compose ps -a
+          echo ""
+          echo "=== docker-compose.override.yml ==="
+          cat docker-compose.override.yml 2>/dev/null || echo "No override file"
+
+      - name: Nginx logs
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          echo "=== Nginx logs ==="
+          docker compose logs nginx --tail=50 2>&1
+
+      - name: Server logs
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          echo "=== Server logs ==="
+          docker compose logs server --tail=30 2>&1
+
+      - name: Test from inside
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          NGINX=$(docker compose ps -q nginx 2>/dev/null)
+          if [ -n "$NGINX" ]; then
+            echo "=== Nginx internal test ==="
+            docker exec "$NGINX" curl -s http://localhost:80/health 2>&1 || echo "curl failed"
+          else
+            echo "Nginx container not running"
+          fi
