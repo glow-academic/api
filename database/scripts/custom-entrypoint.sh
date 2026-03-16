@@ -309,6 +309,10 @@ log_success "PostgreSQL is ready"
 # Wait for initialization scripts to complete
 sleep 3
 
+# Always ensure keycloak schema exists (Keycloak's Liquibase manages the actual tables)
+log_info "Ensuring keycloak schema exists..."
+psql -U "$DB_USER" -d "$DB_NAME" -c "CREATE SCHEMA IF NOT EXISTS keycloak;" 2>/dev/null || true
+
 log_success "Database is ready!"
 
 # Wait for PostgreSQL process
