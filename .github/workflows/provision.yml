@@ -50,8 +50,9 @@ jobs:
           DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
           mkdir -p "$DEST"
 
-          # Copy compose stack files (overwrites old config)
+          # Copy compose stack files (clean destination first to remove stale files)
           cp docker-compose.yml "$DEST/"
+          rm -rf "$DEST/web"
           cp -r web/ "$DEST/web/"
           cp -r uploads/ "$DEST/uploads/" 2>/dev/null || mkdir -p "$DEST/uploads"
           mkdir -p "$DEST/web/generated"
