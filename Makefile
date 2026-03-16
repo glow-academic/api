@@ -60,6 +60,10 @@ install: check-venv
 	@echo "Installing all dependencies..."
 	@$(VENV_PIP) install --upgrade pip
 	@$(VENV_PIP) install -e .
+	@if [ -f database/package.json ] && [ ! -d database/node_modules ]; then \
+		echo "Installing database dependencies..."; \
+		cd database && yarn install; \
+	fi
 	@echo "✅ All dependencies installed"
 
 # Clean virtual environment
