@@ -35,20 +35,27 @@ jobs:
         run: |
           docker pull "${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ inputs.version }}"
           docker pull "${{ env.REGISTRY }}/learnloopllc/glow-api-database:${{ inputs.version }}"
-          docker pull "${{ env.REGISTRY }}/learnloopllc/glow-client:${{ inputs.version }}" || \
-            docker pull "${{ env.REGISTRY }}/learnloopllc/glow-client:latest" || \
-            echo "Warning: glow-client image not available yet"
+
+      - name: Stop old stack
+        run: |
+          DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
+          if [ -d "$DEST" ]; then
+            cd "$DEST"
+            # Stop using OLD compose file before overwriting (handles service removals)
+            docker compose down -v --remove-orphans 2>/dev/null || true
+          fi
 
       - name: Stage deployment
         run: |
           DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
           mkdir -p "$DEST"
 
-          # Copy compose stack files
+          # Copy compose stack files (overwrites old config)
           cp docker-compose.yml "$DEST/"
           cp -r web/ "$DEST/web/"
           cp -r uploads/ "$DEST/uploads/" 2>/dev/null || mkdir -p "$DEST/uploads"
           mkdir -p "$DEST/web/generated"
+          rm -f "$DEST/docker-compose.override.yml" "$DEST/docker-compose.override.yaml"
 
           # Write .env with deployment config
           cat > "$DEST/.env" <<ENVEOF
@@ -81,8 +88,6 @@ jobs:
         run: |
           DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
           cd "$DEST"
-          # Clean up any leftover containers/volumes from previous deploys
-          docker compose down -v --remove-orphans 2>/dev/null || true
           docker compose pull --ignore-pull-failures
           docker compose up -d --no-build || {
             echo "=== Docker Compose failed. Collecting container logs ==="
