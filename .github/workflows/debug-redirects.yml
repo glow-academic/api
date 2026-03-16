@@ -1,0 +1,49 @@
+name: Debug Redirects
+on:
+  workflow_dispatch:
+env:
+  LIVE_DIR: /srv/deploy/live
+jobs:
+  debug:
+    runs-on: self-hosted
+    steps:
+      - name: Client logs (last 200 lines)
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          docker compose logs client --tail=200 2>&1 || echo "No client logs"
+
+      - name: Server logs (last 100 lines)
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          docker compose logs server --tail=100 2>&1 || echo "No server logs"
+
+      - name: Nginx logs
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          docker compose logs nginx --tail=100 2>&1 || echo "No nginx logs"
+
+      - name: Nginx config
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          docker compose exec nginx cat /etc/nginx/conf.d/default.conf 2>/dev/null || echo "No default.conf"
+          echo "=== generated ==="
+          docker compose exec nginx ls /etc/nginx/conf.d/generated/ 2>/dev/null || true
+          docker compose exec nginx cat /etc/nginx/conf.d/generated/*.conf 2>/dev/null || true
+
+      - name: Test auth callback flow
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          echo "=== Root URL ==="
+          curl -sI https://glow-api.learn-loop.org/ 2>&1 | head -10
+          echo ""
+          echo "=== /home ==="
+          curl -sI https://glow-api.learn-loop.org/home 2>&1 | head -10
+          echo ""
+          echo "=== /api/auth/session ==="
+          curl -s https://glow-api.learn-loop.org/api/auth/session 2>&1 | head -5
+          echo ""
+          echo "=== /api/auth/signin ==="
+          curl -sI https://glow-api.learn-loop.org/api/auth/signin 2>&1 | head -10
+          echo ""
+          echo "=== /auth/realms/master ==="
+          curl -sI https://glow-api.learn-loop.org/auth/realms/master 2>&1 | head -10
