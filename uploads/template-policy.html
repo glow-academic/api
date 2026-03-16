@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ document_name }} - {{ class_name }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+        }
+
+        body {
+            font-family: "Georgia", "Times New Roman", serif;
+            background: #ffffff;
+            color: #111827;
+            line-height: 1.6;
+        }
+
+        .document-container {
+            max-width: 850px;
+            margin: 2.5rem auto 3rem;
+            padding: 3rem 3.5rem;
+            background: #ffffff;
+            border: 1px solid #d4d4d8;
+            border-radius: 0;
+        }
+
+        .document-title-section {
+            padding-bottom: 1.75rem;
+            margin-bottom: 1.75rem;
+            border-bottom: 1.5px solid #9ca3af;
+            text-align: center;
+        }
+
+        .document-title-section h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            color: #111827;
+            margin-bottom: 0.5rem;
+        }
+
+        .document-title-section .class-info {
+            font-size: 0.95rem;
+            color: #4b5563;
+            font-weight: 400;
+        }
+
+        .meta-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .meta-grid {
+            display: table;
+            width: 100%;
+            border-collapse: collapse;
+            border-top: 1px solid #d4d4d8;
+            border-bottom: 1px solid #d4d4d8;
+        }
+
+        .meta-item {
+            display: table-row;
+        }
+
+        .meta-label,
+        .meta-value {
+            display: table-cell;
+            padding: 0.5rem 0.25rem;
+            vertical-align: top;
+            font-size: 0.95rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .meta-item:first-child .meta-label,
+        .meta-item:first-child .meta-value {
+            border-top: none;
+        }
+
+        .meta-label {
+            width: 28%;
+            font-weight: 600;
+            color: #374151;
+            padding-right: 1.5rem;
+            white-space: nowrap;
+        }
+
+        .meta-value {
+            color: #111827;
+        }
+
+        .section {
+            margin-bottom: 2.5rem;
+        }
+
+        .section h2 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #9ca3af;
+            padding-bottom: 0.4rem;
+        }
+
+        .policy-content {
+            border-left: 3px solid #111827;
+            padding: 1.25rem 1.5rem;
+            background: #f9fafb;
+            font-size: 0.98rem;
+            color: #111827;
+        }
+
+        .policy-section {
+            border: 1px solid #d4d4d8;
+            padding: 1.5rem;
+            background: #ffffff;
+            margin-bottom: 1.5rem;
+        }
+
+        .policy-section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 0.75rem;
+        }
+
+        .guideline-item {
+            margin-bottom: 0.75rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .guideline-item:before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: #6b7280;
+        }
+
+        .guideline-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .compliance-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .compliance-item:last-child {
+            border-bottom: none;
+        }
+
+        .compliance-label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .compliance-value {
+            color: #111827;
+        }
+
+        .document-footer {
+            border-top: 1px solid #d4d4d8;
+            padding: 1.5rem 0;
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: #4b5563;
+        }
+
+        .footer-content {
+            max-width: 850px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-branding {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .footer-logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 2px;
+            border: 1px solid #9ca3af;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #111827;
+        }
+
+        .footer-org-name {
+            font-weight: 600;
+            color: #111827;
+            font-size: 0.9rem;
+        }
+
+        .footer-meta {
+            font-size: 0.8rem;
+            color: #4b5563;
+        }
+
+        @media print {
+            body {
+                background: #ffffff;
+                color: #000000;
+            }
+
+            .document-container {
+                margin: 0;
+                padding: 0;
+                border: none;
+            }
+
+            .document-footer {
+                border-top: 1px solid #d4d4d8;
+                margin-top: 1.5rem;
+                padding-top: 0.75rem;
+            }
+
+            .policy-section {
+                border: 1px solid #c4c4c4;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .document-container {
+                margin: 0.5rem;
+                padding: 1.5rem 1.25rem 2rem;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="document-container">
+        <section class="document-title-section">
+            <h1>{{ document_name }} ({{ class_name }})</h1>
+            {% if class_description %}
+            <div class="class-info">{{ class_description }}</div>
+            {% endif %}
+        </section>
+
+        <section class="meta-section">
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <div class="meta-label">Department</div>
+                    <div class="meta-value">{{ department }}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Class</div>
+                    <div class="meta-value">{{ class_name }}{% if class_description %} - {{ class_description }}{% endif %}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Document Type</div>
+                    <div class="meta-value">Policy Document</div>
+                </div>
+                {% if effective_date %}
+                <div class="meta-item">
+                    <div class="meta-label">Effective Date</div>
+                    <div class="meta-value">{{ effective_date }}</div>
+                </div>
+                {% endif %}
+                {% if document_description %}
+                <div class="meta-item">
+                    <div class="meta-label">Description</div>
+                    <div class="meta-value">{{ document_description }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+
+        {% if purpose %}
+        <section class="section">
+            <h2>Purpose</h2>
+            <div class="policy-content">
+                {{ purpose }}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if scope %}
+        <section class="section">
+            <h2>Scope</h2>
+            <div class="policy-content">
+                {{ scope }}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if guidelines and ((guidelines.item and guidelines.item.items) or (guidelines['items'] is defined and guidelines['items'] is sequence and guidelines['items'] is not string and guidelines['items']|length > 0) or (guidelines is string)) %}
+        <section class="section">
+            <h2>Guidelines</h2>
+            <div class="policy-section">
+                {% if guidelines.item and guidelines.item.items %}
+                    {% for guideline in guidelines.item.items %}
+                    <div class="guideline-item">
+                        {{ guideline.item.text if guideline.item and guideline.item.text else guideline.text }}
+                    </div>
+                    {% endfor %}
+                {% elif guidelines['items'] is defined and guidelines['items'] is sequence and guidelines['items'] is not string %}
+                    {% if guidelines['items']|length > 0 %}
+                    {% for guideline in guidelines['items'] %}
+                    <div class="guideline-item">{{ guideline.text }}</div>
+                    {% endfor %}
+                    {% endif %}
+                {% else %}
+                    <p>{{ guidelines }}</p>
+                {% endif %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if compliance and ((compliance.item and compliance.item.items) or (compliance['items'] is defined and compliance['items'] is sequence and compliance['items'] is not string and compliance['items']|length > 0) or (compliance is string)) %}
+        <section class="section">
+            <h2>Compliance Requirements</h2>
+            <div class="policy-section">
+                {% if compliance.item and compliance.item.items %}
+                    {% for item in compliance.item.items %}
+                    <div class="compliance-item">
+                        <span class="compliance-label">
+                            {{ item.item.requirement if item.item and item.item.requirement else item.requirement }}
+                        </span>
+                        <span class="compliance-value">
+                            {{ item.item.status if item.item and item.item.status else item.status }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                {% elif compliance['items'] is defined and compliance['items'] is sequence and compliance['items'] is not string %}
+                    {% if compliance['items']|length > 0 %}
+                    {% for item in compliance['items'] %}
+                    <div class="compliance-item">
+                        <span class="compliance-label">{{ item.requirement }}</span>
+                        <span class="compliance-value">{{ item.status }}</span>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                {% else %}
+                    <p>{{ compliance }}</p>
+                {% endif %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if enforcement %}
+        <section class="section">
+            <h2>Enforcement</h2>
+            <div class="policy-content">
+                {{ enforcement }}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if review_date %}
+        <section class="section">
+            <h2>Review Information</h2>
+            <div class="policy-content">
+                <p><strong>Next Review Date:</strong> {{ review_date }}</p>
+            </div>
+        </section>
+        {% endif %}
+    </main>
+
+    <footer class="document-footer">
+        <div class="footer-content">
+            <div class="footer-branding">
+                <div class="footer-logo">
+                    {% if organization_name %}
+                        {{ organization_name[:1]|upper }}
+                    {% else %}
+                        E
+                    {% endif %}
+                </div>
+                <div>
+                    <div class="footer-org-name">{{ organization_name or "Educational Institution" }}</div>
+                    {% if organization_description %}
+                        <div class="footer-meta">{{ organization_description }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="footer-meta">
+                {{ department }} • {{ class_name }}
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
+

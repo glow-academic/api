@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Integrity Policy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+        }
+
+        body {
+            font-family: "Georgia", "Times New Roman", serif;
+            background: #ffffff;
+            color: #111827;
+            line-height: 1.6;
+        }
+
+        .document-container {
+            max-width: 850px;
+            margin: 2.5rem auto 3rem;
+            padding: 3rem 3.5rem;
+            background: #ffffff;
+            border: 1px solid #d4d4d8;
+            border-radius: 0;
+        }
+
+        .document-title-section {
+            padding-bottom: 1.75rem;
+            margin-bottom: 1.75rem;
+            border-bottom: 1.5px solid #9ca3af;
+            text-align: center;
+        }
+
+        .document-title-section h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            color: #111827;
+            margin-bottom: 0.5rem;
+        }
+
+        .document-title-section .class-info {
+            font-size: 0.95rem;
+            color: #4b5563;
+            font-weight: 400;
+        }
+
+        .meta-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .meta-grid {
+            display: table;
+            width: 100%;
+            border-collapse: collapse;
+            border-top: 1px solid #d4d4d8;
+            border-bottom: 1px solid #d4d4d8;
+        }
+
+        .meta-item {
+            display: table-row;
+        }
+
+        .meta-label,
+        .meta-value {
+            display: table-cell;
+            padding: 0.5rem 0.25rem;
+            vertical-align: top;
+            font-size: 0.95rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .meta-item:first-child .meta-label,
+        .meta-item:first-child .meta-value {
+            border-top: none;
+        }
+
+        .meta-label {
+            width: 28%;
+            font-weight: 600;
+            color: #374151;
+            padding-right: 1.5rem;
+            white-space: nowrap;
+        }
+
+        .meta-value {
+            color: #111827;
+        }
+
+        .section {
+            margin-bottom: 2.5rem;
+        }
+
+        .section h2 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #9ca3af;
+            padding-bottom: 0.4rem;
+        }
+
+        .policy-content {
+            border-left: 3px solid #111827;
+            padding: 1.25rem 1.5rem;
+            background: #f9fafb;
+            font-size: 0.98rem;
+            color: #111827;
+        }
+
+        .policy-section {
+            border: 1px solid #d4d4d8;
+            padding: 1.5rem;
+            background: #ffffff;
+            margin-bottom: 1.5rem;
+        }
+
+        .policy-section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 0.75rem;
+        }
+
+        .guideline-item {
+            margin-bottom: 0.75rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .guideline-item:before {
+            content: "\25B8";
+            position: absolute;
+            left: 0;
+            color: #6b7280;
+        }
+
+        .guideline-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .compliance-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .compliance-item:last-child {
+            border-bottom: none;
+        }
+
+        .compliance-label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .compliance-value {
+            color: #111827;
+        }
+
+        .document-footer {
+            border-top: 1px solid #d4d4d8;
+            padding: 1.5rem 0;
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: #4b5563;
+        }
+
+        .footer-content {
+            max-width: 850px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-branding {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .footer-logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 2px;
+            border: 1px solid #9ca3af;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #111827;
+        }
+
+        .footer-org-name {
+            font-weight: 600;
+            color: #111827;
+            font-size: 0.9rem;
+        }
+
+        .footer-meta {
+            font-size: 0.8rem;
+            color: #4b5563;
+        }
+
+        @media print {
+            body {
+                background: #ffffff;
+                color: #000000;
+            }
+
+            .document-container {
+                margin: 0;
+                padding: 0;
+                border: none;
+            }
+
+            .document-footer {
+                border-top: 1px solid #d4d4d8;
+                margin-top: 1.5rem;
+                padding-top: 0.75rem;
+            }
+
+            .policy-section {
+                border: 1px solid #c4c4c4;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .document-container {
+                margin: 0.5rem;
+                padding: 1.5rem 1.25rem 2rem;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="document-container">
+        <section class="document-title-section">
+            <h1>Academic Integrity Policy</h1>
+            <div class="class-info">Office of the Dean of Students</div>
+        </section>
+
+        <section class="meta-section">
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <div class="meta-label">Department</div>
+                    <div class="meta-value">Office of the Dean of Students</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Document Type</div>
+                    <div class="meta-value">University Policy</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Effective Date</div>
+                    <div class="meta-value">August 2024</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Applies To</div>
+                    <div class="meta-value">All enrolled students, faculty, and instructional staff</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Purpose</h2>
+            <div class="policy-content">
+                This policy establishes the university's standards for academic integrity and outlines the procedures for addressing violations. Academic integrity is fundamental to the mission of the university and to the value of the degrees it confers. Every member of the academic community is expected to uphold the highest standards of honesty in all scholarly work.
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Scope</h2>
+            <div class="policy-content">
+                This policy applies to all academic work submitted for credit, including but not limited to examinations, papers, laboratory reports, homework assignments, presentations, and any other work evaluated as part of a course or academic program. It covers all students enrolled in undergraduate, graduate, and professional programs.
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Definitions of Academic Dishonesty</h2>
+            <div class="policy-section">
+                <div class="policy-section-title">Forms of Academic Dishonesty</div>
+                <div class="guideline-item">
+                    <strong>Plagiarism:</strong> Submitting the work of another person as one's own, including copying text, ideas, or data without proper attribution. This includes paraphrasing without citation and submitting purchased or AI-generated work as one's own.
+                </div>
+                <div class="guideline-item">
+                    <strong>Cheating:</strong> Using unauthorized materials, information, or study aids during an examination or assignment. This includes copying from another student, using prohibited notes or devices, and obtaining exam materials prior to administration.
+                </div>
+                <div class="guideline-item">
+                    <strong>Fabrication:</strong> Inventing or falsifying information, data, or citations in any academic exercise. This includes fabricating research results, altering data, and misrepresenting sources.
+                </div>
+                <div class="guideline-item">
+                    <strong>Facilitation:</strong> Helping or attempting to help another student commit an act of academic dishonesty. This includes providing unauthorized access to materials, sharing answers, or completing work on behalf of another student.
+                </div>
+                <div class="guideline-item">
+                    <strong>Unauthorized Collaboration:</strong> Working with others on assignments that are designated as individual work without explicit permission from the instructor.
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Reporting and Investigation Process</h2>
+            <div class="policy-section">
+                <div class="guideline-item">
+                    Instructors who suspect a violation will first discuss the matter with the student and provide an opportunity for the student to respond.
+                </div>
+                <div class="guideline-item">
+                    If the instructor determines a violation has occurred, they will submit a report to the Office of the Dean of Students within 10 business days.
+                </div>
+                <div class="guideline-item">
+                    The student will receive written notification of the allegation and will have 5 business days to schedule a meeting with the Dean of Students office.
+                </div>
+                <div class="guideline-item">
+                    The student may accept responsibility or request a formal hearing before the Academic Integrity Committee.
+                </div>
+                <div class="guideline-item">
+                    All proceedings are documented and maintained in the student's disciplinary file for the duration of their enrollment.
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Sanctions</h2>
+            <div class="policy-section">
+                <div class="compliance-item">
+                    <span class="compliance-label">First Offense (Minor)</span>
+                    <span class="compliance-value">Zero on assignment, academic integrity education course</span>
+                </div>
+                <div class="compliance-item">
+                    <span class="compliance-label">First Offense (Major)</span>
+                    <span class="compliance-value">Failing grade in course, disciplinary probation</span>
+                </div>
+                <div class="compliance-item">
+                    <span class="compliance-label">Second Offense</span>
+                    <span class="compliance-value">Suspension for one or more semesters</span>
+                </div>
+                <div class="compliance-item">
+                    <span class="compliance-label">Third Offense</span>
+                    <span class="compliance-value">Expulsion from the university</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Student Rights</h2>
+            <div class="policy-content">
+                Students accused of academic dishonesty have the right to be informed of the specific allegations, to review all evidence, to present their case and supporting evidence, to have an advisor present during hearings, and to appeal any decision through the university's formal appeals process. The appeals process must be initiated within 10 business days of the original decision.
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Review Information</h2>
+            <div class="policy-content">
+                <p><strong>Next Review Date:</strong> August 2025</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="document-footer">
+        <div class="footer-content">
+            <div class="footer-branding">
+                <div class="footer-logo">U</div>
+                <div>
+                    <div class="footer-org-name">University</div>
+                    <div class="footer-meta">Office of the Dean of Students</div>
+                </div>
+            </div>
+            <div class="footer-meta">
+                Academic Integrity Policy
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
