@@ -1,4 +1,5 @@
 .PHONY: help setup install clean format lint typecheck run test test-cov cleanup generate-tests stop restore-db migrate-db migrate-db-only migrate-db-all connect-db fresh-db openapi-gen configure deploy deploy-clean seed-gen
+.PHONY: deploy-target switch-traffic rollback monitor deploy-status detect-env pull-images stage-release
 
 # Default Python interpreter
 PYTHON := python3.11
@@ -341,6 +342,28 @@ mcp: check-venv
 	@echo "   - Cursor config updated at ~/.cursor/mcp.json"
 	@echo "   - Restart Cursor IDE to use the new configuration"
 
+
+# ── Deployment ───────────────────────────────────────────────
+deploy-target:
+	./scripts/deploy-target.sh $(ENV)
+
+switch-traffic:
+	./scripts/switch-traffic.sh $(ENV)
+
+rollback:
+	./scripts/switch-traffic.sh $(ROLLBACK_ENV)
+
+monitor:
+	./scripts/monitor.sh $(ENV) $(ROLLBACK_ENV) $(GRACE)
+
+detect-env:
+	./scripts/detect-env.sh
+
+pull-images:
+	./scripts/pull-images.sh
+
+stage-release:
+	./scripts/stage-release.sh . $(DEST) $(SHA)
 
 # Show help
 help:

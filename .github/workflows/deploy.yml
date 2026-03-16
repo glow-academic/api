@@ -1,0 +1,227 @@
+name: Deploy Glow API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - 'database/**'
+      - 'web/**'
+      - 'scripts/**'
+      - 'docker-compose.yml'
+      - 'Makefile'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      server-changed: ${{ steps.changes.outputs.server }}
+      database-changed: ${{ steps.changes.outputs.database }}
+      any-changes: ${{ steps.changes.outputs.any }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+
+      - name: Detect changes
+        id: changes
+        run: |
+          CHANGED_FILES=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")
+
+          set_flag () {
+            if echo "$CHANGED_FILES" | grep -q "^$1/"; then
+              echo "$2=true" >> $GITHUB_OUTPUT
+            else
+              echo "$2=false" >> $GITHUB_OUTPUT
+            fi
+          }
+
+          set_flag "server" "server"
+          set_flag "database" "database"
+
+          if echo "$CHANGED_FILES" | grep -qE '^(server|database|web|docker-compose|\.github)'; then
+            echo "any=true" >> $GITHUB_OUTPUT
+          else
+            echo "any=false" >> $GITHUB_OUTPUT
+          fi
+
+  detect-active-environment:
+    runs-on: [self-hosted, linux, x64, deploy]
+    outputs:
+      active-env: ${{ steps.detect.outputs.active-env }}
+      target-env: ${{ steps.detect.outputs.target-env }}
+    steps:
+      - name: Detect active environment
+        id: detect
+        run: |
+          DEPLOY_DIR="/srv/deploy/live/glow-api"
+          if [ -d "$DEPLOY_DIR" ] && [ -f "$DEPLOY_DIR/scripts/detect-env.sh" ]; then
+            cd "$DEPLOY_DIR"
+            eval $(./scripts/detect-env.sh)
+          fi
+          ACTIVE_ENV="${ACTIVE_ENV:-blue}"
+          [ -z "$ACTIVE_ENV" ] && ACTIVE_ENV="blue"
+          if [ "$ACTIVE_ENV" = "green" ]; then TARGET_ENV="blue"; else TARGET_ENV="green"; fi
+          echo "Active environment: $ACTIVE_ENV"
+          echo "Target environment: $TARGET_ENV"
+          echo "active-env=$ACTIVE_ENV" >> $GITHUB_OUTPUT
+          echo "target-env=$TARGET_ENV" >> $GITHUB_OUTPUT
+
+  build-server:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.server-changed == 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with: { clean: true }
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Meta (server)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/learnloopllc/glow-api-server
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=main-
+
+      - name: Build & push (server)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-database:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.database-changed == 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with: { clean: true }
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Meta (database)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/learnloopllc/glow-api-database
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=main-
+
+      - name: Build & push (database)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./database
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    runs-on: [self-hosted, linux, x64, deploy]
+    needs: [detect-changes, detect-active-environment, build-server, build-database]
+    if: |
+      always() &&
+      (needs.detect-changes.outputs.any-changes == 'true' || github.event_name == 'workflow_dispatch')
+    concurrency:
+      group: deploy-glow-api
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          clean: true
+
+      - name: Login GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Stage release
+        run: make stage-release DEST=/srv/deploy/live/glow-api SHA=${{ github.sha }}
+
+      - name: Write .env from secrets
+        working-directory: /srv/deploy/live/glow-api
+        run: |
+          cat > .env <<'ENVEOF'
+          COMPOSE_PROJECT_NAME=glow-api
+          API_SERVER_IMAGE=ghcr.io/learnloopllc/glow-api-server:latest
+          API_DATABASE_IMAGE=ghcr.io/learnloopllc/glow-api-database:latest
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          ORIGIN=${{ secrets.ORIGIN }}
+          APP_PREFIX=
+          KEYCLOAK_ADMIN=${{ secrets.KEYCLOAK_ADMIN }}
+          KEYCLOAK_ADMIN_PASSWORD=${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}
+          KEYCLOAK_REALM=${{ secrets.KEYCLOAK_REALM }}
+          AUTH_SECRET=${{ secrets.AUTH_SECRET }}
+          AUTH_KEYCLOAK_ID=${{ secrets.AUTH_KEYCLOAK_ID }}
+          AUTH_CLIENT_ID=${{ secrets.AUTH_KEYCLOAK_ID }}
+          AUTH_CLIENT_SECRET=${{ secrets.AUTH_CLIENT_SECRET }}
+          AUTH_KEYCLOAK_SECRET=${{ secrets.AUTH_CLIENT_SECRET }}
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          CLIENT_ORIGIN=${{ secrets.CLIENT_ORIGIN }}
+          DB_OPERATION=
+          ACTIVE_ENV=${{ needs.detect-active-environment.outputs.active-env }}
+          ENVEOF
+          sed -i 's/^[[:space:]]*//' .env
+
+      - name: Pull images
+        working-directory: /srv/deploy/live/glow-api
+        run: make pull-images
+
+      - name: Deploy target environment
+        working-directory: /srv/deploy/live/glow-api
+        run: make deploy-target ENV=${{ needs.detect-active-environment.outputs.target-env }}
+
+      - name: Provision Traefik labels
+        working-directory: /srv/deploy/live/glow-api
+        run: |
+          bash scripts/provision.sh deploy \
+            --name "glow-api" \
+            --subdomain "${{ secrets.SUBDOMAIN }}" \
+            --base-domain "learn-loop.org" \
+            --compose-dir /srv/deploy/live/glow-api \
+            --entry-service nginx \
+            --entry-port 80
+
+      - name: Switch traffic
+        working-directory: /srv/deploy/live/glow-api
+        run: make switch-traffic ENV=${{ needs.detect-active-environment.outputs.target-env }}
+
+      - name: Monitor deployment
+        working-directory: /srv/deploy/live/glow-api
+        run: make monitor ENV=${{ needs.detect-active-environment.outputs.target-env }} ROLLBACK_ENV=${{ needs.detect-active-environment.outputs.active-env }}
+
+      - name: Cleanup old environment
+        if: success()
+        run: |
+          echo "Keeping ${{ needs.detect-active-environment.outputs.active-env }} running for rollback capability"
+          echo "To stop it: docker compose stop server-${{ needs.detect-active-environment.outputs.active-env }}"
