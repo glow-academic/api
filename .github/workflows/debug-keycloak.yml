@@ -1,0 +1,50 @@
+name: Debug Keycloak
+
+on:
+  workflow_dispatch:
+
+env:
+  LIVE_DIR: /srv/deploy/live
+
+jobs:
+  debug:
+    runs-on: self-hosted
+    steps:
+      - name: Keycloak logs (last 100)
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          docker compose logs keycloak --tail=100 2>&1
+
+      - name: Check glow-client in Keycloak via admin API
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          # Get admin token
+          KC_CONTAINER=$(docker compose ps -q keycloak)
+          TOKEN=$(docker exec "$KC_CONTAINER" sh -c '
+            wget -qO- --post-data "grant_type=password&client_id=admin-cli&username=${KEYCLOAK_ADMIN}&password=${KEYCLOAK_ADMIN_PASSWORD}" \
+              http://localhost:8080/auth/realms/master/protocol/openid-connect/token 2>/dev/null
+          ' | python3 -c "import json,sys; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null)
+
+          if [ -n "$TOKEN" ]; then
+            echo "=== glow-client config ==="
+            docker exec "$KC_CONTAINER" sh -c "
+              wget -qO- --header='Authorization: Bearer $TOKEN' \
+                'http://localhost:8080/auth/admin/realms/master/clients?clientId=glow-client' 2>/dev/null
+            " | python3 -c "
+import json,sys
+clients = json.load(sys.stdin)
+if clients:
+  c = clients[0]
+  print('Client ID:', c.get('clientId'))
+  print('Enabled:', c.get('enabled'))
+  print('Public:', c.get('publicClient'))
+  print('Redirect URIs:', json.dumps(c.get('redirectUris', []), indent=2))
+  print('Web Origins:', json.dumps(c.get('webOrigins', []), indent=2))
+  print('Base URL:', c.get('baseUrl'))
+  print('Root URL:', c.get('rootUrl'))
+else:
+  print('Client glow-client NOT FOUND')
+" 2>/dev/null || echo "Failed to parse client config"
+          else
+            echo "Could not get admin token"
+          fi
