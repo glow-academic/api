@@ -1,0 +1,80 @@
+name: Test Auth Flow
+
+on:
+  workflow_dispatch:
+
+env:
+  LIVE_DIR: /srv/deploy/live
+
+jobs:
+  test:
+    runs-on: self-hosted
+    steps:
+      - name: Test OIDC discovery from glow-client container
+        run: |
+          cd "${LIVE_DIR}/glow-client"
+          APP=$(docker compose ps -q app 2>/dev/null)
+          if [ -n "$APP" ]; then
+            echo "=== OIDC Discovery ==="
+            docker exec "$APP" node -e "
+              fetch('https://glow-api.learn-loop.org/auth/realms/master/.well-known/openid-configuration')
+                .then(r => { console.log('Status:', r.status); return r.json(); })
+                .then(j => {
+                  console.log('authorization_endpoint:', j.authorization_endpoint);
+                  console.log('token_endpoint:', j.token_endpoint);
+                  console.log('issuer:', j.issuer);
+                })
+                .catch(e => console.error('ERROR:', e.message))
+            " 2>&1
+          else
+            echo "No glow-client app container"
+          fi
+
+      - name: Test Keycloak auth endpoint directly
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          KC=$(docker compose ps -q keycloak)
+
+          echo "=== Test auth endpoint with glow-client ==="
+          # Simulate what NextAuth does - hit the authorization endpoint
+          docker exec "$KC" sh -c '
+            # Use kcadm.sh to test - first get credentials
+            /opt/keycloak/bin/kcadm.sh config credentials \
+              --server http://localhost:8080/auth \
+              --realm master \
+              --user "$KEYCLOAK_ADMIN" \
+              --password "$KEYCLOAK_ADMIN_PASSWORD"
+
+            # Check the client exists and get its UUID
+            echo "=== Client lookup ==="
+            /opt/keycloak/bin/kcadm.sh get clients -r master -q clientId=glow-client --fields id,clientId,enabled,redirectUris
+          '
+
+          echo ""
+          echo "=== Test auth endpoint via HTTP ==="
+          # Test the authorization endpoint directly from inside keycloak container
+          docker exec "$KC" sh -c "
+            # Use Java to make HTTP request since no curl/wget
+            /opt/keycloak/bin/kcadm.sh config credentials \
+              --server http://localhost:8080/auth \
+              --realm master \
+              --user \"\$KEYCLOAK_ADMIN\" \
+              --password \"\$KEYCLOAK_ADMIN_PASSWORD\"
+
+            # Verify OIDC well-known endpoint works
+            echo '=== OIDC Discovery ==='
+            /opt/keycloak/bin/kcadm.sh get 'realms/master/.well-known/openid-configuration' --no-config --server http://localhost:8080/auth --fields authorization_endpoint,token_endpoint,issuer 2>&1 || echo 'kcadm get failed'
+          "
+
+      - name: Test full auth flow simulation
+        run: |
+          # Test the actual authorization URL that NextAuth would hit
+          echo "=== Testing auth endpoint via curl from host ==="
+          RESPONSE=$(curl -sv "https://glow-api.learn-loop.org/auth/realms/master/protocol/openid-connect/auth?response_type=code&client_id=glow-client&redirect_uri=https%3A%2F%2Fglow-client.learn-loop.org%2Fapi%2Fauth%2Fcallback%2Fkeycloak&scope=openid+profile+email&code_challenge=abc123&code_challenge_method=S256" 2>&1 | head -50)
+          echo "$RESPONSE"
+
+      - name: Check Keycloak server logs for errors
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          echo "=== Recent Keycloak errors ==="
+          docker compose logs keycloak --tail=50 2>&1 | grep -i "error\|warn\|exception" | tail -20
