@@ -1,0 +1,40 @@
+name: KC Logs
+
+on:
+  workflow_dispatch:
+
+env:
+  LIVE_DIR: /srv/deploy/live
+
+jobs:
+  logs:
+    runs-on: self-hosted
+    steps:
+      - name: Keycloak logs (last 200 lines)
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          echo "=== Keycloak container status ==="
+          docker compose ps keycloak
+          echo ""
+          echo "=== Keycloak logs (last 200) ==="
+          docker compose logs keycloak --tail=200 2>&1
+
+      - name: Check glow-client config in Keycloak
+        run: |
+          cd "${LIVE_DIR}/glow-api"
+          KC=$(docker compose ps -q keycloak)
+
+          docker exec "$KC" sh -c '
+            /opt/keycloak/bin/kcadm.sh config credentials \
+              --server http://localhost:8080/auth \
+              --realm master \
+              --user "$KEYCLOAK_ADMIN" \
+              --password "$KEYCLOAK_ADMIN_PASSWORD"
+
+            echo "=== glow-client full config ==="
+            /opt/keycloak/bin/kcadm.sh get clients -r master -q clientId=glow-client
+
+            echo ""
+            echo "=== All clients ==="
+            /opt/keycloak/bin/kcadm.sh get clients -r master --fields clientId,enabled,protocol
+          '
