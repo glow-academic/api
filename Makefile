@@ -343,6 +343,19 @@ mcp: check-venv
 	@echo "   - Restart Cursor IDE to use the new configuration"
 
 
+# ── Docker (production-like stack) ───────────────────────────
+.PHONY: up down docker-logs
+
+up:
+	docker compose up -d
+	@echo "Full stack running"
+
+down:
+	docker compose down
+
+docker-logs:
+	docker compose logs -f
+
 # ── Deployment ───────────────────────────────────────────────
 deploy-target:
 	./scripts/deploy-target.sh $(ENV)
@@ -364,6 +377,9 @@ pull-images:
 
 stage-release:
 	./scripts/stage-release.sh . $(DEST) $(SHA)
+
+migrate-docker:
+	./scripts/migrate-docker.sh $(TYPE)
 
 # Show help
 help:
@@ -387,6 +403,11 @@ help:
 	@echo "  seed-gen         - Regenerate all seed SQL files (base + all setups)"
 	@echo "  fresh-db         - Build fresh DB from schema + modules + keys"
 	@echo "  load-seeds       - Load seed data into local database"
+	@echo ""
+	@echo "Docker (production-like):"
+	@echo "  up             - Start full docker compose stack"
+	@echo "  down           - Stop docker compose stack"
+	@echo "  docker-logs    - Tail docker compose logs"
 	@echo ""
 	@echo "Services:"
 	@echo "  run          - Start all services in foreground (Ctrl+C to stop)"
