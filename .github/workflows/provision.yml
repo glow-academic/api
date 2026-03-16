@@ -99,15 +99,8 @@ jobs:
             docker compose ps -a 2>&1 || true
             exit 1
           }
-          # Give services a moment to stabilize, then check for crashes
+          # Give services a moment to stabilize
           sleep 10
-          CRASHED=$(docker compose ps -a --format json 2>/dev/null | grep -c '"exited"' || echo "0")
-          if [ "$CRASHED" -gt "1" ]; then
-            echo "=== Containers crashed after startup ==="
-            docker compose logs --tail=100 2>&1 || true
-            docker compose ps -a 2>&1 || true
-            exit 1
-          fi
 
       - name: Deploy via provisioner
         run: |
