@@ -64,8 +64,8 @@ jobs:
           KEYCLOAK_REALM=${{ secrets.KEYCLOAK_REALM }}
           AUTH_SECRET=${{ secrets.AUTH_SECRET }}
           AUTH_KEYCLOAK_ID=${{ secrets.AUTH_KEYCLOAK_ID }}
-          NEXT_PUBLIC_CAMPUS=${{ secrets.NEXT_PUBLIC_CAMPUS }}
-          DB_OPERATION=${{ secrets.DB_OPERATION }}
+          AUTH_CLIENT_ID=${{ secrets.AUTH_KEYCLOAK_ID }}
+          AUTH_CLIENT_SECRET=${{ secrets.AUTH_CLIENT_SECRET }}
           GLOW_CLIENT_IMAGE=${{ env.REGISTRY }}/learnloopllc/glow-client:${{ inputs.version }}
           ENVEOF
           sed -i 's/^[[:space:]]*//' "$DEST/.env"

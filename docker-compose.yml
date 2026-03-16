@@ -63,7 +63,7 @@ services:
   # Keycloak
   # --------------------
   keycloak:
-    image: quay.io/keycloak/keycloak:26.0
+    image: quay.io/keycloak/keycloak:25.0
     restart: unless-stopped
     # Copy themes from Docker volume before starting Keycloak
     entrypoint: >
@@ -76,9 +76,9 @@ services:
     volumes:
       - uploads:/opt/keycloak/data/uploads:ro
     environment:
-      # Admin bootstrap (Keycloak 26.0 uses KC_BOOTSTRAP_* instead of KEYCLOAK_*)
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      # Keycloak 25 uses KEYCLOAK_ADMIN (creates permanent admin, not temporary)
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
 
       # DB connection (uses existing database service, keycloak schema in same database)
       KC_DB: postgres
@@ -88,19 +88,13 @@ services:
       KC_DB_SCHEMA: keycloak
 
       # IMPORTANT: run behind nginx at ${APP_PREFIX}/auth
-      # Keycloak 26.0: Use KC_PROXY_HEADERS instead of deprecated KC_PROXY
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: "true"
       KC_HTTP_RELATIVE_PATH: ${APP_PREFIX}/auth
 
-      # Tell Keycloak its public URL (Keycloak 26.0 uses KC_HOSTNAME instead of KC_HOSTNAME_URL)
       KC_HOSTNAME: ${ORIGIN}${APP_PREFIX}/auth
-
-      # Less strict for local dev
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
-      
-      # Enable health endpoints for readiness checks
       KC_HEALTH_ENABLED: "true"
     depends_on:
       volume-init:
