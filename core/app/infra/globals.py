@@ -50,9 +50,8 @@ def get_client_origins() -> list[str]:
 # Upload directories
 # ---------------------------------------------------------------------------
 IN_DOCKER = os.getenv("DOCKER_ENV") == "1"
-PROJECT_ROOT = (
-    Path(__file__).resolve().parents[2]
-)  # app/globals.py -> app -> server -> project root
+# core/app/infra/globals.py -> infra -> app -> core -> project root
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 BASE_FOLDER = Path("/app") if IN_DOCKER else PROJECT_ROOT
 UPLOAD_FOLDER = BASE_FOLDER / "uploads"
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)

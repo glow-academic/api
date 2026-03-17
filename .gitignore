@@ -55,8 +55,5 @@ uploads/video/
 uploads/text/
 uploads/tus_uploads/
 
-# Server uploads (runtime)
-core/uploads/
-
 # Database seeds (legacy generated files)
 database/seeds/seed_modules*.sql
