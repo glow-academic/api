@@ -105,7 +105,15 @@ done
 
 sleep 3
 
-# Ensure keycloak schema exists
+# If restoring from backup, drop keycloak schema so Keycloak recreates it
+# fresh via Liquibase. The backup includes keycloak tables but not Liquibase
+# changelog records, causing "relation already exists" errors.
+if [[ -n "$DB_BACKUP" ]]; then
+  log_info "Dropping keycloak schema (will be recreated by Keycloak)..."
+  psql -U "$DB_USER" -d "$DB_NAME" -c "DROP SCHEMA IF EXISTS keycloak CASCADE;" 2>/dev/null || true
+fi
+
+# Ensure keycloak schema exists (empty for Keycloak to populate)
 psql -U "$DB_USER" -d "$DB_NAME" -c "CREATE SCHEMA IF NOT EXISTS keycloak;" 2>/dev/null || true
 
 log_success "Database is ready!"
