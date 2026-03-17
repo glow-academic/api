@@ -20,7 +20,7 @@ else
   echo "ACTIVE_ENV=$TARGET_ENV" >> .env
 fi
 
-docker compose up -d nginx
+docker compose up -d --no-deps nginx
 sleep 5
 
 echo "Traffic switched to $TARGET_ENV"
