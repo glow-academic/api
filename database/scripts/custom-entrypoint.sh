@@ -62,11 +62,6 @@ if [[ -n "$DB_BACKUP" ]]; then
 
   mkdir -p /docker-entrypoint-initdb.d
 
-  # Keycloak schema stub
-  cat > /docker-entrypoint-initdb.d/00-keycloak.sql << 'EOF'
-CREATE SCHEMA IF NOT EXISTS keycloak;
-EOF
-
   # Restore script
   if [[ "$BACKUP_FILE" == *.gz ]]; then
     log_info "Decompressing backup..."
