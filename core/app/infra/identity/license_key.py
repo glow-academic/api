@@ -1,11 +1,14 @@
-"""License key validation — calls external billing service.
+"""License key validation — local string match against LICENSE_KEY env var.
 
-Stub: always returns valid. In production, this would call an external
-billing API to validate the key and return org/plan info.
+In production, LICENSE_KEY is injected during provisioning. The client sends
+the same key via X-Api-Key header. Simple equality check.
+
+Dev mode: if LICENSE_KEY is not set, any non-empty key is accepted.
 """
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 
 
@@ -20,22 +23,21 @@ class LicenseInfo:
 
 
 async def validate_license_key(key: str) -> LicenseInfo:
-    """Validate a license key against the external billing service.
+    """Validate a license key against the local LICENSE_KEY env var.
 
-    Stub: always returns valid.
-    Production: POST https://billing.example.com/v1/keys/validate
-
-    Args:
-        key: The license key string (e.g. "glw_sk_abc123")
-
-    Returns:
-        LicenseInfo with validation result
+    - If LICENSE_KEY is not set: dev mode, any non-empty key is accepted.
+    - If LICENSE_KEY is set: exact string match required.
     """
     if not key:
         return LicenseInfo(valid=False, error="Missing license key")
 
-    # TODO: Call external billing API
-    # response = await httpx.post("https://billing.example.com/v1/keys/validate", json={"key": key})
-    # return LicenseInfo(valid=response.json()["valid"], org_id=response.json()["org_id"], ...)
+    license_key = os.getenv("LICENSE_KEY")
 
-    return LicenseInfo(valid=True, org_id="dev", plan="dev")
+    if not license_key:
+        # Dev mode — no LICENSE_KEY configured, accept any key
+        return LicenseInfo(valid=True, org_id="dev", plan="dev")
+
+    if key != license_key:
+        return LicenseInfo(valid=False, error="Invalid license key")
+
+    return LicenseInfo(valid=True)

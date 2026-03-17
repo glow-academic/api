@@ -775,6 +775,43 @@ async def attempt_start_impl(
         logger.exception(f"Invalid attempt_start payload: {e}")
         return
 
+    # --- Ledger gate: verify usage before allowing attempt start ---
+    try:
+        from app.infra.ledger.gate import LedgerDenied, ledger_gate
+
+        attempt_id_for_ledger = str(uuid.uuid4())
+        await ledger_gate(attempt_id=attempt_id_for_ledger)
+    except LedgerDenied as e:
+        logger.warning(f"Attempt blocked by ledger gate: {e.reason}")
+        await emit(
+            [
+                internal_event(
+                    "attempt_error",
+                    AttemptErrorData(
+                        sid=sid,
+                        error_type="start",
+                        message=f"Usage limit reached: {e.reason}",
+                    ).model_dump(mode="json"),
+                )
+            ]
+        )
+        return
+    except Exception as e:
+        logger.exception(f"Ledger gate error: {e}")
+        await emit(
+            [
+                internal_event(
+                    "attempt_error",
+                    AttemptErrorData(
+                        sid=sid,
+                        error_type="start",
+                        message=f"Unable to verify usage: {e}",
+                    ).model_dump(mode="json"),
+                )
+            ]
+        )
+        return
+
     is_practice = payload.practice_id is not None
 
     try:
