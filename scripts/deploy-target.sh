@@ -13,12 +13,6 @@ MAX_WAIT="${TIMEOUT:-300}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${script_dir}/.."
 
-if [[ -f .env ]]; then
-  set -a
-  source .env
-  set +a
-fi
-
 echo "Deploying $TARGET_ENV environment..."
 
 # Start infrastructure services first (database, redis, keycloak, pgbouncer, volume-init)

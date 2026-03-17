@@ -13,13 +13,6 @@ MIGRATION_TYPE="${1:-all}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${script_dir}/.."
 
-# Load .env if it exists
-if [[ -f .env ]]; then
-  set -a
-  source .env
-  set +a
-fi
-
 DB_USER="${DB_USER:-myuser}"
 DB_NAME="${DB_NAME:-mydb}"
 

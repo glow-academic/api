@@ -17,13 +17,6 @@ COMMAND="${1:-deploy}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${script_dir}/.."
 
-# Load .env if it exists
-if [[ -f .env ]]; then
-  set -a
-  source .env
-  set +a
-fi
-
 case "$COMMAND" in
   deploy)
     ENV="${2:-}"
