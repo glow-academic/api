@@ -1,4 +1,4 @@
-.PHONY: help setup install clean format lint typecheck run test test-cov cleanup generate-tests stop restore-db fresh-db connect-db migrate openapi-gen configure deploy deploy-clean seed-gen
+.PHONY: help setup install clean format lint typecheck run test test-cov cleanup generate-tests stop restore-db connect-db migrate openapi-gen configure deploy deploy-clean seed-gen
 .PHONY: deploy-target switch-traffic rollback monitor deploy-status detect-env pull-images stage-release
 
 # Default Python interpreter
@@ -240,22 +240,16 @@ cleanup:
 	@rm -f core/dump.rdb 2>/dev/null || true
 	@echo "✅ Cleanup complete"
 
-# Restore database from a template (default: university)
-# Usage: make restore-db  OR  make restore-db TEMPLATE=fresh
-TEMPLATE ?= university
+# Restore database from a backup (default: fresh.sql.gz, override via DB_BACKUP env or arg)
+# Usage: make restore-db  OR  make restore-db DB_BACKUP=university.sql.gz
+DB_BACKUP ?= fresh.sql.gz
 restore-db:
-	@cd database && bash scripts/start.sh backup $(TEMPLATE)
-
-# Build fresh database (schema + platform resources only)
-fresh-db:
-	@cd database && bash scripts/start.sh backup fresh
-	@echo ""
-	@echo "To start services, run: make run"
+	@DB_BACKUP=$(DB_BACKUP) bash database/scripts/start.sh
 
 # Migrate: restore fresh, apply all migrations, update schema, regenerate templates
 migrate: check-venv
 	@echo "Restoring from fresh template..."
-	@cd database && bash scripts/start.sh backup fresh
+	@DB_BACKUP=fresh.sql.gz bash database/scripts/start.sh
 	@echo ""
 	@echo "Applying all migrations..."
 	@export PGPASSWORD="$${DB_PASSWORD:-mypassword}"; \
@@ -387,8 +381,7 @@ help:
 	@echo "  clean        - Remove virtual environment"
 	@echo ""
 	@echo "Database:"
-	@echo "  restore-db [TEMPLATE=x]  - Restore DB from template (default: university)"
-	@echo "  fresh-db                 - Restore DB from fresh template (schema + resources)"
+	@echo "  restore-db [DB_BACKUP=x] - Restore DB from backup (default: fresh.sql.gz)"
 	@echo "  connect-db               - Connect to database via psql"
 	@echo "  seed-gen                 - Regenerate all templates in history/"
 	@echo "  migrate                  - Apply migrations + update schema + regenerate templates"

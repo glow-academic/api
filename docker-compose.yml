@@ -19,10 +19,10 @@ services:
   # --------------------
   # Database Service
   # --------------------
-  # DB_OPERATION environment variable (optional, defaults to empty/unset):
-  #   - RESTORE: Restore from latest backup in history volume (must be explicitly set)
-  #   - "" (empty string) OR unset: Skip initialization, use existing database (default behavior)
-  #   - seed_*.sql: Clean database and load specified seed file from seeds/ directory
+  # DB_BACKUP env var (optional):
+  #   DB_BACKUP=fresh.sql.gz       Restore from history/fresh.sql.gz
+  #   DB_BACKUP=university.sql.gz  Restore from history/university.sql.gz
+  #   DB_BACKUP=                   Use existing database (default)
   database:
     image: ${API_DATABASE_IMAGE:-ghcr.io/learnloopllc/glow-api-database:latest}
     env_file:
@@ -32,7 +32,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=${DB_NAME}
       - HISTORY_DIR=/database/history
-      # DB_OPERATION can be set via .env file or docker run -e DB_OPERATION=...
+      # DB_BACKUP can be set via .env or docker run -e DB_BACKUP=fresh.sql.gz
     volumes:
       - pgdata:/var/lib/postgresql
       - history:/database/history
@@ -40,12 +40,9 @@ services:
       volume-init:
         condition: service_completed_successfully
     healthcheck:
-      # Ensure PostgreSQL is stable AFTER initialization restart
-      # When DB_OPERATION is set, wait for .restore_complete AND verify queries work
-      # When DB_OPERATION is empty, just check PostgreSQL readiness
-      # The restore script creates /var/lib/postgresql/.restore_complete when done
+      # When DB_BACKUP is set, wait for restore to complete before accepting connections
       test: >
-        if [ -n "${DB_OPERATION:-}" ] && [ ! -f /var/lib/postgresql/.restore_complete ]; then
+        if [ -n "${DB_BACKUP:-}" ] && [ ! -f /var/lib/postgresql/.restore_complete ]; then
           exit 1
         fi &&
         pg_isready -U ${DB_USER} -d ${DB_NAME} &&
