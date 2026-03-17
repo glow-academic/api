@@ -1,16 +1,6 @@
 name: Deploy Glow API
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'core/**'
-      - 'database/**'
-      - 'web/**'
-      - 'scripts/**'
-      - 'docker-compose.yml'
-      - 'Makefile'
-      - '.github/workflows/deploy.yml'
   workflow_dispatch:
     inputs:
       deployment_name:
@@ -38,24 +28,10 @@ jobs:
       - name: Detect changes
         id: changes
         run: |
-          CHANGED_FILES=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")
-
-          set_flag () {
-            if echo "$CHANGED_FILES" | grep -q "^$1/"; then
-              echo "$2=true" >> $GITHUB_OUTPUT
-            else
-              echo "$2=false" >> $GITHUB_OUTPUT
-            fi
-          }
-
-          set_flag "core" "server"
-          set_flag "database" "database"
-
-          if echo "$CHANGED_FILES" | grep -qE '^(core|database|web|docker-compose|\.github)'; then
-            echo "any=true" >> $GITHUB_OUTPUT
-          else
-            echo "any=false" >> $GITHUB_OUTPUT
-          fi
+          # workflow_dispatch: always build and deploy everything
+          echo "server=true" >> $GITHUB_OUTPUT
+          echo "database=true" >> $GITHUB_OUTPUT
+          echo "any=true" >> $GITHUB_OUTPUT
 
   detect-active-environment:
     runs-on: [self-hosted, linux, x64, deploy]
@@ -156,9 +132,7 @@ jobs:
   deploy:
     runs-on: [self-hosted, linux, x64, deploy]
     needs: [detect-changes, detect-active-environment, build-server, build-database]
-    if: |
-      always() &&
-      (needs.detect-changes.outputs.any-changes == 'true' || github.event_name == 'workflow_dispatch')
+    if: always()
     concurrency:
       group: deploy-${{ inputs.deployment_name || 'glow-api' }}
       cancel-in-progress: true
