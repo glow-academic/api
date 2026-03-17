@@ -21,6 +21,7 @@ DB_PASSWORD=${POSTGRES_PASSWORD:-mypassword}
 DB_NAME=${POSTGRES_DB:-mydb}
 HISTORY_DIR=${HISTORY_DIR:-/database/history}
 DB_BACKUP=${DB_BACKUP:-}
+PGDATA=${PGDATA:-/var/lib/postgresql/data}
 
 log_info()    { echo -e "${CYAN}[DOCKER-DB]${NC} $1"; }
 log_success() { echo -e "${GREEN}[DOCKER-DB]${NC} $1"; }
@@ -57,7 +58,7 @@ if [[ -n "$DB_BACKUP" ]]; then
   log_info "Will restore from: $DB_BACKUP"
 
   # Wipe data dir so Postgres runs init scripts on fresh start
-  rm -rf /var/lib/postgresql/data/18/*
+  rm -rf "$PGDATA"/*
 
   mkdir -p /docker-entrypoint-initdb.d
 
@@ -86,7 +87,7 @@ EOF
   log_success "Restore scripts prepared"
 else
   # Check if this is a first start (empty data dir) — error if so
-  if [[ ! -d /var/lib/postgresql/data/18/base ]]; then
+  if [[ ! -d "$PGDATA/base" ]]; then
     log_error "No existing database and DB_BACKUP is not set."
     log_error ""
     log_error "Set DB_BACKUP to a file in history/:"
