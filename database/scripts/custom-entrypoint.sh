@@ -57,11 +57,6 @@ if [[ -n "$DB_BACKUP" ]]; then
 
   log_info "Will restore from: $DB_BACKUP"
 
-  # Clear old restore marker — it lives OUTSIDE PGDATA in the volume root,
-  # so it persists across PGDATA wipes. Without clearing it, the healthcheck
-  # passes immediately (sees old marker) before the new restore finishes.
-  rm -f /var/lib/postgresql/.restore_complete
-
   # Wipe data dir so Postgres runs init scripts on fresh start
   rm -rf "$PGDATA"/*
 
@@ -110,15 +105,7 @@ done
 
 sleep 3
 
-# If restoring from backup, drop keycloak schema so Keycloak recreates it
-# fresh via Liquibase. The backup includes keycloak tables but not Liquibase
-# changelog records, causing "relation already exists" errors.
-if [[ -n "$DB_BACKUP" ]]; then
-  log_info "Dropping keycloak schema (will be recreated by Keycloak)..."
-  psql -U "$DB_USER" -d "$DB_NAME" -c "DROP SCHEMA IF EXISTS keycloak CASCADE;" 2>/dev/null || true
-fi
-
-# Ensure keycloak schema exists (empty for Keycloak to populate)
+# Ensure keycloak schema exists
 psql -U "$DB_USER" -d "$DB_NAME" -c "CREATE SCHEMA IF NOT EXISTS keycloak;" 2>/dev/null || true
 
 log_success "Database is ready!"

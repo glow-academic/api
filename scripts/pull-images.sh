@@ -1,5 +1,5 @@
 #!/bin/bash
-# Pull pre-built images from GHCR.
+# Pull pre-built server image from GHCR and build database locally.
 #
 # Usage:
 #   ./scripts/pull-images.sh [version]
@@ -12,12 +12,14 @@ cd "${script_dir}/.."
 VERSION="${1:-}"
 
 if [ -n "$VERSION" ]; then
-  echo "Pulling images for version $VERSION..."
+  echo "Pulling server image for version $VERSION..."
   docker pull "ghcr.io/learnloopllc/glow-api-server:$VERSION" || true
-  docker pull "ghcr.io/learnloopllc/glow-api-database:$VERSION" || true
 else
-  echo "Pulling images from compose..."
-  docker compose pull server-blue server-green database 2>/dev/null || true
+  echo "Pulling server image from compose..."
+  docker compose pull server-blue server-green 2>/dev/null || true
 fi
 
-echo "Image pull complete"
+echo "Building database image locally..."
+docker compose build database
+
+echo "Image preparation complete"

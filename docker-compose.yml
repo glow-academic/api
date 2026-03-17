@@ -24,7 +24,9 @@ services:
   #   DB_BACKUP=university.sql.gz  Restore from history/university.sql.gz
   #   DB_BACKUP=                   Use existing database (default)
   database:
-    image: ${API_DATABASE_IMAGE:-ghcr.io/learnloopllc/glow-api-database:latest}
+    build:
+      context: ./database
+      dockerfile: Dockerfile
     environment:
       - POSTGRES_USER=${DB_USER:-myuser}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-mypassword}

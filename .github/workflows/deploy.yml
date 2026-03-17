@@ -78,7 +78,6 @@ jobs:
       DEPLOY_DIR: /srv/deploy/live/${{ inputs.deployment_name || 'glow-api' }}
       COMPOSE_PROJECT_NAME: ${{ inputs.deployment_name || 'glow-api' }}
       API_SERVER_IMAGE: ghcr.io/learnloopllc/glow-api-server:${{ inputs.version || 'latest' }}
-      API_DATABASE_IMAGE: ghcr.io/learnloopllc/glow-api-database:${{ inputs.version || 'latest' }}
       ACTIVE_ENV: ${{ needs.detect-active-environment.outputs.active-env }}
       DB_BACKUP: ${{ inputs.db_backup }}
       ORIGIN: ${{ inputs.origin }}
@@ -132,9 +131,13 @@ jobs:
           echo "subdomain=$SUBDOMAIN" >> $GITHUB_OUTPUT
           echo "base-domain=$BASE_DOMAIN" >> $GITHUB_OUTPUT
 
-      - name: Pull images
+      - name: Pull server image
         working-directory: ${{ env.DEPLOY_DIR }}
-        run: make pull-images
+        run: docker compose pull server-blue server-green
+
+      - name: Build database image
+        working-directory: ${{ env.DEPLOY_DIR }}
+        run: docker compose build database
 
       - name: Provision Traefik labels
         working-directory: ${{ env.DEPLOY_DIR }}
