@@ -44,12 +44,11 @@ case "$COMMAND" in
     # Build extra_hosts block for all services
     EXTRA_HOSTS=""
     for svc in $SERVICES; do
-      if [ "$svc" = "$ENTRY_SERVICE" ]; then
-        continue
-      fi
+      [ "$svc" = "$ENTRY_SERVICE" ] && continue
       EXTRA_HOSTS="${EXTRA_HOSTS}
   ${svc}:
-    extra_hosts: *id001"
+    extra_hosts:
+    - ${DOMAIN}:host-gateway"
     done
 
     # Generate override file
@@ -74,7 +73,7 @@ services:
         limits:
           memory: 2G
           cpus: '2.0'
-    extra_hosts: &id001
+    extra_hosts:
     - ${DOMAIN}:host-gateway${EXTRA_HOSTS}
 networks:
   traefik_routing:
