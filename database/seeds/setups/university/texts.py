@@ -5,7 +5,7 @@ The runner reads each source file, creates the full text entry chain
 via create_document_text, then links the result to the document via
 update_document(text_ids=[...]).
 
-Source files live in database/output/setups/university/uploads/files/text/.
+Source files live in uploads/text/ at the project root.
 """
 
 from database.seeds.setups.university.documents import (
@@ -23,7 +23,7 @@ from database.seeds.setups.university.documents import (
 # Document → source text file mapping
 # ---------------------------------------------------------------------------
 
-# Each entry maps a document to a .txt file in the uploads/files/ asset dir.
+# Each entry maps a document to a .txt file in the uploads/ asset dir.
 # The runner reads the file content and runs the full chain:
 #   save_text_upload → create_upload → create_text_resource
 #   → create_text_entry → create_text_upload → update_document

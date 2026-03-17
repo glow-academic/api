@@ -1,4 +1,4 @@
-.PHONY: help setup install clean format lint typecheck run test test-cov cleanup generate-tests stop restore-db migrate-db migrate-db-only migrate-db-all connect-db fresh-db openapi-gen configure deploy deploy-clean seed-gen
+.PHONY: help setup install clean format lint typecheck run test test-cov cleanup generate-tests stop restore-db fresh-db connect-db migrate openapi-gen configure deploy deploy-clean seed-gen
 .PHONY: deploy-target switch-traffic rollback monitor deploy-status detect-env pull-images stage-release
 
 # Default Python interpreter
@@ -41,17 +41,15 @@ setup-venv: check-python
 # Alias for setup
 configure: setup
 
-# Deploy: build seed SQL, start services
+# Deploy: start services (uses templates from history/)
 deploy:
 	@echo "🚀 Deploying Glow..."
-	@bash database/scripts/load-modules.sh --output database/seeds/seed_modules.sql
 	@docker compose up -d --build
 	@echo "✅ Deploy complete"
 
-# Deploy clean: wipe volumes, build seed SQL, start fresh
+# Deploy clean: wipe volumes, start fresh
 deploy-clean:
 	@echo "🚀 Deploying Glow (clean)..."
-	@bash database/scripts/load-modules.sh --output database/seeds/seed_modules.sql
 	@docker compose down -v
 	@docker compose up -d --build
 	@echo "✅ Clean deploy complete"
@@ -242,33 +240,39 @@ cleanup:
 	@rm -f core/dump.rdb 2>/dev/null || true
 	@echo "✅ Cleanup complete"
 
-# Restore database from latest backup
+# Restore database from a template (default: university)
+# Usage: make restore-db  OR  make restore-db TEMPLATE=fresh
+TEMPLATE ?= university
 restore-db:
-	@echo "Restoring database from latest backup..."
-	@cd database && yarn start
-	@echo "✅ Database restored"
+	@cd database && bash scripts/start.sh backup $(TEMPLATE)
 
-# Migrate database (most recent migration only) + regenerate everything
-migrate-db:
-	@echo "Running database migrations (most recent only)..."
-	@cd database && bash scripts/start.sh --migrate
-	@echo "✅ Database migrations completed"
+# Build fresh database (schema + platform resources only)
+fresh-db:
+	@cd database && bash scripts/start.sh backup fresh
 	@echo ""
+	@echo "To start services, run: make run"
+
+# Migrate: restore fresh, apply all migrations, update schema, regenerate templates
+migrate: check-venv
+	@echo "Restoring from fresh template..."
+	@cd database && bash scripts/start.sh backup fresh
+	@echo ""
+	@echo "Applying all migrations..."
+	@export PGPASSWORD="$${DB_PASSWORD:-mypassword}"; \
+	for f in $$(ls database/migrate/*.sql 2>/dev/null | sort); do \
+		echo "  Applying: $$(basename $$f)"; \
+		psql -h "$${DB_HOST:-localhost}" -p "$${DB_PORT:-5432}" -U "$${DB_USER:-myuser}" -d "$${DB_NAME:-mydb}" -v ON_ERROR_STOP=1 -f "$$f" > /dev/null; \
+	done
+	@echo "Updating schema.sql..."
+	@pg_dump --schema-only --no-owner --no-privileges --exclude-schema=keycloak --format=plain \
+		--file=database/schema.sql \
+		"postgresql://$${DB_USER:-myuser}:$${DB_PASSWORD:-mypassword}@$${DB_HOST:-localhost}:$${DB_PORT:-5432}/$${DB_NAME:-mydb}"
 	@$(MAKE) split-schema
 	@echo ""
-	@echo "✅ Migration + schema split complete"
-
-# Migrate database (most recent migration only, no regeneration)
-migrate-db-only:
-	@echo "Running database migrations (most recent only)..."
-	@cd database && bash scripts/start.sh --migrate
-	@echo "✅ Database migrations completed"
-
-# Migrate database (all migrations)
-migrate-db-all:
-	@echo "Running all database migrations..."
-	@cd database && yarn migrate:all
-	@echo "✅ All database migrations completed"
+	@echo "Regenerating templates..."
+	@$(MAKE) seed-gen
+	@echo ""
+	@echo "Migration complete. Templates updated in history/"
 
 # Split schema.sql into structured files
 split-schema:
@@ -308,25 +312,12 @@ registry-validate: check-venv
 
 # Connect to database
 connect-db:
-	@echo "Connecting to database..."
-	@cd database && yarn connect
-	@echo "✅ Connected to database"
+	@psql -h "$${DB_HOST:-localhost}" -p "$${DB_PORT:-5432}" -U "$${DB_USER:-myuser}" -d "$${DB_NAME:-mydb}"
 
-# Regenerate all seed SQL files (base + all setups) via testcontainers
+# Regenerate all template backups in history/ via testcontainers
 seed-gen: check-venv
-	@echo "Regenerating all seed SQL files..."
+	@echo "Regenerating all templates..."
 	@PYTHONPATH=core $(VENV_PYTHON) -m database.scripts.runner --all
-
-# Load seed data into local database
-load-seeds:
-	@echo "Loading seed data..."
-	@bash database/scripts/load-modules.sh
-
-# Build fresh database from schema + modules + bootstrap keys
-fresh-db:
-	@cd database && bash scripts/start.sh --clean-modules
-	@echo ""
-	@echo "To start services, run: make run"
 
 
 # MCP setup for Cursor IDE
@@ -387,8 +378,8 @@ help:
 	@echo ""
 	@echo "Getting started:"
 	@echo "  setup          - Copy .env.example to .env"
-	@echo "  deploy         - Build seed SQL, start all Docker services"
-	@echo "  deploy-clean   - Same as deploy but wipes volumes first (fresh start)"
+	@echo "  deploy         - Start all Docker services"
+	@echo "  deploy-clean   - Wipe volumes and start fresh"
 	@echo ""
 	@echo "Environment setup:"
 	@echo "  setup-venv   - Create virtual environment at .venv"
@@ -396,13 +387,11 @@ help:
 	@echo "  clean        - Remove virtual environment"
 	@echo ""
 	@echo "Database:"
-	@echo "  restore-db       - Restore database from latest backup"
-	@echo "  migrate-db       - Run most recent database migration"
-	@echo "  migrate-db-all   - Run all database migrations"
-	@echo "  connect-db       - Connect to database"
-	@echo "  seed-gen         - Regenerate all seed SQL files (base + all setups)"
-	@echo "  fresh-db         - Build fresh DB from schema + modules + keys"
-	@echo "  load-seeds       - Load seed data into local database"
+	@echo "  restore-db [TEMPLATE=x]  - Restore DB from template (default: university)"
+	@echo "  fresh-db                 - Restore DB from fresh template (schema + resources)"
+	@echo "  connect-db               - Connect to database via psql"
+	@echo "  seed-gen                 - Regenerate all templates in history/"
+	@echo "  migrate                  - Apply migrations + update schema + regenerate templates"
 	@echo ""
 	@echo "Docker (production-like):"
 	@echo "  up             - Start full docker compose stack"
@@ -423,16 +412,10 @@ help:
 	@echo ""
 	@echo "Utilities:"
 	@echo "  cleanup      - Clean up generated files and cache"
-	@echo "  mcp          - Setup MCP for Cursor IDE (configure Keycloak token lifespan and update Cursor config)"
+	@echo "  mcp          - Setup MCP for Cursor IDE"
 	@echo ""
-	@echo "Code generation:"
-	@echo "  generate-tests  - Generate pytest tests"
-	@echo "  openapi-gen      - Generate OpenAPI schema manually"
 	@echo "Service URLs:"
 	@echo "  Redis:     localhost:$(REDIS_PORT)"
 	@echo "  Server:    http://localhost:$(SERVER_PORT)"
 	@echo "  Database:  localhost:$(DATABASE_PORT)"
 	@echo "  Keycloak:  http://localhost:$(KEYCLOAK_PORT)"
-	@echo ""
-	@echo "Virtual environment location: $(VENV)"
-	@echo "To activate manually: source $(VENV_BIN)/activate"

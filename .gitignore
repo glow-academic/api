@@ -58,5 +58,5 @@ uploads/tus_uploads/
 # Server uploads (runtime)
 core/uploads/
 
-# Database output
-database/output/
+# Database seeds (legacy generated files)
+database/seeds/seed_modules*.sql
