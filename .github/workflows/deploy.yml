@@ -174,9 +174,6 @@ jobs:
           sed -i "s|^API_SERVER_IMAGE=.*|API_SERVER_IMAGE=ghcr.io/learnloopllc/glow-api-server:latest|" .env
           sed -i "s|^API_DATABASE_IMAGE=.*|API_DATABASE_IMAGE=ghcr.io/learnloopllc/glow-api-database:latest|" .env
 
-          # Prevent accidental database restore on redeploy
-          sed -i 's/^DB_BACKUP=.*/DB_BACKUP=/' .env
-
       - name: Parse subdomain from ORIGIN
         id: parse-origin
         working-directory: ${{ env.DEPLOY_DIR }}
