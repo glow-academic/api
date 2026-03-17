@@ -16,6 +16,7 @@ rsync -a --delete \
   --exclude='.git/' \
   --exclude='.github/' \
   --exclude='.venv/' \
+  --exclude='.env' \
   --exclude='docker-compose.override.yml' \
   "$SOURCE/" "$DEST/"
 

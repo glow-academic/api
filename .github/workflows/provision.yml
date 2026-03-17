@@ -4,25 +4,32 @@ on:
   workflow_dispatch:
     inputs:
       deployment_name:
-        description: 'Deployment name (used as project directory name)'
+        description: 'Deployment name (project directory and compose project name)'
         required: true
       subdomain:
-        description: 'Subdomain for routing'
+        description: 'Subdomain for routing (e.g., api)'
         required: true
       base_domain:
-        description: 'Base domain'
+        description: 'Base domain (e.g., learn-loop.org)'
         required: false
         default: 'learn-loop.org'
-      version:
-        description: 'Image version tag (e.g. v1.0.0)'
+      client_origins:
+        description: 'Allowed client origins (comma-separated URLs)'
         required: true
+      version:
+        description: 'Image version tag (e.g., v1.0.0 or latest)'
+        required: true
+      db_backup:
+        description: 'Database backup to restore (e.g., fresh.sql.gz). Leave empty for existing DB.'
+        required: false
+        default: 'fresh.sql.gz'
 
 env:
   LIVE_DIR: /srv/deploy/live
   REGISTRY: ghcr.io
 
 jobs:
-  deploy:
+  provision:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
@@ -48,29 +55,22 @@ jobs:
           DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
           ./scripts/stage-release.sh "$(pwd)" "$DEST" "${{ inputs.version }}"
 
-      - name: Write .env
+      - name: Generate secrets and write .env
         run: |
           DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
+          SECRET_KEY=$(openssl rand -base64 32)
+          DB_PASSWORD=$(openssl rand -base64 16)
+          KC_ADMIN_PASSWORD=$(openssl rand -base64 16)
+
           cat > "$DEST/.env" <<ENVEOF
           COMPOSE_PROJECT_NAME=${{ inputs.deployment_name }}
           ORIGIN=https://${{ inputs.subdomain }}.${{ inputs.base_domain }}
-          APP_PREFIX=
-          CLIENT_PORT=80
-          DB_USER=${{ secrets.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_NAME=${{ secrets.DB_NAME }}
-          KEYCLOAK_ADMIN=${{ secrets.KEYCLOAK_ADMIN }}
-          KEYCLOAK_ADMIN_PASSWORD=${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}
-          KEYCLOAK_REALM=${{ secrets.KEYCLOAK_REALM }}
-          AUTH_SECRET=${{ secrets.AUTH_SECRET }}
-          AUTH_KEYCLOAK_ID=${{ secrets.AUTH_KEYCLOAK_ID }}
-          AUTH_KEYCLOAK_SECRET=${{ secrets.AUTH_CLIENT_SECRET }}
-          AUTH_CLIENT_ID=${{ secrets.AUTH_KEYCLOAK_ID }}
-          AUTH_CLIENT_SECRET=${{ secrets.AUTH_CLIENT_SECRET }}
-          SECRET_KEY=${{ secrets.SECRET_KEY }}
-          CLIENT_ORIGIN=https://glow-client.${{ inputs.base_domain }}
+          CLIENT_ORIGINS=${{ inputs.client_origins }}
+          SECRET_KEY=${SECRET_KEY}
+          DB_PASSWORD=${DB_PASSWORD}
+          KEYCLOAK_ADMIN_PASSWORD=${KC_ADMIN_PASSWORD}
           ACTIVE_ENV=blue
-          DB_BACKUP=fresh.sql.gz
+          DB_BACKUP=${{ inputs.db_backup }}
           API_SERVER_IMAGE=${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ inputs.version }}
           API_DATABASE_IMAGE=${{ env.REGISTRY }}/learnloopllc/glow-api-database:${{ inputs.version }}
           ENVEOF
@@ -80,11 +80,10 @@ jobs:
         run: |
           DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
           cd "$DEST"
-          docker compose pull --ignore-pull-failures
           docker compose up -d --no-build
           sleep 10
 
-      - name: Deploy via provisioner
+      - name: Provision Traefik labels
         run: |
           DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
           cd "$DEST"
@@ -101,6 +100,11 @@ jobs:
           DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
           cd "$DEST"
           bash scripts/monitor.sh blue green 45
+
+      - name: Clear DB_BACKUP after initial restore
+        run: |
+          DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
+          sed -i 's/^DB_BACKUP=.*/DB_BACKUP=/' "$DEST/.env"
 
       - name: Verify deployment
         run: |

@@ -36,6 +36,16 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+
+def get_client_origins() -> list[str]:
+    """Parse CLIENT_ORIGINS (comma-separated). Fall back to ORIGIN or localhost if unset."""
+    raw = os.getenv("CLIENT_ORIGINS", "").strip()
+    if raw:
+        return [o.strip() for o in raw.split(",") if o.strip()]
+    origin = os.getenv("ORIGIN", "http://localhost:3000")
+    return [origin] if origin else ["http://localhost:3000"]
+
+
 # ---------------------------------------------------------------------------
 # Upload directories
 # ---------------------------------------------------------------------------
@@ -303,11 +313,12 @@ async def init_db_pool() -> None:
         print(f"✅ Using test database at {db_url}")
         return
 
-    db_user = os.getenv("DB_USER")
-    db_password = os.getenv("DB_PASSWORD")
-    db_name = os.getenv("DB_NAME")
-    db_port = os.getenv("DB_PORT")
-    db_host = os.getenv("DB_HOST")
+    in_docker = os.getenv("DOCKER_ENV") == "1"
+    db_user = os.getenv("DB_USER") or (in_docker and "myuser")
+    db_password = os.getenv("DB_PASSWORD") or (in_docker and "mypassword")
+    db_name = os.getenv("DB_NAME") or (in_docker and "mydb")
+    db_port = os.getenv("DB_PORT") or (in_docker and "5432")
+    db_host = os.getenv("DB_HOST") or (in_docker and "pgbouncer")
 
     db_url = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
@@ -315,7 +326,7 @@ async def init_db_pool() -> None:
         raise ValueError("Database configuration is incomplete")
 
     using_pgbouncer = db_host == "pgbouncer"
-    pgbouncer_pool_mode = os.getenv("PGPOOL_MODE", "transaction").lower()
+    pgbouncer_pool_mode = (os.getenv("PGPOOL_MODE") or "transaction").lower()
 
     print(f"🔌 Initializing asyncpg connection pool to {db_host}:{db_port}/{db_name}")
 

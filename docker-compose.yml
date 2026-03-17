@@ -25,14 +25,12 @@ services:
   #   DB_BACKUP=                   Use existing database (default)
   database:
     image: ${API_DATABASE_IMAGE:-ghcr.io/learnloopllc/glow-api-database:latest}
-    env_file:
-      - .env
     environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER:-myuser}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-mypassword}
+      - POSTGRES_DB=${DB_NAME:-mydb}
       - HISTORY_DIR=/database/history
-      # DB_BACKUP can be set via .env or docker run -e DB_BACKUP=fresh.sql.gz
+      - DB_BACKUP=${DB_BACKUP:-}
     volumes:
       - pgdata:/var/lib/postgresql
       - history:/database/history
@@ -45,8 +43,8 @@ services:
         if [ -n "${DB_BACKUP:-}" ] && [ ! -f /var/lib/postgresql/.restore_complete ]; then
           exit 1
         fi &&
-        pg_isready -U ${DB_USER} -d ${DB_NAME} &&
-        psql -U ${DB_USER} -d ${DB_NAME} -tc 'SELECT 1' >/dev/null 2>&1
+        pg_isready -U ${DB_USER:-myuser} -d ${DB_NAME:-mydb} &&
+        psql -U ${DB_USER:-myuser} -d ${DB_NAME:-mydb} -tc 'SELECT 1' >/dev/null 2>&1
       interval: 5s
       timeout: 5s
       retries: 15
@@ -77,17 +75,17 @@ services:
 
       # DB connection (uses existing database service, keycloak schema in same database)
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://database:5432/${DB_NAME}?currentSchema=keycloak
-      KC_DB_USERNAME: ${DB_USER}
-      KC_DB_PASSWORD: ${DB_PASSWORD}
+      KC_DB_URL: jdbc:postgresql://database:5432/${DB_NAME:-mydb}?currentSchema=keycloak
+      KC_DB_USERNAME: ${DB_USER:-myuser}
+      KC_DB_PASSWORD: ${DB_PASSWORD:-mypassword}
       KC_DB_SCHEMA: keycloak
 
       # IMPORTANT: run behind nginx at ${APP_PREFIX}/auth
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: "true"
-      KC_HTTP_RELATIVE_PATH: ${APP_PREFIX}/auth
+      KC_HTTP_RELATIVE_PATH: ${APP_PREFIX:-}/auth
 
-      KC_HOSTNAME: ${ORIGIN}${APP_PREFIX}/auth
+      KC_HOSTNAME: ${ORIGIN:-http://localhost:3000}${APP_PREFIX:-}/auth
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
       KC_HEALTH_ENABLED: "true"
@@ -116,7 +114,7 @@ services:
     image: edoburu/pgbouncer:latest
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@database:5432/${DB_NAME}
+      - DATABASE_URL=postgres://${DB_USER:-myuser}:${DB_PASSWORD:-mypassword}@database:5432/${DB_NAME:-mydb}
       - POOL_MODE=session
       - MAX_CLIENT_CONN=1000
       - DEFAULT_POOL_SIZE=25
@@ -186,22 +184,25 @@ services:
   # --------------------
   server-blue:
     image: ${API_SERVER_IMAGE:-ghcr.io/learnloopllc/glow-api-server:latest}
-    env_file:
-      - .env
     environment:
+      - DB_USER=${DB_USER:-myuser}
+      - DB_PASSWORD=${DB_PASSWORD:-mypassword}
+      - DB_NAME=${DB_NAME:-mydb}
       - DB_PORT=5432
       - DB_HOST=pgbouncer
       - PGPOOL_MODE=session
       - DOCKER_ENV=1
-      - APP_PREFIX=${APP_PREFIX}
+      - APP_PREFIX=${APP_PREFIX:-}
+      - ORIGIN=${ORIGIN:-http://localhost:3000}
+      - CLIENT_ORIGINS=${CLIENT_ORIGINS:-http://localhost:3000}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - INTERNAL_API_BASE=http://server-blue:8000
       - REDIS_URL=redis://redis:6379
       - KEYCLOAK_INTERNAL_URL=http://keycloak:8080
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-master}
-      - CLIENT_ORIGIN=${CLIENT_ORIGIN:-}
     labels:
       - "com.docker.compose.service=server-blue"
-      - "com.docker.compose.project=${COMPOSE_PROJECT_NAME}"
+      - "com.docker.compose.project=${COMPOSE_PROJECT_NAME:-glow-api}"
     volumes:
       - uploads:/app/uploads   # Docker volume for uploads
     healthcheck:
@@ -230,22 +231,25 @@ services:
   # --------------------
   server-green:
     image: ${API_SERVER_IMAGE:-ghcr.io/learnloopllc/glow-api-server:latest}
-    env_file:
-      - .env
     environment:
+      - DB_USER=${DB_USER:-myuser}
+      - DB_PASSWORD=${DB_PASSWORD:-mypassword}
+      - DB_NAME=${DB_NAME:-mydb}
       - DB_PORT=5432
       - DB_HOST=pgbouncer
       - PGPOOL_MODE=session
       - DOCKER_ENV=1
-      - APP_PREFIX=${APP_PREFIX}
+      - APP_PREFIX=${APP_PREFIX:-}
+      - ORIGIN=${ORIGIN:-http://localhost:3000}
+      - CLIENT_ORIGINS=${CLIENT_ORIGINS:-http://localhost:3000}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - INTERNAL_API_BASE=http://server-green:8000
       - REDIS_URL=redis://redis:6379
       - KEYCLOAK_INTERNAL_URL=http://keycloak:8080
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-master}
-      - CLIENT_ORIGIN=${CLIENT_ORIGIN:-}
     labels:
       - "com.docker.compose.service=server-green"
-      - "com.docker.compose.project=${COMPOSE_PROJECT_NAME}"
+      - "com.docker.compose.project=${COMPOSE_PROJECT_NAME:-glow-api}"
     volumes:
       - uploads:/app/uploads   # Docker volume for uploads
     healthcheck:
@@ -273,10 +277,10 @@ services:
   # --------------------
   nginx:
     image: nginx:1.25
-    container_name: ${COMPOSE_PROJECT_NAME}-nginx
-    env_file:
-      - .env
+    container_name: ${COMPOSE_PROJECT_NAME:-glow-api}-nginx
     environment:
+      - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-glow-api}
+      - APP_PREFIX=${APP_PREFIX:-}
       - ACTIVE_ENV=${ACTIVE_ENV:-blue}
     volumes:
       - ./web/default.conf.template:/etc/nginx/templates/default.conf.template:ro
@@ -291,10 +295,10 @@ services:
 
   docker-gen:
     image: jwilder/docker-gen:0.7.6
-    container_name: ${COMPOSE_PROJECT_NAME}-docker-gen
+    container_name: ${COMPOSE_PROJECT_NAME:-glow-api}-docker-gen
     restart: unless-stopped
     environment:
-    - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
+      - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-glow-api}
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./web/templates:/etc/docker-gen/templates:ro

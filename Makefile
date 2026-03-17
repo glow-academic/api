@@ -27,9 +27,9 @@ check-python:
 		exit 1; \
 	fi
 
-# Setup: copy .env.example to .env
+# Setup: copy .env.example to .env if missing (optional for local dev; docker compose has defaults)
 setup:
-	@if [ ! -f .env ]; then cp .env.example .env && echo "Created .env from .env.example — edit it with your values"; else echo ".env already exists"; fi
+	@if [ ! -f .env ]; then cp .env.example .env && echo "Created .env from .env.example — edit for production"; else echo ".env already exists"; fi
 
 # Create virtual environment
 setup-venv: check-python

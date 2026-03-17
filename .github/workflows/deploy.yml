@@ -12,6 +12,11 @@ on:
       - 'Makefile'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
+    inputs:
+      deployment_name:
+        description: 'Deployment name (default: glow-api)'
+        required: false
+        default: 'glow-api'
 
 permissions:
   contents: read
@@ -63,7 +68,7 @@ jobs:
       - name: Detect active environment
         id: detect
         run: |
-          DEPLOY_DIR="/srv/deploy/live/glow-api"
+          DEPLOY_DIR="/srv/deploy/live/${{ inputs.deployment_name || 'glow-api' }}"
           if [ -d "$DEPLOY_DIR" ] && [ -f "$DEPLOY_DIR/scripts/detect-env.sh" ]; then
             cd "$DEPLOY_DIR"
             eval $(./scripts/detect-env.sh)
@@ -155,8 +160,10 @@ jobs:
       always() &&
       (needs.detect-changes.outputs.any-changes == 'true' || github.event_name == 'workflow_dispatch')
     concurrency:
-      group: deploy-glow-api
+      group: deploy-${{ inputs.deployment_name || 'glow-api' }}
       cancel-in-progress: true
+    env:
+      DEPLOY_DIR: /srv/deploy/live/${{ inputs.deployment_name || 'glow-api' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -168,75 +175,84 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Stage release
-        run: make stage-release DEST=/srv/deploy/live/glow-api SHA=${{ github.sha }}
+        run: make stage-release DEST=${{ env.DEPLOY_DIR }} SHA=${{ github.sha }}
 
-      - name: Write .env from secrets
-        working-directory: /srv/deploy/live/glow-api
+      - name: Validate .env exists
+        working-directory: ${{ env.DEPLOY_DIR }}
         run: |
-          cat > .env <<'ENVEOF'
-          COMPOSE_PROJECT_NAME=glow-api
-          API_SERVER_IMAGE=ghcr.io/learnloopllc/glow-api-server:latest
-          API_DATABASE_IMAGE=ghcr.io/learnloopllc/glow-api-database:latest
-          DB_USER=${{ secrets.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_NAME=${{ secrets.DB_NAME }}
-          ORIGIN=${{ secrets.ORIGIN }}
-          APP_PREFIX=
-          KEYCLOAK_ADMIN=${{ secrets.KEYCLOAK_ADMIN }}
-          KEYCLOAK_ADMIN_PASSWORD=${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}
-          KEYCLOAK_REALM=${{ secrets.KEYCLOAK_REALM }}
-          AUTH_SECRET=${{ secrets.AUTH_SECRET }}
-          AUTH_KEYCLOAK_ID=${{ secrets.AUTH_KEYCLOAK_ID }}
-          AUTH_CLIENT_ID=${{ secrets.AUTH_KEYCLOAK_ID }}
-          AUTH_CLIENT_SECRET=${{ secrets.AUTH_CLIENT_SECRET }}
-          AUTH_KEYCLOAK_SECRET=${{ secrets.AUTH_CLIENT_SECRET }}
-          SECRET_KEY=${{ secrets.SECRET_KEY }}
-          CLIENT_ORIGIN=${{ secrets.CLIENT_ORIGIN }}
-          DB_BACKUP=
-          ACTIVE_ENV=${{ needs.detect-active-environment.outputs.active-env }}
-          ENVEOF
-          sed -i 's/^[[:space:]]*//' .env
+          if [ ! -f .env ]; then
+            echo "::error::.env not found at ${{ env.DEPLOY_DIR }}. Run the Provision workflow first."
+            exit 1
+          fi
+
+      - name: Update .env for deploy
+        working-directory: ${{ env.DEPLOY_DIR }}
+        run: |
+          # Update ACTIVE_ENV
+          ACTIVE_ENV="${{ needs.detect-active-environment.outputs.active-env }}"
+          if grep -q "^ACTIVE_ENV=" .env; then
+            sed -i "s/^ACTIVE_ENV=.*/ACTIVE_ENV=$ACTIVE_ENV/" .env
+          else
+            echo "ACTIVE_ENV=$ACTIVE_ENV" >> .env
+          fi
+
+          # Point to latest images
+          sed -i "s|^API_SERVER_IMAGE=.*|API_SERVER_IMAGE=ghcr.io/learnloopllc/glow-api-server:latest|" .env
+          sed -i "s|^API_DATABASE_IMAGE=.*|API_DATABASE_IMAGE=ghcr.io/learnloopllc/glow-api-database:latest|" .env
+
+          # Prevent accidental database restore on redeploy
+          sed -i 's/^DB_BACKUP=.*/DB_BACKUP=/' .env
+
+      - name: Parse subdomain from ORIGIN
+        id: parse-origin
+        working-directory: ${{ env.DEPLOY_DIR }}
+        run: |
+          ORIGIN=$(grep "^ORIGIN=" .env | cut -d= -f2-)
+          DOMAIN=$(echo "$ORIGIN" | sed 's|https://||' | sed 's|http://||')
+          SUBDOMAIN=$(echo "$DOMAIN" | cut -d. -f1)
+          BASE_DOMAIN=$(echo "$DOMAIN" | cut -d. -f2-)
+          echo "subdomain=$SUBDOMAIN" >> $GITHUB_OUTPUT
+          echo "base-domain=$BASE_DOMAIN" >> $GITHUB_OUTPUT
 
       - name: Pull images
-        working-directory: /srv/deploy/live/glow-api
+        working-directory: ${{ env.DEPLOY_DIR }}
         run: make pull-images
 
       - name: Provision Traefik labels
-        working-directory: /srv/deploy/live/glow-api
+        working-directory: ${{ env.DEPLOY_DIR }}
         run: |
           bash scripts/provision.sh deploy \
-            --name "glow-api" \
-            --subdomain "${{ secrets.SUBDOMAIN }}" \
-            --base-domain "learn-loop.org" \
-            --compose-dir /srv/deploy/live/glow-api \
+            --name "${{ inputs.deployment_name || 'glow-api' }}" \
+            --subdomain "${{ steps.parse-origin.outputs.subdomain }}" \
+            --base-domain "${{ steps.parse-origin.outputs.base-domain }}" \
+            --compose-dir ${{ env.DEPLOY_DIR }} \
             --entry-service nginx \
             --entry-port 80
 
       - name: Apply add migrations
-        working-directory: /srv/deploy/live/glow-api
+        working-directory: ${{ env.DEPLOY_DIR }}
         if: needs.detect-active-environment.outputs.has-migrations == 'true'
         run: make migrate-docker TYPE=add
 
       - name: Deploy target environment
-        working-directory: /srv/deploy/live/glow-api
+        working-directory: ${{ env.DEPLOY_DIR }}
         run: make deploy-target ENV=${{ needs.detect-active-environment.outputs.target-env }}
 
       - name: Switch traffic
-        working-directory: /srv/deploy/live/glow-api
+        working-directory: ${{ env.DEPLOY_DIR }}
         run: make switch-traffic ENV=${{ needs.detect-active-environment.outputs.target-env }}
 
       - name: Monitor deployment
-        working-directory: /srv/deploy/live/glow-api
+        working-directory: ${{ env.DEPLOY_DIR }}
         run: make monitor ENV=${{ needs.detect-active-environment.outputs.target-env }} ROLLBACK_ENV=${{ needs.detect-active-environment.outputs.active-env }}
 
       - name: Apply remove migrations
-        working-directory: /srv/deploy/live/glow-api
+        working-directory: ${{ env.DEPLOY_DIR }}
         if: success() && needs.detect-active-environment.outputs.has-remove-migrations == 'true'
         run: make migrate-docker TYPE=remove
 
       - name: Cleanup old environment
-        working-directory: /srv/deploy/live/glow-api
+        working-directory: ${{ env.DEPLOY_DIR }}
         if: success()
         run: |
           echo "Keeping ${{ needs.detect-active-environment.outputs.active-env }} running for rollback capability"
-          echo "To stop it: docker compose stop server-${{ needs.detect-active-environment.outputs.active-env }}"

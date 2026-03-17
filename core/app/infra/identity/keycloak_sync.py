@@ -7,7 +7,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
-from app.infra.globals import get_pool, get_redis_client
+from app.infra.globals import get_client_origins, get_pool, get_redis_client
 from app.infra.identity.keycloak_resolvers import (
     resolve_auth_items,
     resolve_auths_for_department,
@@ -17,6 +17,7 @@ from app.infra.identity.keycloak_resolvers import (
 )
 from app.infra.mcp.oauth import MCP_RESOURCE, is_mcp_enabled
 from app.utils.auth.decrypt_api_key import decrypt_api_key
+from app.utils.auth.derive_key import derive_from_secret_key
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -46,7 +47,7 @@ class KeycloakSyncConfig:
     client_port: str = "3000"
     app_prefix: str = ""
     origin: str = ""
-    client_origin: str = ""  # separate client deployment origin (e.g. https://glow-client.learn-loop.org)
+    client_origins: list[str] | None = None  # allowed client/frontend origins for CORS and redirect URIs
     auth_secret: str | None = None
     keycloak_url: str | None = None
     keycloak_internal_url: str | None = None
@@ -59,14 +60,25 @@ class KeycloakSyncConfig:
     def from_env(cls) -> "KeycloakSyncConfig":
         """Create config from environment variables."""
         client_port = os.getenv("CLIENT_PORT", "3000")
+        origin = os.getenv("ORIGIN", f"http://localhost:{client_port}")
+        secret_key = os.getenv("SECRET_KEY")
+
+        auth_keycloak_secret = os.getenv("AUTH_KEYCLOAK_SECRET")
+        if not auth_keycloak_secret and secret_key:
+            auth_keycloak_secret = derive_from_secret_key(secret_key, "keycloak-client")
+
+        auth_secret = os.getenv("AUTH_SECRET")
+        if not auth_secret and secret_key:
+            auth_secret = derive_from_secret_key(secret_key, "auth-secret")
+
         return cls(
             auth_keycloak_id=os.getenv("AUTH_KEYCLOAK_ID", "glow-client"),
-            auth_keycloak_secret=os.getenv("AUTH_KEYCLOAK_SECRET"),
+            auth_keycloak_secret=auth_keycloak_secret,
             client_port=client_port,
             app_prefix=os.getenv("APP_PREFIX", ""),
-            origin=os.getenv("ORIGIN", f"http://localhost:{client_port}"),
-            client_origin=os.getenv("CLIENT_ORIGIN", ""),
-            auth_secret=os.getenv("AUTH_SECRET"),
+            origin=origin,
+            client_origins=get_client_origins(),
+            auth_secret=auth_secret,
             keycloak_url=os.getenv("KEYCLOAK_URL"),
             keycloak_internal_url=os.getenv("KEYCLOAK_INTERNAL_URL"),
             keycloak_admin=os.getenv("KEYCLOAK_ADMIN", "admin"),
@@ -166,16 +178,18 @@ async def ensure_department_client(
             f"{base_url}{config.app_prefix}/api/auth/emulate-redirect*"
         )
         redirect_uris = [redirect_uri, f"{base_url}{config.app_prefix}/*"]
-        post_logout_uris = f"{base_url}{config.app_prefix}/*"
+        post_logout_parts = [f"{base_url}{config.app_prefix}/*"]
 
-        # If client is deployed separately, add its redirect URIs too
-        if config.client_origin:
-            client_base = config.client_origin.rstrip("/")
+        for client_base in config.client_origins or []:
+            client_base = client_base.strip().rstrip("/")
+            if not client_base or client_base == base_url:
+                continue
             redirect_uris += [
                 f"{client_base}{config.app_prefix}/api/auth/callback/keycloak",
                 f"{client_base}{config.app_prefix}/*",
             ]
-            post_logout_uris += f"##{client_base}{config.app_prefix}/*"
+            post_logout_parts.append(f"{client_base}{config.app_prefix}/*")
+        post_logout_uris = "##".join(post_logout_parts)
 
         clients = kc_admin.get_clients()
         existing_client = next(
@@ -285,9 +299,10 @@ async def ensure_glow_client_in_master_realm(
         redirect_uri = f"{base_url}{config.app_prefix}/api/auth/callback/keycloak"
         redirect_uris = [redirect_uri, f"{base_url}{config.app_prefix}/*"]
 
-        # If client is deployed separately, add its redirect URIs too
-        if config.client_origin:
-            client_base = config.client_origin.rstrip("/")
+        for client_base in config.client_origins or []:
+            client_base = client_base.strip().rstrip("/")
+            if not client_base or client_base == base_url:
+                continue
             redirect_uris += [
                 f"{client_base}{config.app_prefix}/api/auth/callback/keycloak",
                 f"{client_base}{config.app_prefix}/*",
@@ -303,10 +318,13 @@ async def ensure_glow_client_in_master_realm(
         emulate_redirect_uri = (
             f"{base_url}{config.app_prefix}/api/auth/emulate-redirect*"
         )
-        post_logout_uris = f"{base_url}{config.app_prefix}/*"
-        if config.client_origin:
-            client_base = config.client_origin.rstrip("/")
-            post_logout_uris += f"##{client_base}{config.app_prefix}/*"
+        post_logout_parts = [f"{base_url}{config.app_prefix}/*"]
+        for client_base in config.client_origins or []:
+            client_base = client_base.strip().rstrip("/")
+            if not client_base or client_base == base_url:
+                continue
+            post_logout_parts.append(f"{client_base}{config.app_prefix}/*")
+        post_logout_uris = "##".join(post_logout_parts)
 
         client_payload: dict[str, Any] = {
             "clientId": target_client_id,

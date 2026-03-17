@@ -47,10 +47,13 @@ if [[ -f "$project_root/.env" ]]; then
   set +a
 fi
 
-SECRET_KEY="${SECRET_KEY:-}"
+SECRET_KEY="${SECRET_KEY:-dev-secret-key-change-in-production}"
 if [[ -z "$SECRET_KEY" ]]; then
   echo "WARNING: SECRET_KEY not set - skipping key bootstrap"
   exit 0
+fi
+if [[ "$SECRET_KEY" == "dev-secret-key-change-in-production" ]]; then
+  echo "WARNING: Using dev SECRET_KEY - keys only work for local development"
 fi
 
 DB_USER=${DB_USER:-myuser}

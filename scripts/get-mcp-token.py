@@ -4,20 +4,34 @@
 import os
 import sys
 
+# Add core to path for app imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "core"))
+
 import requests
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
+def _get_client_secret() -> str:
+    """Get AUTH_KEYCLOAK_SECRET from env, or derive from SECRET_KEY when unset."""
+    secret = os.getenv("AUTH_KEYCLOAK_SECRET", "").strip('"')
+    if secret:
+        return secret
+    secret_key = os.getenv("SECRET_KEY")
+    if secret_key:
+        from app.utils.auth.derive_key import derive_from_secret_key
+        return derive_from_secret_key(secret_key, "keycloak-client")
+    return ""
+
+
 def get_mcp_token():
     """Get access token from Keycloak."""
     client_id = os.getenv("AUTH_KEYCLOAK_ID", "glow-client")
-    # The secret in .env is the actual secret (not encrypted for Keycloak client)
-    client_secret = os.getenv("AUTH_KEYCLOAK_SECRET", "").strip('"')
+    client_secret = _get_client_secret()
 
     if not client_secret:
-        print("Error: AUTH_KEYCLOAK_SECRET not found", file=sys.stderr)
+        print("Error: AUTH_KEYCLOAK_SECRET or SECRET_KEY not found", file=sys.stderr)
         sys.exit(1)
 
     # Get token from Keycloak
