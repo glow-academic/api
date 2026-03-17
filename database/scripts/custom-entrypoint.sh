@@ -57,6 +57,11 @@ if [[ -n "$DB_BACKUP" ]]; then
 
   log_info "Will restore from: $DB_BACKUP"
 
+  # Clear old restore marker — it lives OUTSIDE PGDATA in the volume root,
+  # so it persists across PGDATA wipes. Without clearing it, the healthcheck
+  # passes immediately (sees old marker) before the new restore finishes.
+  rm -f /var/lib/postgresql/.restore_complete
+
   # Wipe data dir so Postgres runs init scripts on fresh start
   rm -rf "$PGDATA"/*
 
