@@ -23,7 +23,7 @@ on:
         required: false
         default: ''
       version:
-        description: 'Release version tag'
+        description: 'Image tag to deploy (e.g. latest, main-abc1234)'
         required: false
         default: 'latest'
       provision_token:
@@ -37,29 +37,9 @@ on:
 
 permissions:
   contents: read
-  packages: write
+  packages: read
 
 jobs:
-  detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      server-changed: ${{ steps.changes.outputs.server }}
-      database-changed: ${{ steps.changes.outputs.database }}
-      any-changes: ${{ steps.changes.outputs.any }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          clean: true
-
-      - name: Detect changes
-        id: changes
-        run: |
-          # workflow_dispatch: always build and deploy everything
-          echo "server=true" >> $GITHUB_OUTPUT
-          echo "database=true" >> $GITHUB_OUTPUT
-          echo "any=true" >> $GITHUB_OUTPUT
-
   detect-active-environment:
     runs-on: [self-hosted, linux, x64, deploy]
     outputs:
@@ -88,90 +68,18 @@ jobs:
           echo "has-migrations=${HAS_MIGRATIONS:-false}" >> $GITHUB_OUTPUT
           echo "has-remove-migrations=${HAS_REMOVE_MIGRATIONS:-false}" >> $GITHUB_OUTPUT
 
-  build-server:
-    runs-on: ubuntu-latest
-    needs: detect-changes
-    if: needs.detect-changes.outputs.server-changed == 'true'
-    steps:
-      - uses: actions/checkout@v4
-        with: { clean: true }
-
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Meta (server)
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/learnloopllc/glow-api-server
-          tags: |
-            type=raw,value=latest
-            type=sha,prefix=main-
-
-      - name: Build & push (server)
-        uses: docker/build-push-action@v5
-        with:
-          context: ./core
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  build-database:
-    runs-on: ubuntu-latest
-    needs: detect-changes
-    if: needs.detect-changes.outputs.database-changed == 'true'
-    steps:
-      - uses: actions/checkout@v4
-        with: { clean: true }
-
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Meta (database)
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/learnloopllc/glow-api-database
-          tags: |
-            type=raw,value=latest
-            type=sha,prefix=main-
-
-      - name: Build & push (database)
-        uses: docker/build-push-action@v5
-        with:
-          context: ./database
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
   deploy:
     runs-on: [self-hosted, linux, x64, deploy]
-    needs: [detect-changes, detect-active-environment, build-server, build-database]
-    if: always()
+    needs: [detect-active-environment]
     concurrency:
       group: deploy-${{ inputs.deployment_name || 'glow-api' }}
       cancel-in-progress: true
     env:
       DEPLOY_DIR: /srv/deploy/live/${{ inputs.deployment_name || 'glow-api' }}
       COMPOSE_PROJECT_NAME: ${{ inputs.deployment_name || 'glow-api' }}
-      API_SERVER_IMAGE: ghcr.io/learnloopllc/glow-api-server:latest
-      API_DATABASE_IMAGE: ghcr.io/learnloopllc/glow-api-database:latest
+      API_SERVER_IMAGE: ghcr.io/learnloopllc/glow-api-server:${{ inputs.version || 'latest' }}
+      API_DATABASE_IMAGE: ghcr.io/learnloopllc/glow-api-database:${{ inputs.version || 'latest' }}
       ACTIVE_ENV: ${{ needs.detect-active-environment.outputs.active-env }}
-      # All config passed via workflow inputs — no GitHub secrets needed
       DB_BACKUP: ${{ inputs.db_backup }}
       ORIGIN: ${{ inputs.origin }}
       CLIENT_ORIGINS: ${{ inputs.client_origins }}
@@ -192,8 +100,15 @@ jobs:
       - name: Claim LICENSE_KEY from LearnLoop
         if: inputs.provision_token != ''
         run: |
-          RESP=$(curl -sf -X POST \
-            "${{ inputs.learnloop_api_url }}/provision/claim" \
+          API_URL="${{ inputs.learnloop_api_url }}"
+
+          # Self-hosted runners can't reach their own public IP (hairpin NAT).
+          # Route through localhost with the correct Host header instead.
+          HOST=$(echo "$API_URL" | sed 's|https\?://||' | sed 's|/.*||')
+          LOCAL_URL="https://localhost/provision/claim"
+
+          RESP=$(curl -sfk -X POST "$LOCAL_URL" \
+            -H "Host: $HOST" \
             -H "Content-Type: application/json" \
             -d '{"token": "${{ inputs.provision_token }}"}')
 
