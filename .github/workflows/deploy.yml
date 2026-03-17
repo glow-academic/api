@@ -201,15 +201,6 @@ jobs:
         working-directory: /srv/deploy/live/glow-api
         run: make pull-images
 
-      - name: Apply add migrations
-        working-directory: /srv/deploy/live/glow-api
-        if: needs.detect-active-environment.outputs.has-migrations == 'true'
-        run: make migrate-docker TYPE=add
-
-      - name: Deploy target environment
-        working-directory: /srv/deploy/live/glow-api
-        run: make deploy-target ENV=${{ needs.detect-active-environment.outputs.target-env }}
-
       - name: Provision Traefik labels
         working-directory: /srv/deploy/live/glow-api
         run: |
@@ -220,6 +211,15 @@ jobs:
             --compose-dir /srv/deploy/live/glow-api \
             --entry-service nginx \
             --entry-port 80
+
+      - name: Apply add migrations
+        working-directory: /srv/deploy/live/glow-api
+        if: needs.detect-active-environment.outputs.has-migrations == 'true'
+        run: make migrate-docker TYPE=add
+
+      - name: Deploy target environment
+        working-directory: /srv/deploy/live/glow-api
+        run: make deploy-target ENV=${{ needs.detect-active-environment.outputs.target-env }}
 
       - name: Switch traffic
         working-directory: /srv/deploy/live/glow-api
