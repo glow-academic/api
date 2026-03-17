@@ -15,7 +15,12 @@ cd "${script_dir}/.."
 
 echo "Deploying $TARGET_ENV environment..."
 
-# Start infrastructure services first (database, redis, keycloak, pgbouncer, volume-init)
+# Stop keycloak before recreating database — prevents keycloak from auto-restarting
+# and connecting to a database that's still initializing.
+echo "Stopping keycloak (will restart after database is healthy)..."
+docker compose stop keycloak 2>/dev/null || true
+
+# Start infrastructure services first (database, redis, volume-init)
 echo "Starting infrastructure services..."
 docker compose up -d volume-init database redis
 sleep 5
