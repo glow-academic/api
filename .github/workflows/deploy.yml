@@ -7,6 +7,25 @@ on:
         description: 'Deployment name (default: glow-api)'
         required: false
         default: 'glow-api'
+      origin:
+        description: 'Origin URL (e.g. https://glow.learn-loop.org)'
+        required: true
+      client_origins:
+        description: 'Comma-separated client origins for CORS'
+        required: false
+        default: ''
+      app_prefix:
+        description: 'API path prefix (e.g. /glow)'
+        required: false
+        default: ''
+      db_backup:
+        description: 'Database backup file to restore (e.g. fresh.sql.gz)'
+        required: false
+        default: ''
+      version:
+        description: 'Release version tag'
+        required: false
+        default: 'latest'
 
 permissions:
   contents: read
@@ -144,11 +163,11 @@ jobs:
       API_SERVER_IMAGE: ghcr.io/learnloopllc/glow-api-server:latest
       API_DATABASE_IMAGE: ghcr.io/learnloopllc/glow-api-database:latest
       ACTIVE_ENV: ${{ needs.detect-active-environment.outputs.active-env }}
-      # Secrets (unset ones fall through to docker-compose defaults)
-      DB_BACKUP: ${{ secrets.DB_BACKUP }}
-      ORIGIN: ${{ secrets.ORIGIN }}
-      CLIENT_ORIGINS: ${{ secrets.CLIENT_ORIGINS }}
-      APP_PREFIX: ${{ secrets.APP_PREFIX }}
+      # All config passed via workflow inputs — no GitHub secrets needed
+      DB_BACKUP: ${{ inputs.db_backup }}
+      ORIGIN: ${{ inputs.origin }}
+      CLIENT_ORIGINS: ${{ inputs.client_origins }}
+      APP_PREFIX: ${{ inputs.app_prefix }}
     steps:
       - uses: actions/checkout@v4
         with:
