@@ -163,13 +163,10 @@ services:
           fi
         fi
 
-        # Copy history if the volume is still empty
-        if [ -z "$$(ls -A /app/history 2>/dev/null)" ]; then
-          echo "[init] Seeding history volume…"
-          # Only copy if source directory exists and has content
-          if [ -d "/seed/history" ] && [ -n "$$(ls -A /seed/history 2>/dev/null)" ]; then
-            cp -a /seed/history/. /app/history/
-          fi
+        # Always sync history (these are deploy templates, not user data)
+        if [ -d "/seed/history" ] && [ -n "$$(ls -A /seed/history 2>/dev/null)" ]; then
+          echo "[init] Syncing history volume…"
+          cp -a /seed/history/. /app/history/
         fi
 
         # Always ensure perms for FastAPI UID/GID 1001
