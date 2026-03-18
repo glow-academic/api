@@ -72,8 +72,10 @@ server {
     }
 
     # Keycloak (proxied under APP_PREFIX)
+    # rewrite strips APP_PREFIX so Keycloak sees /auth/… (variable proxy_pass skips auto-strip)
     location ^~ ${APP_PREFIX}/auth/ {
-        proxy_pass         http://$keycloak_backend/auth/;
+        rewrite ^${APP_PREFIX}(/auth/.*)$ $1 break;
+        proxy_pass         http://$keycloak_backend;
         proxy_http_version 1.1;
         proxy_set_header   Host              $http_host;
         proxy_set_header   X-Real-IP         $remote_addr;
