@@ -137,3 +137,41 @@ def get_setting_updates():
             profile_artifact_ids=DEFAULT_PROFILE_ARTIFACT_IDS,
         ),
     ]
+
+
+# ---------------------------------------------------------------------------
+# Pre-existing profile IDs (from module 09 profiles)
+# ---------------------------------------------------------------------------
+
+DEFAULT_ADMIN = UUID("019b3be4-36ef-7a5f-98ab-ccb879770be0")
+DEFAULT_GUEST = UUID("019b3be4-36f0-792c-82d6-126664ed18b6")
+DEFAULT_INSTRUCTIONAL = UUID("019b3be4-36f0-785d-9d61-32eae65689ca")
+DEFAULT_MEMBER = UUID("019b3be4-36f0-7eb3-bc4e-bcab772edd92")
+DEFAULT_SUPERADMIN = UUID("019b3be4-36f0-788c-9df2-481eb5917940")
+
+# ---------------------------------------------------------------------------
+# Profile updates — assign default emails to bootstrap profiles
+# ---------------------------------------------------------------------------
+
+profile_updates = [
+    dict(
+        profile_id=DEFAULT_SUPERADMIN,
+        email="superadmin@glow.local",
+    ),
+    dict(
+        profile_id=DEFAULT_ADMIN,
+        email="admin@glow.local",
+    ),
+    dict(
+        profile_id=DEFAULT_INSTRUCTIONAL,
+        email="instructional@glow.local",
+    ),
+    dict(
+        profile_id=DEFAULT_MEMBER,
+        email="member@glow.local",
+    ),
+    dict(
+        profile_id=DEFAULT_GUEST,
+        email="guest@glow.local",
+    ),
+]

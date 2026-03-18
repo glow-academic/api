@@ -1035,7 +1035,7 @@ async def _run_default_setting_seed(
     redis: Redis,
 ) -> None:
     """Create the default setting and link default profiles to it."""
-    from database.seeds.setting import get_setting_updates, settings
+    from database.seeds.setting import get_setting_updates, profile_updates, settings
 
     # Create the setting
     await _run_setting_seeds(pool, redis, settings)
@@ -1072,6 +1072,39 @@ async def _run_default_setting_seed(
             items=items,
         )
         print(f"  OK: default setting updated with {len(items)} profile link(s)")
+
+    # ── Profile email updates ──────────────────────────────────────────
+    if profile_updates:
+        from app.infra.profile.update import update_profile_impl
+        from app.infra.profile.types import UpdateProfileItem
+        from app.tools.resources.emails.create import create_email
+
+        update_items: list = []
+        for p in profile_updates:
+            email_id = None
+            if "email" in p:
+                async with pool.acquire() as conn:
+                    email_result = await create_email(
+                        conn,
+                        email=p["email"],
+                        redis=redis,
+                    )
+                    email_id = email_result.id
+
+            update_items.append(
+                UpdateProfileItem(
+                    profile_id=p["profile_id"],
+                    email_ids=[email_id] if email_id else None,
+                )
+            )
+
+        await update_profile_impl(
+            pool,
+            redis,
+            profile_id=SEED_PROFILE_ID,
+            items=update_items,
+        )
+        print(f"  OK: {len(update_items)} default profile(s) updated with emails")
 
 
 async def _run_color_seeds(
