@@ -1295,8 +1295,8 @@ def get_idp_internal_url(config: KeycloakSyncConfig | None = None) -> str:
 
     # Check if we're in Docker environment (server running in Docker)
     if docker_env:
-        # Server is in Docker: use service name for internal communication (Keycloak -> Server)
-        base = "http://server:8000"
+        # Route through nginx so Keycloak reaches whichever server is active (blue-green)
+        base = "http://nginx:80"
     else:
         # Server is running locally (make run), but Keycloak might be in Docker
         # When Keycloak (in Docker) needs to reach host server, use host.docker.internal
