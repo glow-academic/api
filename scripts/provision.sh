@@ -37,8 +37,11 @@ case "$COMMAND" in
     # Ensure traefik_routing network exists
     docker network create traefik_routing 2>/dev/null || true
 
-    # Read docker-compose.yml to discover all services
+    # Remove stale override before discovering services (we regenerate it below)
     cd "$COMPOSE_DIR"
+    rm -f docker-compose.override.yml
+
+    # Read docker-compose.yml to discover all services
     SERVICES=$(docker compose config --services 2>/dev/null || echo "$ENTRY_SERVICE")
 
     # Build extra_hosts block for all services
