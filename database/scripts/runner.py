@@ -1599,6 +1599,7 @@ def _pg_dump_full(
         "--format=plain",
         "--no-owner",
         "--no-privileges",
+        "--exclude-schema=keycloak",
         f"--host={pg_host}",
         f"--port={pg_port}",
         f"--username={pg_user}",
