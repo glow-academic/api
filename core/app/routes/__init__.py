@@ -10,6 +10,7 @@ from app.routes.authorize import router as authorize_router
 from app.routes.discovery import router as discovery_router
 from app.routes.health import router as health_router
 from app.routes.jwks import router as jwks_router
+from app.routes.login import router as login_router
 from app.routes.stream import router as stream_router
 from app.routes.token import router as token_router
 from app.routes.userinfo import router as userinfo_router
@@ -27,6 +28,7 @@ router.include_router(discovery_router)
 router.include_router(authorize_router)
 router.include_router(token_router)
 router.include_router(userinfo_router)
+router.include_router(login_router)
 
 
 @router.get("/")
