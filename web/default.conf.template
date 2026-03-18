@@ -92,7 +92,7 @@ server {
     # HTTP clients strip Authorization headers on redirects (security feature)
     # ChatGPT sends Authorization header, but redirects cause it to be dropped
     location = ${APP_PREFIX}/mcp {
-        proxy_pass         http://$server_backend/mcp;
+        proxy_pass         http://$server_backend/mcp$is_args$args;
         proxy_http_version 1.1;
         proxy_set_header   Host              $http_host;
         proxy_set_header   X-Real-IP         $remote_addr;
@@ -143,7 +143,7 @@ server {
 
     # Default-IdP OIDC authorize endpoint (browser redirect from Keycloak IDP broker)
     location = ${APP_PREFIX}/authorize {
-        proxy_pass         http://$server_backend/authorize;
+        proxy_pass         http://$server_backend/authorize$is_args$args;
         proxy_http_version 1.1;
         proxy_set_header   Host              $http_host;
         proxy_set_header   X-Real-IP         $remote_addr;
@@ -155,7 +155,7 @@ server {
     # Default-IdP OIDC endpoints (public access required for Keycloak redirects)
     # Pattern matches MCP routing - root level, not under /api/
     location = ${APP_PREFIX}/default-idp {
-        proxy_pass         http://$server_backend/default-idp;
+        proxy_pass         http://$server_backend/default-idp$is_args$args;
         proxy_http_version 1.1;
         proxy_set_header   Host              $http_host;
         proxy_set_header   X-Real-IP         $remote_addr;
