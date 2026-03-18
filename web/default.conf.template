@@ -133,6 +133,17 @@ server {
         proxy_set_header   X-Forwarded-Proto $forwarded_proto;
     }
 
+    # Default-IdP OIDC authorize endpoint (browser redirect from Keycloak IDP broker)
+    location = ${APP_PREFIX}/authorize {
+        proxy_pass         http://$server_backend/authorize;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header   X-Forwarded-Host  $host;
+    }
+
     # Default-IdP OIDC endpoints (public access required for Keycloak redirects)
     # Pattern matches MCP routing - root level, not under /api/
     location = ${APP_PREFIX}/default-idp {
