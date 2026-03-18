@@ -69,4 +69,11 @@ drizzle/meta/
 # Test artifacts
 .pytest_cache/
 __pycache__/
-*.pyc 
+*.pyc
+
+# Dev-only Python files (seed generation tooling)
+seeds/run.py
+seeds/__pycache__/
+seeds/setups/
+scripts/runner.py
+scripts/__pycache__/
