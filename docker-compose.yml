@@ -60,12 +60,14 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
     restart: unless-stopped
-    # Copy themes from Docker volume before starting Keycloak
+    # Symlink themes from Docker volume so server-written updates are picked up live
     entrypoint: >
       /bin/sh -c "
-        if [ -d /opt/keycloak/data/uploads/themes ]; then
-          cp -r /opt/keycloak/data/uploads/themes/* /opt/keycloak/themes/ 2>/dev/null || true
-        fi &&
+        for d in /opt/keycloak/data/uploads/themes/*/; do
+          name=$$(basename $$d) &&
+          rm -rf /opt/keycloak/themes/$$name &&
+          ln -sf /opt/keycloak/data/uploads/themes/$$name /opt/keycloak/themes/$$name
+        done 2>/dev/null || true &&
         exec /opt/keycloak/bin/kc.sh start-dev
       "
     volumes:
