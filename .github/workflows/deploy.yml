@@ -138,14 +138,6 @@ jobs:
           echo "subdomain=$SUBDOMAIN" >> $GITHUB_OUTPUT
           echo "base-domain=$BASE_DOMAIN" >> $GITHUB_OUTPUT
 
-      - name: Pull server image
-        working-directory: ${{ env.DEPLOY_DIR }}
-        run: docker compose pull server-blue server-green
-
-      - name: Build database image
-        working-directory: ${{ env.DEPLOY_DIR }}
-        run: docker compose build database
-
       - name: Provision Traefik labels
         working-directory: ${{ env.DEPLOY_DIR }}
         run: |
@@ -156,6 +148,14 @@ jobs:
             --compose-dir ${{ env.DEPLOY_DIR }} \
             --entry-service nginx \
             --entry-port 80
+
+      - name: Pull server image
+        working-directory: ${{ env.DEPLOY_DIR }}
+        run: docker compose pull server-blue server-green
+
+      - name: Build database image
+        working-directory: ${{ env.DEPLOY_DIR }}
+        run: docker compose build database
 
       - name: Apply add migrations
         working-directory: ${{ env.DEPLOY_DIR }}
