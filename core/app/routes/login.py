@@ -1,11 +1,14 @@
-"""GET /login, /callback, /logout — Keycloak OAuth login flow."""
+"""GET /login, /callback, /logout, /me — Keycloak OAuth login flow."""
 
 import logging
 import os
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
+
+from app.infra.identity.middleware import require_auth
+from app.infra.identity.resolve_identity import Identity
 
 from app.utils.auth.derive_key import derive_from_secret_key
 
@@ -94,3 +97,16 @@ async def logout():
         f"&client_id={_client_id}"
     )
     return RedirectResponse(logout_url)
+
+
+@router.get("/me")
+async def me(identity: Identity = Depends(require_auth)):
+    """Return current authenticated user info."""
+    return {
+        "profile_id": str(identity.profile_id),
+        "session_id": str(identity.session_id),
+        "email": identity.email,
+        "role": identity.role,
+        "is_emulation": identity.is_emulation,
+        "actor_profile_id": str(identity.actor_profile_id) if identity.actor_profile_id else None,
+    }
