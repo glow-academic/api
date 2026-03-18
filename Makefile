@@ -1,5 +1,5 @@
 .PHONY: help setup install clean format lint typecheck run test test-cov cleanup generate-tests stop restore-db connect-db migrate openapi-gen configure deploy deploy-clean seed-gen
-.PHONY: deploy-target switch-traffic rollback monitor deploy-status detect-env pull-images stage-release
+.PHONY: deploy-target switch-traffic switch-kc-traffic rollback monitor deploy-status detect-env pull-images stage-release
 
 # Default Python interpreter
 PYTHON := python3.11
@@ -347,6 +347,9 @@ deploy-target:
 
 switch-traffic:
 	./scripts/switch-traffic.sh $(ENV)
+
+switch-kc-traffic:
+	./scripts/switch-kc-traffic.sh $(KC_ENV)
 
 rollback:
 	./scripts/switch-traffic.sh $(ROLLBACK_ENV)

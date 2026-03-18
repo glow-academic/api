@@ -45,6 +45,8 @@ jobs:
     outputs:
       active-env: ${{ steps.detect.outputs.active-env }}
       target-env: ${{ steps.detect.outputs.target-env }}
+      active-kc-env: ${{ steps.detect.outputs.active-kc-env }}
+      target-kc-env: ${{ steps.detect.outputs.target-kc-env }}
       has-migrations: ${{ steps.detect.outputs.has-migrations }}
       has-remove-migrations: ${{ steps.detect.outputs.has-remove-migrations }}
     env:
@@ -65,6 +67,10 @@ jobs:
           echo "Target environment: $TARGET_ENV"
           echo "active-env=$ACTIVE_ENV" >> $GITHUB_OUTPUT
           echo "target-env=$TARGET_ENV" >> $GITHUB_OUTPUT
+          ACTIVE_KC_ENV="${ACTIVE_KC_ENV:-blue}"
+          if [ "$ACTIVE_KC_ENV" = "green" ]; then TARGET_KC_ENV="blue"; else TARGET_KC_ENV="green"; fi
+          echo "active-kc-env=$ACTIVE_KC_ENV" >> $GITHUB_OUTPUT
+          echo "target-kc-env=$TARGET_KC_ENV" >> $GITHUB_OUTPUT
           echo "has-migrations=${HAS_MIGRATIONS:-false}" >> $GITHUB_OUTPUT
           echo "has-remove-migrations=${HAS_REMOVE_MIGRATIONS:-false}" >> $GITHUB_OUTPUT
 
@@ -79,6 +85,7 @@ jobs:
       COMPOSE_PROJECT_NAME: ${{ inputs.deployment_name || 'glow-api' }}
       API_SERVER_IMAGE: ghcr.io/learnloopllc/glow-api-server:${{ inputs.version || 'latest' }}
       ACTIVE_ENV: ${{ needs.detect-active-environment.outputs.active-env }}
+      ACTIVE_KC_ENV: ${{ needs.detect-active-environment.outputs.active-kc-env }}
       DB_BACKUP: ${{ inputs.db_backup }}
       ORIGIN: ${{ inputs.origin }}
       CLIENT_ORIGINS: ${{ inputs.client_origins }}
@@ -157,7 +164,8 @@ jobs:
 
       - name: Deploy target environment
         working-directory: ${{ env.DEPLOY_DIR }}
-        run: make deploy-target ENV=${{ needs.detect-active-environment.outputs.target-env }}
+        run: |
+          ./scripts/deploy-target.sh ${{ needs.detect-active-environment.outputs.target-env }} ${{ needs.detect-active-environment.outputs.target-kc-env }}
 
       - name: Switch traffic
         working-directory: ${{ env.DEPLOY_DIR }}

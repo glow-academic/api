@@ -55,9 +55,9 @@ services:
       - internal
 
   # --------------------
-  # Keycloak
+  # Keycloak (Blue)
   # --------------------
-  keycloak:
+  keycloak-blue: &keycloak-base
     image: quay.io/keycloak/keycloak:26.0
     restart: unless-stopped
     # Symlink themes from Docker volume so server-written updates are picked up live
@@ -70,25 +70,22 @@ services:
         done 2>/dev/null || true &&
         exec /opt/keycloak/bin/kc.sh start-dev
       "
+    labels:
+      - "com.docker.compose.service=keycloak-blue"
+      - "com.docker.compose.project=${COMPOSE_PROJECT_NAME:-glow-api}"
     volumes:
       - uploads:/opt/keycloak/data/uploads:ro
     environment:
-      # Keycloak 25 uses KEYCLOAK_ADMIN (creates permanent admin, not temporary)
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
-
-      # DB connection (uses existing database service, keycloak schema in same database)
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://database:5432/${DB_NAME:-mydb}?currentSchema=keycloak
       KC_DB_USERNAME: ${DB_USER:-myuser}
       KC_DB_PASSWORD: ${DB_PASSWORD:-mypassword}
       KC_DB_SCHEMA: keycloak
-
-      # IMPORTANT: run behind nginx at ${APP_PREFIX}/auth
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: "true"
       KC_HTTP_RELATIVE_PATH: ${APP_PREFIX:-}/auth
-
       KC_HOSTNAME: ${ORIGIN:-http://localhost:3000}${APP_PREFIX:-}/auth
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
@@ -99,9 +96,6 @@ services:
       database:
         condition: service_healthy
     healthcheck:
-      # Keycloak exposes health endpoint at /health/ready but container has no wget/curl
-      # Check management port 9000 instead (always available when Keycloak is ready)
-      # Use /dev/tcp to check if port is listening (works in bash/sh)
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 2>/dev/null && exec 3<&- && exec 3>&- || exit 1"]
       interval: 5s
       timeout: 3s
@@ -110,6 +104,15 @@ services:
     networks:
       - internal
       - public_net
+
+  # --------------------
+  # Keycloak (Green)
+  # --------------------
+  keycloak-green:
+    <<: *keycloak-base
+    labels:
+      - "com.docker.compose.service=keycloak-green"
+      - "com.docker.compose.project=${COMPOSE_PROJECT_NAME:-glow-api}"
 
   # --------------------
   # PgBouncer - Connection Pooler (Session Mode for Prepared Statements)
@@ -201,7 +204,7 @@ services:
       - LEARNLOOP_API_URL=${LEARNLOOP_API_URL:-}
       - INTERNAL_API_BASE=http://server-blue:8000
       - REDIS_URL=redis://redis:6379
-      - KEYCLOAK_INTERNAL_URL=http://keycloak:8080
+      - KEYCLOAK_INTERNAL_URL=http://nginx:80${APP_PREFIX:-}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-master}
     labels:
       - "com.docker.compose.service=server-blue"
@@ -215,8 +218,6 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      keycloak:
-        condition: service_healthy
       pgbouncer:
         condition: service_healthy
       redis:
@@ -250,7 +251,7 @@ services:
       - LEARNLOOP_API_URL=${LEARNLOOP_API_URL:-}
       - INTERNAL_API_BASE=http://server-green:8000
       - REDIS_URL=redis://redis:6379
-      - KEYCLOAK_INTERNAL_URL=http://keycloak:8080
+      - KEYCLOAK_INTERNAL_URL=http://nginx:80${APP_PREFIX:-}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-master}
     labels:
       - "com.docker.compose.service=server-green"
@@ -264,8 +265,6 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      keycloak:
-        condition: service_healthy
       pgbouncer:
         condition: service_healthy
       redis:
@@ -287,13 +286,13 @@ services:
       - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-glow-api}
       - APP_PREFIX=${APP_PREFIX:-}
       - ACTIVE_ENV=${ACTIVE_ENV:-blue}
+      - ACTIVE_KC_ENV=${ACTIVE_KC_ENV:-blue}
     volumes:
       - ./web/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./web/generated:/etc/nginx/conf.d/generated:rw
     depends_on:
       - server-blue
       - server-green
-      - keycloak
     networks:
       - internal
       - public_net

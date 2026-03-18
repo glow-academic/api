@@ -8,14 +8,15 @@
 set -e
 
 TARGET_ENV="${1:?Usage: $0 <blue|green>}"
+TARGET_KC_ENV="${2:-$TARGET_ENV}"
 MAX_WAIT="${TIMEOUT:-300}"
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${script_dir}/.."
 
-echo "Deploying $TARGET_ENV environment..."
+echo "Deploying $TARGET_ENV environment (keycloak: $TARGET_KC_ENV)..."
 
-# Start infrastructure services first (database, redis, keycloak, pgbouncer, volume-init)
+# Start infrastructure services first (database, redis, volume-init)
 echo "Starting infrastructure services..."
 docker compose up -d volume-init database redis
 sleep 5
@@ -32,27 +33,31 @@ while [ $ELAPSED -lt 120 ]; do
   ELAPSED=$((ELAPSED + 5))
 done
 
-echo "Starting keycloak and pgbouncer..."
-docker compose up -d keycloak pgbouncer
+echo "Starting keycloak-$TARGET_KC_ENV and pgbouncer..."
+docker compose up -d "keycloak-$TARGET_KC_ENV" pgbouncer
 
-echo "Waiting for keycloak to be healthy..."
+echo "Waiting for keycloak-$TARGET_KC_ENV to be healthy..."
 ELAPSED=0
 while [ $ELAPSED -lt 180 ]; do
-  KC_HEALTHY=$(docker compose ps keycloak --format json 2>/dev/null | jq -r '.Health // "unknown"' || echo "unknown")
+  KC_HEALTHY=$(docker compose ps "keycloak-$TARGET_KC_ENV" --format json 2>/dev/null | jq -r '.Health // "unknown"' || echo "unknown")
   if [ "$KC_HEALTHY" = "healthy" ]; then
-    echo "Keycloak is healthy"
+    echo "Keycloak ($TARGET_KC_ENV) is healthy"
     break
   fi
-  echo "Waiting for keycloak... (${ELAPSED}s/180s)"
+  echo "Waiting for keycloak-$TARGET_KC_ENV... (${ELAPSED}s/180s)"
   sleep 10
   ELAPSED=$((ELAPSED + 10))
 done
 
 if [ "$KC_HEALTHY" != "healthy" ]; then
   echo "Keycloak failed to become healthy, checking logs..."
-  docker compose logs keycloak --tail 20 2>/dev/null || true
+  docker compose logs "keycloak-$TARGET_KC_ENV" --tail 20 2>/dev/null || true
   echo "Continuing anyway..."
 fi
+
+# Switch keycloak traffic before starting server (so server talks to the right keycloak)
+echo "Switching keycloak traffic to $TARGET_KC_ENV..."
+"${script_dir}/switch-kc-traffic.sh" "$TARGET_KC_ENV"
 
 # Now start the server and docker-gen
 echo "Starting server-$TARGET_ENV and docker-gen..."

@@ -23,6 +23,12 @@ map "${ACTIVE_ENV}" $server_backend {
     default blue_server;
 }
 
+# Routing based on ACTIVE_KC_ENV
+map "${ACTIVE_KC_ENV}" $keycloak_backend {
+    "green" green_keycloak;
+    default blue_keycloak;
+}
+
 server {
     listen 80;
 
@@ -67,7 +73,7 @@ server {
 
     # Keycloak (proxied under APP_PREFIX)
     location ^~ ${APP_PREFIX}/auth/ {
-        proxy_pass         http://keycloak:8080/auth/;
+        proxy_pass         http://$keycloak_backend/auth/;
         proxy_http_version 1.1;
         proxy_set_header   Host              $http_host;
         proxy_set_header   X-Real-IP         $remote_addr;

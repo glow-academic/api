@@ -1,8 +1,7 @@
 #!/bin/bash
-# Switch traffic to the specified environment.
+# Switch server traffic to the specified environment.
 #
-# Sets ACTIVE_ENV and recreates nginx to apply the new routing.
-# No .env file needed — ACTIVE_ENV is passed via environment.
+# Preserves the current ACTIVE_KC_ENV (keycloak routing) and only changes ACTIVE_ENV.
 #
 # Usage:
 #   ./scripts/switch-traffic.sh <blue|green>
@@ -14,15 +13,18 @@ TARGET_ENV="${1:?Usage: $0 <blue|green>}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${script_dir}/.."
 
-echo "Switching traffic to $TARGET_ENV..."
+# Preserve current keycloak routing
+NGINX_CONTAINER="${COMPOSE_PROJECT_NAME:-glow-api}-nginx"
+CURRENT_KC_ENV=$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$NGINX_CONTAINER" 2>/dev/null | grep '^ACTIVE_KC_ENV=' | cut -d= -f2 || echo "blue")
+CURRENT_KC_ENV="${CURRENT_KC_ENV:-blue}"
 
-# Export ACTIVE_ENV so docker compose picks it up for nginx
+echo "Switching server traffic to $TARGET_ENV (keycloak stays $CURRENT_KC_ENV)..."
+
 export ACTIVE_ENV="$TARGET_ENV"
+export ACTIVE_KC_ENV="$CURRENT_KC_ENV"
 
-# Recreate nginx to apply new config
 docker compose up -d --no-deps nginx
 
-# Wait for nginx to be ready
 sleep 5
 
 echo "Traffic switched to $TARGET_ENV"

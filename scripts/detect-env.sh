@@ -30,6 +30,14 @@ else
   TARGET_ENV="green"
 fi
 
+ACTIVE_KC_ENV=$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$NGINX_CONTAINER" 2>/dev/null | grep '^ACTIVE_KC_ENV=' | cut -d= -f2 || true)
+ACTIVE_KC_ENV="${ACTIVE_KC_ENV:-blue}"
+if [ "$ACTIVE_KC_ENV" = "green" ]; then
+  TARGET_KC_ENV="blue"
+else
+  TARGET_KC_ENV="green"
+fi
+
 HAS_MIGRATIONS="false"
 HAS_REMOVE_MIGRATIONS="false"
 
@@ -53,5 +61,7 @@ fi
 
 echo "ACTIVE_ENV=$ACTIVE_ENV"
 echo "TARGET_ENV=$TARGET_ENV"
+echo "ACTIVE_KC_ENV=$ACTIVE_KC_ENV"
+echo "TARGET_KC_ENV=$TARGET_KC_ENV"
 echo "HAS_MIGRATIONS=$HAS_MIGRATIONS"
 echo "HAS_REMOVE_MIGRATIONS=$HAS_REMOVE_MIGRATIONS"
