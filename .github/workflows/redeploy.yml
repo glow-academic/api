@@ -183,11 +183,18 @@ jobs:
       - name: Notify LearnLoop
         if: always()
         run: |
-          STATUS=${{ job.status == 'success' && '"running"' || '"failed"' }}
-          curl -sf -X POST "$LEARNLOOP_API_URL/deploy/${{ inputs.deployment_id }}/callback" \
+          if [ "$JOB_STATUS" = "success" ]; then
+            STATUS="running"
+          else
+            STATUS="failed"
+          fi
+          HOST=$(echo "$LEARNLOOP_API_URL" | sed 's|https\?://||' | sed 's|/.*||')
+          curl -sfk -X POST "https://localhost/deploy/${{ inputs.deployment_id }}/callback" \
+            -H "Host: $HOST" \
             -H "Authorization: Bearer $DEPLOYMENT_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"status\": $STATUS}" || echo "Callback failed (non-fatal)"
+            -d "{\"status\": \"$STATUS\"}" || echo "Callback failed (non-fatal)"
         env:
+          JOB_STATUS: ${{ job.status }}
           LEARNLOOP_API_URL: ${{ inputs.learnloop_api_url }}
           DEPLOYMENT_TOKEN: ${{ env.DEPLOYMENT_TOKEN }}
