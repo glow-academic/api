@@ -54,7 +54,6 @@ if [[ -n "$DB_BACKUP" ]]; then
     done
     exit 1
   fi
-
   log_info "Will restore from: $DB_BACKUP"
 
   # Wipe data dir so Postgres runs init scripts on fresh start

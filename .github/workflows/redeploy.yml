@@ -1,4 +1,4 @@
-name: Deploy (New)
+name: Redeploy (Update)
 
 on:
   workflow_dispatch:
@@ -22,17 +22,9 @@ on:
         description: 'Image version (e.g. v0.2.0)'
         required: true
       db_backup:
-        description: 'Database seed file (e.g. fresh.sql.gz)'
-        required: true
-        default: 'fresh.sql.gz'
-      provision_token:
-        description: 'One-time token to claim LICENSE_KEY from LearnLoop'
+        description: 'Restore from backup (DESTRUCTIVE — leave empty to keep existing data)'
         required: false
         default: ''
-      learnloop_api_url:
-        description: 'LearnLoop API URL for license validation'
-        required: false
-        default: 'https://api.learn-loop.org'
 
 permissions:
   contents: read
@@ -67,7 +59,7 @@ jobs:
           echo "active-kc-env=$ACTIVE_KC_ENV" >> $GITHUB_OUTPUT
           echo "target-kc-env=$TARGET_KC_ENV" >> $GITHUB_OUTPUT
 
-  deploy:
+  redeploy:
     runs-on: [self-hosted, linux, x64, deploy]
     needs: [detect-active-environment]
     concurrency:
@@ -96,25 +88,6 @@ jobs:
       - name: Stage release
         run: make stage-release DEST=${{ env.DEPLOY_DIR }} SHA=${{ github.sha }}
 
-      - name: Claim LICENSE_KEY from LearnLoop
-        if: inputs.provision_token != ''
-        run: |
-          API_URL="${{ inputs.learnloop_api_url }}"
-          HOST=$(echo "$API_URL" | sed 's|https\?://||' | sed 's|/.*||')
-          LOCAL_URL="https://localhost/provision/claim"
-          RESP=$(curl -sfk -X POST "$LOCAL_URL" \
-            -H "Host: $HOST" \
-            -H "Content-Type: application/json" \
-            -d '{"token": "${{ inputs.provision_token }}"}')
-          LICENSE_KEY=$(echo "$RESP" | jq -r '.license_key')
-          if [ -z "$LICENSE_KEY" ] || [ "$LICENSE_KEY" = "null" ]; then
-            echo "::error::Failed to claim license key from LearnLoop"
-            exit 1
-          fi
-          echo "LICENSE_KEY=${LICENSE_KEY}" >> $GITHUB_ENV
-          echo "LEARNLOOP_API_URL=${{ inputs.learnloop_api_url }}" >> $GITHUB_ENV
-          echo "LICENSE_KEY claimed successfully"
-
       - name: Parse subdomain from ORIGIN
         id: parse-origin
         run: |
@@ -134,6 +107,24 @@ jobs:
             --compose-dir ${{ env.DEPLOY_DIR }} \
             --entry-service nginx \
             --entry-port 80
+
+      - name: Pre-deploy backup
+        working-directory: ${{ env.DEPLOY_DIR }}
+        run: |
+          if docker compose ps database --format '{{.Status}}' 2>/dev/null | grep -q "Up"; then
+            echo "Creating pre-deploy backup..."
+            docker compose exec -T database pg_dump \
+              -U ${DB_USER:-myuser} -d ${DB_NAME:-mydb} \
+              --no-owner --no-privileges --exclude-schema=keycloak \
+              | gzip > /tmp/pre-deploy-backup.sql.gz
+            docker compose cp /tmp/pre-deploy-backup.sql.gz database:/database/history/backup-deploy-$(date +%Y%m%d-%H%M%S).sql.gz
+            rm -f /tmp/pre-deploy-backup.sql.gz
+            echo "Pre-deploy backup saved"
+            docker compose exec -T database sh -c \
+              'ls -t /database/history/backup-deploy-*.sql.gz 2>/dev/null | tail -n +8 | xargs rm -f 2>/dev/null; echo "Retention applied"'
+          else
+            echo "No running database — skipping pre-deploy backup"
+          fi
 
       - name: Pull server image
         working-directory: ${{ env.DEPLOY_DIR }}
