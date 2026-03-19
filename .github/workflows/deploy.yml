@@ -23,9 +23,8 @@ on:
         required: false
         default: ''
       version:
-        description: 'Image tag to deploy (e.g. latest, main-abc1234)'
-        required: false
-        default: 'latest'
+        description: 'Image version to deploy (e.g. v0.1.0) — required for strict version control'
+        required: true
       provision_token:
         description: 'One-time token to claim LICENSE_KEY from LearnLoop (auto-generated)'
         required: false
@@ -83,7 +82,7 @@ jobs:
     env:
       DEPLOY_DIR: /srv/deploy/live/${{ inputs.deployment_name || 'glow-api' }}
       COMPOSE_PROJECT_NAME: ${{ inputs.deployment_name || 'glow-api' }}
-      API_SERVER_IMAGE: ghcr.io/learnloopllc/glow-api-server:${{ inputs.version || 'latest' }}
+      API_SERVER_IMAGE: ghcr.io/learnloopllc/glow-api-server:${{ inputs.version }}
       ACTIVE_ENV: ${{ needs.detect-active-environment.outputs.active-env }}
       ACTIVE_KC_ENV: ${{ needs.detect-active-environment.outputs.active-kc-env }}
       DB_BACKUP: ${{ inputs.db_backup }}
