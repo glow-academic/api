@@ -3,33 +3,31 @@ name: Destroy
 on:
   workflow_dispatch:
     inputs:
-      deployment_name:
-        description: 'Deployment name'
+      deployment_id:
+        description: 'Deployment UUID'
         required: true
-
-env:
-  LIVE_DIR: /srv/deploy/live
 
 jobs:
   teardown:
     runs-on: self-hosted
+    env:
+      DEPLOY_DIR: /srv/deploy/live/glow/${{ inputs.deployment_id }}
+      COMPOSE_PROJECT_NAME: ${{ inputs.deployment_id }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Teardown via provisioner
         run: |
-          DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
           bash scripts/provision.sh teardown \
-            --name "${{ inputs.deployment_name }}" \
-            --compose-dir "$DEST"
+            --name "${{ inputs.deployment_id }}" \
+            --compose-dir "${{ env.DEPLOY_DIR }}"
 
       - name: Clean up deployment directory
         run: |
-          DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
-          if [ -d "$DEST" ]; then
-            rm -rf "$DEST"
+          if [ -d "${{ env.DEPLOY_DIR }}" ]; then
+            rm -rf "${{ env.DEPLOY_DIR }}"
             echo "Deployment directory removed."
           fi
 
       - name: Destroy complete
-        run: echo "Teardown complete for ${{ inputs.deployment_name }}"
+        run: echo "Teardown complete for ${{ inputs.deployment_id }}"

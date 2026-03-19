@@ -3,22 +3,22 @@ name: Halt
 on:
   workflow_dispatch:
     inputs:
-      deployment_name:
-        description: 'Deployment name'
+      deployment_id:
+        description: 'Deployment UUID'
         required: true
-
-env:
-  LIVE_DIR: /srv/deploy/live
 
 jobs:
   stop:
     runs-on: self-hosted
+    env:
+      DEPLOY_DIR: /srv/deploy/live/glow/${{ inputs.deployment_id }}
+      COMPOSE_PROJECT_NAME: ${{ inputs.deployment_id }}
     steps:
       - name: Stop containers
         run: |
-          DEST="${{ env.LIVE_DIR }}/${{ inputs.deployment_name }}"
-          if [ -d "$DEST" ]; then
-            cd "$DEST"
+          if [ -d "${{ env.DEPLOY_DIR }}" ]; then
+            cd "${{ env.DEPLOY_DIR }}"
+            export COMPOSE_PROJECT_NAME="${{ inputs.deployment_id }}"
             docker compose stop
             echo "Containers stopped."
           else

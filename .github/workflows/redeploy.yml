@@ -50,7 +50,7 @@ jobs:
       - name: Detect active environment
         id: detect
         run: |
-          DEPLOY_DIR="/srv/deploy/live/${{ inputs.deployment_id }}"
+          DEPLOY_DIR="/srv/deploy/live/glow/${{ inputs.deployment_id }}"
           if [ -d "$DEPLOY_DIR" ] && [ -f "$DEPLOY_DIR/scripts/detect-env.sh" ]; then
             cd "$DEPLOY_DIR"
             eval $(./scripts/detect-env.sh)
@@ -72,7 +72,7 @@ jobs:
       group: deploy-${{ inputs.deployment_id }}
       cancel-in-progress: true
     env:
-      DEPLOY_DIR: /srv/deploy/live/${{ inputs.deployment_id }}
+      DEPLOY_DIR: /srv/deploy/live/glow/${{ inputs.deployment_id }}
       COMPOSE_PROJECT_NAME: ${{ inputs.deployment_id }}
       API_SERVER_IMAGE: ghcr.io/learnloopllc/glow-api-server:${{ inputs.version }}
       ACTIVE_ENV: ${{ needs.detect-active-environment.outputs.active-env }}
