@@ -1,14 +1,20 @@
 #!/bin/bash
-# Run database migrations inside Docker via docker compose exec.
+# Run database migrations inside Docker.
+#
+# Migration files are named: v{version}_{number}_{description}.sql
+#   e.g., v0.2.0_01_add_widget.sql
+#
+# The `migrations.applied` table tracks what's been applied. This script only
+# applies files not yet recorded — safe to run repeatedly.
 #
 # Usage:
-#   ./scripts/migrate-docker.sh add      # Apply add migrations only (pre-deploy)
-#   ./scripts/migrate-docker.sh remove   # Apply remove migrations only (post-deploy)
-#   ./scripts/migrate-docker.sh all      # Apply both add then remove
+#   ./scripts/migrate-docker.sh          # Apply all pending add migrations
+#   ./scripts/migrate-docker.sh add      # Same
+#   ./scripts/migrate-docker.sh remove   # Apply pending remove migrations
 
 set -e
 
-MIGRATION_TYPE="${1:-all}"
+MIGRATION_TYPE="${1:-add}"
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${script_dir}/.."
@@ -23,18 +29,22 @@ docker compose up -d database pgbouncer
 echo "Waiting for database to be healthy..."
 timeout 120 bash -c "until docker compose exec -T database pg_isready -U \"$DB_USER\" -d \"$DB_NAME\" 2>/dev/null; do sleep 3; done"
 
-# Check if migration_tracking table exists
-check_tracking() {
-  $DCEXEC psql -U "$DB_USER" -d "$DB_NAME" -tAc \
-    "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'migration_tracking');" 2>/dev/null | tr -d '[:space:]' || echo "f"
-}
+# Ensure migrations schema and table exist
+$DCEXEC psql -U "$DB_USER" -d "$DB_NAME" -c "
+CREATE SCHEMA IF NOT EXISTS migrations;
+CREATE TABLE IF NOT EXISTS migrations.applied (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    version VARCHAR(20) NOT NULL,
+    number INTEGER NOT NULL,
+    type VARCHAR(10) NOT NULL DEFAULT 'add' CHECK (type IN ('add', 'remove')),
+    name VARCHAR(255) NOT NULL,
+    applied_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT migrations_unique UNIQUE (version, number, type)
+);" 2>/dev/null
 
-# Apply migrations for a given type (add or remove)
 apply_migrations() {
   local mtype="$1"
   local mdir="database/migrate/$mtype"
-  local has_tracking
-  has_tracking=$(check_tracking)
   local applied=0
   local skipped=0
 
@@ -43,95 +53,46 @@ apply_migrations() {
     return 0
   fi
 
-  for sql_file in "$mdir"/*.sql; do
+  for sql_file in "$mdir"/v*.sql; do
     [ -f "$sql_file" ] || continue
 
-    local migration_num
-    migration_num=$(basename "$sql_file" | grep -oE '^[0-9]+')
-    local migration_name
-    migration_name=$(basename "$sql_file")
+    local filename
+    filename=$(basename "$sql_file")
 
-    # Skip if already tracked
-    if [ "$has_tracking" = "t" ]; then
-      local already
-      already=$($DCEXEC psql -U "$DB_USER" -d "$DB_NAME" -tAc \
-        "SELECT COUNT(*) FROM migration_tracking WHERE migration_number=$migration_num AND migration_type='$mtype';" 2>/dev/null | tr -d '[:space:]' || echo "0")
-      if [ "$already" -gt 0 ] 2>/dev/null; then
-        echo "Skipping: $migration_name (already applied)"
-        skipped=$((skipped + 1))
-        continue
-      fi
+    # Parse version and number from filename: v0.2.0_01_description.sql
+    local version number
+    version=$(echo "$filename" | sed -E 's/^(v[0-9]+\.[0-9]+\.[0-9]+)_.*/\1/')
+    number=$(echo "$filename" | sed -E 's/^v[0-9]+\.[0-9]+\.[0-9]+_([0-9]+)_.*/\1/')
+
+    if [ -z "$version" ] || [ -z "$number" ]; then
+      echo "Skipping: $filename (could not parse version/number)"
+      continue
     fi
 
-    # For remove migrations, skip if corresponding add not applied
-    if [ "$mtype" = "remove" ]; then
-      if [ "$has_tracking" != "t" ]; then
-        echo "No migration_tracking table — skipping remove migrations"
-        return 0
-      fi
-
-      local add_applied
-      add_applied=$($DCEXEC psql -U "$DB_USER" -d "$DB_NAME" -tAc \
-        "SELECT COUNT(*) FROM migration_tracking WHERE migration_number=$migration_num AND migration_type='add';" 2>/dev/null | tr -d '[:space:]' || echo "0")
-      if [ "$add_applied" -le 0 ] 2>/dev/null; then
-        echo "Skipping: $migration_name (add migration not applied yet)"
-        skipped=$((skipped + 1))
-        continue
-      fi
-
-      # Skip empty/comment-only files
-      if ! grep -qE '^[^-]' "$sql_file" 2>/dev/null; then
-        echo "Skipping: $migration_name (no SQL statements)"
-        skipped=$((skipped + 1))
-        continue
-      fi
+    # Check if already applied
+    local already
+    already=$($DCEXEC psql -U "$DB_USER" -d "$DB_NAME" -tAc \
+      "SELECT COUNT(*) FROM migrations.applied WHERE version='$version' AND number=$number AND type='$mtype';" 2>/dev/null | tr -d '[:space:]' || echo "0")
+    if [ "$already" -gt 0 ] 2>/dev/null; then
+      skipped=$((skipped + 1))
+      continue
     fi
 
-    echo "Applying $mtype: $migration_name"
+    echo "Applying: $filename"
     $DCEXEC psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 < "$sql_file" || {
-      if [ "$mtype" = "remove" ]; then
-        echo "Remove migration failed: $migration_name (non-fatal, continuing)"
-        continue
-      else
-        echo "Migration failed: $migration_name"
-        exit 1
-      fi
+      echo "Migration failed: $filename"
+      exit 1
     }
 
-    # After migration 00, tracking table exists
-    if [ "$migration_num" = "0" ] || [ "$migration_num" = "00" ]; then
-      has_tracking="t"
-    fi
-
-    # Record in tracking table
-    if [ "$has_tracking" = "t" ]; then
-      $DCEXEC psql -U "$DB_USER" -d "$DB_NAME" -c \
-        "INSERT INTO migration_tracking (migration_number, migration_file, migration_type) VALUES ($migration_num, '$migration_name', '$mtype') ON CONFLICT (migration_number, migration_type) DO NOTHING;" 2>/dev/null || true
-    fi
+    # Record as applied
+    $DCEXEC psql -U "$DB_USER" -d "$DB_NAME" -c \
+      "INSERT INTO migrations.applied (version, number, type, name) VALUES ('$version', $number, '$mtype', '$filename') ON CONFLICT DO NOTHING;" 2>/dev/null
 
     applied=$((applied + 1))
   done
 
-  echo "$mtype migrations complete (applied: $applied, skipped: $skipped)"
+  echo "$mtype migrations: $applied applied, $skipped already applied"
 }
 
-case "$MIGRATION_TYPE" in
-  add)
-    echo "Applying add migrations..."
-    apply_migrations add
-    ;;
-  remove)
-    echo "Applying remove migrations..."
-    apply_migrations remove
-    ;;
-  all)
-    echo "Applying add migrations..."
-    apply_migrations add
-    echo "Applying remove migrations..."
-    apply_migrations remove
-    ;;
-  *)
-    echo "Usage: $0 [add|remove|all]"
-    exit 1
-    ;;
-esac
+echo "Applying $MIGRATION_TYPE migrations..."
+apply_migrations "$MIGRATION_TYPE"

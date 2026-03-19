@@ -1,45 +1,66 @@
-name: Build & Push
+name: CI
 
 on:
   push:
-    tags:
-      - 'v*'
-
-env:
-  REGISTRY: ghcr.io
-
-permissions:
-  contents: read
-  packages: write
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-  build-server:
+  schema-check:
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip schema]')"
     steps:
       - uses: actions/checkout@v4
 
-      - uses: docker/setup-buildx-action@v3
+      - name: Start Postgres
+        run: |
+          docker run -d --name pg-check \
+            -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=test \
+            postgres:18-alpine
+          for i in $(seq 1 30); do
+            docker exec pg-check pg_isready -U test -d test >/dev/null 2>&1 && break
+            sleep 1
+          done
 
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create infrastructure schemas
+        run: |
+          docker exec pg-check psql -U test -d test -c \
+            "CREATE SCHEMA IF NOT EXISTS keycloak; CREATE SCHEMA IF NOT EXISTS migrations;"
 
-      - name: Extract version
-        id: meta
-        run: echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+      - name: Validate schema.sql loads
+        run: |
+          docker exec -i pg-check psql -U test -d test < database/schema.sql
+          echo "schema.sql loaded successfully"
 
-      - name: Build and push server
-        uses: docker/build-push-action@v5
-        with:
-          context: ./core
-          file: ./core/Dockerfile
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.meta.outputs.version }}
-            ${{ env.REGISTRY }}/learnloopllc/glow-api-server:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Validate migrations apply on top
+        run: |
+          for f in database/migrate/add/v*.sql; do
+            [ -f "$f" ] || continue
+            echo "Applying: $(basename $f)"
+            docker exec -i pg-check psql -U test -d test -v ON_ERROR_STOP=1 < "$f"
+          done
+          echo "All migrations apply cleanly"
 
+      - name: Validate backups restore against current schema
+        run: |
+          for backup in history/*.sql.gz; do
+            [ -f "$backup" ] || continue
+            NAME=$(basename "$backup")
+            echo "Validating: $NAME"
+            docker exec pg-check psql -U test -d test -c "DROP DATABASE IF EXISTS backup_test;" 2>/dev/null
+            docker exec pg-check psql -U test -d test -c "CREATE DATABASE backup_test;"
+            docker exec pg-check psql -U test -d backup_test -c \
+              "CREATE SCHEMA IF NOT EXISTS keycloak; CREATE SCHEMA IF NOT EXISTS migrations;"
+            gunzip -c "$backup" | docker exec -i pg-check psql -U test -d backup_test -v ON_ERROR_STOP=1
+            for f in database/migrate/add/v*.sql; do
+              [ -f "$f" ] || continue
+              docker exec -i pg-check psql -U test -d backup_test -v ON_ERROR_STOP=1 < "$f"
+            done
+            echo "  $NAME: OK"
+          done
+          echo "All backups validated"
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f pg-check

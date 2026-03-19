@@ -210,7 +210,8 @@ services:
       - "com.docker.compose.service=server-blue"
       - "com.docker.compose.project=${COMPOSE_PROJECT_NAME:-glow-api}"
     volumes:
-      - uploads:/app/uploads   # Docker volume for uploads
+      - uploads:/app/uploads
+      - history:/app/history
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
       interval: 10s
@@ -257,7 +258,8 @@ services:
       - "com.docker.compose.service=server-green"
       - "com.docker.compose.project=${COMPOSE_PROJECT_NAME:-glow-api}"
     volumes:
-      - uploads:/app/uploads   # Docker volume for uploads
+      - uploads:/app/uploads
+      - history:/app/history
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
       interval: 10s
@@ -315,6 +317,41 @@ services:
     networks:
       - internal
       - public_net
+
+  # ── Backup Cron ──────────────────────────────────────────────
+  backup-cron:
+    image: postgres:18-alpine
+    environment:
+      - PGUSER=${DB_USER:-myuser}
+      - PGPASSWORD=${DB_PASSWORD:-mypassword}
+      - PGDATABASE=${DB_NAME:-mydb}
+      - PGHOST=database
+      - BACKUP_INTERVAL=${BACKUP_INTERVAL:-604800}
+      - BACKUP_RETENTION=${BACKUP_RETENTION:-4}
+    volumes:
+      - history:/backups
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "[backup-cron] Starting (interval=$${BACKUP_INTERVAL}s, retention=$${BACKUP_RETENTION})"
+        while true; do
+          sleep "$${BACKUP_INTERVAL}"
+          if pg_isready -q; then
+            FILE="backup-scheduled-$$(date +%Y%m%d-%H%M%S).sql.gz"
+            echo "[backup-cron] Creating $$FILE..."
+            pg_dump --no-owner --no-privileges --exclude-schema=keycloak | gzip > "/backups/$$FILE"
+            echo "[backup-cron] Saved ($$( du -h /backups/$$FILE | cut -f1 ))"
+            ls -t /backups/backup-scheduled-*.sql.gz 2>/dev/null | tail -n +$$(($${BACKUP_RETENTION} + 1)) | xargs rm -f 2>/dev/null
+          else
+            echo "[backup-cron] Database not ready — skipping"
+          fi
+        done
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
 
 volumes:
   pgdata:

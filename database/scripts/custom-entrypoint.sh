@@ -105,8 +105,8 @@ done
 
 sleep 3
 
-# Ensure keycloak schema exists
-psql -U "$DB_USER" -d "$DB_NAME" -c "CREATE SCHEMA IF NOT EXISTS keycloak;" 2>/dev/null || true
+# Ensure infrastructure schemas exist
+psql -U "$DB_USER" -d "$DB_NAME" -c "CREATE SCHEMA IF NOT EXISTS keycloak; CREATE SCHEMA IF NOT EXISTS migrations;" 2>/dev/null || true
 
 log_success "Database is ready!"
 wait "$PG_PID"

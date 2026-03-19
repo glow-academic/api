@@ -31,6 +31,12 @@ TABLE_SUBFOLDERS="artifacts entries resources junctions connections"
 {
     cat "$SCHEMA_DIR/extensions.sql"
 
+    # Infrastructure (migrations schema — separate from app data)
+    if [ -f "$SCHEMA_DIR/tables/migrations.sql" ]; then
+        echo ""
+        cat "$SCHEMA_DIR/tables/migrations.sql"
+    fi
+
     # Enums
     for f in $(find "$SCHEMA_DIR/enums" -name '*.sql' | sort); do
         echo ""

@@ -148,6 +148,24 @@ jobs:
             --entry-service nginx \
             --entry-port 80
 
+      - name: Pre-deploy backup
+        working-directory: ${{ env.DEPLOY_DIR }}
+        run: |
+          if docker compose ps database --format '{{.Status}}' 2>/dev/null | grep -q "Up"; then
+            echo "Creating pre-deploy backup..."
+            docker compose exec -T database pg_dump \
+              -U ${DB_USER:-myuser} -d ${DB_NAME:-mydb} \
+              --no-owner --no-privileges --exclude-schema=keycloak \
+              | gzip > /tmp/pre-deploy-backup.sql.gz
+            docker compose cp /tmp/pre-deploy-backup.sql.gz database:/database/history/backup-deploy-$(date +%Y%m%d-%H%M%S).sql.gz
+            rm -f /tmp/pre-deploy-backup.sql.gz
+            echo "Pre-deploy backup saved"
+            docker compose exec -T database sh -c \
+              'ls -t /database/history/backup-deploy-*.sql.gz 2>/dev/null | tail -n +8 | xargs rm -f 2>/dev/null; echo "Retention applied"'
+          else
+            echo "No running database — skipping pre-deploy backup"
+          fi
+
       - name: Pull server image
         working-directory: ${{ env.DEPLOY_DIR }}
         run: docker compose pull server-blue server-green
@@ -156,9 +174,8 @@ jobs:
         working-directory: ${{ env.DEPLOY_DIR }}
         run: docker compose build database
 
-      - name: Apply add migrations
+      - name: Apply migrations
         working-directory: ${{ env.DEPLOY_DIR }}
-        if: needs.detect-active-environment.outputs.has-migrations == 'true'
         run: make migrate-docker TYPE=add
 
       - name: Deploy target environment
@@ -176,5 +193,4 @@ jobs:
 
       - name: Apply remove migrations
         working-directory: ${{ env.DEPLOY_DIR }}
-        if: success() && needs.detect-active-environment.outputs.has-remove-migrations == 'true'
         run: make migrate-docker TYPE=remove
