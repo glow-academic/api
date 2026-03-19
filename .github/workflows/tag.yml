@@ -68,17 +68,17 @@ jobs:
       - name: Generate OpenAPI spec
         if: steps.check.outputs.exists == 'false'
         run: |
-          pip install -r core/requirements.txt -q
-          PYTHONPATH=core python3 -c "
+          # Use the image we just built (has all deps at correct Python version)
+          docker run --rm ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.version.outputs.tag }} \
+            python -c "
           import json
           from app.server import fastapi_app
           from app.version import __version__
           from fastapi.openapi.utils import get_openapi
           spec = get_openapi(title=fastapi_app.title, version=__version__, routes=fastapi_app.routes)
-          with open('openapi.json', 'w') as f:
-              json.dump(spec, f, indent=2)
-          print(f'Generated openapi.json ({__version__})')
-          "
+          print(json.dumps(spec, indent=2))
+          " > openapi.json
+          echo "Generated openapi.json ($(wc -c < openapi.json) bytes)"
 
       - name: Create release with openapi.json
         if: steps.check.outputs.exists == 'false'
