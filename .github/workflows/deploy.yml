@@ -161,3 +161,15 @@ jobs:
       - name: Apply remove migrations
         working-directory: ${{ env.DEPLOY_DIR }}
         run: make migrate-docker TYPE=remove
+
+      - name: Notify LearnLoop
+        if: always()
+        run: |
+          STATUS=${{ job.status == 'success' && '"running"' || '"failed"' }}
+          curl -sf -X POST "$LEARNLOOP_API_URL/deploy/${{ inputs.deployment_id }}/callback" \
+            -H "Authorization: Bearer $DEPLOYMENT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"status\": $STATUS}" || echo "Callback failed (non-fatal)"
+        env:
+          LEARNLOOP_API_URL: ${{ inputs.learnloop_api_url }}
+          DEPLOYMENT_TOKEN: ${{ env.DEPLOYMENT_TOKEN }}
