@@ -94,7 +94,7 @@ def _write_openapi_schema(
     """Generate the OpenAPI schema, add cache tags, and write it to disk."""
     schema = get_openapi_fn(
         title=app.title,
-        version="0.1.0",
+        version=app.version,
         routes=app.routes,
         description="Auto-generated OpenAPI schema from FastAPI v5 API",
     )
@@ -273,7 +273,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[Any]:
 # ---------------------------------------------------------------------------
 # FastAPI app
 # ---------------------------------------------------------------------------
-fastapi_app = FastAPI(title="GLOW API", lifespan=lifespan, redirect_slashes=False)
+from app.version import __version__ as _app_version  # noqa: E402
+
+fastapi_app = FastAPI(title="GLOW API", version=_app_version, lifespan=lifespan, redirect_slashes=False)
 
 fastapi_app.add_middleware(
     CORSMiddleware,

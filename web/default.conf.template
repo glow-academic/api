@@ -40,12 +40,6 @@ server {
     proxy_temp_file_write_size 256k;    # optional, keep consistent
     # ---------------------------------
 
-    # Health check endpoint
-    location = /health {
-        return 200 'ok';
-        add_header Content-Type text/plain;
-    }
-
     # FastAPI server — all /v5/ API routes
     location ^~ ${APP_PREFIX}/v5/ {
         proxy_pass         http://$server_backend;

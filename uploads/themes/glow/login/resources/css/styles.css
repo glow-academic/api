@@ -820,6 +820,65 @@ label {
   margin: 0;
 }
 
+/* Logout page */
+.logout-message-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.logout-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: rgba(96, 165, 250, 0.15);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  color: #93c5fd;
+}
+
+.logout-icon-wrapper svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.logout-text {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.action-button-secondary {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.action-button-secondary .action-button-shine-1,
+.action-button-secondary .action-button-shine-2 {
+  display: none;
+}
+
+.action-button-secondary:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.action-buttons-section form {
+  width: 100%;
+}
+
+button.action-button {
+  width: 100%;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+  border: none;
+}
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .glow-page-wrapper {
