@@ -69,7 +69,7 @@ jobs:
         if: steps.check.outputs.exists == 'false'
         run: |
           # Use the image we just built (has all deps at correct Python version)
-          docker run --rm -e UPLOAD_DIR=/tmp/uploads \
+          docker run --rm --user root --tmpfs /uploads \
             ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.version.outputs.tag }} \
             python -c "
           import json
