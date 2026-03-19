@@ -200,7 +200,7 @@ services:
       - ORIGIN=${ORIGIN:-http://localhost:3000}
       - CLIENT_ORIGINS=${CLIENT_ORIGINS:-http://localhost:3000}
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
-      - LICENSE_KEY=${LICENSE_KEY:-}
+      - DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN:-}
       - LEARNLOOP_API_URL=${LEARNLOOP_API_URL:-}
       - INTERNAL_API_BASE=http://server-blue:8000
       - REDIS_URL=redis://redis:6379
@@ -248,7 +248,7 @@ services:
       - ORIGIN=${ORIGIN:-http://localhost:3000}
       - CLIENT_ORIGINS=${CLIENT_ORIGINS:-http://localhost:3000}
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
-      - LICENSE_KEY=${LICENSE_KEY:-}
+      - DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN:-}
       - LEARNLOOP_API_URL=${LEARNLOOP_API_URL:-}
       - INTERNAL_API_BASE=http://server-green:8000
       - REDIS_URL=redis://redis:6379

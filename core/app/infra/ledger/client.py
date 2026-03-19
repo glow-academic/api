@@ -20,11 +20,11 @@ def _learnloop_url() -> str:
     return os.getenv("LEARNLOOP_API_URL", DEFAULT_LEARNLOOP_URL).rstrip("/")
 
 
-def _license_key() -> str:
-    key = os.getenv("LICENSE_KEY", "")
-    if not key:
-        raise RuntimeError("LICENSE_KEY is required for usage verification")
-    return key
+def _deployment_token() -> str:
+    token = os.getenv("DEPLOYMENT_TOKEN", "")
+    if not token:
+        raise RuntimeError("DEPLOYMENT_TOKEN is required for usage verification")
+    return token
 
 
 async def phone_home(
@@ -40,15 +40,17 @@ async def phone_home(
     """
     url = f"{_learnloop_url()}/provision/usage/check"
     payload: dict[str, Any] = {
-        "license_key": _license_key(),
         "current_sequence": current_sequence,
         "current_hash": current_hash,
         "attempts_since_last_check": attempts_since_last_check,
     }
+    headers = {
+        "Authorization": f"Bearer {_deployment_token()}",
+    }
 
     try:
         async with httpx.AsyncClient(timeout=PHONE_HOME_TIMEOUT) as client:
-            resp = await client.post(url, json=payload)
+            resp = await client.post(url, json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
             return LearnLoopCheckpoint(**data)

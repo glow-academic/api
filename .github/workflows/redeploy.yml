@@ -25,7 +25,7 @@ on:
         required: false
         default: ''
       provision_token:
-        description: 'One-time token to claim LICENSE_KEY from LearnLoop'
+        description: 'One-time token to claim DEPLOYMENT_TOKEN from LearnLoop'
         required: true
       learnloop_api_url:
         description: 'LearnLoop API URL for license validation'
@@ -94,7 +94,7 @@ jobs:
       - name: Stage release
         run: make stage-release DEST=${{ env.DEPLOY_DIR }} SHA=${{ github.sha }}
 
-      - name: Claim LICENSE_KEY from LearnLoop
+      - name: Claim DEPLOYMENT_TOKEN from LearnLoop
         run: |
           API_URL="${{ inputs.learnloop_api_url }}"
           HOST=$(echo "$API_URL" | sed 's|https\?://||' | sed 's|/.*||')
@@ -103,14 +103,15 @@ jobs:
             -H "Host: $HOST" \
             -H "Content-Type: application/json" \
             -d '{"token": "${{ inputs.provision_token }}"}')
-          LICENSE_KEY=$(echo "$RESP" | jq -r '.license_key')
-          if [ -z "$LICENSE_KEY" ] || [ "$LICENSE_KEY" = "null" ]; then
-            echo "::error::Failed to claim license key from LearnLoop"
+          DEPLOYMENT_TOKEN=$(echo "$RESP" | jq -r '.deployment_token')
+          if [ -z "$DEPLOYMENT_TOKEN" ] || [ "$DEPLOYMENT_TOKEN" = "null" ]; then
+            echo "::error::Failed to claim deployment token from LearnLoop"
+            echo "::error::Response: $RESP"
             exit 1
           fi
-          echo "LICENSE_KEY=${LICENSE_KEY}" >> $GITHUB_ENV
+          echo "DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN}" >> $GITHUB_ENV
           echo "LEARNLOOP_API_URL=${{ inputs.learnloop_api_url }}" >> $GITHUB_ENV
-          echo "LICENSE_KEY claimed successfully"
+          echo "Deployment token claimed successfully"
 
       - name: Parse subdomain from ORIGIN
         id: parse-origin
