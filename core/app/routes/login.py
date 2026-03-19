@@ -4,7 +4,7 @@ import logging
 import os
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
 from app.infra.identity.middleware import require_auth
@@ -27,6 +27,10 @@ _secret_key = os.getenv("SECRET_KEY")
 _client_secret = os.getenv("AUTH_KEYCLOAK_SECRET") or (
     derive_from_secret_key(_secret_key, "keycloak-client") if _secret_key else None
 )
+_auth_secret = os.getenv("AUTH_SECRET") or (
+    derive_from_secret_key(_secret_key, "auth-secret") if _secret_key else None
+)
+_deployment_token = os.getenv("DEPLOYMENT_TOKEN", "")
 
 # Browser-facing Keycloak base URL (through nginx in production)
 _is_local = "localhost" in _origin
@@ -109,4 +113,48 @@ async def me(identity: Identity = Depends(require_auth)):
         "role": identity.role,
         "is_emulation": identity.is_emulation,
         "actor_profile_id": str(identity.actor_profile_id) if identity.actor_profile_id else None,
+    }
+
+
+@router.get("/auth/client-config")
+async def client_config(request: Request):
+    """Return OAuth client credentials for frontend integration.
+
+    Authenticated by deployment token (managed or self-hosted).
+    Any frontend (Next.js, React, mobile) can call this to get
+    the credentials needed to connect to this server's auth.
+
+    Like Google/Microsoft OAuth: you get a client_id + secret,
+    plug them into your app, done.
+    """
+    from fastapi import Request as _  # already imported above
+
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(401, "Missing deployment token")
+
+    token = auth[7:]
+
+    # Accept deployment token (exact match) or admin JWT
+    if token == _deployment_token:
+        pass  # deployment token verified
+    else:
+        # Try verifying as admin JWT
+        try:
+            identity = await require_auth(request=request, authorization=f"Bearer {token}")
+            if identity.role not in ("admin", "owner"):
+                raise HTTPException(403, "Admin access required")
+        except Exception:
+            raise HTTPException(401, "Invalid deployment token or admin credentials")
+
+    if not _client_secret:
+        raise HTTPException(500, "Server auth not configured (missing SECRET_KEY or AUTH_KEYCLOAK_SECRET)")
+
+    return {
+        "keycloak_url": f"{_origin}{_app_prefix}/auth",
+        "realm": _realm,
+        "client_id": _client_id,
+        "client_secret": _client_secret,
+        "auth_secret": _auth_secret,
+        "issuer": f"{_origin}{_app_prefix}/auth/realms/{_realm}",
     }
