@@ -33,15 +33,17 @@ while [ $ELAPSED -lt 120 ]; do
   ELAPSED=$((ELAPSED + 5))
 done
 
-# Restart the non-target keycloak if it's running (stale DB connections after database rebuild)
-OTHER_KC_ENV=$( [ "$TARGET_KC_ENV" = "blue" ] && echo "green" || echo "blue" )
-if docker compose ps "keycloak-$OTHER_KC_ENV" --format '{{.Status}}' 2>/dev/null | grep -q "Up"; then
-  echo "Restarting keycloak-$OTHER_KC_ENV (refresh DB connections)..."
-  docker compose restart "keycloak-$OTHER_KC_ENV"
-fi
-
+# Start keycloak and pgbouncer
 echo "Starting keycloak-$TARGET_KC_ENV and pgbouncer..."
 docker compose up -d "keycloak-$TARGET_KC_ENV" pgbouncer
+
+# Restart ALL running keycloaks to refresh DB connections after database rebuild
+for KC_COLOR in blue green; do
+  if docker compose ps "keycloak-$KC_COLOR" --format '{{.Status}}' 2>/dev/null | grep -q "Up"; then
+    echo "Restarting keycloak-$KC_COLOR (refresh DB connections)..."
+    docker compose restart "keycloak-$KC_COLOR"
+  fi
+done
 
 echo "Waiting for keycloak-$TARGET_KC_ENV to be healthy..."
 ELAPSED=0
