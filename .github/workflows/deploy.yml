@@ -31,7 +31,6 @@ on:
         description: 'LearnLoop API URL for license validation'
         required: false
         default: 'https://api.learn-loop.org'
-
 permissions:
   contents: read
   packages: read
@@ -109,8 +108,13 @@ jobs:
             echo "::error::Response: $RESP"
             exit 1
           fi
+          SECRET_KEY=$(echo "$RESP" | jq -r '.secret_key // empty')
           echo "DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN}" >> $GITHUB_ENV
           echo "LEARNLOOP_API_URL=${{ inputs.learnloop_api_url }}" >> $GITHUB_ENV
+          if [ -n "$SECRET_KEY" ]; then
+            echo "SECRET_KEY=${SECRET_KEY}" >> $GITHUB_ENV
+            echo "SECRET_KEY received"
+          fi
           echo "Deployment token claimed successfully"
 
       - name: Parse subdomain from ORIGIN
