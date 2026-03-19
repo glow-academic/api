@@ -54,9 +54,7 @@ uploads/image/
 uploads/video/
 uploads/text/
 uploads/tus_uploads/
+uploads/ledger/
 
 # Database seeds (legacy generated files)
 database/seeds/seed_modules*.sql
-
-# Usage ledger (runtime data, not source)
-ledger/
