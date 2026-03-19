@@ -3,10 +3,9 @@ name: Redeploy (Update)
 on:
   workflow_dispatch:
     inputs:
-      deployment_name:
-        description: 'Deployment name (e.g. glow-test-api)'
-        required: false
-        default: 'glow-api'
+      deployment_id:
+        description: 'Deployment UUID from LearnLoop API'
+        required: true
       origin:
         description: 'Origin URL (e.g. https://glow.learn-loop.org)'
         required: true
@@ -25,6 +24,13 @@ on:
         description: 'Restore from backup (DESTRUCTIVE — leave empty to keep existing data)'
         required: false
         default: ''
+      provision_token:
+        description: 'One-time token to claim LICENSE_KEY from LearnLoop'
+        required: true
+      learnloop_api_url:
+        description: 'LearnLoop API URL for license validation'
+        required: false
+        default: 'https://api.learn-loop.org'
 
 permissions:
   contents: read
@@ -39,12 +45,12 @@ jobs:
       active-kc-env: ${{ steps.detect.outputs.active-kc-env }}
       target-kc-env: ${{ steps.detect.outputs.target-kc-env }}
     env:
-      COMPOSE_PROJECT_NAME: ${{ inputs.deployment_name || 'glow-api' }}
+      COMPOSE_PROJECT_NAME: ${{ inputs.deployment_id }}
     steps:
       - name: Detect active environment
         id: detect
         run: |
-          DEPLOY_DIR="/srv/deploy/live/${{ inputs.deployment_name || 'glow-api' }}"
+          DEPLOY_DIR="/srv/deploy/live/${{ inputs.deployment_id }}"
           if [ -d "$DEPLOY_DIR" ] && [ -f "$DEPLOY_DIR/scripts/detect-env.sh" ]; then
             cd "$DEPLOY_DIR"
             eval $(./scripts/detect-env.sh)
@@ -63,11 +69,11 @@ jobs:
     runs-on: [self-hosted, linux, x64, deploy]
     needs: [detect-active-environment]
     concurrency:
-      group: deploy-${{ inputs.deployment_name || 'glow-api' }}
+      group: deploy-${{ inputs.deployment_id }}
       cancel-in-progress: true
     env:
-      DEPLOY_DIR: /srv/deploy/live/${{ inputs.deployment_name || 'glow-api' }}
-      COMPOSE_PROJECT_NAME: ${{ inputs.deployment_name || 'glow-api' }}
+      DEPLOY_DIR: /srv/deploy/live/${{ inputs.deployment_id }}
+      COMPOSE_PROJECT_NAME: ${{ inputs.deployment_id }}
       API_SERVER_IMAGE: ghcr.io/learnloopllc/glow-api-server:${{ inputs.version }}
       ACTIVE_ENV: ${{ needs.detect-active-environment.outputs.active-env }}
       ACTIVE_KC_ENV: ${{ needs.detect-active-environment.outputs.active-kc-env }}
@@ -88,6 +94,24 @@ jobs:
       - name: Stage release
         run: make stage-release DEST=${{ env.DEPLOY_DIR }} SHA=${{ github.sha }}
 
+      - name: Claim LICENSE_KEY from LearnLoop
+        run: |
+          API_URL="${{ inputs.learnloop_api_url }}"
+          HOST=$(echo "$API_URL" | sed 's|https\?://||' | sed 's|/.*||')
+          LOCAL_URL="https://localhost/provision/claim"
+          RESP=$(curl -sfk -X POST "$LOCAL_URL" \
+            -H "Host: $HOST" \
+            -H "Content-Type: application/json" \
+            -d '{"token": "${{ inputs.provision_token }}"}')
+          LICENSE_KEY=$(echo "$RESP" | jq -r '.license_key')
+          if [ -z "$LICENSE_KEY" ] || [ "$LICENSE_KEY" = "null" ]; then
+            echo "::error::Failed to claim license key from LearnLoop"
+            exit 1
+          fi
+          echo "LICENSE_KEY=${LICENSE_KEY}" >> $GITHUB_ENV
+          echo "LEARNLOOP_API_URL=${{ inputs.learnloop_api_url }}" >> $GITHUB_ENV
+          echo "LICENSE_KEY claimed successfully"
+
       - name: Parse subdomain from ORIGIN
         id: parse-origin
         run: |
@@ -101,7 +125,7 @@ jobs:
         working-directory: ${{ env.DEPLOY_DIR }}
         run: |
           bash scripts/provision.sh deploy \
-            --name "${{ inputs.deployment_name || 'glow-api' }}" \
+            --name "${{ inputs.deployment_id }}" \
             --subdomain "${{ steps.parse-origin.outputs.subdomain }}" \
             --base-domain "${{ steps.parse-origin.outputs.base-domain }}" \
             --compose-dir ${{ env.DEPLOY_DIR }} \
