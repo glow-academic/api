@@ -45,29 +45,29 @@ case "$COMMAND" in
     SERVICES=$(docker compose config --services 2>/dev/null || echo "$ENTRY_SERVICE")
 
     # Build extra_hosts block for all services
-    EXTRA_HOSTS=""
-    for svc in $SERVICES; do
-      [ "$svc" = "$ENTRY_SERVICE" ] && continue
-      EXTRA_HOSTS="${EXTRA_HOSTS}
-  ${svc}:
-    extra_hosts:
-    - ${DOMAIN}:host-gateway"
-    done
-
     # Deployment network name (for client→server connectivity)
     DEPLOY_NETWORK="glow-${NAME}"
 
-    # Build server service network entries (with glow-api alias for client access)
-    SERVER_NETWORKS=""
+    # Build extra service entries (extra_hosts + deployment network for servers)
+    EXTRA_SERVICES=""
     for svc in $SERVICES; do
+      [ "$svc" = "$ENTRY_SERVICE" ] && continue
       case "$svc" in
         server-blue|server-green)
-          SERVER_NETWORKS="${SERVER_NETWORKS}
+          EXTRA_SERVICES="${EXTRA_SERVICES}
   ${svc}:
+    extra_hosts:
+    - ${DOMAIN}:host-gateway
     networks:
       deployment:
         aliases:
         - glow-api"
+          ;;
+        *)
+          EXTRA_SERVICES="${EXTRA_SERVICES}
+  ${svc}:
+    extra_hosts:
+    - ${DOMAIN}:host-gateway"
           ;;
       esac
     done
@@ -95,7 +95,7 @@ services:
           memory: 2G
           cpus: '2.0'
     extra_hosts:
-    - ${DOMAIN}:host-gateway${EXTRA_HOSTS}${SERVER_NETWORKS}
+    - ${DOMAIN}:host-gateway${EXTRA_SERVICES}
 networks:
   traefik_routing:
     external: true
