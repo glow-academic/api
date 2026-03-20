@@ -69,7 +69,8 @@ jobs:
         if: steps.check.outputs.exists == 'false'
         run: |
           docker pull ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.version.outputs.tag }}
-          docker save ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.version.outputs.tag }} | gzip > glow-api-server-${{ steps.version.outputs.tag }}.tar.gz
+          docker tag ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.version.outputs.tag }} glow-api-server:${{ steps.version.outputs.tag }}
+          docker save glow-api-server:${{ steps.version.outputs.tag }} | gzip > glow-api-server-${{ steps.version.outputs.tag }}.tar.gz
           echo "Exported $(du -h glow-api-server-${{ steps.version.outputs.tag }}.tar.gz | cut -f1)"
 
       - name: Generate OpenAPI spec
@@ -117,3 +118,15 @@ jobs:
             -f event_type=api-release \
             -f 'client_payload[version]=${{ steps.version.outputs.tag }}'
           echo "Dispatched api-release to glow-client (${{ steps.version.outputs.tag }})"
+
+      - name: Dispatch compat-update to LearnLoop API
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          MIN_LL=$(grep 'min_learnloop_api' compat.yml | cut -d'"' -f2)
+          gh api repos/learnloopllc/api/dispatches \
+            -f event_type=compat-update \
+            -f 'client_payload[component]=glow-api' \
+            -f 'client_payload[version]=${{ steps.version.outputs.version }}' \
+            -f "client_payload[min_learnloop_api]=$MIN_LL"
