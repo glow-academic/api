@@ -119,6 +119,16 @@ jobs:
             -f 'client_payload[version]=${{ steps.version.outputs.tag }}'
           echo "Dispatched api-release to glow-client (${{ steps.version.outputs.tag }})"
 
+      - name: Notify CLI repo
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          gh api repos/learnloopllc/glow-cli/dispatches \
+            -f event_type=glow-api-release \
+            -f 'client_payload[version]=${{ steps.version.outputs.tag }}'
+          echo "Dispatched glow-api-release to glow-cli (${{ steps.version.outputs.tag }})"
+
       - name: Dispatch compat-update to LearnLoop API
         if: steps.check.outputs.exists == 'false'
         env:
