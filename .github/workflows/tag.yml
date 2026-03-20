@@ -65,6 +65,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Export Docker image tarball
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          docker pull ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.version.outputs.tag }}
+          docker save ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.version.outputs.tag }} | gzip > glow-api-server-${{ steps.version.outputs.tag }}.tar.gz
+          echo "Exported $(du -h glow-api-server-${{ steps.version.outputs.tag }}.tar.gz | cut -f1)"
+
       - name: Generate OpenAPI spec
         if: steps.check.outputs.exists == 'false'
         run: |
@@ -88,6 +95,7 @@ jobs:
         run: |
           gh release create "${{ steps.version.outputs.tag }}" \
             openapi.json \
+            glow-api-server-${{ steps.version.outputs.tag }}.tar.gz \
             --title "${{ steps.version.outputs.tag }}" \
             --generate-notes
 
