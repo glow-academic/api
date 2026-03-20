@@ -126,6 +126,11 @@ jobs:
           echo "subdomain=$SUBDOMAIN" >> $GITHUB_OUTPUT
           echo "base-domain=$BASE_DOMAIN" >> $GITHUB_OUTPUT
 
+      - name: Create deployment network
+        run: |
+          docker network create "glow-${{ inputs.deployment_id }}" 2>/dev/null || true
+          echo "Network glow-${{ inputs.deployment_id }} ready"
+
       - name: Provision Traefik labels
         working-directory: ${{ env.DEPLOY_DIR }}
         run: |
