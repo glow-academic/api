@@ -31,6 +31,10 @@ on:
         description: 'LearnLoop API URL for license validation'
         required: false
         default: 'https://api.learn-loop.org'
+      airgapped:
+        description: 'If true, server has no public URL (internal only)'
+        required: false
+        default: 'false'
 permissions:
   contents: read
   packages: read
@@ -126,21 +130,19 @@ jobs:
           echo "subdomain=$SUBDOMAIN" >> $GITHUB_OUTPUT
           echo "base-domain=$BASE_DOMAIN" >> $GITHUB_OUTPUT
 
-      - name: Create deployment network
-        run: |
-          docker network create "glow-${{ inputs.deployment_id }}" 2>/dev/null || true
-          echo "Network glow-${{ inputs.deployment_id }} ready"
-
-      - name: Provision Traefik labels
+      - name: Provision deployment
         working-directory: ${{ env.DEPLOY_DIR }}
         run: |
-          bash scripts/provision.sh deploy \
-            --name "${{ inputs.deployment_id }}" \
-            --subdomain "${{ steps.parse-origin.outputs.subdomain }}" \
-            --base-domain "${{ steps.parse-origin.outputs.base-domain }}" \
-            --compose-dir ${{ env.DEPLOY_DIR }} \
-            --entry-service nginx \
-            --entry-port 80
+          ARGS="--name ${{ inputs.deployment_id }} --compose-dir ${{ env.DEPLOY_DIR }}"
+          if [ "${{ inputs.airgapped }}" = "true" ]; then
+            bash scripts/provision.sh deploy $ARGS --airgapped
+          else
+            bash scripts/provision.sh deploy $ARGS \
+              --subdomain "${{ steps.parse-origin.outputs.subdomain }}" \
+              --base-domain "${{ steps.parse-origin.outputs.base-domain }}" \
+              --entry-service nginx \
+              --entry-port 80
+          fi
 
       - name: Pull server image
         working-directory: ${{ env.DEPLOY_DIR }}
