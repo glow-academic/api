@@ -2,7 +2,7 @@ name: Tag, Build & Release
 
 on:
   push:
-    branches: [main]
+    branches: [main, v1]
     paths: [core/app/version.py]
   workflow_dispatch:
 
@@ -61,7 +61,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.version.outputs.tag }}
-            ${{ env.REGISTRY }}/learnloopllc/glow-api-server:latest
+            ${{ github.ref == 'refs/heads/main' && format('{0}/learnloopllc/glow-api-server:latest', env.REGISTRY) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
