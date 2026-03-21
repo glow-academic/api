@@ -58,8 +58,7 @@ logs/
 .env*
 !.env.example
 
-# History and temporary files
-history/
+# Temporary files (history/ kept — contains seed .sql.gz files)
 tmp/
 temp/
 

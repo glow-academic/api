@@ -1897,13 +1897,10 @@ async def main_setup(setup: str = "university", base_seed_file: Path | None = No
         pool = await asyncpg.create_pool(pg_url)
         redis_client = Redis.from_url(redis_url)
 
-        # SECRET_KEY must come from .env for setup templates (encrypts real API keys).
-        # AUTH_SECRET fallback is fine — not used for key encryption.
-        if not os.environ.get("SECRET_KEY"):
-            raise EnvironmentError(
-                "SECRET_KEY must be set in .env for setup template generation. "
-                "Setup templates encrypt real API keys with this secret."
-            )
+        # SECRET_KEY and AUTH_SECRET default to runner placeholders if not in .env.
+        # With placeholder keys, encrypted values use "please_change_me" as input,
+        # so the resulting DB seeds are templates — users must set real keys after deploy.
+        os.environ.setdefault("SECRET_KEY", "seed_runner_secret_key")
         os.environ.setdefault("AUTH_SECRET", "seed_runner_auth_secret")
 
         setup_module = importlib.import_module(f"database.seeds.setups.{setup}")
