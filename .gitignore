@@ -47,14 +47,17 @@ node_modules/
 # Docker
 *.log
 
-# Uploads (large binary files - keep themes/ for Keycloak)
+# Uploads (runtime-generated - keep themes/ and seed assets)
 uploads/audio/
-uploads/*.pdf
 uploads/image/
 uploads/video/
-uploads/text/
 uploads/tus_uploads/
 uploads/ledger/
+uploads/call/
+# Seed assets: text/ and PDFs are committed for seed generation
+# !uploads/text/
+# !uploads/FERPA.pdf
+# !uploads/integrity.pdf
 
 # Database seeds (legacy generated files)
 database/seeds/seed_modules*.sql
