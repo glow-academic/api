@@ -53,7 +53,7 @@ async def search_cohorts(
 
     tags = ["resources", "cohorts"]
     key = cache_key(
-        "/v5/resources/cohorts/search",
+        "/resources/cohorts/search",
         {
             "search": search,
             "limit_count": limit_count,

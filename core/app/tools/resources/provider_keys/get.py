@@ -23,7 +23,7 @@ async def get_provider_keys(
 
     tags = ["resources", "provider_keys"]
     key = cache_key(
-        "/v5/resources/provider_keys/get", {"ids": [str(id) for id in ids]}
+        "/resources/provider_keys/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

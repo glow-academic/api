@@ -25,7 +25,7 @@ async def get_request_limits(
 
     tags = ["resources", "request_limits"]
     key = cache_key(
-        "/v5/resources/request_limits/get",
+        "/resources/request_limits/get",
         {"ids": [str(id) for id in ids]},
     )
 

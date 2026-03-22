@@ -165,9 +165,9 @@ async def tus_create(request: Request) -> Response:
         f.write(f"length:{upload_length}\noffset:0")
 
     if app_prefix:
-        location = f"/{app_prefix}/v5/documents/file/{upload_id}"
+        location = f"/{app_prefix}/documents/file/{upload_id}"
     else:
-        location = f"/v5/documents/file/{upload_id}"
+        location = f"/documents/file/{upload_id}"
 
     # Handle creation-with-upload if Content-Length > 0
     if request.headers.get("Content-Length", "0") != "0":

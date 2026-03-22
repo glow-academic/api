@@ -23,7 +23,7 @@ async def get_options(
 
     tags = ["resources", "options"]
     key = cache_key(
-        "/v5/resources/options/get",
+        "/resources/options/get",
         {"ids": [str(id) for id in ids]},
     )
 

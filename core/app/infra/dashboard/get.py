@@ -62,7 +62,7 @@ async def get_dashboard_impl_cached(
     *,
     profile_id: UUID,
     bypass_cache: bool = False,
-    cache_key_path: str = "/v5/dashboard/get",
+    cache_key_path: str = "/dashboard/get",
 ) -> tuple[DashboardBundleResponse, bool]:
     tags = ["artifacts", "dashboard", "views", "analytics"]
     cache_key_val = cache_key(cache_key_path, request.model_dump(mode="json"))

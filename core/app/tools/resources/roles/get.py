@@ -23,7 +23,7 @@ async def get_roles(
 
     tags = ["resources", "roles"]
     cache_ids = sorted(str(i) for i in ids) if ids else ["__all__"]
-    key = cache_key("/v5/resources/roles/get", {"ids": cache_ids})
+    key = cache_key("/resources/roles/get", {"ids": cache_ids})
 
     if not bypass_cache:
         cached = await get_cached(key, redis=redis)

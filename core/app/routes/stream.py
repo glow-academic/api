@@ -1,11 +1,11 @@
-"""Stream delivery — GET /v5/stream (SSE) + POST /v5/stream/{Type} (OpenAPI schema).
+"""Stream delivery — GET /stream (SSE) + POST /stream/{Type} (OpenAPI schema).
 
 Root-level transport route (not a v5 business action).
 
 The SSE endpoint streams artifact events to clients.
 Authorization is handled by the stream session: callers must first
-POST /v5/connect to obtain an ``sid``, then POST /v5/attempt/join (or
-/v5/test/join) to subscribe to specific entities.  The SSE endpoint
+POST /connect to obtain an ``sid``, then POST /attempt/join (or
+/test/join) to subscribe to specific entities.  The SSE endpoint
 only delivers events matching joined entities.
 
 The schema routes are dummy POST endpoints so ``openapi-typescript``
@@ -69,13 +69,13 @@ from app.infra.websocket.generation_types import (
 
 # --- Socket types not yet modeled as artifact operations ----------------
 router = APIRouter(
-    prefix="/v5/stream",
+    prefix="/stream",
     tags=["stream"],
     dependencies=[Depends(require_auth)],
 )
 
 # ---------------------------------------------------------------------------
-# SSE endpoint — GET /v5/stream
+# SSE endpoint — GET /stream
 # ---------------------------------------------------------------------------
 
 
@@ -92,8 +92,8 @@ async def stream_events(
 ) -> StreamingResponse:
     """Stream artifact events via SSE, scoped to the session's joined entities.
 
-    Callers must first obtain an ``sid`` via POST /v5/connect, then join
-    entities via POST /v5/attempt/join or POST /v5/test/join.  Only events
+    Callers must first obtain an ``sid`` via POST /connect, then join
+    entities via POST /attempt/join or POST /test/join.  Only events
     matching joined entities are delivered.
     """
     profile_id_raw: UUID | str | None = getattr(http_request.state, "profile_id", None)
@@ -145,7 +145,7 @@ async def stream_events(
             raise HTTPException(
                 status_code=400,
                 detail=(
-                    "No entities joined. Use /v5/attempt/join or /v5/test/join first."
+                    "No entities joined. Use /attempt/join or /test/join first."
                 ),
             )
 
@@ -240,7 +240,7 @@ async def stream_events(
 
 
 # ---------------------------------------------------------------------------
-# OpenAPI schema — POST /v5/stream/{ModelName}
+# OpenAPI schema — POST /stream/{ModelName}
 # ---------------------------------------------------------------------------
 
 _models: dict[str, type[BaseModel]] = {}

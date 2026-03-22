@@ -140,7 +140,7 @@ async def _call_handler(
         scope = {
             "type": "http",
             "method": "POST",
-            "path": "/v5/mcp",
+            "path": "/mcp",
             "headers": [],
             "query_string": b"",
             "server": ("localhost", 8000),

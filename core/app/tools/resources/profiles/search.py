@@ -70,7 +70,7 @@ async def search_profiles(
 
     tags = ["resources", "profiles"]
     key = cache_key(
-        "/v5/resources/profiles/search",
+        "/resources/profiles/search",
         {
             "search": search,
             "limit_count": limit_count,

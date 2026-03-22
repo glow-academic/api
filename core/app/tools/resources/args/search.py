@@ -45,7 +45,7 @@ async def search_args(
 
     tags = ["resources", "args"]
     key = cache_key(
-        "/v5/resources/args/search",
+        "/resources/args/search",
         {
             "search": search,
             "limit_count": limit_count,

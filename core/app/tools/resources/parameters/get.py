@@ -23,7 +23,7 @@ async def get_parameters(
 
     tags = ["resources", "parameters"]
     key = cache_key(
-        "/v5/resources/parameters/get", {"ids": [str(id) for id in ids]}
+        "/resources/parameters/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

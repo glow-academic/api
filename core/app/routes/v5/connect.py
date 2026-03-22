@@ -1,4 +1,4 @@
-"""Stream connect endpoint — POST /v5/connect.
+"""Stream connect endpoint — POST /connect.
 
 Creates a stream session and returns an sid for use with SSE and join/leave.
 """

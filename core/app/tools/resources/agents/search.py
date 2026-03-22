@@ -80,7 +80,7 @@ async def search_agents(
 
     tags = ["resources", "agents"]
     key = cache_key(
-        "/v5/resources/agents/search",
+        "/resources/agents/search",
         {
             "search": search,
             "limit_count": limit_count,

@@ -53,7 +53,7 @@ async def search_scenario_time_limits(
 
     tags = ["resources", "scenario_time_limits"]
     key = cache_key(
-        "/v5/resources/scenario_time_limits/search",
+        "/resources/scenario_time_limits/search",
         {
             "search": search,
             "limit_count": limit_count,

@@ -36,7 +36,7 @@ async def search_objectives(
 
     tags = ["resources", "objectives"]
     key = cache_key(
-        "/v5/resources/objectives/search",
+        "/resources/objectives/search",
         {
             "search": search,
             "limit_count": limit_count,

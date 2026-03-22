@@ -63,7 +63,7 @@ async def search_parameter_fields(
 
     tags = ["resources", "parameter_fields"]
     key = cache_key(
-        "/v5/resources/parameter_fields/search",
+        "/resources/parameter_fields/search",
         {
             "limit_count": limit_count,
             "offset_count": offset_count,

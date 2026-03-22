@@ -25,7 +25,7 @@ async def get_reasoning_levels(
 
     tags = ["resources", "reasoning_levels"]
     key = cache_key(
-        "/v5/resources/reasoning_levels/get",
+        "/resources/reasoning_levels/get",
         {"ids": [str(id) for id in ids]},
     )
 

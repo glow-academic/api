@@ -46,7 +46,7 @@ async def search_scenario_rubrics(
 
     tags = ["resources", "scenario_rubrics"]
     key = cache_key(
-        "/v5/resources/scenario_rubrics/search",
+        "/resources/scenario_rubrics/search",
         {
             "limit_count": limit_count,
             "offset_count": offset_count,

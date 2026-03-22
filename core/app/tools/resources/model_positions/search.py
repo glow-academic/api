@@ -38,7 +38,7 @@ async def search_model_positions(
 
     tags = ["resources", "model_positions"]
     key = cache_key(
-        "/v5/resources/model_positions/search",
+        "/resources/model_positions/search",
         {
             "limit_count": limit_count,
             "offset_count": offset_count,

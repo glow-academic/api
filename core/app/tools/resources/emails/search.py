@@ -36,7 +36,7 @@ async def search_emails(
 
     tags = ["resources", "emails"]
     key = cache_key(
-        "/v5/resources/emails/search",
+        "/resources/emails/search",
         {
             "search": search,
             "limit_count": limit_count,

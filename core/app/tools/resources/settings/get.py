@@ -22,7 +22,7 @@ async def get_settings(
         return []
 
     tags = ["resources", "settings"]
-    key = cache_key("/v5/resources/settings/get", {"ids": [str(id) for id in ids]})
+    key = cache_key("/resources/settings/get", {"ids": [str(id) for id in ids]})
 
     if not bypass_cache:
         cached = await get_cached(key, redis=redis)

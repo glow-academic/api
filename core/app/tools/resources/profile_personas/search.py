@@ -46,7 +46,7 @@ async def search_profile_personas(
 
     tags = ["resources", "profile_personas"]
     key = cache_key(
-        "/v5/resources/profile_personas/search",
+        "/resources/profile_personas/search",
         {
             "limit_count": limit_count,
             "offset_count": offset_count,

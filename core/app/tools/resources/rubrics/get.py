@@ -23,7 +23,7 @@ async def get_rubrics(
 
     tags = ["resources", "rubrics"]
     key = cache_key(
-        "/v5/resources/rubrics/get",
+        "/resources/rubrics/get",
         {"ids": [str(id) for id in ids] if ids is not None else ["__all__"]},
     )
 

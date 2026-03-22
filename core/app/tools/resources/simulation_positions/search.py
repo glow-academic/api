@@ -43,7 +43,7 @@ async def search_simulation_positions(
 
     tags = ["resources", "simulation_positions"]
     key = cache_key(
-        "/v5/resources/simulation_positions/search",
+        "/resources/simulation_positions/search",
         {
             "limit_count": limit_count,
             "offset_count": offset_count,

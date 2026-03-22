@@ -25,7 +25,7 @@ async def get_conditional_parameters(
 
     tags = ["resources", "conditional_parameters"]
     key = cache_key(
-        "/v5/resources/conditional_parameters/get", {"ids": [str(id) for id in ids]}
+        "/resources/conditional_parameters/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

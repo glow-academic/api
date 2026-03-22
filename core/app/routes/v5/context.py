@@ -1,7 +1,7 @@
 """POST /context — identity + permissions + theme.
 
 Thin wrapper over resolve_profile_identity_context().
-Root-level layout route (mounted at /v5/context).
+Root-level layout route (mounted at /context).
 """
 
 from __future__ import annotations

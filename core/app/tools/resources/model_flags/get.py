@@ -23,7 +23,7 @@ async def get_model_flags(
 
     tags = ["resources", "model_flags"]
     key = cache_key(
-        "/v5/resources/model_flags/get", {"ids": [str(id) for id in ids]}
+        "/resources/model_flags/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

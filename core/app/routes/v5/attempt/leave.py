@@ -1,4 +1,4 @@
-"""Attempt leave endpoint — POST /v5/attempt/leave.
+"""Attempt leave endpoint — POST /attempt/leave.
 
 Removes a chat entity from the caller's stream session.
 """

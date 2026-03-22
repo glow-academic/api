@@ -22,7 +22,7 @@ async def get_qualities(
         return []
 
     tags = ["resources", "qualities"]
-    key = cache_key("/v5/resources/qualities/get", {"ids": [str(id) for id in ids]})
+    key = cache_key("/resources/qualities/get", {"ids": [str(id) for id in ids]})
 
     if not bypass_cache:
         cached = await get_cached(key, redis=redis)

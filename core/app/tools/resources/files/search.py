@@ -36,7 +36,7 @@ async def search_files(
 
     tags = ["resources", "files"]
     key = cache_key(
-        "/v5/resources/files/search",
+        "/resources/files/search",
         {
             "search": search,
             "limit_count": limit_count,

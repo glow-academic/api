@@ -25,7 +25,7 @@ async def get_auth_item_values(
 
     tags = ["resources", "auth_item_values"]
     key = cache_key(
-        "/v5/resources/auth_item_values/get", {"ids": [str(id) for id in ids]}
+        "/resources/auth_item_values/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

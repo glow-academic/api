@@ -23,7 +23,7 @@ async def get_scenario_flags(
 
     tags = ["resources", "scenario_flags"]
     key = cache_key(
-        "/v5/resources/scenario_flags/get", {"ids": [str(id) for id in ids]}
+        "/resources/scenario_flags/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

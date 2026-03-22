@@ -23,7 +23,7 @@ async def get_model_rubrics(
 
     tags = ["resources", "model_rubrics"]
     key = cache_key(
-        "/v5/resources/model_rubrics/get", {"ids": [str(id) for id in ids]}
+        "/resources/model_rubrics/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

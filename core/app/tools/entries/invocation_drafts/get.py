@@ -107,7 +107,7 @@ async def get_invocation_drafts_entries_internal(
 
     tags = ["entries", "invocation_drafts"]
     cache_key_val = cache_key(
-        "/v5/entries/invocation_drafts/get",
+        "/entries/invocation_drafts/get",
         {"ids": [str(id) for id in ids]},
     )
 

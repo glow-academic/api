@@ -34,7 +34,7 @@ async def search_standard_groups(
 
     tags = ["resources", "standard_groups"]
     key = cache_key(
-        "/v5/resources/standard_groups/search",
+        "/resources/standard_groups/search",
         {
             "search": search,
             "limit_count": limit_count,

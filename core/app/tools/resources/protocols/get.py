@@ -22,7 +22,7 @@ async def get_protocols(
         return []
 
     tags = ["resources", "protocols"]
-    key = cache_key("/v5/resources/protocols/get", {"ids": [str(id) for id in ids]})
+    key = cache_key("/resources/protocols/get", {"ids": [str(id) for id in ids]})
 
     if not bypass_cache:
         cached = await get_cached(key, redis=redis)

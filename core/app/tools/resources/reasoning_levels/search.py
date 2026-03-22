@@ -42,7 +42,7 @@ async def search_reasoning_levels(
 
     tags = ["resources", "reasoning_levels"]
     key = cache_key(
-        "/v5/resources/reasoning_levels/search",
+        "/resources/reasoning_levels/search",
         {
             "search": search,
             "limit_count": limit_count,

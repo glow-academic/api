@@ -1,4 +1,4 @@
-"""Test leave endpoint — POST /v5/test/leave.
+"""Test leave endpoint — POST /test/leave.
 
 Removes a test invocation entity from the caller's stream session.
 """

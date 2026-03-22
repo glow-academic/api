@@ -22,7 +22,7 @@ async def get_images(
         return []
 
     tags = ["resources", "images"]
-    key = cache_key("/v5/resources/images/get", {"ids": [str(id) for id in ids]})
+    key = cache_key("/resources/images/get", {"ids": [str(id) for id in ids]})
 
     if not bypass_cache:
         cached = await get_cached(key, redis=redis)

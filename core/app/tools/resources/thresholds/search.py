@@ -41,7 +41,7 @@ async def search_thresholds(
 
     tags = ["resources", "thresholds"]
     key = cache_key(
-        "/v5/resources/thresholds/search",
+        "/resources/thresholds/search",
         {
             "search": search,
             "limit_count": limit_count,

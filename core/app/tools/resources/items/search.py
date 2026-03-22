@@ -39,7 +39,7 @@ async def search_items(
 
     tags = ["resources", "items"]
     key = cache_key(
-        "/v5/resources/items/search",
+        "/resources/items/search",
         {
             "search": search,
             "limit_count": limit_count,

@@ -34,7 +34,7 @@ async def search_endpoints(
 
     tags = ["resources", "endpoints"]
     key = cache_key(
-        "/v5/resources/endpoints/search",
+        "/resources/endpoints/search",
         {
             "search": search,
             "limit_count": limit_count,

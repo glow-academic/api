@@ -25,7 +25,7 @@ async def get_simulation_availability(
 
     tags = ["resources", "simulation_availability"]
     key = cache_key(
-        "/v5/resources/simulation_availability/get",
+        "/resources/simulation_availability/get",
         {"ids": [str(id) for id in ids]},
     )
 

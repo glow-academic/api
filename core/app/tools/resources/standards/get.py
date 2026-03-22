@@ -22,7 +22,7 @@ async def get_standards(
         return []
 
     tags = ["resources", "standards"]
-    key = cache_key("/v5/resources/standards/get", {"ids": [str(id) for id in ids]})
+    key = cache_key("/resources/standards/get", {"ids": [str(id) for id in ids]})
 
     if not bypass_cache:
         cached = await get_cached(key, redis=redis)

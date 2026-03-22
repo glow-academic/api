@@ -111,7 +111,7 @@ async def search_departments(
 
     tags = ["resources", "departments"]
     key = cache_key(
-        "/v5/resources/departments/search",
+        "/resources/departments/search",
         {
             "search": search,
             "limit_count": limit_count,

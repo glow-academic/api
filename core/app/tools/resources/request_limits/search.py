@@ -42,7 +42,7 @@ async def search_request_limits(
 
     tags = ["resources", "request_limits"]
     key = cache_key(
-        "/v5/resources/request_limits/search",
+        "/resources/request_limits/search",
         {
             "search": search,
             "limit_count": limit_count,

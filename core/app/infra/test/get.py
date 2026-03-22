@@ -229,7 +229,7 @@ async def get_test_impl_cached(
     pool: asyncpg.Pool,
     test_id: UUID,
     bypass_cache: bool = False,
-    cache_key_path: str = "/v5/test/get",
+    cache_key_path: str = "/test/get",
 ) -> tuple[GetTestArtifactResponse, bool]:
     """HTTP response layer with caching.
 

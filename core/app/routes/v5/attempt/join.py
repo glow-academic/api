@@ -1,4 +1,4 @@
-"""Attempt join endpoint — POST /v5/attempt/join.
+"""Attempt join endpoint — POST /attempt/join.
 
 Adds a chat entity to the caller's stream session after verifying
 the caller has access to the underlying attempt.

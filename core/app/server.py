@@ -394,7 +394,7 @@ import app.ws  # noqa: E402, F401 — registers ws/v5 input/output handlers
 # ---------------------------------------------------------------------------
 from app.routes.mcp import mcp_app  # noqa: E402
 
-fastapi_app.mount("/v5", mcp_app, name="Artifacts-Resources-MCP")
+fastapi_app.mount("/mcp", mcp_app, name="Artifacts-Resources-MCP")
 
 
 # ---------------------------------------------------------------------------

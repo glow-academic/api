@@ -90,7 +90,7 @@ async def search_scenarios(
 
     tags = ["resources", "scenarios"]
     key = cache_key(
-        "/v5/resources/scenarios/search",
+        "/resources/scenarios/search",
         {
             "search": search,
             "limit_count": limit_count,

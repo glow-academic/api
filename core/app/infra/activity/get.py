@@ -100,7 +100,7 @@ async def get_activity_impl_cached(
     *,
     profile_id: UUID,
     bypass_cache: bool = False,
-    cache_key_path: str = "/v5/activity/get",
+    cache_key_path: str = "/activity/get",
 ) -> tuple[ActivityResponse, bool]:
     tags = ["artifacts", "activity"]
     cache_key_val = cache_key(cache_key_path, request.model_dump(mode="json"))

@@ -42,7 +42,7 @@ async def search_modalities(
 
     tags = ["resources", "modalities"]
     key = cache_key(
-        "/v5/resources/modalities/search",
+        "/resources/modalities/search",
         {
             "search": search,
             "limit_count": limit_count,

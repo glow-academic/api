@@ -57,7 +57,7 @@ async def get_practice_chat_entries_internal(
 
     tags = ["entries", "practice_chat"]
     cache_key_val = cache_key(
-        "/v5/entries/practice_chat/get",
+        "/entries/practice_chat/get",
         {"ids": [str(id) for id in ids]},
     )
 

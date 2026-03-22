@@ -38,7 +38,7 @@ async def search_conditional_parameters(
 
     tags = ["resources", "conditional_parameters"]
     key = cache_key(
-        "/v5/resources/conditional_parameters/search",
+        "/resources/conditional_parameters/search",
         {
             "search": search,
             "limit_count": limit_count,

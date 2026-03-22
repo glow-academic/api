@@ -25,7 +25,7 @@ async def get_arg_positions(
 
     tags = ["resources", "arg_positions"]
     key = cache_key(
-        "/v5/resources/arg_positions/get",
+        "/resources/arg_positions/get",
         {"ids": [str(id) for id in ids]},
     )
 

@@ -22,7 +22,7 @@ async def get_points(
         return []
 
     tags = ["resources", "points"]
-    key = cache_key("/v5/resources/points/get", {"ids": [str(id) for id in ids]})
+    key = cache_key("/resources/points/get", {"ids": [str(id) for id in ids]})
 
     if not bypass_cache:
         cached = await get_cached(key, redis=redis)

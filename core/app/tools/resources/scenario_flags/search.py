@@ -65,7 +65,7 @@ async def search_scenario_flags(
 
     tags = ["resources", "scenario_flags"]
     key = cache_key(
-        "/v5/resources/scenario_flags/search",
+        "/resources/scenario_flags/search",
         {
             "search": search,
             "limit_count": limit_count,

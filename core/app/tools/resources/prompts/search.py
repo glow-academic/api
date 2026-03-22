@@ -34,7 +34,7 @@ async def search_prompts(
 
     tags = ["resources", "prompts"]
     key = cache_key(
-        "/v5/resources/prompts/search",
+        "/resources/prompts/search",
         {
             "search": search,
             "limit_count": limit_count,

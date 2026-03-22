@@ -23,7 +23,7 @@ async def get_instructions(
 
     tags = ["resources", "instructions"]
     key = cache_key(
-        "/v5/resources/instructions/get", {"ids": [str(id) for id in ids]}
+        "/resources/instructions/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

@@ -23,7 +23,7 @@ async def get_items(
 
     tags = ["resources", "items"]
     key = cache_key(
-        "/v5/resources/items/get",
+        "/resources/items/get",
         {"ids": [str(id) for id in ids]},
     )
 

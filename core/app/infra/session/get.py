@@ -296,7 +296,7 @@ async def get_session_detail_impl_cached(
     profile_id: UUID,
     session_id: UUID,
     bypass_cache: bool = False,
-    cache_key_path: str = "/v5/session/get",
+    cache_key_path: str = "/session/get",
 ) -> tuple[GetSessionDetailResponse, bool]:
     """Build the cached client-facing session detail response."""
     tags = ["artifacts", "session"]

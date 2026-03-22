@@ -40,7 +40,7 @@ async def search_protocols(
 
     tags = ["resources", "protocols"]
     key = cache_key(
-        "/v5/resources/protocols/search",
+        "/resources/protocols/search",
         {
             "search": search,
             "limit_count": limit_count,

@@ -138,16 +138,16 @@ def get_glow_docs() -> dict[str, Any]:
         },
         "api_patterns": {
             "versioning": "v4 - Current API version",
-            "base_path": "/v5/{artifact}",
+            "base_path": "/{artifact}",
             "endpoint_structure": {
-                "get": "POST /v5/{artifact}/get - Retrieve single artifact",
-                "list": "POST /v5/{artifact}/list - List artifacts",
-                "duplicate": "POST /v5/{artifact}/duplicate - Duplicate artifact",
-                "delete": "POST /v5/{artifact}/delete - Delete artifact",
-                "draft": "PATCH /v5/{artifact}/draft - Create or patch draft",
+                "get": "POST /{artifact}/get - Retrieve single artifact",
+                "list": "POST /{artifact}/list - List artifacts",
+                "duplicate": "POST /{artifact}/duplicate - Duplicate artifact",
+                "delete": "POST /{artifact}/delete - Delete artifact",
+                "draft": "PATCH /{artifact}/draft - Create or patch draft",
             },
             "resource_endpoints": {
-                "create": "POST /v5/resources/{resource} - Create resource"
+                "create": "POST /resources/{resource} - Create resource"
             },
             "request_response": {
                 "request": "Auto-generated Pydantic models from SQL function signatures",

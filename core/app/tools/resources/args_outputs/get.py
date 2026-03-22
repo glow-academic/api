@@ -23,7 +23,7 @@ async def get_args_outputs(
 
     tags = ["resources", "args_outputs"]
     key = cache_key(
-        "/v5/resources/args_outputs/get", {"ids": [str(id) for id in ids]}
+        "/resources/args_outputs/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

@@ -22,7 +22,7 @@ async def get_agents(
         return []
 
     tags = ["resources", "agents"]
-    key = cache_key("/v5/resources/agents/get", {"ids": [str(id) for id in ids]})
+    key = cache_key("/resources/agents/get", {"ids": [str(id) for id in ids]})
 
     if not bypass_cache:
         cached = await get_cached(key, redis=redis)

@@ -22,7 +22,7 @@ async def get_cohorts(
         return []
 
     tags = ["resources", "cohorts"]
-    key = cache_key("/v5/resources/cohorts/get", {"ids": [str(id) for id in ids]})
+    key = cache_key("/resources/cohorts/get", {"ids": [str(id) for id in ids]})
 
     if not bypass_cache:
         cached = await get_cached(key, redis=redis)

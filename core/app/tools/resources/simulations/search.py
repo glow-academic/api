@@ -57,7 +57,7 @@ async def search_simulations(
 
     tags = ["resources", "simulations"]
     key = cache_key(
-        "/v5/resources/simulations/search",
+        "/resources/simulations/search",
         {
             "search": search,
             "limit_count": limit_count,

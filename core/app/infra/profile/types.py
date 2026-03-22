@@ -426,7 +426,7 @@ class ThemePrimitives(BaseModel):
 class ProfileContextApiResponse(BaseModel):
     """Response for POST /context — identity + permissions + theme.
 
-    Root-level layout route (mounted at /v5/context).
+    Root-level layout route (mounted at /context).
     """
 
     # Identity

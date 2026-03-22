@@ -25,7 +25,7 @@ async def get_scenario_time_limits(
 
     tags = ["resources", "scenario_time_limits"]
     key = cache_key(
-        "/v5/resources/scenario_time_limits/get", {"ids": [str(id) for id in ids]}
+        "/resources/scenario_time_limits/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

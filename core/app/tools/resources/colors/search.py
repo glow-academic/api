@@ -42,7 +42,7 @@ async def search_colors(
 
     tags = ["resources", "colors"]
     key = cache_key(
-        "/v5/resources/colors/search",
+        "/resources/colors/search",
         {
             "search": search,
             "limit_count": limit_count,

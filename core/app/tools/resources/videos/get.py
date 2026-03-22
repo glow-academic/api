@@ -22,7 +22,7 @@ async def get_videos(
         return []
 
     tags = ["resources", "videos"]
-    key = cache_key("/v5/resources/videos/get", {"ids": [str(id) for id in ids]})
+    key = cache_key("/resources/videos/get", {"ids": [str(id) for id in ids]})
 
     if not bypass_cache:
         cached = await get_cached(key, redis=redis)

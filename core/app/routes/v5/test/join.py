@@ -1,4 +1,4 @@
-"""Test join endpoint — POST /v5/test/join.
+"""Test join endpoint — POST /test/join.
 
 Adds a test invocation entity to the caller's stream session.
 Tests currently require only an authenticated profile (no role-based

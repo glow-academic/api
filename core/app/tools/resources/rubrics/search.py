@@ -62,7 +62,7 @@ async def search_rubrics(
 
     tags = ["resources", "rubrics"]
     key = cache_key(
-        "/v5/resources/rubrics/search",
+        "/resources/rubrics/search",
         {
             "search": search,
             "limit_count": limit_count,

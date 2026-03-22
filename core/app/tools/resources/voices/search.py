@@ -44,7 +44,7 @@ async def search_voices(
 
     tags = ["resources", "voices"]
     key = cache_key(
-        "/v5/resources/voices/search",
+        "/resources/voices/search",
         {
             "search": search,
             "limit_count": limit_count,

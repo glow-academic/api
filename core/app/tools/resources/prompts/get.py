@@ -22,7 +22,7 @@ async def get_prompts(
         return []
 
     tags = ["resources", "prompts"]
-    key = cache_key("/v5/resources/prompts/get", {"ids": [str(id) for id in ids]})
+    key = cache_key("/resources/prompts/get", {"ids": [str(id) for id in ids]})
 
     if not bypass_cache:
         cached = await get_cached(key, redis=redis)

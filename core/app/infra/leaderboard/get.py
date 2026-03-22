@@ -85,7 +85,7 @@ async def get_leaderboard_impl_cached(
     *,
     profile_id: UUID,
     bypass_cache: bool = False,
-    cache_key_path: str = "/v5/leaderboard/get",
+    cache_key_path: str = "/leaderboard/get",
 ) -> tuple[LeaderboardResponse, bool]:
     tags = ["artifacts", "leaderboard"]
     cache_key_val = cache_key(cache_key_path, request.model_dump(mode="json"))

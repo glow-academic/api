@@ -22,7 +22,7 @@ async def get_run_pricing_entries_internal(
 
     tags = ["entries", "run_pricing"]
     cache_key_val = cache_key(
-        "/v5/entries/run_pricing/get",
+        "/entries/run_pricing/get",
         {"ids": [str(id) for id in ids]},
     )
 

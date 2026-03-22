@@ -47,7 +47,7 @@ async def search_pricing(
 
     tags = ["resources", "pricing"]
     key = cache_key(
-        "/v5/resources/pricing/search",
+        "/resources/pricing/search",
         {
             "search": search,
             "limit_count": limit_count,

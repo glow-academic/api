@@ -97,7 +97,7 @@ async def search_temperature_levels(
 
     tags = ["resources", "temperature_levels"]
     key = cache_key(
-        "/v5/resources/temperature_levels/search",
+        "/resources/temperature_levels/search",
         {
             "search": search,
             "limit_count": limit_count,

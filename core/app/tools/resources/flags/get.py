@@ -22,7 +22,7 @@ async def get_flags(
         return []
 
     tags = ["resources", "flags"]
-    key = cache_key("/v5/resources/flags/get", {"ids": [str(id) for id in ids]})
+    key = cache_key("/resources/flags/get", {"ids": [str(id) for id in ids]})
 
     if not bypass_cache:
         cached = await get_cached(key, redis=redis)

@@ -93,7 +93,7 @@ async def search_models(
 
     tags = ["resources", "models"]
     key = cache_key(
-        "/v5/resources/models/search",
+        "/resources/models/search",
         {
             "search": search,
             "limit_count": limit_count,

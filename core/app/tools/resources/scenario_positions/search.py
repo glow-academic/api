@@ -41,7 +41,7 @@ async def search_scenario_positions(
 
     tags = ["resources", "scenario_positions"]
     key = cache_key(
-        "/v5/resources/scenario_positions/search",
+        "/resources/scenario_positions/search",
         {
             "limit_count": limit_count,
             "offset_count": offset_count,

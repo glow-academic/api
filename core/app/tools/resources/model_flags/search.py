@@ -65,7 +65,7 @@ async def search_model_flags(
 
     tags = ["resources", "model_flags"]
     key = cache_key(
-        "/v5/resources/model_flags/search",
+        "/resources/model_flags/search",
         {
             "search": search,
             "limit_count": limit_count,

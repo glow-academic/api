@@ -23,7 +23,7 @@ async def get_standard_groups(
 
     tags = ["resources", "standard_groups"]
     key = cache_key(
-        "/v5/resources/standard_groups/get", {"ids": [str(id) for id in ids]}
+        "/resources/standard_groups/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

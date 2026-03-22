@@ -52,7 +52,7 @@ async def search_personas(
 
     tags = ["resources", "personas"]
     key = cache_key(
-        "/v5/resources/personas/search",
+        "/resources/personas/search",
         {
             "search": search,
             "limit_count": limit_count,

@@ -73,7 +73,7 @@ async def search_settings(
 
     tags = ["resources", "settings"]
     key = cache_key(
-        "/v5/resources/settings/search",
+        "/resources/settings/search",
         {
             "search": search,
             "limit_count": limit_count,

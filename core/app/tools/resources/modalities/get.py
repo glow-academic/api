@@ -23,7 +23,7 @@ async def get_modalities(
 
     tags = ["resources", "modalities"]
     key = cache_key(
-        "/v5/resources/modalities/get", {"ids": [str(id) for id in ids]}
+        "/resources/modalities/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

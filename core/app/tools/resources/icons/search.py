@@ -40,7 +40,7 @@ async def search_icons(
 
     tags = ["resources", "icons"]
     key = cache_key(
-        "/v5/resources/icons/search",
+        "/resources/icons/search",
         {
             "search": search,
             "limit_count": limit_count,

@@ -23,7 +23,7 @@ async def get_model_positions(
 
     tags = ["resources", "model_positions"]
     key = cache_key(
-        "/v5/resources/model_positions/get", {"ids": [str(id) for id in ids]}
+        "/resources/model_positions/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

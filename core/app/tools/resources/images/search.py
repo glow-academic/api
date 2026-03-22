@@ -50,7 +50,7 @@ async def search_images(
 
     tags = ["resources", "images"]
     key = cache_key(
-        "/v5/resources/images/search",
+        "/resources/images/search",
         {
             "search": search,
             "limit_count": limit_count,

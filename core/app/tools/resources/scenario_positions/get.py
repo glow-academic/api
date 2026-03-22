@@ -25,7 +25,7 @@ async def get_scenario_positions(
 
     tags = ["resources", "scenario_positions"]
     key = cache_key(
-        "/v5/resources/scenario_positions/get",
+        "/resources/scenario_positions/get",
         {"ids": [str(id) for id in ids]},
     )
 

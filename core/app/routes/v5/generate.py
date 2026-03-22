@@ -3,7 +3,7 @@
 Fire-and-return equivalent of the ``generate`` WebSocket event.
 Resolves identity context, emits to the internal ``generate`` event, and
 returns ``group_id`` immediately. Progress/completion events arrive via
-SSE at ``/v5/stream``.
+SSE at ``/stream``.
 """
 
 from __future__ import annotations

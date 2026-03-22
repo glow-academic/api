@@ -44,7 +44,7 @@ async def search_evals(
 
     tags = ["resources", "evals"]
     key = cache_key(
-        "/v5/resources/evals/search",
+        "/resources/evals/search",
         {
             "search": search,
             "limit_count": limit_count,

@@ -42,7 +42,7 @@ async def search_model_rubrics(
 
     tags = ["resources", "model_rubrics"]
     key = cache_key(
-        "/v5/resources/model_rubrics/search",
+        "/resources/model_rubrics/search",
         {
             "limit_count": limit_count,
             "offset_count": offset_count,

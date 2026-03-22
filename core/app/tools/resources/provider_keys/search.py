@@ -42,7 +42,7 @@ async def search_provider_keys(
 
     tags = ["resources", "provider_keys"]
     key = cache_key(
-        "/v5/resources/provider_keys/search",
+        "/resources/provider_keys/search",
         {
             "search": search,
             "limit_count": limit_count,

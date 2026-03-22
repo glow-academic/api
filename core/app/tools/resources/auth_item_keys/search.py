@@ -44,7 +44,7 @@ async def search_auth_item_keys(
 
     tags = ["resources", "auth_item_keys"]
     key = cache_key(
-        "/v5/resources/auth_item_keys/search",
+        "/resources/auth_item_keys/search",
         {
             "search": search,
             "limit_count": limit_count,

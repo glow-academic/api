@@ -1,7 +1,7 @@
-"""V5 API router — flat URL hierarchy under /v5.
+"""V5 API router — flat URL hierarchy at root.
 
 All artifact endpoints mount directly (no /artifacts intermediary).
-Event delivery is SSE-only at /v5/stream with schema at /v5/stream/schema/*.
+Event delivery is SSE-only at /stream with schema at /stream/schema/*.
 """
 # mypy: ignore-errors
 
@@ -49,10 +49,10 @@ from app.routes.v5.test import router as test_artifact_router
 from app.routes.v5.tool import router as tools_router
 from app.routes.v5.unemulate import router as unemulate_router
 # ============================================================================
-# Main Router — /v5
+# Main Router — root
 # ============================================================================
 router: APIRouter = APIRouter(
-    prefix="/v5",
+    prefix="",
     tags=["v5"],
     dependencies=[
         Depends(require_auth),
@@ -60,7 +60,7 @@ router: APIRouter = APIRouter(
 )
 
 # ============================================================================
-# Artifacts — directly under /v5 (no /artifacts prefix)
+# Artifacts — directly under root (no /artifacts prefix)
 # ============================================================================
 # Core content artifacts
 router.include_router(personas_router)
@@ -99,7 +99,7 @@ router.include_router(benchmark_artifact_router)
 router.include_router(test_artifact_router)
 
 # ============================================================================
-# Root-level actions — /v5/connect, /v5/disconnect, /v5/context, /v5/generate
+# Root-level actions — /connect, /disconnect, /context, /generate
 # ============================================================================
 router.include_router(connect_router)
 router.include_router(disconnect_router)
@@ -110,6 +110,6 @@ router.include_router(unemulate_router)
 router.include_router(generate_router)
 
 # ============================================================================
-# Docs — /v5/docs
+# Docs — /docs
 # ============================================================================
 router.include_router(docs_router)

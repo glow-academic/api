@@ -25,7 +25,7 @@ async def get_problem_statements(
 
     tags = ["resources", "problem_statements"]
     key = cache_key(
-        "/v5/resources/problem_statements/get",
+        "/resources/problem_statements/get",
         {"ids": [str(id) for id in ids]},
     )
 

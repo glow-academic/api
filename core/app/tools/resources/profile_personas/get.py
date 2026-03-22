@@ -25,7 +25,7 @@ async def get_profile_personas(
 
     tags = ["resources", "profile_personas"]
     key = cache_key(
-        "/v5/resources/profile_personas/get", {"ids": [str(id) for id in ids]}
+        "/resources/profile_personas/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

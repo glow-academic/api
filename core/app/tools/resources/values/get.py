@@ -22,7 +22,7 @@ async def get_values(
         return []
 
     tags = ["resources", "values"]
-    key = cache_key("/v5/resources/values/get", {"ids": [str(id) for id in ids]})
+    key = cache_key("/resources/values/get", {"ids": [str(id) for id in ids]})
 
     if not bypass_cache:
         cached = await get_cached(key, redis=redis)

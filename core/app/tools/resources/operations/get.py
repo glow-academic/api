@@ -23,7 +23,7 @@ async def get_operations(
 
     tags = ["resources", "operations"]
     key = cache_key(
-        "/v5/resources/operations/get", {"ids": [str(id) for id in ids]}
+        "/resources/operations/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

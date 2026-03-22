@@ -23,7 +23,7 @@ async def get_descriptions(
 
     tags = ["resources", "descriptions"]
     key = cache_key(
-        "/v5/resources/descriptions/get", {"ids": [str(id) for id in ids]}
+        "/resources/descriptions/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

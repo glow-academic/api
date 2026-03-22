@@ -23,7 +23,7 @@ async def get_objectives(
 
     tags = ["resources", "objectives"]
     key = cache_key(
-        "/v5/resources/objectives/get", {"ids": [str(id) for id in ids]}
+        "/resources/objectives/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

@@ -42,7 +42,7 @@ async def search_roles(
 
     tags = ["resources", "roles"]
     key = cache_key(
-        "/v5/resources/roles/search",
+        "/resources/roles/search",
         {
             "search": search,
             "limit_count": limit_count,

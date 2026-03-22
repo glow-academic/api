@@ -57,7 +57,7 @@ async def get_home_chat_entries_internal(
 
     tags = ["entries", "home_chat"]
     cache_key_val = cache_key(
-        "/v5/entries/home_chat/get",
+        "/entries/home_chat/get",
         {"ids": [str(id) for id in ids]},
     )
 

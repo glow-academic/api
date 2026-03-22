@@ -1,4 +1,4 @@
-"""Stream disconnect endpoint — POST /v5/disconnect.
+"""Stream disconnect endpoint — POST /disconnect.
 
 Destroys a stream session and cleans up all joined entities.
 """

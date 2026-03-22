@@ -35,7 +35,7 @@ async def search_operations(
 
     tags = ["resources", "operations"]
     key = cache_key(
-        "/v5/resources/operations/search",
+        "/resources/operations/search",
         {
             "search": search,
             "limit_count": limit_count,

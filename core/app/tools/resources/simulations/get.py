@@ -23,7 +23,7 @@ async def get_simulations(
 
     tags = ["resources", "simulations"]
     key = cache_key(
-        "/v5/resources/simulations/get", {"ids": [str(id) for id in ids]}
+        "/resources/simulations/get", {"ids": [str(id) for id in ids]}
     )
 
     if not bypass_cache:

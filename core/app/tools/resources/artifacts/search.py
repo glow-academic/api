@@ -36,7 +36,7 @@ async def search_artifacts(
 
     tags = ["resources", "artifacts"]
     key = cache_key(
-        "/v5/resources/artifacts/search",
+        "/resources/artifacts/search",
         {
             "search": search,
             "limit_count": limit_count,

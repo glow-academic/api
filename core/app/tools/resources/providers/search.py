@@ -45,7 +45,7 @@ async def search_providers(
 
     tags = ["resources", "providers"]
     key = cache_key(
-        "/v5/resources/providers/search",
+        "/resources/providers/search",
         {
             "search": search,
             "limit_count": limit_count,

@@ -22,7 +22,7 @@ async def get_persona_entries_internal(
 
     tags = ["entries", "persona"]
     cache_key_val = cache_key(
-        "/v5/entries/persona/get",
+        "/entries/persona/get",
         {"ids": [str(id) for id in ids]},
     )
 

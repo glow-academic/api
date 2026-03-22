@@ -25,7 +25,7 @@ async def get_temperature_levels(
 
     tags = ["resources", "temperature_levels"]
     key = cache_key(
-        "/v5/resources/temperature_levels/get",
+        "/resources/temperature_levels/get",
         {"ids": [str(id) for id in ids]},
     )
 
