@@ -72,7 +72,7 @@ services:
     restart: unless-stopped
 
   server:
-    image: ${API_SERVER_IMAGE:-glow-api-server:latest}
+    image: ${API_REGISTRY:-}glow-api-server:${API_VERSION:?API_VERSION is required}
     restart: unless-stopped
     environment:
       - DB_USER=${DB_USER:-myuser}
