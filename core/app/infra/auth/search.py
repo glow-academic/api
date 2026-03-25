@@ -32,7 +32,7 @@ from app.infra.auth.types import (
     ListAuthApiAuth,
     ListAuthApiResponse,
 )
-from app.infra.v5_types import ListFilterOption, ListFilterSection
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.auth.get import get_auths
 from app.tools.artifacts.auth.search import (
     search_auths as search_auth_artifacts,

@@ -193,14 +193,14 @@ async def docs_document_impl(
         compute_can_edit,
         has_access,
     )
-    from app.routes.v5.document.create import create_document
-    from app.routes.v5.document.delete import delete_document
-    from app.routes.v5.document.draft import patch_document_draft
-    from app.routes.v5.document.duplicate import duplicate_document
-    from app.routes.v5.document.export import export_documents
-    from app.routes.v5.document.get import get_document
-    from app.routes.v5.document.search import search_document
-    from app.routes.v5.document.update import update_document
+    from app.routes.document.create import create_document
+    from app.routes.document.delete import delete_document
+    from app.routes.document.draft import patch_document_draft
+    from app.routes.document.duplicate import duplicate_document
+    from app.routes.document.export import export_documents
+    from app.routes.document.get import get_document
+    from app.routes.document.search import search_document
+    from app.routes.document.update import update_document
 
     return ComposedDocsResponse(
         name="document",

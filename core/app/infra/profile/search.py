@@ -27,7 +27,7 @@ from app.infra.profile.types import (
     ListProfilesApiProfile,
     ListProfilesApiResponse,
 )
-from app.infra.v5_types import ListFilterOption, ListFilterSection
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.profile.get import get_profiles
 from app.tools.artifacts.profile.search import search_profiles
 from app.tools.resources.departments.get import get_departments

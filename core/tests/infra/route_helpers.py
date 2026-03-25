@@ -1,4 +1,4 @@
-"""Shared helpers for v5 artifact route tests."""
+"""Shared helpers for artifact route tests."""
 
 from __future__ import annotations
 

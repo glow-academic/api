@@ -96,7 +96,7 @@ def _write_openapi_schema(
         title=app.title,
         version=app.version,
         routes=app.routes,
-        description="Auto-generated OpenAPI schema from FastAPI v5 API",
+        description="Auto-generated OpenAPI schema from FastAPI API",
     )
 
     for _path, path_item in schema.get("paths", {}).items():
@@ -387,7 +387,7 @@ from app.routes import router as root_router  # noqa: E402
 
 fastapi_app.include_router(root_router)
 
-import app.ws  # noqa: E402, F401 — registers ws/v5 input/output handlers
+import app.ws  # noqa: E402, F401 — registers ws input/output handlers
 
 # ---------------------------------------------------------------------------
 # MCP mount

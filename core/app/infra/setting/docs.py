@@ -190,14 +190,14 @@ async def docs_setting_impl(
         compute_can_edit,
         has_access,
     )
-    from app.routes.v5.setting.create import create_setting
-    from app.routes.v5.setting.delete import delete_setting
-    from app.routes.v5.setting.draft import patch_setting_draft
-    from app.routes.v5.setting.duplicate import duplicate_setting
-    from app.routes.v5.setting.export import export_settings
-    from app.routes.v5.setting.get import get_setting
-    from app.routes.v5.setting.search import search_setting
-    from app.routes.v5.setting.update import update_setting
+    from app.routes.setting.create import create_setting
+    from app.routes.setting.delete import delete_setting
+    from app.routes.setting.draft import patch_setting_draft
+    from app.routes.setting.duplicate import duplicate_setting
+    from app.routes.setting.export import export_settings
+    from app.routes.setting.get import get_setting
+    from app.routes.setting.search import search_setting
+    from app.routes.setting.update import update_setting
 
     return ComposedDocsResponse(
         name="setting",

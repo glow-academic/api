@@ -199,14 +199,14 @@ async def docs_simulation_impl(
         compute_can_edit,
         has_access,
     )
-    from app.routes.v5.simulation.create import create_simulation
-    from app.routes.v5.simulation.delete import delete_simulation
-    from app.routes.v5.simulation.draft import patch_simulation_draft
-    from app.routes.v5.simulation.duplicate import duplicate_simulation
-    from app.routes.v5.simulation.export import export_simulations
-    from app.routes.v5.simulation.get import get_simulation
-    from app.routes.v5.simulation.search import search_simulation
-    from app.routes.v5.simulation.update import update_simulation
+    from app.routes.simulation.create import create_simulation
+    from app.routes.simulation.delete import delete_simulation
+    from app.routes.simulation.draft import patch_simulation_draft
+    from app.routes.simulation.duplicate import duplicate_simulation
+    from app.routes.simulation.export import export_simulations
+    from app.routes.simulation.get import get_simulation
+    from app.routes.simulation.search import search_simulation
+    from app.routes.simulation.update import update_simulation
 
     return ComposedDocsResponse(
         name="simulation",

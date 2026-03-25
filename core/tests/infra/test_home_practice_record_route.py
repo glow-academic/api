@@ -87,16 +87,16 @@ class TestHomePracticeRecordRoutes:
 
     async def test_get_home_route_returns_bundle(
         self,
-        v5_home_route_client,
+        home_route_client,
         learning_route_actor,
     ):
-        v5_home_route_client.authenticate(
+        home_route_client.authenticate(
             profile_id=learning_route_actor.profile_id,
             session_id=learning_route_actor.session_id,
         )
 
-        response = await v5_home_route_client.client.post(
-            "/v5/home/get",
+        response = await home_route_client.client.post(
+            "/home/get",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -110,16 +110,16 @@ class TestHomePracticeRecordRoutes:
 
     async def test_get_practice_route_returns_bundle(
         self,
-        v5_practice_route_client,
+        practice_route_client,
         learning_route_actor,
     ):
-        v5_practice_route_client.authenticate(
+        practice_route_client.authenticate(
             profile_id=learning_route_actor.profile_id,
             session_id=learning_route_actor.session_id,
         )
 
-        response = await v5_practice_route_client.client.post(
-            "/v5/practice/get",
+        response = await practice_route_client.client.post(
+            "/practice/get",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -133,16 +133,16 @@ class TestHomePracticeRecordRoutes:
 
     async def test_search_home_route_returns_history(
         self,
-        v5_home_route_client,
+        home_route_client,
         learning_route_actor,
     ):
-        v5_home_route_client.authenticate(
+        home_route_client.authenticate(
             profile_id=learning_route_actor.profile_id,
             session_id=learning_route_actor.session_id,
         )
 
-        response = await v5_home_route_client.client.post(
-            "/v5/home/search",
+        response = await home_route_client.client.post(
+            "/home/search",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -155,16 +155,16 @@ class TestHomePracticeRecordRoutes:
 
     async def test_search_practice_route_returns_history(
         self,
-        v5_practice_route_client,
+        practice_route_client,
         learning_route_actor,
     ):
-        v5_practice_route_client.authenticate(
+        practice_route_client.authenticate(
             profile_id=learning_route_actor.profile_id,
             session_id=learning_route_actor.session_id,
         )
 
-        response = await v5_practice_route_client.client.post(
-            "/v5/practice/search",
+        response = await practice_route_client.client.post(
+            "/practice/search",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -177,16 +177,16 @@ class TestHomePracticeRecordRoutes:
 
     async def test_get_record_route_returns_dashboard_bundle(
         self,
-        v5_record_route_client,
+        record_route_client,
         learning_route_actor,
     ):
-        v5_record_route_client.authenticate(
+        record_route_client.authenticate(
             profile_id=learning_route_actor.profile_id,
             session_id=learning_route_actor.session_id,
         )
 
-        response = await v5_record_route_client.client.post(
-            "/v5/record/get",
+        response = await record_route_client.client.post(
+            "/record/get",
             json={"target_profile_id": str(learning_route_actor.profiles_id)},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -203,7 +203,7 @@ class TestHomePracticeRecordRoutes:
     async def test_export_home_route_creates_zip_upload(
         self,
         pool,
-        v5_home_route_client,
+        home_route_client,
         learning_route_actor,
     ):
         await _create_attempt_export_graph(
@@ -211,13 +211,13 @@ class TestHomePracticeRecordRoutes:
             learning_route_actor,
             practice=False,
         )
-        v5_home_route_client.authenticate(
+        home_route_client.authenticate(
             profile_id=learning_route_actor.profile_id,
             session_id=learning_route_actor.session_id,
         )
 
-        response = await v5_home_route_client.client.post(
-            "/v5/home/export"
+        response = await home_route_client.client.post(
+            "/home/export"
         )
 
         assert response.status_code == 200, response.text
@@ -230,7 +230,7 @@ class TestHomePracticeRecordRoutes:
     async def test_export_practice_route_creates_zip_upload(
         self,
         pool,
-        v5_practice_route_client,
+        practice_route_client,
         learning_route_actor,
     ):
         await _create_attempt_export_graph(
@@ -238,13 +238,13 @@ class TestHomePracticeRecordRoutes:
             learning_route_actor,
             practice=True,
         )
-        v5_practice_route_client.authenticate(
+        practice_route_client.authenticate(
             profile_id=learning_route_actor.profile_id,
             session_id=learning_route_actor.session_id,
         )
 
-        response = await v5_practice_route_client.client.post(
-            "/v5/practice/export"
+        response = await practice_route_client.client.post(
+            "/practice/export"
         )
 
         assert response.status_code == 200, response.text
@@ -257,7 +257,7 @@ class TestHomePracticeRecordRoutes:
     async def test_export_record_route_creates_zip_upload(
         self,
         pool,
-        v5_record_route_client,
+        record_route_client,
         learning_route_actor,
     ):
         await _create_attempt_export_graph(
@@ -265,13 +265,13 @@ class TestHomePracticeRecordRoutes:
             learning_route_actor,
             practice=False,
         )
-        v5_record_route_client.authenticate(
+        record_route_client.authenticate(
             profile_id=learning_route_actor.profile_id,
             session_id=learning_route_actor.session_id,
         )
 
-        response = await v5_record_route_client.client.post(
-            "/v5/record/export",
+        response = await record_route_client.client.post(
+            "/record/export",
             json={"target_profile_id": str(learning_route_actor.profiles_id)},
         )
 

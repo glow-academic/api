@@ -42,23 +42,23 @@ def _build_artifact_router_for_tests(
     tags: list[str],
     module_names: list[str],
 ) -> APIRouter:
-    main_dir = Path(__file__).resolve().parents[2] / "app" / "routes" / "v5"
+    main_dir = Path(__file__).resolve().parents[2] / "app" / "routes"
     artifact_dir = main_dir / artifact_name
-    _ensure_package_stub("app.routes.v5", main_dir)
-    _ensure_package_stub(f"app.routes.v5.{artifact_name}", artifact_dir)
+    _ensure_package_stub("app.routes", main_dir)
+    _ensure_package_stub(f"app.routes.{artifact_name}", artifact_dir)
 
     router = APIRouter(prefix=prefix, tags=tags)
     for module_name in module_names:
         module = importlib.import_module(
-            f"app.routes.v5.{artifact_name}.{module_name}"
+            f"app.routes.{artifact_name}.{module_name}"
         )
         router.include_router(module.router)
     return router
 
 
 @dataclass
-class V5RouteClient:
-    """Tiny authenticated HTTP client for v5 route tests."""
+class RouteClient:
+    """Tiny authenticated HTTP client for route tests."""
 
     client: AsyncClient
     _request_state: dict[str, str | None]
@@ -75,13 +75,13 @@ class V5RouteClient:
         )
 
 
-def _build_v5_artifact_test_app(
+def _build_artifact_test_app(
     *,
     artifact_router: APIRouter,
     request_state: dict[str, str | None],
     extra_routers: list[APIRouter] | None = None,
 ) -> FastAPI:
-    """Mount a single v5 artifact router with test auth state overrides."""
+    """Mount a single artifact router with test auth state overrides."""
     from app.infra.identity.middleware import require_auth
 
     async def _require_auth_override(request: Request) -> None:
@@ -93,7 +93,7 @@ def _build_v5_artifact_test_app(
 
     app = FastAPI()
     root_router = APIRouter(
-        prefix="/v5",
+        prefix="",
         dependencies=[Depends(require_auth)],
     )
     root_router.include_router(artifact_router)
@@ -104,11 +104,11 @@ def _build_v5_artifact_test_app(
     return app
 
 
-def _build_v5_events_test_app(
+def _build_events_test_app(
     *,
     request_state: dict[str, str | None],
 ) -> FastAPI:
-    """Mount the centralized v5 events router with test auth state overrides."""
+    """Mount the centralized events router with test auth state overrides."""
     from app.infra.identity.middleware import require_auth
 
     async def _require_auth_override(request: Request) -> None:
@@ -202,11 +202,11 @@ async def persona_context_factory(pool, redis_client):
 
 
 @pytest_asyncio.fixture
-async def v5_persona_route_client(
+async def persona_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real persona v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real persona route stack."""
     import app.infra.globals as globals_mod
 
     persona_router = _build_artifact_router_for_tests(
@@ -229,7 +229,7 @@ async def v5_persona_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=persona_router,
         request_state=request_state,
     )
@@ -244,18 +244,18 @@ async def v5_persona_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_scenario_route_client(
+async def scenario_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real scenario v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real scenario route stack."""
     import app.infra.globals as globals_mod
 
     scenario_router = _build_artifact_router_for_tests(
@@ -278,7 +278,7 @@ async def v5_scenario_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=scenario_router,
         request_state=request_state,
     )
@@ -293,18 +293,18 @@ async def v5_scenario_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_agent_route_client(
+async def agent_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real agent v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real agent route stack."""
     import app.infra.globals as globals_mod
 
     agent_router = _build_artifact_router_for_tests(
@@ -327,7 +327,7 @@ async def v5_agent_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=agent_router,
         request_state=request_state,
     )
@@ -342,18 +342,18 @@ async def v5_agent_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_group_route_client(
+async def group_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real group v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real group route stack."""
     import app.infra.globals as globals_mod
 
     group_router = _build_artifact_router_for_tests(
@@ -364,7 +364,7 @@ async def v5_group_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=group_router,
         request_state=request_state,
     )
@@ -379,18 +379,18 @@ async def v5_group_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_cohort_route_client(
+async def cohort_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real cohort v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real cohort route stack."""
     import app.infra.globals as globals_mod
 
     cohort_router = _build_artifact_router_for_tests(
@@ -413,7 +413,7 @@ async def v5_cohort_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=cohort_router,
         request_state=request_state,
     )
@@ -428,18 +428,18 @@ async def v5_cohort_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_health_route_client(
+async def health_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real health v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real health route stack."""
     import app.infra.globals as globals_mod
 
     health_router = _build_artifact_router_for_tests(
@@ -450,7 +450,7 @@ async def v5_health_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=health_router,
         request_state=request_state,
     )
@@ -465,18 +465,18 @@ async def v5_health_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_attempt_route_client(
+async def attempt_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real attempt v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real attempt route stack."""
     import app.infra.globals as globals_mod
 
     attempt_router = _build_artifact_router_for_tests(
@@ -504,7 +504,7 @@ async def v5_attempt_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=attempt_router,
         request_state=request_state,
     )
@@ -519,18 +519,18 @@ async def v5_attempt_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_test_route_client(
+async def test_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real test v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real test route stack."""
     import app.infra.globals as globals_mod
 
     test_router = _build_artifact_router_for_tests(
@@ -552,7 +552,7 @@ async def v5_test_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=test_router,
         request_state=request_state,
     )
@@ -567,18 +567,18 @@ async def v5_test_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_session_route_client(
+async def session_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real session v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real session route stack."""
     import app.infra.globals as globals_mod
 
     session_router = _build_artifact_router_for_tests(
@@ -594,7 +594,7 @@ async def v5_session_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=session_router,
         request_state=request_state,
     )
@@ -609,22 +609,22 @@ async def v5_session_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_events_route_client(
+async def events_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the centralized v5 events router."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the centralized events router."""
     import app.infra.globals as globals_mod
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_events_test_app(request_state=request_state)
+    app = _build_events_test_app(request_state=request_state)
 
     prior_pool = globals_mod._db_pool
     prior_redis = globals_mod.redis_client
@@ -636,18 +636,18 @@ async def v5_events_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_benchmark_route_client(
+async def benchmark_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real benchmark v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real benchmark route stack."""
     import app.infra.globals as globals_mod
 
     benchmark_router = _build_artifact_router_for_tests(
@@ -658,7 +658,7 @@ async def v5_benchmark_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=benchmark_router,
         request_state=request_state,
     )
@@ -673,18 +673,18 @@ async def v5_benchmark_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_pricing_route_client(
+async def pricing_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real pricing v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real pricing route stack."""
     import app.infra.globals as globals_mod
 
     pricing_router = _build_artifact_router_for_tests(
@@ -695,7 +695,7 @@ async def v5_pricing_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=pricing_router,
         request_state=request_state,
     )
@@ -710,18 +710,18 @@ async def v5_pricing_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_reports_route_client(
+async def reports_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real reports v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real reports route stack."""
     import app.infra.globals as globals_mod
 
     reports_router = _build_artifact_router_for_tests(
@@ -732,7 +732,7 @@ async def v5_reports_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=reports_router,
         request_state=request_state,
     )
@@ -747,18 +747,18 @@ async def v5_reports_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_leaderboard_route_client(
+async def leaderboard_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real leaderboard v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real leaderboard route stack."""
     import app.infra.globals as globals_mod
 
     leaderboard_router = _build_artifact_router_for_tests(
@@ -769,7 +769,7 @@ async def v5_leaderboard_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=leaderboard_router,
         request_state=request_state,
     )
@@ -784,18 +784,18 @@ async def v5_leaderboard_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_dashboard_route_client(
+async def dashboard_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real dashboard v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real dashboard route stack."""
     import app.infra.globals as globals_mod
 
     dashboard_router = _build_artifact_router_for_tests(
@@ -806,7 +806,7 @@ async def v5_dashboard_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=dashboard_router,
         request_state=request_state,
     )
@@ -821,18 +821,18 @@ async def v5_dashboard_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_home_route_client(
+async def home_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real home v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real home route stack."""
     import app.infra.globals as globals_mod
 
     home_router = _build_artifact_router_for_tests(
@@ -843,7 +843,7 @@ async def v5_home_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=home_router,
         request_state=request_state,
     )
@@ -858,18 +858,18 @@ async def v5_home_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_practice_route_client(
+async def practice_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real practice v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real practice route stack."""
     import app.infra.globals as globals_mod
 
     practice_router = _build_artifact_router_for_tests(
@@ -880,7 +880,7 @@ async def v5_practice_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=practice_router,
         request_state=request_state,
     )
@@ -895,18 +895,18 @@ async def v5_practice_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_record_route_client(
+async def record_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real record v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real record route stack."""
     import app.infra.globals as globals_mod
 
     record_router = _build_artifact_router_for_tests(
@@ -917,7 +917,7 @@ async def v5_record_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=record_router,
         request_state=request_state,
     )
@@ -932,18 +932,18 @@ async def v5_record_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_activity_route_client(
+async def activity_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real activity v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real activity route stack."""
     import app.infra.globals as globals_mod
 
     activity_router = _build_artifact_router_for_tests(
@@ -962,7 +962,7 @@ async def v5_activity_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=activity_router,
         request_state=request_state,
     )
@@ -977,18 +977,18 @@ async def v5_activity_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_document_route_client(
+async def document_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real document v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real document route stack."""
     import app.infra.globals as globals_mod
 
     document_router = _build_artifact_router_for_tests(
@@ -1011,7 +1011,7 @@ async def v5_document_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=document_router,
         request_state=request_state,
     )
@@ -1026,18 +1026,18 @@ async def v5_document_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_department_route_client(
+async def department_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real department v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real department route stack."""
     import app.infra.globals as globals_mod
 
     department_router = _build_artifact_router_for_tests(
@@ -1060,7 +1060,7 @@ async def v5_department_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=department_router,
         request_state=request_state,
     )
@@ -1075,18 +1075,18 @@ async def v5_department_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_tool_route_client(
+async def tool_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real tool v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real tool route stack."""
     import app.infra.globals as globals_mod
 
     tool_router = _build_artifact_router_for_tests(
@@ -1109,7 +1109,7 @@ async def v5_tool_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=tool_router,
         request_state=request_state,
     )
@@ -1124,18 +1124,18 @@ async def v5_tool_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_setting_route_client(
+async def setting_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real setting v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real setting route stack."""
     import app.infra.globals as globals_mod
 
     setting_router = _build_artifact_router_for_tests(
@@ -1159,7 +1159,7 @@ async def v5_setting_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=setting_router,
         request_state=request_state,
     )
@@ -1174,18 +1174,18 @@ async def v5_setting_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_simulation_route_client(
+async def simulation_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real simulation v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real simulation route stack."""
     import app.infra.globals as globals_mod
 
     simulation_router = _build_artifact_router_for_tests(
@@ -1208,7 +1208,7 @@ async def v5_simulation_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=simulation_router,
         request_state=request_state,
     )
@@ -1223,18 +1223,18 @@ async def v5_simulation_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_model_route_client(
+async def model_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real model v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real model route stack."""
     import app.infra.globals as globals_mod
 
     model_router = _build_artifact_router_for_tests(
@@ -1257,7 +1257,7 @@ async def v5_model_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=model_router,
         request_state=request_state,
     )
@@ -1272,18 +1272,18 @@ async def v5_model_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_field_route_client(
+async def field_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real field v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real field route stack."""
     import app.infra.globals as globals_mod
 
     field_router = _build_artifact_router_for_tests(
@@ -1306,7 +1306,7 @@ async def v5_field_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=field_router,
         request_state=request_state,
     )
@@ -1321,18 +1321,18 @@ async def v5_field_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_parameter_route_client(
+async def parameter_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real parameter v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real parameter route stack."""
     import app.infra.globals as globals_mod
 
     parameter_router = _build_artifact_router_for_tests(
@@ -1355,7 +1355,7 @@ async def v5_parameter_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=parameter_router,
         request_state=request_state,
     )
@@ -1370,18 +1370,18 @@ async def v5_parameter_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_provider_route_client(
+async def provider_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real provider v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real provider route stack."""
     import app.infra.globals as globals_mod
 
     provider_router = _build_artifact_router_for_tests(
@@ -1405,7 +1405,7 @@ async def v5_provider_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=provider_router,
         request_state=request_state,
     )
@@ -1420,18 +1420,18 @@ async def v5_provider_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_rubric_route_client(
+async def rubric_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real rubric v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real rubric route stack."""
     import app.infra.globals as globals_mod
 
     rubric_router = _build_artifact_router_for_tests(
@@ -1454,7 +1454,7 @@ async def v5_rubric_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=rubric_router,
         request_state=request_state,
     )
@@ -1469,18 +1469,18 @@ async def v5_rubric_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_eval_route_client(
+async def eval_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real eval v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real eval route stack."""
     import app.infra.globals as globals_mod
 
     eval_router = _build_artifact_router_for_tests(
@@ -1503,7 +1503,7 @@ async def v5_eval_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=eval_router,
         request_state=request_state,
     )
@@ -1518,18 +1518,18 @@ async def v5_eval_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_auth_route_client(
+async def auth_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real auth v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real auth route stack."""
     import app.infra.globals as globals_mod
 
     auth_router = _build_artifact_router_for_tests(
@@ -1552,7 +1552,7 @@ async def v5_auth_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=auth_router,
         request_state=request_state,
     )
@@ -1567,22 +1567,22 @@ async def v5_auth_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis
 
 
 @pytest_asyncio.fixture
-async def v5_profile_route_client(
+async def profile_route_client(
     pool,
     redis_client,
-) -> AsyncGenerator[V5RouteClient, None]:
-    """HTTP client mounted on the real profile v5 route stack."""
+) -> AsyncGenerator[RouteClient, None]:
+    """HTTP client mounted on the real profile route stack."""
     import app.infra.globals as globals_mod
-    from app.routes.v5.context import router as context_router
-    from app.routes.v5.emulate import router as emulate_router
-    from app.routes.v5.unemulate import router as unemulate_router
+    from app.routes.context import router as context_router
+    from app.routes.emulate import router as emulate_router
+    from app.routes.unemulate import router as unemulate_router
 
     profile_router = _build_artifact_router_for_tests(
         artifact_name="profile",
@@ -1604,7 +1604,7 @@ async def v5_profile_route_client(
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_v5_artifact_test_app(
+    app = _build_artifact_test_app(
         artifact_router=profile_router,
         request_state=request_state,
         extra_routers=[context_router, emulate_router, unemulate_router],
@@ -1620,7 +1620,7 @@ async def v5_profile_route_client(
         transport=transport,
         base_url="http://testserver",
     ) as client:
-        yield V5RouteClient(client=client, _request_state=request_state)
+        yield RouteClient(client=client, _request_state=request_state)
 
     globals_mod._db_pool = prior_pool
     globals_mod.redis_client = prior_redis

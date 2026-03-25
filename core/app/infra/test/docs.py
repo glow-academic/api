@@ -70,9 +70,9 @@ async def docs_test_impl(
 
     # Lazy imports to avoid circular dependencies
     from app.infra.test.permissions import compute_test_status
-    from app.routes.v5.test.archive import archive_test_artifacts
-    from app.routes.v5.test.export import export_test
-    from app.routes.v5.test.get import get_test_artifact
+    from app.routes.test.archive import archive_test_artifacts
+    from app.routes.test.export import export_test
+    from app.routes.test.get import get_test_artifact
 
     return ComposedDocsResponse(
         name="test",

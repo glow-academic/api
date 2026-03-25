@@ -11,7 +11,7 @@ from app.infra.agent.selection import (
     select_agents_for_artifact,
     select_multi_resource_agent,
 )
-from app.infra.v5_types import CandidateAgent
+from app.infra.api_types import CandidateAgent
 
 # Re-export for backwards compatibility
 __all__ = [
@@ -280,7 +280,7 @@ def build_domain_data(
 
     Delegates to shared build_domain_data with tool-specific metadata.
     """
-    from app.infra.v5_types import build_domain_data as _build_domain_data
+    from app.infra.api_types import build_domain_data as _build_domain_data
 
     return _build_domain_data(
         domain_ids, show_flags, required_flags, TOOL_DOMAIN_METADATA

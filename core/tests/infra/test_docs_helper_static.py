@@ -47,7 +47,7 @@ def test_build_artifact_docs_static_includes_business_logic_and_sections():
             table_name="persona_artifact",
             permissions_module=_module_with_permission(),
             permission_functions=["can_view"],
-            api_routing={"list": "/v5/persona/search"},
+            api_routing={"list": "/persona/search"},
             resources_info=[{"name": "roles"}],
             glow_context={"owner": "profile"},
             extra_sections={"notes": ["one"]},
@@ -56,7 +56,7 @@ def test_build_artifact_docs_static_includes_business_logic_and_sections():
 
     assert docs["name"] == "personas"
     assert docs["database"] == {"table": "persona_artifact"}
-    assert docs["api_routing"]["list"] == "/v5/persona/search"
+    assert docs["api_routing"]["list"] == "/persona/search"
     assert docs["business_logic"]["can_view"]["description"] == "Can view the entity."
     assert docs["resources"]["available"] == [{"name": "roles"}]
     assert docs["notes"] == ["one"]

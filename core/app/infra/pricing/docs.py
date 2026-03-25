@@ -71,10 +71,10 @@ async def docs_pricing_impl(
     # ── Step 3: Assemble response ──────────────────────────────────────
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.v5.pricing.export import export_pricing
-    from app.routes.v5.pricing.get import get_pricing
-    from app.routes.v5.pricing.refresh import pricing_refresh
-    from app.routes.v5.pricing.search import search_pricing
+    from app.routes.pricing.export import export_pricing
+    from app.routes.pricing.get import get_pricing
+    from app.routes.pricing.refresh import pricing_refresh
+    from app.routes.pricing.search import search_pricing
 
     return ComposedDocsResponse(
         name="pricing",

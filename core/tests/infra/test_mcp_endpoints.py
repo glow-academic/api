@@ -39,7 +39,7 @@ def test_tool_graph_returns_non_empty_list():
 
 
 def test_import_handler_finds_router_endpoint():
-    handler = _import_handler("app.routes.v5.persona.get")
+    handler = _import_handler("app.routes.persona.get")
 
     assert callable(handler)
     assert handler.__name__ != "_"
@@ -47,11 +47,11 @@ def test_import_handler_finds_router_endpoint():
 
 def test_import_handler_raises_for_unknown_module():
     with pytest.raises(ModuleNotFoundError):
-        _import_handler("app.routes.v5.not_real.missing")
+        _import_handler("app.routes.not_real.missing")
 
 
 def test_get_request_model_extracts_pydantic_model():
-    handler = _import_handler("app.routes.v5.persona.get")
+    handler = _import_handler("app.routes.persona.get")
     model = _get_request_model(handler)
 
     assert model is not None
@@ -59,7 +59,7 @@ def test_get_request_model_extracts_pydantic_model():
 
 
 def test_build_tool_args_excludes_mcp_field():
-    handler = _import_handler("app.routes.v5.persona.get")
+    handler = _import_handler("app.routes.persona.get")
     model = _get_request_model(handler)
     assert model is not None
 
@@ -104,7 +104,7 @@ async def test_call_handler_executes_real_persona_get(
     import app.infra.globals as globals_mod
     from app.infra.mcp.register import _call_handler, _resolve_handler_and_model
 
-    handler, model = _resolve_handler_and_model("app.routes.v5.persona.get")
+    handler, model = _resolve_handler_and_model("app.routes.persona.get")
 
     # Create a persona to query
     from app.tools.artifacts.persona.create import create_persona

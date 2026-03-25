@@ -163,14 +163,14 @@ async def docs_profile_impl(
         compute_can_edit,
         has_access,
     )
-    from app.routes.v5.profile.create import create_profile
-    from app.routes.v5.profile.delete import delete_profile
-    from app.routes.v5.profile.draft import patch_profile_draft
-    from app.routes.v5.profile.duplicate import duplicate_profile
-    from app.routes.v5.profile.export import export_profiles
-    from app.routes.v5.profile.get import get_profile
-    from app.routes.v5.profile.search import search_profile
-    from app.routes.v5.profile.update import update_profile
+    from app.routes.profile.create import create_profile
+    from app.routes.profile.delete import delete_profile
+    from app.routes.profile.draft import patch_profile_draft
+    from app.routes.profile.duplicate import duplicate_profile
+    from app.routes.profile.export import export_profiles
+    from app.routes.profile.get import get_profile
+    from app.routes.profile.search import search_profile
+    from app.routes.profile.update import update_profile
 
     return ComposedDocsResponse(
         name="profile",

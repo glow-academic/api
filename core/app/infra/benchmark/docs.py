@@ -77,10 +77,10 @@ async def docs_benchmark_impl(
     from app.infra.benchmark.permissions import (
         compute_benchmark_eval_status,
     )
-    from app.routes.v5.benchmark.export import export_benchmark
-    from app.routes.v5.benchmark.get import get_benchmark
-    from app.routes.v5.benchmark.refresh import benchmark_refresh
-    from app.routes.v5.benchmark.search import search_benchmark_history
+    from app.routes.benchmark.export import export_benchmark
+    from app.routes.benchmark.get import get_benchmark
+    from app.routes.benchmark.refresh import benchmark_refresh
+    from app.routes.benchmark.search import search_benchmark_history
 
     return ComposedDocsResponse(
         name="benchmark",

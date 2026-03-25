@@ -223,14 +223,14 @@ async def docs_scenario_impl(
         compute_can_edit,
         has_access,
     )
-    from app.routes.v5.scenario.create import create_scenario
-    from app.routes.v5.scenario.delete import delete_scenario
-    from app.routes.v5.scenario.draft import patch_scenario_draft
-    from app.routes.v5.scenario.duplicate import duplicate_scenario
-    from app.routes.v5.scenario.export import export_scenarios
-    from app.routes.v5.scenario.get import get_scenario
-    from app.routes.v5.scenario.search import search_scenario
-    from app.routes.v5.scenario.update import update_scenario
+    from app.routes.scenario.create import create_scenario
+    from app.routes.scenario.delete import delete_scenario
+    from app.routes.scenario.draft import patch_scenario_draft
+    from app.routes.scenario.duplicate import duplicate_scenario
+    from app.routes.scenario.export import export_scenarios
+    from app.routes.scenario.get import get_scenario
+    from app.routes.scenario.search import search_scenario
+    from app.routes.scenario.update import update_scenario
 
     return ComposedDocsResponse(
         name="scenario",

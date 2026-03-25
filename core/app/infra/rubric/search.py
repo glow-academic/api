@@ -31,7 +31,7 @@ from app.infra.rubric.types import (
     ListRubricApiStandard,
     ListRubricApiStandardGroup,
 )
-from app.infra.v5_types import ListFilterOption, ListFilterSection
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.rubric.get import get_rubrics
 from app.tools.artifacts.rubric.search import search_rubrics
 from app.tools.resources.departments.search import search_departments

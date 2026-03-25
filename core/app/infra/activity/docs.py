@@ -74,12 +74,12 @@ async def docs_activity_impl(
     # -- Step 3: Assemble response ---------------------------------------------
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.v5.activity.export import export_activity
-    from app.routes.v5.activity.get import get_activity
-    from app.routes.v5.activity.problem import create_problem
-    from app.routes.v5.activity.refresh import activity_refresh
-    from app.routes.v5.activity.resolve import resolve_problem
-    from app.routes.v5.activity.search import search_activity
+    from app.routes.activity.export import export_activity
+    from app.routes.activity.get import get_activity
+    from app.routes.activity.problem import create_problem
+    from app.routes.activity.refresh import activity_refresh
+    from app.routes.activity.resolve import resolve_problem
+    from app.routes.activity.search import search_activity
 
     return ComposedDocsResponse(
         name="activity",

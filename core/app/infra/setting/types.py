@@ -8,7 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.infra.setting.create import CreateSettingItem
-from app.infra.v5_types import BaseResourceSection
+from app.infra.api_types import BaseResourceSection
 from app.tools.entries.setting_drafts.types import GetSettingDraftResponse
 
 # ========== Flag Enrichment ==========

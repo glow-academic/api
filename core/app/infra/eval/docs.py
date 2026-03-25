@@ -175,14 +175,14 @@ async def docs_eval_impl(
         compute_can_edit,
         has_access,
     )
-    from app.routes.v5.eval.create import create_eval
-    from app.routes.v5.eval.delete import delete_eval
-    from app.routes.v5.eval.draft import patch_eval_draft
-    from app.routes.v5.eval.duplicate import duplicate_eval
-    from app.routes.v5.eval.export import export_evals
-    from app.routes.v5.eval.get import get_eval
-    from app.routes.v5.eval.search import search_eval
-    from app.routes.v5.eval.update import update_eval
+    from app.routes.eval.create import create_eval
+    from app.routes.eval.delete import delete_eval
+    from app.routes.eval.draft import patch_eval_draft
+    from app.routes.eval.duplicate import duplicate_eval
+    from app.routes.eval.export import export_evals
+    from app.routes.eval.get import get_eval
+    from app.routes.eval.search import search_eval
+    from app.routes.eval.update import update_eval
 
     return ComposedDocsResponse(
         name="eval",

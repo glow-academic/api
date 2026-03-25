@@ -170,14 +170,14 @@ async def docs_provider_impl(
         compute_can_edit,
         has_access,
     )
-    from app.routes.v5.provider.create import create_provider
-    from app.routes.v5.provider.delete import delete_provider
-    from app.routes.v5.provider.draft import patch_provider_draft
-    from app.routes.v5.provider.duplicate import duplicate_provider
-    from app.routes.v5.provider.export import export_providers
-    from app.routes.v5.provider.get import get_provider
-    from app.routes.v5.provider.search import search_provider
-    from app.routes.v5.provider.update import update_provider
+    from app.routes.provider.create import create_provider
+    from app.routes.provider.delete import delete_provider
+    from app.routes.provider.draft import patch_provider_draft
+    from app.routes.provider.duplicate import duplicate_provider
+    from app.routes.provider.export import export_providers
+    from app.routes.provider.get import get_provider
+    from app.routes.provider.search import search_provider
+    from app.routes.provider.update import update_provider
 
     return ComposedDocsResponse(
         name="provider",

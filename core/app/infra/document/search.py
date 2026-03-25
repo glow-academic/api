@@ -32,7 +32,7 @@ from app.infra.document.types import (
     ListDocumentApiDocument,
     ListDocumentApiResponse,
 )
-from app.infra.v5_types import ListFilterOption, ListFilterSection
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.document.get import get_documents
 from app.tools.artifacts.document.search import search_documents
 from app.tools.resources.departments.search import search_departments

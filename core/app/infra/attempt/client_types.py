@@ -1,8 +1,8 @@
 """Client-facing Attempt WebSocket types.
 
 Canonical location for all Attempt* payload and event models used by the
-v5 WebSocket (and HTTP) transport layer.  Previously defined inline in
-``app.socket.v5.client.types``; moved here so that domain code can import
+WebSocket (and HTTP) transport layer.  Previously defined inline in
+``app.socket.client.types``; moved here so that domain code can import
 them without reaching into the socket layer.
 """
 

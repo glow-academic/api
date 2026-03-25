@@ -59,23 +59,23 @@ async def test_get_db_connection_raises_without_pool():
 
 
 def test_generate_unique_function_name_uses_router_prefix_and_path():
-    router = APIRouter(prefix="/socket/v5/chat")
+    router = APIRouter(prefix="/socket/chat")
 
     name = _generate_unique_function_name(router, "/generate")
 
     assert name.startswith("handle_")
-    assert "socket_v5_chat" in name
+    assert "socket_chat" in name
     assert name.endswith("generate")
 
 
 def test_register_endpoint_helpers_add_routes_with_operation_ids():
-    router = APIRouter(prefix="/socket/v5/test")
+    router = APIRouter(prefix="/socket/test")
 
     register_client_endpoint(router, "/client", ExamplePayload, "Client event")
     register_server_endpoint(router, "/server", ExamplePayload, "Server event")
 
     paths = {route.path: route for route in router.routes}
-    assert "/socket/v5/test/client" in paths
-    assert "/socket/v5/test/server" in paths
-    assert paths["/socket/v5/test/client"].operation_id is not None
-    assert paths["/socket/v5/test/server"].operation_id is not None
+    assert "/socket/test/client" in paths
+    assert "/socket/test/server" in paths
+    assert paths["/socket/test/client"].operation_id is not None
+    assert paths["/socket/test/server"].operation_id is not None

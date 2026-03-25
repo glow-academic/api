@@ -29,7 +29,7 @@ from app.infra.provider.types import (
     ListProviderApiProvider,
     ListProviderApiResponse,
 )
-from app.infra.v5_types import ListFilterOption, ListFilterSection
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.provider.get import get_providers
 from app.tools.artifacts.provider.search import search_providers
 from app.tools.resources.departments.search import search_departments

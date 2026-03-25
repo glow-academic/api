@@ -86,10 +86,10 @@ async def docs_chat_impl(
         compute_status_instructional,
         format_cohort_names,
     )
-    from app.routes.v5.chat.draft import patch_chat_draft
-    from app.routes.v5.chat.export import export_chat
-    from app.routes.v5.chat.get import chat_get
-    from app.routes.v5.chat.refresh import chat_refresh
+    from app.routes.chat.draft import patch_chat_draft
+    from app.routes.chat.export import export_chat
+    from app.routes.chat.get import chat_get
+    from app.routes.chat.refresh import chat_refresh
 
     return ComposedDocsResponse(
         name="chat",

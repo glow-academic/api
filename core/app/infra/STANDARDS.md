@@ -1,6 +1,6 @@
-# Infrastructure v5 Standards
+# Infrastructure Standards
 
-This document defines the standards and best practices for Infrastructure v5 utilities.
+This document defines the standards and best practices for Infrastructure utilities.
 
 ## Overview
 
@@ -14,12 +14,12 @@ Infrastructure utilities are categorized into three types:
 
 ### 1. Database Operations: Entry Functions and Inline SQL
 
-**Mutations** use black box entry functions from `server/app/routes/v5/tools/entries/`:
+**Mutations** use black box entry functions from `server/app/routes/tools/entries/`:
 
 ```python
-from app.routes.v5.tools.entries.calls.create import create_call
-from app.routes.v5.tools.entries.groups.create import create_group
-from app.routes.v5.tools.entries.runs.create import create_run
+from app.routes.tools.entries.calls.create import create_call
+from app.routes.tools.entries.groups.create import create_group
+from app.routes.tools.entries.runs.create import create_run
 
 # Standard mutation chain: group → run → call → domain entry
 group_result = await create_group(conn, session_id=session_id)

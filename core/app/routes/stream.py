@@ -1,6 +1,6 @@
 """Stream delivery — GET /stream (SSE) + POST /stream/{Type} (OpenAPI schema).
 
-Root-level transport route (not a v5 business action).
+Root-level transport route (not a business action).
 
 The SSE endpoint streams artifact events to clients.
 Authorization is handled by the stream session: callers must first

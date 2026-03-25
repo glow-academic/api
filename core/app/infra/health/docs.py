@@ -75,9 +75,9 @@ async def docs_health_impl(
     # -- Step 3: Assemble response ----------------------------------------
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.v5.health.export import export_health
-    from app.routes.v5.health.get import get_health
-    from app.routes.v5.health.refresh import health_refresh
+    from app.routes.health.export import export_health
+    from app.routes.health.get import get_health
+    from app.routes.health.refresh import health_refresh
 
     return ComposedDocsResponse(
         name="health",

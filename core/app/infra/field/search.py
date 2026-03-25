@@ -29,7 +29,7 @@ from app.infra.field.types import (
     ListFieldApiField,
     ListFieldApiResponse,
 )
-from app.infra.v5_types import ListFilterOption, ListFilterSection
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.field.get import get_fields
 from app.tools.artifacts.field.search import search_fields
 from app.tools.resources.departments.search import search_departments

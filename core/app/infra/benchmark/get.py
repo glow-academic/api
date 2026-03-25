@@ -34,7 +34,7 @@ from app.infra.benchmark.types import (
     BenchmarkRequest,
     BenchmarkResponse,
 )
-from app.infra.v5_types import FilterOption
+from app.infra.api_types import FilterOption
 
 BENCHMARK_FACETS_CONFIG = AnalyticsFacetsConfig(
     fields=AnalyticsFilterFields(

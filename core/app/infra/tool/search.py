@@ -29,7 +29,7 @@ from app.infra.tool.types import (
     ListToolApiResponse,
     ListToolApiTool,
 )
-from app.infra.v5_types import ListFilterOption, ListFilterSection
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.tool.get import get_tools
 from app.tools.artifacts.tool.search import search_tools
 from app.tools.resources.agents.search import (

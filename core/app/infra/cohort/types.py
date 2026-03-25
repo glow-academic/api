@@ -10,7 +10,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.cohort.create import CreateCohortItem
-from app.infra.v5_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.cohort_drafts.types import GetCohortDraftResponse
 from app.tools.resources.personas.types import GetPersonaResponse
 
@@ -552,7 +552,7 @@ class ExportCohortApiResponse(BaseModel):
 # =============================================================================
 # Note: GetCohortAccessSqlParams, GetCohortAccessSqlRow, GetCohortIdsSqlParams,
 # and GetCohortIdsSqlRow are now auto-generated in app/sql/types.py from the
-# corresponding SQL files in app/v5/sql/queries/cohorts/
+# corresponding SQL files in app/sql/queries/cohorts/
 
 
 class ListCohortSqlCohort(BaseModel):

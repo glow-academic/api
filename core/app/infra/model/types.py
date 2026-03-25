@@ -14,7 +14,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.model.create import CreateModelItem
-from app.infra.v5_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.model_drafts.types import GetModelDraftResponse
 
 # =============================================================================

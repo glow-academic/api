@@ -11,7 +11,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.scenario.create import CreateScenarioItem
-from app.infra.v5_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.scenario_drafts.types import GetScenarioDraftResponse
 
 # =============================================================================

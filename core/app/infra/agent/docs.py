@@ -214,14 +214,14 @@ async def docs_agent_impl(
         compute_can_edit,
         has_access,
     )
-    from app.routes.v5.agent.create import create_agent
-    from app.routes.v5.agent.delete import delete_agent
-    from app.routes.v5.agent.draft import patch_agent_draft
-    from app.routes.v5.agent.duplicate import duplicate_agent
-    from app.routes.v5.agent.export import export_agents
-    from app.routes.v5.agent.get import get_agent
-    from app.routes.v5.agent.search import search_agent
-    from app.routes.v5.agent.update import update_agent
+    from app.routes.agent.create import create_agent
+    from app.routes.agent.delete import delete_agent
+    from app.routes.agent.draft import patch_agent_draft
+    from app.routes.agent.duplicate import duplicate_agent
+    from app.routes.agent.export import export_agents
+    from app.routes.agent.get import get_agent
+    from app.routes.agent.search import search_agent
+    from app.routes.agent.update import update_agent
 
     return ComposedDocsResponse(
         name="agent",

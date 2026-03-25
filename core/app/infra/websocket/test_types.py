@@ -1,6 +1,6 @@
 """Pydantic models for test-domain internal bus emits.
 
-Canonical location — re-exported from routes/v5/socket/internal/test/types.py.
+Canonical location — re-exported from routes/socket/internal/test/types.py.
 """
 
 from __future__ import annotations

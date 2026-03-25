@@ -2,7 +2,7 @@
 
 Given a tool graph of (artifact, operation) pairs, this module:
   1. Registers a tool for each pair with name = {operation}_{artifact}
-  2. At call time, imports app.routes.v5.{artifact}.{operation}
+  2. At call time, imports app.routes.{artifact}.{operation}
   3. Finds the handler function via the module's router
   4. Extracts the Pydantic request model from its signature
   5. Calls the handler with proper Identity(is_mcp=True) context
@@ -210,7 +210,7 @@ def register_tools(
     with a generic (kwargs, **kw) signature.
     """
     for artifact, operation in tool_graph:
-        module_path = f"app.routes.v5.{artifact}.{operation}"
+        module_path = f"app.routes.{artifact}.{operation}"
         tool_name = f"{operation}_{artifact}"
         description = f"{operation} {artifact}"
 

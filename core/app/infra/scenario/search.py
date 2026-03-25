@@ -35,7 +35,7 @@ from app.infra.scenario.types import (
     ListScenarioApiScenario,
     ListScenarioApiSimulation,
 )
-from app.infra.v5_types import ListFilterOption, ListFilterSection
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.scenario.get import get_scenarios
 from app.tools.artifacts.scenario.search import search_scenarios
 from app.tools.resources.departments.get import get_departments

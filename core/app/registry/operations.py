@@ -44,7 +44,7 @@ def resolve_callable(
 #   docs      → None (not yet implemented)
 # ---------------------------------------------------------------------------
 
-_A = "app.routes.v5"
+_A = "app.routes"
 
 ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     # activity (view-only)

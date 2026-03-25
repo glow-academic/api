@@ -68,8 +68,8 @@ async def docs_session_impl(
     # -- Step 3: Assemble response ----------------------------------------
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.v5.session.export import export_session
-    from app.routes.v5.session.get import get_session
+    from app.routes.session.export import export_session
+    from app.routes.session.get import get_session
 
     return ComposedDocsResponse(
         name="session",

@@ -65,10 +65,10 @@ async def docs_leaderboard_impl(
         compute_accolade_winners,
         compute_message_stats,
     )
-    from app.routes.v5.leaderboard.export import export_leaderboard
-    from app.routes.v5.leaderboard.get import get_leaderboard
-    from app.routes.v5.leaderboard.refresh import leaderboard_refresh
-    from app.routes.v5.leaderboard.search import search_leaderboard
+    from app.routes.leaderboard.export import export_leaderboard
+    from app.routes.leaderboard.get import get_leaderboard
+    from app.routes.leaderboard.refresh import leaderboard_refresh
+    from app.routes.leaderboard.search import search_leaderboard
 
     return ComposedDocsResponse(
         name="leaderboard",

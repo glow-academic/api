@@ -31,7 +31,7 @@ from app.infra.simulation.types import (
     ListSimulationApiScenario,
     ListSimulationApiSimulation,
 )
-from app.infra.v5_types import ListFilterOption, ListFilterSection
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.simulation.get import get_simulations
 from app.tools.artifacts.simulation.search import search_simulations
 from app.tools.resources.cohorts.search import (

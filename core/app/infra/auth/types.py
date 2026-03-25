@@ -16,7 +16,7 @@ from app.infra.shared_types import (
     QGetSystemsV4Item,
     QGetToolsV4Item,
 )
-from app.infra.v5_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.auth_drafts.types import GetAuthDraftResponse
 
 

@@ -2,9 +2,9 @@
 Per-artifact metadata — kind, section, endpoints, socket events.
 
 Data sources:
-- CRUD vs view: server/app/v5/router.py (lines 105-138)
-- Socket handlers: server/app/socket/v4/__init__.py
-- Per-artifact endpoints: each server/app/v5/main/{artifact}/__init__.py
+- CRUD vs view: app/routes/ router definitions
+- Socket handlers: app/socket/ handler modules
+- Per-artifact endpoints: each app/routes/{artifact}/ module
 - Section mapping: derived from ARTIFACT_ROUTES route prefixes
 """
 

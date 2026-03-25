@@ -32,7 +32,7 @@ from app.infra.parameter.types import (
     ListParameterApiParameter,
     ListParameterApiResponse,
 )
-from app.infra.v5_types import ListFilterOption, ListFilterSection
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.parameter.get import get_parameters
 from app.tools.artifacts.parameter.search import search_parameters
 from app.tools.resources.departments.search import search_departments

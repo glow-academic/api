@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from app.infra.profile.create import CreateProfileItem
 from app.infra.shared_types import QGetProfileContextV4RoleResource
-from app.infra.v5_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.profile_drafts.types import GetProfileDraftResponse
 
 # ---------------------------------------------------------------------------

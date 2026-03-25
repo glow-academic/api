@@ -31,7 +31,7 @@ from app.infra.persona.types import (
     ListPersonaApiPersona,
     ListPersonaApiResponse,
 )
-from app.infra.v5_types import ListFilterOption, ListFilterSection
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.persona.get import get_personas
 from app.tools.artifacts.persona.search import search_personas
 from app.tools.resources.colors.get import get_colors

@@ -4,28 +4,28 @@ from app.utils.cache.cache_key import CACHE_KEY_PREFIX, cache_key
 
 
 def test_returns_prefixed_string():
-    key = cache_key("/v5/resources/args/get", {"ids": ["abc"]})
+    key = cache_key("/resources/args/get", {"ids": ["abc"]})
 
     assert key.startswith(CACHE_KEY_PREFIX)
 
 
 def test_deterministic_same_inputs():
-    key1 = cache_key("/v5/resources/args/get", {"ids": ["abc", "def"]})
-    key2 = cache_key("/v5/resources/args/get", {"ids": ["abc", "def"]})
+    key1 = cache_key("/resources/args/get", {"ids": ["abc", "def"]})
+    key2 = cache_key("/resources/args/get", {"ids": ["abc", "def"]})
 
     assert key1 == key2
 
 
 def test_different_path_different_key():
-    key1 = cache_key("/v5/resources/args/get", {"ids": ["abc"]})
-    key2 = cache_key("/v5/resources/tools/get", {"ids": ["abc"]})
+    key1 = cache_key("/resources/args/get", {"ids": ["abc"]})
+    key2 = cache_key("/resources/tools/get", {"ids": ["abc"]})
 
     assert key1 != key2
 
 
 def test_different_body_different_key():
-    key1 = cache_key("/v5/resources/args/get", {"ids": ["abc"]})
-    key2 = cache_key("/v5/resources/args/get", {"ids": ["def"]})
+    key1 = cache_key("/resources/args/get", {"ids": ["abc"]})
+    key2 = cache_key("/resources/args/get", {"ids": ["def"]})
 
     assert key1 != key2
 

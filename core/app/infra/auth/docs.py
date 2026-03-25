@@ -169,14 +169,14 @@ async def docs_auth_impl(
         compute_can_edit,
         has_access,
     )
-    from app.routes.v5.auth.create import create_auth
-    from app.routes.v5.auth.delete import delete_auth
-    from app.routes.v5.auth.draft import patch_auth_draft
-    from app.routes.v5.auth.duplicate import duplicate_auth
-    from app.routes.v5.auth.export import export_auths
-    from app.routes.v5.auth.get import get_auth
-    from app.routes.v5.auth.search import search_auth
-    from app.routes.v5.auth.update import update_auth
+    from app.routes.auth.create import create_auth
+    from app.routes.auth.delete import delete_auth
+    from app.routes.auth.draft import patch_auth_draft
+    from app.routes.auth.duplicate import duplicate_auth
+    from app.routes.auth.export import export_auths
+    from app.routes.auth.get import get_auth
+    from app.routes.auth.search import search_auth
+    from app.routes.auth.update import update_auth
 
     return ComposedDocsResponse(
         name="auth",

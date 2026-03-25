@@ -72,7 +72,7 @@ async def run_artifact_operation_with_audit(
       - {artifact}.{operation}.completed (on success)
       - {artifact}.{operation}.failed (on error)
 
-    Output handlers in ws/v5/output/ pick these up and forward to clients.
+    Output handlers in ws/output/ pick these up and forward to clients.
     When the tool graph has a matching tool, a tool-call audit record is persisted.
     """
     effective_rooms = rooms or ([sid] if sid else [])

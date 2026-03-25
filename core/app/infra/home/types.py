@@ -11,7 +11,7 @@ from app.infra.chat.types import (
     StandardGroupMapping,
     StandardMapping,
 )
-from app.infra.v5_types import HistoryResponse
+from app.infra.api_types import HistoryResponse
 
 # =============================================================================
 # Export Types

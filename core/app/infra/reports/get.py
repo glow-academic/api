@@ -28,7 +28,7 @@ from app.infra.reports.types import (
     ReportsSimulationResource,
     ReportsViews,
 )
-from app.infra.v5_types import FilterOption
+from app.infra.api_types import FilterOption
 
 REPORTS_FACETS_CONFIG = AnalyticsFacetsConfig(
     fields=AnalyticsFilterFields(

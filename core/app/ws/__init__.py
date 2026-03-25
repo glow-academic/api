@@ -1,3 +1,3 @@
 """WebSocket event handlers."""
 
-from . import v5  # noqa: F401
+from . import input, output  # noqa: F401

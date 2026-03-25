@@ -1005,7 +1005,7 @@ async def test_run_impl(
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Test domain utilities (moved from app.socket.v5.types)
+# Test domain utilities (moved from app.socket.types)
 # ═══════════════════════════════════════════════════════════════════════════
 
 

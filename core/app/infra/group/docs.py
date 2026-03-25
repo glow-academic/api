@@ -75,8 +75,8 @@ async def docs_group_impl(
     # -- Step 3: Assemble response ----------------------------------------
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.v5.group.export import export_group
-    from app.routes.v5.group.get import get_group
+    from app.routes.group.export import export_group
+    from app.routes.group.get import get_group
 
     return ComposedDocsResponse(
         name="group",

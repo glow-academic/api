@@ -33,7 +33,7 @@ from app.infra.cohort.types import (
     ListCohortApiResponse,
     ListCohortApiSimulation,
 )
-from app.infra.v5_types import ListFilterOption, ListFilterSection
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.cohort.get import get_cohorts
 from app.tools.artifacts.cohort.search import search_cohorts
 from app.tools.resources.departments.get import get_departments

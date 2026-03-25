@@ -24,7 +24,7 @@ from app.infra.pricing.types import (
     PricingResources,
     PricingResponse,
 )
-from app.infra.v5_types import FilterOption
+from app.infra.api_types import FilterOption
 
 PRICING_FACETS_CONFIG = AnalyticsFacetsConfig(
     fields=AnalyticsFilterFields(

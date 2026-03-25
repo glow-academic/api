@@ -76,7 +76,7 @@ class GenerationStartedEvent(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Generate gate types — moved from routes/v5/socket/ to avoid import chain
+# Generate gate types — moved from routes/socket/ to avoid import chain
 # ═══════════════════════════════════════════════════════════════════════════
 
 

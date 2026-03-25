@@ -9,7 +9,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.persona.create import CreatePersonaItem
-from app.infra.v5_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.persona_drafts.types import GetPersonaDraftResponse
 from app.tools.resources.fields.types import GetFieldResponse
 from app.tools.resources.parameters.types import GetParameterResponse

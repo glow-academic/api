@@ -8,7 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.field.create import CreateFieldItem
-from app.infra.v5_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.field_drafts.types import GetFieldDraftResponse
 from app.tools.resources.parameters.types import GetParameterResponse
 
