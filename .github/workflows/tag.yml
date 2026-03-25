@@ -26,6 +26,19 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Validate version matches branch
+        run: |
+          MAJOR=$(echo "${{ steps.version.outputs.version }}" | cut -d. -f1)
+          BRANCH="${{ github.ref_name }}"
+          if [ "$BRANCH" = "v1" ] && [ "$MAJOR" != "1" ]; then
+            echo "::error::v1 branch must have 1.x.x version, got ${{ steps.version.outputs.version }}"
+            exit 1
+          fi
+          if [ "$BRANCH" = "main" ] && [ "$MAJOR" = "1" ]; then
+            echo "::error::main branch must not have 1.x.x version, got ${{ steps.version.outputs.version }}"
+            exit 1
+          fi
+
       - name: Check if tag exists
         id: check
         run: |
@@ -59,9 +72,7 @@ jobs:
           context: ./core
           file: ./core/Dockerfile
           push: true
-          tags: |
-            ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.version.outputs.tag }}
-            ${{ github.ref == 'refs/heads/main' && format('{0}/learnloopllc/glow-api-server:latest', env.REGISTRY) || '' }}
+          tags: ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.version.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
