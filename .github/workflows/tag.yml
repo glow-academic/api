@@ -100,64 +100,32 @@ jobs:
           " > openapi.json
           echo "Generated openapi.json ($(wc -c < openapi.json) bytes)"
 
-      - name: Create release with openapi.json
-        if: steps.check.outputs.exists == 'false'
+      - name: Generate compat.json
+        if: steps.check.outputs.should_build == 'true'
+        run: |
+          python3 -c "
+          import yaml, json
+          with open('compat.yml') as f:
+              data = yaml.safe_load(f)
+          data['version'] = '${{ steps.version.outputs.version }}'
+          with open('compat.json', 'w') as f:
+              json.dump(data, f, indent=2)
+          print('Generated compat.json')
+          "
+
+      - name: Create or update release
+        if: steps.check.outputs.should_build == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ steps.version.outputs.tag }}" \
-            openapi.json \
-            glow-api-server-${{ steps.version.outputs.tag }}.tar.gz \
-            --title "${{ steps.version.outputs.tag }}" \
-            --generate-notes
+          TAG="${{ steps.version.outputs.tag }}"
+          if gh release view "$TAG" &>/dev/null; then
+            gh release upload "$TAG" openapi.json compat.json --clobber
+            echo "Updated release $TAG"
+          else
+            gh release create "$TAG" openapi.json compat.json \
+              --title "$TAG" \
+              --generate-notes
+            echo "Created release $TAG"
+          fi
 
-      - name: Generate GitHub App token
-        if: steps.check.outputs.exists == 'false'
-        id: app-token
-        uses: actions/create-github-app-token@v1
-        with:
-          app-id: ${{ secrets.DEPLOY_APP_ID }}
-          private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
-          owner: learnloopllc
-
-      - name: Notify client repo
-        if: steps.check.outputs.exists == 'false'
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          gh api repos/learnloopllc/glow-client/dispatches \
-            -f event_type=api-release \
-            -f 'client_payload[version]=${{ steps.version.outputs.tag }}'
-          echo "Dispatched api-release to glow-client (${{ steps.version.outputs.tag }})"
-
-      - name: Notify CLI repo
-        if: steps.check.outputs.exists == 'false'
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          gh api repos/learnloopllc/glow-cli/dispatches \
-            -f event_type=glow-api-release \
-            -f 'client_payload[version]=${{ steps.version.outputs.tag }}'
-          echo "Dispatched glow-api-release to glow-cli (${{ steps.version.outputs.tag }})"
-
-      - name: Notify docs repo
-        if: steps.check.outputs.exists == 'false'
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          gh api repos/learnloopllc/docs/dispatches \
-            -f event_type=glow-api-release \
-            -f 'client_payload[version]=${{ steps.version.outputs.tag }}'
-          echo "Dispatched glow-api-release to docs (${{ steps.version.outputs.tag }})"
-
-      - name: Dispatch compat-update to LearnLoop API
-        if: steps.check.outputs.exists == 'false'
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          MIN_LL=$(grep 'min_learnloop_api' compat.yml | cut -d'"' -f2)
-          gh api repos/learnloopllc/api/dispatches \
-            -f event_type=compat-update \
-            -f 'client_payload[component]=glow-api' \
-            -f 'client_payload[version]=${{ steps.version.outputs.version }}' \
-            -f "client_payload[min_learnloop_api]=$MIN_LL"
