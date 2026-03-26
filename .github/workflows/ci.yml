@@ -68,10 +68,16 @@ jobs:
       - name: Install dependencies
         run: pip install -r core/requirements.txt -r core/requirements-dev.txt -q 2>/dev/null || pip install -r core/requirements.txt -q
 
-      - name: Run unit tests
+      - name: Run tests
         run: |
-          if PYTHONPATH=core python -c "from app.main import app" 2>/dev/null; then
-            PYTHONPATH=core python -m pytest core/tests/unit -v --tb=short
+          # Find test directory (main uses core/tests/, v1 uses core/tests/unit/)
+          if [ -d "core/tests/unit" ]; then
+            TEST_DIR="core/tests/unit"
           else
-            echo "App imports require runtime dependencies — skipping unit tests"
+            TEST_DIR="core/tests"
+          fi
+          if PYTHONPATH=core python -c "from app.main import app" 2>/dev/null; then
+            PYTHONPATH=core python -m pytest "$TEST_DIR" -v --tb=short
+          else
+            echo "App imports require runtime dependencies — skipping tests"
           fi
