@@ -113,7 +113,7 @@ async def wait_for_keycloak(
 
 async def main() -> None:
     """Configure MCP token lifespan."""
-    keycloak_url = os.getenv("KEYCLOAK_INTERNAL_URL", "http://keycloak:8080")
+    auth_url = os.getenv("KEYCLOAK_INTERNAL_URL", "http://keycloak:8080")
     keycloak_admin = os.getenv("KEYCLOAK_ADMIN", "admin")
     keycloak_admin_password = os.getenv("KEYCLOAK_ADMIN_PASSWORD", "admin")
 
@@ -123,12 +123,12 @@ async def main() -> None:
 
     # Try localhost if internal URL doesn't work or we're in local dev
     if is_local_dev or (
-        "keycloak" in keycloak_url and not _can_resolve_hostname("keycloak")
+        "keycloak" in auth_url and not _can_resolve_hostname("keycloak")
     ):
-        keycloak_url = "http://localhost:8080"
+        auth_url = "http://localhost:8080"
 
     kc_admin = await wait_for_keycloak(
-        keycloak_url, keycloak_admin, keycloak_admin_password
+        auth_url, keycloak_admin, keycloak_admin_password
     )
 
     if not kc_admin:

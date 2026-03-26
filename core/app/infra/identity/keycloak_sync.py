@@ -49,7 +49,7 @@ class KeycloakSyncConfig:
     origin: str = ""
     client_origins: list[str] | None = None  # allowed client/frontend origins for CORS and redirect URIs
     auth_secret: str | None = None
-    keycloak_url: str | None = None
+    auth_url: str | None = None
     keycloak_internal_url: str | None = None
     keycloak_admin: str = "admin"
     keycloak_admin_password: str = "admin"
@@ -79,7 +79,7 @@ class KeycloakSyncConfig:
             origin=origin,
             client_origins=get_client_origins(),
             auth_secret=auth_secret,
-            keycloak_url=os.getenv("KEYCLOAK_URL"),
+            auth_url=os.getenv("KEYCLOAK_URL"),
             keycloak_internal_url=os.getenv("KEYCLOAK_INTERNAL_URL"),
             keycloak_admin=os.getenv("KEYCLOAK_ADMIN", "admin"),
             keycloak_admin_password=os.getenv("KEYCLOAK_ADMIN_PASSWORD", "admin"),
@@ -1984,8 +1984,8 @@ async def sync_keycloak(
     """
     try:
         # Resolve Keycloak URL from config
-        if config.keycloak_url:
-            keycloak_url = config.keycloak_url.rstrip("/")
+        if config.auth_url:
+            auth_url = config.auth_url.rstrip("/")
         else:
             if config.keycloak_internal_url:
                 base_url = config.keycloak_internal_url.rstrip("/")
@@ -1997,11 +1997,11 @@ async def sync_keycloak(
             # Keycloak admin API: use /auth path for consistency
             # For local dev: Keycloak serves at /auth (KC_HTTP_RELATIVE_PATH=/auth)
             # For Docker/production: Keycloak is behind nginx at /auth
-            keycloak_url = f"{base_url}{config.app_prefix}/auth"
+            auth_url = f"{base_url}{config.app_prefix}/auth"
 
         # Connect to Keycloak Admin API with retry logic
         kc_admin = await wait_for_keycloak(
-            keycloak_url, config.keycloak_admin, config.keycloak_admin_password
+            auth_url, config.keycloak_admin, config.keycloak_admin_password
         )
         if not kc_admin:
             logger.warning(

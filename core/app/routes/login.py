@@ -151,7 +151,7 @@ async def client_config(request: Request):
         raise HTTPException(500, "Server auth not configured (missing SECRET_KEY or AUTH_KEYCLOAK_SECRET)")
 
     return {
-        "keycloak_url": f"{_origin}{_app_prefix}/auth",
+        "auth_url": f"{_origin}{_app_prefix}/auth",
         "realm": _realm,
         "client_id": _client_id,
         "client_secret": _client_secret,

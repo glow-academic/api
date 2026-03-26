@@ -19,7 +19,7 @@ def make_config(**overrides) -> KeycloakSyncConfig:
         "app_prefix": "",
         "origin": "http://localhost:3000",
         "auth_secret": "test-secret",
-        "keycloak_url": None,
+        "auth_url": None,
         "keycloak_internal_url": None,
         "keycloak_admin": "admin",
         "keycloak_admin_password": "admin",
@@ -567,7 +567,7 @@ async def test_sync_identity_provider_for_org_uses_auth_scoped_alias(monkeypatch
 @pytest.mark.asyncio
 async def test_sync_keycloak_runs_full_orchestration(monkeypatch):
     admin = FakeKCAdmin()
-    config = make_config(keycloak_url="http://kc/auth")
+    config = make_config(auth_url="http://kc/auth")
     calls: list[str] = []
 
     async def _wait(url, admin_user, password):

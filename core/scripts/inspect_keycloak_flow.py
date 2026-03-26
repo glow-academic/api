@@ -14,22 +14,22 @@ from keycloak import KeycloakAdmin  # type: ignore
 def main():
     """Inspect Keycloak flow execution structure."""
     # Get Keycloak connection details from environment
-    keycloak_url = os.getenv("KEYCLOAK_URL", "http://localhost:8080")
+    auth_url = os.getenv("KEYCLOAK_URL", "http://localhost:8080")
     app_prefix = os.getenv("APP_PREFIX", "")
 
     if app_prefix:
-        keycloak_url = f"{keycloak_url.rstrip('/')}{app_prefix}/auth"
+        auth_url = f"{auth_url.rstrip('/')}{app_prefix}/auth"
     else:
-        keycloak_url = f"{keycloak_url.rstrip('/')}/auth"
+        auth_url = f"{auth_url.rstrip('/')}/auth"
 
     keycloak_admin = os.getenv("KEYCLOAK_ADMIN", "admin")
     keycloak_password = os.getenv("KEYCLOAK_ADMIN_PASSWORD", "admin")
 
-    print(f"Connecting to Keycloak at {keycloak_url}...")
+    print(f"Connecting to Keycloak at {auth_url}...")
 
     try:
         kc_admin = KeycloakAdmin(
-            server_url=f"{keycloak_url}/",
+            server_url=f"{auth_url}/",
             username=keycloak_admin,
             password=keycloak_password,
             realm_name="master",

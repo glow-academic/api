@@ -57,10 +57,10 @@ async def check_keycloak() -> ServiceCheckResult:
     """Check Keycloak availability via HTTP GET to .well-known endpoint."""
     start = time.perf_counter()
     app_prefix = os.getenv("APP_PREFIX", "")
-    explicit_keycloak_url = os.getenv("KEYCLOAK_URL")
+    explicit_auth_url = os.getenv("KEYCLOAK_URL")
 
-    if explicit_keycloak_url:
-        keycloak_url = explicit_keycloak_url.rstrip("/")
+    if explicit_auth_url:
+        auth_url = explicit_auth_url.rstrip("/")
     else:
         docker_env = os.getenv("DOCKER_ENV")
         keycloak_internal_url = os.getenv("KEYCLOAK_INTERNAL_URL")
@@ -72,10 +72,10 @@ async def check_keycloak() -> ServiceCheckResult:
         else:
             base_url = "http://localhost:8080"
 
-        keycloak_url = f"{base_url}{app_prefix}/auth"
+        auth_url = f"{base_url}{app_prefix}/auth"
 
     realm = "master"
-    well_known = f"{keycloak_url}/realms/{realm}/.well-known/openid-configuration"
+    well_known = f"{auth_url}/realms/{realm}/.well-known/openid-configuration"
 
     try:
         async with httpx.AsyncClient(timeout=2.0) as client:
