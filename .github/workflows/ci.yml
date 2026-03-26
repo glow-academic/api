@@ -5,6 +5,7 @@ on:
     branches: [main, v1]
   pull_request:
     branches: [main, v1]
+  workflow_dispatch:
 
 jobs:
   # Schema check — only on main (v1 uses Drizzle, not schema.sql)
