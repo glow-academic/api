@@ -418,7 +418,7 @@ def test_get_idp_urls_cover_local_and_docker_variants():
     assert (
         keycloak_sync.get_idp_internal_url(prod) == "https://glow.example.com/app"
     )
-    assert keycloak_sync.get_idp_internal_url(docker) == "http://server:8000"
+    assert keycloak_sync.get_idp_internal_url(docker) == "http://nginx:80"
     assert keycloak_sync.get_idp_base_url() == keycloak_sync.get_idp_public_url()
 
 

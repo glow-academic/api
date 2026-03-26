@@ -2267,6 +2267,7 @@ class TestAttemptStartImpl:
         pool,
         redis_client,
         profile_identity_factory,
+        monkeypatch,
     ):
         fixture = await profile_identity_factory()
 
@@ -2318,6 +2319,13 @@ class TestAttemptStartImpl:
             await refresh_practice(conn)
             await refresh_practice_chat(conn)
 
+        async def _noop_ledger_gate(**kwargs):
+            return None
+
+        monkeypatch.setattr(
+            "app.infra.ledger.gate.ledger_gate", _noop_ledger_gate
+        )
+
         emit, events = recording_emit()
         await _attempt_start_impl(
             {
@@ -2349,6 +2357,7 @@ class TestAttemptStartImpl:
         pool,
         redis_client,
         profile_identity_factory,
+        monkeypatch,
     ):
         fixture = await profile_identity_factory()
 
@@ -2400,6 +2409,13 @@ class TestAttemptStartImpl:
             await refresh_home_chat(conn)
             await refresh_home(conn)
             await refresh_attempt(conn)
+
+        async def _noop_ledger_gate(**kwargs):
+            return None
+
+        monkeypatch.setattr(
+            "app.infra.ledger.gate.ledger_gate", _noop_ledger_gate
+        )
 
         emit, events = recording_emit()
         await _attempt_start_impl(
