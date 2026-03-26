@@ -1,9 +1,9 @@
 name: Tag, Build & Release
 
 on:
-  push:
-    branches: [main, v1]
-    paths: [core/app/version.py]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
   workflow_dispatch:
 
 env:
@@ -16,8 +16,11 @@ permissions:
 jobs:
   tag-build-release:
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.ref_name }}
 
       - name: Read version
         id: version
@@ -29,7 +32,7 @@ jobs:
       - name: Validate version matches branch
         run: |
           MAJOR=$(echo "${{ steps.version.outputs.version }}" | cut -d. -f1)
-          BRANCH="${{ github.ref_name }}"
+          BRANCH="${{ github.event.workflow_run.head_branch || github.ref_name }}"
           if [ "$BRANCH" = "v1" ] && [ "$MAJOR" != "1" ]; then
             echo "::error::v1 branch must have 1.x.x version, got ${{ steps.version.outputs.version }}"
             exit 1
@@ -39,26 +42,20 @@ jobs:
             exit 1
           fi
 
-      - name: Check if tag exists
-        id: check
+      - name: Create tag (idempotent)
         run: |
-          if git ls-remote --tags origin "refs/tags/${{ steps.version.outputs.tag }}" | grep -q .; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
+          TAG="${{ steps.version.outputs.tag }}"
+          if git ls-remote --tags origin "refs/tags/$TAG" | grep -q .; then
+            echo "Tag $TAG already exists, skipping creation"
           else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
+            git tag "$TAG"
+            git push origin "$TAG"
+            echo "Created tag $TAG"
           fi
 
-      - name: Create tag
-        if: steps.check.outputs.exists == 'false'
-        run: |
-          git tag "${{ steps.version.outputs.tag }}"
-          git push origin "${{ steps.version.outputs.tag }}"
-
       - uses: docker/setup-buildx-action@v3
-        if: steps.check.outputs.exists == 'false'
 
       - name: Log in to GHCR
-        if: steps.check.outputs.exists == 'false'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -66,7 +63,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push server
-        if: steps.check.outputs.exists == 'false'
         uses: docker/build-push-action@v5
         with:
           context: ./core
@@ -77,7 +73,6 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Export Docker image tarball
-        if: steps.check.outputs.exists == 'false'
         run: |
           docker pull ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.version.outputs.tag }}
           docker tag ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.version.outputs.tag }} glow-api-server:${{ steps.version.outputs.tag }}
@@ -85,7 +80,6 @@ jobs:
           echo "Exported $(du -h glow-api-server-${{ steps.version.outputs.tag }}.tar.gz | cut -f1)"
 
       - name: Generate OpenAPI spec
-        if: steps.check.outputs.exists == 'false'
         run: |
           # Use the image we just built (has all deps at correct Python version)
           docker run --rm --user root --tmpfs /uploads \
@@ -101,7 +95,6 @@ jobs:
           echo "Generated openapi.json ($(wc -c < openapi.json) bytes)"
 
       - name: Generate compat.json
-        if: steps.check.outputs.should_build == 'true'
         run: |
           python3 -c "
           import yaml, json
@@ -114,7 +107,6 @@ jobs:
           "
 
       - name: Create or update release
-        if: steps.check.outputs.should_build == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -128,4 +120,3 @@ jobs:
               --generate-notes
             echo "Created release $TAG"
           fi
-
