@@ -68,17 +68,10 @@ async def connect(
 
     if auth and auth.get("token"):
         try:
-            from app.infra.identity.license_key import validate_license_key
             from app.infra.identity.resolve_identity import (
                 extract_bearer_token,
                 resolve_identity,
             )
-
-            api_key = auth.get("apiKey")
-            if api_key:
-                license_info = await validate_license_key(api_key)
-                if not license_info.valid:
-                    return False
 
             token = extract_bearer_token(auth["token"])
             if token:
