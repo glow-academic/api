@@ -13,7 +13,7 @@ VERSION="${1:-}"
 
 if [ -n "$VERSION" ]; then
   echo "Pulling server image for version $VERSION..."
-  docker pull "ghcr.io/learnloopllc/glow-api-server:$VERSION" || true
+  docker pull "ghcr.io/learnloopllc/glow-api:$VERSION" || true
 else
   echo "Pulling server image from compose..."
   docker compose pull server-blue server-green 2>/dev/null || true

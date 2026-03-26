@@ -74,7 +74,7 @@ jobs:
     env:
       DEPLOY_DIR: /srv/deploy/live/glow/${{ inputs.deployment_id }}
       COMPOSE_PROJECT_NAME: ${{ inputs.deployment_id }}
-      API_SERVER_IMAGE: ghcr.io/learnloopllc/glow-api-server:${{ inputs.version }}
+      API_SERVER_IMAGE: ghcr.io/learnloopllc/glow-api:${{ inputs.version }}
       ACTIVE_ENV: ${{ needs.detect-active-environment.outputs.active-env }}
       ACTIVE_KC_ENV: ${{ needs.detect-active-environment.outputs.active-kc-env }}
       DB_BACKUP: ${{ inputs.db_backup }}

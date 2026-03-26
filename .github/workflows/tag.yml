@@ -68,22 +68,22 @@ jobs:
           context: ./core
           file: ./core/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.version.outputs.tag }}
+          tags: ${{ env.REGISTRY }}/learnloopllc/glow-api:${{ steps.version.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Export Docker image tarball
         run: |
-          docker pull ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.version.outputs.tag }}
-          docker tag ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.version.outputs.tag }} glow-api-server:${{ steps.version.outputs.tag }}
-          docker save glow-api-server:${{ steps.version.outputs.tag }} | gzip > glow-api-server-${{ steps.version.outputs.tag }}.tar.gz
-          echo "Exported $(du -h glow-api-server-${{ steps.version.outputs.tag }}.tar.gz | cut -f1)"
+          docker pull ${{ env.REGISTRY }}/learnloopllc/glow-api:${{ steps.version.outputs.tag }}
+          docker tag ${{ env.REGISTRY }}/learnloopllc/glow-api:${{ steps.version.outputs.tag }} glow-api:${{ steps.version.outputs.tag }}
+          docker save glow-api:${{ steps.version.outputs.tag }} | gzip > glow-api-${{ steps.version.outputs.tag }}.tar.gz
+          echo "Exported $(du -h glow-api-${{ steps.version.outputs.tag }}.tar.gz | cut -f1)"
 
       - name: Generate OpenAPI spec
         run: |
           # Use the image we just built (has all deps at correct Python version)
           docker run --rm --user root --tmpfs /uploads \
-            ${{ env.REGISTRY }}/learnloopllc/glow-api-server:${{ steps.version.outputs.tag }} \
+            ${{ env.REGISTRY }}/learnloopllc/glow-api:${{ steps.version.outputs.tag }} \
             python -c "
           import json
           from app.server import fastapi_app

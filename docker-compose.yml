@@ -187,7 +187,7 @@ services:
   # API Server (Blue)
   # --------------------
   server-blue:
-    image: ${API_REGISTRY:-ghcr.io/learnloopllc}/glow-api-server:${API_VERSION:?API_VERSION is required}
+    image: ${API_REGISTRY:-ghcr.io/learnloopllc}/glow-api:${API_VERSION:?API_VERSION is required}
     environment:
       - DB_USER=${DB_USER:-myuser}
       - DB_PASSWORD=${DB_PASSWORD:-mypassword}
@@ -235,7 +235,7 @@ services:
   # API Server (Green)
   # --------------------
   server-green:
-    image: ${API_REGISTRY:-ghcr.io/learnloopllc}/glow-api-server:${API_VERSION:?API_VERSION is required}
+    image: ${API_REGISTRY:-ghcr.io/learnloopllc}/glow-api:${API_VERSION:?API_VERSION is required}
     environment:
       - DB_USER=${DB_USER:-myuser}
       - DB_PASSWORD=${DB_PASSWORD:-mypassword}
