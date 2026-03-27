@@ -169,6 +169,21 @@ jobs:
         working-directory: ${{ env.DEPLOY_DIR }}
         run: make migrate-docker TYPE=add
 
+      - name: Write .env
+        working-directory: ${{ env.DEPLOY_DIR }}
+        run: |
+          cat > .env <<EOF
+          COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
+          API_VERSION=${API_VERSION}
+          ORIGIN=${ORIGIN}
+          CLIENT_ORIGINS=${CLIENT_ORIGINS}
+          APP_PREFIX=${APP_PREFIX}
+          DB_BACKUP=${DB_BACKUP}
+          ACTIVE_ENV=${ACTIVE_ENV}
+          ACTIVE_KC_ENV=${ACTIVE_KC_ENV}
+          EOF
+          sed -i 's/^          //' .env
+
       - name: Deploy target environment
         working-directory: ${{ env.DEPLOY_DIR }}
         run: |
