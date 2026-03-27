@@ -200,7 +200,9 @@ def exchange_code_for_tokens(
     # Validate client_secret against AUTH_SECRET
     import os
     expected_secret = os.getenv("AUTH_SECRET", "")
-    if expected_secret and client_secret != expected_secret:
+    if not expected_secret:
+        raise AuthorizationError(500, "AUTH_SECRET not configured — token exchange disabled")
+    if client_secret != expected_secret:
         raise AuthorizationError(401, "Invalid client_secret")
 
     code_data = _authorization_codes.get(code)
