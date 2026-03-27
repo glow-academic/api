@@ -49,6 +49,7 @@ dependencies = [
     "respx",
     # Testing
     "pytest>=7.0.0",
+    "pytest-xdist>=3.5.0",
     "pytest-cov>=4.0.0",
     "pytest-mock>=3.10.0",
     "httpx>=0.24.0",

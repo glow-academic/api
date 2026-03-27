@@ -40,7 +40,7 @@ jobs:
             TEST_DIR="core/tests"
           fi
           if PYTHONPATH=core python -c "import importlib; importlib.import_module('tests.conftest')" 2>/dev/null; then
-            PYTHONPATH=core python -m pytest "$TEST_DIR" -v --tb=short
+            PYTHONPATH=core python -m pytest "$TEST_DIR" -v --tb=short -n auto
           else
             echo "Test dependencies not fully available — running import check only"
             PYTHONPATH=core python -c "from app.main import app; print('App imports OK')" || echo "App requires runtime deps"
