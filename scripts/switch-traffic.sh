@@ -23,6 +23,10 @@ echo "Switching server traffic to $TARGET_ENV (keycloak stays $CURRENT_KC_ENV)..
 export ACTIVE_ENV="$TARGET_ENV"
 export ACTIVE_KC_ENV="$CURRENT_KC_ENV"
 
+# Persist routing so restarts pick it up
+echo "ACTIVE_ENV=$TARGET_ENV" > .env
+echo "ACTIVE_KC_ENV=$CURRENT_KC_ENV" >> .env
+
 docker compose up -d --no-deps nginx
 
 sleep 5
