@@ -300,6 +300,7 @@ async def ensure_glow_client_in_master_realm(
         redirect_uris = [
             redirect_uri,
             f"{base_url}{config.app_prefix}/*",
+            f"{base_url}{config.app_prefix}/oidc-callback",  # OIDC intermediary callback
             "http://127.0.0.1:*",  # CLI OAuth callbacks on random ports
             "http://localhost:*",
         ]
