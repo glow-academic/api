@@ -197,10 +197,11 @@ def exchange_code_for_tokens(
             f"Unsupported grant_type: {grant_type}. Only 'authorization_code' is supported.",
         )
 
-    # Validate client_secret against AUTH_SECRET
-    import os
-    expected_secret = os.getenv("AUTH_SECRET", "")
-    if not expected_secret:
+    # Validate client_secret against AUTH_SECRET (derived from SECRET_KEY if needed)
+    from app.infra.identity.state import get_auth_secret
+    try:
+        expected_secret = get_auth_secret()
+    except ValueError:
         raise AuthorizationError(500, "AUTH_SECRET not configured — token exchange disabled")
     if client_secret != expected_secret:
         raise AuthorizationError(401, "Invalid client_secret")
