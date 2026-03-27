@@ -49,7 +49,7 @@ jobs:
   schema-check:
     runs-on: ubuntu-latest
     if: |
-      (github.ref == 'refs/heads/main' || github.base_ref == 'main') &&
+      github.ref != 'refs/heads/v1' &&
       !contains(github.event.head_commit.message, '[skip ci]')
     steps:
       - uses: actions/checkout@v5
@@ -96,7 +96,11 @@ jobs:
   release:
     needs: [test, schema-check]
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
+    if: |
+      always() &&
+      needs.test.result == 'success' &&
+      (needs.schema-check.result == 'success' || needs.schema-check.result == 'skipped') &&
+      github.event_name != 'pull_request'
     outputs:
       released: ${{ steps.check.outputs.released }}
       tag: ${{ steps.version.outputs.tag }}
