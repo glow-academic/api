@@ -250,12 +250,4 @@ server {
         proxy_http_version 1.1;
         proxy_set_header   Host              $http_host;
     }
-
-    # Backups are managed by LearnLoop API, not glow-api
-
-    # Catch-all — no client routes
-    location / {
-        return 404 '{"error": "not found", "hint": "glow-api serves API endpoints only"}';
-        add_header Content-Type application/json;
-    }
 }
