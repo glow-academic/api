@@ -297,7 +297,12 @@ async def ensure_glow_client_in_master_realm(
 
         base_url = config.origin.rstrip("/")
         redirect_uri = f"{base_url}{config.app_prefix}/api/auth/callback/keycloak"
-        redirect_uris = [redirect_uri, f"{base_url}{config.app_prefix}/*"]
+        redirect_uris = [
+            redirect_uri,
+            f"{base_url}{config.app_prefix}/*",
+            "http://127.0.0.1:*",  # CLI OAuth callbacks on random ports
+            "http://localhost:*",
+        ]
 
         for client_base in config.client_origins or []:
             client_base = client_base.strip().rstrip("/")
