@@ -184,6 +184,7 @@ def exchange_code_for_tokens(
     code: str,
     redirect_uri: str,
     client_id: str,
+    client_secret: str | None = None,
 ) -> dict[str, Any]:
     """Exchange authorization code for access + id tokens.
 
@@ -195,6 +196,12 @@ def exchange_code_for_tokens(
             400,
             f"Unsupported grant_type: {grant_type}. Only 'authorization_code' is supported.",
         )
+
+    # Validate client_secret against AUTH_SECRET
+    import os
+    expected_secret = os.getenv("AUTH_SECRET", "")
+    if expected_secret and client_secret != expected_secret:
+        raise AuthorizationError(401, "Invalid client_secret")
 
     code_data = _authorization_codes.get(code)
     if not code_data:

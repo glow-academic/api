@@ -1,4 +1,4 @@
-"""POST /default-idp/token — OIDC token exchange endpoint."""
+"""POST /token — OIDC token exchange endpoint."""
 
 from typing import Any
 
@@ -26,6 +26,7 @@ async def token(
             code=code,
             redirect_uri=redirect_uri,
             client_id=client_id,
+            client_secret=client_secret,
         )
     except AuthorizationError as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail)
