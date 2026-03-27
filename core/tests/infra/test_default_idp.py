@@ -13,7 +13,7 @@ def test_exchange_code_for_tokens_puts_profile_identity_on_access_token(monkeypa
     code = "code-access-token-contract"
 
     from app.infra.identity import default_idp
-    from app.infra.identity.state import get_auth_secret
+    from app.utils.auth.derive_key import derive_from_secret_key
 
     default_idp._authorization_codes[code] = {
         "profile_id": "019ce726-fa14-7f2a-aebb-0067bca4b029",
@@ -33,7 +33,7 @@ def test_exchange_code_for_tokens_puts_profile_identity_on_access_token(monkeypa
         code=code,
         redirect_uri="http://localhost/callback",
         client_id="test-client",
-        client_secret=get_auth_secret(),
+        client_secret=derive_from_secret_key("test-secret-key", "keycloak-client"),
     )
 
     access_claims = jwt.get_unverified_claims(tokens["access_token"])

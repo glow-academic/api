@@ -197,12 +197,13 @@ def exchange_code_for_tokens(
             f"Unsupported grant_type: {grant_type}. Only 'authorization_code' is supported.",
         )
 
-    # Validate client_secret against AUTH_SECRET (derived from SECRET_KEY if needed)
-    from app.infra.identity.state import get_auth_secret
-    try:
-        expected_secret = get_auth_secret()
-    except ValueError:
-        raise AuthorizationError(500, "AUTH_SECRET not configured — token exchange disabled")
+    # Validate client_secret against keycloak-client derived secret
+    import os
+    from app.utils.auth.derive_key import derive_from_secret_key
+    secret_key = os.getenv("SECRET_KEY", "")
+    if not secret_key:
+        raise AuthorizationError(500, "SECRET_KEY not configured — token exchange disabled")
+    expected_secret = derive_from_secret_key(secret_key, "keycloak-client")
     if client_secret != expected_secret:
         raise AuthorizationError(401, "Invalid client_secret")
 
