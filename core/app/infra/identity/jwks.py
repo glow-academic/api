@@ -1,5 +1,12 @@
-"""JWKS key management for default-idp OIDC provider."""
+"""JWKS key management for default-idp OIDC provider.
 
+Keys are persisted to /app/uploads/.idp-key.pem so they survive container
+restarts. Generated once, then reloaded from file.
+"""
+
+import hashlib
+import os
+from pathlib import Path
 from typing import Any
 
 from cryptography.hazmat.primitives import serialization
@@ -9,81 +16,76 @@ from jose import jwk
 # Global key pair cache
 _key_pair: tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey] | None = None
 
+# Persist key to uploads volume (survives restarts)
+_KEY_PATH = Path(os.getenv("IDP_KEY_PATH", "/app/uploads/.idp-key.pem"))
+
 
 def generate_key_pair() -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
-    """Generate a new RSA-2048 key pair.
+    """Load persisted key or generate and save a new one."""
+    # Try to load existing key
+    if _KEY_PATH.exists():
+        try:
+            pem = _KEY_PATH.read_bytes()
+            private_key = serialization.load_pem_private_key(pem, password=None)
+            return private_key, private_key.public_key()
+        except Exception:
+            pass  # Corrupt file, regenerate
 
-    Returns:
-        Tuple of (private_key, public_key)
-    """
+    # Generate new key
     private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
     )
-    public_key = private_key.public_key()
-    return private_key, public_key
+
+    # Persist to file
+    try:
+        _KEY_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _KEY_PATH.write_bytes(
+            private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+        )
+    except Exception:
+        pass  # Read-only filesystem, key won't persist
+
+    return private_key, private_key.public_key()
 
 
 def get_or_create_key_pair() -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
-    """Get existing key pair or create a new one.
-
-    In production, keys should be persisted and loaded from secure storage.
-    For now, we generate on first use and cache in memory.
-
-    Returns:
-        Tuple of (private_key, public_key)
-    """
+    """Get existing key pair or create a new one."""
     global _key_pair
-
     if _key_pair is None:
         _key_pair = generate_key_pair()
-
     return _key_pair
 
 
 def get_private_key() -> rsa.RSAPrivateKey:
-    """Get the private key for signing tokens.
-
-    Returns:
-        RSA private key
-    """
+    """Get the private key for signing tokens."""
     private_key, _ = get_or_create_key_pair()
     return private_key
 
 
 def get_public_key() -> rsa.RSAPublicKey:
-    """Get the public key for token verification.
-
-    Returns:
-        RSA public key
-    """
+    """Get the public key for token verification."""
     _, public_key = get_or_create_key_pair()
     return public_key
 
 
 def get_jwks() -> dict[str, Any]:
-    """Get JWKS (JSON Web Key Set) for public key exposure.
-
-    Returns:
-        JWKS dictionary with public key in JWK format
-    """
+    """Get JWKS (JSON Web Key Set) for public key exposure."""
     public_key = get_public_key()
 
-    # Serialize public key to PEM format
     pem = public_key.public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
 
-    # Convert to JWK format using jose library
     jwk_dict = jwk.construct(pem, algorithm="RS256")
-
-    # Get the JWK representation
     public_jwk = jwk_dict.to_dict()
 
-    # Add kid (key ID) - use a stable identifier
-    # In production, this should be based on key rotation policy
-    public_jwk["kid"] = "default-idp-key-1"
+    public_jwk["kid"] = get_key_id()
     public_jwk["use"] = "sig"
     public_jwk["alg"] = "RS256"
 
@@ -91,9 +93,10 @@ def get_jwks() -> dict[str, Any]:
 
 
 def get_key_id() -> str:
-    """Get the key ID for token signing.
-
-    Returns:
-        Key ID string
-    """
-    return "default-idp-key-1"
+    """Get the key ID — stable based on the actual public key."""
+    public_key = get_public_key()
+    pub_bytes = public_key.public_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    return f"glow-idp-{hashlib.sha256(pub_bytes).hexdigest()[:16]}"

@@ -27,16 +27,27 @@ def get_idp_base_url() -> str:
 
 
 def get_openid_configuration() -> dict[str, Any]:
-    """Build the OIDC discovery document."""
-    base_url = get_idp_base_url()
+    """Build the OIDC discovery document.
+
+    Points external clients (CLI, etc.) at Keycloak for auth and token
+    exchange. Keycloak is the central auth server — glow-api's default-idp
+    is just one of many identity providers that Keycloak brokers.
+    """
+    import os
+    origin = os.getenv("ORIGIN", "http://localhost")
+    app_prefix = os.getenv("APP_PREFIX", "")
+    realm = os.getenv("KEYCLOAK_REALM", "master")
+    kc_base = f"{origin}{app_prefix}/auth/realms/{realm}"
+
     return {
-        "issuer": base_url,
-        "authorization_endpoint": f"{base_url}/authorize",
-        "token_endpoint": f"{base_url}/token",
-        "jwks_uri": f"{base_url}/jwks",
-        "userinfo_endpoint": f"{base_url}/userinfo",
+        "issuer": kc_base,
+        "authorization_endpoint": f"{kc_base}/protocol/openid-connect/auth",
+        "token_endpoint": f"{kc_base}/protocol/openid-connect/token",
+        "jwks_uri": f"{kc_base}/protocol/openid-connect/certs",
+        "userinfo_endpoint": f"{kc_base}/protocol/openid-connect/userinfo",
+        "end_session_endpoint": f"{kc_base}/protocol/openid-connect/logout",
         "response_types_supported": ["code"],
-        "grant_types_supported": ["authorization_code"],
+        "grant_types_supported": ["authorization_code", "refresh_token"],
         "subject_types_supported": ["public"],
         "id_token_signing_alg_values_supported": ["RS256"],
         "scopes_supported": ["openid", "profile", "email"],
@@ -54,6 +65,8 @@ def get_openid_configuration() -> dict[str, Any]:
             "name",
             "given_name",
             "family_name",
+            "preferred_username",
+            "identity_provider",
         ],
     }
 
@@ -197,14 +210,17 @@ def exchange_code_for_tokens(
             f"Unsupported grant_type: {grant_type}. Only 'authorization_code' is supported.",
         )
 
-    # Validate client_secret against keycloak-client derived secret
+    # Validate client_secret against known derived secrets
     import os
     from app.utils.auth.derive_key import derive_from_secret_key
     secret_key = os.getenv("SECRET_KEY", "")
     if not secret_key:
         raise AuthorizationError(500, "SECRET_KEY not configured — token exchange disabled")
-    expected_secret = derive_from_secret_key(secret_key, "keycloak-client")
-    if client_secret != expected_secret:
+    valid_secrets = {
+        derive_from_secret_key(secret_key, "keycloak-client"),  # CLI / external clients
+        derive_from_secret_key(secret_key, "auth-secret"),       # Keycloak broker
+    }
+    if client_secret not in valid_secrets:
         raise AuthorizationError(401, "Invalid client_secret")
 
     code_data = _authorization_codes.get(code)
