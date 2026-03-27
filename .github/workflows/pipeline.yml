@@ -59,8 +59,8 @@ jobs:
           docker run -d --name pg-check \
             -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=test \
             postgres:18-alpine
-          for i in $(seq 1 30); do
-            docker exec pg-check pg_isready -U test -d test >/dev/null 2>&1 && break
+          for i in $(seq 1 60); do
+            docker exec pg-check psql -U test -d test -c "SELECT 1" >/dev/null 2>&1 && break
             sleep 1
           done
 
