@@ -10,7 +10,6 @@ on:
 permissions:
   contents: write
   packages: write
-  workflows: write
 
 env:
   REGISTRY: ghcr.io
