@@ -114,11 +114,17 @@ jobs:
             exit 1
           fi
           SECRET_KEY=$(echo "$RESP" | jq -r '.secret_key // empty')
+          AI_API_KEY=$(echo "$RESP" | jq -r '.ai_config.api_key // empty')
           echo "DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN}" >> $GITHUB_ENV
           echo "LEARNLOOP_API_URL=${{ inputs.learnloop_api_url }}" >> $GITHUB_ENV
           if [ -n "$SECRET_KEY" ]; then
             echo "SECRET_KEY=${SECRET_KEY}" >> $GITHUB_ENV
             echo "SECRET_KEY received"
+          fi
+          if [ -n "$AI_API_KEY" ]; then
+            echo "AI_API_KEY=${AI_API_KEY}" >> $GITHUB_ENV
+            echo "AI_PROVIDER=learnloop" >> $GITHUB_ENV
+            echo "AI API key received — using LearnLoop AI Gateway"
           fi
           echo "Deployment token claimed successfully"
 
@@ -169,6 +175,9 @@ jobs:
           DB_BACKUP=${DB_BACKUP}
           ACTIVE_ENV=${ACTIVE_ENV}
           ACTIVE_KC_ENV=${ACTIVE_KC_ENV}
+          AI_PROVIDER=${AI_PROVIDER:-direct}
+          AI_API_KEY=${AI_API_KEY:-}
+          AI_BASE_URL=${AI_BASE_URL:-https://api.learn-loop.org/ai/v1}
           EOF
           sed -i 's/^          //' .env
 

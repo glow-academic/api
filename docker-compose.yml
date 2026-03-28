@@ -202,6 +202,9 @@ services:
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN:-}
       - LEARNLOOP_API_URL=${LEARNLOOP_API_URL:-}
+      - AI_PROVIDER=${AI_PROVIDER:-direct}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_BASE_URL=${AI_BASE_URL:-https://api.learn-loop.org/ai/v1}
       - INTERNAL_API_BASE=http://server-blue:8000
       - REDIS_URL=redis://redis:6379
       - KEYCLOAK_INTERNAL_URL=http://nginx:80${APP_PREFIX:-}
@@ -250,6 +253,9 @@ services:
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN:-}
       - LEARNLOOP_API_URL=${LEARNLOOP_API_URL:-}
+      - AI_PROVIDER=${AI_PROVIDER:-direct}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_BASE_URL=${AI_BASE_URL:-https://api.learn-loop.org/ai/v1}
       - INTERNAL_API_BASE=http://server-green:8000
       - REDIS_URL=redis://redis:6379
       - KEYCLOAK_INTERNAL_URL=http://nginx:80${APP_PREFIX:-}
