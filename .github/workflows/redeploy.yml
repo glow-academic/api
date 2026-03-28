@@ -185,6 +185,12 @@ jobs:
           CLIENT_ORIGINS=${CLIENT_ORIGINS}
           APP_PREFIX=${APP_PREFIX}
           DB_BACKUP=${DB_BACKUP}
+          SECRET_KEY=${SECRET_KEY:-}
+          DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN:-}
+          LEARNLOOP_API_URL=${LEARNLOOP_API_URL:-}
+          AI_PROVIDER=${AI_PROVIDER:-direct}
+          AI_API_KEY=${AI_API_KEY:-}
+          AI_BASE_URL=${AI_BASE_URL:-https://api.learn-loop.org/ai/v1}
           ACTIVE_ENV=${ACTIVE_ENV}
           ACTIVE_KC_ENV=${ACTIVE_KC_ENV}
           AI_PROVIDER=${AI_PROVIDER:-direct}
