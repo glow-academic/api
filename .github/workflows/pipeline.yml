@@ -21,6 +21,8 @@ jobs:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v6
         with:
@@ -32,18 +34,24 @@ jobs:
           pip install -r core/requirements-dev.txt -q 2>/dev/null || true
           pip install testcontainers -q 2>/dev/null || true
 
-      - name: Run tests
+      - name: Run tests (sparse on beta, full on main)
         run: |
-          if [ -d "core/tests/unit" ]; then
-            TEST_DIR="core/tests/unit"
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "Running full test suite..."
+            if [ -d "core/tests/unit" ]; then
+              TEST_DIR="core/tests/unit"
+            else
+              TEST_DIR="core/tests"
+            fi
+            if PYTHONPATH=core python -c "import importlib; importlib.import_module('tests.conftest')" 2>/dev/null; then
+              PYTHONPATH=core python -m pytest "$TEST_DIR" -v --tb=short
+            else
+              echo "Test dependencies not fully available — running import check only"
+              PYTHONPATH=core python -c "from app.main import app; print('App imports OK')" || echo "App requires runtime deps"
+            fi
           else
-            TEST_DIR="core/tests"
-          fi
-          if PYTHONPATH=core python -c "import importlib; importlib.import_module('tests.conftest')" 2>/dev/null; then
-            PYTHONPATH=core python -m pytest "$TEST_DIR" -v --tb=short
-          else
-            echo "Test dependencies not fully available — running import check only"
-            PYTHONPATH=core python -c "from app.main import app; print('App imports OK')" || echo "App requires runtime deps"
+            echo "Running sparse tests (changed infra/tools/utils only)..."
+            bash scripts/run-sparse-tests.sh main
           fi
 
   schema-check:
