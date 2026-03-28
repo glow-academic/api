@@ -84,6 +84,35 @@ def count_entries() -> int:
 
 
 # ---------------------------------------------------------------------------
+# Outcome counters (running totals alongside the chain)
+# ---------------------------------------------------------------------------
+
+_COUNTERS_PATH = LEDGER_DIR / "_counters.json"
+
+
+def read_counters() -> dict[str, int]:
+    """Read outcome counters: started, completed, passed."""
+    _ensure_dir()
+    if _COUNTERS_PATH.exists():
+        data = json.loads(_COUNTERS_PATH.read_text())
+        return {
+            "started": data.get("started", 0),
+            "completed": data.get("completed", 0),
+            "passed": data.get("passed", 0),
+        }
+    return {"started": 0, "completed": 0, "passed": 0}
+
+
+def increment_counter(field: str, count: int = 1) -> dict[str, int]:
+    """Increment a counter (started, completed, or passed) and return all counters."""
+    counters = read_counters()
+    counters[field] = counters.get(field, 0) + count
+    _ensure_dir()
+    _COUNTERS_PATH.write_text(json.dumps(counters, indent=2) + "\n")
+    return counters
+
+
+# ---------------------------------------------------------------------------
 # Write
 # ---------------------------------------------------------------------------
 

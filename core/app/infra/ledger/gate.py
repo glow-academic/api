@@ -5,6 +5,8 @@ from __future__ import annotations
 from app.infra.ledger.chain import (
     GENESIS_HASH,
     count_entries,
+    increment_counter,
+    read_counters,
     read_latest,
     write_entry,
 )
@@ -23,6 +25,22 @@ class LedgerDenied(Exception):
     def __init__(self, reason: str) -> None:
         self.reason = reason
         super().__init__(reason)
+
+
+def record_start() -> dict[str, int]:
+    """Record an attempt start in the outcome counters."""
+    return increment_counter("started")
+
+
+def record_completion(*, passed: bool) -> dict[str, int]:
+    """Record an attempt completion in the outcome counters.
+
+    Call with passed=True if the attempt met the passing threshold.
+    """
+    counters = increment_counter("completed")
+    if passed:
+        counters = increment_counter("passed")
+    return counters
 
 
 async def ledger_gate(*, attempt_id: str) -> LedgerEntry:
@@ -80,22 +98,34 @@ async def ledger_gate(*, attempt_id: str) -> LedgerEntry:
 
 
 async def _phone_home(latest: LedgerEntry | None) -> LearnLoopCheckpoint:
-    """Phone home to LearnLoop and return the checkpoint response."""
+    """Phone home to LearnLoop and return the checkpoint response.
+
+    Always sends running totals (started, completed, passed) so LearnLoop
+    can diff against its last known state. Self-healing if phone-homes fail.
+    """
     current_sequence = latest.sequence if latest else 0
     current_hash = latest.hash if latest else GENESIS_HASH
 
     # Count attempts written since the last checkpoint
     attempts_since = _count_since_last_checkpoint(latest)
 
+    # Read outcome counters (running totals)
+    counters = read_counters()
+
     logger.info(
         f"Phoning home to LearnLoop (sequence={current_sequence}, "
-        f"attempts_since_last_check={attempts_since})"
+        f"attempts_since_last_check={attempts_since}, "
+        f"started={counters['started']}, completed={counters['completed']}, "
+        f"passed={counters['passed']})"
     )
 
     return await phone_home(
         current_sequence=current_sequence,
         current_hash=current_hash,
         attempts_since_last_check=attempts_since,
+        started=counters["started"],
+        completed=counters["completed"],
+        passed=counters["passed"],
     )
 
 

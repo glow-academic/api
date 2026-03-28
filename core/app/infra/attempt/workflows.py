@@ -777,10 +777,11 @@ async def attempt_start_impl(
 
     # --- Ledger gate: verify usage before allowing attempt start ---
     try:
-        from app.infra.ledger.gate import LedgerDenied, ledger_gate
+        from app.infra.ledger.gate import LedgerDenied, ledger_gate, record_start
 
         attempt_id_for_ledger = str(uuid.uuid4())
         await ledger_gate(attempt_id=attempt_id_for_ledger)
+        record_start()
     except LedgerDenied as e:
         logger.warning(f"Attempt blocked by ledger gate: {e.reason}")
         await emit(

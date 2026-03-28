@@ -32,17 +32,23 @@ async def phone_home(
     current_sequence: int,
     current_hash: str,
     attempts_since_last_check: int,
+    started: int = 0,
+    completed: int = 0,
+    passed: int = 0,
 ) -> LearnLoopCheckpoint:
     """Call LearnLoop to report usage and get authorization.
 
-    Sends the current ledger state so LearnLoop can verify chain integrity
-    on its end. Returns checkpoint metadata (authorized, num_left, etc.).
+    Sends the current ledger state + outcome counters (running totals).
+    LearnLoop diffs against its last known state to record deltas.
     """
     url = f"{_learnloop_url()}/provision/usage/check"
     payload: dict[str, Any] = {
         "current_sequence": current_sequence,
         "current_hash": current_hash,
         "attempts_since_last_check": attempts_since_last_check,
+        "started": started,
+        "completed": completed,
+        "passed": passed,
     }
     headers = {
         "Authorization": f"Bearer {_deployment_token()}",
