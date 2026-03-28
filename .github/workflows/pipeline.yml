@@ -17,16 +17,12 @@ env:
 jobs:
   # ── Stage 1: Test ───────────────────────────────────────────
   test:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, deploy]
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.11'
 
       - name: Install dependencies
         run: |
@@ -55,7 +51,7 @@ jobs:
           fi
 
   schema-check:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, deploy]
     if: |
       github.ref != 'refs/heads/v1' &&
       !contains(github.event.head_commit.message, '[skip ci]')
@@ -103,7 +99,7 @@ jobs:
   # ── Stage 2: Release ────────────────────────────────────────
   release:
     needs: [test, schema-check]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, deploy]
     if: |
       always() &&
       needs.test.result == 'success' &&
@@ -168,9 +164,6 @@ jobs:
             git tag "$TAG"
             git push origin "$TAG"
           fi
-
-      - uses: docker/setup-buildx-action@v4
-        if: steps.check.outputs.released == 'true'
 
       - uses: docker/login-action@v4
         if: steps.check.outputs.released == 'true'
