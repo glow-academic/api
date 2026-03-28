@@ -26,9 +26,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip3 install -r core/requirements.txt -q
-          pip3 install -r core/requirements-dev.txt -q 2>/dev/null || true
-          pip3 install testcontainers -q 2>/dev/null || true
+          pip install -r core/requirements.txt -q
+          pip install -r core/requirements-dev.txt -q 2>/dev/null || true
+          pip install testcontainers -q 2>/dev/null || true
 
       - name: Run tests (sparse on beta, full on main)
         run: |
@@ -39,11 +39,11 @@ jobs:
             else
               TEST_DIR="core/tests"
             fi
-            if PYTHONPATH=core python3 -c "import importlib; importlib.import_module('tests.conftest')" 2>/dev/null; then
-              PYTHONPATH=core python3 -m pytest "$TEST_DIR" -v --tb=short
+            if PYTHONPATH=core python -c "import importlib; importlib.import_module('tests.conftest')" 2>/dev/null; then
+              PYTHONPATH=core python -m pytest "$TEST_DIR" -v --tb=short
             else
               echo "Test dependencies not fully available — running import check only"
-              PYTHONPATH=core python3 -c "from app.main import app; print('App imports OK')" || echo "App requires runtime deps"
+              PYTHONPATH=core python -c "from app.main import app; print('App imports OK')" || echo "App requires runtime deps"
             fi
           else
             echo "Running sparse tests (changed infra/tools/utils only)..."
