@@ -134,6 +134,13 @@ async def attempt_grade_internal_impl(
             )
             grade_id = str(grade_result.id) if grade_result.id else None
 
+        # Record completion with actual pass/fail result
+        try:
+            from app.infra.ledger.gate import record_completion
+            record_completion(passed=bool(passed))
+        except Exception as e:
+            logger.warning(f"Failed to record completion in ledger: {e}")
+
         await _emit(
             [
                 internal_event(

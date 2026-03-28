@@ -190,14 +190,8 @@ async def attempt_end_internal_impl(
             for event in recorded
         )
 
-        # Record completion in outcome counters
-        # Grade/passed is determined asynchronously — record as completed for now.
-        # When grade finalizes, record_completion(passed=True) should be called.
-        try:
-            from app.infra.ledger.gate import record_completion
-            record_completion(passed=False)
-        except Exception as e:
-            logger.warning(f"Failed to record completion in ledger: {e}")
+        # Completion is recorded when grade finalizes (in grade.py),
+        # not here — we don't know pass/fail until the grade is done.
 
         return AttemptEndInternalResult(
             chat_id=str(payload.chat_id),
