@@ -50,12 +50,16 @@ LL_CLIENT_ID_ITEM = UUID("019b3be4-311b-7a00-a000-1ea4a1000001")
 LL_CLIENT_SECRET_ITEM = UUID("019b3be4-311b-7a00-a000-1ea4a1000002")
 LL_DISCOVERY_URL_ITEM = UUID("019b3be4-311b-7a00-a000-1ea4a1000003")
 LL_CLIENT_AUTH_METHOD_ITEM = UUID("019b3be4-311b-7a00-a000-1ea4a1000004")
+LL_AUTH_URL_ITEM = UUID("019b3be4-311b-7a00-a000-1ea4a1000005")
+LL_TOKEN_URL_ITEM = UUID("019b3be4-311b-7a00-a000-1ea4a1000006")
 
 LEARNLOOP_ITEM_IDS = [
     LL_CLIENT_ID_ITEM,
     LL_CLIENT_SECRET_ITEM,
     LL_DISCOVERY_URL_ITEM,
     LL_CLIENT_AUTH_METHOD_ITEM,
+    LL_AUTH_URL_ITEM,
+    LL_TOKEN_URL_ITEM,
 ]
 
 # ---------------------------------------------------------------------------
@@ -163,5 +167,19 @@ items = [
         description="Client Authentication Method",
         encrypted=False,
         position=4,
+    ),
+    dict(
+        id=LL_AUTH_URL_ITEM,
+        name="authorizationUrl",
+        description="LearnLoop Authorization URL",
+        encrypted=False,
+        position=5,
+    ),
+    dict(
+        id=LL_TOKEN_URL_ITEM,
+        name="tokenUrl",
+        description="LearnLoop Token URL",
+        encrypted=False,
+        position=6,
     ),
 ]

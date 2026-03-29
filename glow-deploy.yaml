@@ -45,6 +45,8 @@ auth:
     client_id: ${AUTH_CLIENT_ID:-}
     client_secret: ${AUTH_CLIENT_SECRET:-}
     issuer: ${AUTH_ISSUER:-https://api.learn-loop.org}
+    # Internal issuer for Keycloak server-to-server calls (Docker → host)
+    issuer_internal: ${AUTH_ISSUER_INTERNAL:-${AUTH_ISSUER:-https://api.learn-loop.org}}
   microsoft:
     client_id: ${MICROSOFT_CLIENT_ID:-please_change_me}
     client_secret: ${MICROSOFT_CLIENT_SECRET:-please_change_me}

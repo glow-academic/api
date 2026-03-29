@@ -119,11 +119,13 @@ def get_auth_config(config: dict) -> dict:
 
     if provider == "learnloop":
         ll = auth.get("learnloop", {})
+        issuer = ll.get("issuer", "https://api.learn-loop.org")
         return {
             "provider": "learnloop",
             "client_id": ll.get("client_id", ""),
             "client_secret": ll.get("client_secret", ""),
-            "issuer": ll.get("issuer", "https://api.learn-loop.org"),
+            "issuer": issuer,
+            "issuer_internal": ll.get("issuer_internal", issuer),
         }
 
     if provider == "microsoft":
