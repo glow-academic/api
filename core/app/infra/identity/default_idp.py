@@ -59,7 +59,9 @@ def _get_keycloak_internal_url() -> str:
     internal = os.getenv("KEYCLOAK_INTERNAL_URL", "")
     if internal:
         realm = os.getenv("KEYCLOAK_REALM", "master")
-        return f"{internal}/realms/{realm}"
+        app_prefix = os.getenv("APP_PREFIX", "")
+        # nginx routes /auth/ to Keycloak — include it for internal access
+        return f"{internal}/auth/realms/{realm}"
     return _get_keycloak_base_url()
 
 
