@@ -43,6 +43,22 @@ MICROSOFT_ITEM_IDS = [
 ]
 
 # ---------------------------------------------------------------------------
+# LearnLoop items
+# ---------------------------------------------------------------------------
+
+LL_CLIENT_ID_ITEM = UUID("019b3be4-311b-7a00-a000-learnloop0001")
+LL_CLIENT_SECRET_ITEM = UUID("019b3be4-311b-7a00-a000-learnloop0002")
+LL_DISCOVERY_URL_ITEM = UUID("019b3be4-311b-7a00-a000-learnloop0003")
+LL_CLIENT_AUTH_METHOD_ITEM = UUID("019b3be4-311b-7a00-a000-learnloop0004")
+
+LEARNLOOP_ITEM_IDS = [
+    LL_CLIENT_ID_ITEM,
+    LL_CLIENT_SECRET_ITEM,
+    LL_DISCOVERY_URL_ITEM,
+    LL_CLIENT_AUTH_METHOD_ITEM,
+]
+
+# ---------------------------------------------------------------------------
 # Item definitions
 # ---------------------------------------------------------------------------
 
@@ -118,5 +134,34 @@ items = [
         description="Microsoft Token Endpoint",
         encrypted=False,
         position=8,
+    ),
+    # LearnLoop
+    dict(
+        id=LL_CLIENT_ID_ITEM,
+        name="clientId",
+        description="LearnLoop OAuth Client ID",
+        encrypted=True,
+        position=1,
+    ),
+    dict(
+        id=LL_CLIENT_SECRET_ITEM,
+        name="clientSecret",
+        description="LearnLoop OAuth Client Secret",
+        encrypted=True,
+        position=2,
+    ),
+    dict(
+        id=LL_DISCOVERY_URL_ITEM,
+        name="discoveryUrl",
+        description="LearnLoop OIDC Discovery URL",
+        encrypted=False,
+        position=3,
+    ),
+    dict(
+        id=LL_CLIENT_AUTH_METHOD_ITEM,
+        name="clientAuthMethod",
+        description="Client Authentication Method",
+        encrypted=False,
+        position=4,
     ),
 ]

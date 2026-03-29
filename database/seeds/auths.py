@@ -7,7 +7,12 @@ by the _impl function via resolve_auth_values.
 
 from uuid import UUID
 
-from database.seeds.resources.items import GOOGLE_ITEM_IDS, MICROSOFT_ITEM_IDS
+from database.seeds.config import get_auth_config, load_deploy_config
+from database.seeds.resources.items import (
+    GOOGLE_ITEM_IDS,
+    LEARNLOOP_ITEM_IDS,
+    MICROSOFT_ITEM_IDS,
+)
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs — importable by other modules
@@ -15,6 +20,7 @@ from database.seeds.resources.items import GOOGLE_ITEM_IDS, MICROSOFT_ITEM_IDS
 
 GOOGLE_AUTH = UUID("019b3be4-3117-7aa4-aa34-0041aa51d1d8")
 MICROSOFT_AUTH = UUID("019b3be4-3117-7afc-8d1d-a2815d70f294")
+LEARNLOOP_AUTH = UUID("019b3be4-3117-7b00-a000-learnloop001")
 
 # ---------------------------------------------------------------------------
 # Auth definitions
@@ -40,3 +46,22 @@ auths = [
         item_ids=MICROSOFT_ITEM_IDS,
     ),
 ]
+
+# Conditionally add LearnLoop auth if configured
+try:
+    _config = load_deploy_config()
+    _auth = get_auth_config(_config)
+    if _auth.get("provider") == "learnloop":
+        auths.append(
+            dict(
+                id=LEARNLOOP_AUTH,
+                name="LearnLoop",
+                description="Login with LearnLoop",
+                slug="learnloop",
+                protocol="oidc",
+                active_flag=True,
+                item_ids=LEARNLOOP_ITEM_IDS,
+            )
+        )
+except FileNotFoundError:
+    pass
