@@ -433,7 +433,6 @@ def exchange_code_for_tokens(
         "sub": sub,
         "exp": now + 3600,
         "iat": now,
-        "nonce": code_data.get("nonce"),
         "email": code_data.get("email", ""),
         "email_verified": True,
         "name": name,
@@ -445,6 +444,9 @@ def exchange_code_for_tokens(
         "actor_profile_id": code_data.get("actor_profile_id"),
         "identity_provider": code_data.get("identity_provider"),
     }
+    # Only include nonce if one was provided (browser OIDC may not send one)
+    if code_data.get("nonce"):
+        id_token_payload["nonce"] = code_data["nonce"]
 
     id_token = jwt.encode(
         id_token_payload,
