@@ -390,19 +390,14 @@ def exchange_code_for_tokens(
     if not secret_key:
         raise AuthorizationError(500, "SECRET_KEY not configured — token exchange disabled")
 
-    # Validate client_secret — skip for browser OIDC flow (codes are
-    # already single-use and bound to redirect_uri)
-    code_data = _authorization_codes.get(code)
-    is_browser_flow = code_data.get("flow") == "browser" if code_data else False
-
-    if not is_browser_flow:
-        from app.utils.auth.derive_key import derive_from_secret_key
-        valid_secrets = {
-            derive_from_secret_key(secret_key, "keycloak-client"),
-            derive_from_secret_key(secret_key, "auth-secret"),
-        }
-        if client_secret and client_secret not in valid_secrets:
-            raise AuthorizationError(401, "Invalid client_secret")
+    # Validate client_secret against known derived secrets
+    from app.utils.auth.derive_key import derive_from_secret_key
+    valid_secrets = {
+        derive_from_secret_key(secret_key, "keycloak-client"),  # CLI / Keycloak broker
+        derive_from_secret_key(secret_key, "auth-secret"),       # Browser OIDC client
+    }
+    if client_secret and client_secret not in valid_secrets:
+        raise AuthorizationError(401, "Invalid client_secret")
 
     code_data = _authorization_codes.get(code)
     if not code_data:
