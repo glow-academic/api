@@ -11,6 +11,7 @@ from app.routes.agent import router as agents_router
 from app.routes.attempt import router as attempt_artifact_router
 from app.routes.auth import router as auth_router
 from app.routes.authorize import router as authorize_router
+from app.routes.oidc_callback import router as oidc_callback_router
 from app.routes.benchmark import router as benchmark_artifact_router
 from app.routes.chat import router as chat_artifact_router
 from app.routes.cohort import router as cohorts_router
@@ -124,6 +125,7 @@ router.include_router(well_known_router)
 router.include_router(jwks_router)
 router.include_router(discovery_router)
 router.include_router(authorize_router)
+router.include_router(oidc_callback_router)
 router.include_router(token_router)
 router.include_router(userinfo_router)
 router.include_router(login_router)
