@@ -15,7 +15,7 @@ import psycopg2
 ROOT = Path(__file__).resolve().parent.parent
 PROMPTS_DIR = ROOT / "prompts"
 OUTPUT = ROOT / "database" / "migrate" / "494_agent_setup.sql"
-DB_DSN = "postgresql://myuser:mypassword@localhost:5432/mydb"
+DB_DSN = "postgresql://myuser:mypassword@localhost:5432/glowapi"
 
 # ─── Well-known IDs ──────────────────────────────────────────────────────────
 GPT41_MODEL_ID = "019bb25e-e5ff-76f6-90d4-830670bb5d82"

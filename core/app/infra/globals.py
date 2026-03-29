@@ -315,7 +315,7 @@ async def init_db_pool() -> None:
     in_docker = os.getenv("DOCKER_ENV") == "1"
     db_user = os.getenv("DB_USER") or (in_docker and "myuser")
     db_password = os.getenv("DB_PASSWORD") or (in_docker and "mypassword")
-    db_name = os.getenv("DB_NAME") or (in_docker and "mydb")
+    db_name = os.getenv("DB_NAME") or (in_docker and "glowapi")
     db_port = os.getenv("DB_PORT") or (in_docker and "5432")
     db_host = os.getenv("DB_HOST") or (in_docker and "pgbouncer")
 

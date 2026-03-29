@@ -46,7 +46,7 @@ RUN chmod +x /usr/local/bin/custom-entrypoint.sh && \
 # (These can be overridden at runtime via docker run -e or docker-compose)
 ENV POSTGRES_USER=myuser
 ENV POSTGRES_PASSWORD=mypassword
-ENV POSTGRES_DB=mydb
+ENV POSTGRES_DB=glowapi
 ENV HISTORY_DIR=/database/history
 
 # If you still need logic that must run on every start (not just first-time init)

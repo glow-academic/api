@@ -153,6 +153,7 @@ run: check-venv
 	@echo ""
 	@echo "Press Ctrl+C to stop all services"
 	@echo "----------------------------------------"
+	@psql postgresql://$${DB_USER:-myuser}:$${DB_PASSWORD:-mypassword}@localhost:$(DATABASE_PORT)/$${DB_NAME:-glowapi} -c "CREATE SCHEMA IF NOT EXISTS keycloak; CREATE SCHEMA IF NOT EXISTS migrations;" 2>/dev/null || true
 	@trap 'echo ""; echo "🛑 Stopping all services..."; pkill -f "redis-server.*$(REDIS_PORT)" 2>/dev/null || true; pkill -f "uvicorn.*$(SERVER_PORT)" 2>/dev/null || true; pkill -f "stream-logs.js" 2>/dev/null || true; pkill -f "docker logs.*glow-keycloak" 2>/dev/null || true; docker stop glow-keycloak 2>/dev/null; docker rm glow-keycloak 2>/dev/null; echo "✅ All services stopped"; exit 0' INT; \
 	exec 2>/dev/null; \
 	if docker ps --filter name=glow-keycloak --format "{{.Names}}" | grep -q "^glow-keycloak$$"; then \
@@ -173,7 +174,7 @@ run: check-venv
 			-e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
 			-e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
 			-e KC_DB=postgres \
-			-e KC_DB_URL=jdbc:postgresql://host.docker.internal:5432/mydb?currentSchema=keycloak \
+			-e KC_DB_URL=jdbc:postgresql://host.docker.internal:5432/$${DB_NAME:-glowapi}?currentSchema=keycloak \
 			-e KC_DB_USERNAME=$$DB_USER \
 			-e KC_DB_PASSWORD=$$DB_PASSWORD \
 		-e KC_DB_SCHEMA=keycloak \
@@ -183,6 +184,8 @@ run: check-venv
 		-e KC_HOSTNAME=http://localhost:$(KEYCLOAK_PORT)/auth \
 		-e KC_HOSTNAME_STRICT=false \
 		-e KC_HOSTNAME_STRICT_BACKCHANNEL=false \
+		-e KC_HOSTNAME_STRICT_HTTPS=false \
+		-e KC_SPI_STICKY_SESSION_ENCODER_INFINISPAN_SHOULD_ATTACH_ROUTE=false \
 			quay.io/keycloak/keycloak:26.0 start-dev >/dev/null 2>&1; \
 		sleep 1; \
 		(docker logs --tail 0 -f glow-keycloak 2>&1 | while IFS= read -r line; do echo "$$(printf '\033[0;34m[KEYCLOAK]\033[0m %s' "$$line")"; done) & \
@@ -255,12 +258,12 @@ migrate: check-venv
 	@export PGPASSWORD="$${DB_PASSWORD:-mypassword}"; \
 	for f in $$(ls database/migrate/*.sql 2>/dev/null | sort); do \
 		echo "  Applying: $$(basename $$f)"; \
-		psql -h "$${DB_HOST:-localhost}" -p "$${DB_PORT:-5432}" -U "$${DB_USER:-myuser}" -d "$${DB_NAME:-mydb}" -v ON_ERROR_STOP=1 -f "$$f" > /dev/null; \
+		psql -h "$${DB_HOST:-localhost}" -p "$${DB_PORT:-5432}" -U "$${DB_USER:-myuser}" -d "$${DB_NAME:-glowapi}" -v ON_ERROR_STOP=1 -f "$$f" > /dev/null; \
 	done
 	@echo "Updating schema.sql..."
 	@pg_dump --schema-only --no-owner --no-privileges --exclude-schema=keycloak --format=plain \
 		--file=database/schema.sql \
-		"postgresql://$${DB_USER:-myuser}:$${DB_PASSWORD:-mypassword}@$${DB_HOST:-localhost}:$${DB_PORT:-5432}/$${DB_NAME:-mydb}"
+		"postgresql://$${DB_USER:-myuser}:$${DB_PASSWORD:-mypassword}@$${DB_HOST:-localhost}:$${DB_PORT:-5432}/$${DB_NAME:-glowapi}"
 	@$(MAKE) split-schema
 	@echo ""
 	@echo "Regenerating templates..."
@@ -286,7 +289,7 @@ registry: check-venv
 	@echo "Generating registry files..."
 	@PYTHONPATH=core DB_USER="$${DB_USER:-myuser}" \
 	 DB_PASSWORD="$${DB_PASSWORD:-mypassword}" \
-	 DB_NAME="$${DB_NAME:-mydb}" \
+	 DB_NAME="$${DB_NAME:-glowapi}" \
 	 DB_HOST="$${DB_HOST:-localhost}" \
 	 DB_PORT="$${DB_PORT:-5432}" \
 	 $(VENV_PYTHON) core/scripts/generate_registry.py all
@@ -297,7 +300,7 @@ registry-validate: check-venv
 	@echo "Validating registry files..."
 	@PYTHONPATH=core DB_USER="$${DB_USER:-myuser}" \
 	 DB_PASSWORD="$${DB_PASSWORD:-mypassword}" \
-	 DB_NAME="$${DB_NAME:-mydb}" \
+	 DB_NAME="$${DB_NAME:-glowapi}" \
 	 DB_HOST="$${DB_HOST:-localhost}" \
 	 DB_PORT="$${DB_PORT:-5432}" \
 	 $(VENV_PYTHON) core/scripts/generate_registry.py validate
@@ -306,7 +309,7 @@ registry-validate: check-venv
 
 # Connect to database
 connect-db:
-	@psql -h "$${DB_HOST:-localhost}" -p "$${DB_PORT:-5432}" -U "$${DB_USER:-myuser}" -d "$${DB_NAME:-mydb}"
+	@psql -h "$${DB_HOST:-localhost}" -p "$${DB_PORT:-5432}" -U "$${DB_USER:-myuser}" -d "$${DB_NAME:-glowapi}"
 
 # Regenerate all template backups in history/ via testcontainers
 seed-gen: check-venv

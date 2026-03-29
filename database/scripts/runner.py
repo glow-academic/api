@@ -1063,6 +1063,8 @@ async def _run_default_setting_seed(
                     setting_id=s["id"],
                     color_ids=s.get("color_ids"),
                     profile_ids=profile_ids,
+                    auth_item_key_ids=s.get("auth_item_key_ids"),
+                    auth_item_value_ids=s.get("auth_item_value_ids"),
                 )
             )
         await update_setting_impl(
@@ -1835,6 +1837,13 @@ async def main_modules() -> Path:
         # Module 05: tools (static definitions)
         print("\nSeeding module 05 (tools)...")
         await _run_tool_module_seeds(pool, redis_client)
+
+        # LearnLoop integration (conditional — only when AUTH_PROVIDER=learnloop)
+        from database.seeds.learnloop import ENABLED as LL_ENABLED
+        if LL_ENABLED:
+            print("\nSeeding LearnLoop auth integration...")
+            import database.seeds.learnloop as ll_mod
+            await _run_key_seeds(pool, redis_client, ll_mod)
 
         # Default setting: no department, all systems, default thresholds + profiles
         print("\nSeeding default setting...")

@@ -18,7 +18,7 @@ NC='\033[0m'
 
 DB_USER=${POSTGRES_USER:-myuser}
 DB_PASSWORD=${POSTGRES_PASSWORD:-mypassword}
-DB_NAME=${POSTGRES_DB:-mydb}
+DB_NAME=${POSTGRES_DB:-glowapi}
 HISTORY_DIR=${HISTORY_DIR:-/database/history}
 DB_BACKUP=${DB_BACKUP:-}
 PGDATA=${PGDATA:-/var/lib/postgresql/data}

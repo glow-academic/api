@@ -5,7 +5,7 @@
 
 DB_USER=${DB_USER:-myuser}
 DB_PASSWORD=${DB_PASSWORD:-mypassword}
-DB_NAME=${DB_NAME:-mydb}
+DB_NAME=${DB_NAME:-glowapi}
 DB_HOST=${DB_HOST:-localhost}
 DB_PORT=${DB_PORT:-5432}
 

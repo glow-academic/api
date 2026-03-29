@@ -84,7 +84,7 @@ All configuration is via `.env` (copy from `.env.example`):
 
 - `DB_USER` — Database user (default: myuser)
 - `DB_PASSWORD` — Database password (default: mypassword)
-- `DB_NAME` — Database name (default: mydb)
+- `DB_NAME` — Database name (default: glowapi)
 - `DB_HOST` — Database host (default: localhost)
 - `DB_PORT` — Database port (default: 5432)
 - `SECRET_KEY` — Required for encrypting API keys and secrets

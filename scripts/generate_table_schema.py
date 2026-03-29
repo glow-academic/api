@@ -5,7 +5,7 @@ import asyncio
 
 import asyncpg
 
-DB_URL = "postgresql://myuser:mypassword@localhost:5432/mydb"
+DB_URL = "postgresql://myuser:mypassword@localhost:5432/glowapi"
 
 
 async def get_table_info():

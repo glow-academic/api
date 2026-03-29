@@ -1,33 +1,28 @@
 <#-- GENERATED FILE: do not edit manually -->
-<#-- Generated at: 2026-03-03T07:04:04.524861 -->
+<#-- Generated at: 2026-03-29T16:09:15.609577 -->
 <#--
   Provider mapping: department_id -> allowed IdP aliases
 
   Enumerated departments:
-    - 019b3be4-3247-7cb0-bd74-9b2467b5e32d: University
-    - 019c3f8c-b97b-7350-8d77-632e29b1c3f9: Organization
 
   Enumerated IdP aliases:
-    - auth_google_019b3be4-3117-7aa4-aa34-0041aa51d1d8
-    - auth_microsoft_019b3be4-3117-7afc-8d1d-a2815d70f294
+    - default-idp-profile-019b3be4-36f0-788c-9df2-481eb5917940
+    - learnloop
 
   Default-IdP aliases:
+    - default-idp-profile-019b3be4-36f0-788c-9df2-481eb5917940
 -->
 
 <#-- Departments to show in the picker -->
 <#assign departments = [
-  {"id": "019b3be4-3247-7cb0-bd74-9b2467b5e32d", "title": "University"},
-  {"id": "019c3f8c-b97b-7350-8d77-632e29b1c3f9", "title": "Organization"}
 ] />
 
 <#-- Map department_id -> allowed IdP aliases -->
 <#assign allowedProvidersByDept = {
-  "019b3be4-3247-7cb0-bd74-9b2467b5e32d": ["auth_microsoft_019b3be4-3117-7afc-8d1d-a2815d70f294"],
-  "019c3f8c-b97b-7350-8d77-632e29b1c3f9": ["auth_google_019b3be4-3117-7aa4-aa34-0041aa51d1d8"]
 } />
 
 <#-- Platform providers (only used when no departments exist) -->
-<#assign platformProviders = [] />
+<#assign platformProviders = ["learnloop", "default-idp-profile-019b3be4-36f0-788c-9df2-481eb5917940"] />
 
 <#function getAllowedProvidersForDepartment deptId>
   <#-- If departments exist, always use department-specific providers -->

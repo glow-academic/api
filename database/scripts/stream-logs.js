@@ -7,7 +7,7 @@ const cfg = {
   port: Number(process.env.DB_PORT || 5432),
   user: process.env.DB_USER || "myuser",
   password: process.env.DB_PASSWORD || "mypassword",
-  database: process.env.DB_NAME || "mydb",
+  database: process.env.DB_NAME || "glowapi",
   application_name: "db-monitor",
 };
 const READS = (process.env.READS || "0") === "1";

@@ -49,9 +49,10 @@ def _get_keycloak_base_url() -> str:
     is_local = "localhost" in origin.lower()
     if is_local:
         kc_base = os.getenv("KEYCLOAK_URL", "http://localhost:8080")
+        return f"{kc_base}/auth/realms/{realm}"
     else:
         kc_base = f"{origin}{app_prefix}/auth"
-    return f"{kc_base}/realms/{realm}"
+        return f"{kc_base}/realms/{realm}"
 
 
 def _get_keycloak_internal_url() -> str:

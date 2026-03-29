@@ -41,7 +41,7 @@ DB_USER = os.environ.get("DB_USER", "myuser")
 DB_PASSWORD = os.environ.get("DB_PASSWORD", "mypassword")
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_PORT = int(os.environ.get("DB_PORT", "5432"))
-DB_NAME = os.environ.get("DB_NAME", "mydb")
+DB_NAME = os.environ.get("DB_NAME", "glowapi")
 
 DRY_RUN = "--dry-run" in sys.argv
 

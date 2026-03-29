@@ -20,7 +20,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${script_dir}/.."
 
 DB_USER="${DB_USER:-myuser}"
-DB_NAME="${DB_NAME:-mydb}"
+DB_NAME="${DB_NAME:-glowapi}"
 
 DCEXEC="docker compose exec -T database"
 
