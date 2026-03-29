@@ -391,9 +391,11 @@ def exchange_code_for_tokens(
 
     from app.utils.auth.derive_key import derive_from_secret_key
     valid_secrets = {
-        derive_from_secret_key(secret_key, "keycloak-client"),
-        derive_from_secret_key(secret_key, "auth-secret"),
+        derive_from_secret_key(secret_key, "keycloak-client"),  # CLI / Keycloak broker
+        derive_from_secret_key(secret_key, "auth-secret"),       # Keycloak broker alt
+        os.getenv("AUTH_SECRET", ""),                            # Browser OIDC client
     }
+    valid_secrets.discard("")
     if client_secret and client_secret not in valid_secrets:
         raise AuthorizationError(401, "Invalid client_secret")
 
