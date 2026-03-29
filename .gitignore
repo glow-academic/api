@@ -61,3 +61,4 @@ uploads/call/
 
 # Database seeds (legacy generated files)
 database/seeds/seed_modules*.sql
+history/*.sql.gz

@@ -20,7 +20,7 @@ from database.seeds.resources.items import (
 
 GOOGLE_AUTH = UUID("019b3be4-3117-7aa4-aa34-0041aa51d1d8")
 MICROSOFT_AUTH = UUID("019b3be4-3117-7afc-8d1d-a2815d70f294")
-LEARNLOOP_AUTH = UUID("019b3be4-3117-7b00-a000-learnloop001")
+LEARNLOOP_AUTH = UUID("019b3be4-3117-7b00-a000-1ea4a100b001")
 
 # ---------------------------------------------------------------------------
 # Auth definitions
