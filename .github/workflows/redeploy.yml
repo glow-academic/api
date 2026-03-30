@@ -24,6 +24,11 @@ on:
         description: 'Restore from backup (DESTRUCTIVE — leave empty to keep existing data)'
         required: false
         default: ''
+      seed_setup:
+        description: 'Seed setup template (university/organization/fresh). DESTRUCTIVE — regenerates database from seeds.'
+        required: false
+        default: ''
+        type: string
       provision_token:
         description: 'One-time token to claim DEPLOYMENT_TOKEN from LearnLoop'
         required: true
@@ -79,6 +84,7 @@ jobs:
       ACTIVE_ENV: ${{ needs.detect-active-environment.outputs.active-env }}
       ACTIVE_KC_ENV: ${{ needs.detect-active-environment.outputs.active-kc-env }}
       DB_BACKUP: ${{ inputs.db_backup }}
+      SEED_SETUP: ${{ inputs.seed_setup }}
       ORIGIN: ${{ inputs.origin }}
       CLIENT_ORIGINS: ${{ inputs.client_origins }}
       APP_PREFIX: ${{ inputs.app_prefix }}
@@ -123,6 +129,28 @@ jobs:
             echo "AI_PROVIDER=learnloop" >> $GITHUB_ENV
             echo "AI API key received — using LearnLoop AI Gateway"
           fi
+
+          # Extract auth config (Login with LearnLoop)
+          AUTH_CLIENT_ID=$(echo "$RESP" | jq -r '.auth_config.oauth_client_id // empty')
+          AUTH_CLIENT_SECRET=$(echo "$RESP" | jq -r '.auth_config.oauth_client_secret // empty')
+          AUTH_ISSUER=$(echo "$RESP" | jq -r '.auth_config.issuer // empty')
+          AUTH_ISSUER_INTERNAL=$(echo "$RESP" | jq -r '.auth_config.issuer_internal // empty')
+          SEED_SETUP_CLAIMED=$(echo "$RESP" | jq -r '.seed_setup // empty')
+
+          if [ -n "$AUTH_CLIENT_ID" ]; then
+            echo "AUTH_PROVIDER=learnloop" >> $GITHUB_ENV
+            echo "AUTH_CLIENT_ID=${AUTH_CLIENT_ID}" >> $GITHUB_ENV
+            echo "AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET}" >> $GITHUB_ENV
+            echo "AUTH_ISSUER=${AUTH_ISSUER}" >> $GITHUB_ENV
+            echo "AUTH_ISSUER_INTERNAL=${AUTH_ISSUER_INTERNAL}" >> $GITHUB_ENV
+            echo "LearnLoop OAuth credentials received"
+          fi
+
+          if [ -n "$SEED_SETUP_CLAIMED" ]; then
+            echo "SEED_SETUP=${SEED_SETUP_CLAIMED}" >> $GITHUB_ENV
+            echo "Seed setup from claim: $SEED_SETUP_CLAIMED"
+          fi
+
           echo "Deployment token claimed successfully"
 
       - name: Parse subdomain from ORIGIN
@@ -163,6 +191,33 @@ jobs:
             echo "No running database — skipping pre-deploy backup"
           fi
 
+      - name: Generate seed backup
+        working-directory: ${{ env.DEPLOY_DIR }}
+        run: |
+          if [ -n "$SEED_SETUP" ] && [ -z "$DB_BACKUP" ]; then
+            echo "Generating seed backup from template: $SEED_SETUP"
+            cd $DEPLOY_DIR
+            pip3 install --quiet asyncpg python-dotenv redis pyyaml testcontainers cryptography 2>/dev/null
+            PYTHONPATH=core SEED_SETUP=$SEED_SETUP \
+              AUTH_PROVIDER=${AUTH_PROVIDER:-keycloak} \
+              AUTH_CLIENT_ID=${AUTH_CLIENT_ID:-} \
+              AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET:-} \
+              AUTH_ISSUER=${AUTH_ISSUER:-} \
+              AUTH_ISSUER_INTERNAL=${AUTH_ISSUER_INTERNAL:-} \
+              AI_PROVIDER=${AI_PROVIDER:-direct} \
+              AI_API_KEY=${AI_API_KEY:-} \
+              python3 -m database.scripts.runner --modules
+            GENERATED=$(ls -t database/history/*.sql.gz 2>/dev/null | head -1)
+            if [ -n "$GENERATED" ]; then
+              BACKUP_NAME=$(basename "$GENERATED")
+              echo "DB_BACKUP=$BACKUP_NAME" >> $GITHUB_ENV
+              echo "Seed backup generated: $BACKUP_NAME"
+            else
+              echo "::error::Seed generation failed — no backup produced"
+              exit 1
+            fi
+          fi
+
       - name: Pull server image
         working-directory: ${{ env.DEPLOY_DIR }}
         run: docker compose pull server-blue server-green
@@ -191,6 +246,11 @@ jobs:
           AI_PROVIDER=${AI_PROVIDER:-direct}
           AI_API_KEY=${AI_API_KEY:-}
           AI_BASE_URL=${AI_BASE_URL:-https://api.learn-loop.org/ai/v1}
+          AUTH_PROVIDER=${AUTH_PROVIDER:-keycloak}
+          AUTH_CLIENT_ID=${AUTH_CLIENT_ID:-}
+          AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET:-}
+          AUTH_ISSUER=${AUTH_ISSUER:-}
+          AUTH_ISSUER_INTERNAL=${AUTH_ISSUER_INTERNAL:-}
           ACTIVE_ENV=${ACTIVE_ENV}
           ACTIVE_KC_ENV=${ACTIVE_KC_ENV}
           AI_PROVIDER=${AI_PROVIDER:-direct}
