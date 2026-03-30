@@ -98,15 +98,18 @@ async def logout(
     client_id: str | None = None,
     id_token_hint: str | None = None,
 ):
-    """OIDC end_session_endpoint — redirect to Keycloak logout, then back to caller."""
+    """OIDC end_session_endpoint — redirect to Keycloak logout, then back to caller.
+
+    Note: id_token_hint from the client is Glow-signed (not KC-signed),
+    so we don't forward it to Keycloak — KC can't validate it.
+    We only pass post_logout_redirect_uri and client_id.
+    """
     redirect_uri = post_logout_redirect_uri or f"{_origin}{_app_prefix}/login"
     logout_url = (
         f"{_browser_kc}/realms/{_realm}/protocol/openid-connect/logout"
         f"?post_logout_redirect_uri={redirect_uri}"
         f"&client_id={client_id or _client_id}"
     )
-    if id_token_hint:
-        logout_url += f"&id_token_hint={id_token_hint}"
     return RedirectResponse(logout_url)
 
 
