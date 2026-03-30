@@ -60,6 +60,8 @@ services:
   keycloak-blue: &keycloak-base
     image: quay.io/keycloak/keycloak:26.0
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     # Symlink themes from Docker volume so server-written updates are picked up live
     entrypoint: >
       /bin/sh -c "
