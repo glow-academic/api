@@ -93,13 +93,20 @@ async def callback(code: str | None = None, error: str | None = None):
 
 
 @router.get("/logout")
-async def logout():
-    """Redirect to Keycloak logout, then back to login page."""
+async def logout(
+    post_logout_redirect_uri: str | None = None,
+    client_id: str | None = None,
+    id_token_hint: str | None = None,
+):
+    """OIDC end_session_endpoint — redirect to Keycloak logout, then back to caller."""
+    redirect_uri = post_logout_redirect_uri or f"{_origin}{_app_prefix}/login"
     logout_url = (
         f"{_browser_kc}/realms/{_realm}/protocol/openid-connect/logout"
-        f"?post_logout_redirect_uri={_origin}{_app_prefix}/login"
-        f"&client_id={_client_id}"
+        f"?post_logout_redirect_uri={redirect_uri}"
+        f"&client_id={client_id or _client_id}"
     )
+    if id_token_hint:
+        logout_url += f"&id_token_hint={id_token_hint}"
     return RedirectResponse(logout_url)
 
 
