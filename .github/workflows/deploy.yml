@@ -86,7 +86,7 @@ jobs:
       ACTIVE_ENV: ${{ needs.detect-active-environment.outputs.active-env }}
       ACTIVE_KC_ENV: ${{ needs.detect-active-environment.outputs.active-kc-env }}
       DB_BACKUP: ${{ inputs.db_backup }}
-      SEED_SETUP: ${{ inputs.seed_setup || 'fresh' }}
+      SEED_SETUP: ${{ inputs.seed_setup }}
       ORIGIN: ${{ inputs.origin }}
       CLIENT_ORIGINS: ${{ inputs.client_origins }}
       APP_PREFIX: ${{ inputs.app_prefix }}
