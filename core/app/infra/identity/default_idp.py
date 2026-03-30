@@ -35,6 +35,30 @@ _code_ttl = 600  # 10 minutes
 # In-memory store for pending browser sessions (OIDC proxy flow)
 _pending_sessions: dict[str, dict[str, Any]] = {}
 
+# In-memory store for KC id_tokens (keyed by KC sub → used for logout)
+_kc_id_tokens: dict[str, str] = {}
+
+
+def get_kc_id_token_for_logout(glow_id_token_hint: str | None) -> str | None:
+    """Look up the KC id_token for a Glow-issued id_token.
+
+    Decodes the Glow id_token to get the sub claim, then looks up the
+    stored KC id_token. Returns None if not found (user will get a
+    logout confirmation page instead of silent logout).
+    """
+    if not glow_id_token_hint:
+        return None
+    try:
+        claims = jwt.decode(
+            glow_id_token_hint,
+            key="",
+            options={"verify_signature": False, "verify_aud": False},
+        )
+        kc_sub = claims.get("sub", "")
+        return _kc_id_tokens.pop(kc_sub, None)  # pop to clean up
+    except Exception:
+        return None
+
 
 def _get_glow_base_url() -> str:
     """Get Glow API's public base URL (the OIDC issuer)."""
@@ -219,6 +243,11 @@ async def handle_oidc_callback(
         key="",
         options={"verify_signature": False, "verify_aud": False},
     )
+
+    # Store KC's id_token for federated logout (keyed by KC sub)
+    kc_id_token = kc_tokens.get("id_token")
+    if kc_id_token and claims.get("sub"):
+        _kc_id_tokens[claims["sub"]] = kc_id_token
 
     # Create a Glow-issued authorization code
     glow_code = secrets.token_urlsafe(32)

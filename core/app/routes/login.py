@@ -98,18 +98,24 @@ async def logout(
     client_id: str | None = None,
     id_token_hint: str | None = None,
 ):
-    """OIDC end_session_endpoint — redirect to Keycloak logout, then back to caller.
+    """OIDC end_session_endpoint — proxy logout to Keycloak.
 
-    Note: id_token_hint from the client is Glow-signed (not KC-signed),
-    so we don't forward it to Keycloak — KC can't validate it.
-    We only pass post_logout_redirect_uri and client_id.
+    The client sends a Glow-signed id_token_hint. We look up the
+    corresponding KC-signed id_token (stored during login) and pass
+    that to Keycloak so it can do a silent logout without confirmation.
     """
+    from app.infra.identity.default_idp import get_kc_id_token_for_logout
+
     redirect_uri = post_logout_redirect_uri or f"{_origin}{_app_prefix}/login"
     logout_url = (
         f"{_browser_kc}/realms/{_realm}/protocol/openid-connect/logout"
         f"?post_logout_redirect_uri={redirect_uri}"
         f"&client_id={client_id or _client_id}"
     )
+    # Translate Glow id_token → KC id_token for silent logout
+    kc_token = get_kc_id_token_for_logout(id_token_hint)
+    if kc_token:
+        logout_url += f"&id_token_hint={kc_token}"
     return RedirectResponse(logout_url)
 
 
