@@ -178,7 +178,6 @@ async def ensure_department_client(
             f"{base_url}{config.app_prefix}/api/auth/emulate-redirect*"
         )
         redirect_uris = [redirect_uri, f"{base_url}{config.app_prefix}/*"]
-        post_logout_parts = [f"{base_url}{config.app_prefix}/*"]
 
         for client_base in config.client_origins or []:
             client_base = client_base.strip().rstrip("/")
@@ -188,8 +187,6 @@ async def ensure_department_client(
                 f"{client_base}{config.app_prefix}/api/auth/callback/keycloak",
                 f"{client_base}{config.app_prefix}/*",
             ]
-            post_logout_parts.append(f"{client_base}{config.app_prefix}/*")
-        post_logout_uris = "##".join(post_logout_parts)
 
         clients = kc_admin.get_clients()
         existing_client = next(
@@ -214,7 +211,7 @@ async def ensure_department_client(
             "secret": target_secret,
             "consentRequired": False,
             "attributes": {
-                "post.logout.redirect.uris": post_logout_uris,
+                "post.logout.redirect.uris": "+",
             },
         }
 
@@ -319,17 +316,10 @@ async def ensure_glow_client_in_master_realm(
             None,
         )
 
-        # Post-logout redirect URIs for emulation flow (logout then re-auth as different user)
+        # Emulate redirect URI for emulation flow (logout then re-auth as different user)
         emulate_redirect_uri = (
             f"{base_url}{config.app_prefix}/api/auth/emulate-redirect*"
         )
-        post_logout_parts = [f"{base_url}{config.app_prefix}/*"]
-        for client_base in config.client_origins or []:
-            client_base = client_base.strip().rstrip("/")
-            if not client_base or client_base == base_url:
-                continue
-            post_logout_parts.append(f"{client_base}{config.app_prefix}/*")
-        post_logout_uris = "##".join(post_logout_parts)
 
         client_payload: dict[str, Any] = {
             "clientId": target_client_id,
@@ -347,9 +337,9 @@ async def ensure_glow_client_in_master_realm(
             "clientAuthenticatorType": "client-secret",
             "secret": target_secret,
             "consentRequired": False,
-            # Post-logout redirect URIs - required for emulation flow
+            # "+" means "same as redirect URIs" in Keycloak
             "attributes": {
-                "post.logout.redirect.uris": post_logout_uris,
+                "post.logout.redirect.uris": "+",
             },
         }
 
