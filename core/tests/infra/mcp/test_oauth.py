@@ -105,7 +105,7 @@ async def test_middleware_returns_401_for_mcp_without_token():
     call_next = AsyncMock()
 
     with patch(
-        "app.infra.mcp.oauth.extract_bearer_token",
+        "app.infra.identity.resolve_identity.extract_bearer_token",
         return_value=None,
     ):
         response = await middleware.dispatch(request, call_next)
@@ -121,7 +121,7 @@ async def test_middleware_returns_401_for_invalid_token():
     call_next = AsyncMock()
 
     with patch(
-        "app.infra.mcp.oauth.extract_bearer_token",
+        "app.infra.identity.resolve_identity.extract_bearer_token",
         return_value="bad-token",
     ):
         with patch(
