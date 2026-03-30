@@ -125,7 +125,7 @@ async def test_middleware_returns_401_for_invalid_token():
         return_value="bad-token",
     ):
         with patch(
-            "app.infra.mcp.oauth.verify_jwt",
+            "app.infra.identity.resolve_identity.verify_jwt",
             side_effect=ValueError("invalid"),
         ):
             response = await middleware.dispatch(request, call_next)
