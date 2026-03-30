@@ -165,13 +165,15 @@ jobs:
       - name: Provision Traefik labels
         working-directory: ${{ env.DEPLOY_DIR }}
         run: |
+          LL_HOST=$(echo "${LEARNLOOP_API_URL:-}" | sed 's|https\?://||' | sed 's|/.*||')
           bash scripts/provision.sh deploy \
             --name "${{ inputs.deployment_id }}" \
             --subdomain "${{ steps.parse-origin.outputs.subdomain }}" \
             --base-domain "${{ steps.parse-origin.outputs.base-domain }}" \
             --compose-dir ${{ env.DEPLOY_DIR }} \
             --entry-service nginx \
-            --entry-port 80
+            --entry-port 80 \
+            ${LL_HOST:+--learnloop-host "$LL_HOST"}
 
       - name: Pre-deploy backup
         working-directory: ${{ env.DEPLOY_DIR }}

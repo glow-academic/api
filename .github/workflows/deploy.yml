@@ -168,6 +168,8 @@ jobs:
         working-directory: ${{ env.DEPLOY_DIR }}
         run: |
           ARGS="--name ${{ inputs.deployment_id }} --compose-dir ${{ env.DEPLOY_DIR }}"
+          # Extract LearnLoop API hostname for extra_hosts (hairpin NAT workaround)
+          LL_HOST=$(echo "${LEARNLOOP_API_URL:-}" | sed 's|https\?://||' | sed 's|/.*||')
           if [ "${{ inputs.airgapped }}" = "true" ]; then
             bash scripts/provision.sh deploy $ARGS --airgapped
           else
@@ -175,7 +177,8 @@ jobs:
               --subdomain "${{ steps.parse-origin.outputs.subdomain }}" \
               --base-domain "${{ steps.parse-origin.outputs.base-domain }}" \
               --entry-service nginx \
-              --entry-port 80
+              --entry-port 80 \
+              ${LL_HOST:+--learnloop-host "$LL_HOST"}
           fi
 
       - name: Generate seed backup

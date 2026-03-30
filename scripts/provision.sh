@@ -26,6 +26,7 @@ while [[ $# -gt 0 ]]; do
     --entry-service) ENTRY_SERVICE="$2"; shift 2 ;;
     --entry-port) ENTRY_PORT="$2"; shift 2 ;;
     --airgapped) AIRGAPPED=true; shift ;;
+    --learnloop-host) LEARNLOOP_HOST="$2"; shift 2 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
 done
@@ -82,6 +83,13 @@ OVERRIDE
       DOMAIN="${SUBDOMAIN}.${BASE_DOMAIN}"
       docker network create traefik_routing 2>/dev/null || true
 
+      # Build extra_hosts list (own domain + LearnLoop API if provided)
+      HOSTS_BLOCK="    - ${DOMAIN}:host-gateway"
+      if [ -n "${LEARNLOOP_HOST:-}" ]; then
+        HOSTS_BLOCK="${HOSTS_BLOCK}
+    - ${LEARNLOOP_HOST}:host-gateway"
+      fi
+
       # Build extra_hosts for non-entry services
       EXTRA_HOSTS_ENTRIES=""
       for svc in $SERVICES; do
@@ -93,7 +101,7 @@ OVERRIDE
         EXTRA_HOSTS_ENTRIES="${EXTRA_HOSTS_ENTRIES}
   ${svc}:
     extra_hosts:
-    - ${DOMAIN}:host-gateway"
+${HOSTS_BLOCK}"
       done
 
       # Server entries need both extra_hosts AND deployment network
@@ -104,7 +112,7 @@ OVERRIDE
             SERVER_WITH_HOSTS="${SERVER_WITH_HOSTS}
   ${svc}:
     extra_hosts:
-    - ${DOMAIN}:host-gateway
+${HOSTS_BLOCK}
     networks:
       deployment:
         aliases:
@@ -135,7 +143,7 @@ services:
           memory: 2G
           cpus: '2.0'
     extra_hosts:
-    - ${DOMAIN}:host-gateway${SERVER_WITH_HOSTS}${EXTRA_HOSTS_ENTRIES}
+${HOSTS_BLOCK}${SERVER_WITH_HOSTS}${EXTRA_HOSTS_ENTRIES}
 networks:
   traefik_routing:
     external: true
