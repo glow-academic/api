@@ -50,7 +50,7 @@ async def _get_learnloop_jwks() -> list[dict[str, Any]]:
     ):
         return _learnloop_jwks_cache["keys"]
 
-    jwks_url = f"{LEARNLOOP_API_URL}/.well-known/jwks.json"
+    jwks_url = f"{LEARNLOOP_API_URL}/jwks"
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(jwks_url)
