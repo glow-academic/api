@@ -171,7 +171,8 @@ jobs:
           # Extract LearnLoop API hostname for extra_hosts (hairpin NAT workaround)
           LL_HOST=$(echo "${LEARNLOOP_API_URL:-}" | sed 's|https\?://||' | sed 's|/.*||')
           if [ "${{ inputs.airgapped }}" = "true" ]; then
-            bash scripts/provision.sh deploy $ARGS --airgapped
+            bash scripts/provision.sh deploy $ARGS --airgapped \
+              ${LL_HOST:+--learnloop-host "$LL_HOST"}
           else
             bash scripts/provision.sh deploy $ARGS \
               --subdomain "${{ steps.parse-origin.outputs.subdomain }}" \
