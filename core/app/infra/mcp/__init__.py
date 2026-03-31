@@ -53,6 +53,7 @@ transport_security = TransportSecuritySettings(
 mcp_server = FastMCP(
     "GLOW",
     stateless_http=True,
+    streamable_http_path="/",
     transport_security=transport_security,
 )
 
