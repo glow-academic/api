@@ -7,7 +7,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.auth.create import CreateAuthItem
 from app.infra.identity.settings import SettingsThemeResult
 from app.infra.shared_types import (
     QGetAgentsV4Item,
@@ -268,6 +267,34 @@ class AuthResultItem(BaseModel):
 
 
 # ========== Create Endpoint Types ==========
+
+
+class CreateAuthItem(BaseModel):
+    """Single auth item for create — no auth_id.
+
+    Required fields (name): provide ID or value.
+    """
+
+    id: UUID | None = Field(None, description="Optional preset UUID for the new auth provider")
+
+    # Required single-select — provide ID or value
+    name_id: UUID | None = Field(None, description="UUID of the name resource")
+    name: str | None = Field(None, description="Name value to resolve or create")
+    # Optional single-select — provide ID or value
+    description_id: UUID | None = Field(None, description="UUID of the description resource")
+    description: str | None = Field(None, description="Description value to resolve or create")
+    slug_id: UUID | None = Field(None, description="UUID of the slug resource")
+    slug: str | None = Field(None, description="Slug value to resolve or create")
+    # Optional flag
+    active_flag_id: UUID | None = Field(None, description="UUID of the active flag option")
+    active_flag: bool | None = Field(None, description="Whether the auth provider is active")
+    # Optional multi-select — provide IDs or values
+    department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
+    departments: list[str] | None = Field(None, description="Department names to resolve")
+    protocol_ids: list[UUID] | None = Field(None, description="Protocol resource UUIDs")
+    protocol: str | None = Field(None, description="Protocol value to resolve")
+    item_ids: list[UUID] | None = Field(None, description="Auth item UUIDs")
+    auth_resource_ids: list[UUID] | None = Field(None, description="Auth resource UUIDs")
 
 
 class CreateAuthApiRequest(BaseModel):

@@ -7,7 +7,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.department.create import CreateDepartmentItem
 from app.infra.api_types import BaseResourceSection
 from app.tools.entries.department_drafts.types import (
     GetDepartmentDraftResponse,
@@ -94,6 +93,27 @@ class DepartmentResultItem(BaseModel):
 
 
 # ========== Create Endpoint Types ==========
+
+
+class CreateDepartmentItem(BaseModel):
+    """Single department item for create — no department_id.
+
+    Required fields (name): provide ID or value.
+    """
+
+    id: UUID | None = Field(None, description="Optional preset UUID for the new department")
+
+    # Required single-select — provide ID or value
+    name_id: UUID | None = Field(None, description="UUID of the name resource")
+    name: str | None = Field(None, description="Name value to resolve or create")
+    # Optional single-select — provide ID or value
+    description_id: UUID | None = Field(None, description="UUID of the description resource")
+    description: str | None = Field(None, description="Description value to resolve or create")
+    active_flag_id: UUID | None = Field(None, description="UUID of the active flag option")
+    active_flag: bool | None = Field(None, description="Whether the department is active")
+    # ID-only fields
+    settings_ids: list[UUID] | None = Field(None, description="Setting UUIDs to assign")
+    department_ids: list[UUID] | None = Field(None, description="Sub-department UUIDs to assign")
 
 
 class CreateDepartmentApiRequest(BaseModel):

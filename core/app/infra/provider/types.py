@@ -8,7 +8,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.provider.create import CreateProviderItem
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.provider_drafts.types import GetProviderDraftResponse
 
@@ -136,6 +135,28 @@ class ProviderResultItem(BaseModel):
 
 
 # ========== Create Endpoint Types ==========
+
+
+class CreateProviderItem(BaseModel):
+    """Single provider item for create — no provider_id."""
+
+    id: UUID | None = Field(None, description="Optional pre-assigned identifier")
+
+    # Required single-select — provide ID or value
+    name_id: UUID | None = Field(None, description="Name resource identifier")
+    name: str | None = Field(None, description="Display name value")
+    # Optional single-select — provide ID or value
+    description_id: UUID | None = Field(None, description="Description resource identifier")
+    description: str | None = Field(None, description="Description text value")
+    active_flag_id: UUID | None = Field(None, description="Active flag option identifier")
+    active_flag: bool | None = Field(None, description="Whether the provider is active")
+    # Optional multi-select — provide IDs or values
+    department_ids: list[UUID] | None = Field(None, description="Department identifiers")
+    departments: list[str] | None = Field(None, description="Department names to match")
+    # ID-only fields
+    endpoint_ids: list[UUID] | None = Field(None, description="Endpoint resource identifiers")
+    key_ids: list[UUID] | None = Field(None, description="API key resource identifiers")
+    value_ids: list[UUID] | None = Field(None, description="Value resource identifiers")
 
 
 class CreateProviderApiRequest(BaseModel):

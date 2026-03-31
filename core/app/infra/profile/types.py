@@ -7,7 +7,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.profile.create import CreateProfileItem
 from app.infra.shared_types import QGetProfileContextV4RoleResource
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.profile_drafts.types import GetProfileDraftResponse
@@ -187,6 +186,24 @@ class ProfileResultItem(BaseModel):
 
 
 # ========== Create Endpoint Types ==========
+
+
+class CreateProfileItem(BaseModel):
+    """Single profile item for create — no profile_id."""
+
+    id: UUID | None = Field(None, description="Optional preset UUID for the new profile")
+
+    # Required single-select — provide ID or value
+    name_id: UUID | None = Field(None, description="UUID of the name resource")
+    name: str | None = Field(None, description="Name value to resolve or create")
+    # Optional single-select — provide IDs only
+    request_limit_id: UUID | None = Field(None, description="UUID of the request limit resource")
+    flag_id: UUID | None = Field(None, description="UUID of the flag option")
+    # Optional multi-select — provide IDs or values
+    department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
+    departments: list[str] | None = Field(None, description="Department names to resolve")
+    email_ids: list[UUID] | None = Field(None, description="Email resource UUIDs")
+    role_ids: list[UUID] | None = Field(None, description="Role resource UUIDs")
 
 
 class CreateProfileApiRequest(BaseModel):

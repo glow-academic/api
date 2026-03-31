@@ -10,8 +10,6 @@ from fastapi.responses import RedirectResponse
 from app.infra.identity.middleware import require_auth
 from app.infra.identity.resolve_identity import Identity
 
-from app.utils.auth.derive_key import derive_from_secret_key
-
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -22,14 +20,7 @@ _app_prefix = os.getenv("APP_PREFIX", "")
 _keycloak_internal_url = os.getenv("KEYCLOAK_INTERNAL_URL", "http://localhost:8080")
 _realm = os.getenv("KEYCLOAK_REALM", "master")
 _client_id = os.getenv("AUTH_KEYCLOAK_ID", "glow-client")
-
-_secret_key = os.getenv("SECRET_KEY")
-_client_secret = os.getenv("AUTH_KEYCLOAK_SECRET") or (
-    derive_from_secret_key(_secret_key, "keycloak-client") if _secret_key else None
-)
-_auth_secret = os.getenv("AUTH_SECRET") or (
-    derive_from_secret_key(_secret_key, "auth-secret") if _secret_key else None
-)
+_auth_client_secret = os.getenv("AUTH_CLIENT_SECRET", "")
 _deployment_token = os.getenv("DEPLOYMENT_TOKEN", "")
 
 # Browser-facing Keycloak base URL (through nginx in production)
@@ -73,7 +64,7 @@ async def callback(code: str | None = None, error: str | None = None):
             data={
                 "grant_type": "authorization_code",
                 "client_id": _client_id,
-                "client_secret": _client_secret,
+                "client_secret": _auth_client_secret,
                 "code": code,
                 "redirect_uri": _redirect_uri,
             },
@@ -163,14 +154,13 @@ async def client_config(request: Request):
         except Exception:
             raise HTTPException(401, "Invalid deployment token or admin credentials")
 
-    if not _client_secret:
-        raise HTTPException(500, "Server auth not configured (missing SECRET_KEY or AUTH_KEYCLOAK_SECRET)")
+    if not _auth_client_secret:
+        raise HTTPException(500, "Server auth not configured (missing AUTH_CLIENT_SECRET)")
 
     return {
         "auth_url": f"{_origin}{_app_prefix}/auth",
         "realm": _realm,
         "client_id": _client_id,
-        "client_secret": _client_secret,
-        "auth_secret": _auth_secret,
+        "client_secret": _auth_client_secret,
         "issuer": f"{_origin}{_app_prefix}/auth/realms/{_realm}",
     }

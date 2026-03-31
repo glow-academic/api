@@ -13,7 +13,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.model.create import CreateModelItem
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.model_drafts.types import GetModelDraftResponse
 
@@ -196,6 +195,36 @@ class ModelResultItem(BaseModel):
 # =============================================================================
 # Create Endpoint Types
 # =============================================================================
+
+
+class CreateModelItem(BaseModel):
+    """Single model item for create — no model_id.
+
+    Required fields (name): provide ID or value.
+    """
+
+    id: UUID | None = Field(None, description="Optional pre-assigned identifier")
+
+    # Dual-mode: name
+    name_id: UUID | None = Field(None, description="Name resource identifier")
+    name: str | None = Field(None, description="Display name value")
+    # Dual-mode: description
+    description_id: UUID | None = Field(None, description="Description resource identifier")
+    description: str | None = Field(None, description="Description text value")
+    # Dual-mode: departments (match by name)
+    department_ids: list[UUID] | None = Field(None, description="Department identifiers")
+    departments: list[str] | None = Field(None, description="Department names to match")
+    # ID-only fields
+    flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
+    modality_ids: list[UUID] | None = Field(None, description="Modality identifiers")
+    pricing_ids: list[UUID] | None = Field(None, description="Pricing tier identifiers")
+    provider_ids: list[UUID] | None = Field(None, description="Provider identifiers")
+    quality_ids: list[UUID] | None = Field(None, description="Quality level identifiers")
+    reasoning_level_ids: list[UUID] | None = Field(None, description="Reasoning level identifiers")
+    temperature_level_ids: list[UUID] | None = Field(None, description="Temperature level identifiers")
+    value_ids: list[UUID] | None = Field(None, description="Value resource identifiers")
+    voice_ids: list[UUID] | None = Field(None, description="Voice identifiers")
+    model_ids: list[UUID] | None = Field(None, description="Related model identifiers")
 
 
 class CreateModelApiRequest(BaseModel):

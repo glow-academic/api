@@ -9,7 +9,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.cohort.create import CreateCohortItem
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.cohort_drafts.types import GetCohortDraftResponse
 from app.tools.resources.personas.types import GetPersonaResponse
@@ -326,6 +325,36 @@ class CohortResultItem(BaseModel):
 # =============================================================================
 # Create Endpoint Types
 # =============================================================================
+
+
+class CreateCohortItem(BaseModel):
+    """Single cohort item for create — no cohort_id.
+
+    Required fields (name): provide ID or value.
+    """
+
+    id: UUID | None = Field(None, description="Optional pre-assigned UUID")
+
+    # Required single-select — provide ID or value
+    name_id: UUID | None = Field(None, description="Name resource UUID")
+    name: str | None = Field(None, description="Name value for resolution")
+    # Optional single-select — provide ID or value
+    description_id: UUID | None = Field(None, description="Description resource UUID")
+    description: str | None = Field(None, description="Description value for resolution")
+    # Single-select flag
+    flag_id: UUID | None = Field(None, description="Flag option UUID")
+    # Multi-select IDs
+    department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
+    simulation_ids: list[UUID] | None = Field(None, description="Simulation UUIDs")
+    simulation_position_ids: list[UUID] | None = Field(None, description="Simulation position UUIDs")
+    simulation_availability_ids: list[UUID] | None = Field(None, description="Simulation availability UUIDs")
+    profile_ids: list[UUID] | None = Field(None, description="Profile UUIDs")
+    profile_persona_ids: list[UUID] | None = Field(None, description="Profile persona UUIDs")
+    # Value-based fields (for CSV import — resolved to IDs)
+    is_inactive: bool | None = Field(None, description="Whether the cohort is inactive")
+    departments: list[str] | None = Field(None, description="Department names for resolution")
+    simulations: list[str] | None = Field(None, description="Simulation names for resolution")
+    profiles: list[str] | None = Field(None, description="Profile names for resolution")
 
 
 class CreateCohortApiRequest(BaseModel):

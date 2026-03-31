@@ -7,7 +7,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.parameter.create import CreateParameterItem
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.parameter_drafts.types import GetParameterDraftResponse
 
@@ -199,6 +198,24 @@ class ParameterResultItem(BaseModel):
 
 
 # ========== Create Endpoint Types ==========
+
+
+class CreateParameterItem(BaseModel):
+    """Single parameter item for create — no parameter_id."""
+
+    id: UUID | None = Field(None, description="Optional pre-assigned identifier")
+
+    # Required single-select — provide ID or value
+    name_id: UUID | None = Field(None, description="Name resource identifier")
+    name: str | None = Field(None, description="Display name value")
+    # Optional single-select — provide ID or value
+    description_id: UUID | None = Field(None, description="Description resource identifier")
+    description: str | None = Field(None, description="Description text value")
+    # Optional multi-select — provide IDs or values
+    department_ids: list[UUID] | None = Field(None, description="Department identifiers")
+    departments: list[str] | None = Field(None, description="Department names to match")
+    flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
+    field_ids: list[UUID] | None = Field(None, description="Field identifiers")
 
 
 class CreateParameterApiRequest(BaseModel):

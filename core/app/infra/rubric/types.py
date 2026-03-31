@@ -7,7 +7,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.rubric.create import CreateRubricItem
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.rubric_drafts.types import GetRubricDraftResponse
 
@@ -111,6 +110,28 @@ class RubricResultItem(BaseModel):
 
 
 # ========== Create Endpoint Types ==========
+
+
+class CreateRubricItem(BaseModel):
+    """Single rubric item for create — no rubric_id."""
+
+    id: UUID | None = Field(None, description="Optional pre-assigned UUID")
+
+    # Required single-select — provide ID or value
+    name_id: UUID | None = Field(None, description="Name resource UUID")
+    name: str | None = Field(None, description="Name value for resolution")
+    # Optional single-select — provide ID or value
+    description_id: UUID | None = Field(None, description="Description resource UUID")
+    description: str | None = Field(None, description="Description value for resolution")
+    active_flag_id: UUID | None = Field(None, description="Active flag option UUID")
+    active_flag: bool | None = Field(None, description="Active flag boolean value")
+    # Optional multi-select — provide IDs or values
+    department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
+    departments: list[str] | None = Field(None, description="Department names for resolution")
+    # ID-only fields
+    point_ids: list[UUID] | None = Field(None, description="Point UUIDs")
+    standard_group_ids: list[UUID] | None = Field(None, description="Standard group UUIDs")
+    standard_ids: list[UUID] | None = Field(None, description="Standard UUIDs")
 
 
 class CreateRubricApiRequest(BaseModel):

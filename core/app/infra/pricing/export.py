@@ -19,7 +19,6 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg
-from pydantic import BaseModel
 from redis.asyncio import Redis
 
 from app.infra.pricing import compute_costs_from_runs
@@ -44,13 +43,7 @@ RUN_CSV_COLUMNS = [
 ]
 
 
-class ExportPricingApiResponse(BaseModel):
-    """Response model for pricing export."""
-
-    content: str
-    file_name: str
-    mime_type: str
-    row_count: int
+from app.infra.pricing.types import ExportPricingApiResponse
 
 
 async def export_pricing_impl(

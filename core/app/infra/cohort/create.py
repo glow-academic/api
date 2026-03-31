@@ -15,7 +15,6 @@ from uuid import UUID
 
 import asyncpg
 from fastapi import HTTPException
-from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.infra.cohort.permissions_context import (
@@ -32,56 +31,12 @@ from app.utils.logging.db_logger import get_logger
 logger = get_logger(__name__)
 
 
-class CreateCohortItem(BaseModel):
-    """Single cohort item for create — no cohort_id.
-
-    Required fields (name): provide ID or value.
-    """
-
-    id: UUID | None = Field(None, description="Optional pre-assigned UUID")
-
-    # Required single-select — provide ID or value
-    name_id: UUID | None = Field(None, description="Name resource UUID")
-    name: str | None = Field(None, description="Name value for resolution")
-    # Optional single-select — provide ID or value
-    description_id: UUID | None = Field(None, description="Description resource UUID")
-    description: str | None = Field(None, description="Description value for resolution")
-    # Single-select flag
-    flag_id: UUID | None = Field(None, description="Flag option UUID")
-    # Multi-select IDs
-    department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
-    simulation_ids: list[UUID] | None = Field(None, description="Simulation UUIDs")
-    simulation_position_ids: list[UUID] | None = Field(None, description="Simulation position UUIDs")
-    simulation_availability_ids: list[UUID] | None = Field(None, description="Simulation availability UUIDs")
-    profile_ids: list[UUID] | None = Field(None, description="Profile UUIDs")
-    profile_persona_ids: list[UUID] | None = Field(None, description="Profile persona UUIDs")
-    # Value-based fields (for CSV import — resolved to IDs)
-    is_inactive: bool | None = Field(None, description="Whether the cohort is inactive")
-    departments: list[str] | None = Field(None, description="Department names for resolution")
-    simulations: list[str] | None = Field(None, description="Simulation names for resolution")
-    profiles: list[str] | None = Field(None, description="Profile names for resolution")
-
-
-class CohortFieldError(BaseModel):
-    """Per-field error from value resolution."""
-
-    field: str = Field(..., description="Field name that has the error")
-    message: str = Field(..., description="Human-readable error message")
-
-
-class CohortResultItem(BaseModel):
-    """Per-item result within a bulk create/update response."""
-
-    success: bool = Field(..., description="Whether the operation succeeded")
-    cohort_id: UUID | None = Field(None, description="Cohort UUID")
-    message: str = Field(..., description="Human-readable result message")
-    errors: list[CohortFieldError] | None = Field(None, description="List of per-field errors")
-
-
-class CreateCohortApiResponse(BaseModel):
-    """Response model for bulk create cohort endpoint."""
-
-    results: list[CohortResultItem] = Field(..., description="List of operation results")
+from app.infra.cohort.types import (
+    CreateCohortItem,
+    CohortFieldError,
+    CohortResultItem,
+    CreateCohortApiResponse,
+)
 
 
 async def create_cohort_impl(

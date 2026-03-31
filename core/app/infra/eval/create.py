@@ -14,7 +14,6 @@ from uuid import UUID
 
 import asyncpg
 from fastapi import HTTPException
-from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.infra.eval.permissions_context import (
@@ -28,50 +27,12 @@ from app.tools.artifacts.eval.create import (
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 
-class CreateEvalItem(BaseModel):
-    """Single eval item for create — no eval_id.
-
-    Required fields (name): provide ID or value.
-    """
-
-    id: UUID | None = Field(None, description="Optional pre-assigned UUID")
-
-    # Required single-select — provide ID or value
-    name_id: UUID | None = Field(None, description="Name resource UUID")
-    name: str | None = Field(None, description="Name value for resolution")
-    # Optional single-select — provide ID or value
-    description_id: UUID | None = Field(None, description="Description resource UUID")
-    description: str | None = Field(None, description="Description value for resolution")
-    # Multi-select — IDs only (matching get.py junctions)
-    flag_ids: list[UUID] | None = Field(None, description="Flag option UUIDs")
-    department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
-    departments: list[str] | None = Field(None, description="Department names for resolution")
-    model_ids: list[UUID] | None = Field(None, description="Model UUIDs")
-    model_flag_ids: list[UUID] | None = Field(None, description="Model flag UUIDs")
-    model_rubric_ids: list[UUID] | None = Field(None, description="Model rubric UUIDs")
-    model_position_ids: list[UUID] | None = Field(None, description="Model position UUIDs")
-
-
-class EvalFieldError(BaseModel):
-    """Per-field error from value resolution."""
-
-    field: str = Field(..., description="Field name that has the error")
-    message: str = Field(..., description="Human-readable error message")
-
-
-class EvalResultItem(BaseModel):
-    """Per-item result within a bulk create/update response."""
-
-    success: bool = Field(..., description="Whether the operation succeeded")
-    eval_id: UUID | None = Field(None, description="Eval UUID")
-    message: str = Field(..., description="Human-readable result message")
-    errors: list[EvalFieldError] | None = Field(None, description="List of per-field errors")
-
-
-class CreateEvalApiResponse(BaseModel):
-    """Response model for bulk create eval endpoint."""
-
-    results: list[EvalResultItem] = Field(..., description="List of operation results")
+from app.infra.eval.types import (
+    CreateEvalItem,
+    EvalFieldError,
+    EvalResultItem,
+    CreateEvalApiResponse,
+)
 
 
 async def create_eval_impl(

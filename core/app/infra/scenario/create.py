@@ -14,7 +14,6 @@ from uuid import UUID
 
 import asyncpg
 from fastapi import HTTPException
-from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -28,72 +27,12 @@ from app.tools.artifacts.scenario.create import (
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 
-class CreateScenarioItem(BaseModel):
-    """Single scenario item for create — no scenario_id.
-
-    Required fields (name): provide ID or value.
-    """
-
-    id: UUID | None = Field(None, description="Client-provided UUID for the scenario")
-
-    # Dual-mode: provide ID or raw value
-    name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Display name value")
-    description_id: UUID | None = Field(None, description="UUID of the description resource")
-    description: str | None = Field(None, description="Description text value")
-    problem_statement_id: UUID | None = Field(None, description="UUID of the problem statement resource")
-    problem_statement: str | None = Field(None, description="Problem statement text value")
-    # Flag IDs (individual typed flags)
-    active_flag_id: UUID | None = Field(None, description="UUID of the active flag option")
-    objectives_enabled_flag_id: UUID | None = Field(None, description="UUID of the objectives enabled flag option")
-    images_enabled_flag_id: UUID | None = Field(None, description="UUID of the images enabled flag option")
-    video_enabled_flag_id: UUID | None = Field(None, description="UUID of the video enabled flag option")
-    questions_enabled_flag_id: UUID | None = Field(None, description="UUID of the questions enabled flag option")
-    problem_statement_enabled_flag_id: UUID | None = Field(None, description="UUID of the problem statement enabled flag option")
-    # Multi-select resource IDs
-    department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
-    persona_ids: list[UUID] | None = Field(None, description="Associated persona UUIDs")
-    document_ids: list[UUID] | None = Field(None, description="Associated document UUIDs")
-    parameter_ids: list[UUID] | None = Field(None, description="Associated parameter UUIDs")
-    parameter_field_ids: list[UUID] | None = Field(None, description="Associated parameter field UUIDs")
-    image_ids: list[UUID] | None = Field(None, description="Associated image UUIDs")
-    objective_ids: list[UUID] | None = Field(None, description="Associated objective UUIDs")
-    video_ids: list[UUID] | None = Field(None, description="Associated video UUIDs")
-    question_ids: list[UUID] | None = Field(None, description="Associated question UUIDs")
-    option_ids: list[UUID] | None = Field(None, description="Associated option UUIDs")
-    # Value-based fields for CSV import (resolved to IDs server-side)
-    active_flag: bool | None = Field(None, description="Active flag boolean value")
-    departments: list[str] | None = Field(None, description="Department names for matching")
-    personas: list[str] | None = Field(None, description="Persona names for matching")
-    documents: list[str] | None = Field(None, description="Document names for matching")
-    parameter_fields: list[str] | None = Field(None, description="Parameter field names for matching")
-    objectives: list[str] | None = Field(None, description="Objective texts for matching")
-    images: list[str] | None = Field(None, description="Image names for matching")
-    videos: list[str] | None = Field(None, description="Video names for matching")
-    questions: list[str] | None = Field(None, description="Question texts for matching")
-    options: list[str] | None = Field(None, description="Option texts for matching")
-
-
-class ScenarioFieldError(BaseModel):
-    """Per-field error from value resolution."""
-
-    field: str = Field(..., description="Name of the field with the error")
-    message: str = Field(..., description="Human-readable error message")
-
-
-class ScenarioResultItem(BaseModel):
-    """Per-item result within a bulk create/update response."""
-
-    success: bool = Field(..., description="Whether the operation succeeded")
-    scenario_id: UUID | None = Field(None, description="UUID of the affected scenario")
-    message: str = Field(..., description="Human-readable result message")
-    errors: list[ScenarioFieldError] | None = Field(None, description="List of per-field errors")
-
-
-class CreateScenarioApiResponse(BaseModel):
-    """Response model for bulk create scenario endpoint."""
-
-    results: list[ScenarioResultItem] = Field(..., description="List of operation results")
+from app.infra.scenario.types import (
+    CreateScenarioItem,
+    ScenarioFieldError,
+    ScenarioResultItem,
+    CreateScenarioApiResponse,
+)
 
 
 def _batch_department_scope(items: list[CreateScenarioItem]) -> list[str] | None:

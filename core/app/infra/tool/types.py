@@ -7,7 +7,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.tool.create import CreateToolItem
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.tool_drafts.types import GetToolDraftResponse
 
@@ -130,6 +129,31 @@ class ToolResultItem(BaseModel):
 
 
 # ========== Create Endpoint Types ==========
+
+
+class CreateToolItem(BaseModel):
+    """Single tool item for create — no tool_id.
+
+    Required fields (name): provide ID or value.
+    """
+
+    id: UUID | None = Field(None, description="Optional pre-assigned identifier")
+
+    # Dual-mode: name
+    name_id: UUID | None = Field(None, description="Name resource identifier")
+    name: str | None = Field(None, description="Display name value")
+    # Dual-mode: description
+    description_id: UUID | None = Field(None, description="Description resource identifier")
+    description: str | None = Field(None, description="Description text value")
+    # ID-only fields
+    department_ids: list[UUID] | None = Field(None, description="Department identifiers")
+    flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
+    arg_positions_ids: list[UUID] | None = Field(None, description="Argument position identifiers")
+    args_ids: list[UUID] | None = Field(None, description="Argument identifiers")
+    args_outputs_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
+    artifact_ids: list[UUID] | None = Field(None, description="Artifact identifiers")
+    operation_ids: list[UUID] | None = Field(None, description="Operation identifiers")
+    tool_ids: list[UUID] | None = Field(None, description="Related tool identifiers")
 
 
 class CreateToolApiRequest(BaseModel):

@@ -14,7 +14,6 @@ from uuid import UUID
 
 import asyncpg
 from fastapi import HTTPException
-from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.infra.document.permissions_context import (
@@ -28,53 +27,12 @@ from app.tools.artifacts.document.create import (
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 
-class CreateDocumentItem(BaseModel):
-    """Single document item for create — no document_id.
-
-    Required fields (name): provide ID or value.
-    """
-
-    id: UUID | None = Field(None, description="Optional pre-assigned UUID")
-
-    # Required single-select — provide ID or value
-    name_id: UUID | None = Field(None, description="Name resource UUID")
-    name: str | None = Field(None, description="Name value for resolution")
-    # Optional single-select — provide ID or value
-    description_id: UUID | None = Field(None, description="Description resource UUID")
-    description: str | None = Field(None, description="Description value for resolution")
-    # Flag — provide ID or boolean
-    flag_id: UUID | None = Field(None, description="Flag option UUID")
-    is_inactive: bool | None = Field(None, description="Whether the document is inactive")
-    # Multi-select — provide IDs or names
-    department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
-    departments: list[str] | None = Field(None, description="Department names for resolution")
-    # Multi-select — IDs only
-    field_ids: list[UUID] | None = Field(None, description="Parameter field UUIDs")
-    upload_ids: list[UUID] | None = Field(None, description="File upload UUIDs")
-    image_ids: list[UUID] | None = Field(None, description="Image UUIDs")
-    text_ids: list[UUID] | None = Field(None, description="Text resource UUIDs")
-
-
-class DocumentFieldError(BaseModel):
-    """Per-field error from value resolution."""
-
-    field: str = Field(..., description="Field name that has the error")
-    message: str = Field(..., description="Human-readable error message")
-
-
-class DocumentResultItem(BaseModel):
-    """Per-item result within a bulk create/update response."""
-
-    success: bool = Field(..., description="Whether the operation succeeded")
-    document_id: UUID | None = Field(None, description="Document UUID")
-    message: str = Field(..., description="Human-readable result message")
-    errors: list[DocumentFieldError] | None = Field(None, description="List of per-field errors")
-
-
-class CreateDocumentApiResponse(BaseModel):
-    """Response model for bulk create document endpoint."""
-
-    results: list[DocumentResultItem] = Field(..., description="List of operation results")
+from app.infra.document.types import (
+    CreateDocumentItem,
+    DocumentFieldError,
+    DocumentResultItem,
+    CreateDocumentApiResponse,
+)
 
 
 async def create_document_impl(

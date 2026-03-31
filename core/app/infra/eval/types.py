@@ -8,7 +8,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.eval.create import CreateEvalItem
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.eval_drafts.types import GetEvalDraftResponse
 
@@ -162,6 +161,30 @@ class EvalResultItem(BaseModel):
 
 
 # ========== Create Endpoint Types ==========
+
+
+class CreateEvalItem(BaseModel):
+    """Single eval item for create — no eval_id.
+
+    Required fields (name): provide ID or value.
+    """
+
+    id: UUID | None = Field(None, description="Optional pre-assigned UUID")
+
+    # Required single-select — provide ID or value
+    name_id: UUID | None = Field(None, description="Name resource UUID")
+    name: str | None = Field(None, description="Name value for resolution")
+    # Optional single-select — provide ID or value
+    description_id: UUID | None = Field(None, description="Description resource UUID")
+    description: str | None = Field(None, description="Description value for resolution")
+    # Multi-select — IDs only (matching get.py junctions)
+    flag_ids: list[UUID] | None = Field(None, description="Flag option UUIDs")
+    department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
+    departments: list[str] | None = Field(None, description="Department names for resolution")
+    model_ids: list[UUID] | None = Field(None, description="Model UUIDs")
+    model_flag_ids: list[UUID] | None = Field(None, description="Model flag UUIDs")
+    model_rubric_ids: list[UUID] | None = Field(None, description="Model rubric UUIDs")
+    model_position_ids: list[UUID] | None = Field(None, description="Model position UUIDs")
 
 
 class CreateEvalApiRequest(BaseModel):

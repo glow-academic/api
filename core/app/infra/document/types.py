@@ -11,7 +11,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.document.create import CreateDocumentItem
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.document_drafts.types import GetDocumentDraftResponse
 from app.tools.resources.parameters.types import GetParameterResponse
@@ -276,6 +275,33 @@ class DocumentResultItem(BaseModel):
 
 
 # ========== Create Endpoint Types ==========
+
+
+class CreateDocumentItem(BaseModel):
+    """Single document item for create — no document_id.
+
+    Required fields (name): provide ID or value.
+    """
+
+    id: UUID | None = Field(None, description="Optional pre-assigned UUID")
+
+    # Required single-select — provide ID or value
+    name_id: UUID | None = Field(None, description="Name resource UUID")
+    name: str | None = Field(None, description="Name value for resolution")
+    # Optional single-select — provide ID or value
+    description_id: UUID | None = Field(None, description="Description resource UUID")
+    description: str | None = Field(None, description="Description value for resolution")
+    # Flag — provide ID or boolean
+    flag_id: UUID | None = Field(None, description="Flag option UUID")
+    is_inactive: bool | None = Field(None, description="Whether the document is inactive")
+    # Multi-select — provide IDs or names
+    department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
+    departments: list[str] | None = Field(None, description="Department names for resolution")
+    # Multi-select — IDs only
+    field_ids: list[UUID] | None = Field(None, description="Parameter field UUIDs")
+    upload_ids: list[UUID] | None = Field(None, description="File upload UUIDs")
+    image_ids: list[UUID] | None = Field(None, description="Image UUIDs")
+    text_ids: list[UUID] | None = Field(None, description="Text resource UUIDs")
 
 
 class CreateDocumentApiRequest(BaseModel):

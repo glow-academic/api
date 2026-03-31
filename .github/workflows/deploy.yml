@@ -133,16 +133,16 @@ jobs:
           fi
 
           # Extract auth config (Login with LearnLoop)
-          AUTH_CLIENT_ID=$(echo "$RESP" | jq -r '.auth_config.oauth_client_id // empty')
-          AUTH_CLIENT_SECRET=$(echo "$RESP" | jq -r '.auth_config.oauth_client_secret // empty')
+          LEARNLOOP_CLIENT_ID=$(echo "$RESP" | jq -r '.auth_config.oauth_client_id // empty')
+          LEARNLOOP_CLIENT_SECRET=$(echo "$RESP" | jq -r '.auth_config.oauth_client_secret // empty')
           AUTH_ISSUER=$(echo "$RESP" | jq -r '.auth_config.issuer // empty')
           AUTH_ISSUER_INTERNAL=$(echo "$RESP" | jq -r '.auth_config.issuer_internal // empty')
           SEED_SETUP_CLAIMED=$(echo "$RESP" | jq -r '.seed_setup // empty')
 
-          if [ -n "$AUTH_CLIENT_ID" ]; then
+          if [ -n "$LEARNLOOP_CLIENT_ID" ]; then
             echo "AUTH_PROVIDER=learnloop" >> $GITHUB_ENV
-            echo "AUTH_CLIENT_ID=${AUTH_CLIENT_ID}" >> $GITHUB_ENV
-            echo "AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET}" >> $GITHUB_ENV
+            echo "LEARNLOOP_CLIENT_ID=${LEARNLOOP_CLIENT_ID}" >> $GITHUB_ENV
+            echo "LEARNLOOP_CLIENT_SECRET=${LEARNLOOP_CLIENT_SECRET}" >> $GITHUB_ENV
             echo "AUTH_ISSUER=${AUTH_ISSUER}" >> $GITHUB_ENV
             echo "AUTH_ISSUER_INTERNAL=${AUTH_ISSUER_INTERNAL}" >> $GITHUB_ENV
             echo "LearnLoop OAuth credentials received"
@@ -236,8 +236,8 @@ jobs:
           AI_API_KEY=${AI_API_KEY:-}
           AI_BASE_URL=${AI_BASE_URL:-https://api.learn-loop.org/ai/v1}
           AUTH_PROVIDER=${AUTH_PROVIDER:-keycloak}
-          AUTH_CLIENT_ID=${AUTH_CLIENT_ID:-}
-          AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET:-}
+          LEARNLOOP_CLIENT_ID=${LEARNLOOP_CLIENT_ID:-}
+          LEARNLOOP_CLIENT_SECRET=${LEARNLOOP_CLIENT_SECRET:-}
           AUTH_ISSUER=${AUTH_ISSUER:-}
           AUTH_ISSUER_INTERNAL=${AUTH_ISSUER_INTERNAL:-}
           ACTIVE_ENV=${ACTIVE_ENV}

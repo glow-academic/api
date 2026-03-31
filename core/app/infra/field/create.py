@@ -14,7 +14,6 @@ from uuid import UUID
 
 import asyncpg
 from fastapi import HTTPException
-from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.infra.field.permissions_context import (
@@ -28,49 +27,12 @@ from app.tools.artifacts.field.create import (
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 
-class CreateFieldItem(BaseModel):
-    """Single field item for create — no field_id.
-
-    Required fields (name): provide ID or value.
-    """
-
-    id: UUID | None = Field(None, description="Optional preset UUID for the new field")
-
-    # Required single-select — provide ID or value
-    name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Name value to resolve or create")
-    # Optional single-select — provide ID or value
-    description_id: UUID | None = Field(None, description="UUID of the description resource")
-    description: str | None = Field(None, description="Description value to resolve or create")
-    # Optional single-select — provide ID only
-    flag_id: UUID | None = Field(None, description="UUID of the flag option")
-    # Optional multi-select — provide IDs or values
-    department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
-    departments: list[str] | None = Field(None, description="Department names to resolve")
-    conditional_parameter_ids: list[UUID] | None = Field(None, description="Conditional parameter UUIDs")
-    field_ids: list[UUID] | None = Field(None, description="Related field UUIDs")
-
-
-class FieldFieldError(BaseModel):
-    """Per-field error from value resolution."""
-
-    field: str = Field(..., description="Name of the field that failed validation")
-    message: str = Field(..., description="Validation error message")
-
-
-class FieldResultItem(BaseModel):
-    """Per-item result within a bulk create/update response."""
-
-    success: bool = Field(..., description="Whether the operation succeeded")
-    field_id: UUID | None = Field(None, description="UUID of the created field")
-    message: str = Field(..., description="Result message")
-    errors: list[FieldFieldError] | None = Field(None, description="Per-field validation errors")
-
-
-class CreateFieldApiResponse(BaseModel):
-    """Response model for bulk create field endpoint."""
-
-    results: list[FieldResultItem] = Field(..., description="Per-item creation results")
+from app.infra.field.types import (
+    CreateFieldItem,
+    FieldFieldError,
+    FieldResultItem,
+    CreateFieldApiResponse,
+)
 
 
 async def create_field_impl(

@@ -96,15 +96,8 @@ def _get_glow_client_id() -> str:
 
 
 def _get_glow_client_secret() -> str:
-    """Get the Keycloak client_secret for Glow (derived from SECRET_KEY)."""
-    secret = os.getenv("AUTH_KEYCLOAK_SECRET", "")
-    if secret:
-        return secret
-    secret_key = os.getenv("SECRET_KEY", "")
-    if secret_key:
-        from app.utils.auth.derive_key import derive_from_secret_key
-        return derive_from_secret_key(secret_key, "keycloak-client")
-    return ""
+    """Get the Keycloak client_secret for Glow."""
+    return os.getenv("AUTH_CLIENT_SECRET", "")
 
 
 def get_idp_base_url() -> str:
@@ -416,17 +409,11 @@ def exchange_code_for_tokens(
         )
 
     # Validate client_secret
-    secret_key = os.getenv("SECRET_KEY", "")
-    if not secret_key:
-        raise AuthorizationError(500, "SECRET_KEY not configured — token exchange disabled")
+    expected_secret = os.getenv("AUTH_CLIENT_SECRET", "")
+    if not expected_secret:
+        raise AuthorizationError(500, "AUTH_CLIENT_SECRET not configured — token exchange disabled")
 
-    # Validate client_secret against known derived secrets
-    from app.utils.auth.derive_key import derive_from_secret_key
-    valid_secrets = {
-        derive_from_secret_key(secret_key, "keycloak-client"),  # CLI / Keycloak broker
-        derive_from_secret_key(secret_key, "auth-secret"),       # Browser OIDC client
-    }
-    if client_secret and client_secret not in valid_secrets:
+    if client_secret != expected_secret:
         raise AuthorizationError(401, "Invalid client_secret")
 
     code_data = _authorization_codes.get(code)

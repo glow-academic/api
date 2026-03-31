@@ -14,7 +14,6 @@ from uuid import UUID
 
 import asyncpg
 from fastapi import HTTPException
-from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.infra.persona.permissions_context import (
@@ -28,59 +27,12 @@ from app.tools.artifacts.persona.create import (
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 
-class CreatePersonaItem(BaseModel):
-    """Single persona item for create — no persona_id.
-
-    Required fields (name, color, icon, instructions): provide ID or value.
-    """
-
-    id: UUID | None = Field(None, description="Client-provided UUID for the new persona")
-
-    # Required single-select — provide ID or value
-    name_id: UUID | None = Field(None, description="UUID of an existing name resource")
-    name: str | None = Field(None, description="Display name text (creates new resource if name_id not provided)")
-    color_id: UUID | None = Field(None, description="UUID of an existing color resource")
-    color: str | None = Field(None, description="Hex color code, e.g. '#FF5733' (creates new resource if color_id not provided)")
-    icon_id: UUID | None = Field(None, description="UUID of an existing icon resource")
-    icon: str | None = Field(None, description="Icon identifier value (creates new resource if icon_id not provided)")
-    instructions_id: UUID | None = Field(None, description="UUID of an existing instruction resource")
-    instructions: str | None = Field(None, description="System instruction template (creates new resource if instructions_id not provided)")
-    # Optional single-select — provide ID or value
-    description_id: UUID | None = Field(None, description="UUID of an existing description resource")
-    description: str | None = Field(None, description="Persona description text (creates new resource if description_id not provided)")
-    active_flag_id: UUID | None = Field(None, description="UUID of the flag option to set active status")
-    active_flag: bool | None = Field(None, description="Whether the persona is active (resolved to flag_id)")
-    # Optional multi-select — provide IDs or values
-    department_ids: list[UUID] | None = Field(None, description="Department UUIDs to associate with this persona")
-    departments: list[str] | None = Field(None, description="Department names (resolved to UUIDs server-side)")
-    parameter_field_ids: list[UUID] | None = Field(None, description="Parameter field UUIDs to associate")
-    parameter_fields: list[str] | None = Field(None, description="Parameter field names (resolved to UUIDs server-side)")
-    example_ids: list[UUID] | None = Field(None, description="Existing example resource UUIDs to associate")
-    examples: list[str] | None = Field(None, description="Example texts (creates new example resources)")
-    voice_ids: list[UUID] | None = Field(None, description="Voice resource UUIDs to associate")
-    voices: list[str] | None = Field(None, description="Voice values (resolved to UUIDs server-side)")
-
-
-class PersonaFieldError(BaseModel):
-    """Per-field error from value resolution."""
-
-    field: str
-    message: str
-
-
-class PersonaResultItem(BaseModel):
-    """Per-item result within a bulk create/update response."""
-
-    success: bool
-    persona_id: UUID | None = None
-    message: str
-    errors: list[PersonaFieldError] | None = None
-
-
-class CreatePersonaApiResponse(BaseModel):
-    """Response model for bulk create persona endpoint."""
-
-    results: list[PersonaResultItem]
+from app.infra.persona.types import (
+    CreatePersonaItem,
+    PersonaFieldError,
+    PersonaResultItem,
+    CreatePersonaApiResponse,
+)
 
 
 def _batch_department_scope(items: list[CreatePersonaItem]) -> list[str] | None:

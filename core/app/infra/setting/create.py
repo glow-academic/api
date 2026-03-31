@@ -14,7 +14,6 @@ from uuid import UUID
 
 import asyncpg
 from fastapi import HTTPException
-from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -28,57 +27,12 @@ from app.tools.artifacts.setting.create import (
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 
-class CreateSettingItem(BaseModel):
-    """Single setting item for create — no setting_id.
-
-    Required fields (name): provide ID or value.
-    """
-
-    id: UUID | None = Field(None, description="Optional preset UUID for the new setting")
-
-    # Required single-select — provide ID or value
-    name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Name value to resolve or create")
-    # Optional single-select — provide ID or value
-    description_id: UUID | None = Field(None, description="UUID of the description resource")
-    description: str | None = Field(None, description="Description value to resolve or create")
-    # Optional flag
-    active_flag_id: UUID | None = Field(None, description="UUID of the active flag option")
-    active_flag: bool | None = Field(None, description="Whether the setting is active")
-    # Optional multi-select — provide IDs or values
-    department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
-    departments: list[str] | None = Field(None, description="Department names to resolve")
-    color_ids: list[UUID] | None = Field(None, description="Color resource UUIDs")
-    profile_ids: list[UUID] | None = Field(None, description="Profile UUIDs to assign")
-    auth_ids: list[UUID] | None = Field(None, description="Auth provider UUIDs")
-    provider_key_ids: list[UUID] | None = Field(None, description="Provider key UUIDs")
-    auth_item_key_ids: list[UUID] | None = Field(None, description="Auth item key UUIDs")
-    auth_item_value_ids: list[UUID] | None = Field(None, description="Auth item value UUIDs")
-    system_ids: list[UUID] | None = Field(None, description="System UUIDs to assign")
-    threshold_ids: list[UUID] | None = Field(None, description="Threshold UUIDs to assign")
-    setting_resource_ids: list[UUID] | None = Field(None, description="Setting resource UUIDs")
-
-
-class SettingFieldError(BaseModel):
-    """Per-field error from value resolution."""
-
-    field: str = Field(..., description="Name of the field that failed validation")
-    message: str = Field(..., description="Validation error message")
-
-
-class SettingResultItem(BaseModel):
-    """Per-item result within a bulk create/update response."""
-
-    success: bool = Field(..., description="Whether the operation succeeded")
-    setting_id: UUID | None = Field(None, description="UUID of the created setting")
-    message: str = Field(..., description="Result message")
-    errors: list[SettingFieldError] | None = Field(None, description="Per-field validation errors")
-
-
-class CreateSettingApiResponse(BaseModel):
-    """Response model for bulk create setting endpoint."""
-
-    results: list[SettingResultItem] = Field(..., description="Per-item creation results")
+from app.infra.setting.types import (
+    CreateSettingItem,
+    SettingFieldError,
+    SettingResultItem,
+    CreateSettingApiResponse,
+)
 
 
 async def create_setting_impl(

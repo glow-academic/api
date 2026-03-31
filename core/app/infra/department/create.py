@@ -15,7 +15,6 @@ from uuid import UUID
 
 import asyncpg
 from fastapi import HTTPException
-from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.infra.department.permissions_context import (
@@ -29,47 +28,12 @@ from app.tools.artifacts.department.create import (
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 
-class CreateDepartmentItem(BaseModel):
-    """Single department item for create — no department_id.
-
-    Required fields (name): provide ID or value.
-    """
-
-    id: UUID | None = Field(None, description="Optional preset UUID for the new department")
-
-    # Required single-select — provide ID or value
-    name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Name value to resolve or create")
-    # Optional single-select — provide ID or value
-    description_id: UUID | None = Field(None, description="UUID of the description resource")
-    description: str | None = Field(None, description="Description value to resolve or create")
-    active_flag_id: UUID | None = Field(None, description="UUID of the active flag option")
-    active_flag: bool | None = Field(None, description="Whether the department is active")
-    # ID-only fields
-    settings_ids: list[UUID] | None = Field(None, description="Setting UUIDs to assign")
-    department_ids: list[UUID] | None = Field(None, description="Sub-department UUIDs to assign")
-
-
-class DepartmentFieldError(BaseModel):
-    """Per-field error from value resolution."""
-
-    field: str = Field(..., description="Name of the field that failed validation")
-    message: str = Field(..., description="Validation error message")
-
-
-class DepartmentResultItem(BaseModel):
-    """Per-item result within a bulk create/update response."""
-
-    success: bool = Field(..., description="Whether the operation succeeded")
-    department_id: UUID | None = Field(None, description="UUID of the created department")
-    message: str = Field(..., description="Result message")
-    errors: list[DepartmentFieldError] | None = Field(None, description="Per-field validation errors")
-
-
-class CreateDepartmentApiResponse(BaseModel):
-    """Response model for bulk create department endpoint."""
-
-    results: list[DepartmentResultItem] = Field(..., description="Per-item creation results")
+from app.infra.department.types import (
+    CreateDepartmentItem,
+    DepartmentFieldError,
+    DepartmentResultItem,
+    CreateDepartmentApiResponse,
+)
 
 
 async def create_department_impl(

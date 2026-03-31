@@ -17,7 +17,6 @@ from app.infra.identity.keycloak_resolvers import (
 )
 from app.infra.mcp.oauth import MCP_RESOURCE, is_mcp_enabled
 from app.utils.auth.decrypt_api_key import decrypt_api_key
-from app.utils.auth.derive_key import derive_from_secret_key
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -43,12 +42,11 @@ class KeycloakSyncConfig:
     """Configuration for Keycloak sync. All env vars resolved once at boundary."""
 
     auth_keycloak_id: str = "glow-client"
-    auth_keycloak_secret: str | None = None
+    auth_client_secret: str | None = None
     client_port: str = "3000"
     app_prefix: str = ""
     origin: str = ""
     client_origins: list[str] | None = None  # allowed client/frontend origins for CORS and redirect URIs
-    auth_secret: str | None = None
     auth_url: str | None = None
     keycloak_internal_url: str | None = None
     keycloak_admin: str = "admin"
@@ -61,24 +59,14 @@ class KeycloakSyncConfig:
         """Create config from environment variables."""
         client_port = os.getenv("CLIENT_PORT", "3000")
         origin = os.getenv("ORIGIN", f"http://localhost:{client_port}")
-        secret_key = os.getenv("SECRET_KEY")
-
-        auth_keycloak_secret = os.getenv("AUTH_KEYCLOAK_SECRET")
-        if not auth_keycloak_secret and secret_key:
-            auth_keycloak_secret = derive_from_secret_key(secret_key, "keycloak-client")
-
-        auth_secret = os.getenv("AUTH_SECRET")
-        if not auth_secret and secret_key:
-            auth_secret = derive_from_secret_key(secret_key, "auth-secret")
 
         return cls(
             auth_keycloak_id=os.getenv("AUTH_KEYCLOAK_ID", "glow-client"),
-            auth_keycloak_secret=auth_keycloak_secret,
+            auth_client_secret=os.getenv("AUTH_CLIENT_SECRET"),
             client_port=client_port,
             app_prefix=os.getenv("APP_PREFIX", ""),
             origin=origin,
             client_origins=get_client_origins(),
-            auth_secret=auth_secret,
             auth_url=os.getenv("KEYCLOAK_URL"),
             keycloak_internal_url=os.getenv("KEYCLOAK_INTERNAL_URL"),
             keycloak_admin=os.getenv("KEYCLOAK_ADMIN", "admin"),
@@ -157,11 +145,11 @@ async def ensure_department_client(
     Returns:
         client_id if created/updated, None if error
     """
-    target_secret = config.auth_keycloak_secret
+    target_secret = config.auth_client_secret
 
     if not target_secret:
         logger.warning(
-            f"⚠️  AUTH_KEYCLOAK_SECRET is missing. Cannot create department client for {department_id}."
+            f"⚠️  AUTH_CLIENT_SECRET is missing. Cannot create department client for {department_id}."
         )
         return None
 
@@ -282,10 +270,10 @@ async def ensure_glow_client_in_master_realm(
         config: Keycloak sync configuration
     """
     target_client_id = config.auth_keycloak_id
-    target_secret = config.auth_keycloak_secret
+    target_secret = config.auth_client_secret
 
     if not target_secret:
-        logger.warning("⚠️  AUTH_KEYCLOAK_SECRET is missing. Cannot create glow-client.")
+        logger.warning("⚠️  AUTH_CLIENT_SECRET is missing. Cannot create glow-client.")
         return
 
     try:
@@ -1336,9 +1324,9 @@ async def sync_default_idp_for_profile(
         idp_public_url = get_idp_public_url(config)
         idp_internal_url = get_idp_internal_url(config)
 
-        client_secret = config.auth_secret
+        client_secret = config.auth_client_secret
         if not client_secret:
-            logger.warning(f"AUTH_SECRET not found, cannot create {alias}")
+            logger.warning(f"AUTH_CLIENT_SECRET not found, cannot create {alias}")
             return alias
 
         auth_url = f"{idp_public_url}/authorize?profile_id={profile_id}"
@@ -1451,9 +1439,9 @@ async def sync_emulation_default_idp(kc_admin: Any, config: KeycloakSyncConfig) 
         idp_public_url = get_idp_public_url(config)
         idp_internal_url = get_idp_internal_url(config)
 
-        client_secret = config.auth_secret
+        client_secret = config.auth_client_secret
         if not client_secret:
-            logger.warning(f"AUTH_SECRET not found, cannot create {alias}")
+            logger.warning(f"AUTH_CLIENT_SECRET not found, cannot create {alias}")
             return alias
 
         # Authorization URL without hardcoded profile_id - uses login_hint for emulation grants

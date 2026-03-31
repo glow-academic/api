@@ -6,18 +6,12 @@ from typing import Any
 
 from jose import jwt
 
-from app.utils.auth.derive_key import derive_from_secret_key
-
 
 def get_auth_secret() -> str:
-    """Get AUTH_SECRET from environment, or derive from SECRET_KEY when unset."""
-    secret = os.getenv("AUTH_SECRET")
+    """Get AUTH_CLIENT_SECRET from environment."""
+    secret = os.getenv("AUTH_CLIENT_SECRET")
     if not secret:
-        sk = os.getenv("SECRET_KEY")
-        if sk:
-            secret = derive_from_secret_key(sk, "auth-secret")
-        if not secret:
-            raise ValueError("AUTH_SECRET or SECRET_KEY environment variable is required")
+        raise ValueError("AUTH_CLIENT_SECRET environment variable is required")
     return secret
 
 

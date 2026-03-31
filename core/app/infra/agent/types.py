@@ -8,7 +8,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.agent.create import CreateAgentItem
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.agent_drafts.types import GetAgentDraftResponse
 
@@ -146,6 +145,33 @@ class AgentResultItem(BaseModel):
 
 
 # ========== Create Endpoint Types ==========
+
+
+class CreateAgentItem(BaseModel):
+    """Single agent item for create — no agent_id.
+
+    Required fields (name): provide ID or value.
+    """
+
+    id: UUID | None = Field(None, description="Client-provided UUID for the agent")
+
+    # Dual-mode: name
+    name_id: UUID | None = Field(None, description="UUID of the name resource")
+    name: str | None = Field(None, description="Display name value")
+    # Dual-mode: description
+    description_id: UUID | None = Field(None, description="UUID of the description resource")
+    description: str | None = Field(None, description="Description text value")
+    # Dual-mode: departments (match by name)
+    department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
+    departments: list[str] | None = Field(None, description="Department names for matching")
+    # ID-only fields
+    flag_ids: list[UUID] | None = Field(None, description="Associated flag UUIDs")
+    model_ids: list[UUID] | None = Field(None, description="Associated model UUIDs")
+    reasoning_level_ids: list[UUID] | None = Field(None, description="Associated reasoning level UUIDs")
+    temperature_level_ids: list[UUID] | None = Field(None, description="Associated temperature level UUIDs")
+    tool_ids: list[UUID] | None = Field(None, description="Associated tool UUIDs")
+    voice_ids: list[UUID] | None = Field(None, description="Associated voice UUIDs")
+    agent_ids: list[UUID] | None = Field(None, description="Associated agent resource UUIDs")
 
 
 class CreateAgentApiRequest(BaseModel):

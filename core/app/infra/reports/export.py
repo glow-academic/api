@@ -21,7 +21,6 @@ from uuid import UUID
 
 import asyncpg
 from fastapi import HTTPException
-from pydantic import BaseModel
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -86,13 +85,7 @@ BRIGHTSPACE_CSV_COLUMNS = [
 ]
 
 
-class ExportReportsApiResponse(BaseModel):
-    """Response model for reports export."""
-
-    content: str
-    file_name: str
-    mime_type: str
-    row_count: int
+from app.infra.reports.types import ExportReportsApiResponse
 
 
 async def _empty_list() -> list:  # type: ignore[type-arg]

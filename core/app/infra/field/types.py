@@ -7,7 +7,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.field.create import CreateFieldItem
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.field_drafts.types import GetFieldDraftResponse
 from app.tools.resources.parameters.types import GetParameterResponse
@@ -132,6 +131,29 @@ class FieldResultItem(BaseModel):
 
 
 # ========== Create Endpoint Types ==========
+
+
+class CreateFieldItem(BaseModel):
+    """Single field item for create — no field_id.
+
+    Required fields (name): provide ID or value.
+    """
+
+    id: UUID | None = Field(None, description="Optional preset UUID for the new field")
+
+    # Required single-select — provide ID or value
+    name_id: UUID | None = Field(None, description="UUID of the name resource")
+    name: str | None = Field(None, description="Name value to resolve or create")
+    # Optional single-select — provide ID or value
+    description_id: UUID | None = Field(None, description="UUID of the description resource")
+    description: str | None = Field(None, description="Description value to resolve or create")
+    # Optional single-select — provide ID only
+    flag_id: UUID | None = Field(None, description="UUID of the flag option")
+    # Optional multi-select — provide IDs or values
+    department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
+    departments: list[str] | None = Field(None, description="Department names to resolve")
+    conditional_parameter_ids: list[UUID] | None = Field(None, description="Conditional parameter UUIDs")
+    field_ids: list[UUID] | None = Field(None, description="Related field UUIDs")
 
 
 class CreateFieldApiRequest(BaseModel):

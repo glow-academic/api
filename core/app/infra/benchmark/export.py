@@ -20,7 +20,6 @@ from uuid import UUID
 
 import asyncpg
 from fastapi import HTTPException
-from pydantic import BaseModel
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -71,13 +70,7 @@ INVOCATION_CSV_COLUMNS = [
 ]
 
 
-class ExportBenchmarkApiResponse(BaseModel):
-    """Response model for benchmark export."""
-
-    content: str
-    file_name: str
-    mime_type: str
-    row_count: int
+from app.infra.benchmark.types import ExportBenchmarkApiResponse
 
 
 async def _empty_list() -> list:  # type: ignore[type-arg]

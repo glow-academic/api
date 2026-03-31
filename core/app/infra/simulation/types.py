@@ -10,7 +10,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.simulation.create import CreateSimulationItem
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.simulation_drafts.types import (
     GetSimulationDraftResponse,
@@ -537,6 +536,35 @@ class SimulationResultItem(BaseModel):
 # =============================================================================
 # Create Endpoint Types
 # =============================================================================
+
+
+class CreateSimulationItem(BaseModel):
+    """Single simulation item for create — no simulation_id.
+
+    Required fields (name): provide ID or value.
+    """
+
+    id: UUID | None = Field(None, description="Client-provided UUID for the simulation")
+
+    # Required single-select — provide ID or value
+    name_id: UUID | None = Field(None, description="UUID of the name resource")
+    name: str | None = Field(None, description="Display name value")
+    # Optional single-select — provide ID or value
+    description_id: UUID | None = Field(None, description="UUID of the description resource")
+    description: str | None = Field(None, description="Description text value")
+    # Multi-select IDs
+    flag_ids: list[UUID] | None = Field(None, description="Associated flag UUIDs")
+    department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
+    scenario_ids: list[UUID] | None = Field(None, description="Associated scenario UUIDs")
+    scenario_flag_ids: list[UUID] | None = Field(None, description="Associated scenario flag UUIDs")
+    scenario_position_ids: list[UUID] | None = Field(None, description="Associated scenario position UUIDs")
+    scenario_rubric_ids: list[UUID] | None = Field(None, description="Associated scenario rubric UUIDs")
+    scenario_time_limit_ids: list[UUID] | None = Field(None, description="Associated scenario time limit UUIDs")
+    # Value-based fields for CSV import (match-by-name resolution)
+    is_inactive: bool | None = Field(None, description="Whether the simulation is inactive")
+    is_practice: bool | None = Field(None, description="Whether this is a practice simulation")
+    departments: list[str] | None = Field(None, description="Department names for matching")
+    scenarios: list[str] | None = Field(None, description="Scenario names for matching")
 
 
 class CreateSimulationApiRequest(BaseModel):
