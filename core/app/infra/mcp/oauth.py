@@ -30,6 +30,9 @@ KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "master")
 
 # LearnLoop proxy token configuration
 LEARNLOOP_API_URL = (os.getenv("LEARNLOOP_API_URL", "").rstrip("/") or None)
+# For airgapped deployments, JWKS can be fetched from a proxy URL
+# while LEARNLOOP_API_URL stays as the issuer for token validation.
+LEARNLOOP_JWKS_URL = os.getenv("LEARNLOOP_JWKS_URL", "").rstrip("/") or None
 DEPLOYMENT_ID = (
     os.getenv("DEPLOYMENT_ID")
     or os.getenv("COMPOSE_PROJECT_NAME")
@@ -50,7 +53,8 @@ async def _get_learnloop_jwks() -> list[dict[str, Any]]:
     ):
         return _learnloop_jwks_cache["keys"]
 
-    jwks_url = f"{LEARNLOOP_API_URL}/jwks"
+    jwks_base = LEARNLOOP_JWKS_URL or LEARNLOOP_API_URL
+    jwks_url = f"{jwks_base}/jwks"
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(jwks_url)
