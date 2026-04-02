@@ -79,7 +79,7 @@ class TestAuth:
 
         with pytest.raises(HTTPException) as exc_info:
             await search_persona_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID,
+                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
             )
         assert exc_info.value.status_code == 401
 
@@ -100,7 +100,7 @@ class TestProfileResolved:
         # but verify profile resolution was actually called
         try:
             await search_persona_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID,
+                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
             )
         except Exception:
             pass  # downstream errors expected
