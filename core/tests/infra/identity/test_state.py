@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import os
 import time
 
 import pytest
 from jose import jwt
+
+# Ensure AUTH_CLIENT_SECRET is set for tests
+os.environ.setdefault("AUTH_CLIENT_SECRET", "test-secret-for-state-tests")
 
 from app.infra.identity.state import (
     get_auth_secret,
