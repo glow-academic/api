@@ -157,6 +157,14 @@ jobs:
             echo "Seed setup from claim: $SEED_SETUP_CLAIMED"
           fi
 
+          DEPLOY_CONFIG_YAML=$(echo "$RESP" | jq -r '.deploy_config_yaml // empty')
+          if [ -n "$DEPLOY_CONFIG_YAML" ]; then
+            echo "DEPLOY_CONFIG_YAML<<CONFIGEOF" >> $GITHUB_ENV
+            echo "$DEPLOY_CONFIG_YAML" >> $GITHUB_ENV
+            echo "CONFIGEOF" >> $GITHUB_ENV
+            echo "Deploy config received from claim"
+          fi
+
           echo "Deployment token claimed successfully"
 
       - name: Parse subdomain from ORIGIN
@@ -254,6 +262,12 @@ jobs:
           AI_BASE_URL=${AI_BASE_URL:-https://api.learn-loop.org/ai/v1}
           EOF
           sed -i 's/^          //' .env
+
+          # Write deploy config as glow-deploy.yaml if provided
+          if [ -n "${DEPLOY_CONFIG_YAML:-}" ]; then
+            echo "$DEPLOY_CONFIG_YAML" > "$DEPLOY_DIR/glow-deploy.yaml"
+            echo "Wrote glow-deploy.yaml from deploy config"
+          fi
 
       - name: Deploy target environment
         working-directory: ${{ env.DEPLOY_DIR }}
