@@ -2,6 +2,9 @@
 
 Execution order matters: colors and icons must come before roles
 (which references them via icon_id/color_id).
+
+Dynamic resources (temperature_levels, pricing, voices) are generated
+from model configs in models.py and seeded separately by the runner.
 """
 
 MODULES = [
@@ -14,10 +17,7 @@ MODULES = [
     "thresholds",
     "points",
     "request_limits",
-    "voices",
-    "pricing",
     "reasoning_levels",
-    "temperature_levels",
     "operations",
     "artifacts",
     "standard_groups",

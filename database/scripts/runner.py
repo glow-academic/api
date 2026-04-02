@@ -153,14 +153,8 @@ async def _run_resource_seeds(
                 await _seed_points(conn, redis, items)
             elif module_name == "request_limits":
                 await _seed_request_limits(conn, redis, items)
-            elif module_name == "voices":
-                await _seed_voices(conn, redis, items)
-            elif module_name == "pricing":
-                await _seed_pricing(conn, redis, items)
             elif module_name == "reasoning_levels":
                 await _seed_reasoning_levels(conn, redis, items)
-            elif module_name == "temperature_levels":
-                await _seed_temperature_levels(conn, redis, items)
             elif module_name == "operations":
                 await _seed_operations(conn, redis, items)
             elif module_name == "artifacts":
@@ -1809,6 +1803,17 @@ async def main_modules() -> Path:
         # Module 02: providers
         print("\nSeeding module 02 (providers)...")
         await _run_provider_module_seeds(pool, redis_client)
+
+        # Dynamic resources from model configs (must be created before models)
+        print("\nSeeding dynamic model resources...")
+        from database.seeds.models import dynamic_temperature_levels, dynamic_pricing, dynamic_voices
+        async with pool.acquire() as conn:
+            if dynamic_temperature_levels:
+                await _seed_temperature_levels(conn, redis_client, dynamic_temperature_levels)
+            if dynamic_pricing:
+                await _seed_pricing(conn, redis_client, dynamic_pricing)
+            if dynamic_voices:
+                await _seed_voices(conn, redis_client, dynamic_voices)
 
         # Module 03: models
         print("\nSeeding module 03 (models)...")

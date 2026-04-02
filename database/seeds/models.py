@@ -1,8 +1,8 @@
 """Module 03 — Model seed definitions (config-driven).
 
-All model metadata (modalities, reasoning levels, temperature ranges,
-pricing, voices, qualities) is read from glow-deploy.yaml and resolved
-to UUIDs dynamically.  No hardcoded legacy model definitions.
+All model metadata is read from glow-deploy.yaml. Dynamic resources
+(temperature levels, pricing, voices) are generated from model configs
+and exported for the runner to create before the models themselves.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from database.seeds.ids import sid
 from database.seeds.providers import PROVIDER_IDS
 
 # ---------------------------------------------------------------------------
-# Resource lookups — map human-readable names to seed UUIDs
+# Static resource lookups (these resources are seeded independently)
 # ---------------------------------------------------------------------------
 
 from database.seeds.resources.modalities import modalities as _all_modalities
@@ -26,17 +26,11 @@ _MODALITY_LOOKUP: dict[str, UUID] = {
 
 from database.seeds.resources.reasoning_levels import reasoning_levels as _all_reasoning
 
-# Reasoning levels are duplicated per model group — deduplicate by name,
-# keeping the first occurrence.
 _REASONING_LOOKUP: dict[str, UUID] = {}
 for _r in _all_reasoning:
     _rname = _r["reasoning_level"]
     if _rname not in _REASONING_LOOKUP:
         _REASONING_LOOKUP[_rname] = _r["id"]
-
-from database.seeds.resources.voices import voices as _all_voices
-
-_VOICE_LOOKUP: dict[str, UUID] = {v["voice"]: v["id"] for v in _all_voices}
 
 from database.seeds.resources.qualities import qualities as _all_qualities
 
@@ -60,42 +54,83 @@ except FileNotFoundError:
 _config_models_raw = get_ai_models(_config)
 _roles = get_ai_roles(_config)
 
-
 # ---------------------------------------------------------------------------
-# Helper: generate temperature level IDs from {min, max, step}
+# Dynamic resources — generated from model configs, exported for runner
 # ---------------------------------------------------------------------------
 
-def _temperature_ids(model_name: str, temp_cfg: dict) -> list[UUID]:
-    """Generate deterministic temperature level UUIDs for a model.
+# Temperature levels: {id, temperature} for each model's range
+dynamic_temperature_levels: list[dict] = []
+_temp_id_set: set[UUID] = set()
 
-    temp_cfg: {"min": 0, "max": 1.0, "step": 0.01}
-    """
+# Pricing: {id, pricing_type, price, unit_name, unit_category, unit_value}
+dynamic_pricing: list[dict] = []
+_pricing_id_set: set[UUID] = set()
+
+# Voices: {id, voice} — collected from all models that declare them
+dynamic_voices: list[dict] = []
+_voice_names_seen: set[str] = set()
+
+
+def _generate_temperatures(model_name: str, temp_cfg: dict) -> list[UUID]:
+    """Generate temperature level resources and return their IDs."""
     t_min = float(temp_cfg.get("min", 0))
     t_max = float(temp_cfg.get("max", 1.0))
     t_step = float(temp_cfg.get("step", 0.01))
     if t_step <= 0:
         return []
     ids: list[UUID] = []
-    # Use integer arithmetic to avoid float drift
     steps = round((t_max - t_min) / t_step)
     for i in range(steps + 1):
         value = round(t_min + i * t_step, 4)
-        ids.append(sid(f"temperature/{model_name}/{value}"))
+        tid = sid(f"temperature/{model_name}/{value}")
+        ids.append(tid)
+        if tid not in _temp_id_set:
+            _temp_id_set.add(tid)
+            dynamic_temperature_levels.append(dict(id=tid, temperature=value))
     return ids
 
 
-# ---------------------------------------------------------------------------
-# Helper: generate pricing IDs from [{type, price, unit}]
-# ---------------------------------------------------------------------------
-
-def _pricing_ids(model_name: str, pricing_list: list[dict]) -> list[UUID]:
-    """Generate deterministic pricing UUIDs for a model."""
+def _generate_pricing(model_name: str, pricing_list: list[dict]) -> list[UUID]:
+    """Generate pricing resources and return their IDs."""
     ids: list[UUID] = []
     for p in pricing_list:
         p_type = p.get("type", "input")
-        p_price = p.get("price", 0)
+        p_price = float(p.get("price", 0))
         p_unit = p.get("unit", "million_text")
-        ids.append(sid(f"pricing/{model_name}/{p_type}/{p_unit}/{p_price}"))
+        pid = sid(f"pricing/{model_name}/{p_type}/{p_unit}/{p_price}")
+        ids.append(pid)
+        if pid not in _pricing_id_set:
+            _pricing_id_set.add(pid)
+            # Determine unit_category from unit_name
+            if "image" in p_unit:
+                category = "images"
+            elif "audio" in p_unit:
+                category = "tokens"
+            elif "second" in p_unit:
+                category = "seconds"
+            else:
+                category = "tokens"
+            unit_value = 1000000 if "million" in p_unit else 1
+            dynamic_pricing.append(dict(
+                id=pid,
+                pricing_type=p_type,
+                price=p_price,
+                unit_name=p_unit,
+                unit_category=category,
+                unit_value=unit_value,
+            ))
+    return ids
+
+
+def _collect_voices(model_name: str, voice_names: list[str]) -> list[UUID]:
+    """Collect voice resources and return their IDs."""
+    ids: list[UUID] = []
+    for vname in voice_names:
+        vid = sid(f"voice/{vname}")
+        ids.append(vid)
+        if vname not in _voice_names_seen:
+            _voice_names_seen.add(vname)
+            dynamic_voices.append(dict(id=vid, voice=vname))
     return ids
 
 
@@ -112,66 +147,49 @@ for _m in _config_models_raw:
     if not _name or not _prov_id:
         continue
 
-    # Modalities
-    _mod_ids: list[UUID] = []
-    for _mod_name in _m.get("modalities", []):
-        _mid = _MODALITY_LOOKUP.get(_mod_name)
-        if _mid:
-            _mod_ids.append(_mid)
+    # Modalities (static lookup)
+    _mod_ids = [_MODALITY_LOOKUP[n] for n in _m.get("modalities", []) if n in _MODALITY_LOOKUP]
 
-    # Reasoning levels
-    _reason_ids: list[UUID] = []
-    for _rl_name in _m.get("reasoning_levels", []):
-        _rid = _REASONING_LOOKUP.get(_rl_name)
-        if _rid:
-            _reason_ids.append(_rid)
+    # Reasoning levels (static lookup)
+    _reason_ids = [_REASONING_LOOKUP[n] for n in _m.get("reasoning_levels", []) if n in _REASONING_LOOKUP]
 
-    # Temperature levels
+    # Qualities (static lookup)
+    _quality_ids = [_QUALITY_LOOKUP[n] for n in _m.get("qualities", []) if n in _QUALITY_LOOKUP]
+
+    # Temperature levels (dynamic — generates resources)
     _temp_ids: list[UUID] = []
     _temp_cfg = _m.get("temperature")
     if _temp_cfg and isinstance(_temp_cfg, dict):
-        _temp_ids = _temperature_ids(_name, _temp_cfg)
+        _temp_ids = _generate_temperatures(_name, _temp_cfg)
 
-    # Pricing
+    # Pricing (dynamic — generates resources)
     _price_ids: list[UUID] = []
     _pricing_cfg = _m.get("pricing")
     if _pricing_cfg and isinstance(_pricing_cfg, list):
-        _price_ids = _pricing_ids(_name, _pricing_cfg)
+        _price_ids = _generate_pricing(_name, _pricing_cfg)
 
-    # Voices
+    # Voices (dynamic — generates resources)
     _voice_ids: list[UUID] = []
-    for _vname in _m.get("voices", []):
-        _vid = _VOICE_LOOKUP.get(_vname)
-        if _vid:
-            _voice_ids.append(_vid)
+    _voices_cfg = _m.get("voices")
+    if _voices_cfg and isinstance(_voices_cfg, list):
+        _voice_ids = _collect_voices(_name, _voices_cfg)
 
-    # Qualities
-    _quality_ids: list[UUID] = []
-    for _qname in _m.get("qualities", []):
-        _qid = _QUALITY_LOOKUP.get(_qname)
-        if _qid:
-            _quality_ids.append(_qid)
+    # Flags
+    _flag_ids = [_MODEL_ACTIVE_FLAG_ID] if _MODEL_ACTIVE_FLAG_ID else []
 
-    # Flags — all models get the model_active flag
-    _flag_ids: list[UUID] = []
-    if _MODEL_ACTIVE_FLAG_ID:
-        _flag_ids.append(_MODEL_ACTIVE_FLAG_ID)
-
-    models.append(
-        dict(
-            id=sid(f"model/{_name}"),
-            name=_name,
-            description=_m.get("description", _name),
-            provider_ids=[_prov_id],
-            flag_ids=_flag_ids,
-            modality_ids=_mod_ids,
-            pricing_ids=_price_ids,
-            reasoning_level_ids=_reason_ids,
-            temperature_level_ids=_temp_ids,
-            voice_ids=_voice_ids,
-            quality_ids=_quality_ids,
-        )
-    )
+    models.append(dict(
+        id=sid(f"model/{_name}"),
+        name=_name,
+        description=_m.get("description", _name),
+        provider_ids=[_prov_id],
+        flag_ids=_flag_ids,
+        modality_ids=_mod_ids,
+        pricing_ids=_price_ids,
+        reasoning_level_ids=_reason_ids,
+        temperature_level_ids=_temp_ids,
+        voice_ids=_voice_ids,
+        quality_ids=_quality_ids,
+    ))
 
 # ---------------------------------------------------------------------------
 # Role → model ID mapping (for agents)
