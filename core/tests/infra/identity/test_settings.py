@@ -173,7 +173,7 @@ async def test_resolve_thresholds_returns_defaults_when_no_identity():
     redis = AsyncMock()
 
     with patch(
-        "app.infra.identity.settings.resolve_profile_identity_context",
+        "app.infra.profile_identity_context.resolve_profile_identity_context",
         new_callable=AsyncMock,
         return_value=None,
     ):

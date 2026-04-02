@@ -10,10 +10,12 @@ from app.infra.identity.default_idp import exchange_code_for_tokens, resolve_aut
 
 def test_exchange_code_for_tokens_puts_profile_identity_on_access_token(monkeypatch):
     monkeypatch.setenv("SECRET_KEY", "test-secret-key")
+    from app.utils.auth.derive_key import derive_from_secret_key
+    test_secret = derive_from_secret_key("test-secret-key", "keycloak-client")
+    monkeypatch.setenv("AUTH_CLIENT_SECRET", test_secret)
     code = "code-access-token-contract"
 
     from app.infra.identity import default_idp
-    from app.utils.auth.derive_key import derive_from_secret_key
 
     default_idp._authorization_codes[code] = {
         "profile_id": "019ce726-fa14-7f2a-aebb-0067bca4b029",

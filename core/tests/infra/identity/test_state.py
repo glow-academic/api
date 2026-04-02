@@ -45,8 +45,10 @@ async def test_sign_state_token_with_none_department():
     assert payload["mode"] == "default-account"
 
 
-async def test_verify_rejects_expired_token(monkeypatch):
+async def test_verify_rejects_expired_token():
     """An expired token raises ExpiredSignatureError."""
+    import asyncio
+
     # Sign with 1 second expiry
     token = sign_state_token(
         department_id="dept-1",
@@ -55,9 +57,8 @@ async def test_verify_rejects_expired_token(monkeypatch):
         expires_in=1,
     )
 
-    # Advance time past expiry
-    real_time = time.time
-    monkeypatch.setattr(time, "time", lambda: real_time() + 10)
+    # Wait for token to expire
+    await asyncio.sleep(2)
 
     with pytest.raises(jwt.ExpiredSignatureError):
         verify_state_token(token)

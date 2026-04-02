@@ -74,6 +74,7 @@ async def test_resolve_group_from_draft_known_type():
     conn = AsyncMock()
     draft_id = uuid4()
     group_id = uuid4()
+    conn.fetchval = AsyncMock(return_value=group_id)
 
     fake_draft = _FakeDraft(group_id=group_id)
 
