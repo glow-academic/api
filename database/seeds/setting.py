@@ -2,17 +2,17 @@
 
 Creates a setting with no department attached, all systems enabled,
 default thresholds, and the default superadmin profile linked.
-Conditionally includes LearnLoop auth when AUTH_PROVIDER=learnloop.
+Auth providers are dynamically included from glow-deploy.yaml config.
 This gives a working login screen out of the box on fresh deploys.
 """
 
 from uuid import UUID
 
 from database.seeds.ids import sid
-from database.seeds.learnloop import (
-    AUTH_IDS as LL_AUTH_IDS,
-    AUTH_ITEM_KEY_IDS as LL_AUTH_ITEM_KEY_IDS,
-    AUTH_ITEM_VALUE_IDS as LL_AUTH_ITEM_VALUE_IDS,
+from database.seeds.dynamic_keys import (
+    AUTH_ID_LIST,
+    AUTH_ITEM_KEY_IDS,
+    AUTH_ITEM_VALUE_IDS,
 )
 from database.seeds.profiles import SEED_PROFILE_ID
 from database.seeds.systems import (
@@ -128,7 +128,7 @@ settings = [
         description="Platform default settings — active on fresh deployments with no departments configured.",
         active_flag=True,
         department_ids=None,
-        auth_ids=LL_AUTH_IDS or None,
+        auth_ids=AUTH_ID_LIST or None,
         system_ids=ALL_SYSTEMS,
         threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
     ),
@@ -136,15 +136,15 @@ settings = [
 
 
 def get_setting_updates():
-    """Deferred — link default profiles and LearnLoop auth after setting is created."""
+    """Deferred — link default profiles and auth keys after setting is created."""
     update = dict(
         id=DEFAULT_SETTING,
         profile_artifact_ids=DEFAULT_PROFILE_ARTIFACT_IDS,
     )
-    if LL_AUTH_ITEM_KEY_IDS:
-        update["auth_item_key_ids"] = LL_AUTH_ITEM_KEY_IDS
-    if LL_AUTH_ITEM_VALUE_IDS:
-        update["auth_item_value_ids"] = LL_AUTH_ITEM_VALUE_IDS
+    if AUTH_ITEM_KEY_IDS:
+        update["auth_item_key_ids"] = AUTH_ITEM_KEY_IDS
+    if AUTH_ITEM_VALUE_IDS:
+        update["auth_item_value_ids"] = AUTH_ITEM_VALUE_IDS
     return [update]
 
 

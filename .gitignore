@@ -18,6 +18,7 @@ ENV/
 .env
 .env.local
 .env.*.local
+glow-deploy.local.yaml
 
 # IDE
 .idea/

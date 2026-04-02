@@ -4,53 +4,70 @@
 # Variables use ${VAR:-default} syntax and are resolved from environment.
 #
 # Usage:
-#   Local dev:  export OPENAI_API_KEY=sk-... && make seed-gen
+#   Local dev:  uses glow-deploy.local.yaml if present, falls back to this
 #   Production: deploy workflow sets env vars from LearnLoop provision claim
-#
-# Setup templates:
-#   university    — full setup with scenarios, personas, rubrics, departments
-#   organization  — minimal setup for custom deployments
-#   fresh         — schema only, no seed data
 
 setup: ${SEED_SETUP:-university}
 
-# ── AI Provider Credentials ───────────────────────────────
-# Stored encrypted in providers_resource table.
-#
-# provider options: learnloop | direct
-#   learnloop → uses LearnLoop AI Gateway (single key for all models)
-#   direct    → uses provider keys directly (bring your own)
+# ── AI Providers & Models ─────────────────────────────────
 ai:
-  provider: ${AI_PROVIDER:-direct}
-  learnloop:
-    api_key: ${AI_API_KEY:-}
-    base_url: ${AI_BASE_URL:-https://api.learn-loop.org/ai/v1}
-  direct:
-    openai:
-      api_key: ${OPENAI_API_KEY:-please_change_me}
-    gemini:
-      api_key: ${GEMINI_API_KEY:-please_change_me}
+  providers:
+    - name: learnloop
+      endpoint: ${AI_BASE_URL:-https://api.learn-loop.org/ai/v1}
+      key: ${AI_API_KEY:-}
 
-# ── Auth Provider Credentials ─────────────────────────────
-# Stored encrypted in auth_item_keys_resource / auth_item_values_resource.
-#
-# provider options: keycloak | learnloop | microsoft | google
-#   keycloak   → local Keycloak instance (default, self-contained)
-#   learnloop  → "Login with LearnLoop" OAuth
-#   microsoft  → Microsoft Entra ID
-#   google     → Google Workspace
+  # Agent role → model name mapping
+  # These are the models agents use by default
+  roles:
+    text: glow-text
+    grader: glow-grader
+    image: glow-image
+    video: glow-video
+    tts: glow-tts
+    stt: glow-stt
+    realtime: glow-realtime
+
+  # Model definitions
+  models:
+    - name: glow-text
+      provider: learnloop
+      description: Default text generation model
+      modalities: [text]
+    - name: glow-grader
+      provider: learnloop
+      description: Multimodal grading and evaluation model
+      modalities: [text, image]
+    - name: glow-image
+      provider: learnloop
+      description: Image generation model
+      modalities: [image]
+    - name: glow-video
+      provider: learnloop
+      description: Video generation model
+      modalities: [video]
+    - name: glow-tts
+      provider: learnloop
+      description: Text to speech model
+      modalities: [audio]
+    - name: glow-stt
+      provider: learnloop
+      description: Speech to text model
+      modalities: [audio]
+    - name: glow-realtime
+      provider: learnloop
+      description: Realtime voice conversation model
+      modalities: [audio, text]
+
+# ── Auth Providers ────────────────────────────────────────
 auth:
-  provider: ${AUTH_PROVIDER:-keycloak}
-  learnloop:
-    client_id: ${LEARNLOOP_CLIENT_ID:-}
-    client_secret: ${LEARNLOOP_CLIENT_SECRET:-}
-    issuer: ${AUTH_ISSUER:-https://api.learn-loop.org}
-    # Internal issuer for Keycloak server-to-server calls (Docker → host)
-    issuer_internal: ${AUTH_ISSUER_INTERNAL:-}
-  microsoft:
-    client_id: ${MICROSOFT_CLIENT_ID:-please_change_me}
-    client_secret: ${MICROSOFT_CLIENT_SECRET:-please_change_me}
-    tenant_id: ${MICROSOFT_TENANT_ID:-common}
-  google:
-    client_id: ${GOOGLE_CLIENT_ID:-please_change_me}
-    client_secret: ${GOOGLE_CLIENT_SECRET:-please_change_me}
+  providers:
+    - name: learnloop
+      protocol: oidc
+      slug: learnloop
+      display_name: LearnLoop
+      client_id: ${LEARNLOOP_CLIENT_ID:-}
+      client_secret: ${LEARNLOOP_CLIENT_SECRET:-}
+      discovery_url: ${AUTH_ISSUER:-https://api.learn-loop.org}/.well-known/openid-configuration
+      authorization_url: ${AUTH_ISSUER:-https://api.learn-loop.org}/authorize
+      token_url: ${AUTH_ISSUER_INTERNAL:-}/.well-known/openid-configuration
+      client_auth_method: client_secret_post

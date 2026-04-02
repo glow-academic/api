@@ -1,7 +1,7 @@
 """Deploy config loader — reads glow-deploy.yaml and resolves env vars.
 
 Resolves ${VAR:-default} patterns from the environment.
-Used by the seed runner to determine what credentials to inject.
+Used by the seed runner to determine what providers, models, and auth to seed.
 """
 
 import os
@@ -31,7 +31,12 @@ def _resolve_dict(d: dict) -> dict:
         elif isinstance(v, dict):
             result[k] = _resolve_dict(v)
         elif isinstance(v, list):
-            result[k] = [_resolve_env_vars(i) if isinstance(i, str) else i for i in v]
+            result[k] = [
+                _resolve_dict(i) if isinstance(i, dict)
+                else _resolve_env_vars(i) if isinstance(i, str)
+                else i
+                for i in v
+            ]
         else:
             result[k] = v
     return result
@@ -40,18 +45,16 @@ def _resolve_dict(d: dict) -> dict:
 def load_deploy_config(path: str | Path | None = None) -> dict[str, Any]:
     """Load and resolve glow-deploy.yaml.
 
-    Args:
-        path: Path to yaml file. Defaults to repo root glow-deploy.yaml.
-
-    Returns:
-        Resolved config dict with env vars substituted.
+    Searches for glow-deploy.local.yaml first (local dev override),
+    then falls back to glow-deploy.yaml.
     """
     if path is None:
-        # Look in common locations
+        project_root = Path(__file__).parent.parent.parent
         candidates = [
-            Path("glow-deploy.yaml"),
+            project_root / "glow-deploy.local.yaml",
+            project_root / "glow-deploy.yaml",
+            Path("/app/glow-deploy.local.yaml"),
             Path("/app/glow-deploy.yaml"),
-            Path(__file__).parent.parent.parent / "glow-deploy.yaml",
         ]
         for p in candidates:
             if p.exists():
@@ -59,91 +62,51 @@ def load_deploy_config(path: str | Path | None = None) -> dict[str, Any]:
                 break
         else:
             raise FileNotFoundError(
-                "glow-deploy.yaml not found. Create one from the template or set SEED_SETUP env var."
+                "glow-deploy.yaml not found. Create one from the template."
             )
 
     raw = yaml.safe_load(Path(path).read_text())
     return _resolve_dict(raw)
 
 
-def get_ai_config(config: dict) -> dict:
-    """Extract resolved AI credentials from config.
+# ---------------------------------------------------------------------------
+# Config accessors
+# ---------------------------------------------------------------------------
 
-    Returns:
-        {
-            "provider": "learnloop" | "direct",
-            "openai_key": str,
-            "gemini_key": str,
-            "openai_endpoint": str | None,
-            "gemini_endpoint": str | None,
-        }
+def get_ai_providers(config: dict) -> list[dict]:
+    """Return list of AI provider configs.
+
+    Each: {"name": str, "endpoint": str, "key": str}
     """
-    ai = config.get("ai", {})
-    provider = ai.get("provider", "direct")
-
-    if provider == "learnloop":
-        ll = ai.get("learnloop", {})
-        api_key = ll.get("api_key", "")
-        base_url = ll.get("base_url", "https://api.learn-loop.org/ai/v1")
-        return {
-            "provider": "learnloop",
-            "openai_key": api_key,
-            "gemini_key": api_key,
-            "openai_endpoint": base_url,
-            "gemini_endpoint": base_url,
-        }
-
-    direct = ai.get("direct", {})
-    return {
-        "provider": "direct",
-        "openai_key": direct.get("openai", {}).get("api_key", "please_change_me"),
-        "gemini_key": direct.get("gemini", {}).get("api_key", "please_change_me"),
-        "openai_endpoint": None,
-        "gemini_endpoint": None,
-    }
+    return [
+        p for p in config.get("ai", {}).get("providers", [])
+        if p.get("name")
+    ]
 
 
-def get_auth_config(config: dict) -> dict:
-    """Extract resolved auth credentials from config.
+def get_ai_roles(config: dict) -> dict[str, str]:
+    """Return role→model name mapping.
 
-    Returns:
-        {
-            "provider": "keycloak" | "learnloop" | "microsoft" | "google",
-            "client_id": str,
-            "client_secret": str,
-            # provider-specific fields
-        }
+    E.g. {"text": "glow-text", "grader": "glow-grader", ...}
     """
-    auth = config.get("auth", {})
-    provider = auth.get("provider", "keycloak")
+    return config.get("ai", {}).get("roles", {})
 
-    if provider == "learnloop":
-        ll = auth.get("learnloop", {})
-        issuer = ll.get("issuer", "https://api.learn-loop.org")
-        return {
-            "provider": "learnloop",
-            "client_id": ll.get("client_id", ""),
-            "client_secret": ll.get("client_secret", ""),
-            "issuer": issuer,
-            "issuer_internal": ll.get("issuer_internal", issuer),
-        }
 
-    if provider == "microsoft":
-        ms = auth.get("microsoft", {})
-        return {
-            "provider": "microsoft",
-            "client_id": ms.get("client_id", "please_change_me"),
-            "client_secret": ms.get("client_secret", "please_change_me"),
-            "tenant_id": ms.get("tenant_id", "common"),
-        }
+def get_ai_models(config: dict) -> list[dict]:
+    """Return list of model configs.
 
-    if provider == "google":
-        g = auth.get("google", {})
-        return {
-            "provider": "google",
-            "client_id": g.get("client_id", "please_change_me"),
-            "client_secret": g.get("client_secret", "please_change_me"),
-        }
+    Each: {"name": str, "provider": str, "description": str, "modalities": list}
+    """
+    return config.get("ai", {}).get("models", [])
 
-    # keycloak — no external credentials needed
-    return {"provider": "keycloak"}
+
+def get_auth_providers(config: dict) -> list[dict]:
+    """Return list of auth provider configs.
+
+    Each: {"name": str, "protocol": str, "slug": str, "display_name": str,
+           "client_id": str, "client_secret": str, ...provider-specific fields}
+    """
+    return [
+        p for p in config.get("auth", {}).get("providers", [])
+        if p.get("name")
+    ]

@@ -1,67 +1,56 @@
-"""Module 06 — Auth seed definitions.
+"""Module 06 — Auth seed definitions (dynamic from glow-deploy.yaml).
 
-Each dict maps directly to CreateAuthItem fields.
-String fields (name, description, slug, protocol, active_flag) are resolved
-by the _impl function via resolve_auth_values.
+Auth providers are driven by the auth.providers list in config.
+No hardcoded provider names.
 """
 
 from uuid import UUID
+from database.seeds.config import get_auth_providers, load_deploy_config
+from database.seeds.ids import sid
 
-from database.seeds.config import get_auth_config, load_deploy_config
-from database.seeds.resources.items import (
-    GOOGLE_ITEM_IDS,
-    LEARNLOOP_ITEM_IDS,
-    MICROSOFT_ITEM_IDS,
-)
+# Legacy UUIDs for existing deployments
+_LEGACY_AUTH_IDS = {
+    "google": UUID("019b3be4-3117-7aa4-aa34-0041aa51d1d8"),
+    "microsoft": UUID("019b3be4-3117-7afc-8d1d-a2815d70f294"),
+}
 
-# ---------------------------------------------------------------------------
-# Deterministic IDs — importable by other modules
-# ---------------------------------------------------------------------------
+try:
+    _config = load_deploy_config()
+except FileNotFoundError:
+    _config = {"auth": {"providers": []}}
 
-GOOGLE_AUTH = UUID("019b3be4-3117-7aa4-aa34-0041aa51d1d8")
-MICROSOFT_AUTH = UUID("019b3be4-3117-7afc-8d1d-a2815d70f294")
-LEARNLOOP_AUTH = UUID("019b3be4-3117-7b00-a000-1ea4a100b001")
+_auth_providers = get_auth_providers(_config)
 
-# ---------------------------------------------------------------------------
-# Auth definitions
-# ---------------------------------------------------------------------------
+
+def _auth_id(name: str) -> UUID:
+    return _LEGACY_AUTH_IDS.get(name, sid(f"auth/{name}"))
+
+
+# Lookup: auth name -> UUID
+AUTH_IDS = {p["name"]: _auth_id(p["name"]) for p in _auth_providers}
+
+# Generate item IDs for each auth provider
+def _item_names_for_protocol(protocol: str) -> list[str]:
+    if protocol == "google":
+        return ["clientId", "clientSecret"]
+    # oidc and others need full config
+    return ["clientId", "clientSecret", "discoveryUrl", "clientAuthMethod",
+            "authorizationUrl", "tokenUrl"]
+
+AUTH_ITEM_IDS = {}  # auth_name -> list of item UUIDs
+for _p in _auth_providers:
+    _items = _item_names_for_protocol(_p.get("protocol", "oidc"))
+    AUTH_ITEM_IDS[_p["name"]] = [sid(f"auth-item/{_p['name']}/{item}") for item in _items]
 
 auths = [
     dict(
-        id=GOOGLE_AUTH,
-        name="Google",
-        description="Google Workspace",
-        slug="google",
-        protocol="google",
+        id=_auth_id(p["name"]),
+        name=p.get("display_name", p["name"]),
+        description=f'{p.get("display_name", p["name"])} authentication',
+        slug=p.get("slug", p["name"]),
+        protocol=p.get("protocol", "oidc"),
         active_flag=True,
-        item_ids=GOOGLE_ITEM_IDS,
-    ),
-    dict(
-        id=MICROSOFT_AUTH,
-        name="Microsoft",
-        description="Microsoft Entra ID OAuth configuration",
-        slug="microsoft",
-        protocol="oidc",
-        active_flag=True,
-        item_ids=MICROSOFT_ITEM_IDS,
-    ),
+        item_ids=AUTH_ITEM_IDS.get(p["name"], []),
+    )
+    for p in _auth_providers
 ]
-
-# Conditionally add LearnLoop auth if configured
-try:
-    _config = load_deploy_config()
-    _auth = get_auth_config(_config)
-    if _auth.get("provider") == "learnloop":
-        auths.append(
-            dict(
-                id=LEARNLOOP_AUTH,
-                name="LearnLoop",
-                description="Login with LearnLoop",
-                slug="learnloop",
-                protocol="oidc",
-                active_flag=True,
-                item_ids=LEARNLOOP_ITEM_IDS,
-            )
-        )
-except FileNotFoundError:
-    pass

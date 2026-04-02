@@ -1838,12 +1838,10 @@ async def main_modules() -> Path:
         print("\nSeeding module 05 (tools)...")
         await _run_tool_module_seeds(pool, redis_client)
 
-        # LearnLoop integration (conditional — only when AUTH_PROVIDER=learnloop)
-        from database.seeds.learnloop import ENABLED as LL_ENABLED
-        if LL_ENABLED:
-            print("\nSeeding LearnLoop auth integration...")
-            import database.seeds.learnloop as ll_mod
-            await _run_key_seeds(pool, redis_client, ll_mod)
+        # Dynamic keys — all providers + all auth credentials from config
+        print("\nSeeding dynamic keys...")
+        import database.seeds.dynamic_keys as dk_mod
+        await _run_key_seeds(pool, redis_client, dk_mod)
 
         # Default setting: no department, all systems, default thresholds + profiles
         print("\nSeeding default setting...")

@@ -6,7 +6,7 @@ Provider keys and auth item keys are created by the keys module and linked here.
 
 from uuid import UUID
 
-from database.seeds.auths import GOOGLE_AUTH
+from database.seeds.auths import AUTH_IDS
 from database.seeds.ids import sid
 from database.seeds.setups.organization.departments import ORGANIZATION_DEPT
 from database.seeds.setups.organization.keys import AUTH_ITEM_KEY_IDS, PROVIDER_KEY_IDS
@@ -87,7 +87,7 @@ settings = [
         description="Settings for the Organization department",
         active_flag=True,
         department_ids=[ORGANIZATION_DEPT],
-        auth_ids=[GOOGLE_AUTH],
+        auth_ids=list(AUTH_IDS.values()),
         provider_key_ids=PROVIDER_KEY_IDS,
         auth_item_key_ids=AUTH_ITEM_KEY_IDS,
         system_ids=SYSTEMS,

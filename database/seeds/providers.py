@@ -1,51 +1,43 @@
-"""Module 02 — Provider seed definitions.
+"""Module 02 — Provider seed definitions (dynamic from glow-deploy.yaml).
 
-Each dict maps directly to CreateProviderItem fields.
-String fields (name, description, active_flag) are resolved by the _impl function.
-
-If AI_PROVIDER=learnloop, sets endpoint to the LearnLoop AI Gateway URL
-so Glow routes all model calls through LearnLoop's proxy.
+Providers are driven by the ai.providers list in glow-deploy.yaml.
+No hardcoded provider names — any provider can be added via config.
 """
 
 from uuid import UUID
 
-from database.seeds.config import get_ai_config, load_deploy_config
+from database.seeds.config import get_ai_providers, load_deploy_config
+from database.seeds.ids import sid
 
-# ---------------------------------------------------------------------------
-# Deterministic IDs — importable by models
-# ---------------------------------------------------------------------------
-
-OPENAI = UUID("019bb2af-b2a3-7466-ad52-1a8593d00b6f")
-GEMINI = UUID("019bb2af-b2a5-7219-9e1d-2439eee0b618")
-
-# ---------------------------------------------------------------------------
-# Load config for endpoint
-# ---------------------------------------------------------------------------
+# Legacy UUIDs — existing deployments have rows with these IDs.
+# New providers get deterministic IDs via sid().
+_LEGACY_IDS = {
+    "openai": UUID("019bb2af-b2a3-7466-ad52-1a8593d00b6f"),
+    "gemini": UUID("019bb2af-b2a5-7219-9e1d-2439eee0b618"),
+}
 
 try:
     _config = load_deploy_config()
 except FileNotFoundError:
-    _config = {"ai": {"provider": "direct"}}
+    _config = {"ai": {"providers": []}}
 
-_ai = get_ai_config(_config)
+_ai_providers = get_ai_providers(_config)
 
-# ---------------------------------------------------------------------------
-# Provider definitions
-# ---------------------------------------------------------------------------
+
+def _provider_id(name: str) -> UUID:
+    return _LEGACY_IDS.get(name, sid(f"provider/{name}"))
+
+
+# Lookup: provider name → UUID (used by models, keys)
+PROVIDER_IDS = {p["name"]: _provider_id(p["name"]) for p in _ai_providers}
 
 providers = [
     dict(
-        id=OPENAI,
-        name="openai",
-        description="Provider description",
+        id=_provider_id(p["name"]),
+        name=p["name"],
+        description=f'{p["name"]} AI provider',
         active_flag=True,
-        endpoint=_ai.get("openai_endpoint"),
-    ),
-    dict(
-        id=GEMINI,
-        name="gemini",
-        description="Provider description",
-        active_flag=True,
-        endpoint=_ai.get("gemini_endpoint"),
-    ),
+        endpoint=p.get("endpoint"),
+    )
+    for p in _ai_providers
 ]

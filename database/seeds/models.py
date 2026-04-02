@@ -2,22 +2,66 @@
 
 Each dict maps directly to CreateModelItem fields.
 String fields (name, description) are resolved by the _impl function.
+
+Config-driven models (from glow-deploy.yaml ai.models) are generated
+dynamically. Legacy detailed models are kept for backward compatibility
+and are only seeded if their provider exists in the config.
 """
 
 from uuid import UUID
 
-from database.seeds.providers import GEMINI, OPENAI
+from database.seeds.config import get_ai_models, get_ai_roles, load_deploy_config
+from database.seeds.ids import sid
+from database.seeds.providers import PROVIDER_IDS
+
+# Legacy provider UUIDs for filtering legacy models
+_LEGACY_OPENAI = UUID("019bb2af-b2a3-7466-ad52-1a8593d00b6f")
+_LEGACY_GEMINI = UUID("019bb2af-b2a5-7219-9e1d-2439eee0b618")
 
 # ---------------------------------------------------------------------------
-# Provider resource IDs from existing SQL (mapped to seed constants)
-# When created via _impl, artifact ID = resource ID, so we use
-# the provider constants directly.
+# Config-driven model generation
 # ---------------------------------------------------------------------------
 
-_PROVIDER = {
-    "openai": OPENAI,
-    "gemini": GEMINI,
-}
+try:
+    _config = load_deploy_config()
+except FileNotFoundError:
+    _config = {"ai": {"providers": [], "models": [], "roles": {}}}
+
+_config_models_raw = get_ai_models(_config)
+_roles = get_ai_roles(_config)
+
+# Set of model names defined in config — used to avoid duplicates with legacy
+_config_model_names: set[str] = set()
+
+_config_models: list[dict] = []
+for _m in _config_models_raw:
+    _name = _m.get("name", "")
+    _prov = _m.get("provider", "")
+    _prov_id = PROVIDER_IDS.get(_prov)
+    if not _name or not _prov_id:
+        continue
+    _config_model_names.add(_name)
+    _config_models.append(
+        dict(
+            id=sid(f"model/{_name}"),
+            name=_name,
+            description=_m.get("description", _name),
+            provider_ids=[_prov_id],
+            flag_ids=[],
+            modality_ids=[],
+            pricing_ids=[],
+        )
+    )
+
+# Role → model ID mapping (for agents)
+ROLE_MODEL_IDS: dict[str, UUID] = {}
+for _role, _model_name in _roles.items():
+    # Config models use sid(), legacy models use hardcoded UUIDs
+    # Check config first, fall back to legacy UUID constants
+    _mid = sid(f"model/{_model_name}")
+    ROLE_MODEL_IDS[_role] = _mid
+
+DEFAULT_TEXT_MODEL: UUID | None = ROLE_MODEL_IDS.get("text")
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs — importable by other modules
@@ -158,15 +202,15 @@ _TEMP_LEVELS_FULL = [
 ]
 
 # ---------------------------------------------------------------------------
-# Model definitions
+# Legacy model definitions (detailed, with pricing/flags/modalities)
 # ---------------------------------------------------------------------------
 
-models = [
+_legacy_models = [
     dict(
         id=GEMINI_2_5_FLASH_IMAGE,
         name="gemini-2.5-flash-image",
         description="Gemini 2.5 Flash Image is Google's native image generation model, optimized for speed, flexibility, and contextual understanding. Text input and output is priced the same as 2.5 Flash.",
-        provider_ids=[_PROVIDER["gemini"]],
+        provider_ids=[PROVIDER_IDS.get("gemini", _LEGACY_GEMINI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -187,7 +231,7 @@ models = [
         id=GEMINI_2_5_FLASH_LITE,
         name="gemini-2.5-flash-lite",
         description="Gemini 2.5 Flash Lite is a lightweight version of Gemini 2.5 Flash optimized for speed and efficiency.",
-        provider_ids=[_PROVIDER["gemini"]],
+        provider_ids=[PROVIDER_IDS.get("gemini", _LEGACY_GEMINI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -217,7 +261,7 @@ models = [
         id=GEMINI_2_5_FLASH,
         name="gemini-2.5-flash",
         description="Gemini 2.5 Flash is a language model that can be used to generate text, images, and audio. Pricing shown is for thinking mode.",
-        provider_ids=[_PROVIDER["gemini"]],
+        provider_ids=[PROVIDER_IDS.get("gemini", _LEGACY_GEMINI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -248,7 +292,7 @@ models = [
         id=GEMINI_2_5_PRO,
         name="gemini-2.5-pro",
         description="Gemini 2.5 Pro is Google's most advanced language model with enhanced reasoning and multimodal capabilities. Pricing shown is for context windows ≤200k tokens.",
-        provider_ids=[_PROVIDER["gemini"]],
+        provider_ids=[PROVIDER_IDS.get("gemini", _LEGACY_GEMINI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -272,7 +316,7 @@ models = [
         id=GEMINI_3_PRO_IMAGE_PREVIEW,
         name="gemini-3-pro-image-preview",
         description="Gemini 3 Pro Image Preview is Google's native image generation model, optimized for speed, flexibility, and contextual understanding. Text input and output is priced the same as Gemini 3 Pro.",
-        provider_ids=[_PROVIDER["gemini"]],
+        provider_ids=[PROVIDER_IDS.get("gemini", _LEGACY_GEMINI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -295,7 +339,7 @@ models = [
         id=GEMINI_3_PRO_PREVIEW,
         name="gemini-3-pro-preview",
         description="Gemini 3 Pro Preview is Google's most advanced language model. Pricing shown is for prompts ≤200k tokens. Separate higher tier for prompts >200k (input $4 / output $18 / cache $0.40).",
-        provider_ids=[_PROVIDER["gemini"]],
+        provider_ids=[PROVIDER_IDS.get("gemini", _LEGACY_GEMINI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -328,7 +372,7 @@ models = [
         id=IMAGEN_4_0_FAST_GENERATE_001,
         name="imagen-4.0-fast-generate-001",
         description="Imagen 4 Fast - Faster variant of Imagen 4 image generation model",
-        provider_ids=[_PROVIDER["gemini"]],
+        provider_ids=[PROVIDER_IDS.get("gemini", _LEGACY_GEMINI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -344,7 +388,7 @@ models = [
         id=IMAGEN_4_0_GENERATE_001,
         name="imagen-4.0-generate-001",
         description="Imagen 4 Standard - Latest image generation model with significantly better text rendering and overall image quality",
-        provider_ids=[_PROVIDER["gemini"]],
+        provider_ids=[PROVIDER_IDS.get("gemini", _LEGACY_GEMINI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -360,7 +404,7 @@ models = [
         id=IMAGEN_4_0_ULTRA_GENERATE_001,
         name="imagen-4.0-ultra-generate-001",
         description="Imagen 4 Ultra - Highest quality variant of Imagen 4 image generation model",
-        provider_ids=[_PROVIDER["gemini"]],
+        provider_ids=[PROVIDER_IDS.get("gemini", _LEGACY_GEMINI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -376,7 +420,7 @@ models = [
         id=VEO_3_1_FAST_GENERATE_PREVIEW,
         name="veo-3.1-fast-generate-preview",
         description="Veo 3.1 Fast - Faster variant of Veo 3.1 video generation model",
-        provider_ids=[_PROVIDER["gemini"]],
+        provider_ids=[PROVIDER_IDS.get("gemini", _LEGACY_GEMINI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -394,7 +438,7 @@ models = [
         id=VEO_3_1_GENERATE_PREVIEW,
         name="veo-3.1-generate-preview",
         description="Veo 3.1 Standard - Our latest video generation model, generates video with audio from text and image prompts",
-        provider_ids=[_PROVIDER["gemini"]],
+        provider_ids=[PROVIDER_IDS.get("gemini", _LEGACY_GEMINI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -412,7 +456,7 @@ models = [
         id=GPT_4_1,
         name="gpt-4.1",
         description="GPT-4.1 excels at instruction following and tool calling, with broad knowledge across domains. It features a 1M token context window, and low latency without a reasoning step.",
-        provider_ids=[_PROVIDER["openai"]],
+        provider_ids=[PROVIDER_IDS.get("openai", _LEGACY_OPENAI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -435,7 +479,7 @@ models = [
         id=GPT_5_MINI,
         name="gpt-5-mini",
         description="GPT-5 Mini is a faster, more efficient version of GPT-5 optimized for speed and cost.",
-        provider_ids=[_PROVIDER["openai"]],
+        provider_ids=[PROVIDER_IDS.get("openai", _LEGACY_OPENAI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -456,7 +500,7 @@ models = [
         id=GPT_5_NANO,
         name="gpt-5-nano",
         description="GPT-5 Nano is the smallest and fastest GPT-5 variant, ideal for real-time applications.",
-        provider_ids=[_PROVIDER["openai"]],
+        provider_ids=[PROVIDER_IDS.get("openai", _LEGACY_OPENAI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -477,7 +521,7 @@ models = [
         id=GPT_5_1,
         name="gpt-5.1",
         description="GPT-5.1 is OpenAI's latest language model with advanced reasoning and multimodal capabilities. 400k context, 128k max output.",
-        provider_ids=[_PROVIDER["openai"]],
+        provider_ids=[PROVIDER_IDS.get("openai", _LEGACY_OPENAI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -507,7 +551,7 @@ models = [
         id=GPT_5,
         name="gpt-5",
         description="GPT-5 is OpenAI's latest language model with advanced reasoning and multimodal capabilities.",
-        provider_ids=[_PROVIDER["openai"]],
+        provider_ids=[PROVIDER_IDS.get("openai", _LEGACY_OPENAI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -538,7 +582,7 @@ models = [
         id=GPT_AUDIO_MINI,
         name="gpt-audio-mini",
         description="A cost-efficient version of GPT Audio. Accepts audio inputs and outputs, can be used in Chat Completions REST API. 128k context, 16k max output.",
-        provider_ids=[_PROVIDER["openai"]],
+        provider_ids=[PROVIDER_IDS.get("openai", _LEGACY_OPENAI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -570,7 +614,7 @@ models = [
         id=GPT_AUDIO,
         name="gpt-audio",
         description="GPT Audio is OpenAI's first generally available audio model. Accepts audio inputs and outputs, can be used in Chat Completions REST API. 128k context, 16k max output.",
-        provider_ids=[_PROVIDER["openai"]],
+        provider_ids=[PROVIDER_IDS.get("openai", _LEGACY_OPENAI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -602,7 +646,7 @@ models = [
         id=GPT_IMAGE_1_MINI,
         name="gpt-image-1-mini",
         description="GPT Image 1 Mini (Medium Quality) - 1024x1024 resolution. OpenAI's compact image generation model with balanced quality and cost.",
-        provider_ids=[_PROVIDER["openai"]],
+        provider_ids=[PROVIDER_IDS.get("openai", _LEGACY_OPENAI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -621,7 +665,7 @@ models = [
         id=GPT_IMAGE_1,
         name="gpt-image-1",
         description="GPT Image 1 (High Quality) - 1024x1024 resolution. OpenAI's image generation model optimized for highest quality output.",
-        provider_ids=[_PROVIDER["openai"]],
+        provider_ids=[PROVIDER_IDS.get("openai", _LEGACY_OPENAI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -640,7 +684,7 @@ models = [
         id=GPT_OSS_20B,
         name="gpt-oss-20b",
         description="Open Source Running Locally",
-        provider_ids=[_PROVIDER["openai"]],
+        provider_ids=[PROVIDER_IDS.get("openai", _LEGACY_OPENAI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -660,7 +704,7 @@ models = [
         id=GPT_REALTIME_MINI,
         name="gpt-realtime-mini",
         description="A cost-efficient version of GPT Realtime - capable of responding to audio and text inputs in realtime over WebRTC, WebSocket, or SIP connections. 32k context, 4k max output.",
-        provider_ids=[_PROVIDER["openai"]],
+        provider_ids=[PROVIDER_IDS.get("openai", _LEGACY_OPENAI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -690,7 +734,7 @@ models = [
         id=GPT_REALTIME,
         name="gpt-realtime",
         description="GPT Realtime is OpenAI's real-time audio model for conversational AI.",
-        provider_ids=[_PROVIDER["openai"]],
+        provider_ids=[PROVIDER_IDS.get("openai", _LEGACY_OPENAI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -720,7 +764,7 @@ models = [
         id=SORA_2_PRO,
         name="sora-2-pro",
         description="Sora 2 Pro (Low Quality) - 720x1280/1280x720 resolution. OpenAI's advanced video generation model optimized for cost efficiency.",
-        provider_ids=[_PROVIDER["openai"]],
+        provider_ids=[PROVIDER_IDS.get("openai", _LEGACY_OPENAI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -739,7 +783,7 @@ models = [
         id=SORA_2,
         name="sora-2",
         description="Sora 2 is OpenAI's advanced video generation model.",
-        provider_ids=[_PROVIDER["openai"]],
+        provider_ids=[PROVIDER_IDS.get("openai", _LEGACY_OPENAI)],
         flag_ids=[
             UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
         ],
@@ -754,3 +798,35 @@ models = [
         ],
     ),
 ]
+
+# ---------------------------------------------------------------------------
+# Map legacy model names → provider name (for filtering)
+# ---------------------------------------------------------------------------
+
+_LEGACY_PROVIDER_MAP: dict[str, str] = {}
+for _lm in _legacy_models:
+    _pids = _lm.get("provider_ids", [])
+    if _pids:
+        _pid = _pids[0]
+        for _pname, _pid_val in {**PROVIDER_IDS, "openai": _LEGACY_OPENAI, "gemini": _LEGACY_GEMINI}.items():
+            if _pid == _pid_val:
+                _LEGACY_PROVIDER_MAP[_lm["name"]] = _pname
+                break
+
+# ---------------------------------------------------------------------------
+# Final models list = config models + filtered legacy models
+#
+# Legacy models are only included if:
+#   1. Their provider exists in PROVIDER_IDS (i.e., in the config)
+#   2. They are not already defined as a config model (avoid duplicates)
+# ---------------------------------------------------------------------------
+
+_available_providers = set(PROVIDER_IDS.keys())
+
+_filtered_legacy = [
+    m for m in _legacy_models
+    if _LEGACY_PROVIDER_MAP.get(m["name"]) in _available_providers
+    and m["name"] not in _config_model_names
+]
+
+models = _config_models + _filtered_legacy
