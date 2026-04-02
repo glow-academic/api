@@ -36,6 +36,10 @@ on:
         description: 'LearnLoop API URL for license validation'
         required: false
         default: 'https://api.learn-loop.org'
+      custom_domain:
+        description: 'Custom domain (e.g. glow.example.com) — added to Traefik Host rule'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -166,6 +170,7 @@ jobs:
         working-directory: ${{ env.DEPLOY_DIR }}
         run: |
           LL_HOST=$(echo "${LEARNLOOP_API_URL:-}" | sed 's|https\?://||' | sed 's|/.*||')
+          CUSTOM_DOMAIN="${{ inputs.custom_domain }}"
           bash scripts/provision.sh deploy \
             --name "${{ inputs.deployment_id }}" \
             --subdomain "${{ steps.parse-origin.outputs.subdomain }}" \
@@ -173,7 +178,8 @@ jobs:
             --compose-dir ${{ env.DEPLOY_DIR }} \
             --entry-service nginx \
             --entry-port 80 \
-            ${LL_HOST:+--learnloop-host "$LL_HOST"}
+            ${LL_HOST:+--learnloop-host "$LL_HOST"} \
+            ${CUSTOM_DOMAIN:+--custom-domain "$CUSTOM_DOMAIN"}
 
       - name: Pre-deploy backup
         working-directory: ${{ env.DEPLOY_DIR }}

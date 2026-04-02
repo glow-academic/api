@@ -27,6 +27,7 @@ while [[ $# -gt 0 ]]; do
     --entry-port) ENTRY_PORT="$2"; shift 2 ;;
     --airgapped) AIRGAPPED=true; shift ;;
     --learnloop-host) LEARNLOOP_HOST="$2"; shift 2 ;;
+    --custom-domain) CUSTOM_DOMAIN="$2"; shift 2 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
 done
@@ -81,6 +82,11 @@ OVERRIDE
       : "${ENTRY_PORT:?--entry-port required for exposed mode}"
 
       DOMAIN="${SUBDOMAIN}.${BASE_DOMAIN}"
+      if [ -n "${CUSTOM_DOMAIN:-}" ]; then
+        HOST_RULE="Host(\`${DOMAIN}\`) || Host(\`${CUSTOM_DOMAIN}\`)"
+      else
+        HOST_RULE="Host(\`${DOMAIN}\`)"
+      fi
       docker network create traefik_routing 2>/dev/null || true
 
       # Build extra_hosts list (own domain + LearnLoop API if provided)
@@ -129,7 +135,7 @@ services:
     - traefik_routing
     labels:
     - traefik.enable=true
-    - traefik.http.routers.${NAME}.rule=Host(\`${DOMAIN}\`)
+    - traefik.http.routers.${NAME}.rule=${HOST_RULE}
     - traefik.http.routers.${NAME}.entrypoints=websecure
     - traefik.http.routers.${NAME}.tls.certresolver=letsencrypt
     - traefik.http.routers.${NAME}.middlewares=secure-public@file

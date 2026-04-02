@@ -39,6 +39,10 @@ on:
         description: 'If true, server has no public URL (internal only)'
         required: false
         default: 'false'
+      custom_domain:
+        description: 'Custom domain (e.g. glow.example.com) — added to Traefik Host rule'
+        required: false
+        default: ''
 permissions:
   contents: read
   packages: read
@@ -170,16 +174,19 @@ jobs:
           ARGS="--name ${{ inputs.deployment_id }} --compose-dir ${{ env.DEPLOY_DIR }}"
           # Extract LearnLoop API hostname for extra_hosts (hairpin NAT workaround)
           LL_HOST=$(echo "${LEARNLOOP_API_URL:-}" | sed 's|https\?://||' | sed 's|/.*||')
+          CUSTOM_DOMAIN="${{ inputs.custom_domain }}"
           if [ "${{ inputs.airgapped }}" = "true" ]; then
             bash scripts/provision.sh deploy $ARGS --airgapped \
-              ${LL_HOST:+--learnloop-host "$LL_HOST"}
+              ${LL_HOST:+--learnloop-host "$LL_HOST"} \
+              ${CUSTOM_DOMAIN:+--custom-domain "$CUSTOM_DOMAIN"}
           else
             bash scripts/provision.sh deploy $ARGS \
               --subdomain "${{ steps.parse-origin.outputs.subdomain }}" \
               --base-domain "${{ steps.parse-origin.outputs.base-domain }}" \
               --entry-service nginx \
               --entry-port 80 \
-              ${LL_HOST:+--learnloop-host "$LL_HOST"}
+              ${LL_HOST:+--learnloop-host "$LL_HOST"} \
+              ${CUSTOM_DOMAIN:+--custom-domain "$CUSTOM_DOMAIN"}
           fi
 
       - name: Generate seed backup
