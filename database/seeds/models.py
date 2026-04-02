@@ -92,13 +92,11 @@ def _generate_pricing(model_name: str, pricing_list: list[dict]) -> list[UUID]:
         ids.append(pid)
         if pid not in _pricing_id_set:
             _pricing_id_set.add(pid)
-            # Determine unit_category from unit_name
-            if "image" in p_unit:
-                category = "images"
-            elif "audio" in p_unit:
-                category = "tokens"
-            elif "second" in p_unit:
+            # Determine unit_category from unit_name (must match unit_type enum: tokens, seconds, units)
+            if "second" in p_unit:
                 category = "seconds"
+            elif "image" in p_unit or "video" in p_unit:
+                category = "units"
             else:
                 category = "tokens"
             unit_value = 1000000 if "million" in p_unit else 1

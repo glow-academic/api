@@ -155,6 +155,8 @@ async def _run_resource_seeds(
                 await _seed_request_limits(conn, redis, items)
             elif module_name == "reasoning_levels":
                 await _seed_reasoning_levels(conn, redis, items)
+            elif module_name == "temperature_levels":
+                await _seed_temperature_levels(conn, redis, items)
             elif module_name == "operations":
                 await _seed_operations(conn, redis, items)
             elif module_name == "artifacts":
@@ -956,40 +958,34 @@ async def _run_key_seeds(
     redis: Redis,
     mod: object,
 ) -> None:
-    """Run provider_keys, auth_item_keys, and auth_item_values seed definitions."""
-    from app.tools.resources.auth_item_keys.create import (
-        create_auth_item_key,
-    )
+    """Run key_resources, provider_keys, auth_item_keys, and auth_item_values."""
+    from app.tools.resources.auth_item_keys.create import create_auth_item_key
+    from app.tools.resources.keys.create import create_key
     from app.tools.resources.provider_keys.create import create_provider_key
 
     async with pool.acquire() as conn:
+        # Create key resources first (provider API keys + auth credentials)
+        if hasattr(mod, "key_resources") and mod.key_resources:
+            for kr in mod.key_resources:
+                await create_key(conn, redis=redis, **kr)
+            print(f"  OK: {len(mod.key_resources)} key_resources created")
+
+        # Link providers to their API keys
         for pk in mod.provider_keys:
             await create_provider_key(conn, redis=redis, **pk)
         print(f"  OK: {len(mod.provider_keys)} provider_keys created")
 
+        # Link auth items to encrypted keys
         for aik in mod.auth_item_keys:
             await create_auth_item_key(conn, redis=redis, **aik)
         print(f"  OK: {len(mod.auth_item_keys)} auth_item_keys created")
 
-        # Auth item values (non-encrypted OIDC config) — optional per setup
+        # Plaintext auth config values
         if hasattr(mod, "auth_item_values") and mod.auth_item_values:
-            from app.tools.resources.auth_item_values.create import (
-                create_auth_item_value,
-            )
-
+            from app.tools.resources.auth_item_values.create import create_auth_item_value
             for aiv in mod.auth_item_values:
                 await create_auth_item_value(conn, redis=redis, **aiv)
             print(f"  OK: {len(mod.auth_item_values)} auth_item_values created")
-
-        # Key resource updates — populate base key resources with encrypted values
-        if hasattr(mod, "key_resource_updates") and mod.key_resource_updates:
-            for update in mod.key_resource_updates:
-                await conn.execute(
-                    "UPDATE keys_resource SET key = $1 WHERE id = $2",
-                    update["key"],
-                    update["id"],
-                )
-            print(f"  OK: {len(mod.key_resource_updates)} key_resources updated")
 
 
 async def _run_setting_seeds(

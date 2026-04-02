@@ -23,6 +23,5 @@ MODULES = [
     "artifacts",
     "standard_groups",
     "standards",
-    "keys",
     "items",
 ]
