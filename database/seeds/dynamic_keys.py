@@ -1,7 +1,7 @@
 """Dynamic key seeding — reads all credentials from glow-deploy.yaml.
 
 Creates provider_keys (AI API keys) and auth_item_keys/values (OAuth credentials)
-for every provider in the config. No hardcoded provider names.
+for every provider in the config. Derives fields from config — no hardcoded field lists.
 """
 
 from database.seeds.config import get_ai_providers, get_auth_providers, load_deploy_config
@@ -19,6 +19,24 @@ try:
     _config = load_deploy_config()
 except FileNotFoundError:
     _config = {}
+
+# Fields that are encrypted (stored as auth_item_keys, not auth_item_values)
+_ENCRYPTED_FIELDS = {"client_id", "client_secret"}
+
+# Metadata fields — not auth config items
+_SKIP_FIELDS = {"name", "protocol", "slug", "display_name"}
+
+# Map config field names to auth item names (camelCase)
+_FIELD_TO_ITEM = {
+    "client_id": "clientId",
+    "client_secret": "clientSecret",
+    "discovery_url": "discoveryUrl",
+    "authorization_url": "authorizationUrl",
+    "token_url": "tokenUrl",
+    "client_auth_method": "clientAuthMethod",
+    "tenant_id": "tenantId",
+    "user_info_url": "userInfoUrl",
+}
 
 # --- AI provider keys ---
 provider_keys = []
@@ -52,52 +70,32 @@ for ap in get_auth_providers(_config):
     if not auth_id:
         continue
 
-    # Encrypted items: client_id, client_secret
-    client_id_raw = ap.get("client_id", "")
-    client_secret_raw = ap.get("client_secret", "")
-
-    if client_id_raw:
-        cid_key = sid(f"key/auth/{ap['name']}/client-id")
-        cid_item = sid(f"auth-item/{ap['name']}/clientId")
-        encrypted_cid = encrypt_api_key(client_id_raw)
-        auth_item_keys.append(dict(
-            id=sid(f"auth-item-key/{ap['name']}/client-id"),
-            auth_id=auth_id,
-            item_id=cid_item,
-            key_id=cid_key,
-        ))
-        key_resource_updates.append(dict(id=cid_key, key=encrypted_cid))
-
-    if client_secret_raw:
-        csecret_key = sid(f"key/auth/{ap['name']}/client-secret")
-        csecret_item = sid(f"auth-item/{ap['name']}/clientSecret")
-        encrypted_csecret = encrypt_api_key(client_secret_raw)
-        auth_item_keys.append(dict(
-            id=sid(f"auth-item-key/{ap['name']}/client-secret"),
-            auth_id=auth_id,
-            item_id=csecret_item,
-            key_id=csecret_key,
-        ))
-        key_resource_updates.append(dict(id=csecret_key, key=encrypted_csecret))
-
-    # Plaintext OIDC config values
-    oidc_fields = {
-        "discoveryUrl": ap.get("discovery_url", ""),
-        "clientAuthMethod": ap.get("client_auth_method", ""),
-        "authorizationUrl": ap.get("authorization_url", ""),
-        "tokenUrl": ap.get("token_url", ""),
-        "tenantId": ap.get("tenant_id", ""),
-        "userInfoUrl": ap.get("user_info_url", ""),
-    }
-    for field_name, field_value in oidc_fields.items():
-        if not field_value:
+    for field_name, field_value in ap.items():
+        if field_name in _SKIP_FIELDS or not field_value:
             continue
-        auth_item_values.append(dict(
-            id=sid(f"auth-item-value/{ap['name']}/{field_name}"),
-            auth_id=auth_id,
-            item_id=sid(f"auth-item/{ap['name']}/{field_name}"),
-            value=field_value,
-        ))
+
+        item_name = _FIELD_TO_ITEM.get(field_name, field_name)
+
+        if field_name in _ENCRYPTED_FIELDS:
+            # Encrypted → auth_item_key + key_resource_update
+            key_sid = sid(f"key/auth/{ap['name']}/{field_name}")
+            item_sid = sid(f"auth-item/{ap['name']}/{item_name}")
+            encrypted_value = encrypt_api_key(field_value)
+            auth_item_keys.append(dict(
+                id=sid(f"auth-item-key/{ap['name']}/{field_name}"),
+                auth_id=auth_id,
+                item_id=item_sid,
+                key_id=key_sid,
+            ))
+            key_resource_updates.append(dict(id=key_sid, key=encrypted_value))
+        else:
+            # Plaintext → auth_item_value
+            auth_item_values.append(dict(
+                id=sid(f"auth-item-value/{ap['name']}/{item_name}"),
+                auth_id=auth_id,
+                item_id=sid(f"auth-item/{ap['name']}/{item_name}"),
+                value=field_value,
+            ))
 
 # Exports for settings linkage
 PROVIDER_KEY_IDS = [pk["id"] for pk in provider_keys]

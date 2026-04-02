@@ -1,6 +1,7 @@
 """Module 06 — Auth seed definitions (dynamic from glow-deploy.yaml).
 
-Auth providers are driven by the auth.providers list in config.
+Auth providers and their items are derived from config fields.
+No protocol templates — items come from whatever the config declares.
 IDs are deterministic via sid("auth/{name}").
 """
 
@@ -14,22 +15,34 @@ except FileNotFoundError:
 
 _auth_providers = get_auth_providers(_config)
 
+# Metadata fields — not auth config items
+_SKIP_FIELDS = {"name", "protocol", "slug", "display_name"}
+
+# Map config field names to auth item names (camelCase)
+_FIELD_TO_ITEM = {
+    "client_id": "clientId",
+    "client_secret": "clientSecret",
+    "discovery_url": "discoveryUrl",
+    "authorization_url": "authorizationUrl",
+    "token_url": "tokenUrl",
+    "client_auth_method": "clientAuthMethod",
+    "tenant_id": "tenantId",
+    "user_info_url": "userInfoUrl",
+}
+
 # Lookup: auth name → UUID
 AUTH_IDS = {p["name"]: sid(f"auth/{p['name']}") for p in _auth_providers}
 
-
-def _item_names_for_protocol(protocol: str) -> list[str]:
-    if protocol == "google":
-        return ["clientId", "clientSecret"]
-    return ["clientId", "clientSecret", "discoveryUrl", "clientAuthMethod",
-            "authorizationUrl", "tokenUrl"]
-
-
-# auth_name → list of item UUIDs
+# auth_name → list of item UUIDs (derived from config fields)
 AUTH_ITEM_IDS = {}
 for _p in _auth_providers:
-    _items = _item_names_for_protocol(_p.get("protocol", "oidc"))
-    AUTH_ITEM_IDS[_p["name"]] = [sid(f"auth-item/{_p['name']}/{item}") for item in _items]
+    _item_ids = []
+    for _field in _p:
+        if _field in _SKIP_FIELDS:
+            continue
+        _item_name = _FIELD_TO_ITEM.get(_field, _field)
+        _item_ids.append(sid(f"auth-item/{_p['name']}/{_item_name}"))
+    AUTH_ITEM_IDS[_p["name"]] = _item_ids
 
 auths = [
     dict(
