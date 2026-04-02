@@ -18,6 +18,7 @@ MODULES = [
     "points",
     "request_limits",
     "reasoning_levels",
+    "temperature_levels",
     "operations",
     "artifacts",
     "standard_groups",

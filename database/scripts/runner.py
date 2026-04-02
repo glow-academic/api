@@ -1806,10 +1806,8 @@ async def main_modules() -> Path:
 
         # Dynamic resources from model configs (must be created before models)
         print("\nSeeding dynamic model resources...")
-        from database.seeds.models import dynamic_temperature_levels, dynamic_pricing, dynamic_voices
+        from database.seeds.models import dynamic_pricing, dynamic_voices
         async with pool.acquire() as conn:
-            if dynamic_temperature_levels:
-                await _seed_temperature_levels(conn, redis_client, dynamic_temperature_levels)
             if dynamic_pricing:
                 await _seed_pricing(conn, redis_client, dynamic_pricing)
             if dynamic_voices:

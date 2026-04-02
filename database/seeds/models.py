@@ -36,6 +36,8 @@ from database.seeds.resources.qualities import qualities as _all_qualities
 
 _QUALITY_LOOKUP: dict[str, UUID] = {q["quality"]: q["id"] for q in _all_qualities}
 
+from database.seeds.resources.temperature_levels import TEMPERATURE_LOOKUP
+
 from database.seeds.resources.flags import flags as _all_flags
 
 _MODEL_ACTIVE_FLAG_ID: UUID | None = next(
@@ -58,36 +60,25 @@ _roles = get_ai_roles(_config)
 # Dynamic resources — generated from model configs, exported for runner
 # ---------------------------------------------------------------------------
 
-# Temperature levels: {id, temperature} for each model's range
-dynamic_temperature_levels: list[dict] = []
-_temp_id_set: set[UUID] = set()
-
 # Pricing: {id, pricing_type, price, unit_name, unit_category, unit_value}
+# Deduplicated globally — same price point shared across models
 dynamic_pricing: list[dict] = []
 _pricing_id_set: set[UUID] = set()
 
-# Voices: {id, voice} — collected from all models that declare them
+# Voices: {id, voice} — deduplicated globally by voice name
 dynamic_voices: list[dict] = []
 _voice_names_seen: set[str] = set()
 
 
-def _generate_temperatures(model_name: str, temp_cfg: dict) -> list[UUID]:
-    """Generate temperature level resources and return their IDs."""
+def _lookup_temperatures(temp_cfg: dict) -> list[UUID]:
+    """Look up temperature level UUIDs from the static pool for a model's range."""
     t_min = float(temp_cfg.get("min", 0))
-    t_max = float(temp_cfg.get("max", 1.0))
-    t_step = float(temp_cfg.get("step", 0.01))
-    if t_step <= 0:
-        return []
+    t_max = float(temp_cfg.get("max", 2.0))
     ids: list[UUID] = []
-    steps = round((t_max - t_min) / t_step)
-    for i in range(steps + 1):
-        value = round(t_min + i * t_step, 4)
-        tid = sid(f"temperature/{model_name}/{value}")
-        ids.append(tid)
-        if tid not in _temp_id_set:
-            _temp_id_set.add(tid)
-            dynamic_temperature_levels.append(dict(id=tid, temperature=value))
-    return ids
+    for value, uid in TEMPERATURE_LOOKUP.items():
+        if t_min <= value <= t_max:
+            ids.append(uid)
+    return sorted(ids, key=lambda u: str(u))  # stable order
 
 
 def _generate_pricing(model_name: str, pricing_list: list[dict]) -> list[UUID]:
@@ -156,11 +147,11 @@ for _m in _config_models_raw:
     # Qualities (static lookup)
     _quality_ids = [_QUALITY_LOOKUP[n] for n in _m.get("qualities", []) if n in _QUALITY_LOOKUP]
 
-    # Temperature levels (dynamic — generates resources)
+    # Temperature levels (static lookup by range)
     _temp_ids: list[UUID] = []
     _temp_cfg = _m.get("temperature")
     if _temp_cfg and isinstance(_temp_cfg, dict):
-        _temp_ids = _generate_temperatures(_name, _temp_cfg)
+        _temp_ids = _lookup_temperatures(_temp_cfg)
 
     # Pricing (dynamic — generates resources)
     _price_ids: list[UUID] = []
