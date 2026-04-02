@@ -27,36 +27,44 @@ ai:
     stt: glow-stt
     realtime: glow-realtime
 
-  # Model definitions
+  # Model definitions — rich schema with modalities, reasoning, temperature, pricing
+  # LearnLoop gateway models don't need pricing (handled by gateway)
   models:
     - name: glow-text
       provider: learnloop
-      description: Default text generation model
-      modalities: [text]
+      description: "Default text generation model"
+      modalities: [text_in, text_out, image_in, audio_in, call_in]
+      reasoning_levels: [none, low, medium, high]
+      temperature: {min: 0, max: 1.0, step: 0.01}
     - name: glow-grader
       provider: learnloop
-      description: Multimodal grading and evaluation model
-      modalities: [text, image]
+      description: "Multimodal grading and evaluation model"
+      modalities: [text_in, text_out, image_in, audio_in, call_in]
+      reasoning_levels: [none, low, medium, high]
+      temperature: {min: 0, max: 1.0, step: 0.01}
     - name: glow-image
       provider: learnloop
-      description: Image generation model
-      modalities: [image]
+      description: "Image generation model"
+      modalities: [text_in, image_in, image_out]
     - name: glow-video
       provider: learnloop
-      description: Video generation model
-      modalities: [video]
+      description: "Video generation model"
+      modalities: [text_in, image_in, video_out, audio_out]
     - name: glow-tts
       provider: learnloop
-      description: Text to speech model
-      modalities: [audio]
+      description: "Text to speech model"
+      modalities: [text_in, audio_out]
+      voices: [alloy, ash, ballad, coral, echo, sage, shimmer, verse]
     - name: glow-stt
       provider: learnloop
-      description: Speech to text model
-      modalities: [audio]
+      description: "Speech to text model"
+      modalities: [audio_in, text_out]
     - name: glow-realtime
       provider: learnloop
-      description: Realtime voice conversation model
-      modalities: [audio, text]
+      description: "Realtime voice conversation model"
+      modalities: [text_in, text_out, audio_in, audio_out, image_in, call_in, call_out]
+      temperature: {min: 0, max: 1.0, step: 0.01}
+      voices: [alloy, ash, ballad, coral, echo, sage, shimmer, verse]
 
 # ── Auth Providers ────────────────────────────────────────
 auth:
