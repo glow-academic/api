@@ -261,7 +261,7 @@ class McpOAuthMiddleware(BaseHTTPMiddleware):
 
         # --- Only process /mcp paths from here ---
 
-        if not path.startswith(mcp_path) and not path.startswith("/mcp"):
+        if not path.startswith(mcp_path) and not path.startswith("/mcp") and not path.startswith("/docs-mcp"):
             return await call_next(request)
 
         # Rewrite /mcp/sse/ → /mcp for FastMCP
