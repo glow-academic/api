@@ -11,5 +11,5 @@
 <link rel="icon" href="${url.resourcesPath}/favicon.svg" type="image/svg+xml" />
 
 <#-- Favicon fallbacks (PNG and ICO for older browsers) -->
-<link rel="icon" href="${url.resourcesPath}/img/favicon.png" type="image/png" />
+<link rel="icon" href="${url.resourcesPath}/img/favicon.png" type="image/png" sizes="512x512" />
 <link rel="shortcut icon" href="${url.resourcesPath}/img/favicon.ico" />

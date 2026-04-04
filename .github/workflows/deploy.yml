@@ -171,6 +171,23 @@ jobs:
 
           echo "Deployment token claimed successfully"
 
+      - name: Derive auth client secret
+        if: env.SECRET_KEY != ''
+        run: |
+          AUTH_CLIENT_SECRET=$(python3 /dev/stdin "$SECRET_KEY" <<'PYEOF'
+          import sys, hashlib, base64
+          from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+          from cryptography.hazmat.primitives import hashes
+          sk = sys.argv[1]
+          salt = hashlib.sha256(b"glow-auth-secret-v1").digest()
+          kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=100000)
+          key = kdf.derive(sk.encode())
+          print(base64.urlsafe_b64encode(key).decode().rstrip("="))
+          PYEOF
+          )
+          echo "AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET}" >> $GITHUB_ENV
+          echo "Auth client secret derived from SECRET_KEY"
+
       - name: Parse subdomain from ORIGIN
         id: parse-origin
         run: |
@@ -262,6 +279,7 @@ jobs:
           AI_API_KEY=${AI_API_KEY:-}
           AI_BASE_URL=${AI_BASE_URL:-https://api.learn-loop.org/ai/v1}
           AUTH_PROVIDER=${AUTH_PROVIDER:-keycloak}
+          AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET:-}
           LEARNLOOP_CLIENT_ID=${LEARNLOOP_CLIENT_ID:-}
           LEARNLOOP_CLIENT_SECRET=${LEARNLOOP_CLIENT_SECRET:-}
           AUTH_ISSUER=${AUTH_ISSUER:-}
