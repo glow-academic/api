@@ -12,7 +12,7 @@ from uuid import UUID
 from database.seeds.auths import AUTH_IDS
 from database.seeds.ids import sid
 from database.seeds.setups.university.departments import UNIVERSITY_DEPT
-from database.seeds.setups.university.keys import (
+from database.seeds.dynamic_keys import (
     AUTH_ITEM_KEY_IDS,
     AUTH_ITEM_VALUE_IDS,
     PROVIDER_KEY_IDS,

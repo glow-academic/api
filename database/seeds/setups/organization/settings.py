@@ -9,7 +9,7 @@ from uuid import UUID
 from database.seeds.auths import AUTH_IDS
 from database.seeds.ids import sid
 from database.seeds.setups.organization.departments import ORGANIZATION_DEPT
-from database.seeds.setups.organization.keys import AUTH_ITEM_KEY_IDS, PROVIDER_KEY_IDS
+from database.seeds.dynamic_keys import AUTH_ITEM_KEY_IDS, PROVIDER_KEY_IDS
 
 # ---------------------------------------------------------------------------
 # Pre-existing threshold resource IDs (from 01-resources/06-thresholds.sql)

@@ -67,12 +67,10 @@ async def docs_mcp_proxy(request: Request):
     # Docs container follows: {docs_deployment_id}-nginx
     # On the shared glow-{deployment_id} network, it's also reachable
     # as the docs nginx container name
-    docs_container = f"docs-{DEPLOYMENT_ID}-nginx" if DEPLOYMENT_ID else None
-
-    # Try internal Docker networking, then fall back
-    urls = []
-    if docs_container:
-        urls.append(f"http://{docs_container}:80/api/mcp")
+    # glow-docs is the network alias for the docs nginx on the shared deployment network
+    urls = [
+        "http://glow-docs:80/api/mcp",
+    ]
 
     headers = {
         "Content-Type": "application/json",

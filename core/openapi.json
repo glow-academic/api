@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "2.8.1"
+    "version": "2.8.5"
   },
   "paths": {
     "/personas/get": {
@@ -34363,6 +34363,29 @@
             }
           }
         }
+      }
+    },
+    "/docs-mcp": {
+      "post": {
+        "tags": [
+          "docs-proxy"
+        ],
+        "summary": "Docs Mcp Proxy",
+        "description": "Forward an MCP request to the Glow docs sibling.\n\nThis route is behind McpOAuthMiddleware, so the user is already\nauthenticated. We re-sign with the Glow API's key so the docs\ncan verify against our /jwks.",
+        "operationId": "docs_mcp_proxy_docs_mcp_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "x-cache-tags": [
+          "docs-proxy"
+        ]
       }
     }
   },

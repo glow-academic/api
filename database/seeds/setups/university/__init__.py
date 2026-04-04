@@ -42,7 +42,6 @@ MODULES = [
     "simulations",
     "profiles",
     "cohorts",
-    "keys",
     "settings",
     "colors",
     "texts",
