@@ -207,6 +207,13 @@ jobs:
             echo "No running database — skipping pre-deploy backup"
           fi
 
+      - name: Write deploy config
+        if: env.DEPLOY_CONFIG_YAML != ''
+        working-directory: ${{ env.DEPLOY_DIR }}
+        run: |
+          echo "$DEPLOY_CONFIG_YAML" > glow-deploy.yaml
+          echo "Wrote glow-deploy.yaml from provision claim ($(wc -c < glow-deploy.yaml) bytes)"
+
       - name: Generate seed backup
         working-directory: ${{ env.DEPLOY_DIR }}
         run: |
@@ -275,11 +282,7 @@ jobs:
           EOF
           sed -i 's/^          //' .env
 
-          # Write deploy config as glow-deploy.yaml if provided
-          if [ -n "${DEPLOY_CONFIG_YAML:-}" ]; then
-            echo "$DEPLOY_CONFIG_YAML" > "$DEPLOY_DIR/glow-deploy.yaml"
-            echo "Wrote glow-deploy.yaml from deploy config"
-          fi
+          # Deploy config YAML is written in the "Write deploy config" step above
 
       - name: Deploy target environment
         working-directory: ${{ env.DEPLOY_DIR }}
