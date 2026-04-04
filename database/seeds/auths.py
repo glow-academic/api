@@ -16,7 +16,7 @@ except FileNotFoundError:
 _auth_providers = get_auth_providers(_config)
 
 # Metadata fields — not auth config items
-_SKIP_FIELDS = {"name", "protocol", "slug", "display_name"}
+_SKIP_FIELDS = {"name", "protocol", "slug", "display_name", "id"}
 
 # Map config field names to auth item names (camelCase)
 _FIELD_TO_ITEM = {
@@ -30,8 +30,12 @@ _FIELD_TO_ITEM = {
     "user_info_url": "userInfoUrl",
 }
 
-# Lookup: auth name → UUID
-AUTH_IDS = {p["name"]: sid(f"auth/{p['name']}") for p in _auth_providers}
+# Lookup: auth name → UUID (use explicit id if provided, else derive)
+from uuid import UUID as _UUID
+AUTH_IDS = {
+    p["name"]: _UUID(p["id"]) if p.get("id") else sid(f"auth/{p['name']}")
+    for p in _auth_providers
+}
 
 # auth_name → list of item UUIDs (derived from config fields)
 AUTH_ITEM_IDS = {}
@@ -46,7 +50,7 @@ for _p in _auth_providers:
 
 auths = [
     dict(
-        id=sid(f"auth/{p['name']}"),
+        id=_UUID(p["id"]) if p.get("id") else sid(f"auth/{p['name']}"),
         name=p.get("display_name", p["name"]),
         description=f'{p.get("display_name", p["name"])} authentication',
         slug=p.get("slug", p["name"]),

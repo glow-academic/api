@@ -21,7 +21,7 @@ except FileNotFoundError:
     _config = {}
 
 # Metadata fields — not auth config items
-_SKIP_FIELDS = {"name", "protocol", "slug", "display_name"}
+_SKIP_FIELDS = {"name", "protocol", "slug", "display_name", "id"}
 # Encrypted fields
 _ENCRYPTED_FIELDS = {"client_id", "client_secret"}
 # Config field → camelCase item name

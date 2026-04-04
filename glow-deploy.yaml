@@ -23,8 +23,8 @@ ai:
     grader: ${AI_GRADER_MODEL:-}
     image: ${AI_IMAGE_MODEL:-}
     video: ${AI_VIDEO_MODEL:-}
-    tts: ${AI_TTS_MODEL:-}
-    stt: ${AI_STT_MODEL:-}
+    audio: ${AI_AUDIO_MODEL:-}
+    transcribe: ${AI_TRANSCRIBE_MODEL:-}
     realtime: ${AI_REALTIME_MODEL:-}
 
   models: []
@@ -33,5 +33,7 @@ ai:
 # Add OAuth/OIDC providers with their credentials.
 # Each provider needs: name, protocol, slug, display_name,
 # client_id, client_secret, and protocol-specific fields.
+# Optional: id (UUID) — if provided, used as the auth resource ID
+# so LearnLoop can predict Keycloak broker redirect URIs.
 auth:
   providers: []
