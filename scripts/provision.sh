@@ -37,8 +37,9 @@ case "$COMMAND" in
     : "${NAME:?--name required}"
     : "${COMPOSE_DIR:?--compose-dir required}"
 
-    # Deployment network (shared between server + clients)
-    DEPLOY_NETWORK="glow-${NAME}"
+    # Deployment network (shared between all instance components)
+    # INSTANCE_ID groups all deployments in the same instance; falls back to NAME
+    DEPLOY_NETWORK="glow-${INSTANCE_ID:-$NAME}"
     docker network create "$DEPLOY_NETWORK" 2>/dev/null || true
 
     cd "$COMPOSE_DIR"
@@ -171,7 +172,7 @@ OVERRIDE
     rm -f docker-compose.override.yml
 
     # Clean up deployment network
-    docker network rm "glow-${NAME}" 2>/dev/null || true
+    docker network rm "glow-${INSTANCE_ID:-$NAME}" 2>/dev/null || true
 
     echo "Teardown complete for $NAME"
     ;;

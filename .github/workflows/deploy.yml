@@ -6,6 +6,9 @@ on:
       deployment_id:
         description: 'Deployment UUID from LearnLoop API'
         required: true
+      instance_id:
+        description: 'Instance ID (shared network name for all components)'
+        required: true
       origin:
         description: 'Origin URL (e.g. https://glow.learn-loop.org)'
         required: true
@@ -85,6 +88,7 @@ jobs:
     env:
       DEPLOY_DIR: /srv/deploy/live/glow/${{ inputs.deployment_id }}
       COMPOSE_PROJECT_NAME: ${{ inputs.deployment_id }}
+      INSTANCE_ID: ${{ inputs.instance_id }}
       API_SERVER_IMAGE: ghcr.io/learnloopllc/glow-api:${{ inputs.version }}
       API_VERSION: ${{ inputs.version }}
       ACTIVE_ENV: ${{ needs.detect-active-environment.outputs.active-env }}
