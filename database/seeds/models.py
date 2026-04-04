@@ -186,6 +186,7 @@ for _m in _config_models_raw:
 
 ROLE_MODEL_IDS: dict[str, UUID] = {}
 for _role, _model_name in _roles.items():
-    ROLE_MODEL_IDS[_role] = sid(f"model/{_model_name}")
+    if _model_name:  # skip unconfigured roles (empty string)
+        ROLE_MODEL_IDS[_role] = sid(f"model/{_model_name}")
 
 DEFAULT_TEXT_MODEL: UUID | None = ROLE_MODEL_IDS.get("text")
