@@ -1,4 +1,4 @@
-.PHONY: help setup install clean format lint typecheck run test test-cov cleanup generate-tests stop restore-db connect-db migrate openapi-gen configure deploy deploy-clean seed-gen
+.PHONY: help setup install clean format lint typecheck run test test-cov cleanup generate-tests stop restore-db connect-db migrate openapi-gen configure deploy deploy-clean seed-gen sync-types
 .PHONY: deploy-target switch-traffic switch-kc-traffic rollback monitor deploy-status detect-env pull-images stage-release
 
 # Default Python interpreter
@@ -371,6 +371,15 @@ stage-release:
 
 migrate-docker:
 	./scripts/migrate-docker.sh $(TYPE)
+
+# Sync upstream API version for compat tracking
+LEARNLOOP_API_URL ?= http://localhost:8100
+sync-types: ## Record LearnLoop API version this glow-api integrates with
+	@echo "Fetching LearnLoop API version from $(LEARNLOOP_API_URL)..."
+	@curl -sf $(LEARNLOOP_API_URL)/openapi.json -o /tmp/ll-openapi.json
+	@echo "{\"learnloop-api\":{\"version\":\"$$(jq -r '.info.version' /tmp/ll-openapi.json)\",\"synced_at\":\"$$(date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ)\"}}" | jq . > api-versions.json
+	@rm -f /tmp/ll-openapi.json
+	@echo "✅ api-versions.json updated"
 
 # Show help
 help:

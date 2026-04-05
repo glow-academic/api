@@ -1,5 +1,0 @@
-# Compatibility: minimum LearnLoop API version required for this glow-api release.
-# Uploaded as compat.json release asset by the tag workflow.
-
-component: glow-api
-min_learnloop_api: "2.0.0"

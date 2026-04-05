@@ -215,13 +215,16 @@ jobs:
         if: steps.check.outputs.released == 'true'
         run: |
           python3 -c "
-          import yaml, json
-          with open('compat.yml') as f:
-              data = yaml.safe_load(f)
-          data['version'] = '${{ steps.version.outputs.version }}'
+          import json, os
+          compat = {'component': 'glow-api', 'version': '${{ steps.version.outputs.version }}'}
+          if os.path.exists('api-versions.json'):
+              with open('api-versions.json') as f:
+                  versions = json.load(f)
+              compat['min_learnloop_api'] = versions.get('learnloop-api', {}).get('version', '2.0.0')
+          else:
+              compat['min_learnloop_api'] = '2.0.0'
           with open('compat.json', 'w') as f:
-              json.dump(data, f, indent=2)
-          print('Generated compat.json')
+              json.dump(compat, f, indent=2)
           "
 
       - name: Create release
