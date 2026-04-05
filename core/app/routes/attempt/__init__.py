@@ -6,6 +6,7 @@ from app.routes.attempt.archive import router as archive_router
 from app.routes.attempt.docs import router as docs_router
 from app.routes.attempt.download import router as download_router
 from app.routes.attempt.end import router as end_router
+from app.routes.attempt.expire import router as expire_router
 from app.routes.attempt.end_all import router as end_all_router
 from app.routes.attempt.export import router as export_router
 from app.routes.attempt.get import router as get_router
@@ -36,6 +37,7 @@ router.include_router(start_router)
 router.include_router(next_router)
 router.include_router(end_router)
 router.include_router(end_all_router)
+router.include_router(expire_router)
 router.include_router(message_router)
 router.include_router(grade_router)
 router.include_router(stop_router)

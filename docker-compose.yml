@@ -216,6 +216,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - KEYCLOAK_INTERNAL_URL=http://nginx:80${APP_PREFIX:-}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-master}
+      - GRACE_PERIOD_MINUTES=${GRACE_PERIOD_MINUTES:-60}
     labels:
       - "com.docker.compose.service=server-blue"
       - "com.docker.compose.project=${COMPOSE_PROJECT_NAME:-glow-api}"
@@ -274,6 +275,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - KEYCLOAK_INTERNAL_URL=http://nginx:80${APP_PREFIX:-}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-master}
+      - GRACE_PERIOD_MINUTES=${GRACE_PERIOD_MINUTES:-60}
     labels:
       - "com.docker.compose.service=server-green"
       - "com.docker.compose.project=${COMPOSE_PROJECT_NAME:-glow-api}"
@@ -337,6 +339,24 @@ services:
     networks:
       - internal
       - public_net
+
+  # ── Simulation Expiry ────────────────────────────────────────
+  simulation-expiry:
+    image: alpine/curl:latest
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "[expiry] Starting simulation expiry check (every 60s)"
+        sleep 30
+        while true; do
+          RESULT=$$(curl -sf http://nginx:80/attempt/expire -X POST 2>/dev/null || echo '{"error":"unreachable"}')
+          echo "[expiry] $$(date +%H:%M:%S) $$RESULT"
+          sleep 60
+        done
+    depends_on:
+      - nginx
+    networks:
+      - internal
 
   # ── Backup Cron ──────────────────────────────────────────────
   backup-cron:

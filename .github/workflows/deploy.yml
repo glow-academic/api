@@ -169,6 +169,9 @@ jobs:
             echo "Deploy config received from claim"
           fi
 
+          GRACE_PERIOD=$(echo "$DEPLOY_CONFIG_YAML" | python3 -c "import sys,yaml; print(yaml.safe_load(sys.stdin).get('grace_period_minutes', 60))" 2>/dev/null || echo "60")
+          echo "GRACE_PERIOD_MINUTES=${GRACE_PERIOD}" >> $GITHUB_ENV
+
           echo "Deployment token claimed successfully"
 
       - name: Derive auth client secret
@@ -311,9 +314,7 @@ jobs:
           AUTH_ISSUER_INTERNAL=${AUTH_ISSUER_INTERNAL:-}
           ACTIVE_ENV=${ACTIVE_ENV}
           ACTIVE_KC_ENV=${ACTIVE_KC_ENV}
-          AI_PROVIDER=${AI_PROVIDER:-direct}
-          AI_API_KEY=${AI_API_KEY:-}
-          AI_BASE_URL=${AI_BASE_URL:-https://api.learn-loop.org/ai/v1}
+          GRACE_PERIOD_MINUTES=${GRACE_PERIOD_MINUTES:-60}
           EOF
           sed -i 's/^          //' .env
 
