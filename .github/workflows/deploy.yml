@@ -252,6 +252,29 @@ jobs:
             echo "DB_RESTORE from input: ${DB_RESTORE}"
           fi
 
+      - name: Extract uploads from instance backup
+        if: env.DB_BACKUP != '' && endsWith(env.DB_BACKUP, '.tar.gz')
+        working-directory: ${{ env.DEPLOY_DIR }}
+        run: |
+          BACKUP_FILE="history/${DB_BACKUP}"
+          if [ -f "$BACKUP_FILE" ]; then
+            echo "Extracting uploads from instance backup..."
+            TMPDIR=$(mktemp -d)
+            tar xzf "$BACKUP_FILE" -C "$TMPDIR"
+            UPLOADS=$(find "$TMPDIR" -type d -name "uploads" | head -1)
+            if [ -n "$UPLOADS" ] && [ -d "$UPLOADS" ]; then
+              # Copy into the volume-init seed directory so volume-init syncs them
+              mkdir -p uploads
+              cp -a "$UPLOADS"/. uploads/
+              echo "Extracted $(find uploads -type f | wc -l) upload files"
+            fi
+            MANIFEST=$(find "$TMPDIR" -name "manifest.json" | head -1)
+            if [ -n "$MANIFEST" ]; then
+              echo "Backup manifest: $(cat "$MANIFEST")"
+            fi
+            rm -rf "$TMPDIR"
+          fi
+
       - name: Pull server image
         working-directory: ${{ env.DEPLOY_DIR }}
         run: docker compose pull server-blue server-green

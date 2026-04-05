@@ -49,7 +49,7 @@ if [[ -n "$DB_BACKUP" ]]; then
 
   if [[ ! -f "$BACKUP_FILE" ]]; then
     log_error "Backup not found: $BACKUP_FILE"
-    ls "$HISTORY_DIR"/*.sql.gz "$HISTORY_DIR"/*.sql 2>/dev/null | while read f; do
+    ls "$HISTORY_DIR"/*.sql.gz "$HISTORY_DIR"/*.sql "$HISTORY_DIR"/*.tar.gz 2>/dev/null | while read f; do
       log_info "  Available: $(basename "$f")"
     done
     exit 1
@@ -61,8 +61,37 @@ if [[ -n "$DB_BACKUP" ]]; then
 
   mkdir -p /docker-entrypoint-initdb.d
 
-  # Restore script
-  if [[ "$BACKUP_FILE" == *.gz ]]; then
+  # Handle instance backup tarballs (.tar.gz) vs plain SQL (.sql.gz / .sql)
+  if [[ "$BACKUP_FILE" == *.tar.gz ]]; then
+    log_info "Extracting instance backup tarball..."
+    EXTRACT_DIR=$(mktemp -d)
+    tar xzf "$BACKUP_FILE" -C "$EXTRACT_DIR"
+
+    # Find database.sql.gz in the tarball
+    DB_SQL=$(find "$EXTRACT_DIR" -name "database.sql.gz" | head -1)
+    if [[ -z "$DB_SQL" ]]; then
+      log_error "No database.sql.gz found in tarball"
+      exit 1
+    fi
+    gunzip -c "$DB_SQL" > /docker-entrypoint-initdb.d/10-restore.sql
+
+    # Restore uploads if present
+    UPLOADS_DIR=$(find "$EXTRACT_DIR" -type d -name "uploads" | head -1)
+    if [[ -n "$UPLOADS_DIR" ]] && [[ -d "$UPLOADS_DIR" ]]; then
+      log_info "Restoring uploads from backup..."
+      cp -a "$UPLOADS_DIR"/. /app/uploads/ 2>/dev/null || \
+        cp -a "$UPLOADS_DIR"/. /database/uploads/ 2>/dev/null || \
+        log_warning "Could not restore uploads (no target dir)"
+    fi
+
+    # Log manifest if present
+    MANIFEST=$(find "$EXTRACT_DIR" -name "manifest.json" | head -1)
+    if [[ -n "$MANIFEST" ]]; then
+      log_info "Backup manifest: $(cat "$MANIFEST")"
+    fi
+
+    rm -rf "$EXTRACT_DIR"
+  elif [[ "$BACKUP_FILE" == *.gz ]]; then
     log_info "Decompressing backup..."
     gunzip -c "$BACKUP_FILE" > /docker-entrypoint-initdb.d/10-restore.sql
   else

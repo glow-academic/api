@@ -348,8 +348,10 @@ services:
       - PGHOST=database
       - BACKUP_INTERVAL=${BACKUP_INTERVAL:-604800}
       - BACKUP_RETENTION=${BACKUP_RETENTION:-4}
+      - INSTANCE_ID=${INSTANCE_ID:-unknown}
     volumes:
       - history:/backups
+      - uploads:/uploads:ro
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -357,11 +359,36 @@ services:
         while true; do
           sleep "$${BACKUP_INTERVAL}"
           if pg_isready -q; then
-            FILE="backup-scheduled-$$(date +%Y%m%d-%H%M%S).sql.gz"
-            echo "[backup-cron] Creating $$FILE..."
-            pg_dump --no-owner --no-privileges --exclude-schema=keycloak | gzip > "/backups/$$FILE"
-            echo "[backup-cron] Saved ($$( du -h /backups/$$FILE | cut -f1 ))"
-            ls -t /backups/backup-scheduled-*.sql.gz 2>/dev/null | tail -n +$$(($${BACKUP_RETENTION} + 1)) | xargs rm -f 2>/dev/null
+            TIMESTAMP=$$(date +%Y%m%d-%H%M%S)
+            TARBALL="instance-backup-$${TIMESTAMP}.tar.gz"
+            TMPDIR=$$(mktemp -d)
+
+            echo "[backup-cron] Creating instance backup..."
+
+            # 1. Database dump
+            pg_dump --no-owner --no-privileges --exclude-schema=keycloak | gzip > "$${TMPDIR}/database.sql.gz"
+
+            # 2. Manifest
+            cat > "$${TMPDIR}/manifest.json" <<MANIFEST
+        {
+          "instance_id": "$${INSTANCE_ID}",
+          "created_at": "$$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "format": "instance-backup-v1"
+        }
+        MANIFEST
+
+            # 3. Create tarball (database + uploads + manifest)
+            tar czf "/backups/$${TARBALL}" \
+              -C "$${TMPDIR}" database.sql.gz manifest.json \
+              -C / uploads/
+
+            rm -rf "$${TMPDIR}"
+
+            SIZE=$$(du -h "/backups/$${TARBALL}" | cut -f1)
+            echo "[backup-cron] Saved $${TARBALL} ($${SIZE})"
+
+            # Retention — keep N most recent
+            ls -t /backups/instance-backup-*.tar.gz 2>/dev/null | tail -n +$$(($${BACKUP_RETENTION} + 1)) | xargs rm -f 2>/dev/null
           else
             echo "[backup-cron] Database not ready — skipping"
           fi
