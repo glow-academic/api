@@ -23,12 +23,12 @@ on:
       version:
         description: 'Image version (e.g. v0.2.0)'
         required: true
-      db_backup:
-        description: 'Pre-built backup file (skip seed-gen if set)'
+      db_restore:
+        description: 'Backup file to restore (e.g. university.sql.gz or prod-backup.sql.gz). Empty = keep existing DB.'
         required: false
         default: ''
       seed_setup:
-        description: 'Seed template (fresh/university/organization)'
+        description: 'Seed template to generate (fresh/university/organization). Always runs.'
         required: false
         default: 'fresh'
       provision_token:
@@ -93,7 +93,7 @@ jobs:
       API_VERSION: ${{ inputs.version }}
       ACTIVE_ENV: ${{ needs.detect-active-environment.outputs.active-env }}
       ACTIVE_KC_ENV: ${{ needs.detect-active-environment.outputs.active-kc-env }}
-      DB_BACKUP: ${{ inputs.db_backup }}
+      DB_RESTORE: ${{ inputs.db_restore }}
       SEED_SETUP: ${{ inputs.seed_setup }}
       ORIGIN: ${{ inputs.origin }}
       CLIENT_ORIGINS: ${{ inputs.client_origins }}
@@ -226,7 +226,6 @@ jobs:
           echo "Wrote glow-deploy.yaml from provision claim ($(wc -c < glow-deploy.yaml) bytes)"
 
       - name: Generate seed backup
-        if: env.DB_BACKUP == ''
         working-directory: ${{ env.DEPLOY_DIR }}
         run: |
           echo "Installing seed runner dependencies..."
@@ -237,18 +236,21 @@ jobs:
 
           if [ "$SETUP" = "fresh" ]; then
             PYTHONPATH=core python3 -m database.scripts.runner --modules
-            echo "DB_BACKUP=fresh.sql.gz" >> $GITHUB_ENV
           else
             PYTHONPATH=core python3 -m database.scripts.runner --modules
             PYTHONPATH=core python3 -m database.scripts.runner --setup "$SETUP"
-            echo "DB_BACKUP=${SETUP}.sql.gz" >> $GITHUB_ENV
           fi
 
           echo "Seed backup generated: $(ls -lh database/history/*.sql.gz | tail -1)"
 
-      - name: Set DB_BACKUP default
-        if: env.DB_BACKUP == ''
-        run: echo "DB_BACKUP=fresh.sql.gz" >> $GITHUB_ENV
+          # If no explicit restore target, use the seed output for first deploy
+          if [ -z "$DB_RESTORE" ]; then
+            echo "DB_BACKUP=${SETUP}.sql.gz" >> $GITHUB_ENV
+            echo "DB_RESTORE set to seed output: ${SETUP}.sql.gz"
+          else
+            echo "DB_BACKUP=${DB_RESTORE}" >> $GITHUB_ENV
+            echo "DB_RESTORE from input: ${DB_RESTORE}"
+          fi
 
       - name: Pull server image
         working-directory: ${{ env.DEPLOY_DIR }}
