@@ -165,14 +165,15 @@ jobs:
             echo "Seed setup from claim: $SEED_SETUP_CLAIMED"
           fi
 
-          DEPLOY_CONFIG_YAML=$(echo "$RESP" | jq -r '.deploy_config_yaml // empty')
-          if [ -n "$DEPLOY_CONFIG_YAML" ]; then
-            DEPLOY_CONFIG_B64=$(echo "$DEPLOY_CONFIG_YAML" | base64 -w0)
+          # Base64-encode deploy config directly from JSON to avoid shell escaping issues
+          DEPLOY_CONFIG_B64=$(echo "$RESP" | jq -r '.deploy_config_yaml // empty' | base64 -w0)
+          if [ -n "$DEPLOY_CONFIG_B64" ] && [ "$DEPLOY_CONFIG_B64" != "" ]; then
             echo "DEPLOY_CONFIG_B64=$DEPLOY_CONFIG_B64" >> $GITHUB_ENV
-            echo "Deploy config received from claim ($(echo "$DEPLOY_CONFIG_YAML" | wc -c) bytes)"
+            echo "Deploy config received from claim"
           fi
 
-          GRACE_PERIOD=$(echo "$DEPLOY_CONFIG_YAML" | python3 -c "import sys,yaml; d=yaml.safe_load(sys.stdin); print(d.get('grace_period_minutes', 60) if d else 60)" 2>/dev/null || echo "60")
+          # grace_period_minutes = simulation idle timeout
+          GRACE_PERIOD=$(echo "$RESP" | jq -r '.deploy_config_yaml // empty' | python3 -c "import sys,yaml; d=yaml.safe_load(sys.stdin); print(d.get('grace_period_minutes', 60) if d else 60)" 2>/dev/null || echo "60")
           echo "GRACE_PERIOD_MINUTES=${GRACE_PERIOD}" >> $GITHUB_ENV
 
           echo "Deployment token claimed successfully"
