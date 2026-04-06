@@ -24,4 +24,9 @@ if [ -n "$VERSION" ]; then
   echo "$VERSION" > "$DEST/DEPLOYED_VERSION"
 fi
 
+# Ensure history dir is writable by LearnLoop API container (uid 1001)
+# for backup creation via the bind mount at /app/glow-deployments/{id}/history/
+mkdir -p "$DEST/history"
+chmod 777 "$DEST/history"
+
 echo "Release staged to $DEST"
