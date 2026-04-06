@@ -161,13 +161,12 @@ jobs:
 
           DEPLOY_CONFIG_YAML=$(echo "$RESP" | jq -r '.deploy_config_yaml // empty')
           if [ -n "$DEPLOY_CONFIG_YAML" ]; then
-            echo "DEPLOY_CONFIG_YAML<<CONFIGEOF" >> $GITHUB_ENV
-            echo "$DEPLOY_CONFIG_YAML" >> $GITHUB_ENV
-            echo "CONFIGEOF" >> $GITHUB_ENV
-            echo "Deploy config received from claim"
+            DEPLOY_CONFIG_B64=$(echo "$DEPLOY_CONFIG_YAML" | base64 -w0)
+            echo "DEPLOY_CONFIG_B64=$DEPLOY_CONFIG_B64" >> $GITHUB_ENV
+            echo "Deploy config received from claim ($(echo "$DEPLOY_CONFIG_YAML" | wc -c) bytes)"
           fi
 
-          GRACE_PERIOD=$(echo "$DEPLOY_CONFIG_YAML" | python3 -c "import sys,yaml; print(yaml.safe_load(sys.stdin).get('grace_period_minutes', 60))" 2>/dev/null || echo "60")
+          GRACE_PERIOD=$(echo "$DEPLOY_CONFIG_YAML" | python3 -c "import sys,yaml; d=yaml.safe_load(sys.stdin); print(d.get('grace_period_minutes', 60) if d else 60)" 2>/dev/null || echo "60")
           echo "GRACE_PERIOD_MINUTES=${GRACE_PERIOD}" >> $GITHUB_ENV
 
           echo "Deployment token claimed successfully"
@@ -232,10 +231,10 @@ jobs:
           fi
 
       - name: Write deploy config
-        if: env.DEPLOY_CONFIG_YAML != ''
+        if: env.DEPLOY_CONFIG_B64 != ''
         working-directory: ${{ env.DEPLOY_DIR }}
         run: |
-          echo "$DEPLOY_CONFIG_YAML" > glow-deploy.yaml
+          echo "$DEPLOY_CONFIG_B64" | base64 -d > glow-deploy.yaml
           echo "Wrote glow-deploy.yaml from provision claim ($(wc -c < glow-deploy.yaml) bytes)"
 
       - name: Generate seed backup
