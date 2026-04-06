@@ -18,6 +18,7 @@ rsync -a --delete \
   --exclude='.venv/' \
   --exclude='docker-compose.override.yml' \
   --exclude='.env' \
+  --exclude='glow-deploy.local.yaml' \
   "$SOURCE/" "$DEST/"
 
 if [ -n "$VERSION" ]; then
