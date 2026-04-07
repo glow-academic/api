@@ -182,16 +182,16 @@ async def get_dashboard_impl_cached(
         str(r["simulation_id"]): r["scenario_count"] for r in scenario_count_rows
     }
     persona_name_map = {
-        str(p.persona_id): p.name for p in personas if p.persona_id and p.name
+        str(p.id): p.name for p in personas if p.id and p.name
     }
     cohort_name_map = {
         str(r["id"]): r["name"] for r in cohort_name_rows if r["id"] and r["name"]
     }
     simulation_name_map = {
-        str(s.simulation_id): s.name for s in simulations if s.simulation_id and s.name
+        str(s.id): s.name for s in simulations if s.id and s.name
     }
     scenario_name_map = {
-        str(s.scenario_id): s.name for s in scenarios_list if s.scenario_id and s.name
+        str(s.id): s.name for s in scenarios_list if s.id and s.name
     }
     standard_group_name_map = {
         str(getattr(sg, "standard_group_id", None)): getattr(sg, "name", "")

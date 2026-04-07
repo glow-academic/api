@@ -249,7 +249,7 @@ async def search_simulation_impl(
             )
 
     persona_map: dict[UUID, str] = {
-        p.persona_id: p.color or "" for p in personas_data if p.persona_id
+        p.id: p.color or "" for p in personas_data if p.id
     }
 
     # Build scenario mapping with persona colors
