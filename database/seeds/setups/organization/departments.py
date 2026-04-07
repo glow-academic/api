@@ -1,7 +1,6 @@
 """Organization department seed definitions."""
 
 from database.seeds.ids import sid
-from database.seeds.setups.organization.settings import ORGANIZATION_SETTING_RESOURCE
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs
@@ -20,6 +19,6 @@ departments = [
         resource_id=ORGANIZATION_DEPT_RESOURCE,
         name="Organization",
         description="Organization department",
-        settings_ids=[ORGANIZATION_SETTING_RESOURCE],
+        settings_ids=[sid("org/setting-resource/organization")],
     ),
 ]

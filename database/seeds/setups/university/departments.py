@@ -8,7 +8,6 @@ on department_settings_junction, so the setting doesn't need to exist yet).
 """
 
 from database.seeds.ids import sid
-from database.seeds.setups.university.settings import UNIVERSITY_SETTING_RESOURCE
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs — importable by other modules for department_ids linking
@@ -27,6 +26,6 @@ departments = [
         resource_id=UNIVERSITY_DEPT_RESOURCE,
         name="University",
         description="Innovative base of knowledge in the emerging field of computing.",
-        settings_ids=[UNIVERSITY_SETTING_RESOURCE],
+        settings_ids=[sid("uni/setting-resource/university")],
     ),
 ]
