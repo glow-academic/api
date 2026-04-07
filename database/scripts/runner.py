@@ -404,7 +404,7 @@ async def _run_profile_bootstrap(
                 profile_resource = await create_profile_resource(
                     conn,
                     redis,
-                    id=p["id"],
+                    id=p.get("resource_id"),
                     name=p["name"],
                 )
                 profiles_resource_id = profile_resource.id
@@ -995,17 +995,6 @@ async def _run_setting_seeds(
 ) -> list[UUID]:
     """Run setting seed definitions through create_setting_impl."""
     from app.infra.setting.create import CreateSettingItem, create_setting_impl
-    from app.tools.artifacts.profile.get import get_profiles
-
-    # Resolve profile_artifact_ids → profile_resource IDs before creation
-    for s in setting_defs:
-        artifact_ids = s.pop("profile_artifact_ids", None)
-        if artifact_ids:
-            async with pool.acquire() as conn:
-                profiles = await get_profiles(conn, artifact_ids, profiles=True)
-            s["profile_ids"] = [
-                p.profile_ids[0] for p in profiles if p.profile_ids
-            ]
 
     items = [CreateSettingItem(**s) for s in setting_defs]
 
@@ -1339,29 +1328,14 @@ async def _run_update_pass(
 
             setting_updates = mod.get_setting_updates()
             if setting_updates:
-                from app.tools.artifacts.profile.get import get_profiles
-
-                items = []
-                for s in setting_updates:
-                    # Resolve profile_artifact_ids → profiles_resource IDs
-                    profile_ids = None
-                    artifact_ids = s.get("profile_artifact_ids")
-                    if artifact_ids:
-                        async with pool.acquire() as conn:
-                            profiles = await get_profiles(
-                                conn, artifact_ids, profiles=True
-                            )
-                        profile_ids = [
-                            p.profile_ids[0] for p in profiles if p.profile_ids
-                        ]
-
-                    items.append(
-                        UpdateSettingItem(
-                            setting_id=s["id"],
-                            color_ids=s.get("color_ids"),
-                            profile_ids=profile_ids,
-                        )
+                items = [
+                    UpdateSettingItem(
+                        setting_id=s["id"],
+                        color_ids=s.get("color_ids"),
+                        profile_ids=s.get("profile_ids"),
                     )
+                    for s in setting_updates
+                ]
                 await update_setting_impl(
                     pool,
                     redis,

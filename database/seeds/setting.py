@@ -14,7 +14,7 @@ from database.seeds.dynamic_keys import (
     AUTH_ITEM_KEY_IDS,
     AUTH_ITEM_VALUE_IDS,
 )
-from database.seeds.profiles import SEED_PROFILE_ID
+from database.seeds.profiles import SEED_PROFILE_RESOURCE
 from database.seeds.systems import (
     ACTIVITY_SYSTEM,
     AGENT_SYSTEM,
@@ -109,7 +109,7 @@ ALL_SYSTEMS = [
 # Default profile artifact IDs to link (for "Login as X" on Keycloak)
 # ---------------------------------------------------------------------------
 
-DEFAULT_PROFILE_ARTIFACT_IDS = [SEED_PROFILE_ID]
+DEFAULT_PROFILE_RESOURCE_IDS = [SEED_PROFILE_RESOURCE]
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs
@@ -135,7 +135,7 @@ settings = [
         auth_item_value_ids=AUTH_ITEM_VALUE_IDS or None,
         system_ids=ALL_SYSTEMS,
         threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
-        profile_artifact_ids=DEFAULT_PROFILE_ARTIFACT_IDS,
+        profile_ids=DEFAULT_PROFILE_RESOURCE_IDS,
     ),
 ]
 

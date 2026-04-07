@@ -7,6 +7,8 @@ Superadmin is created, all subsequent modules use _impl with SEED_PROFILE_ID.
 
 from uuid import UUID
 
+from database.seeds.ids import sid
+
 # ---------------------------------------------------------------------------
 # Referenced IDs from module 01 resources
 # ---------------------------------------------------------------------------
@@ -30,6 +32,13 @@ GUEST_REQUEST_LIMIT = UUID("019bb553-e77f-797c-ae44-544fbe10351b")
 
 SEED_PROFILE_ID = UUID("019b3be4-36f0-788c-9df2-481eb5917940")
 
+# Deterministic resource IDs for base profiles
+SEED_PROFILE_RESOURCE = sid("default/profile-resource/superadmin")
+DEFAULT_ADMIN_RESOURCE = sid("default/profile-resource/admin")
+DEFAULT_INSTRUCTIONAL_RESOURCE = sid("default/profile-resource/instructional")
+DEFAULT_MEMBER_RESOURCE = sid("default/profile-resource/member")
+DEFAULT_GUEST_RESOURCE = sid("default/profile-resource/guest")
+
 # ---------------------------------------------------------------------------
 # Profile definitions
 # ---------------------------------------------------------------------------
@@ -37,30 +46,35 @@ SEED_PROFILE_ID = UUID("019b3be4-36f0-788c-9df2-481eb5917940")
 profiles = [
     dict(
         id=SEED_PROFILE_ID,
+        resource_id=SEED_PROFILE_RESOURCE,
         name="Default Superadmin",
         role_ids=[SUPERADMIN_ROLE],
         flag_ids=[PROFILE_ACTIVE],
     ),
     dict(
         id=UUID("019b3be4-36ef-7a5f-98ab-ccb879770be0"),
+        resource_id=DEFAULT_ADMIN_RESOURCE,
         name="Default Admin",
         role_ids=[ADMIN_ROLE],
         flag_ids=[PROFILE_ACTIVE],
     ),
     dict(
         id=UUID("019b3be4-36f0-785d-9d61-32eae65689ca"),
+        resource_id=DEFAULT_INSTRUCTIONAL_RESOURCE,
         name="Default Instructional",
         role_ids=[INSTRUCTIONAL_ROLE],
         flag_ids=[PROFILE_ACTIVE],
     ),
     dict(
         id=UUID("019b3be4-36f0-7eb3-bc4e-bcab772edd92"),
+        resource_id=DEFAULT_MEMBER_RESOURCE,
         name="Default Member",
         role_ids=[MEMBER_GTA_ROLE],
         flag_ids=[PROFILE_ACTIVE],
     ),
     dict(
         id=UUID("019b3be4-36f0-792c-82d6-126664ed18b6"),
+        resource_id=DEFAULT_GUEST_RESOURCE,
         name="Default Guest",
         role_ids=[GUEST_ROLE],
         flag_ids=[PROFILE_ACTIVE],
