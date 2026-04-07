@@ -160,7 +160,6 @@ async def update_department_impl(
         departments_resource_id = await create_denormalized_snapshot(
             pool,
             redis,
-            id=item.resource_id,
             name_id=eff_name_id,
             description_id=eff_desc_id,
             setting_ids=eff_setting_ids,

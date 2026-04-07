@@ -173,7 +173,6 @@ async def update_setting_impl(
         settings_resource_id = await create_denormalized_snapshot(
             pool,
             redis,
-            id=item.resource_id,
             name_id=eff_name_id,
             description_id=eff_desc_id,
             department_ids=eff_department_ids,

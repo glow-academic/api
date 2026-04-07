@@ -1062,7 +1062,6 @@ async def _run_default_setting_seed(
             items.append(
                 UpdateSettingItem(
                     setting_id=s["id"],
-                    resource_id=s.get("resource_id"),
                     color_ids=s.get("color_ids"),
                     profile_ids=profile_ids,
                     auth_item_key_ids=s.get("auth_item_key_ids"),
@@ -1324,94 +1323,6 @@ async def _cleanup_deactivated_junctions(pool: asyncpg.Pool) -> list[str]:
     return update_stmts
 
 
-async def _reconcile_department_settings(
-    pool: asyncpg.Pool,
-    redis: Redis,
-) -> None:
-    """Reconcile department↔setting resource IDs after the update pass.
-
-    Resources are append-only — each update creates a new row with a new ID.
-    This means cross-references (department_settings_junction, departments_resource.setting_ids)
-    go stale when the referenced setting is updated.
-
-    Source of truth: each artifact's self-link junction always has the current resource ID.
-      - setting_settings_junction → current settings_resource ID
-      - department_departments_junction → current departments_resource ID
-
-    Approach: read all setting artifacts to find which departments they belong to
-    and what their current resource IDs are, then update each department accordingly.
-    """
-    from app.infra.department.types import UpdateDepartmentItem
-    from app.infra.department.update import update_department_impl
-    from app.tools.artifacts.department.get import (
-        get_departments as get_department_artifacts,
-    )
-    from app.tools.artifacts.department.search import search_departments
-    from app.tools.artifacts.setting.get import (
-        get_settings as get_setting_artifacts,
-    )
-    from app.tools.artifacts.setting.search import search_settings
-
-    async with pool.acquire() as conn:
-        # Step 1: Get all setting artifacts with their department links and current resource IDs
-        setting_artifact_ids, _ = await search_settings(
-            conn, active_only=True, limit_count=100000
-        )
-        if not setting_artifact_ids:
-            return
-
-        setting_arts = await get_setting_artifacts(
-            conn, setting_artifact_ids, departments=True, settings=True
-        )
-
-        # Step 2: Build map: department_resource_id → [current settings_resource IDs]
-        dept_resource_to_setting_resources: dict[UUID, list[UUID]] = {}
-        for sa in setting_arts:
-            current_setting_resource_id = sa.setting_ids[0] if sa.setting_ids else None
-            if not current_setting_resource_id:
-                continue
-            for dept_resource_id in sa.department_ids or []:
-                dept_resource_to_setting_resources.setdefault(
-                    dept_resource_id, []
-                ).append(current_setting_resource_id)
-
-        if not dept_resource_to_setting_resources:
-            return
-
-        # Step 3: Get all department artifacts with their current resource IDs
-        dept_artifact_ids, _ = await search_departments(
-            conn, active_only=True, limit_count=100000
-        )
-        if not dept_artifact_ids:
-            return
-
-        dept_arts = await get_department_artifacts(
-            conn, dept_artifact_ids, departments=True
-        )
-
-    # Step 4: For each department, look up its current resource ID
-    # and find the setting resource IDs that belong to it
-    items: list[UpdateDepartmentItem] = []
-    for dept in dept_arts:
-        dept_resource_id = dept.department_ids[0] if dept.department_ids else None
-        if not dept_resource_id:
-            continue
-        setting_resource_ids = dept_resource_to_setting_resources.get(dept_resource_id)
-        if setting_resource_ids:
-            items.append(
-                UpdateDepartmentItem(
-                    department_id=dept.id,
-                    settings_ids=setting_resource_ids,
-                )
-            )
-
-    if items:
-        await update_department_impl(
-            pool, redis, profile_id=SEED_PROFILE_ID, items=items
-        )
-        print(f"  OK: {len(items)} department(s) reconciled with current settings_resource IDs")
-
-
 async def _run_update_pass(
     pool: asyncpg.Pool,
     redis: Redis,
@@ -1442,7 +1353,6 @@ async def _run_update_pass(
                 items = [
                     UpdateDepartmentItem(
                         department_id=d["id"],
-                        resource_id=d.get("resource_id"),
                         settings_ids=d.get("settings_ids"),
                     )
                     for d in dept_updates
@@ -1483,7 +1393,6 @@ async def _run_update_pass(
                     items.append(
                         UpdateSettingItem(
                             setting_id=s["id"],
-                            resource_id=s.get("resource_id"),
                             color_ids=s.get("color_ids"),
                             profile_ids=profile_ids,
                         )

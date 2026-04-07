@@ -209,7 +209,6 @@ class UpdateSettingItem(BaseModel):
     """
 
     setting_id: UUID = Field(..., description="UUID of the setting to update")
-    resource_id: UUID | None = Field(None, description="Optional preset UUID for the new settings_resource snapshot")
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
     name: str | None = Field(None, description="Name value to resolve or create")
