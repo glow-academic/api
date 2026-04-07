@@ -40,6 +40,7 @@ def get_department_updates():
     return [
         dict(
             id=UNIVERSITY_DEPT,
+            resource_id=UNIVERSITY_DEPT_RESOURCE,
             settings_ids=[UNIVERSITY_SETTING_RESOURCE],
         ),
     ]

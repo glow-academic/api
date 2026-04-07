@@ -34,6 +34,7 @@ def get_department_updates():
     return [
         dict(
             id=ORGANIZATION_DEPT,
+            resource_id=ORGANIZATION_DEPT_RESOURCE,
             settings_ids=[ORGANIZATION_SETTING_RESOURCE],
         ),
     ]

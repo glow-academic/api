@@ -122,6 +122,7 @@ def get_setting_updates():
     return [
         dict(
             id=UNIVERSITY_SETTING,
+            resource_id=UNIVERSITY_SETTING_RESOURCE,
             color_ids=ALL_COLOR_IDS,
             profile_artifact_ids=SETTING_PROFILE_ARTIFACT_IDS,
         ),

@@ -141,6 +141,7 @@ def get_setting_updates():
     """Deferred — link default profiles and auth keys after setting is created."""
     update = dict(
         id=DEFAULT_SETTING,
+        resource_id=DEFAULT_SETTING_RESOURCE,
         profile_artifact_ids=DEFAULT_PROFILE_ARTIFACT_IDS,
     )
     if AUTH_ITEM_KEY_IDS:

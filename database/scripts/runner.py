@@ -1051,6 +1051,7 @@ async def _run_default_setting_seed(
             items.append(
                 UpdateSettingItem(
                     setting_id=s["id"],
+                    resource_id=s.get("resource_id"),
                     color_ids=s.get("color_ids"),
                     profile_ids=profile_ids,
                     auth_item_key_ids=s.get("auth_item_key_ids"),
@@ -1430,6 +1431,7 @@ async def _run_update_pass(
                 items = [
                     UpdateDepartmentItem(
                         department_id=d["id"],
+                        resource_id=d.get("resource_id"),
                         settings_ids=d.get("settings_ids"),
                     )
                     for d in dept_updates
@@ -1470,6 +1472,7 @@ async def _run_update_pass(
                     items.append(
                         UpdateSettingItem(
                             setting_id=s["id"],
+                            resource_id=s.get("resource_id"),
                             color_ids=s.get("color_ids"),
                             profile_ids=profile_ids,
                         )
