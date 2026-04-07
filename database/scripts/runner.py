@@ -2013,6 +2013,20 @@ async def main_setup(setup: str = "university", base_seed_file: Path | None = No
 
         setup_module = importlib.import_module(f"database.seeds.setups.{setup}")
 
+        # Disable FK checks during setup creates so forward-references
+        # (e.g., department.settings_ids before settings_resource exists) work.
+        # FKs are re-enabled after all creates, catching any actual violations.
+        # Use ALTER DATABASE so it applies to all new connections from the pool.
+        async with pool.acquire() as conn:
+            dbname = await conn.fetchval("SELECT current_database()")
+            await conn.execute(
+                f"ALTER DATABASE {dbname} SET session_replication_role = 'replica'"
+            )
+        # Reconnect pool so all connections pick up the new default
+        await pool.close()
+        pool = await asyncpg.create_pool(pg_url)
+        print("  FK checks disabled for setup creates")
+
         for module_name in setup_module.MODULES:
             print(f"\nSeeding {module_name}...")
             mod = importlib.import_module(
@@ -2064,6 +2078,16 @@ async def main_setup(setup: str = "university", base_seed_file: Path | None = No
                 await _run_file_seeds(
                     pool, redis_client, mod.document_files, assets_dir
                 )
+
+        # Re-enable FK checks after all creates
+        async with pool.acquire() as conn:
+            dbname = await conn.fetchval("SELECT current_database()")
+            await conn.execute(
+                f"ALTER DATABASE {dbname} RESET session_replication_role"
+            )
+        await pool.close()
+        pool = await asyncpg.create_pool(pg_url)
+        print("\n  FK checks re-enabled")
 
         # ── Update pass — apply deferred updates from seed modules ────
         print("\nApplying updates...")
