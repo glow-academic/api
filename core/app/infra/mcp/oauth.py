@@ -163,15 +163,32 @@ def is_mcp_enabled() -> bool:
     return True
 
 
-def oauth_401() -> Response:
+def _get_base_url(request: Request | None = None) -> str:
+    """Get the base URL from the request's forwarded host, falling back to ORIGIN.
+
+    This allows MCP endpoints to work when accessed through different domains
+    (e.g., docs domain proxying to the API). The OAuth discovery URLs will
+    match the domain the client actually connected to.
+    """
+    if request:
+        forwarded_host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+        forwarded_proto = request.headers.get("x-forwarded-proto", "https")
+        if forwarded_host and forwarded_host not in ("glow-api:8000", "glow-api", "nginx:80", "nginx"):
+            return f"{forwarded_proto}://{forwarded_host}"
+    return ORIGIN
+
+
+def oauth_401(request: Request | None = None) -> Response:
     """Return 401 with WWW-Authenticate header per RFC 9728."""
-    prm_endpoint = f"{ORIGIN}{APP_PREFIX}/.well-known/oauth-protected-resource"
+    base = _get_base_url(request)
+    resource = f"{base}{APP_PREFIX}/mcp"
+    prm_endpoint = f"{base}{APP_PREFIX}/.well-known/oauth-protected-resource"
     auth_endpoint = f"{KEYCLOAK_ISSUER}/protocol/openid-connect/auth"
     return Response(
         status_code=status.HTTP_401_UNAUTHORIZED,
         headers={
             "WWW-Authenticate": (
-                f'Bearer realm="mcp", resource="{MCP_RESOURCE}", '
+                f'Bearer realm="mcp", resource="{resource}", '
                 f'resource_metadata="{prm_endpoint}", '
                 f'authorization_uri="{auth_endpoint}", '
                 f'scope="mcp-resource"'
@@ -250,9 +267,10 @@ class McpOAuthMiddleware(BaseHTTPMiddleware):
                 and path.endswith("/mcp")
             )
         ):
+            base = _get_base_url(request)
             return JSONResponse(
                 {
-                    "resource": MCP_RESOURCE,
+                    "resource": f"{base}{APP_PREFIX}/mcp",
                     "authorization_servers": [KEYCLOAK_ISSUER],
                     "code_challenge_methods_supported": ["S256"],
                     "scopes_supported": _SCOPES_SUPPORTED,
@@ -291,7 +309,7 @@ class McpOAuthMiddleware(BaseHTTPMiddleware):
                 f"MCP request missing Authorization header: "
                 f"{request.method} {path}"
             )
-            return oauth_401()
+            return oauth_401(request)
 
         # --- Try LearnLoop-signed MCP proxy token first ---
 
@@ -314,7 +332,7 @@ class McpOAuthMiddleware(BaseHTTPMiddleware):
         except ValueError as e:
             # Token IS a LearnLoop proxy token but failed verification
             logger.warning(f"MCP LearnLoop proxy token rejected: {e}")
-            return oauth_401()
+            return oauth_401(request)
 
         # --- Fall through to Keycloak OAuth verification ---
 
@@ -327,7 +345,7 @@ class McpOAuthMiddleware(BaseHTTPMiddleware):
                 )
             except ValueError as e:
                 logger.warning(f"MCP OAuth token validation failed: {e}")
-                return oauth_401()
+                return oauth_401(request)
 
         # --- Profile resolution (reuses resolve_identity._resolve_profile_id) ---
         # Skip profile resolution for LearnLoop proxy tokens — they don't
