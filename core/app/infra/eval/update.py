@@ -6,6 +6,7 @@ Composes existing black-box tools:
   3. resolve_eval_values — raw value → ID resolution
   4. update_eval_artifact — junction writes (partial update)
   5. create_denormalized_snapshot — evals_resource snapshot
+  6. sync_benchmark_entries — pre-create benchmark + invocation entries (non-fatal)
 """
 
 from __future__ import annotations
@@ -29,6 +30,9 @@ from app.tools.artifacts.eval.update import (
     update_eval as update_eval_artifact,
 )
 from app.utils.cache.invalidate_tags import invalidate_tags
+from app.utils.logging.db_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 async def update_eval_impl(
@@ -49,6 +53,7 @@ async def update_eval_impl(
       3. Per-item value resolution (raw → ID, no required field enforcement)
       4. Single transaction: update_eval_artifact + denormalized snapshot per item
       5. invalidate_tags
+      6. sync_benchmark_entries — pre-create benchmark + invocation entries (non-fatal)
     """
     from app.infra.eval.permissions import compute_can_edit
     from app.infra.eval.types import (
@@ -116,6 +121,7 @@ async def update_eval_impl(
     # ── Step 4: Single transaction ─────────────────────────────────────
 
     results: list[EvalResultItem] = []
+    sync_items: list[tuple] = []
 
     for item in items:
         # Create denormalized snapshot OUTSIDE transaction (read-only hydration)
@@ -157,9 +163,28 @@ async def update_eval_impl(
                 message="Eval updated successfully",
             )
         )
+        sync_items.append((evals_resource_id, item))
 
     # ── Step 5: Invalidate cache ───────────────────────────────────────
 
     await invalidate_tags(["evals"], redis=redis)
+
+    # ── Step 6: Sync entry rows (non-fatal) ────────────────────────────
+
+    for resource_id, item in sync_items:
+        try:
+            from app.infra.benchmark.sync import sync_benchmark_entries
+
+            await sync_benchmark_entries(
+                pool=pool,
+                evals_resource_id=resource_id,
+                model_ids=item.model_ids or [],
+                model_flag_ids=item.model_flag_ids or [],
+                model_rubric_ids=item.model_rubric_ids or [],
+                model_position_ids=item.model_position_ids or [],
+                department_ids=item.department_ids or [],
+            )
+        except Exception as sync_err:
+            logger.warning(f"sync_benchmark_entries failed (non-fatal): {sync_err}")
 
     return UpdateEvalApiResponse(results=results)
