@@ -269,7 +269,7 @@ async def search_cohort_impl(
             simulation_id=s.id,
             name=getattr(s, "name", None),
             description=s.description,
-            department_ids=getattr(s, "department_ids", None),
+            department_ids=[str(d) for d in (getattr(s, "department_ids", None) or [])],
         )
         for s in simulations_data
     ]

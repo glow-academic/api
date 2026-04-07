@@ -424,7 +424,7 @@ async def search_scenario_impl(
             simulation_id=str(s.id) if s.id else None,
             name=getattr(s, "name", None) or "",
             description=s.description or "",
-            department_ids=getattr(s, "department_ids", None),
+            department_ids=[str(d) for d in (getattr(s, "department_ids", None) or [])],
         )
         for s in simulation_facet
     ]
