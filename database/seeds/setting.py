@@ -131,23 +131,13 @@ settings = [
         active_flag=True,
         department_ids=None,
         auth_ids=AUTH_ID_LIST or None,
+        auth_item_key_ids=AUTH_ITEM_KEY_IDS or None,
+        auth_item_value_ids=AUTH_ITEM_VALUE_IDS or None,
         system_ids=ALL_SYSTEMS,
         threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
+        profile_artifact_ids=DEFAULT_PROFILE_ARTIFACT_IDS,
     ),
 ]
-
-
-def get_setting_updates():
-    """Deferred — link default profiles and auth keys after setting is created."""
-    update = dict(
-        id=DEFAULT_SETTING,
-        profile_artifact_ids=DEFAULT_PROFILE_ARTIFACT_IDS,
-    )
-    if AUTH_ITEM_KEY_IDS:
-        update["auth_item_key_ids"] = AUTH_ITEM_KEY_IDS
-    if AUTH_ITEM_VALUE_IDS:
-        update["auth_item_value_ids"] = AUTH_ITEM_VALUE_IDS
-    return [update]
 
 
 # ---------------------------------------------------------------------------

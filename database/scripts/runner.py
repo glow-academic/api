@@ -1035,46 +1035,11 @@ async def _run_default_setting_seed(
     pool: asyncpg.Pool,
     redis: Redis,
 ) -> None:
-    """Create the default setting and link default profiles to it."""
-    from database.seeds.setting import get_setting_updates, profile_updates, settings
+    """Create the default setting with all data included at creation time."""
+    from database.seeds.setting import profile_updates, settings
 
-    # Create the setting
+    # Create the setting (profile_artifact_ids resolved by _run_setting_seeds)
     await _run_setting_seeds(pool, redis, settings)
-
-    # Link profiles (update pass)
-    from app.infra.setting.types import UpdateSettingItem
-    from app.infra.setting.update import update_setting_impl
-    from app.tools.artifacts.profile.get import get_profiles
-
-    setting_updates = get_setting_updates()
-    if setting_updates:
-        items = []
-        for s in setting_updates:
-            profile_ids = None
-            artifact_ids = s.get("profile_artifact_ids")
-            if artifact_ids:
-                async with pool.acquire() as conn:
-                    profiles = await get_profiles(conn, artifact_ids, profiles=True)
-                profile_ids = [
-                    p.profile_ids[0] for p in profiles if p.profile_ids
-                ]
-
-            items.append(
-                UpdateSettingItem(
-                    setting_id=s["id"],
-                    color_ids=s.get("color_ids"),
-                    profile_ids=profile_ids,
-                    auth_item_key_ids=s.get("auth_item_key_ids"),
-                    auth_item_value_ids=s.get("auth_item_value_ids"),
-                )
-            )
-        await update_setting_impl(
-            pool,
-            redis,
-            profile_id=SEED_PROFILE_ID,
-            items=items,
-        )
-        print(f"  OK: default setting updated with {len(items)} profile link(s)")
 
     # ── Profile email updates ──────────────────────────────────────────
     if profile_updates:
