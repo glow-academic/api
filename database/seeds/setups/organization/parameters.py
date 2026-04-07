@@ -7,7 +7,7 @@
 """
 
 from database.seeds.ids import sid
-from database.seeds.setups.organization.departments import ORGANIZATION_DEPT
+from database.seeds.setups.organization.departments import ORGANIZATION_DEPT, ORGANIZATION_DEPT_RESOURCE
 from database.seeds.setups.organization.fields import (
     EMPLOYEE_LEVEL_FIELDS,
     JOB_POSITION_FIELDS,
@@ -32,20 +32,20 @@ parameters = [
         name="Employee Level",
         description="Employee seniority level",
         field_ids=EMPLOYEE_LEVEL_FIELDS,
-        department_ids=[ORGANIZATION_DEPT],
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
     dict(
         id=P_YEARS_WITH_COMPANY,
         name="Years with Company",
         description="Tenure at the company",
         field_ids=YEARS_FIELDS,
-        department_ids=[ORGANIZATION_DEPT],
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
     dict(
         id=P_JOB_POSITION,
         name="Job Position",
         description="Job role/position",
         field_ids=JOB_POSITION_FIELDS,
-        department_ids=[ORGANIZATION_DEPT],
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
 ]

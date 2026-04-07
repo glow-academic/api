@@ -9,7 +9,7 @@ Names, descriptions, instructions, and examples are CREATED as new resources.
 """
 
 from database.seeds.ids import sid
-from database.seeds.setups.university.departments import UNIVERSITY_DEPT
+from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVERSITY_DEPT_RESOURCE
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs — importable by scenarios, simulations, etc.
@@ -52,7 +52,7 @@ personas = [
             "What does that mean?",
         ],
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Happy ─────────────────────────────────────────────────────────────
     dict(
@@ -76,7 +76,7 @@ personas = [
             "This is really helpful!",
         ],
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Passive ───────────────────────────────────────────────────────────
     dict(
@@ -100,7 +100,7 @@ personas = [
             "I'm not sure",
         ],
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Aggressive (High) ────────────────────────────────────────────────
     dict(
@@ -125,7 +125,7 @@ personas = [
             "You're wrong about this",
         ],
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Aggressive (Medium) ──────────────────────────────────────────────
     dict(
@@ -149,7 +149,7 @@ personas = [
             "You're wrong about this",
         ],
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Aggressive (Low) ─────────────────────────────────────────────────
     dict(
@@ -173,7 +173,7 @@ personas = [
             "You're wrong about this",
         ],
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Professor ─────────────────────────────────────────────────────────
     dict(
@@ -192,7 +192,7 @@ personas = [
             "I want to ensure you understand the academic integrity expectations",
         ],
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Student ───────────────────────────────────────────────────────────
     dict(
@@ -211,7 +211,7 @@ personas = [
             "What should I focus on for the exam?",
         ],
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Instructional Staff ───────────────────────────────────────────────
     dict(
@@ -230,6 +230,6 @@ personas = [
             "Here's what you need to know about office hours",
         ],
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
 ]

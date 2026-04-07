@@ -19,7 +19,7 @@ from database.seeds.setups.university.content import (
     UPSET_STUDENT_OPTIONS,
     UPSET_STUDENT_QUESTIONS,
 )
-from database.seeds.setups.university.departments import UNIVERSITY_DEPT
+from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVERSITY_DEPT_RESOURCE
 from database.seeds.setups.university.documents import (
     ACADEMIC_INTEGRITY_POLICY,
     FERPA_POLICY,
@@ -59,7 +59,7 @@ scenarios = [
         description="Practice scenario featuring a confused or uncertain student persona.",
         persona_ids=[CONFUSED],
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
         id=HAPPY_SCENARIO,
@@ -67,7 +67,7 @@ scenarios = [
         description="Practice scenario featuring a cheerful and positive student persona.",
         persona_ids=[HAPPY],
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
         id=PASSIVE_SCENARIO,
@@ -75,7 +75,7 @@ scenarios = [
         description="Practice scenario featuring a passive or hesitant student persona.",
         persona_ids=[PASSIVE],
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
         id=AGGRESSIVE_SCENARIO,
@@ -83,14 +83,14 @@ scenarios = [
         description="Practice scenario featuring an aggressive or confrontational student persona.",
         persona_ids=[AGGRESSIVE_HIGH],
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
         id=GENERAL_SCENARIO,
         name="General Scenario",
         description="General purpose scenario for flexible practice across various situations.",
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Training Scenarios (with problem statements and multiple personas) ─
     dict(
@@ -105,7 +105,7 @@ scenarios = [
             "maintaining academic honesty."
         ),
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
         document_ids=[ACADEMIC_INTEGRITY_POLICY],
         objective_ids=ACADEMIC_INTEGRITY_OBJECTIVES,
         question_ids=ACADEMIC_INTEGRITY_QUESTIONS,
@@ -123,7 +123,7 @@ scenarios = [
             "address the situation and explain the importance of protecting student privacy."
         ),
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
         document_ids=[FERPA_POLICY],
         objective_ids=FERPA_OBJECTIVES,
         question_ids=FERPA_QUESTIONS,
@@ -141,7 +141,7 @@ scenarios = [
             "the work together while providing constructive feedback."
         ),
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
         objective_ids=UPSET_STUDENT_OBJECTIVES,
         question_ids=UPSET_STUDENT_QUESTIONS,
         option_ids=UPSET_STUDENT_OPTIONS,

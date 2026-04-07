@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from database.seeds.setups.organization.departments import ORGANIZATION_DEPT
+from database.seeds.setups.organization.departments import ORGANIZATION_DEPT, ORGANIZATION_DEPT_RESOURCE
 
 # ---------------------------------------------------------------------------
 # Pre-existing profile IDs (from 09-profiles in modules 01-10)
@@ -21,27 +21,27 @@ DEFAULT_SUPERADMIN = UUID("019b3be4-36f0-788c-9df2-481eb5917940")
 profile_updates = [
     dict(
         profile_id=DEFAULT_ADMIN,
-        department_ids=[ORGANIZATION_DEPT],
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
         email="default-admin@organization.com",
     ),
     dict(
         profile_id=DEFAULT_GUEST,
-        department_ids=[ORGANIZATION_DEPT],
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
         email="default-guest@organization.com",
     ),
     dict(
         profile_id=DEFAULT_INSTRUCTIONAL,
-        department_ids=[ORGANIZATION_DEPT],
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
         email="default-instructional@organization.com",
     ),
     dict(
         profile_id=DEFAULT_MEMBER,
-        department_ids=[ORGANIZATION_DEPT],
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
         email="default-member@organization.com",
     ),
     dict(
         profile_id=DEFAULT_SUPERADMIN,
-        department_ids=[ORGANIZATION_DEPT],
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
         email="default-superadmin@organization.com",
     ),
 ]

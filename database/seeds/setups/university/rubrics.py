@@ -8,7 +8,7 @@ Names and descriptions are CREATED as new resources.
 """
 
 from database.seeds.ids import sid
-from database.seeds.setups.university.departments import UNIVERSITY_DEPT
+from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVERSITY_DEPT_RESOURCE
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs — importable by scenarios, simulations, etc.
@@ -34,7 +34,7 @@ rubrics = [
             "understanding and confirms comprehension before moving on."
         ),
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Policy Knowledge ────────────────────────────────────────────────
     dict(
@@ -48,7 +48,7 @@ rubrics = [
             "when advising on academic policies."
         ),
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── De-escalation ───────────────────────────────────────────────────
     dict(
@@ -62,6 +62,6 @@ rubrics = [
             "a constructive resolution."
         ),
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
 ]

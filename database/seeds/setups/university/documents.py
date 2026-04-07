@@ -7,7 +7,7 @@ These documents can be linked to scenarios via document_ids.
 """
 
 from database.seeds.ids import sid
-from database.seeds.setups.university.departments import UNIVERSITY_DEPT
+from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVERSITY_DEPT_RESOURCE
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs — importable by scenarios, etc.
@@ -35,67 +35,67 @@ documents = [
         id=ACADEMIC_INTEGRITY_POLICY,
         name="Academic Integrity Policy",
         description="Academic integrity and honor code policy document",
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
         id=FERPA_POLICY,
         name="FERPA Policy",
         description="Family Educational Rights and Privacy Act (FERPA) policy document",
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
         id=FERPA_GENERAL,
         name="FERPA",
         description="FERPA compliance and student privacy guidelines",
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Template documents ────────────────────────────────────────────────
     dict(
         id=SYLLABUS_TEMPLATE,
         name="Syllabus Template",
         description="Template document for syllabus",
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
         id=HOMEWORK_TEMPLATE,
         name="Homework Template",
         description="Template document for homework",
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
         id=LAB_TEMPLATE,
         name="Lab Template",
         description="Template document for lab",
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
         id=LECTURE_TEMPLATE,
         name="Lecture Template",
         description="Template document for lecture",
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
         id=MIDTERM_TEMPLATE,
         name="Midterm Template",
         description="Template document for midterm",
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
         id=POLICY_TEMPLATE,
         name="Policy Template",
         description="Template document for policy",
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
         id=PROJECT_TEMPLATE,
         name="Project Template",
         description="Template document for project",
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
         id=QUIZ_TEMPLATE,
         name="Quiz Template",
         description="Template document for quiz",
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
 ]

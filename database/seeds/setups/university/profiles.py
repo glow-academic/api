@@ -11,7 +11,7 @@ Role and department IDs reference pre-existing resources (01-resources/).
 from uuid import UUID
 
 from database.seeds.ids import sid
-from database.seeds.setups.university.departments import UNIVERSITY_DEPT
+from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVERSITY_DEPT_RESOURCE
 
 # ---------------------------------------------------------------------------
 # Pre-existing role resource IDs (from database/seeds/resources/roles.py)
@@ -39,28 +39,28 @@ profiles = [
     dict(
         id=UNIVERSITY_ADMIN,
         name="University Admin",
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
         role_ids=[ROLE_ADMIN],
     ),
     # ── Professor Smith ──────────────────────────────────────────────────
     dict(
         id=PROFESSOR_SMITH,
         name="Professor Smith",
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
         role_ids=[ROLE_INSTRUCTIONAL],
     ),
     # ── TA Johnson ───────────────────────────────────────────────────────
     dict(
         id=TA_JOHNSON,
         name="TA Johnson",
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
         role_ids=[ROLE_INSTRUCTIONAL],
     ),
     # ── Benchmark ──────────────────────────────────────────────────────
     dict(
         id=BENCHMARK_PROFILE,
         name="Benchmark",
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
         role_ids=[ROLE_BENCHMARK],
     ),
 ]
@@ -82,27 +82,27 @@ DEFAULT_SUPERADMIN = UUID("019b3be4-36f0-788c-9df2-481eb5917940")
 profile_updates = [
     dict(
         profile_id=DEFAULT_ADMIN,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
         email="default-admin@university.edu",
     ),
     dict(
         profile_id=DEFAULT_GUEST,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
         email="default-guest@university.edu",
     ),
     dict(
         profile_id=DEFAULT_INSTRUCTIONAL,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
         email="default-instructional@university.edu",
     ),
     dict(
         profile_id=DEFAULT_MEMBER,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
         email="default-member@university.edu",
     ),
     dict(
         profile_id=DEFAULT_SUPERADMIN,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
         email="default-superadmin@university.edu",
     ),
 ]

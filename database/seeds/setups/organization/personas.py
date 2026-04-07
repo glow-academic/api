@@ -4,7 +4,7 @@ Minimal personas — name only, no descriptions/instructions.
 """
 
 from database.seeds.ids import sid
-from database.seeds.setups.organization.departments import ORGANIZATION_DEPT
+from database.seeds.setups.organization.departments import ORGANIZATION_DEPT, ORGANIZATION_DEPT_RESOURCE
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs
@@ -27,7 +27,7 @@ personas = [
         color="Red",
         icon="Zap",
         instructions="You are frustrated.",
-        department_ids=[ORGANIZATION_DEPT],
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
     dict(
         id=ANXIOUS,
@@ -35,7 +35,7 @@ personas = [
         color="Amber",
         icon="HelpCircle",
         instructions="You are anxious.",
-        department_ids=[ORGANIZATION_DEPT],
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
     dict(
         id=DEFENSIVE,
@@ -43,7 +43,7 @@ personas = [
         color="Violet",
         icon="Cloud",
         instructions="You are defensive.",
-        department_ids=[ORGANIZATION_DEPT],
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
     dict(
         id=ENTHUSIASTIC,
@@ -51,7 +51,7 @@ personas = [
         color="Green",
         icon="SmilePlus",
         instructions="You are enthusiastic.",
-        department_ids=[ORGANIZATION_DEPT],
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
     dict(
         id=MANAGER,
@@ -59,6 +59,6 @@ personas = [
         color="Blue",
         icon="User",
         instructions="You are a manager.",
-        department_ids=[ORGANIZATION_DEPT],
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
 ]

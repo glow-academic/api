@@ -7,7 +7,7 @@ Names and descriptions are CREATED as new resources.
 """
 
 from database.seeds.ids import sid
-from database.seeds.setups.university.departments import UNIVERSITY_DEPT
+from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVERSITY_DEPT_RESOURCE
 from database.seeds.setups.university.profiles import (
     PROFESSOR_SMITH,
     TA_JOHNSON,
@@ -48,7 +48,7 @@ cohorts = [
             GENERAL_PRACTICE,
         ],
         profile_ids=[PROFESSOR_SMITH, TA_JOHNSON],
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
         id=TRAINING_COHORT,
@@ -60,6 +60,6 @@ cohorts = [
             UPSET_STUDENT_TRAINING,
         ],
         profile_ids=[UNIVERSITY_ADMIN, PROFESSOR_SMITH, TA_JOHNSON],
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
 ]
