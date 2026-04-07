@@ -33,6 +33,7 @@ personas = [
     # ── Confused ──────────────────────────────────────────────────────────
     dict(
         id=CONFUSED,
+        resource_id=sid("uni/persona-resource/confused"),
         name="Confused",
         description="Seeks to understand by asking questions and exploring ideas",
         icon="HelpCircle",
@@ -57,6 +58,7 @@ personas = [
     # ── Happy ─────────────────────────────────────────────────────────────
     dict(
         id=HAPPY,
+        resource_id=sid("uni/persona-resource/happy"),
         name="Happy",
         description="Provides uplifting feedback and cheerful responses.",
         icon="SmilePlus",
@@ -81,6 +83,7 @@ personas = [
     # ── Passive ───────────────────────────────────────────────────────────
     dict(
         id=PASSIVE,
+        resource_id=sid("uni/persona-resource/passive"),
         name="Passive",
         description="Low engagement and a tendency to avoid conflict or assertiveness.",
         icon="Cloud",
@@ -105,6 +108,7 @@ personas = [
     # ── Aggressive (High) ────────────────────────────────────────────────
     dict(
         id=AGGRESSIVE_HIGH,
+        resource_id=sid("uni/persona-resource/aggressive-high"),
         name="Aggressive (High)",
         description="Pushes back on your ideas and challenges assumptions, with high intensity.",
         icon="Zap",
@@ -130,6 +134,7 @@ personas = [
     # ── Aggressive (Medium) ──────────────────────────────────────────────
     dict(
         id=AGGRESSIVE_MEDIUM,
+        resource_id=sid("uni/persona-resource/aggressive-medium"),
         name="Aggressive (Medium)",
         description="Pushes back on your ideas and challenges assumptions.",
         icon="Zap",
@@ -154,6 +159,7 @@ personas = [
     # ── Aggressive (Low) ─────────────────────────────────────────────────
     dict(
         id=AGGRESSIVE_LOW,
+        resource_id=sid("uni/persona-resource/aggressive-low"),
         name="Aggressive (Low)",
         description="Pushes back on your ideas and challenges assumptions, with milder intensity.",
         icon="Zap",
@@ -178,6 +184,7 @@ personas = [
     # ── Professor ─────────────────────────────────────────────────────────
     dict(
         id=PROFESSOR,
+        resource_id=sid("uni/persona-resource/professor"),
         name="Professor",
         description=(
             "Represents a faculty member perspective, providing guidance on "
@@ -197,6 +204,7 @@ personas = [
     # ── Student ───────────────────────────────────────────────────────────
     dict(
         id=STUDENT,
+        resource_id=sid("uni/persona-resource/student"),
         name="Student",
         description=(
             "Represents a typical student perspective, asking questions and "
@@ -216,6 +224,7 @@ personas = [
     # ── Instructional Staff ───────────────────────────────────────────────
     dict(
         id=INSTRUCTIONAL_STAFF,
+        resource_id=sid("uni/persona-resource/instructional-staff"),
         name="Instructional Staff",
         description=(
             "Represents teaching assistants and instructional support staff, "

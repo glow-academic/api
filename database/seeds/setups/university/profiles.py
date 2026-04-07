@@ -30,6 +30,11 @@ PROFESSOR_SMITH = sid("uni/profile/professor-smith")
 TA_JOHNSON = sid("uni/profile/ta-johnson")
 BENCHMARK_PROFILE = sid("uni/profile/benchmark")
 
+UNIVERSITY_ADMIN_RESOURCE = sid("uni/profile-resource/university-admin")
+PROFESSOR_SMITH_RESOURCE = sid("uni/profile-resource/professor-smith")
+TA_JOHNSON_RESOURCE = sid("uni/profile-resource/ta-johnson")
+BENCHMARK_PROFILE_RESOURCE = sid("uni/profile-resource/benchmark")
+
 # ---------------------------------------------------------------------------
 # Profile definitions
 # ---------------------------------------------------------------------------
@@ -38,6 +43,7 @@ profiles = [
     # ── University Admin ─────────────────────────────────────────────────
     dict(
         id=UNIVERSITY_ADMIN,
+        resource_id=UNIVERSITY_ADMIN_RESOURCE,
         name="University Admin",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         role_ids=[ROLE_ADMIN],
@@ -45,6 +51,7 @@ profiles = [
     # ── Professor Smith ──────────────────────────────────────────────────
     dict(
         id=PROFESSOR_SMITH,
+        resource_id=PROFESSOR_SMITH_RESOURCE,
         name="Professor Smith",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         role_ids=[ROLE_INSTRUCTIONAL],
@@ -52,6 +59,7 @@ profiles = [
     # ── TA Johnson ───────────────────────────────────────────────────────
     dict(
         id=TA_JOHNSON,
+        resource_id=TA_JOHNSON_RESOURCE,
         name="TA Johnson",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         role_ids=[ROLE_INSTRUCTIONAL],
@@ -59,6 +67,7 @@ profiles = [
     # ── Benchmark ──────────────────────────────────────────────────────
     dict(
         id=BENCHMARK_PROFILE,
+        resource_id=BENCHMARK_PROFILE_RESOURCE,
         name="Benchmark",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         role_ids=[ROLE_BENCHMARK],

@@ -29,6 +29,7 @@ P_JOB_POSITION = sid("org/parameter/job-position")
 parameters = [
     dict(
         id=P_EMPLOYEE_LEVEL,
+        resource_id=sid("org/parameter-resource/employee-level"),
         name="Employee Level",
         description="Employee seniority level",
         field_ids=EMPLOYEE_LEVEL_FIELDS,
@@ -36,6 +37,7 @@ parameters = [
     ),
     dict(
         id=P_YEARS_WITH_COMPANY,
+        resource_id=sid("org/parameter-resource/years-with-company"),
         name="Years with Company",
         description="Tenure at the company",
         field_ids=YEARS_FIELDS,
@@ -43,6 +45,7 @@ parameters = [
     ),
     dict(
         id=P_JOB_POSITION,
+        resource_id=sid("org/parameter-resource/job-position"),
         name="Job Position",
         description="Job role/position",
         field_ids=JOB_POSITION_FIELDS,

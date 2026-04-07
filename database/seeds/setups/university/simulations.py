@@ -54,6 +54,7 @@ simulations = [
     # ── Practice Simulations (single scenario, practice flag) ──────────────
     dict(
         id=CONFUSED_PRACTICE,
+        resource_id=sid("uni/simulation-resource/confused-practice"),
         name="Confused Practice",
         description="Seeks to understand by asking questions and exploring ideas.",
         scenario_ids=[CONFUSED_SCENARIO],
@@ -62,6 +63,7 @@ simulations = [
     ),
     dict(
         id=HAPPY_PRACTICE,
+        resource_id=sid("uni/simulation-resource/happy-practice"),
         name="Happy Practice",
         description="Provides uplifting feedback and cheerful responses.",
         scenario_ids=[HAPPY_SCENARIO],
@@ -70,6 +72,7 @@ simulations = [
     ),
     dict(
         id=PASSIVE_PRACTICE,
+        resource_id=sid("uni/simulation-resource/passive-practice"),
         name="Passive Practice",
         description="Responds with minimal engagement and requires prompting.",
         scenario_ids=[PASSIVE_SCENARIO],
@@ -78,6 +81,7 @@ simulations = [
     ),
     dict(
         id=AGGRESSIVE_PRACTICE,
+        resource_id=sid("uni/simulation-resource/aggressive-practice"),
         name="Aggressive Practice",
         description="Challenges with confrontational and resistant responses.",
         scenario_ids=[AGGRESSIVE_SCENARIO],
@@ -86,6 +90,7 @@ simulations = [
     ),
     dict(
         id=GENERAL_PRACTICE,
+        resource_id=sid("uni/simulation-resource/general-practice"),
         name="General Practice",
         description="A flexible simulation for open-ended practice with any persona.",
         scenario_ids=[GENERAL_SCENARIO],
@@ -95,6 +100,7 @@ simulations = [
     # ── Training Simulations (multiple scenarios, structured) ──────────────
     dict(
         id=ACADEMIC_INTEGRITY_TRAINING,
+        resource_id=sid("uni/simulation-resource/academic-integrity-training"),
         name="Academic Integrity Training",
         description="Training simulation for practicing responses to academic integrity violations.",
         scenario_ids=[ACADEMIC_INTEGRITY_SCENARIO],
@@ -103,6 +109,7 @@ simulations = [
     ),
     dict(
         id=FERPA_TRAINING,
+        resource_id=sid("uni/simulation-resource/ferpa-training"),
         name="FERPA Training",
         description="Training simulation for practicing FERPA compliance and student privacy protection.",
         scenario_ids=[FERPA_SCENARIO],
@@ -111,6 +118,7 @@ simulations = [
     ),
     dict(
         id=UPSET_STUDENT_TRAINING,
+        resource_id=sid("uni/simulation-resource/upset-student-training"),
         name="Upset Student Training",
         description="Training simulation for practicing de-escalation techniques with upset students.",
         scenario_ids=[UPSET_STUDENT_SCENARIO],

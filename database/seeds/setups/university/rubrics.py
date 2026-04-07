@@ -26,6 +26,7 @@ rubrics = [
     # ── Communication Skills ────────────────────────────────────────────
     dict(
         id=COMMUNICATION_SKILLS,
+        resource_id=sid("uni/rubric-resource/communication-skills"),
         name="Communication Skills",
         description=(
             "Evaluates clarity of explanations, active listening techniques, "
@@ -39,6 +40,7 @@ rubrics = [
     # ── Policy Knowledge ────────────────────────────────────────────────
     dict(
         id=POLICY_KNOWLEDGE,
+        resource_id=sid("uni/rubric-resource/policy-knowledge"),
         name="Policy Knowledge",
         description=(
             "Evaluates accuracy of policy citations, proper procedure "
@@ -53,6 +55,7 @@ rubrics = [
     # ── De-escalation ───────────────────────────────────────────────────
     dict(
         id=DE_ESCALATION,
+        resource_id=sid("uni/rubric-resource/de-escalation"),
         name="De-escalation",
         description=(
             "Evaluates conflict resolution approach, emotional regulation, "

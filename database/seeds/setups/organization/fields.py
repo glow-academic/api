@@ -51,24 +51,28 @@ fields = [
     # Employee Level
     dict(
         id=F_JUNIOR,
+        resource_id=sid("org/field-resource/junior"),
         name="Junior",
         description="Junior employee level",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
     dict(
         id=F_MID_LEVEL,
+        resource_id=sid("org/field-resource/mid-level"),
         name="Mid-Level",
         description="Mid-level employee level",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
     dict(
         id=F_SENIOR,
+        resource_id=sid("org/field-resource/senior"),
         name="Senior",
         description="Senior employee level",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
     dict(
         id=F_EXECUTIVE,
+        resource_id=sid("org/field-resource/executive"),
         name="Executive",
         description="Executive employee level",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
@@ -76,30 +80,35 @@ fields = [
     # Years with Company
     dict(
         id=F_LESS_THAN_1,
+        resource_id=sid("org/field-resource/less-than-1-year"),
         name="Less than 1 year",
         description="Less than 1 year tenure",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
     dict(
         id=F_1_3_YEARS,
+        resource_id=sid("org/field-resource/1-3-years"),
         name="1-3 years",
         description="1-3 years tenure",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
     dict(
         id=F_3_5_YEARS,
+        resource_id=sid("org/field-resource/3-5-years"),
         name="3-5 years",
         description="3-5 years tenure",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
     dict(
         id=F_5_10_YEARS,
+        resource_id=sid("org/field-resource/5-10-years"),
         name="5-10 years",
         description="5-10 years tenure",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
     dict(
         id=F_10_PLUS,
+        resource_id=sid("org/field-resource/10-plus-years"),
         name="10+ years",
         description="10+ years tenure",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
@@ -107,24 +116,28 @@ fields = [
     # Job Position
     dict(
         id=F_ENGINEER,
+        resource_id=sid("org/field-resource/engineer"),
         name="Engineer",
         description="Engineer position",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
     dict(
         id=F_DESIGNER,
+        resource_id=sid("org/field-resource/designer"),
         name="Designer",
         description="Designer position",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
     dict(
         id=F_ANALYST,
+        resource_id=sid("org/field-resource/analyst"),
         name="Analyst",
         description="Analyst position",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
     ),
     dict(
         id=F_MANAGER_POS,
+        resource_id=sid("org/field-resource/manager-position"),
         name="Manager",
         description="Manager position",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],

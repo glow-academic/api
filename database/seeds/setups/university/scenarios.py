@@ -55,6 +55,7 @@ scenarios = [
     # ── Practice Scenarios (simple persona-linked) ────────────────────────
     dict(
         id=CONFUSED_SCENARIO,
+        resource_id=sid("uni/scenario-resource/confused"),
         name="Confused Scenario",
         description="Practice scenario featuring a confused or uncertain student persona.",
         persona_ids=[CONFUSED],
@@ -63,6 +64,7 @@ scenarios = [
     ),
     dict(
         id=HAPPY_SCENARIO,
+        resource_id=sid("uni/scenario-resource/happy"),
         name="Happy Scenario",
         description="Practice scenario featuring a cheerful and positive student persona.",
         persona_ids=[HAPPY],
@@ -71,6 +73,7 @@ scenarios = [
     ),
     dict(
         id=PASSIVE_SCENARIO,
+        resource_id=sid("uni/scenario-resource/passive"),
         name="Passive Scenario",
         description="Practice scenario featuring a passive or hesitant student persona.",
         persona_ids=[PASSIVE],
@@ -79,6 +82,7 @@ scenarios = [
     ),
     dict(
         id=AGGRESSIVE_SCENARIO,
+        resource_id=sid("uni/scenario-resource/aggressive"),
         name="Aggressive Scenario",
         description="Practice scenario featuring an aggressive or confrontational student persona.",
         persona_ids=[AGGRESSIVE_HIGH],
@@ -87,6 +91,7 @@ scenarios = [
     ),
     dict(
         id=GENERAL_SCENARIO,
+        resource_id=sid("uni/scenario-resource/general"),
         name="General Scenario",
         description="General purpose scenario for flexible practice across various situations.",
         active_flag=True,
@@ -95,6 +100,7 @@ scenarios = [
     # ── Training Scenarios (with problem statements and multiple personas) ─
     dict(
         id=ACADEMIC_INTEGRITY_SCENARIO,
+        resource_id=sid("uni/scenario-resource/academic-integrity"),
         name="Academic Integrity Training Scenario",
         description="Training scenario for practicing responses to academic integrity violations and policy enforcement.",
         persona_ids=[PROFESSOR, STUDENT],
@@ -113,6 +119,7 @@ scenarios = [
     ),
     dict(
         id=FERPA_SCENARIO,
+        resource_id=sid("uni/scenario-resource/ferpa"),
         name="FERPA Training Scenario",
         description="Training scenario for practicing FERPA compliance and student privacy protection.",
         persona_ids=[PROFESSOR, STUDENT, INSTRUCTIONAL_STAFF],
@@ -131,6 +138,7 @@ scenarios = [
     ),
     dict(
         id=UPSET_STUDENT_SCENARIO,
+        resource_id=sid("uni/scenario-resource/upset-student"),
         name="Upset Student Training Scenario",
         description="Training scenario for practicing de-escalation techniques with upset or frustrated students.",
         persona_ids=[PROFESSOR, STUDENT],

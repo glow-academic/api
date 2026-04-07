@@ -29,7 +29,9 @@ from database.seeds.setups.university.simulations import (
 # ---------------------------------------------------------------------------
 
 PRACTICE_COHORT = sid("uni/cohort/practice")
+PRACTICE_COHORT_RESOURCE = sid("uni/cohort-resource/practice")
 TRAINING_COHORT = sid("uni/cohort/training")
+TRAINING_COHORT_RESOURCE = sid("uni/cohort-resource/training")
 
 # ---------------------------------------------------------------------------
 # Cohort definitions
@@ -38,6 +40,7 @@ TRAINING_COHORT = sid("uni/cohort/training")
 cohorts = [
     dict(
         id=PRACTICE_COHORT,
+        resource_id=PRACTICE_COHORT_RESOURCE,
         name="Practice Cohort",
         description="Open practice cohort with all practice simulations available.",
         simulation_ids=[
@@ -52,6 +55,7 @@ cohorts = [
     ),
     dict(
         id=TRAINING_COHORT,
+        resource_id=TRAINING_COHORT_RESOURCE,
         name="Training Cohort",
         description="Training cohort with structured training simulations.",
         simulation_ids=[

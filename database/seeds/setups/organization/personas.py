@@ -23,6 +23,7 @@ MANAGER = sid("org/persona/manager")
 personas = [
     dict(
         id=FRUSTRATED,
+        resource_id=sid("org/persona-resource/frustrated"),
         name="Frustrated",
         color="Red",
         icon="Zap",
@@ -31,6 +32,7 @@ personas = [
     ),
     dict(
         id=ANXIOUS,
+        resource_id=sid("org/persona-resource/anxious"),
         name="Anxious",
         color="Amber",
         icon="HelpCircle",
@@ -39,6 +41,7 @@ personas = [
     ),
     dict(
         id=DEFENSIVE,
+        resource_id=sid("org/persona-resource/defensive"),
         name="Defensive",
         color="Violet",
         icon="Cloud",
@@ -47,6 +50,7 @@ personas = [
     ),
     dict(
         id=ENTHUSIASTIC,
+        resource_id=sid("org/persona-resource/enthusiastic"),
         name="Enthusiastic",
         color="Green",
         icon="SmilePlus",
@@ -55,6 +59,7 @@ personas = [
     ),
     dict(
         id=MANAGER,
+        resource_id=sid("org/persona-resource/manager"),
         name="Manager",
         color="Blue",
         icon="User",

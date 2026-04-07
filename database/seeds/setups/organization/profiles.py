@@ -2,6 +2,7 @@
 
 from uuid import UUID
 
+from database.seeds.ids import sid
 from database.seeds.setups.organization.departments import ORGANIZATION_DEPT, ORGANIZATION_DEPT_RESOURCE
 
 # ---------------------------------------------------------------------------
@@ -21,26 +22,31 @@ DEFAULT_SUPERADMIN = UUID("019b3be4-36f0-788c-9df2-481eb5917940")
 profile_updates = [
     dict(
         profile_id=DEFAULT_ADMIN,
+        resource_id=sid("org/profile-resource/default-admin"),
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
         email="default-admin@organization.com",
     ),
     dict(
         profile_id=DEFAULT_GUEST,
+        resource_id=sid("org/profile-resource/default-guest"),
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
         email="default-guest@organization.com",
     ),
     dict(
         profile_id=DEFAULT_INSTRUCTIONAL,
+        resource_id=sid("org/profile-resource/default-instructional"),
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
         email="default-instructional@organization.com",
     ),
     dict(
         profile_id=DEFAULT_MEMBER,
+        resource_id=sid("org/profile-resource/default-member"),
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
         email="default-member@organization.com",
     ),
     dict(
         profile_id=DEFAULT_SUPERADMIN,
+        resource_id=sid("org/profile-resource/default-superadmin"),
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
         email="default-superadmin@organization.com",
     ),
