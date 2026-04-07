@@ -96,11 +96,11 @@ OVERRIDE
       fi
       docker network create traefik_routing 2>/dev/null || true
 
-      # Build extra_hosts list (own domain + LearnLoop API if provided)
-      HOSTS_BLOCK="    - ${DOMAIN}:host-gateway"
+      # Build extra_hosts mapping (own domain + LearnLoop API if provided)
+      HOSTS_BLOCK="      ${DOMAIN}: host-gateway"
       if [ -n "${LEARNLOOP_HOST:-}" ]; then
         HOSTS_BLOCK="${HOSTS_BLOCK}
-    - ${LEARNLOOP_HOST}:host-gateway"
+      ${LEARNLOOP_HOST}: host-gateway"
       fi
 
       # Build extra_hosts for non-entry services
