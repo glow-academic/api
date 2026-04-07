@@ -1764,6 +1764,16 @@ async def main_modules() -> Path:
         os.environ.setdefault("SECRET_KEY", "seed_runner_secret_key")
         os.environ.setdefault("AUTH_SECRET", "seed_runner_auth_secret")
 
+        # Disable FK checks so resource IDs don't need to match artifact IDs
+        async with pool.acquire() as conn:
+            dbname = await conn.fetchval("SELECT current_database()")
+            await conn.execute(
+                f"ALTER DATABASE {dbname} SET session_replication_role = 'replica'"
+            )
+        await pool.close()
+        pool = await asyncpg.create_pool(pg_url)
+        print("  FK checks disabled for module creates")
+
         # Module 01: resources (all via Python seeds)
         print("\nSeeding module 01 (resources)...")
         await _run_resource_seeds(pool, redis_client)
@@ -1821,6 +1831,16 @@ async def main_modules() -> Path:
         # Default setting: no department, all systems, default thresholds + profiles
         print("\nSeeding default setting...")
         await _run_default_setting_seed(pool, redis_client)
+
+        # Re-enable FK checks
+        async with pool.acquire() as conn:
+            dbname = await conn.fetchval("SELECT current_database()")
+            await conn.execute(
+                f"ALTER DATABASE {dbname} RESET session_replication_role"
+            )
+        await pool.close()
+        pool = await asyncpg.create_pool(pg_url)
+        print("\n  FK checks re-enabled")
 
         await redis_client.aclose()
         await pool.close()
