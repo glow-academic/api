@@ -125,7 +125,7 @@ async def create_persona_impl(
         personas_resource_id = await create_denormalized_snapshot(
             pool,
             redis,
-            id=item.id,
+            id=item.resource_id,
             name_id=item.name_id,
             description_id=item.description_id,
             color_id=item.color_id,

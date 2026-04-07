@@ -204,6 +204,7 @@ class CreateParameterItem(BaseModel):
     """Single parameter item for create — no parameter_id."""
 
     id: UUID | None = Field(None, description="Optional pre-assigned identifier")
+    resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
 
     # Required single-select — provide ID or value
     name_id: UUID | None = Field(None, description="Name resource identifier")

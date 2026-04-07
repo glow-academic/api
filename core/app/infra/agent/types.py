@@ -154,6 +154,7 @@ class CreateAgentItem(BaseModel):
     """
 
     id: UUID | None = Field(None, description="Client-provided UUID for the agent")
+    resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
 
     # Dual-mode: name
     name_id: UUID | None = Field(None, description="UUID of the name resource")

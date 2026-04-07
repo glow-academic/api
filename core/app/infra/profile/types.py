@@ -192,6 +192,7 @@ class CreateProfileItem(BaseModel):
     """Single profile item for create — no profile_id."""
 
     id: UUID | None = Field(None, description="Optional preset UUID for the new profile")
+    resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
 
     # Required single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")

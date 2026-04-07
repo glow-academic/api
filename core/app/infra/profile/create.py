@@ -118,7 +118,7 @@ async def create_profile_impl(
                 profiles_resource_id = await create_denormalized_snapshot(
                     conn,
                     redis,
-                    id=item.id,
+                    id=item.resource_id,
                     name_id=item.name_id,
                     department_ids=item.department_ids,
                 )

@@ -138,6 +138,7 @@ class CreateToolItem(BaseModel):
     """
 
     id: UUID | None = Field(None, description="Optional pre-assigned identifier")
+    resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
 
     # Dual-mode: name
     name_id: UUID | None = Field(None, description="Name resource identifier")

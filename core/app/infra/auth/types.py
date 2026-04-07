@@ -276,6 +276,7 @@ class CreateAuthItem(BaseModel):
     """
 
     id: UUID | None = Field(None, description="Optional preset UUID for the new auth provider")
+    resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
 
     # Required single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")

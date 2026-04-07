@@ -501,6 +501,7 @@ class CreateScenarioItem(BaseModel):
     """
 
     id: UUID | None = Field(None, description="Client-provided UUID for the scenario")
+    resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
 
     # Dual-mode: provide ID or raw value
     name_id: UUID | None = Field(None, description="UUID of the name resource")

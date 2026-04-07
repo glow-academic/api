@@ -115,7 +115,7 @@ async def create_agent_impl(
         agents_resource_id = await create_denormalized_snapshot(
             pool,
             redis,
-            id=item.id,
+            id=item.resource_id,
             name_id=item.name_id,
             description_id=item.description_id,
             department_ids=item.department_ids,
