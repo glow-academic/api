@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "2.9.2"
+    "version": "2.11.0"
   },
   "paths": {
     "/personas/get": {
@@ -11387,6 +11387,34 @@
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt"
+        ]
+      }
+    },
+    "/attempt/expire": {
+      "post": {
+        "tags": [
+          "attempt"
+        ],
+        "summary": "Expire",
+        "description": "Find and end all expired attempt chats.",
+        "operationId": "expire_attempt_expire_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           }
