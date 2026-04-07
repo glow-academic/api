@@ -20,7 +20,7 @@ Dependency order (each module may reference IDs from earlier modules):
   17. files         (refs: documents — file upload chain + document link)
 
 Updates are applied automatically after all creates:
-  - profiles.profile_updates → link pre-existing profiles to department
+  - profiles.profile_updates → link pre-existing base profiles to department + email
 """
 
 SETUP_NAME = "university"

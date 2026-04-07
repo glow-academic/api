@@ -1283,66 +1283,13 @@ async def _run_update_pass(
     setup: str,
     modules: list[str],
 ) -> None:
-    """Run update pass — applies deferred updates from seed modules.
+    """Run update pass — links pre-existing base profiles to setup departments.
 
-    After all creates are done, each module may export update data:
-      - departments.get_department_updates() → update_department_impl
-      - settings.get_setting_updates() → update_setting_impl
-      - profiles.profile_updates → update_profile_impl (with email creation)
-
-    Uses canonical infra-layer _impl functions which handle junction updates,
-    denormalized resource snapshot creation, and cache invalidation.
+    Base profiles (from main_modules) are shared across all setups.
+    Each setup adds department + email links to them via update_profile_impl.
+    This is the only update that can't be a create (the profiles already exist).
     """
     import importlib
-
-    # ── Department updates ────────────────────────────────────────────
-    if "departments" in modules:
-        mod = importlib.import_module(f"database.seeds.setups.{setup}.departments")
-        if hasattr(mod, "get_department_updates"):
-            from app.infra.department.update import update_department_impl
-            from app.infra.department.types import UpdateDepartmentItem
-
-            dept_updates = mod.get_department_updates()
-            if dept_updates:
-                items = [
-                    UpdateDepartmentItem(
-                        department_id=d["id"],
-                        settings_ids=d.get("settings_ids"),
-                    )
-                    for d in dept_updates
-                ]
-                await update_department_impl(
-                    pool,
-                    redis,
-                    profile_id=SEED_PROFILE_ID,
-                    items=items,
-                )
-                print(f"  OK: {len(items)} department(s) updated")
-
-    # ── Setting updates ───────────────────────────────────────────────
-    if "settings" in modules:
-        mod = importlib.import_module(f"database.seeds.setups.{setup}.settings")
-        if hasattr(mod, "get_setting_updates"):
-            from app.infra.setting.update import update_setting_impl
-            from app.infra.setting.types import UpdateSettingItem
-
-            setting_updates = mod.get_setting_updates()
-            if setting_updates:
-                items = [
-                    UpdateSettingItem(
-                        setting_id=s["id"],
-                        color_ids=s.get("color_ids"),
-                        profile_ids=s.get("profile_ids"),
-                    )
-                    for s in setting_updates
-                ]
-                await update_setting_impl(
-                    pool,
-                    redis,
-                    profile_id=SEED_PROFILE_ID,
-                    items=items,
-                )
-                print(f"  OK: {len(items)} setting(s) updated")
 
     # ── Profile updates ───────────────────────────────────────────────
     if "profiles" in modules:

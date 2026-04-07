@@ -10,8 +10,7 @@ Dependency order (each module may reference IDs from earlier modules):
   7. profiles       (updates: pre-existing profiles → department + email)
 
 Updates are applied automatically after all creates:
-  - departments.get_department_updates() → link departments to settings
-  - profiles.profile_updates → link pre-existing profiles to department
+  - profiles.profile_updates → link pre-existing base profiles to department + email
 """
 
 SETUP_NAME = "organization"
