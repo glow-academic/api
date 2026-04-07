@@ -116,6 +116,7 @@ DEFAULT_PROFILE_ARTIFACT_IDS = [SEED_PROFILE_ID]
 # ---------------------------------------------------------------------------
 
 DEFAULT_SETTING = sid("default/setting")
+DEFAULT_SETTING_RESOURCE = sid("default/setting-resource")
 
 # ---------------------------------------------------------------------------
 # Setting definition — no departments, no auth, just systems + thresholds + profiles
@@ -124,6 +125,7 @@ DEFAULT_SETTING = sid("default/setting")
 settings = [
     dict(
         id=DEFAULT_SETTING,
+        resource_id=DEFAULT_SETTING_RESOURCE,
         name="Default Settings",
         description="Platform default settings — active on fresh deployments with no departments configured.",
         active_flag=True,

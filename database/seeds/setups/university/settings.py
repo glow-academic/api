@@ -11,7 +11,10 @@ from uuid import UUID
 
 from database.seeds.auths import AUTH_IDS
 from database.seeds.ids import sid
-from database.seeds.setups.university.departments import UNIVERSITY_DEPT
+from database.seeds.setups.university.departments import (
+    UNIVERSITY_DEPT,
+    UNIVERSITY_DEPT_RESOURCE,
+)
 from database.seeds.dynamic_keys import (
     AUTH_ITEM_KEY_IDS,
     AUTH_ITEM_VALUE_IDS,
@@ -84,6 +87,7 @@ SYSTEMS = [
 # ---------------------------------------------------------------------------
 
 UNIVERSITY_SETTING = sid("uni/setting/university")
+UNIVERSITY_SETTING_RESOURCE = sid("uni/setting-resource/university")
 
 # ---------------------------------------------------------------------------
 # Setting definitions
@@ -92,10 +96,11 @@ UNIVERSITY_SETTING = sid("uni/setting/university")
 settings = [
     dict(
         id=UNIVERSITY_SETTING,
+        resource_id=UNIVERSITY_SETTING_RESOURCE,
         name="University Settings",
         description="Department-specific settings for the University, linking authentication, AI systems, and grading thresholds.",
         active_flag=True,
-        department_ids=[UNIVERSITY_DEPT],
+        department_ids=[UNIVERSITY_DEPT_RESOURCE],
         auth_ids=list(AUTH_IDS.values()),
         provider_key_ids=PROVIDER_KEY_IDS,
         auth_item_key_ids=AUTH_ITEM_KEY_IDS,

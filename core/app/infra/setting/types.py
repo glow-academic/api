@@ -161,7 +161,8 @@ class CreateSettingItem(BaseModel):
     Required fields (name): provide ID or value.
     """
 
-    id: UUID | None = Field(None, description="Optional preset UUID for the new setting")
+    id: UUID | None = Field(None, description="Optional preset UUID for the new setting artifact")
+    resource_id: UUID | None = Field(None, description="Optional preset UUID for the settings_resource snapshot")
 
     # Required single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")

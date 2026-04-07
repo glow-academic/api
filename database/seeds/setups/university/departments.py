@@ -13,6 +13,7 @@ from database.seeds.ids import sid
 # ---------------------------------------------------------------------------
 
 UNIVERSITY_DEPT = sid("uni/department/university")
+UNIVERSITY_DEPT_RESOURCE = sid("uni/department-resource/university")
 
 # ---------------------------------------------------------------------------
 # Department definitions (creates)
@@ -21,6 +22,7 @@ UNIVERSITY_DEPT = sid("uni/department/university")
 departments = [
     dict(
         id=UNIVERSITY_DEPT,
+        resource_id=UNIVERSITY_DEPT_RESOURCE,
         name="University",
         description="Innovative base of knowledge in the emerging field of computing.",
     ),
@@ -33,11 +35,11 @@ departments = [
 
 def get_department_updates():
     """Deferred import to avoid circular dependency with settings module."""
-    from database.seeds.setups.university.settings import UNIVERSITY_SETTING
+    from database.seeds.setups.university.settings import UNIVERSITY_SETTING_RESOURCE
 
     return [
         dict(
             id=UNIVERSITY_DEPT,
-            settings_ids=[UNIVERSITY_SETTING],
+            settings_ids=[UNIVERSITY_SETTING_RESOURCE],
         ),
     ]

@@ -8,7 +8,10 @@ from uuid import UUID
 
 from database.seeds.auths import AUTH_IDS
 from database.seeds.ids import sid
-from database.seeds.setups.organization.departments import ORGANIZATION_DEPT
+from database.seeds.setups.organization.departments import (
+    ORGANIZATION_DEPT,
+    ORGANIZATION_DEPT_RESOURCE,
+)
 from database.seeds.dynamic_keys import AUTH_ITEM_KEY_IDS, PROVIDER_KEY_IDS
 
 # ---------------------------------------------------------------------------
@@ -75,6 +78,7 @@ SYSTEMS = [
 # ---------------------------------------------------------------------------
 
 ORGANIZATION_SETTING = sid("org/setting/organization")
+ORGANIZATION_SETTING_RESOURCE = sid("org/setting-resource/organization")
 
 # ---------------------------------------------------------------------------
 # Setting definitions
@@ -83,10 +87,11 @@ ORGANIZATION_SETTING = sid("org/setting/organization")
 settings = [
     dict(
         id=ORGANIZATION_SETTING,
+        resource_id=ORGANIZATION_SETTING_RESOURCE,
         name="Organization Settings",
         description="Settings for the Organization department",
         active_flag=True,
-        department_ids=[ORGANIZATION_DEPT],
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
         auth_ids=list(AUTH_IDS.values()),
         provider_key_ids=PROVIDER_KEY_IDS,
         auth_item_key_ids=AUTH_ITEM_KEY_IDS,

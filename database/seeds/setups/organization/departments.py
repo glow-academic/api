@@ -7,6 +7,7 @@ from database.seeds.ids import sid
 # ---------------------------------------------------------------------------
 
 ORGANIZATION_DEPT = sid("org/department/organization")
+ORGANIZATION_DEPT_RESOURCE = sid("org/department-resource/organization")
 
 # ---------------------------------------------------------------------------
 # Department definitions (creates)
@@ -15,6 +16,7 @@ ORGANIZATION_DEPT = sid("org/department/organization")
 departments = [
     dict(
         id=ORGANIZATION_DEPT,
+        resource_id=ORGANIZATION_DEPT_RESOURCE,
         name="Organization",
         description="Organization department",
     ),
@@ -27,11 +29,11 @@ departments = [
 
 def get_department_updates():
     """Deferred import to avoid circular dependency with settings module."""
-    from database.seeds.setups.organization.settings import ORGANIZATION_SETTING
+    from database.seeds.setups.organization.settings import ORGANIZATION_SETTING_RESOURCE
 
     return [
         dict(
             id=ORGANIZATION_DEPT,
-            settings_ids=[ORGANIZATION_SETTING],
+            settings_ids=[ORGANIZATION_SETTING_RESOURCE],
         ),
     ]
