@@ -53,29 +53,14 @@ async def resolve_departments_for_sync(
 
     Composes: search_departments → get_departments (resource).
     """
-    dept_artifact_ids, _ = await search_departments(conn, active_only=True, limit_count=100000)
-    if not dept_artifact_ids:
+    dept_ids, _ = await search_departments(conn, active_only=True, limit_count=100000)
+    if not dept_ids:
         return []
 
-    dept_arts = await get_department_artifacts(
-        conn, dept_artifact_ids, departments=True
-    )
-    resource_ids = [a.department_ids[0] for a in dept_arts if a.department_ids]
-    if not resource_ids:
-        return []
-
-    depts = await get_department_resources(conn, resource_ids, redis)
-    # Return artifact IDs (stable identity) with resource names
-    resource_map = {d.id: d for d in depts}
-    results: list[DepartmentForSync] = []
-    for art in dept_arts:
-        res_id = art.department_ids[0] if art.department_ids else None
-        dept = resource_map.get(res_id) if res_id else None
-        if dept:
-            results.append(
-                DepartmentForSync(department_id=art.id, department_name=dept.name)
-            )
-    return results
+    depts = await get_department_resources(conn, dept_ids, redis)
+    return [
+        DepartmentForSync(department_id=d.id, department_name=d.name) for d in depts
+    ]
 
 
 # ── Resolver 2: Auths for a department (org-scoped IdPs) ──────────────
@@ -212,33 +197,18 @@ async def resolve_setting_profiles_for_idp(
     → get_profiles (resource).
     """
     # Step 1: Build dept→setting_ids map and collect all setting resource IDs
-    # Read through artifact junctions (not by artifact ID) to get current resource state
-    dept_artifact_ids, _ = await search_departments(conn, active_only=True, limit_count=100000)
+    dept_ids, _ = await search_departments(conn, active_only=True, limit_count=100000)
 
     dept_setting_map: dict[UUID, list[UUID]] = {}  # setting_resource_id → dept_ids
     dept_setting_ids: set[UUID] = set()
 
-    if dept_artifact_ids:
-        dept_arts = await get_department_artifacts(
-            conn, dept_artifact_ids, departments=True, settings=True
-        )
-        # Resolve current resource IDs through artifact junctions
-        resource_ids = [a.department_ids[0] for a in dept_arts if a.department_ids]
-        depts = await get_department_resources(conn, resource_ids, redis) if resource_ids else []
-        # Build artifact → resource mapping for department_id lookups
-        art_to_resource: dict[UUID, UUID] = {
-            a.id: a.department_ids[0] for a in dept_arts if a.department_ids
-        }
-        resource_map = {d.id: d for d in depts}
-        for art in dept_arts:
-            resource_id = art_to_resource.get(art.id)
-            if not resource_id:
-                continue
-            dept = resource_map.get(resource_id)
-            if dept and dept.setting_ids:
-                for sid in dept.setting_ids:
+    if dept_ids:
+        depts = await get_department_resources(conn, dept_ids, redis)
+        for d in depts:
+            if d.setting_ids:
+                for sid in d.setting_ids:
                     dept_setting_ids.add(sid)
-                    dept_setting_map.setdefault(sid, []).append(art.id)
+                    dept_setting_map.setdefault(sid, []).append(d.id)
 
     # Step 2: Get ALL active setting artifacts with profiles junction
     setting_artifact_ids, _ = await search_settings(
@@ -359,34 +329,23 @@ async def resolve_auth_items(
     item_map = {i.id: i for i in items}
 
     # Step 3: Resolve department settings and default settings
-    # Read through artifact junctions to get current resource state
     dept_setting_ids: set[UUID] = set()
     all_dept_setting_ids: set[UUID] = set()
 
     if department_id:
-        dept_arts = await get_department_artifacts(
-            conn, [department_id], departments=True
-        )
-        if dept_arts and dept_arts[0].department_ids:
-            res_ids = [dept_arts[0].department_ids[0]]
-            depts = await get_department_resources(conn, res_ids, redis)
-            if depts and depts[0].setting_ids:
-                dept_setting_ids.update(depts[0].setting_ids)
+        depts = await get_department_resources(conn, [department_id], redis)
+        if depts and depts[0].setting_ids:
+            dept_setting_ids.update(depts[0].setting_ids)
 
     # Get all department setting_ids (to identify defaults as "not in any dept")
     dept_ids_all, _ = await search_departments(
         conn, active_only=True, limit_count=100000
     )
     if dept_ids_all:
-        all_dept_arts = await get_department_artifacts(
-            conn, dept_ids_all, departments=True
-        )
-        all_res_ids = [a.department_ids[0] for a in all_dept_arts if a.department_ids]
-        if all_res_ids:
-            all_depts = await get_department_resources(conn, all_res_ids, redis)
-            for d in all_depts:
-                if d.setting_ids:
-                    all_dept_setting_ids.update(d.setting_ids)
+        all_depts = await get_department_resources(conn, dept_ids_all, redis)
+        for d in all_depts:
+            if d.setting_ids:
+                all_dept_setting_ids.update(d.setting_ids)
 
     # Step 4: Get ALL active setting artifacts with auth_item_keys + auth_item_values junctions
     setting_artifact_ids, _ = await search_settings(
