@@ -105,13 +105,17 @@ def get_idp_base_url() -> str:
     return _get_glow_base_url()
 
 
-def get_openid_configuration() -> dict[str, Any]:
+def get_openid_configuration(*, base_url_override: str | None = None) -> dict[str, Any]:
     """Build the OIDC discovery document.
 
     Points to Glow API as the OIDC provider. Clients use these endpoints
     directly — they never see Keycloak.
+
+    base_url_override: if set, use this as the base URL for all endpoints.
+    This allows internal Docker network clients to discover endpoints
+    relative to their own URL (e.g., http://glow-api:8000).
     """
-    base = _get_glow_base_url()
+    base = (base_url_override or _get_glow_base_url()).rstrip("/")
 
     return {
         "issuer": base,
