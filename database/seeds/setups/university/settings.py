@@ -17,13 +17,16 @@ from database.seeds.dynamic_keys import (
     AUTH_ITEM_VALUE_IDS,
     PROVIDER_KEY_IDS,
 )
-from database.seeds.setups.university.profiles import BENCHMARK_PROFILE
+from database.seeds.setups.university.profiles import (
+    BENCHMARK_PROFILE,
+    DEFAULT_SUPERADMIN,
+)
 
 # ---------------------------------------------------------------------------
 # Profile artifact IDs that need profiles_resource lookup for setting linkage
 # ---------------------------------------------------------------------------
 
-SETTING_PROFILE_ARTIFACT_IDS = [BENCHMARK_PROFILE]
+SETTING_PROFILE_ARTIFACT_IDS = [BENCHMARK_PROFILE, DEFAULT_SUPERADMIN]
 
 # ---------------------------------------------------------------------------
 # Pre-existing threshold resource IDs (from 01-resources/06-thresholds.sql)

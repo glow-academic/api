@@ -1312,6 +1312,75 @@ async def _cleanup_deactivated_junctions(pool: asyncpg.Pool) -> list[str]:
     return update_stmts
 
 
+async def _reconcile_department_settings(
+    pool: asyncpg.Pool,
+    redis: Redis,
+) -> None:
+    """Refresh departments_resource.setting_ids with current settings_resource IDs.
+
+    After the update pass, setting updates may have created new settings_resource
+    snapshots, making the IDs stored in departments_resource.setting_ids stale.
+    This reconciliation reads the current artifact junctions and re-snapshots
+    each department with the correct settings_resource IDs.
+    """
+    from app.infra.department.types import UpdateDepartmentItem
+    from app.infra.department.update import update_department_impl
+    from app.tools.artifacts.department.get import (
+        get_departments as get_department_artifacts,
+    )
+    from app.tools.artifacts.department.search import search_departments
+    from app.tools.artifacts.setting.get import (
+        get_settings as get_setting_artifacts,
+    )
+
+    async with pool.acquire() as conn:
+        dept_ids, _ = await search_departments(conn, active_only=True, limit_count=100000)
+        if not dept_ids:
+            return
+
+        dept_arts = await get_department_artifacts(conn, dept_ids, settings=True)
+
+        # Collect all setting artifact IDs referenced by departments
+        all_setting_artifact_ids: set[UUID] = set()
+        for d in dept_arts:
+            for sid in d.settings_ids or []:
+                all_setting_artifact_ids.add(sid)
+
+        if not all_setting_artifact_ids:
+            return
+
+        # Resolve setting artifact IDs → current settings_resource IDs
+        setting_arts = await get_setting_artifacts(
+            conn, list(all_setting_artifact_ids), settings=True
+        )
+        artifact_to_resource: dict[UUID, UUID] = {}
+        for sa in setting_arts:
+            if sa.setting_ids:
+                artifact_to_resource[sa.id] = sa.setting_ids[0]
+
+    # Re-snapshot each department with resolved resource IDs
+    items: list[UpdateDepartmentItem] = []
+    for dept in dept_arts:
+        resolved = [
+            artifact_to_resource[sid]
+            for sid in (dept.settings_ids or [])
+            if sid in artifact_to_resource
+        ]
+        if resolved:
+            items.append(
+                UpdateDepartmentItem(
+                    department_id=dept.id,
+                    settings_ids=resolved,
+                )
+            )
+
+    if items:
+        await update_department_impl(
+            pool, redis, profile_id=SEED_PROFILE_ID, items=items
+        )
+        print(f"  OK: {len(items)} department(s) reconciled with current settings_resource IDs")
+
+
 async def _run_update_pass(
     pool: asyncpg.Pool,
     redis: Redis,
@@ -1966,6 +2035,10 @@ async def main_setup(setup: str = "university", base_seed_file: Path | None = No
         # ── Update pass — apply deferred updates from seed modules ────
         print("\nApplying updates...")
         await _run_update_pass(pool, redis_client, setup, setup_module.MODULES)
+
+        # ── Reconcile department↔setting resource IDs ─────────────────
+        print("\nReconciling department settings...")
+        await _reconcile_department_settings(pool, redis_client)
 
         # ── Cleanup deactivated junction rows before dump ─────────────
         # The update pass soft-deletes old junction rows (active=false),
