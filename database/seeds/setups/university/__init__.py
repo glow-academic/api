@@ -1,7 +1,7 @@
 """University setup — seed definitions.
 
 Dependency order (each module may reference IDs from earlier modules):
-  1. departments
+  1. departments    (refs: settings_ids=[SR] — no FK, forward-reference OK)
   2. documents
   3. personas
   4. rubrics
@@ -14,14 +14,12 @@ Dependency order (each module may reference IDs from earlier modules):
   11. profiles      (refs: departments; updates: pre-existing profiles → department + email)
   12. cohorts       (refs: simulations, profiles)
   13. keys          (refs: providers, auths, keys, items from base modules)
-  14. settings      (refs: departments, auth, keys, providers, systems)
-  15. colors        (standalone color resources)
+  14. colors        (standalone color resources — before settings so they can be included)
+  15. settings      (refs: departments, auth, keys, providers, systems, colors, profiles)
   16. texts         (refs: documents — text upload chain + document link)
   17. files         (refs: documents — file upload chain + document link)
 
 Updates are applied automatically after all creates:
-  - departments.get_department_updates() → link departments to settings
-  - settings.get_setting_updates() → link settings to colors
   - profiles.profile_updates → link pre-existing profiles to department
 """
 
@@ -42,8 +40,8 @@ MODULES = [
     "simulations",
     "profiles",
     "cohorts",
-    "settings",
     "colors",
+    "settings",
     "texts",
     "files",
 ]

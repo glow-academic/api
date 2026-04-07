@@ -20,6 +20,7 @@ from database.seeds.dynamic_keys import (
     AUTH_ITEM_VALUE_IDS,
     PROVIDER_KEY_IDS,
 )
+from database.seeds.setups.university.colors import ALL_COLOR_IDS
 from database.seeds.setups.university.profiles import (
     BENCHMARK_PROFILE,
     DEFAULT_SUPERADMIN,
@@ -107,23 +108,7 @@ settings = [
         auth_item_value_ids=AUTH_ITEM_VALUE_IDS,
         system_ids=SYSTEMS,
         threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
+        color_ids=ALL_COLOR_IDS,
+        profile_artifact_ids=SETTING_PROFILE_ARTIFACT_IDS,
     ),
 ]
-
-# ---------------------------------------------------------------------------
-# Setting updates (applied after colors are created)
-# ---------------------------------------------------------------------------
-
-
-def get_setting_updates():
-    """Deferred import to avoid circular dependency with colors module."""
-    from database.seeds.setups.university.colors import ALL_COLOR_IDS
-
-    return [
-        dict(
-            id=UNIVERSITY_SETTING,
-            resource_id=UNIVERSITY_SETTING_RESOURCE,
-            color_ids=ALL_COLOR_IDS,
-            profile_artifact_ids=SETTING_PROFILE_ARTIFACT_IDS,
-        ),
-    ]

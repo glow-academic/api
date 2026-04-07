@@ -995,6 +995,17 @@ async def _run_setting_seeds(
 ) -> list[UUID]:
     """Run setting seed definitions through create_setting_impl."""
     from app.infra.setting.create import CreateSettingItem, create_setting_impl
+    from app.tools.artifacts.profile.get import get_profiles
+
+    # Resolve profile_artifact_ids → profile_resource IDs before creation
+    for s in setting_defs:
+        artifact_ids = s.pop("profile_artifact_ids", None)
+        if artifact_ids:
+            async with pool.acquire() as conn:
+                profiles = await get_profiles(conn, artifact_ids, profiles=True)
+            s["profile_ids"] = [
+                p.profile_ids[0] for p in profiles if p.profile_ids
+            ]
 
     items = [CreateSettingItem(**s) for s in setting_defs]
 
@@ -2057,10 +2068,6 @@ async def main_setup(setup: str = "university", base_seed_file: Path | None = No
         # ── Update pass — apply deferred updates from seed modules ────
         print("\nApplying updates...")
         await _run_update_pass(pool, redis_client, setup, setup_module.MODULES)
-
-        # ── Reconcile department↔setting resource IDs ─────────────────
-        print("\nReconciling department settings...")
-        await _reconcile_department_settings(pool, redis_client)
 
         # ── Cleanup deactivated junction rows before dump ─────────────
         # The update pass soft-deletes old junction rows (active=false),
