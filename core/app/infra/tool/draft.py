@@ -137,8 +137,7 @@ async def patch_tool_draft_impl(
                 arg_ids=request.arg_ids,
                 arg_position_ids=request.arg_position_ids,
                 args_output_ids=request.args_output_ids,
-                artifact_ids=request.artifact_ids,
-                operation_ids=request.operation_ids,
+                permission_ids=request.permission_ids,
                 profile_ids=[profile.profiles_id],
             )
 
@@ -152,8 +151,7 @@ async def patch_tool_draft_impl(
         arg_ids=request.arg_ids or [],
         arg_position_ids=request.arg_position_ids or [],
         args_output_ids=request.args_output_ids or [],
-        artifact_ids=request.artifact_ids or [],
-        operation_ids=request.operation_ids or [],
+        permission_ids=request.permission_ids or [],
     )
 
     # ── Step 6: Refresh MV ─────────────────────────────────────────────

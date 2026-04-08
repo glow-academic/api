@@ -10,11 +10,10 @@ class GetToolResponse(BaseModel):
     id: UUID
     name: str | None
     description: str | None
-    operation: str | None
+    permission_ids: list[UUID]
     department_ids: list[UUID]
     args_ids: list[UUID]
     args_output_ids: list[UUID]
-    artifacts: list[str]
     created_at: datetime
     active: bool
     mcp: bool

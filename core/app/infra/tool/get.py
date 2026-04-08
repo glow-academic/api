@@ -24,21 +24,19 @@ from app.infra.tool.permissions import (
     TOOL_RESOURCES,
     compute_args_outputs_required,
     compute_args_required,
-    compute_artifacts_required,
     compute_can_edit,
     compute_description_required,
     compute_disabled_reason,
     compute_flag_required,
     compute_name_required,
-    compute_operations_required,
+    compute_permissions_required,
     compute_show_arg_positions,
     compute_show_args,
     compute_show_args_outputs,
-    compute_show_artifacts,
     compute_show_description,
     compute_show_flag,
     compute_show_name,
-    compute_show_operations,
+    compute_show_permissions,
     has_access,
 )
 from app.infra.tool.permissions_context import (
@@ -50,12 +48,11 @@ from app.infra.tool.types import (
     ToolArgOutputSection,
     ToolArgPositionSection,
     ToolArgSection,
-    ToolArtifactSection,
     ToolDescriptionSection,
     ToolFlagConfig,
     ToolFlagSection,
     ToolNameSection,
-    ToolOperationSection,
+    ToolPermissionSection,
 )
 
 # ---------------------------------------------------------------------------
@@ -188,13 +185,9 @@ async def get_tool_impl(
         tool_ctx.resources["args_outputs"].selected
         + tool_ctx.resources["args_outputs"].suggestions
     )
-    all_artifacts = dedupe_by_id(
-        tool_ctx.resources["artifacts"].selected
-        + tool_ctx.resources["artifacts"].suggestions
-    )
-    all_operations = dedupe_by_id(
-        tool_ctx.resources["operations"].selected
-        + tool_ctx.resources["operations"].suggestions
+    all_permissions = dedupe_by_id(
+        tool_ctx.resources["permissions"].selected
+        + tool_ctx.resources["permissions"].suggestions
     )
 
     show_flags_map = {
@@ -206,8 +199,7 @@ async def get_tool_impl(
             len(all_arg_positions), len(all_args)
         ),
         "args_outputs": compute_show_args_outputs(len(all_args_outputs)),
-        "artifacts": compute_show_artifacts(len(all_artifacts)),
-        "operations": compute_show_operations(len(all_operations)),
+        "permissions": compute_show_permissions(len(all_permissions)),
     }
 
     required_flags_map = {
@@ -217,8 +209,7 @@ async def get_tool_impl(
         "args": compute_args_required(),
         "arg_positions": False,
         "args_outputs": compute_args_outputs_required(),
-        "artifacts": compute_artifacts_required(),
-        "operations": compute_operations_required(),
+        "permissions": compute_permissions_required(),
     }
 
     def compute_show_ai_generate(resource: str) -> bool:
@@ -307,8 +298,7 @@ async def get_tool_impl(
         "args_outputs": [
             ao.id for ao in tool_ctx.resources["args_outputs"].suggestions
         ],
-        "artifacts": [a.id for a in tool_ctx.resources["artifacts"].suggestions],
-        "operations": [o.id for o in tool_ctx.resources["operations"].suggestions],
+        "permissions": [p.id for p in tool_ctx.resources["permissions"].suggestions],
     }
 
     def _section(resource_key: str) -> dict:
@@ -365,14 +355,9 @@ async def get_tool_impl(
             current=args_outputs_current or None,
             resources=all_args_outputs,
         ),
-        artifacts=ToolArtifactSection(
-            **_section("artifacts"),
-            current=tool_ctx.resources["artifacts"].selected or None,
-            resources=all_artifacts,
-        ),
-        operations=ToolOperationSection(
-            **_section("operations"),
-            current=tool_ctx.resources["operations"].selected or None,
-            resources=all_operations,
+        permissions=ToolPermissionSection(
+            **_section("permissions"),
+            current=tool_ctx.resources["permissions"].selected or None,
+            resources=all_permissions,
         ),
     )

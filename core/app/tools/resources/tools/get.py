@@ -33,9 +33,8 @@ async def get_tools(
 
     rows = await conn.fetch(
         """
-        SELECT id, name, description, operation,
-               department_ids, args_ids, args_output_ids,
-               artifacts,
+        SELECT id, name, description,
+               permission_ids, department_ids, args_ids, args_output_ids,
                created_at, active, mcp, generated
         FROM tools_resource
         WHERE id = ANY($1)
@@ -49,11 +48,10 @@ async def get_tools(
             id=r["id"],
             name=r["name"],
             description=r["description"],
-            operation=r["operation"],
+            permission_ids=r["permission_ids"] or [],
             department_ids=r["department_ids"] or [],
             args_ids=r["args_ids"] or [],
             args_output_ids=r["args_output_ids"] or [],
-            artifacts=r["artifacts"] or [],
             created_at=r["created_at"],
             active=r["active"],
             mcp=r["mcp"],

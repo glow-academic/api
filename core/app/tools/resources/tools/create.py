@@ -18,8 +18,7 @@ async def create_tool(
     department_ids: list[UUID] | None = None,
     args_ids: list[UUID] | None = None,
     args_output_ids: list[UUID] | None = None,
-    operation: str | None = None,
-    artifacts: list[str] | None = None,
+    permission_ids: list[UUID] | None = None,
     id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
@@ -34,14 +33,13 @@ async def create_tool(
             department_ids,
             args_ids,
             args_output_ids,
-            operation,
-            artifacts,
+            permission_ids,
             active,
             mcp,
             generated
         )
         VALUES (
-            COALESCE($10, uuidv7()),
+            COALESCE($9, uuidv7()),
             $1,
             $2,
             $3,
@@ -50,8 +48,7 @@ async def create_tool(
             $6,
             $7,
             $8,
-            $9,
-            $9
+            $8
         )
         RETURNING id
         """,
@@ -60,8 +57,7 @@ async def create_tool(
         department_ids or [],
         args_ids or [],
         args_output_ids or [],
-        operation,
-        artifacts or [],
+        permission_ids or [],
         not soft,
         mcp,
         id,

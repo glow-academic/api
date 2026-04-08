@@ -21,8 +21,7 @@ class GetToolsResponse(BaseModel):
     args_ids: list[UUID] | None = Field(None, description="Associated args junction IDs")
     args_outputs_ids: list[UUID] | None = Field(None, description="Associated args outputs junction IDs")
     arg_positions_ids: list[UUID] | None = Field(None, description="Associated arg positions junction IDs")
-    artifact_ids: list[UUID] | None = Field(None, description="Associated artifact junction IDs")
-    operation_ids: list[UUID] | None = Field(None, description="Associated operation junction IDs")
+    permission_ids: list[UUID] | None = Field(None, description="Associated permission junction IDs")
     tool_ids: list[UUID] | None = Field(None, description="Associated tool junction IDs")
 
 

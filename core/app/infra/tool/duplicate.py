@@ -88,8 +88,7 @@ async def duplicate_tool_impl(
             args=True,
             args_outputs=True,
             arg_positions=True,
-            artifacts=True,
-            operations=True,
+            permissions=True,
             tools=True,
         )
 
@@ -143,8 +142,7 @@ async def duplicate_tool_impl(
                 arg_positions_ids=original.arg_positions_ids,
                 args_ids=original.args_ids,
                 args_outputs_ids=original.args_outputs_ids,
-                artifact_ids=original.artifact_ids,
-                operation_ids=original.operation_ids,
+                permission_ids=original.permission_ids,
                 tool_ids=original.tool_ids,
                 flag_ids=flag_ids,
             )

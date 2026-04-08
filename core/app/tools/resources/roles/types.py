@@ -14,6 +14,7 @@ class GetRoleResponse(BaseModel):
     icon_id: UUID | None
     color_id: UUID | None
     artifacts: list[str]
+    permission_ids: list[UUID]
     created_at: datetime
     active: bool
     generated: bool

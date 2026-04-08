@@ -11,7 +11,7 @@ Composes existing black-box fetchers — no raw SQL.
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from uuid import UUID
 
 import asyncpg
@@ -23,6 +23,7 @@ from app.tools.artifacts.profile.get import (
 from app.tools.resources.departments.get import get_departments
 from app.tools.resources.emails.get import get_emails
 from app.tools.resources.names.get import get_names
+from app.tools.resources.permissions.get import get_permissions
 from app.tools.resources.profiles.get import get_profiles
 from app.tools.resources.roles.get import get_roles
 
@@ -51,6 +52,8 @@ class ProfileIdentityContext:
     # Server-resolved session + group (set when session_id or group hints are provided)
     session_id: UUID | None = None
     group_id: UUID | None = None
+    # Resolved permissions: (artifact, operation) tuples from permissions_resource
+    role_permissions: list[tuple[str, str]] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -163,12 +166,24 @@ async def resolve_profile_identity_context(
     role_name = ""
     role_description = ""
     role_artifacts: list[str] = []
+    role_permissions: list[tuple[str, str]] = []
     if roles_res:
         r = roles_res[0]
         role = r.role
         role_name = r.name
         role_description = r.description
-        role_artifacts = r.artifacts
+
+        # Resolve permissions from permission_ids to derive artifacts + operations
+        perm_ids = r.permission_ids or []
+        if perm_ids:
+            async with pool.acquire() as conn:
+                perms = await get_permissions(conn, perm_ids, redis, bypass_cache)
+            role_permissions = [(p.artifact, p.operation) for p in perms]
+            # Derive unique artifact strings for sidebar visibility
+            role_artifacts = list(dict.fromkeys(p.artifact for p in perms))
+        else:
+            # Fallback to legacy artifacts field if no permission_ids yet
+            role_artifacts = r.artifacts or []
 
     # Primary department: find the one with is_primary=True on the resource
     primary_department_id: UUID | None = None
@@ -217,6 +232,7 @@ async def resolve_profile_identity_context(
         role_name=role_name,
         role_description=role_description,
         role_artifacts=role_artifacts,
+        role_permissions=role_permissions,
         primary_email=primary_email,
         emails=all_emails,
         primary_department_id=primary_department_id,

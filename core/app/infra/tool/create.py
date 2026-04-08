@@ -118,8 +118,7 @@ async def create_tool_impl(
             department_ids=item.department_ids,
             args_ids=item.args_ids,
             args_output_ids=item.args_outputs_ids,
-            operation_ids=item.operation_ids,
-            artifact_ids=item.artifact_ids,
+            permission_ids=item.permission_ids,
         )
 
         # Artifact create inside transaction
@@ -135,8 +134,7 @@ async def create_tool_impl(
                     arg_positions_ids=item.arg_positions_ids,
                     args_ids=item.args_ids,
                     args_outputs_ids=item.args_outputs_ids,
-                    artifact_ids=item.artifact_ids,
-                    operation_ids=item.operation_ids,
+                    permission_ids=item.permission_ids,
                     tool_ids=[tools_resource_id],
                 )
 

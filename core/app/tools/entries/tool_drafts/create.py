@@ -19,12 +19,11 @@ async def create_tool_draft(
     arg_position_ids: list[UUID] | None = None,
     arg_ids: list[UUID] | None = None,
     args_output_ids: list[UUID] | None = None,
-    artifact_ids: list[UUID] | None = None,
     department_ids: list[UUID] | None = None,
     description_ids: list[UUID] | None = None,
     flag_ids: list[UUID] | None = None,
     name_ids: list[UUID] | None = None,
-    operation_ids: list[UUID] | None = None,
+    permission_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
 ) -> CreateToolDraftResponse:
     """Create a tool_drafts entry with optional connection table links."""
@@ -57,7 +56,6 @@ async def create_tool_draft(
             "args_outputs_id",
             args_output_ids or [],
         ),
-        ("tool_drafts_artifacts_connection", "artifacts_id", artifact_ids or []),
         ("tool_drafts_departments_connection", "departments_id", department_ids or []),
         (
             "tool_drafts_descriptions_connection",
@@ -66,7 +64,7 @@ async def create_tool_draft(
         ),
         ("tool_drafts_flags_connection", "flags_id", flag_ids or []),
         ("tool_drafts_names_connection", "names_id", name_ids or []),
-        ("tool_drafts_operations_connection", "operations_id", operation_ids or []),
+        ("tool_drafts_permissions_connection", "permissions_id", permission_ids or []),
         ("tool_drafts_profiles_connection", "profiles_id", profile_ids or []),
     ]
 

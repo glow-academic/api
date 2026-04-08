@@ -54,14 +54,9 @@ class ToolArgPositionSection(BaseResourceSection):
     resources: list | None = Field(None, description="Available argument positions")
 
 
-class ToolArtifactSection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned artifacts")
-    resources: list | None = Field(None, description="Available artifacts")
-
-
-class ToolOperationSection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned operations")
-    resources: list | None = Field(None, description="Available operations")
+class ToolPermissionSection(BaseResourceSection):
+    current: list | None = Field(None, description="Currently assigned permissions")
+    resources: list | None = Field(None, description="Available permissions")
 
 
 class GetToolApiRequest(BaseModel):
@@ -88,8 +83,7 @@ class GetToolApiResponse(BaseModel):
     args: ToolArgSection | None = Field(None, description="Argument section with resources")
     arg_positions: ToolArgPositionSection | None = Field(None, description="Argument position section")
     args_outputs: ToolArgOutputSection | None = Field(None, description="Argument output section")
-    artifacts: ToolArtifactSection | None = Field(None, description="Artifact section with resources")
-    operations: ToolOperationSection | None = Field(None, description="Operation section with resources")
+    permissions: ToolPermissionSection | None = Field(None, description="Permission section with resources")
 
 
 class ListToolApiTool(BaseModel):
@@ -152,8 +146,7 @@ class CreateToolItem(BaseModel):
     arg_positions_ids: list[UUID] | None = Field(None, description="Argument position identifiers")
     args_ids: list[UUID] | None = Field(None, description="Argument identifiers")
     args_outputs_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
-    artifact_ids: list[UUID] | None = Field(None, description="Artifact identifiers")
-    operation_ids: list[UUID] | None = Field(None, description="Operation identifiers")
+    permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
     tool_ids: list[UUID] | None = Field(None, description="Related tool identifiers")
 
 
@@ -191,8 +184,7 @@ class UpdateToolItem(BaseModel):
     arg_positions_ids: list[UUID] | None = Field(None, description="Argument position identifiers")
     args_ids: list[UUID] | None = Field(None, description="Argument identifiers")
     args_outputs_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
-    artifact_ids: list[UUID] | None = Field(None, description="Artifact identifiers")
-    operation_ids: list[UUID] | None = Field(None, description="Operation identifiers")
+    permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
     tool_ids: list[UUID] | None = Field(None, description="Related tool identifiers")
 
 
@@ -271,8 +263,7 @@ class PatchToolDraftApiRequest(BaseModel):
     arg_ids: list[UUID] | None = Field(None, description="Argument identifiers")
     arg_position_ids: list[UUID] | None = Field(None, description="Argument position identifiers")
     args_output_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
-    artifact_ids: list[UUID] | None = Field(None, description="Artifact identifiers")
-    operation_ids: list[UUID] | None = Field(None, description="Operation identifiers")
+    permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
 
 
 class ToolDraftFormState(BaseModel):
@@ -285,8 +276,7 @@ class ToolDraftFormState(BaseModel):
     arg_ids: list[UUID] = Field(..., description="Argument identifiers")
     arg_position_ids: list[UUID] = Field(..., description="Argument position identifiers")
     args_output_ids: list[UUID] = Field(..., description="Argument output identifiers")
-    artifact_ids: list[UUID] = Field(..., description="Artifact identifiers")
-    operation_ids: list[UUID] = Field(..., description="Operation identifiers")
+    permission_ids: list[UUID] = Field(..., description="Permission identifiers")
 
 
 class PatchToolDraftApiResponse(BaseModel):

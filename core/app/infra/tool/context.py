@@ -33,16 +33,14 @@ from app.tools.resources.args.get import get_args
 from app.tools.resources.args.search import search_args
 from app.tools.resources.args_outputs.get import get_args_outputs
 from app.tools.resources.args_outputs.search import search_args_outputs
-from app.tools.resources.artifacts.get import get_artifacts
-from app.tools.resources.artifacts.search import search_artifacts
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.get import get_flags
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 from app.tools.resources.names.search import search_names
-from app.tools.resources.operations.get import get_operations
-from app.tools.resources.operations.search import search_operations
+from app.tools.resources.permissions.get import get_permissions
+from app.tools.resources.permissions.search import search_permissions
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -91,8 +89,7 @@ async def resolve_tool_artifact_context(
                 args=True,
                 arg_positions=True,
                 args_outputs=True,
-                artifacts=True,
-                operations=True,
+                permissions=True,
             )
 
     async def _fetch_draft() -> list:
@@ -215,32 +212,16 @@ async def resolve_tool_artifact_context(
                 tool=True,
             )
 
-    async def _get_artifacts() -> list:
+    async def _get_permissions() -> list:
         async with pool.acquire() as conn:
-            return await get_artifacts(conn, merged.artifact_ids, redis, bypass_cache)
+            return await get_permissions(conn, merged.permission_ids, redis, bypass_cache)
 
-    async def _search_artifacts() -> list:
+    async def _search_permissions() -> list:
         async with pool.acquire() as conn:
-            return await search_artifacts(
+            return await search_permissions(
                 conn,
                 redis,
-                exclude_ids=merged.artifact_ids,
                 bypass_cache=bypass_cache,
-                tool=True,
-            )
-
-    async def _get_operations() -> list:
-        async with pool.acquire() as conn:
-            return await get_operations(conn, merged.operation_ids, redis, bypass_cache)
-
-    async def _search_operations() -> list:
-        async with pool.acquire() as conn:
-            return await search_operations(
-                conn,
-                redis,
-                exclude_ids=merged.operation_ids,
-                bypass_cache=bypass_cache,
-                tool=True,
             )
 
     (
@@ -256,10 +237,8 @@ async def resolve_tool_artifact_context(
         arg_positions_suggestions,
         args_outputs_selected,
         args_outputs_suggestions,
-        artifacts_selected,
-        artifacts_suggestions,
-        operations_selected,
-        operations_suggestions,
+        permissions_selected,
+        permissions_suggestions,
     ) = await asyncio.gather(
         _get_names(),
         _search_names(),
@@ -273,10 +252,8 @@ async def resolve_tool_artifact_context(
         _search_arg_positions(),
         _get_args_outputs(),
         _search_args_outputs(),
-        _get_artifacts(),
-        _search_artifacts(),
-        _get_operations(),
-        _search_operations(),
+        _get_permissions(),
+        _search_permissions(),
     )
 
     # Filter flags to tool-specific types
@@ -306,11 +283,8 @@ async def resolve_tool_artifact_context(
             "args_outputs": ResourcePair(
                 selected=args_outputs_selected, suggestions=args_outputs_suggestions
             ),
-            "artifacts": ResourcePair(
-                selected=artifacts_selected, suggestions=artifacts_suggestions
-            ),
-            "operations": ResourcePair(
-                selected=operations_selected, suggestions=operations_suggestions
+            "permissions": ResourcePair(
+                selected=permissions_selected, suggestions=permissions_suggestions
             ),
         },
         entries={},
@@ -332,8 +306,7 @@ class _MergedIds:
     args_ids: list[UUID]
     arg_position_ids: list[UUID]
     args_outputs_ids: list[UUID]
-    artifact_ids: list[UUID]
-    operation_ids: list[UUID]
+    permission_ids: list[UUID]
 
 
 def _merge_junction_ids(artifact, draft) -> _MergedIds:
@@ -344,8 +317,7 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
     args_ids = list(artifact.args_ids or []) if artifact else []
     arg_position_ids = list(artifact.arg_positions_ids or []) if artifact else []
     args_outputs_ids = list(artifact.args_outputs_ids or []) if artifact else []
-    artifact_ids = list(artifact.artifact_ids or []) if artifact else []
-    operation_ids = list(artifact.operation_ids or []) if artifact else []
+    permission_ids = list(artifact.permission_ids or []) if artifact else []
 
     # Draft overrides (if present) — ignore profile_ids from draft
     if draft:
@@ -361,10 +333,8 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
             arg_position_ids = list(draft.arg_position_ids)
         if draft.args_output_ids:
             args_outputs_ids = list(draft.args_output_ids)
-        if draft.artifact_ids:
-            artifact_ids = list(draft.artifact_ids)
-        if draft.operation_ids:
-            operation_ids = list(draft.operation_ids)
+        if draft.permission_ids:
+            permission_ids = list(draft.permission_ids)
 
     return _MergedIds(
         name_ids=name_ids,
@@ -373,8 +343,7 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
         args_ids=args_ids,
         arg_position_ids=arg_position_ids,
         args_outputs_ids=args_outputs_ids,
-        artifact_ids=artifact_ids,
-        operation_ids=operation_ids,
+        permission_ids=permission_ids,
     )
 
 

@@ -20,6 +20,8 @@ from redis.asyncio import Redis
 from app.registry.modalities import get_tool_output_modalities
 from app.tools.resources.agents.get import get_agents
 from app.tools.resources.agents.types import GetAgentResponse
+from app.tools.resources.permissions.get import get_permissions
+from app.tools.resources.permissions.types import GetPermissionResponse
 from app.tools.resources.settings.get import get_settings
 from app.tools.resources.systems.get import get_systems
 from app.tools.resources.tools.get import get_tools
@@ -136,11 +138,25 @@ async def _resolve_tool_graph_impl(
     if not unique_tool_ids:
         return SettingsToolGraph()
 
-    # Step 4: tools → artifact targets
+    # Step 4: tools → permission_ids
     tools_list = await get_tools(conn, unique_tool_ids, redis, bypass_cache)
     tool_by_id: dict[UUID, GetToolResponse] = {t.id: t for t in tools_list}
 
-    # Step 5: flatten into ResolvedTool list
+    # Collect all unique permission IDs across all tools
+    all_permission_ids: list[UUID] = []
+    for tool in tools_list:
+        all_permission_ids.extend(tool.permission_ids or [])
+    unique_permission_ids = list(dict.fromkeys(all_permission_ids))
+
+    # Step 5: resolve permissions → artifact + operation strings
+    permission_by_id: dict[UUID, GetPermissionResponse] = {}
+    if unique_permission_ids:
+        permissions_list = await get_permissions(
+            conn, unique_permission_ids, redis, bypass_cache
+        )
+        permission_by_id = {p.id: p for p in permissions_list}
+
+    # Step 6: flatten into ResolvedTool list — one per permission per tool
     resolved: list[ResolvedTool] = []
 
     for system_id, agent_ids in system_agent_map.items():
@@ -152,16 +168,18 @@ async def _resolve_tool_graph_impl(
                 tool = tool_by_id.get(tool_id)
                 if not tool:
                     continue
-                # Tools currently target artifacts directly in tools_resource.
-                for artifact in tool.artifacts or []:
+                for perm_id in tool.permission_ids or []:
+                    perm = permission_by_id.get(perm_id)
+                    if not perm:
+                        continue
                     resolved.append(
                         ResolvedTool(
                             system_id=system_id,
                             agent_id=agent_id,
                             tool_id=tool_id,
-                            operation=tool.operation,
+                            operation=perm.operation,
                             target_type="artifact",
-                            target=artifact,
+                            target=perm.artifact,
                         )
                     )
 

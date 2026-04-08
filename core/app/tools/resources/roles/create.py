@@ -20,14 +20,15 @@ async def create_role(
     icon_id: UUID | None = None,
     color_id: UUID | None = None,
     artifacts: list[str] | None = None,
+    permission_ids: list[UUID] | None = None,
     mcp: bool = False,
     soft: bool = False,
 ) -> GetRoleResponse:
     """Create a role resource (upsert on UNIQUE (role, name) constraint)."""
     role_id = await conn.fetchval(
         """
-        INSERT INTO roles_resource (id, role, name, description, icon_id, color_id, artifacts, active, mcp, generated)
-        VALUES (COALESCE($9, uuidv7()), $1, $2, $3, $4, $5, $6, $7, $8, $8)
+        INSERT INTO roles_resource (id, role, name, description, icon_id, color_id, artifacts, permission_ids, active, mcp, generated)
+        VALUES (COALESCE($10, uuidv7()), $1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
         ON CONFLICT (role, name) DO UPDATE SET role = EXCLUDED.role
         RETURNING id
         """,
@@ -37,6 +38,7 @@ async def create_role(
         icon_id,
         color_id,
         artifacts or [],
+        permission_ids or [],
         not soft,
         mcp,
         id,

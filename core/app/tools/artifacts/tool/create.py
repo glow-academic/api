@@ -23,8 +23,7 @@ MULTI_JUNCTIONS: list[tuple[str, str]] = [
     ("tool_arg_positions_junction", "arg_positions_id"),
     ("tool_args_junction", "args_id"),
     ("tool_args_outputs_junction", "args_outputs_id"),
-    ("tool_artifacts_junction", "artifacts_id"),
-    ("tool_operations_junction", "operations_id"),
+    ("tool_permissions_junction", "permissions_id"),
     ("tool_tools_junction", "tools_id"),
 ]
 
@@ -39,9 +38,8 @@ async def create_tool(
     arg_positions_ids: list[UUID] | None = None,
     args_ids: list[UUID] | None = None,
     args_outputs_ids: list[UUID] | None = None,
-    artifact_ids: list[UUID] | None = None,
+    permission_ids: list[UUID] | None = None,
     flag_ids: list[UUID] | None = None,
-    operation_ids: list[UUID] | None = None,
     tool_ids: list[UUID] | None = None,
     active: bool | None = None,
     soft: bool = False,
@@ -83,8 +81,7 @@ async def create_tool(
         arg_positions_ids,
         args_ids,
         args_outputs_ids,
-        artifact_ids,
-        operation_ids,
+        permission_ids,
         tool_ids,
     ]
     for (table, col), vals in zip(MULTI_JUNCTIONS, multi_vals):

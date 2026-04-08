@@ -19,10 +19,8 @@ __all__ = [
     "select_agents_for_artifact",
     "select_multi_resource_agent",
     "TOOL_RESOURCES",
-    "compute_show_artifacts",
-    "compute_show_operations",
-    "compute_artifacts_required",
-    "compute_operations_required",
+    "compute_show_permissions",
+    "compute_permissions_required",
 ]
 
 
@@ -159,23 +157,13 @@ def compute_flag_required() -> bool:
     return False
 
 
-def compute_show_artifacts(total_artifacts: int = 0) -> bool:
-    """Determine if artifacts picker should be shown."""
+def compute_show_permissions(total_permissions: int = 0) -> bool:
+    """Determine if permissions picker should be shown."""
     return True
 
 
-def compute_show_operations(total_operations: int = 0) -> bool:
-    """Determine if operations picker should be shown."""
-    return True
-
-
-def compute_artifacts_required() -> bool:
-    """Determine if artifacts is required."""
-    return False
-
-
-def compute_operations_required() -> bool:
-    """Determine if operations is required."""
+def compute_permissions_required() -> bool:
+    """Determine if permissions is required."""
     return False
 
 
@@ -231,8 +219,7 @@ TOOL_RESOURCES: set[str] = {
     "arg_positions",
     "args_outputs",
     "flags",
-    "artifacts",
-    "operations",
+    "permissions",
 }
 
 # ========== Domain Metadata - for client-side display in modals ==========
