@@ -249,10 +249,12 @@ async def search_profile_impl(
 
         # Resolve role from roles_resource
         target_role: str | None = None
+        target_role_name: str | None = None
         if a.role_ids:
             role_obj = role_map.get(a.role_ids[0])
             if role_obj:
                 target_role = role_obj.role
+                target_role_name = role_obj.name
 
         # Resolve departments
         dept_ids_str: list[str] = []
@@ -304,6 +306,7 @@ async def search_profile_impl(
                 primary_email=primary_email,
                 name=name,
                 role=target_role,
+                role_name=target_role_name,
                 initials=initials,
                 department_ids=dept_ids_str if dept_ids_str else None,
                 primary_department_id=primary_department_id,
