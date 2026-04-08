@@ -142,88 +142,128 @@
               <#-- Provider buttons (all rendered, filtered client-side by JavaScript) -->
               <#-- Includes regular IdPs (Google, Microsoft, etc.) and default-idp instances -->
               <#if social.providers?? && social.providers?size gt 0>
-                <#-- Separate providers into auth providers and profile providers -->
+                <#-- Separate providers into auth providers, profile providers, and guest providers -->
                 <#assign authProviders = [] />
                 <#assign profileProviders = [] />
+                <#assign guestProviders = [] />
                 <#list social.providers as p>
-                  <#if p.alias?starts_with("default-idp-profile-")>
+                  <#if p.alias?starts_with("default-idp-guest-")>
+                    <#assign guestProviders = guestProviders + [p] />
+                  <#elseif p.alias?starts_with("default-idp-profile-")>
                     <#assign profileProviders = profileProviders + [p] />
                   <#else>
                     <#assign authProviders = authProviders + [p] />
                   </#if>
                 </#list>
-
-                <#-- Render auth providers (Google, Microsoft, etc.) -->
-                <#list authProviders as p>
+                <#-- Combine: auth providers first, then profile providers -->
+                <#assign nonGuestProviders = authProviders + profileProviders />
+                
+                <#-- Render non-guest providers first (all rendered, filtered client-side) -->
+                <#list nonGuestProviders as p>
                   <#assign loadingText = "Signing in..." />
-                  <a id="social-${p.alias}"
-                     class="action-button"
-                     href="${p.loginUrl}"
+                  <a id="social-${p.alias}" 
+                     class="action-button" 
+                     href="${p.loginUrl}" 
                      <#if !allowed?seq_contains(p.alias)>style="display: none;"</#if>
                      data-loading-text="${loadingText}">
                     <div class="action-button-shine-1"></div>
                     <div class="action-button-shine-2"></div>
                     <div class="action-button-content">
+                      <#-- Icon (hidden when loading) -->
+                      <#-- Keycloak determines iconClasses based on alias matching well-known provider names -->
+                      <#-- For realm-level providers: alias="microsoft" → Keycloak provides iconClasses="kc-social-icon-microsoft" -->
+                      <#-- For department-scoped: alias="auth_microsoft_..." → Keycloak doesn't recognize it, so iconClasses is empty -->
+                      <#-- Solution: We store iconClasses in IdP config, and extract slug from alias as fallback -->
                       <#assign iconClassToUse = "" />
                       <#if p.iconClasses?has_content>
+                        <#-- Keycloak provided iconClasses (works for realm-level providers with well-known aliases) -->
                         <#assign iconClassToUse = p.iconClasses />
                       <#elseif p.config?? && p.config.iconClasses??>
+                        <#-- Try to read iconClasses from IdP config (set via Admin API) -->
                         <#assign iconClassToUse = p.config.iconClasses />
                       <#elseif p.alias?starts_with("auth_")>
+                        <#-- Fallback: Extract slug from pattern auth_{slug}_{auth_id} -->
                         <#assign aliasParts = p.alias?split("_") />
                         <#if (aliasParts?size >= 2)>
                           <#assign iconClassToUse = "kc-social-icon-${aliasParts[1]}" />
                         </#if>
                       </#if>
+                      
                       <#if iconClassToUse?has_content>
                         <i class="${properties.kcCommonLogoIdP!} ${iconClassToUse} action-button-icon" aria-hidden="true"></i>
+                      <#elseif p.alias?starts_with("default-idp-")>
+                        <#-- User icon for Default Account and Guest -->
+                        <svg class="action-button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
                       </#if>
+                      <#-- Spinner (hidden by default, shown when loading) -->
                       <div class="action-button-spinner"></div>
-                      <span class="action-button-text">Continue with ${p.displayName!}</span>
+                      <#-- Text -->
+                      <#if p.alias?starts_with("default-idp-profile-")>
+                        <span class="action-button-text">Continue as ${p.displayName!}</span>
+                      <#elseif p.alias?starts_with("default-idp-")>
+                        <span class="action-button-text">Continue as Default Account</span>
+                      <#else>
+                        <span class="action-button-text">Continue with ${p.displayName!}</span>
+                      </#if>
+                      <#-- Loading text (hidden by default) -->
                       <span class="action-button-loading-text"></span>
                     </div>
                   </a>
                 </#list>
-
-                <#-- Count visible providers for divider logic -->
-                <#assign visibleAuthCount = 0 />
-                <#list authProviders as p>
-                  <#if allowed?seq_contains(p.alias)>
-                    <#assign visibleAuthCount = visibleAuthCount + 1 />
+                
+                <#-- Filter guest providers to only those allowed for current department (for OR divider check) -->
+                <#-- Use explicit prefix match to avoid false positives -->
+                <#assign visibleGuestProviders = [] />
+                <#list guestProviders as p>
+                  <#if p.alias?starts_with("default-idp-guest-") && allowed?seq_contains(p.alias)>
+                    <#assign visibleGuestProviders = visibleGuestProviders + [p] />
                   </#if>
                 </#list>
-                <#assign visibleProfileCount = 0 />
-                <#list profileProviders as p>
+                
+                <#-- Count visible non-guest providers (for OR divider check) -->
+                <#assign visibleNonGuestCount = 0 />
+                <#list nonGuestProviders as p>
                   <#if allowed?seq_contains(p.alias)>
-                    <#assign visibleProfileCount = visibleProfileCount + 1 />
+                    <#assign visibleNonGuestCount = visibleNonGuestCount + 1 />
                   </#if>
                 </#list>
-
-                <#-- Or divider between auth and profile providers -->
-                <#if visibleAuthCount gt 0 && visibleProfileCount gt 0>
+                
+                <#-- Add OR divider only if we have both visible non-guest and visible guest providers -->
+                <#if visibleNonGuestCount gt 0 && visibleGuestProviders?size gt 0>
                   <div class="or-divider">
                     <div class="or-divider-text">
                       <span>Or</span>
                     </div>
                   </div>
                 </#if>
-
-                <#-- Render profile providers (Continue as [Name]) -->
-                <#list profileProviders as p>
-                  <#assign loadingText = "Signing in..." />
-                  <a id="social-${p.alias}"
-                     class="action-button"
-                     href="${p.loginUrl}"
+                
+                <#-- Render guest providers (all rendered, filtered client-side) -->
+                <#list guestProviders as p>
+                  <#assign loadingText = "Accessing..." />
+                  <a id="social-${p.alias}" 
+                     class="action-button" 
+                     href="${p.loginUrl}" 
                      <#if !allowed?seq_contains(p.alias)>style="display: none;"</#if>
                      data-loading-text="${loadingText}">
                     <div class="action-button-shine-1"></div>
                     <div class="action-button-shine-2"></div>
                     <div class="action-button-content">
-                      <svg class="action-button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                      </svg>
+                      <#-- Icon (hidden when loading) -->
+                      <#if p.iconClasses?has_content>
+                        <i class="${properties.kcCommonLogoIdP!} ${p.iconClasses!} action-button-icon" aria-hidden="true"></i>
+                      <#else>
+                        <#-- User icon for Guest -->
+                        <svg class="action-button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                      </#if>
+                      <#-- Spinner (hidden by default, shown when loading) -->
                       <div class="action-button-spinner"></div>
-                      <span class="action-button-text">Continue as ${p.displayName!}</span>
+                      <#-- Text -->
+                      <span class="action-button-text">Continue as Guest</span>
+                      <#-- Loading text (hidden by default) -->
                       <span class="action-button-loading-text"></span>
                     </div>
                   </a>
