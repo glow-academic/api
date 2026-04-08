@@ -44,7 +44,7 @@ setup_profiles = [
         name="Default Admin",
         email="admin@glow.local",
         role_ids=[ADMIN_ROLE],
-        flag_ids=[PROFILE_ACTIVE],
+        flag_id=PROFILE_ACTIVE,
     ),
     dict(
         id=FRESH_INSTRUCTIONAL,
@@ -52,7 +52,7 @@ setup_profiles = [
         name="Default Instructional",
         email="instructional@glow.local",
         role_ids=[INSTRUCTIONAL_ROLE],
-        flag_ids=[PROFILE_ACTIVE],
+        flag_id=PROFILE_ACTIVE,
     ),
     dict(
         id=FRESH_MEMBER,
@@ -60,7 +60,7 @@ setup_profiles = [
         name="Default Member",
         email="member@glow.local",
         role_ids=[MEMBER_GTA_ROLE],
-        flag_ids=[PROFILE_ACTIVE],
+        flag_id=PROFILE_ACTIVE,
     ),
     dict(
         id=FRESH_GUEST,
@@ -68,7 +68,7 @@ setup_profiles = [
         name="Default Guest",
         email="guest@glow.local",
         role_ids=[GUEST_ROLE],
-        flag_ids=[PROFILE_ACTIVE],
+        flag_id=PROFILE_ACTIVE,
         request_limit_id=GUEST_REQUEST_LIMIT,
     ),
 ]
