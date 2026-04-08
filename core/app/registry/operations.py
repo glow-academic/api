@@ -1,6 +1,6 @@
 """Flat operation registry: (name, op) → (module, func) or None.
 
-Each layer (artifacts, resources, entries) has a dict mapping
+Each layer (artifacts, resources, entries, infra) has a dict mapping
 ``(name, operation)`` to either a ``(module_path, function_name)`` tuple
 or ``None`` when the operation is not yet implemented.
 """
@@ -604,3 +604,216 @@ ENTRY_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     **_ent("uploads_completions"),
     **_ent("videos"),
 }
+
+# ---------------------------------------------------------------------------
+# Infra operations: (artifact_name, op) → (module_path, function_name) | None
+#
+# Maps (artifact, operation) to the infra-level API implementation function.
+# These are the functions behind HTTP routes and socket events — they handle
+# permissions, value resolution, denormalized snapshots, and cache invalidation.
+#
+# A tool's permission_ids → permissions_resource.(artifact, operation) resolves
+# to a key in this dict, giving the actual function to call.
+#
+# Naming conventions:
+#   create    → create_{name}_impl
+#   update    → update_{name}_impl
+#   delete    → delete_{name}_impl
+#   search    → search_{name}_impl
+#   get       → get_{name}_impl
+#   draft     → patch_{name}_draft_impl
+#   drafts    → list_{name}_drafts_impl
+#   duplicate → duplicate_{name}_impl
+#   export    → export_{name}_impl
+#   refresh   → refresh_{name}_impl
+#   docs      → docs_{name}_impl
+#
+# Attempt/test state-machine operations use {name}_{op}_internal_impl.
+# ---------------------------------------------------------------------------
+
+_I = "app.infra"
+
+
+def _infra(
+    name: str,
+    *,
+    create: bool = False,
+    update: bool = False,
+    delete: bool = False,
+    search: bool = False,
+    get: bool = False,
+    draft: bool = False,
+    drafts: bool = False,
+    duplicate: bool = False,
+    export: bool = False,
+    refresh: bool = False,
+    docs: bool = False,
+) -> dict[tuple[str, str], tuple[str, str] | None]:
+    """Helper to generate infra op entries for a standard artifact."""
+    d: dict[tuple[str, str], tuple[str, str] | None] = {}
+    if create:
+        d[(name, "create")] = (f"{_I}.{name}.create", f"create_{name}_impl")
+    if update:
+        d[(name, "update")] = (f"{_I}.{name}.update", f"update_{name}_impl")
+    if delete:
+        d[(name, "delete")] = (f"{_I}.{name}.delete", f"delete_{name}_impl")
+    if search:
+        d[(name, "search")] = (f"{_I}.{name}.search", f"search_{name}_impl")
+    if get:
+        d[(name, "get")] = (f"{_I}.{name}.get", f"get_{name}_impl")
+    if draft:
+        d[(name, "draft")] = (f"{_I}.{name}.draft", f"patch_{name}_draft_impl")
+    if drafts:
+        d[(name, "drafts")] = (f"{_I}.{name}.drafts", f"list_{name}_drafts_impl")
+    if duplicate:
+        d[(name, "duplicate")] = (f"{_I}.{name}.duplicate", f"duplicate_{name}_impl")
+    if export:
+        d[(name, "export")] = (f"{_I}.{name}.export", f"export_{name}_impl")
+    if refresh:
+        d[(name, "refresh")] = (f"{_I}.{name}.refresh", f"refresh_{name}_impl")
+    if docs:
+        d[(name, "docs")] = (f"{_I}.{name}.docs", f"docs_{name}_impl")
+    return d
+
+
+# Standard CRUD artifacts (create, update, delete, search, get, draft, drafts,
+# duplicate, export, refresh, docs)
+_FULL_CRUD = dict(
+    create=True, update=True, delete=True, search=True, get=True,
+    draft=True, drafts=True, duplicate=True, export=True, refresh=True, docs=True,
+)
+
+INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
+    # --- Full CRUD artifacts ---
+    **_infra("agent", **_FULL_CRUD),
+    **_infra("auth", **_FULL_CRUD),
+    **_infra("cohort", **_FULL_CRUD),
+    **_infra("department", **_FULL_CRUD),
+    **_infra("document", **_FULL_CRUD),
+    **_infra("eval", **_FULL_CRUD),
+    **_infra("field", **_FULL_CRUD),
+    **_infra("model", **_FULL_CRUD),
+    **_infra("parameter", **_FULL_CRUD),
+    **_infra("persona", **_FULL_CRUD),
+    **_infra("profile", **_FULL_CRUD),
+    **_infra("provider", **_FULL_CRUD),
+    **_infra("rubric", **_FULL_CRUD),
+    **_infra("scenario", **_FULL_CRUD),
+    **_infra("setting", **_FULL_CRUD),
+    **_infra("simulation", **_FULL_CRUD),
+    **_infra("tool", **_FULL_CRUD),
+    # --- View + partial artifacts ---
+    **_infra("activity", export=True, refresh=True, docs=True),
+    **_infra("benchmark", get=True, export=True, refresh=True, docs=True),
+    **_infra("chat", get=True, draft=True, drafts=True, export=True, refresh=True, docs=True),
+    **_infra("dashboard", export=True, refresh=True, docs=True),
+    **_infra("group", get=True, export=True, refresh=True, docs=True),
+    **_infra("health", get=True, export=True, refresh=True, docs=True),
+    **_infra("invocation", get=True, draft=True, drafts=True, export=True, refresh=True, docs=True),
+    **_infra("leaderboard", export=True, refresh=True, docs=True),
+    **_infra("pricing", get=True, export=True, refresh=True, docs=True),
+    **_infra("reports", get=True, export=True, refresh=True, docs=True),
+    **_infra("session", get=True, export=True, refresh=True, docs=True),
+    **_infra("test", get=True, search=True, export=True, refresh=True, docs=True),
+    # --- Attempt state-machine operations ---
+    ("attempt", "get"): (f"{_I}.attempt.get", "get_attempt_impl"),
+    ("attempt", "search"): (f"{_I}.attempt.search", "search_attempt_impl"),
+    ("attempt", "export"): (f"{_I}.attempt.export", "export_attempt_impl"),
+    ("attempt", "refresh"): (f"{_I}.attempt.refresh", "refresh_attempt_impl"),
+    ("attempt", "docs"): (f"{_I}.attempt.docs", "docs_attempt_impl"),
+    ("attempt", "start"): (f"{_I}.attempt.start", "attempt_start_internal_impl"),
+    ("attempt", "end"): (f"{_I}.attempt.end", "attempt_end_internal_impl"),
+    ("attempt", "end_all"): (f"{_I}.attempt.end_all", "attempt_end_all_internal_impl"),
+    ("attempt", "next"): (f"{_I}.attempt.next", "attempt_next_internal_impl"),
+    ("attempt", "message"): (f"{_I}.attempt.message", "attempt_message_internal_impl"),
+    ("attempt", "grade"): (f"{_I}.attempt.grade", "attempt_grade_internal_impl"),
+    ("attempt", "stop"): (f"{_I}.attempt.stop", "attempt_stop_internal_impl"),
+    ("attempt", "response"): (f"{_I}.attempt.response", "attempt_response_internal_impl"),
+    ("attempt", "use_previous"): (f"{_I}.attempt.use_previous", "attempt_use_previous_internal_impl"),
+    # --- Test state-machine operations ---
+    ("test", "start"): (f"{_I}.test.start", "test_start_internal_impl"),
+    ("test", "end"): (f"{_I}.test.end", "test_end_internal_impl"),
+    ("test", "next"): (f"{_I}.test.next", "test_next_internal_impl"),
+}
+
+# ---------------------------------------------------------------------------
+# Infra item types: (artifact_name, op) → (module_path, class_name)
+#
+# Maps (artifact, operation) to the Pydantic item class that defines
+# what input fields the operation accepts. This is the source of truth
+# for what a tool's args_outputs can produce for a given target operation.
+#
+# At runtime: import the class, inspect its fields, construct from
+# rendered template values, and pass to the infra function.
+#
+# Naming conventions:
+#   create → Create{Name}Item   in app.infra.{name}.types
+#   update → Update{Name}Item   in app.infra.{name}.types
+# ---------------------------------------------------------------------------
+
+_IT = "app.infra"
+
+
+def _item_types(
+    name: str,
+    class_name: str,
+    *,
+    create: bool = True,
+    update: bool = True,
+) -> dict[tuple[str, str], tuple[str, str]]:
+    """Helper to generate item type entries for a standard artifact."""
+    d: dict[tuple[str, str], tuple[str, str]] = {}
+    if create:
+        d[(name, "create")] = (f"{_IT}.{name}.types", f"Create{class_name}Item")
+    if update:
+        d[(name, "update")] = (f"{_IT}.{name}.types", f"Update{class_name}Item")
+    return d
+
+
+INFRA_ITEM_TYPES: dict[tuple[str, str], tuple[str, str]] = {
+    **_item_types("agent", "Agent"),
+    **_item_types("auth", "Auth"),
+    **_item_types("cohort", "Cohort"),
+    **_item_types("department", "Department"),
+    **_item_types("document", "Document"),
+    **_item_types("eval", "Eval"),
+    **_item_types("field", "Field"),
+    **_item_types("model", "Model"),
+    **_item_types("parameter", "Parameter"),
+    **_item_types("persona", "Persona"),
+    **_item_types("profile", "Profile"),
+    **_item_types("provider", "Provider"),
+    **_item_types("rubric", "Rubric"),
+    **_item_types("scenario", "Scenario"),
+    **_item_types("setting", "Setting"),
+    **_item_types("simulation", "Simulation"),
+    **_item_types("tool", "Tool"),
+}
+
+
+def resolve_item_class(
+    artifact: str,
+    operation: str,
+) -> type | None:
+    """Look up (artifact, operation) and return the imported Pydantic item class.
+
+    Returns None if no item type is registered for this pair.
+    """
+    entry = INFRA_ITEM_TYPES.get((artifact, operation))
+    if entry is None:
+        return None
+    module_path, class_name = entry
+    mod = importlib.import_module(module_path)
+    return getattr(mod, class_name)
+
+
+def get_accepted_fields(artifact: str, operation: str) -> set[str] | None:
+    """Return the set of field names the item class accepts.
+
+    Useful for validating that a tool's args_outputs only produce
+    fields that the target operation understands.
+    """
+    cls = resolve_item_class(artifact, operation)
+    if cls is None:
+        return None
+    return set(cls.model_fields.keys())

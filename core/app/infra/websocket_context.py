@@ -214,6 +214,9 @@ async def resolve_websocket_context(
     all_args_outputs = dedupe_by_id(
         [ao for sc in system_contexts for ao in sc.args_outputs]
     )
+    all_permissions = dedupe_by_id(
+        [p for sc in system_contexts for p in sc.permissions]
+    )
     all_prompts = dedupe_by_id([p for sc in system_contexts for p in sc.prompts])
     all_instructions = dedupe_by_id(
         [i for sc in system_contexts for i in sc.instructions]
@@ -261,6 +264,7 @@ async def resolve_websocket_context(
         tools=all_tools,
         args=all_args,
         args_outputs=all_args_outputs,
+        permissions=all_permissions,
         prompts=all_prompts,
         instructions=all_instructions,
         rubrics=all_rubrics,

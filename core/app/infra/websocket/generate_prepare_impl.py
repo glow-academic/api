@@ -278,6 +278,7 @@ async def generate_prepare_impl(
             compute_createable_resources,
             enrich_tools_with_args,
             enrich_tools_with_args_outputs,
+            enrich_tools_with_permissions,
             resolve_agent_config,
             validate_payload,
         )
@@ -381,6 +382,9 @@ async def generate_prepare_impl(
         )
         all_tool_dicts = enrich_tools_with_args_outputs(
             all_tool_dicts, config_tools, ws_ctx.args_outputs
+        )
+        all_tool_dicts = enrich_tools_with_permissions(
+            all_tool_dicts, config_tools, ws_ctx.permissions
         )
         createable_resources = compute_createable_resources(config_tools)
         all_artifact_types = compute_all_artifact_types(all_tool_dicts)

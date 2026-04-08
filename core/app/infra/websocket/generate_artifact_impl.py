@@ -18,7 +18,12 @@ from app.infra.artifacts import (
     format_messages_for_litellm,
     stream_litellm_events,
 )
-from app.infra.globals import UPLOAD_FOLDER, get_pool
+from app.infra.globals import UPLOAD_FOLDER, get_pool, get_redis_client
+from app.infra.tools.execute_infra_operation import (
+    InfraContext,
+    execute_infra_operation,
+)
+from app.infra.tools.resolve_tool_spec import resolve_tool_spec
 from app.infra.tools.tool_executor import execute_tool_call
 from app.infra.websocket.generation_types import (
     GenerateArtifactPayload,
@@ -432,6 +437,7 @@ async def generate_artifact_impl(
         tool_entry_type_by_name: dict[str, str] = {}
         tool_artifact_type_by_name: dict[str, str] = {}
         tool_createable_by_name: dict[str, bool] = {}
+        tool_def_by_name: dict[str, dict[str, Any]] = {}
         if data.tools:
             openai_tools = convert_tools_to_openai_format(data.tools)
             responses_tools = convert_tools_to_responses_format(data.tools)
@@ -451,6 +457,7 @@ async def generate_artifact_impl(
                     except (ValueError, AttributeError):
                         pass
                 if t_name:
+                    tool_def_by_name[t_name] = tool_def
                     t_resources = tool_def.get("resources") or []
                     t_entries = tool_def.get("entries") or []
                     t_artifacts = tool_def.get("artifacts") or []
@@ -957,9 +964,9 @@ async def generate_artifact_impl(
                             developer_instruction_templates=data.developer_instruction_templates,
                         )
                     else:
-                        # Resource/entry tool path — registry + create_tool_call
-                        resolved_tool_id = tool_id_by_name.get(tool_name)
-                        if not resolved_tool_id:
+                        # Infra tool path — resolve spec + execute
+                        td = tool_def_by_name.get(tool_name)
+                        if not td:
                             tool_result_str = json.dumps(
                                 {
                                     "success": False,
@@ -983,26 +990,31 @@ async def generate_artifact_impl(
                                 if data.profile_id
                                 else uuid.UUID(int=0)
                             )
-                            pool = get_pool()
-                            async with pool.acquire() as conn:
-                                tool_result_str = await execute_tool_call(
-                                    conn=conn,
-                                    tool_name=tool_name,
-                                    arguments=arguments_dict,
-                                    tool_id=resolved_tool_id,
-                                    group_id=_group_id,
-                                    session_id=_session_id,
+                            try:
+                                spec = resolve_tool_spec(td, arguments_dict)
+                                ctx = InfraContext(
+                                    pool=get_pool(),
+                                    redis=get_redis_client(),
                                     profile_id=_profile_id,
-                                    upload_folder=UPLOAD_FOLDER,
-                                    run_id=uuid.UUID(data.run_id)
-                                    if data.run_id
-                                    else None,
-                                    resource_type=tool_resource_type_by_name.get(
-                                        tool_name
-                                    ),
-                                    entry_type=tool_entry_type_by_name.get(tool_name),
-                                    is_creatable=tool_createable_by_name.get(tool_name),
-                                    soft=True,
+                                    session_id=_session_id,
+                                    group_id=_group_id,
+                                )
+                                results = await execute_infra_operation(ctx, spec)
+                                tool_result_str = json.dumps(
+                                    {
+                                        "success": all(r.success for r in results),
+                                        "results": [
+                                            r.model_dump(mode="json") for r in results
+                                        ],
+                                    }
+                                )
+                            except Exception as e:
+                                tool_result_str = json.dumps(
+                                    {
+                                        "success": False,
+                                        "message": str(e),
+                                        "error_stage": "infra_execute",
+                                    }
                                 )
 
                     # Parse result for internal tracking

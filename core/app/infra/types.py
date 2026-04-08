@@ -69,6 +69,7 @@ class WebsocketContext:
     tools: list
     args: list
     args_outputs: list
+    permissions: list
     prompts: list
     instructions: list
     rubrics: list

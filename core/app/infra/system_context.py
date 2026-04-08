@@ -20,6 +20,7 @@ from app.tools.resources.args.get import get_args
 from app.tools.resources.args_outputs.get import get_args_outputs
 from app.tools.resources.instructions.get import get_instructions
 from app.tools.resources.models.get import get_models
+from app.tools.resources.permissions.get import get_permissions
 from app.tools.resources.prompts.get import get_prompts
 from app.tools.resources.providers.get import get_providers
 from app.tools.resources.rubrics.get import get_rubrics
@@ -38,6 +39,7 @@ class SystemContext:
     tools: list  # GetToolResponse
     args: list  # GetArgResponse
     args_outputs: list  # GetArgOutputResponse
+    permissions: list  # GetPermissionResponse
     prompts: list  # GetPromptResponse
     instructions: list  # GetInstructionResponse
     rubrics: list  # GetRubricResponse
@@ -78,6 +80,7 @@ async def resolve_system_context(
             tools=[],
             args=[],
             args_outputs=[],
+            permissions=[],
             prompts=[],
             instructions=[],
             rubrics=[],
@@ -144,6 +147,7 @@ async def resolve_system_context(
     provider_ids = list({m.provider_id for m in models if m.provider_id})
     args_ids = list({aid for t in tools for aid in (t.args_ids or [])})
     args_output_ids = list({aoid for t in tools for aoid in (t.args_output_ids or [])})
+    permission_ids = list({pid for t in tools for pid in (t.permission_ids or [])})
 
     # Step 4: parallel fetch providers + args + args_outputs
 
@@ -165,10 +169,17 @@ async def resolve_system_context(
         async with pool.acquire() as conn:
             return await get_args_outputs(conn, args_output_ids, redis, bypass_cache)
 
-    providers, args_list, args_outputs_list = await asyncio.gather(
+    async def _get_permissions() -> list:
+        if not permission_ids:
+            return []
+        async with pool.acquire() as conn:
+            return await get_permissions(conn, permission_ids, redis, bypass_cache)
+
+    providers, args_list, args_outputs_list, permissions_list = await asyncio.gather(
         _get_providers(),
         _get_args(),
         _get_args_outputs(),
+        _get_permissions(),
     )
 
     return SystemContext(
@@ -179,6 +190,7 @@ async def resolve_system_context(
         tools=tools,
         args=args_list,
         args_outputs=args_outputs_list,
+        permissions=permissions_list,
         prompts=prompts_list,
         instructions=instructions_list,
         rubrics=rubrics_list,

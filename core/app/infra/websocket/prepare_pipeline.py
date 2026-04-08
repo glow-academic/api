@@ -330,6 +330,50 @@ def enrich_tools_with_args_outputs(
     return tool_dicts
 
 
+def enrich_tools_with_permissions(
+    tool_dicts: list[dict[str, Any]],
+    resource_tools: list[Any],
+    config_permissions: list[Any],
+) -> list[dict[str, Any]]:
+    """Attach _permissions to tools for (artifact, operation) resolution."""
+    if not tool_dicts or not resource_tools or not config_permissions:
+        return tool_dicts
+
+    tool_perm_ids_by_name: dict[str, list[Any]] = {}
+    for rt in resource_tools:
+        name = getattr(rt, "name", None)
+        perm_ids = getattr(rt, "permission_ids", None)
+        if name and perm_ids:
+            tool_perm_ids_by_name[name] = perm_ids
+
+    if not tool_perm_ids_by_name:
+        return tool_dicts
+
+    perm_by_id = {}
+    for p in config_permissions:
+        p_id = getattr(p, "id", None)
+        if p_id:
+            perm_by_id[p_id] = p
+
+    for td in tool_dicts:
+        t_name = td.get("name")
+        if t_name and t_name in tool_perm_ids_by_name:
+            perm_list = []
+            for perm_id in tool_perm_ids_by_name[t_name]:
+                perm = perm_by_id.get(perm_id)
+                if perm and getattr(perm, "active", True):
+                    perm_list.append(
+                        {
+                            "artifact": getattr(perm, "artifact", ""),
+                            "operation": getattr(perm, "operation", ""),
+                        }
+                    )
+            if perm_list:
+                td["_permissions"] = perm_list
+
+    return tool_dicts
+
+
 def compute_createable_resources(config_tools: list[Any]) -> set[str]:
     """Compute the set of resource/entry types that have 'create' tools."""
     createable: set[str] = set()
