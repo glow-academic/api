@@ -1037,15 +1037,6 @@ async def _run_setting_seeds(
     return created_ids
 
 
-async def _run_default_setting_seed(
-    pool: asyncpg.Pool,
-    redis: Redis,
-) -> None:
-    """Create the default setting with all data included at creation time."""
-    from database.seeds.setting import settings
-
-    await _run_setting_seeds(pool, redis, settings)
-
 
 async def _run_color_seeds(
     pool: asyncpg.Pool,
@@ -1680,10 +1671,6 @@ async def main_modules() -> Path:
         import database.seeds.dynamic_keys as dk_mod
         await _run_key_seeds(pool, redis_client, dk_mod)
 
-        # Default setting: no department, all systems, default thresholds + profiles
-        print("\nSeeding default setting...")
-        await _run_default_setting_seed(pool, redis_client)
-
         # Re-enable FK checks
         async with pool.acquire() as conn:
             dbname = await conn.fetchval("SELECT current_database()")
@@ -1700,12 +1687,6 @@ async def main_modules() -> Path:
         print("\nDumping database via pg_dump...")
         base_seed_file = BUILD_DIR / "base-seed.sql"
         _pg_dump_data(pg, base_seed_file, "Base seed (all modules)")
-
-        # Full dump → history/fresh.sql.gz (schema + platform resources)
-        history_dir = DATABASE_DIR.parent / "history"
-        history_dir.mkdir(parents=True, exist_ok=True)
-        print("\nGenerating template: fresh...")
-        _pg_dump_full(pg, history_dir / "fresh.sql.gz", "Fresh template (schema + platform resources)")
 
     finally:
         pg.stop()
@@ -1888,8 +1869,9 @@ async def main_all() -> None:
     """Seed modules + all discovered setups.
 
     Runs:
-      1. main_modules()  → base-seed.sql + history/fresh.sql.gz
+      1. main_modules()  → base-seed.sql (minimal platform resources)
       2. main_setup() for each setup → history/{setup}.sql.gz
+         (including fresh, university, organization, etc.)
     """
     setups = _discover_setups()
     print(f"Discovered setups: {', '.join(setups)}\n")
@@ -1909,7 +1891,7 @@ if __name__ == "__main__":
         "--setup", default=None, help="Setup name (auto-discovered from seeds/setups/)"
     )
     parser.add_argument(
-        "--modules", action="store_true", help="Seed all modules → base-seed.sql + history/fresh.sql.gz"
+        "--modules", action="store_true", help="Seed all modules → base-seed.sql"
     )
     parser.add_argument(
         "--all",

@@ -34,7 +34,7 @@ async def get_points(
 
     rows = await conn.fetch(
         """
-        SELECT id, value,
+        SELECT id, value, type,
                created_at, active, mcp, generated
         FROM points_resource
         WHERE id = ANY($1)
@@ -47,6 +47,7 @@ async def get_points(
         GetPointResponse(
             id=r["id"],
             value=r["value"],
+            type=r["type"],
             created_at=r["created_at"],
             active=r["active"],
             mcp=r["mcp"],

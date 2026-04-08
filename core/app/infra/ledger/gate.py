@@ -14,7 +14,7 @@ from app.infra.ledger.chain import (
     write_entry,
 )
 from app.infra.ledger.client import phone_home
-from app.infra.ledger.types import LedgerEntry, LearnLoopCheckpoint, UserUsage
+from app.infra.ledger.types import AttemptContext, LedgerEntry, LearnLoopCheckpoint, UserUsage
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -36,29 +36,46 @@ def record_start(
     email: str | None = None,
     name: str | None = None,
     role: str | None = None,
+    simulation_id: str | None = None,
+    simulation_name: str | None = None,
 ) -> dict[str, int]:
     """Record an attempt start in the outcome counters."""
     if profile_id:
-        increment_user_counter(profile_id, "started", email=email, name=name, role=role)
+        increment_user_counter(
+            profile_id, "started",
+            email=email, name=name, role=role,
+            simulation_id=simulation_id, simulation_name=simulation_name,
+        )
     return increment_counter("started")
 
 
 def record_completion(
     *,
     passed: bool,
+    score: float | None = None,
     profile_id: str | None = None,
     email: str | None = None,
     name: str | None = None,
     role: str | None = None,
+    simulation_id: str | None = None,
+    simulation_name: str | None = None,
 ) -> dict[str, int]:
     """Record an attempt completion in the outcome counters.
 
     Call with passed=True if the attempt met the passing threshold.
+    Score is 0-1 (optional, for analytics).
     """
     if profile_id:
-        increment_user_counter(profile_id, "completed", email=email, name=name, role=role)
+        increment_user_counter(
+            profile_id, "completed",
+            email=email, name=name, role=role,
+            simulation_id=simulation_id, simulation_name=simulation_name,
+        )
         if passed:
-            increment_user_counter(profile_id, "passed")
+            increment_user_counter(
+                profile_id, "passed",
+                simulation_id=simulation_id, simulation_name=simulation_name,
+            )
     counters = increment_counter("completed")
     if passed:
         counters = increment_counter("passed")
@@ -71,6 +88,7 @@ async def ledger_gate(
     profile_id: str | None = None,
     email: str | None = None,
     name: str | None = None,
+    attempt_context: AttemptContext | None = None,
 ) -> LedgerEntry:
     """Check the ledger, phone home if needed, and write the next entry.
 
@@ -90,6 +108,7 @@ async def ledger_gate(
             profile_id=profile_id,
             email=email,
             name=name,
+            attempt_context=attempt_context,
         )
 
         if not checkpoint.authorized:
@@ -138,6 +157,7 @@ async def _phone_home(
     profile_id: str | None = None,
     email: str | None = None,
     name: str | None = None,
+    attempt_context: AttemptContext | None = None,
 ) -> LearnLoopCheckpoint:
     """Phone home to LearnLoop and return the checkpoint response.
 
@@ -187,6 +207,7 @@ async def _phone_home(
         current_profile_id=profile_id,
         current_email=email,
         current_name=name,
+        attempt_context=attempt_context,
     )
 
     # Reset per-user counters after successful phone-home (deltas reported)

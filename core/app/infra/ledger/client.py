@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from app.infra.ledger.types import LearnLoopCheckpoint, UserUsage
+from app.infra.ledger.types import AttemptContext, LearnLoopCheckpoint, UserUsage
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -39,6 +39,7 @@ async def phone_home(
     current_profile_id: str | None = None,
     current_email: str | None = None,
     current_name: str | None = None,
+    attempt_context: AttemptContext | None = None,
 ) -> LearnLoopCheckpoint:
     """Call LearnLoop to report usage and get authorization.
 
@@ -69,6 +70,8 @@ async def phone_home(
             **({"email": current_email} if current_email else {}),
             **({"name": current_name} if current_name else {}),
         }
+    if attempt_context:
+        payload["current_attempt"] = attempt_context.model_dump(exclude_none=True)
     headers = {
         "Authorization": f"Bearer {_deployment_token()}",
     }

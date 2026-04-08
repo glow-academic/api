@@ -135,9 +135,14 @@ def increment_user_counter(
     email: str | None = None,
     name: str | None = None,
     role: str | None = None,
+    simulation_id: str | None = None,
+    simulation_name: str | None = None,
     count: int = 1,
 ) -> dict[str, dict[str, Any]]:
-    """Increment a per-user counter and update user metadata."""
+    """Increment a per-user counter and update user metadata.
+
+    Also tracks per-simulation counters within each user entry.
+    """
     users = read_user_counters()
     if profile_id not in users:
         users[profile_id] = {"started": 0, "completed": 0, "passed": 0}
@@ -149,6 +154,14 @@ def increment_user_counter(
         users[profile_id]["name"] = name
     if role:
         users[profile_id]["role"] = role
+    # Track per-simulation within this user
+    if simulation_id:
+        sims = users[profile_id].setdefault("simulations", {})
+        if simulation_id not in sims:
+            sims[simulation_id] = {"started": 0, "completed": 0, "passed": 0}
+        sims[simulation_id][field] = sims[simulation_id].get(field, 0) + count
+        if simulation_name:
+            sims[simulation_id]["name"] = simulation_name
     _ensure_dir()
     _USER_COUNTERS_PATH.write_text(json.dumps(users, indent=2) + "\n")
     return users
