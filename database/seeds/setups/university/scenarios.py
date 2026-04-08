@@ -77,7 +77,6 @@ scenarios = [
         name="Confused Scenario",
         description="Practice scenario featuring a confused or uncertain student persona.",
         persona_ids=[CONFUSED_RESOURCE],
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -86,7 +85,6 @@ scenarios = [
         name="Happy Scenario",
         description="Practice scenario featuring a cheerful and positive student persona.",
         persona_ids=[HAPPY_RESOURCE],
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -95,7 +93,6 @@ scenarios = [
         name="Passive Scenario",
         description="Practice scenario featuring a passive or hesitant student persona.",
         persona_ids=[PASSIVE_RESOURCE],
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -104,7 +101,6 @@ scenarios = [
         name="Aggressive Scenario",
         description="Practice scenario featuring an aggressive or confrontational student persona.",
         persona_ids=[AGGRESSIVE_HIGH_RESOURCE],
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -112,7 +108,6 @@ scenarios = [
         resource_id=GENERAL_SCENARIO_RESOURCE,
         name="General Scenario",
         description="General purpose scenario for flexible practice across various situations.",
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Training Scenarios (with problem statements and multiple personas) ─
@@ -128,7 +123,6 @@ scenarios = [
             "the violation, explain the consequences, and emphasize the importance of "
             "maintaining academic honesty."
         ),
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         document_ids=[ACADEMIC_INTEGRITY_POLICY_RESOURCE],
         objective_ids=ACADEMIC_INTEGRITY_OBJECTIVES,
@@ -147,7 +141,6 @@ scenarios = [
             "and questions whether this violates FERPA. The staff member must quickly "
             "address the situation and explain the importance of protecting student privacy."
         ),
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         document_ids=[FERPA_POLICY_RESOURCE],
         objective_ids=FERPA_OBJECTIVES,
@@ -166,7 +159,6 @@ scenarios = [
             "must listen attentively, acknowledge the student's concerns, and offer to review "
             "the work together while providing constructive feedback."
         ),
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         objective_ids=UPSET_STUDENT_OBJECTIVES,
         question_ids=UPSET_STUDENT_QUESTIONS,

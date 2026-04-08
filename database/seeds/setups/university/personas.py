@@ -62,7 +62,6 @@ personas = [
             "Can you explain that again?",
             "What does that mean?",
         ],
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Happy ─────────────────────────────────────────────────────────────
@@ -87,7 +86,6 @@ personas = [
             "I'm excited to learn more",
             "This is really helpful!",
         ],
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Passive ───────────────────────────────────────────────────────────
@@ -112,7 +110,6 @@ personas = [
             "Maybe that's okay",
             "I'm not sure",
         ],
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Aggressive (High) ────────────────────────────────────────────────
@@ -138,7 +135,6 @@ personas = [
             "I disagree completely",
             "You're wrong about this",
         ],
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Aggressive (Medium) ──────────────────────────────────────────────
@@ -163,7 +159,6 @@ personas = [
             "I disagree completely",
             "You're wrong about this",
         ],
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Aggressive (Low) ─────────────────────────────────────────────────
@@ -188,7 +183,6 @@ personas = [
             "I disagree completely",
             "You're wrong about this",
         ],
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Professor ─────────────────────────────────────────────────────────
@@ -208,7 +202,6 @@ personas = [
             "Based on the syllabus, here's what you need to know",
             "I want to ensure you understand the academic integrity expectations",
         ],
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Student ───────────────────────────────────────────────────────────
@@ -228,7 +221,6 @@ personas = [
             "I'm not sure I understand the assignment requirements",
             "What should I focus on for the exam?",
         ],
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Instructional Staff ───────────────────────────────────────────────
@@ -248,7 +240,6 @@ personas = [
             "Let me walk you through the grading policy",
             "Here's what you need to know about office hours",
         ],
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
 ]

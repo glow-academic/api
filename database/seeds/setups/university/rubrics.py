@@ -38,7 +38,6 @@ rubrics = [
             "whether the trainee adapts language to the student's level of "
             "understanding and confirms comprehension before moving on."
         ),
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Policy Knowledge ────────────────────────────────────────────────
@@ -53,7 +52,6 @@ rubrics = [
             "references official guidelines rather than personal opinion "
             "when advising on academic policies."
         ),
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── De-escalation ───────────────────────────────────────────────────
@@ -68,7 +66,6 @@ rubrics = [
             "calm and professional tone, and guides the conversation toward "
             "a constructive resolution."
         ),
-        active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
 ]
