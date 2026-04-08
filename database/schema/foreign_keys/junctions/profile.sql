@@ -92,24 +92,6 @@ ALTER TABLE ONLY public.profile_profiles_junction
 
 --
 
--- Name: profile_request_limits_junction profile_request_limits_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_request_limits_junction
-    ADD CONSTRAINT profile_request_limits_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES public.profile_artifact(id) ON DELETE CASCADE;
-
-
---
-
--- Name: profile_request_limits_junction profile_request_limits_request_limit_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_request_limits_junction
-    ADD CONSTRAINT profile_request_limits_request_limit_id_fkey FOREIGN KEY (request_limits_id) REFERENCES public.request_limits_resource(id) ON DELETE CASCADE;
-
-
---
-
 -- Name: profile_roles_junction profile_roles_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 

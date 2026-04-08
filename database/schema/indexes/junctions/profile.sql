@@ -66,22 +66,6 @@ CREATE INDEX idx_profile_names_mcp ON public.profile_names_junction USING btree 
 
 --
 
--- Name: idx_profile_request_limits_generated; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_profile_request_limits_generated ON public.profile_request_limits_junction USING btree (generated);
-
-
---
-
--- Name: idx_profile_request_limits_mcp; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_profile_request_limits_mcp ON public.profile_request_limits_junction USING btree (mcp);
-
-
---
-
 -- Name: profile_departments_department_id_v7_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -174,22 +158,6 @@ CREATE INDEX profile_profiles_profile_id_idx ON public.profile_profiles_junction
 --
 
 CREATE INDEX profile_profiles_profiles_id_idx ON public.profile_profiles_junction USING btree (profiles_id);
-
-
---
-
--- Name: profile_request_limits_profile_id_v7_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX profile_request_limits_profile_id_v7_idx ON public.profile_request_limits_junction USING btree (profile_id);
-
-
---
-
--- Name: profile_request_limits_request_limit_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX profile_request_limits_request_limit_id_idx ON public.profile_request_limits_junction USING btree (request_limits_id);
 
 
 --

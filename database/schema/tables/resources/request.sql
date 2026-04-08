@@ -7,12 +7,13 @@
 
 CREATE TABLE public.request_limits_resource (
     id uuid DEFAULT uuidv7() CONSTRAINT request_limits_id_not_null NOT NULL,
-    requests_per_day integer CONSTRAINT request_limits_requests_per_day_not_null NOT NULL,
+    "limit" integer CONSTRAINT request_limits_requests_per_day_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT request_limits_created_at_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT request_limits_active_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT request_limits_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT request_limits_mcp_not_null NOT NULL,
-    CONSTRAINT request_limits_requests_per_day_check CHECK ((requests_per_day > 0))
+    "interval" interval DEFAULT '1 day'::interval NOT NULL,
+    CONSTRAINT request_limits_requests_per_day_check CHECK (("limit" > 0))
 );
 
 

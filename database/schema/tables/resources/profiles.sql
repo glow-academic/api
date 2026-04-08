@@ -8,7 +8,6 @@
 CREATE TABLE public.profiles_resource (
     last_login timestamp with time zone DEFAULT now() CONSTRAINT profiles_last_login_not_null1 NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT profiles_created_at_not_null1 NOT NULL,
-    role public.profile_type DEFAULT 'guest'::public.profile_type CONSTRAINT profiles_role_not_null1 NOT NULL,
     active boolean DEFAULT true CONSTRAINT profiles_active_not_null1 NOT NULL,
     generated boolean DEFAULT false CONSTRAINT profiles_generated_not_null1 NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT profiles_mcp_not_null1 NOT NULL,

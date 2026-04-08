@@ -7,7 +7,6 @@
 
 CREATE TABLE public.roles_resource (
     id uuid DEFAULT uuidv7() NOT NULL,
-    role public.profile_type NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     active boolean DEFAULT true NOT NULL,
     generated boolean DEFAULT false NOT NULL,
@@ -16,7 +15,9 @@ CREATE TABLE public.roles_resource (
     description text DEFAULT ''::text NOT NULL,
     icon_id uuid,
     color_id uuid,
-    permission_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL
+    permission_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
+    level integer DEFAULT 99 NOT NULL,
+    request_limit_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL
 );
 
 
@@ -27,15 +28,6 @@ CREATE TABLE public.roles_resource (
 
 ALTER TABLE ONLY public.roles_resource
     ADD CONSTRAINT roles_resource_pkey PRIMARY KEY (id);
-
-
---
-
--- Name: roles_resource roles_resource_role_name_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.roles_resource
-    ADD CONSTRAINT roles_resource_role_name_key UNIQUE (role, name);
 
 
 --

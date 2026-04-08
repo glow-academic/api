@@ -92,24 +92,6 @@ ALTER TABLE ONLY public.profile_drafts_profiles_connection
 
 --
 
--- Name: profile_drafts_request_limits_connection profile_drafts_request_limits_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_drafts_request_limits_connection
-    ADD CONSTRAINT profile_drafts_request_limits_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.profile_drafts_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: profile_drafts_request_limits_connection profile_drafts_request_limits_connection_request_limits_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_drafts_request_limits_connection
-    ADD CONSTRAINT profile_drafts_request_limits_connection_request_limits_id_fkey FOREIGN KEY (request_limits_id) REFERENCES public.request_limits_resource(id);
-
-
---
-
 -- Name: profile_drafts_roles_connection profile_drafts_roles_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 

@@ -78,31 +78,6 @@ CREATE TABLE public.profile_profiles_junction (
 
 --
 
--- Name: profile_request_limits_junction; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.profile_request_limits_junction (
-    requests_per_day integer CONSTRAINT profile_request_limits_requests_per_day_not_null NOT NULL,
-    active boolean DEFAULT true CONSTRAINT profile_request_limits_active_not_null NOT NULL,
-    created_at timestamp with time zone DEFAULT now() CONSTRAINT profile_request_limits_created_at_not_null NOT NULL,
-    profile_id uuid,
-    request_limits_id uuid,
-    generated boolean DEFAULT false CONSTRAINT profile_request_limits_generated_not_null NOT NULL,
-    mcp boolean DEFAULT false CONSTRAINT profile_request_limits_mcp_not_null NOT NULL,
-    CONSTRAINT profile_request_limits_requests_per_day_check CHECK ((requests_per_day > 0))
-);
-
-
---
-
--- Name: TABLE profile_request_limits_junction; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON TABLE public.profile_request_limits_junction IS 'Stores daily request limits for profiles. One row per profile.';
-
-
---
-
 -- Name: profile_roles_junction; Type: TABLE; Schema: public; Owner: -
 --
 

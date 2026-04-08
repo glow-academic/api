@@ -21,7 +21,7 @@ CREATE INDEX idx_request_limits_mcp ON public.request_limits_resource USING btre
 -- Name: request_limits_requests_per_day_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX request_limits_requests_per_day_idx ON public.request_limits_resource USING btree (requests_per_day);
+CREATE INDEX request_limits_requests_per_day_idx ON public.request_limits_resource USING btree ("limit");
 
 
 --

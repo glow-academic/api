@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 2q7VgPoPFDwx4RNkBXZqF1M2VVEnBHSWazwhN9NBr0diReMHagqWkFPTOLGwMbk
+\restrict mqdPojihfkdnfbsDYjRsaaDKIWatyZAyVa3YO7aYWmWQA9C2RaZ9XFtADCo9VRb
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -9279,21 +9279,6 @@ CREATE TABLE public.profile_drafts_profiles_connection (
 
 
 --
--- Name: profile_drafts_request_limits_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.profile_drafts_request_limits_connection (
-    draft_id uuid NOT NULL,
-    request_limits_id uuid CONSTRAINT profile_drafts_request_limits_connec_request_limits_id_not_null NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    generated boolean DEFAULT false NOT NULL,
-    mcp boolean DEFAULT false NOT NULL,
-    active boolean DEFAULT true NOT NULL
-);
-
-
---
 -- Name: profile_drafts_roles_connection; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9394,29 +9379,6 @@ CREATE TABLE public.profile_profiles_junction (
 
 
 --
--- Name: profile_request_limits_junction; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.profile_request_limits_junction (
-    requests_per_day integer CONSTRAINT profile_request_limits_requests_per_day_not_null NOT NULL,
-    active boolean DEFAULT true CONSTRAINT profile_request_limits_active_not_null NOT NULL,
-    created_at timestamp with time zone DEFAULT now() CONSTRAINT profile_request_limits_created_at_not_null NOT NULL,
-    profile_id uuid,
-    request_limits_id uuid,
-    generated boolean DEFAULT false CONSTRAINT profile_request_limits_generated_not_null NOT NULL,
-    mcp boolean DEFAULT false CONSTRAINT profile_request_limits_mcp_not_null NOT NULL,
-    CONSTRAINT profile_request_limits_requests_per_day_check CHECK ((requests_per_day > 0))
-);
-
-
---
--- Name: TABLE profile_request_limits_junction; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON TABLE public.profile_request_limits_junction IS 'Stores daily request limits for profiles. One row per profile.';
-
-
---
 -- Name: profile_roles_junction; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9450,7 +9412,6 @@ CREATE TABLE public.profiles_calls_connection (
 CREATE TABLE public.profiles_resource (
     last_login timestamp with time zone DEFAULT now() CONSTRAINT profiles_last_login_not_null1 NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT profiles_created_at_not_null1 NOT NULL,
-    role public.profile_type DEFAULT 'guest'::public.profile_type CONSTRAINT profiles_role_not_null1 NOT NULL,
     active boolean DEFAULT true CONSTRAINT profiles_active_not_null1 NOT NULL,
     generated boolean DEFAULT false CONSTRAINT profiles_generated_not_null1 NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT profiles_mcp_not_null1 NOT NULL,
@@ -9994,12 +9955,13 @@ CREATE TABLE public.request_limits_calls_connection (
 
 CREATE TABLE public.request_limits_resource (
     id uuid DEFAULT uuidv7() CONSTRAINT request_limits_id_not_null NOT NULL,
-    requests_per_day integer CONSTRAINT request_limits_requests_per_day_not_null NOT NULL,
+    "limit" integer CONSTRAINT request_limits_requests_per_day_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT request_limits_created_at_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT request_limits_active_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT request_limits_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT request_limits_mcp_not_null NOT NULL,
-    CONSTRAINT request_limits_requests_per_day_check CHECK ((requests_per_day > 0))
+    "interval" interval DEFAULT '1 day'::interval NOT NULL,
+    CONSTRAINT request_limits_requests_per_day_check CHECK (("limit" > 0))
 );
 
 
@@ -10040,7 +10002,6 @@ CREATE TABLE public.roles_calls_connection (
 
 CREATE TABLE public.roles_resource (
     id uuid DEFAULT uuidv7() NOT NULL,
-    role public.profile_type NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     active boolean DEFAULT true NOT NULL,
     generated boolean DEFAULT false NOT NULL,
@@ -10049,7 +10010,9 @@ CREATE TABLE public.roles_resource (
     description text DEFAULT ''::text NOT NULL,
     icon_id uuid,
     color_id uuid,
-    permission_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL
+    permission_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
+    level integer DEFAULT 99 NOT NULL,
+    request_limit_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL
 );
 
 
@@ -17231,14 +17194,6 @@ ALTER TABLE ONLY public.profile_drafts_profiles_connection
 
 
 --
--- Name: profile_drafts_request_limits_connection profile_drafts_request_limits_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_drafts_request_limits_connection
-    ADD CONSTRAINT profile_drafts_request_limits_connection_pkey PRIMARY KEY (draft_id, request_limits_id);
-
-
---
 -- Name: profile_drafts_roles_connection profile_drafts_roles_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -17692,14 +17647,6 @@ ALTER TABLE ONLY public.roles_calls_connection
 
 ALTER TABLE ONLY public.roles_resource
     ADD CONSTRAINT roles_resource_pkey PRIMARY KEY (id);
-
-
---
--- Name: roles_resource roles_resource_role_name_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.roles_resource
-    ADD CONSTRAINT roles_resource_role_name_key UNIQUE (role, name);
 
 
 --
@@ -24937,13 +24884,6 @@ CREATE INDEX idx_profile_drafts_names_resource_id ON public.profile_drafts_names
 
 
 --
--- Name: idx_profile_drafts_request_limits_resource_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_profile_drafts_request_limits_resource_id ON public.profile_drafts_request_limits_connection USING btree (request_limits_id);
-
-
---
 -- Name: idx_profile_drafts_roles_resource_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -25004,20 +24944,6 @@ CREATE INDEX idx_profile_personas_resource_persona_id ON public.profile_personas
 --
 
 CREATE INDEX idx_profile_personas_resource_profile_id ON public.profile_personas_resource USING btree (profile_id);
-
-
---
--- Name: idx_profile_request_limits_generated; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_profile_request_limits_generated ON public.profile_request_limits_junction USING btree (generated);
-
-
---
--- Name: idx_profile_request_limits_mcp; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_profile_request_limits_mcp ON public.profile_request_limits_junction USING btree (mcp);
 
 
 --
@@ -28367,20 +28293,6 @@ CREATE INDEX profile_profiles_profiles_id_idx ON public.profile_profiles_junctio
 
 
 --
--- Name: profile_request_limits_profile_id_v7_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX profile_request_limits_profile_id_v7_idx ON public.profile_request_limits_junction USING btree (profile_id);
-
-
---
--- Name: profile_request_limits_request_limit_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX profile_request_limits_request_limit_id_idx ON public.profile_request_limits_junction USING btree (request_limits_id);
-
-
---
 -- Name: profile_roles_profile_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28671,7 +28583,7 @@ CREATE INDEX request_limits_calls_connection_id_idx ON public.request_limits_cal
 -- Name: request_limits_requests_per_day_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX request_limits_requests_per_day_idx ON public.request_limits_resource USING btree (requests_per_day);
+CREATE INDEX request_limits_requests_per_day_idx ON public.request_limits_resource USING btree ("limit");
 
 
 --
@@ -28728,13 +28640,6 @@ CREATE INDEX roles_resource_color_id_idx ON public.roles_resource USING btree (c
 --
 
 CREATE INDEX roles_resource_icon_id_idx ON public.roles_resource USING btree (icon_id);
-
-
---
--- Name: roles_resource_role_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX roles_resource_role_idx ON public.roles_resource USING btree (role);
 
 
 --
@@ -35759,22 +35664,6 @@ ALTER TABLE ONLY public.profile_drafts_profiles_connection
 
 
 --
--- Name: profile_drafts_request_limits_connection profile_drafts_request_limits_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_drafts_request_limits_connection
-    ADD CONSTRAINT profile_drafts_request_limits_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.profile_drafts_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: profile_drafts_request_limits_connection profile_drafts_request_limits_connection_request_limits_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_drafts_request_limits_connection
-    ADD CONSTRAINT profile_drafts_request_limits_connection_request_limits_id_fkey FOREIGN KEY (request_limits_id) REFERENCES public.request_limits_resource(id);
-
-
---
 -- Name: profile_drafts_roles_connection profile_drafts_roles_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -35884,22 +35773,6 @@ ALTER TABLE ONLY public.profile_profiles_junction
 
 ALTER TABLE ONLY public.profile_profiles_junction
     ADD CONSTRAINT profile_profiles_profiles_id_fkey FOREIGN KEY (profiles_id) REFERENCES public.profiles_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: profile_request_limits_junction profile_request_limits_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_request_limits_junction
-    ADD CONSTRAINT profile_request_limits_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES public.profile_artifact(id) ON DELETE CASCADE;
-
-
---
--- Name: profile_request_limits_junction profile_request_limits_request_limit_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_request_limits_junction
-    ADD CONSTRAINT profile_request_limits_request_limit_id_fkey FOREIGN KEY (request_limits_id) REFERENCES public.request_limits_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -39914,5 +39787,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 2q7VgPoPFDwx4RNkBXZqF1M2VVEnBHSWazwhN9NBr0diReMHagqWkFPTOLGwMbk
+\unrestrict mqdPojihfkdnfbsDYjRsaaDKIWatyZAyVa3YO7aYWmWQA9C2RaZ9XFtADCo9VRb
 

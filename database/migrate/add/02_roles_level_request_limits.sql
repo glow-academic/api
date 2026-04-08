@@ -24,7 +24,10 @@ ALTER TABLE profiles_resource ADD COLUMN IF NOT EXISTS role_id UUID;
 ALTER TABLE request_limits_resource RENAME COLUMN requests_per_day TO "limit";
 ALTER TABLE request_limits_resource ADD COLUMN IF NOT EXISTS "interval" INTERVAL NOT NULL DEFAULT INTERVAL '1 day';
 
--- 5. Track migration
+-- 5. Add unique constraint on name (replaces old UNIQUE(role, name))
+ALTER TABLE roles_resource ADD CONSTRAINT roles_resource_name_unique UNIQUE (name);
+
+-- 6. Track migration
 INSERT INTO migration_tracking (migration_number, migration_file, migration_type) VALUES
   (2, '02_roles_level_request_limits.sql', 'add')
 ON CONFLICT (migration_number, migration_type) DO NOTHING;

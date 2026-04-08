@@ -17,11 +17,3 @@ CREATE INDEX roles_resource_icon_id_idx ON public.roles_resource USING btree (ic
 
 
 --
-
--- Name: roles_resource_role_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX roles_resource_role_idx ON public.roles_resource USING btree (role);
-
-
---
