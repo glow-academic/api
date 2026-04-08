@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict mqdPojihfkdnfbsDYjRsaaDKIWatyZAyVa3YO7aYWmWQA9C2RaZ9XFtADCo9VRb
+\restrict cb9KRKFoURRKHoVukJ0rd2zk4AsbY0ZmFpfgkZIXtocQt3bjtCIhbjycFzg4Y3j
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -17639,6 +17639,14 @@ ALTER TABLE ONLY public.resolves_entry
 
 ALTER TABLE ONLY public.roles_calls_connection
     ADD CONSTRAINT roles_calls_connection_pkey PRIMARY KEY (roles_id, call_id);
+
+
+--
+-- Name: roles_resource roles_resource_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.roles_resource
+    ADD CONSTRAINT roles_resource_name_unique UNIQUE (name);
 
 
 --
@@ -39787,5 +39795,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict mqdPojihfkdnfbsDYjRsaaDKIWatyZAyVa3YO7aYWmWQA9C2RaZ9XFtADCo9VRb
+\unrestrict cb9KRKFoURRKHoVukJ0rd2zk4AsbY0ZmFpfgkZIXtocQt3bjtCIhbjycFzg4Y3j
 

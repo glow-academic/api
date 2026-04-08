@@ -23,6 +23,15 @@ CREATE TABLE public.roles_resource (
 
 --
 
+-- Name: roles_resource roles_resource_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.roles_resource
+    ADD CONSTRAINT roles_resource_name_unique UNIQUE (name);
+
+
+--
+
 -- Name: roles_resource roles_resource_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
