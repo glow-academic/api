@@ -10,7 +10,7 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_role(conn, redis_client):
-    await create_role(conn, "admin", redis_client, name="search-test-role-alpha")
+    await create_role(conn, redis_client, name="search-test-role-alpha")
 
     items = await search_roles(conn, redis_client, search="search-test-role-alpha")
 
@@ -19,7 +19,7 @@ async def test_finds_created_role(conn, redis_client):
 
 
 async def test_search_is_case_insensitive(conn, redis_client):
-    await create_role(conn, "admin", redis_client, name="CaseTest-RoleSearch")
+    await create_role(conn, redis_client, name="CaseTest-RoleSearch")
 
     items = await search_roles(conn, redis_client, search="casetest-rolesearch")
 
@@ -37,7 +37,7 @@ async def test_returns_empty_for_no_match(conn, redis_client):
 async def test_respects_limit(conn, redis_client):
     for i in range(5):
         await create_role(
-            conn, "admin", redis_client, name=f"limit-test-role-{unique_tag()}"
+            conn, redis_client, name=f"limit-test-role-{unique_tag()}"
         )
 
     items = await search_roles(
@@ -49,10 +49,10 @@ async def test_respects_limit(conn, redis_client):
 
 async def test_excludes_ids(conn, redis_client):
     a = await create_role(
-        conn, "admin", redis_client, name=f"exclude-a-role-{unique_tag()}"
+        conn, redis_client, name=f"exclude-a-role-{unique_tag()}"
     )
     b = await create_role(
-        conn, "admin", redis_client, name=f"exclude-b-role-{unique_tag()}"
+        conn, redis_client, name=f"exclude-b-role-{unique_tag()}"
     )
 
     items = await search_roles(
@@ -75,7 +75,7 @@ async def test_returns_empty_for_zero_limit(conn, redis_client):
 
 async def test_cache_hit(conn, redis_client):
     await create_role(
-        conn, "admin", redis_client, name=f"cache-hit-role-{unique_tag()}"
+        conn, redis_client, name=f"cache-hit-role-{unique_tag()}"
     )
 
     items1 = await search_roles(conn, redis_client, search="cache-hit-role-")
@@ -86,7 +86,7 @@ async def test_cache_hit(conn, redis_client):
 
 
 async def test_bypass_cache(conn, redis_client):
-    await create_role(conn, "admin", redis_client, name=f"bypass-role-{unique_tag()}")
+    await create_role(conn, redis_client, name=f"bypass-role-{unique_tag()}")
 
     items = await search_roles(
         conn, redis_client, search="bypass-role-", bypass_cache=True

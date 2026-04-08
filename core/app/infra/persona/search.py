@@ -372,17 +372,17 @@ async def search_persona_impl(
         is_inactive = not a.active
 
         can_edit = compute_can_edit(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             persona_department_ids=dept_ids_str,
             active_scenario_count=num_scenarios,
             user_department_ids=user_department_ids,
         )
         can_delete = compute_can_delete(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             persona_department_ids=dept_ids_str,
             active_scenario_count=num_scenarios,
         )
-        can_duplicate = compute_can_duplicate(user_role)
+        can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
         personas.append(
             ListPersonaApiPersona(

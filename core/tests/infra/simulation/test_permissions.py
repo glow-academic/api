@@ -28,51 +28,103 @@ from app.infra.simulation.permissions import (
 
 pytestmark = pytest.mark.asyncio
 
+# Role levels: superadmin=0, admin=1, member=3
+# Permission tuples use ("simulation", "<operation>")
+
 
 # ---------- has_access ----------
 
 
 async def test_has_access_superadmin_always():
-    assert has_access("superadmin", None, [uuid4()]) is True
+    assert has_access(0, None, [uuid4()]) is True
 
 
 async def test_has_access_no_departments_open_to_all():
-    assert has_access("member", [uuid4()], None) is True
-    assert has_access("member", [uuid4()], []) is True
+    assert has_access(3, [uuid4()], None) is True
+    assert has_access(3, [uuid4()], []) is True
 
 
 async def test_has_access_requires_department_overlap():
     shared = uuid4()
-    assert has_access("admin", [shared], [shared]) is True
-    assert has_access("admin", [uuid4()], [uuid4()]) is False
+    assert has_access(1, [shared], [shared]) is True
+    assert has_access(1, [uuid4()], [uuid4()]) is False
 
 
 async def test_has_access_no_user_departments():
-    assert has_access("admin", None, [uuid4()]) is False
+    assert has_access(1, None, [uuid4()]) is False
 
 
 # ---------- compute_can_edit ----------
 
 
 async def test_can_edit_admin_no_cohorts():
-    assert compute_can_edit("admin", ["dept"], cohort_usage_count=0) is True
+    assert (
+        compute_can_edit(
+            role_level=1,
+            role_permissions=[("simulation", "update")],
+            simulation_department_ids=["dept"],
+            cohort_usage_count=0,
+        )
+        is True
+    )
 
 
 async def test_can_edit_instructional_no_cohorts():
-    assert compute_can_edit("instructional", ["dept"], cohort_usage_count=0) is True
+    # "instructional" role — use level 2 with update permission
+    assert (
+        compute_can_edit(
+            role_level=2,
+            role_permissions=[("simulation", "update")],
+            simulation_department_ids=["dept"],
+            cohort_usage_count=0,
+        )
+        is True
+    )
 
 
 async def test_can_edit_blocked_by_cohorts():
-    assert compute_can_edit("admin", ["dept"], cohort_usage_count=1) is False
+    assert (
+        compute_can_edit(
+            role_level=1,
+            role_permissions=[("simulation", "update")],
+            simulation_department_ids=["dept"],
+            cohort_usage_count=1,
+        )
+        is False
+    )
 
 
 async def test_can_edit_default_simulation_needs_superadmin():
-    assert compute_can_edit("admin", None, cohort_usage_count=0) is False
-    assert compute_can_edit("superadmin", None, cohort_usage_count=0) is True
+    assert (
+        compute_can_edit(
+            role_level=1,
+            role_permissions=[("simulation", "update")],
+            simulation_department_ids=None,
+            cohort_usage_count=0,
+        )
+        is False
+    )
+    assert (
+        compute_can_edit(
+            role_level=0,
+            role_permissions=[("simulation", "update")],
+            simulation_department_ids=None,
+            cohort_usage_count=0,
+        )
+        is True
+    )
 
 
 async def test_can_edit_denied_for_member():
-    assert compute_can_edit("member", ["dept"], cohort_usage_count=0) is False
+    assert (
+        compute_can_edit(
+            role_level=3,
+            role_permissions=[],
+            simulation_department_ids=["dept"],
+            cohort_usage_count=0,
+        )
+        is False
+    )
 
 
 async def test_can_edit_department_subset_check():
@@ -80,8 +132,9 @@ async def test_can_edit_department_subset_check():
     dept2 = uuid4()
     assert (
         compute_can_edit(
-            "admin",
-            [dept1, dept2],
+            role_level=1,
+            role_permissions=[("simulation", "update")],
+            simulation_department_ids=[dept1, dept2],
             cohort_usage_count=0,
             user_department_ids=[dept1],
         )
@@ -93,18 +146,33 @@ async def test_can_edit_department_subset_check():
 
 
 async def test_disabled_reason_none_when_allowed():
-    result = compute_disabled_reason("admin", ["dept"], cohort_usage_count=0)
+    result = compute_disabled_reason(
+        role_level=1,
+        role_permissions=[("simulation", "update")],
+        simulation_department_ids=["dept"],
+        cohort_usage_count=0,
+    )
     assert result is None
 
 
 async def test_disabled_reason_default_simulation():
-    result = compute_disabled_reason("admin", None, cohort_usage_count=0)
+    result = compute_disabled_reason(
+        role_level=1,
+        role_permissions=[("simulation", "update")],
+        simulation_department_ids=None,
+        cohort_usage_count=0,
+    )
     assert result is not None
     assert "default simulation" in result.lower()
 
 
 async def test_disabled_reason_cohorts():
-    result = compute_disabled_reason("admin", ["dept"], cohort_usage_count=1)
+    result = compute_disabled_reason(
+        role_level=1,
+        role_permissions=[("simulation", "update")],
+        simulation_department_ids=["dept"],
+        cohort_usage_count=1,
+    )
     assert result is not None
     assert "cohorts" in result.lower()
 
@@ -113,7 +181,11 @@ async def test_disabled_reason_department_mismatch():
     dept1 = uuid4()
     dept2 = uuid4()
     result = compute_disabled_reason(
-        "admin", [dept1, dept2], cohort_usage_count=0, user_department_ids=[dept1]
+        role_level=1,
+        role_permissions=[("simulation", "update")],
+        simulation_department_ids=[dept1, dept2],
+        cohort_usage_count=0,
+        user_department_ids=[dept1],
     )
     assert result is not None
     assert "departments" in result.lower()
@@ -123,60 +195,141 @@ async def test_disabled_reason_department_mismatch():
 
 
 async def test_can_delete_admin_no_cohorts():
-    assert compute_can_delete("admin", ["dept"], cohort_usage_count=0) is True
+    assert (
+        compute_can_delete(
+            role_level=1,
+            role_permissions=[("simulation", "delete")],
+            simulation_department_ids=["dept"],
+            cohort_usage_count=0,
+        )
+        is True
+    )
 
 
 async def test_can_delete_blocked_by_cohorts():
-    assert compute_can_delete("admin", ["dept"], cohort_usage_count=1) is False
+    assert (
+        compute_can_delete(
+            role_level=1,
+            role_permissions=[("simulation", "delete")],
+            simulation_department_ids=["dept"],
+            cohort_usage_count=1,
+        )
+        is False
+    )
 
 
 async def test_can_delete_default_denied():
-    assert compute_can_delete("admin", None, cohort_usage_count=0) is False
+    assert (
+        compute_can_delete(
+            role_level=1,
+            role_permissions=[("simulation", "delete")],
+            simulation_department_ids=None,
+            cohort_usage_count=0,
+        )
+        is False
+    )
 
 
 # ---------- compute_can_duplicate ----------
 
 
 async def test_can_duplicate_admin():
-    assert compute_can_duplicate("admin") is True
+    assert (
+        compute_can_duplicate(
+            role_level=1,
+            role_permissions=[("simulation", "duplicate")],
+        )
+        is True
+    )
 
 
 async def test_can_duplicate_instructional():
-    assert compute_can_duplicate("instructional") is True
+    assert (
+        compute_can_duplicate(
+            role_level=2,
+            role_permissions=[("simulation", "duplicate")],
+        )
+        is True
+    )
 
 
 async def test_can_duplicate_denied_for_member():
-    assert compute_can_duplicate("member") is False
+    assert (
+        compute_can_duplicate(
+            role_level=3,
+            role_permissions=[],
+        )
+        is False
+    )
 
 
 # ---------- compute_can_create ----------
 
 
 async def test_can_create_admin_with_departments():
-    assert compute_can_create("admin", [str(uuid4())]) is True
+    assert (
+        compute_can_create(
+            role_level=1,
+            role_permissions=[("simulation", "create")],
+            department_ids=[str(uuid4())],
+        )
+        is True
+    )
 
 
 async def test_can_create_non_superadmin_no_departments():
-    assert compute_can_create("admin", None) is False
+    assert (
+        compute_can_create(
+            role_level=1,
+            role_permissions=[("simulation", "create")],
+            department_ids=None,
+        )
+        is False
+    )
 
 
 async def test_can_create_denied_for_member():
-    assert compute_can_create("member", [str(uuid4())]) is False
+    assert (
+        compute_can_create(
+            role_level=3,
+            role_permissions=[],
+            department_ids=[str(uuid4())],
+        )
+        is False
+    )
 
 
 # ---------- compute_can_draft ----------
 
 
 async def test_can_draft_admin():
-    assert compute_can_draft("admin") is True
+    assert (
+        compute_can_draft(
+            role_level=1,
+            role_permissions=[("simulation", "draft")],
+        )
+        is True
+    )
 
 
 async def test_can_draft_instructional():
-    assert compute_can_draft("instructional") is True
+    assert (
+        compute_can_draft(
+            role_level=2,
+            role_permissions=[("simulation", "draft")],
+        )
+        is True
+    )
 
 
 async def test_can_draft_denied_for_member():
-    assert compute_can_draft("member") is False
+    assert (
+        compute_can_draft(
+            role_level=3,
+            role_permissions=[],
+        )
+        is False
+    )
 
 
 # ---------- show flags ----------

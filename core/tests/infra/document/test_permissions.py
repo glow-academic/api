@@ -36,101 +36,267 @@ _OTHER = uuid4()
 
 class TestComputeCanEdit:
     async def test_admin_with_matching_departments_can_edit(self):
-        assert compute_can_edit("admin", [_DEPT], 0, [_DEPT]) is True
+        assert (
+            compute_can_edit(
+                role_level=1,
+                role_permissions=[("document", "update")],
+                document_department_ids=[_DEPT],
+                active_scenario_count=0,
+                user_department_ids=[_DEPT],
+            )
+            is True
+        )
 
     async def test_superadmin_can_edit_default_document(self):
-        assert compute_can_edit("superadmin", None, 0) is True
+        assert (
+            compute_can_edit(
+                role_level=0,
+                role_permissions=[("document", "update")],
+                document_department_ids=None,
+                active_scenario_count=0,
+            )
+            is True
+        )
 
     async def test_admin_cannot_edit_default_document(self):
-        assert compute_can_edit("admin", None, 0) is False
+        assert (
+            compute_can_edit(
+                role_level=1,
+                role_permissions=[("document", "update")],
+                document_department_ids=None,
+                active_scenario_count=0,
+            )
+            is False
+        )
 
     async def test_member_cannot_edit(self):
-        assert compute_can_edit("member", [_DEPT], 0) is False
+        assert (
+            compute_can_edit(
+                role_level=3,
+                role_permissions=[],
+                document_department_ids=[_DEPT],
+                active_scenario_count=0,
+            )
+            is False
+        )
 
     async def test_blocked_by_active_scenario(self):
-        assert compute_can_edit("admin", [_DEPT], 1) is False
+        assert (
+            compute_can_edit(
+                role_level=1,
+                role_permissions=[("document", "update")],
+                document_department_ids=[_DEPT],
+                active_scenario_count=1,
+            )
+            is False
+        )
 
     async def test_admin_blocked_when_missing_department(self):
-        assert compute_can_edit("admin", [_DEPT, _OTHER], 0, [_DEPT]) is False
+        assert (
+            compute_can_edit(
+                role_level=1,
+                role_permissions=[("document", "update")],
+                document_department_ids=[_DEPT, _OTHER],
+                active_scenario_count=0,
+                user_department_ids=[_DEPT],
+            )
+            is False
+        )
 
 
 class TestComputeDisabledReason:
     async def test_returns_none_when_allowed(self):
-        assert compute_disabled_reason("admin", [_DEPT], 0, [_DEPT]) is None
+        assert (
+            compute_disabled_reason(
+                role_level=1,
+                role_permissions=[("document", "update")],
+                document_department_ids=[_DEPT],
+                active_scenario_count=0,
+                user_department_ids=[_DEPT],
+            )
+            is None
+        )
 
     async def test_returns_reason_for_default_document(self):
-        reason = compute_disabled_reason("admin", None, 0)
+        reason = compute_disabled_reason(
+            role_level=1,
+            role_permissions=[("document", "update")],
+            document_department_ids=None,
+            active_scenario_count=0,
+        )
         assert reason is not None
         assert "default" in reason.lower()
 
     async def test_returns_reason_for_active_scenario(self):
-        reason = compute_disabled_reason("admin", [_DEPT], 1)
+        reason = compute_disabled_reason(
+            role_level=1,
+            role_permissions=[("document", "update")],
+            document_department_ids=[_DEPT],
+            active_scenario_count=1,
+        )
         assert reason is not None
         assert "scenario" in reason.lower()
 
     async def test_returns_reason_for_low_role(self):
-        reason = compute_disabled_reason("member", [_DEPT], 0)
+        reason = compute_disabled_reason(
+            role_level=3,
+            role_permissions=[],
+            document_department_ids=[_DEPT],
+            active_scenario_count=0,
+        )
         assert reason is not None
 
 
 class TestHasAccess:
     async def test_superadmin_always_has_access(self):
-        assert has_access("superadmin", None, [_DEPT]) is True
+        assert has_access(role_level=0, user_department_ids=None, document_department_ids=[_DEPT]) is True
 
     async def test_no_departments_means_accessible(self):
-        assert has_access("member", [_DEPT], None) is True
+        assert has_access(role_level=3, user_department_ids=[_DEPT], document_department_ids=None) is True
 
     async def test_overlapping_department_grants_access(self):
-        assert has_access("admin", [_DEPT], [_DEPT]) is True
+        assert has_access(role_level=1, user_department_ids=[_DEPT], document_department_ids=[_DEPT]) is True
 
     async def test_no_overlap_denies_access(self):
-        assert has_access("admin", [_DEPT], [_OTHER]) is False
+        assert has_access(role_level=1, user_department_ids=[_DEPT], document_department_ids=[_OTHER]) is False
 
     async def test_no_user_departments_denies_access(self):
-        assert has_access("admin", None, [_DEPT]) is False
+        assert has_access(role_level=1, user_department_ids=None, document_department_ids=[_DEPT]) is False
 
 
 class TestCanDelete:
     async def test_admin_can_delete_with_no_usage(self):
-        assert compute_can_delete("admin", [_DEPT], 0) is True
+        assert (
+            compute_can_delete(
+                role_level=1,
+                role_permissions=[("document", "delete")],
+                document_department_ids=[_DEPT],
+                active_scenario_count=0,
+            )
+            is True
+        )
 
     async def test_blocked_by_active_scenario(self):
-        assert compute_can_delete("admin", [_DEPT], 1) is False
+        assert (
+            compute_can_delete(
+                role_level=1,
+                role_permissions=[("document", "delete")],
+                document_department_ids=[_DEPT],
+                active_scenario_count=1,
+            )
+            is False
+        )
 
     async def test_member_cannot_delete(self):
-        assert compute_can_delete("member", [_DEPT], 0) is False
+        assert (
+            compute_can_delete(
+                role_level=3,
+                role_permissions=[],
+                document_department_ids=[_DEPT],
+                active_scenario_count=0,
+            )
+            is False
+        )
 
     async def test_default_document_only_superadmin(self):
-        assert compute_can_delete("admin", None, 0) is False
-        assert compute_can_delete("superadmin", None, 0) is True
+        assert (
+            compute_can_delete(
+                role_level=1,
+                role_permissions=[("document", "delete")],
+                document_department_ids=None,
+                active_scenario_count=0,
+            )
+            is False
+        )
+        assert (
+            compute_can_delete(
+                role_level=0,
+                role_permissions=[("document", "delete")],
+                document_department_ids=None,
+                active_scenario_count=0,
+            )
+            is True
+        )
 
 
 class TestCanCreateAndDuplicate:
     async def test_admin_can_create_with_departments(self):
-        assert compute_can_create("admin", [_DEPT]) is True
+        assert (
+            compute_can_create(
+                role_level=1,
+                role_permissions=[("document", "create")],
+                department_ids=[_DEPT],
+            )
+            is True
+        )
 
     async def test_admin_cannot_create_general(self):
-        assert compute_can_create("admin", None) is False
+        assert (
+            compute_can_create(
+                role_level=1,
+                role_permissions=[("document", "create")],
+                department_ids=None,
+            )
+            is False
+        )
 
     async def test_superadmin_can_create_general(self):
-        assert compute_can_create("superadmin", None) is True
+        assert (
+            compute_can_create(
+                role_level=0,
+                role_permissions=[("document", "create")],
+                department_ids=None,
+            )
+            is True
+        )
 
     async def test_member_cannot_create(self):
-        assert compute_can_create("member", [_DEPT]) is False
+        assert (
+            compute_can_create(
+                role_level=3,
+                role_permissions=[],
+                department_ids=[_DEPT],
+            )
+            is False
+        )
 
     async def test_admin_can_duplicate(self):
-        assert compute_can_duplicate("admin") is True
+        assert (
+            compute_can_duplicate(
+                role_level=1,
+                role_permissions=[("document", "duplicate")],
+            )
+            is True
+        )
 
     async def test_member_cannot_duplicate(self):
-        assert compute_can_duplicate("member") is False
+        assert (
+            compute_can_duplicate(
+                role_level=3,
+                role_permissions=[],
+            )
+            is False
+        )
 
 
 class TestCanDraft:
     async def test_admin_can_draft(self):
-        assert compute_can_draft("admin") is True
+        assert (
+            compute_can_draft(
+                role_level=1,
+                role_permissions=[("document", "draft")],
+            )
+            is True
+        )
 
     async def test_member_cannot_draft(self):
-        assert compute_can_draft("member") is False
+        assert (
+            compute_can_draft(
+                role_level=3,
+                role_permissions=[],
+            )
+            is False
+        )
 
 
 class TestShowAndRequiredFlags:

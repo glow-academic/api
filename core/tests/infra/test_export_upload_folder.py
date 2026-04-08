@@ -150,10 +150,9 @@ async def test_export_profile_impl_returns_inline_csv_content(
         request_limit = await create_request_limit(conn, 42, redis_client)
         role = await create_role(
             conn,
-            role="member",
+            redis_client,
             name=f"Profile Export Role {tag}",
             description=f"Profile export role {tag}",
-            redis=redis_client,
         )
         profile = await create_profile(
             conn,

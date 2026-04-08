@@ -199,14 +199,14 @@ async def search_tool_impl(
         )
 
         can_edit = compute_can_edit(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             active_agent_count=0,
         )
         can_delete = compute_can_delete(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             active_agent_count=0,
         )
-        can_duplicate = compute_can_duplicate(user_role)
+        can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
         tools_list.append(
             ListToolApiTool(

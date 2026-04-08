@@ -45,10 +45,9 @@ async def create_admin_route_actor(
     async with pool.acquire() as conn:
         admin_role = await create_role(
             conn,
-            role=role,
+            redis_client,
             name=f"{role_name_prefix} {unique_tag()}",
             description=f"{group_name} {role} role",
-            redis=redis_client,
         )
         await update_profile(
             conn,

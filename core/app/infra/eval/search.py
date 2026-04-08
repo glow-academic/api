@@ -134,7 +134,7 @@ async def search_eval_impl(
             evals=[],
             department_filter=department_filter,
             total_count=0,
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
         )
 
     # ── Step 3: Get eval artifacts with junction IDs ──────────────────
@@ -221,9 +221,9 @@ async def search_eval_impl(
         is_dynamic = any(f.name == "eval_dynamic" and f.value for f in artifact_flags)
         use_groups = any(f.name == "eval_groups" and f.value for f in artifact_flags)
 
-        can_edit = compute_can_edit(user_role=user_role)
-        can_delete = compute_can_delete(user_role=user_role)
-        can_duplicate = compute_can_duplicate(user_role)
+        can_edit = compute_can_edit(role_level=user_role_level, role_permissions=profile.role_permissions)
+        can_delete = compute_can_delete(role_level=user_role_level, role_permissions=profile.role_permissions)
+        can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
         evals_list.append(
             ListEvalApiEval(
@@ -261,7 +261,7 @@ async def search_eval_impl(
         evals=evals_list,
         department_filter=department_filter,
         total_count=total_count,
-        user_role=user_role,
+        role_level=user_role_level, role_permissions=profile.role_permissions,
     )
 
 

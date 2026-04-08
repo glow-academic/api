@@ -29,61 +29,69 @@ from app.infra.agent.permissions import (
 
 pytestmark = pytest.mark.asyncio
 
+# Permission tuples for agent operations
+_AGENT_UPDATE = [("agent", "update")]
+_AGENT_DELETE = [("agent", "delete")]
+_AGENT_DUPLICATE = [("agent", "duplicate")]
+_AGENT_CREATE = [("agent", "create")]
+_AGENT_DRAFT = [("agent", "draft")]
+_NO_PERMS = []
+
 
 # ---------- has_access ----------
 
 
 async def test_has_access_superadmin_always():
-    assert has_access("superadmin", None, [uuid4()]) is True
+    assert has_access(0, None, [uuid4()]) is True
 
 
 async def test_has_access_no_departments_open_to_all():
-    assert has_access("member", [uuid4()], None) is True
-    assert has_access("member", [uuid4()], []) is True
+    assert has_access(3, [uuid4()], None) is True
+    assert has_access(3, [uuid4()], []) is True
 
 
 async def test_has_access_requires_department_overlap():
     shared = uuid4()
-    assert has_access("admin", [shared], [shared]) is True
-    assert has_access("admin", [uuid4()], [uuid4()]) is False
+    assert has_access(1, [shared], [shared]) is True
+    assert has_access(1, [uuid4()], [uuid4()]) is False
 
 
 async def test_has_access_no_user_departments_denied():
-    assert has_access("admin", None, [uuid4()]) is False
+    assert has_access(1, None, [uuid4()]) is False
 
 
 # ---------- compute_can_edit ----------
 
 
 async def test_can_edit_new_mode_no_missing_tools():
-    assert compute_can_edit("admin", True, [], agent_id=None) is True
+    assert compute_can_edit(1, _AGENT_UPDATE, True, [], agent_id=None) is True
 
 
 async def test_can_edit_new_mode_with_missing_tools():
-    assert compute_can_edit("admin", True, ["name"], agent_id=None) is False
+    assert compute_can_edit(1, _AGENT_UPDATE, True, ["name"], agent_id=None) is False
 
 
 async def test_can_edit_detail_mode_access_and_tools():
     agent_id = uuid4()
-    assert compute_can_edit("admin", True, [], agent_id=agent_id) is True
-    assert compute_can_edit("admin", False, [], agent_id=agent_id) is False
+    assert compute_can_edit(1, _AGENT_UPDATE, True, [], agent_id=agent_id) is True
+    assert compute_can_edit(1, _AGENT_UPDATE, False, [], agent_id=agent_id) is False
 
 
 # ---------- compute_disabled_reason ----------
 
 
 async def test_disabled_reason_none_when_allowed():
-    assert compute_disabled_reason("admin", True, [], agent_id=uuid4()) is None
+    assert compute_disabled_reason(1, _AGENT_UPDATE, True, [], agent_id=uuid4()) is None
 
 
 async def test_disabled_reason_no_access():
-    result = compute_disabled_reason("admin", False, [], agent_id=uuid4())
+    result = compute_disabled_reason(1, _AGENT_UPDATE, False, [], agent_id=uuid4())
     assert result is not None
     assert "access" in result.lower()
 
 
 async def test_disabled_reason_missing_tools():
-    result = compute_disabled_reason("admin", True, ["name", "model"])
+    result = compute_disabled_reason(1, _AGENT_UPDATE, True, ["name", "model"])
     assert result is not None
     assert "name" in result and "model" in result
 
@@ -92,73 +100,73 @@ async def test_disabled_reason_missing_tools():
 
 
 async def test_list_can_edit_admin():
-    assert compute_list_can_edit("admin", ["dept"], active_settings_count=0) is True
+    assert compute_list_can_edit(1, _AGENT_UPDATE, ["dept"], active_settings_count=0) is True
 
 
 async def test_list_can_edit_blocked_by_settings():
-    assert compute_list_can_edit("admin", ["dept"], active_settings_count=1) is False
+    assert compute_list_can_edit(1, _AGENT_UPDATE, ["dept"], active_settings_count=1) is False
 
 
 async def test_list_can_edit_default_agent_requires_superadmin():
-    assert compute_list_can_edit("admin", None, active_settings_count=0) is False
-    assert compute_list_can_edit("superadmin", None, active_settings_count=0) is True
+    assert compute_list_can_edit(1, _AGENT_UPDATE, None, active_settings_count=0) is False
+    assert compute_list_can_edit(0, _AGENT_UPDATE, None, active_settings_count=0) is True
 
 
 # ---------- compute_can_delete ----------
 
 
 async def test_can_delete_admin_no_settings():
-    assert compute_can_delete("admin", active_settings_count=0) is True
+    assert compute_can_delete(1, _AGENT_DELETE, active_settings_count=0) is True
 
 
 async def test_can_delete_blocked_by_settings():
-    assert compute_can_delete("admin", active_settings_count=2) is False
+    assert compute_can_delete(1, _AGENT_DELETE, active_settings_count=2) is False
 
 
 async def test_can_delete_denied_for_member():
-    assert compute_can_delete("member", active_settings_count=0) is False
+    assert compute_can_delete(3, _NO_PERMS, active_settings_count=0) is False
 
 
 # ---------- compute_can_duplicate ----------
 
 
 async def test_can_duplicate_admin():
-    assert compute_can_duplicate("admin") is True
+    assert compute_can_duplicate(1, _AGENT_DUPLICATE) is True
 
 
 async def test_can_duplicate_denied_for_member():
-    assert compute_can_duplicate("member") is False
+    assert compute_can_duplicate(3, _NO_PERMS) is False
 
 
 # ---------- compute_can_create ----------
 
 
 async def test_can_create_admin_with_departments():
-    assert compute_can_create("admin", [str(uuid4())]) is True
+    assert compute_can_create(1, _AGENT_CREATE, [str(uuid4())]) is True
 
 
 async def test_can_create_non_superadmin_no_departments():
-    assert compute_can_create("admin", None) is False
-    assert compute_can_create("admin", []) is False
+    assert compute_can_create(1, _AGENT_CREATE, None) is False
+    assert compute_can_create(1, _AGENT_CREATE, []) is False
 
 
 async def test_can_create_superadmin_no_departments():
-    assert compute_can_create("superadmin", None) is True
+    assert compute_can_create(0, _AGENT_CREATE, None) is True
 
 
 async def test_can_create_denied_for_member():
-    assert compute_can_create("member", [str(uuid4())]) is False
+    assert compute_can_create(3, _NO_PERMS, [str(uuid4())]) is False
 
 
 # ---------- compute_can_draft ----------
 
 
 async def test_can_draft_admin():
-    assert compute_can_draft("admin") is True
+    assert compute_can_draft(1, _AGENT_DRAFT) is True
 
 
 async def test_can_draft_denied_for_member():
-    assert compute_can_draft("member") is False
+    assert compute_can_draft(3, _NO_PERMS) is False
 
 
 # ---------- get_missing_tools ----------

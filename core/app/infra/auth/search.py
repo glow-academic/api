@@ -194,14 +194,14 @@ async def search_auth_impl(
         item_count = len(a.item_ids or [])
 
         can_edit = compute_can_edit(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             active_settings_count=active_settings_count,
         )
         can_delete = compute_can_delete(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             active_settings_count=active_settings_count,
         )
-        can_duplicate = compute_can_duplicate(user_role=user_role)
+        can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
         auths_list.append(
             ListAuthApiAuth(

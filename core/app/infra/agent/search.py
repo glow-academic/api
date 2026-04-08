@@ -208,15 +208,15 @@ async def search_agent_impl(
         model_id = a.model_ids[0] if a.model_ids else None
 
         can_edit_val = compute_list_can_edit(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             agent_department_ids=dept_ids_str,
             active_settings_count=0,
         )
         can_delete_val = compute_can_delete(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             active_settings_count=0,
         )
-        can_duplicate_val = compute_can_duplicate(user_role)
+        can_duplicate_val = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
         model_name = None
         model_description = None

@@ -279,17 +279,17 @@ async def search_provider_impl(
         active_model_count = provider_model_counts.get(a.id, 0)
 
         can_edit = compute_can_edit(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             provider_department_ids=dept_ids,
             active_model_count=active_model_count,
             user_department_ids=user_department_ids,
         )
         can_delete = compute_can_delete(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             provider_department_ids=[str(d) for d in dept_ids],
             active_model_count=active_model_count,
         )
-        can_duplicate = compute_can_duplicate(user_role=user_role)
+        can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
         providers_list.append(
             ListProviderApiProvider(

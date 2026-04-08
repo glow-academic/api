@@ -64,13 +64,12 @@ async def create_profile_identity_fixture(
             expected_role_description = role_description
             role_res = await create_role(
                 conn,
-                role=expected_role,
+                redis_client,
                 name=expected_role_name,
                 description=role_description,
-                redis=redis_client,
             )
             role_ids = [role_res.id]
-            expected_role_artifacts = role_res.artifacts
+            expected_role_artifacts = []
 
         department_ids = None
         if departments is not None:
@@ -141,10 +140,8 @@ async def create_setting_graph_fixture(
         create_profile as create_profile_artifact,
     )
     from app.tools.resources.agents.create import create_agent
-    from app.tools.resources.artifacts.create import create_artifact
     from app.tools.resources.departments.create import create_department
     from app.tools.resources.names.create import create_name
-    from app.tools.resources.operations.create import create_operation
     from app.tools.resources.profiles.create import (
         create_profile as create_profile_resource,
     )
@@ -164,18 +161,10 @@ async def create_setting_graph_fixture(
             description="Graph profile resource",
         )
 
-        operation_res = await create_operation(conn, tool_operation, redis_client)
-        artifact_rows = [
-            await create_artifact(conn, artifact_name, redis_client)
-            for artifact_name in artifacts
-        ]
-
         tool_res = await create_tool(
             conn,
             name=f"tool-{tag}",
             description="Graph tool",
-            operation=operation_res.operation,
-            artifacts=[row.artifact for row in artifact_rows],
             redis=redis_client,
         )
         agent_res = await create_agent(
@@ -223,10 +212,10 @@ async def create_setting_graph_fixture(
         system_id=system_res.id,
         agent_id=agent_res.id,
         tool_id=tool_res.id,
-        operation=operation_res.operation,
+        operation=tool_operation,
         resources=[],
         entries=[],
-        artifacts=[row.artifact for row in artifact_rows],
+        artifacts=artifacts,
     )
 
 

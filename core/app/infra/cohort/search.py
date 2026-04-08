@@ -150,7 +150,7 @@ async def search_cohort_impl(
         )
 
     if not cohort_ids_result:
-        return _empty_response(actor_name, user_role, total_count=0)
+        return _empty_response(actor_name, total_count=0)
 
     # -- Step 4: Get cohort artifacts with junction IDs --
     async with pool.acquire() as conn:
@@ -295,16 +295,16 @@ async def search_cohort_impl(
         is_member = user_profiles_id in set(a.profiles_ids or [])
 
         can_edit_val = compute_can_edit(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             cohort_department_ids=dept_ids_str,
             user_department_ids=user_department_ids,
         )
         can_delete_val = compute_can_delete(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             cohort_department_ids=dept_ids_str,
             usage_count=len(a.profiles_ids or []),
         )
-        can_duplicate_val = compute_can_duplicate(user_role)
+        can_duplicate_val = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
         can_leave_val = compute_can_leave(is_member=is_member)
 
         api_cohorts.append(
@@ -371,7 +371,7 @@ async def search_cohort_impl(
 
     return ListCohortApiResponse(
         actor_name=actor_name,
-        user_role=user_role,
+        role_level=user_role_level, role_permissions=profile.role_permissions,
         cohorts=api_cohorts,
         profiles=api_profiles,
         simulations=api_simulations,
@@ -389,12 +389,12 @@ async def search_cohort_impl(
 
 def _empty_response(
     actor_name: str | None = None,
-    user_role: str | None = None,
+    role_level: int = 99,
     total_count: int = 0,
 ) -> ListCohortApiResponse:
     return ListCohortApiResponse(
         actor_name=actor_name,
-        user_role=user_role,
+        role_level=user_role_level, role_permissions=profile.role_permissions,
         cohorts=[],
         profiles=[],
         simulations=[],

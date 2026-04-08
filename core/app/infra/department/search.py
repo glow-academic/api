@@ -201,14 +201,14 @@ async def search_department_impl(
         is_inactive = not a.active
 
         can_edit = compute_can_edit(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             usage_count=total_usage,
         )
         can_delete = compute_can_delete(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             total_usage=total_usage,
         )
-        can_duplicate = compute_can_duplicate(user_role=user_role)
+        can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
         departments.append(
             ListDepartmentApiDepartment(

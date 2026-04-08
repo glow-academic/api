@@ -38,6 +38,8 @@ class _FakeProfile:
     department_ids: list = field(default_factory=list)
     group_id: UUID = field(default_factory=uuid4)
     session_id: UUID = None
+    role_level: int = 1
+    role_permissions: list = field(default_factory=lambda: [("persona", "create"), ("persona", "update"), ("persona", "delete"), ("persona", "duplicate"), ("persona", "draft")])
 
 
 @dataclass
@@ -121,7 +123,7 @@ class TestBuildPersonaGetResult:
 
     async def test_can_edit_reflects_permissions(self):
         """Admin with matching departments and no active scenarios should be able to edit."""
-        profile = _FakeProfile(role="superadmin", department_ids=[_DEPT_ID])
+        profile = _FakeProfile(role="superadmin", department_ids=[_DEPT_ID], role_level=0)
         common = _FakeCommonContext(profile=profile)
         persona = _make_persona_context(artifact_id=uuid4())
         scores = _FakeToolScores()

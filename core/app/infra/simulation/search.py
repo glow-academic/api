@@ -292,17 +292,17 @@ async def search_simulation_impl(
         cohort_usage = cohort_count_map.get(a.id, 0)
 
         can_edit_val = compute_can_edit(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             simulation_department_ids=dept_ids_str,
             cohort_usage_count=cohort_usage,
             user_department_ids=user_department_ids,
         )
         can_delete_val = compute_can_delete(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             simulation_department_ids=dept_ids_str,
             cohort_usage_count=cohort_usage,
         )
-        can_duplicate_val = compute_can_duplicate(user_role)
+        can_duplicate_val = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
         # Determine practice flag from flags junction
         is_inactive = not a.active

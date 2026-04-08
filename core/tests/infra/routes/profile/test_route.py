@@ -48,10 +48,9 @@ async def _create_profile_route_resources(pool, redis_client) -> ProfileRouteRes
         )
         role_res = await create_role(
             conn,
-            role="member",
+            redis_client,
             name=f"Route Member {tag}",
             description=f"Route member role {tag}",
-            redis=redis_client,
         )
         department_res = await create_department(conn, redis=redis_client)
 

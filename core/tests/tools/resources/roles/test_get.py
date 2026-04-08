@@ -11,17 +11,15 @@ pytestmark = pytest.mark.asyncio
 
 async def test_gets_created_role(conn, redis_client):
     created = await create_role(
-        conn, "admin", redis_client, name="Admin Role", description="desc"
+        conn, redis_client, name="Admin Role", description="desc"
     )
 
     items = await get_roles(conn, [created.id], redis_client)
 
     assert len(items) == 1
     assert items[0].id == created.id
-    assert items[0].role == "admin"
     assert items[0].name == "Admin Role"
     assert items[0].description == "desc"
-    assert items[0].artifacts == []
     assert items[0].active is True
 
 
@@ -38,7 +36,7 @@ async def test_returns_empty_for_empty_ids(conn, redis_client):
 
 
 async def test_cache_hit_skips_db(conn, redis_client):
-    created = await create_role(conn, "guest", redis_client, name="Guest Role")
+    created = await create_role(conn, redis_client, name="Guest Role")
 
     # First call populates cache
     items = await get_roles(conn, [created.id], redis_client)
@@ -51,7 +49,7 @@ async def test_cache_hit_skips_db(conn, redis_client):
 
 
 async def test_bypass_cache_skips_read_and_write(conn, redis_client):
-    created = await create_role(conn, "member", redis_client, name="Member Role")
+    created = await create_role(conn, redis_client, name="Member Role")
 
     items = await get_roles(conn, [created.id], redis_client, bypass_cache=True)
     assert len(items) == 1

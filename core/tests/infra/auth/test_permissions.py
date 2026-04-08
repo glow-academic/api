@@ -26,40 +26,48 @@ from app.infra.auth.permissions import (
 
 pytestmark = pytest.mark.asyncio
 
+# Permission tuples for auth operations
+_AUTH_UPDATE = [("auth", "update")]
+_AUTH_DELETE = [("auth", "delete")]
+_AUTH_DUPLICATE = [("auth", "duplicate")]
+_AUTH_CREATE = [("auth", "create")]
+_AUTH_DRAFT = [("auth", "draft")]
+_NO_PERMS = []
+
 
 # ---------- compute_can_edit ----------
 
 
 async def test_can_edit_superadmin_no_active_settings():
-    assert compute_can_edit(user_role="superadmin", active_settings_count=0) is True
+    assert compute_can_edit(role_level=0, role_permissions=_AUTH_UPDATE, active_settings_count=0) is True
 
 
 async def test_can_edit_blocked_by_active_settings():
-    assert compute_can_edit(user_role="superadmin", active_settings_count=3) is False
+    assert compute_can_edit(role_level=0, role_permissions=_AUTH_UPDATE, active_settings_count=3) is False
 
 
 async def test_can_edit_denied_for_non_superadmin():
-    assert compute_can_edit(user_role="admin", active_settings_count=0) is False
-    assert compute_can_edit(user_role="member", active_settings_count=0) is False
-    assert compute_can_edit(user_role=None, active_settings_count=0) is False
+    assert compute_can_edit(role_level=1, role_permissions=_NO_PERMS, active_settings_count=0) is False
+    assert compute_can_edit(role_level=3, role_permissions=_NO_PERMS, active_settings_count=0) is False
+    assert compute_can_edit(role_level=99, role_permissions=_NO_PERMS, active_settings_count=0) is False
 
 
 # ---------- compute_disabled_reason ----------
 
 
 async def test_disabled_reason_none_for_superadmin():
-    result = compute_disabled_reason(user_role="superadmin", active_settings_count=0)
+    result = compute_disabled_reason(role_permissions=_AUTH_UPDATE, active_settings_count=0)
     assert result is None
 
 
 async def test_disabled_reason_active_settings():
-    result = compute_disabled_reason(user_role="superadmin", active_settings_count=1)
+    result = compute_disabled_reason(role_permissions=_AUTH_UPDATE, active_settings_count=1)
     assert result is not None
     assert "linked to settings" in result
 
 
 async def test_disabled_reason_non_superadmin():
-    result = compute_disabled_reason(user_role="admin", active_settings_count=0)
+    result = compute_disabled_reason(role_permissions=_NO_PERMS, active_settings_count=0)
     assert result is not None
     assert "cannot be edited" in result
 
@@ -68,65 +76,65 @@ async def test_disabled_reason_non_superadmin():
 
 
 async def test_can_delete_superadmin_no_settings():
-    assert compute_can_delete(user_role="superadmin", active_settings_count=0) is True
+    assert compute_can_delete(role_level=0, role_permissions=_AUTH_DELETE, active_settings_count=0) is True
 
 
 async def test_can_delete_blocked_by_active_settings():
-    assert compute_can_delete(user_role="superadmin", active_settings_count=1) is False
+    assert compute_can_delete(role_level=0, role_permissions=_AUTH_DELETE, active_settings_count=1) is False
 
 
 async def test_can_delete_denied_for_admin():
-    assert compute_can_delete(user_role="admin", active_settings_count=0) is False
+    assert compute_can_delete(role_level=1, role_permissions=_NO_PERMS, active_settings_count=0) is False
 
 
 # ---------- compute_can_duplicate ----------
 
 
 async def test_can_duplicate_superadmin():
-    assert compute_can_duplicate(user_role="superadmin") is True
+    assert compute_can_duplicate(role_level=0, role_permissions=_AUTH_DUPLICATE) is True
 
 
 async def test_can_duplicate_denied_for_admin():
-    assert compute_can_duplicate(user_role="admin") is False
+    assert compute_can_duplicate(role_level=1, role_permissions=_NO_PERMS) is False
 
 
 async def test_can_duplicate_denied_for_none():
-    assert compute_can_duplicate(user_role=None) is False
+    assert compute_can_duplicate(role_level=99, role_permissions=_NO_PERMS) is False
 
 
 # ---------- compute_can_create ----------
 
 
 async def test_can_create_superadmin():
-    assert compute_can_create(user_role="superadmin") is True
+    assert compute_can_create(role_level=0, role_permissions=_AUTH_CREATE) is True
 
 
 async def test_can_create_denied_for_admin():
-    assert compute_can_create(user_role="admin") is False
+    assert compute_can_create(role_level=1, role_permissions=_NO_PERMS) is False
 
 
 # ---------- compute_can_draft ----------
 
 
 async def test_can_draft_superadmin():
-    assert compute_can_draft(user_role="superadmin") is True
+    assert compute_can_draft(role_level=0, role_permissions=_AUTH_DRAFT) is True
 
 
 async def test_can_draft_denied_for_member():
-    assert compute_can_draft(user_role="member") is False
+    assert compute_can_draft(role_level=3, role_permissions=_NO_PERMS) is False
 
 
 # ---------- has_access ----------
 
 
 async def test_has_access_authenticated_profile():
-    assert has_access(user_role="superadmin") is True
-    assert has_access(user_role="admin") is True
-    assert has_access(user_role="member") is True
+    assert has_access(role_level=0) is True
+    assert has_access(role_level=1) is True
+    assert has_access(role_level=3) is True
 
 
 async def test_has_access_denied_for_none():
-    assert has_access(user_role=None) is False
+    assert has_access(role_level=None) is False
 
 
 # ---------- show flags ----------

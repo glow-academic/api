@@ -107,7 +107,7 @@ async def search_setting_impl(
         )
 
     if not setting_ids:
-        return _empty_response(actor_name, user_role)
+        return _empty_response(actor_name)
 
     # ── Step 3: Get setting artifacts with junction IDs ────────────────
 
@@ -167,15 +167,15 @@ async def search_setting_impl(
         dept_ids_str = [str(d) for d in (a.department_ids or [])]
 
         can_edit = compute_can_edit(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             setting_department_ids=dept_ids_str,
             user_department_ids=user_department_ids,
         )
         can_delete = compute_can_delete(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             setting_department_ids=dept_ids_str,
         )
-        can_duplicate = compute_can_duplicate(user_role)
+        can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
         settings_list.append(
             ListSettingApiSetting(
@@ -193,7 +193,7 @@ async def search_setting_impl(
 
     return ListSettingApiResponse(
         actor_name=actor_name,
-        user_role=user_role,
+        role_level=user_role_level, role_permissions=profile.role_permissions,
         settings=settings_list,
         keys=None,
     )
@@ -204,11 +204,11 @@ async def search_setting_impl(
 
 def _empty_response(
     actor_name: str | None = None,
-    user_role: str | None = None,
+    role_level: int = 99,
 ) -> ListSettingApiResponse:
     return ListSettingApiResponse(
         actor_name=actor_name,
-        user_role=user_role,
+        role_level=user_role_level, role_permissions=profile.role_permissions,
         settings=[],
         keys=None,
     )

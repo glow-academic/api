@@ -17,6 +17,8 @@ class _FakeProfile:
     name: str = "Test User"
     group_id: object = None
     department_ids: list = None
+    role_level: int = 0
+    role_permissions: list = None
 
 
 class _FakeTx:
@@ -60,7 +62,7 @@ async def test_create_raises_401_for_unknown_profile(monkeypatch):
 
 async def test_create_raises_403_for_non_superadmin(monkeypatch):
     async def mock_resolve(pool, pid, redis, **kw):
-        return _FakeProfile(profiles_id=uuid4(), role="member")
+        return _FakeProfile(profiles_id=uuid4(), role="member", role_level=3, role_permissions=[])
 
     monkeypatch.setattr(
         "app.infra.auth.create.resolve_profile_identity_context", mock_resolve
@@ -75,7 +77,7 @@ async def test_create_raises_403_for_non_superadmin(monkeypatch):
 
 async def test_create_returns_results_for_empty_items(monkeypatch):
     async def mock_resolve(pool, pid, redis, **kw):
-        return _FakeProfile(profiles_id=uuid4(), role="superadmin")
+        return _FakeProfile(profiles_id=uuid4(), role="superadmin", role_level=0, role_permissions=[("auth", "create"), ("auth", "update"), ("auth", "delete"), ("auth", "duplicate"), ("auth", "draft")])
 
     async def mock_invalidate(tags, redis=None):
         pass

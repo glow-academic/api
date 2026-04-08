@@ -47,6 +47,7 @@ def _profile_context(
         settings_id=None,
         requests_per_day=100,
         is_active=True,
+        role_level=0,
     )
 
 

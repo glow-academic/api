@@ -21,6 +21,8 @@ class _FakeProfile:
     department_ids = []
     group_id = uuid4()
     session_id = None
+    role_level = 1
+    role_permissions = []
 
 
 class _FakeConn:

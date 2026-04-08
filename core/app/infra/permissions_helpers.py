@@ -8,11 +8,13 @@ All checks use two mechanisms:
 
 
 def has_permission(
-    role_permissions: list[tuple[str, str]] | set[tuple[str, str]],
+    role_permissions: list[tuple[str, str]] | set[tuple[str, str]] | None,
     artifact: str,
     operation: str,
 ) -> bool:
     """Check if the role has a specific (artifact, operation) permission."""
+    if role_permissions is None:
+        return False
     return (artifact, operation) in role_permissions
 
 

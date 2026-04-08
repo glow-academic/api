@@ -450,17 +450,17 @@ async def search_scenario_impl(
         num_simulations = sim_count_map.get(a.id, 0)
 
         can_edit_val = compute_can_edit(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             scenario_department_ids=dept_ids_str,
             active_simulation_count=num_simulations,
             user_department_ids=user_department_ids,
         )
         can_delete_val = compute_can_delete(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             scenario_department_ids=dept_ids_str,
             active_simulation_count=num_simulations,
         )
-        can_duplicate_val = compute_can_duplicate(user_role)
+        can_duplicate_val = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
         api_scenarios.append(
             ListScenarioApiScenario(

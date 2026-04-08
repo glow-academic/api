@@ -31,6 +31,7 @@ def test_build_scenario_get_result_builds_canonical_response():
             settings_id=None,
             requests_per_day=None,
             is_active=True,
+            role_level=0,
             session_id=None,
             group_id=group_id,
         ),

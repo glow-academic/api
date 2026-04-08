@@ -26,6 +26,8 @@ async def test_draft_raises_403_for_non_superadmin(monkeypatch):
         name: str = "U"
         group_id: object = None
         department_ids: list = None
+        role_level: int = 3
+        role_permissions: list = None
     async def mock_resolve(pool, pid, redis, **kw):
         return P(profiles_id=uuid4())
     monkeypatch.setattr("app.infra.auth.draft.resolve_profile_identity_context", mock_resolve)

@@ -221,17 +221,17 @@ async def search_field_impl(
         is_inactive = not a.active
 
         can_edit = compute_can_edit(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             field_department_ids=dept_ids_str,
             active_parameter_count=active_param_count,
             user_department_ids=user_department_ids,
         )
         can_delete = compute_can_delete(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             field_department_ids=dept_ids_str,
             active_parameter_count=active_param_count,
         )
-        can_duplicate = compute_can_duplicate(user_role)
+        can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
         fields.append(
             ListFieldApiField(

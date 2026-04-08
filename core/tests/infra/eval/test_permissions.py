@@ -22,63 +22,141 @@ _OTHER = uuid4()
 
 class TestComputeCanEdit:
     async def test_superadmin_can_edit(self):
-        assert compute_can_edit("superadmin") is True
+        assert (
+            compute_can_edit(
+                role_level=0,
+                role_permissions=[("eval", "update")],
+            )
+            is True
+        )
 
     async def test_admin_cannot_edit(self):
-        assert compute_can_edit("admin") is False
+        assert (
+            compute_can_edit(
+                role_level=1,
+                role_permissions=[],
+            )
+            is False
+        )
 
     async def test_member_cannot_edit(self):
-        assert compute_can_edit("member") is False
+        assert (
+            compute_can_edit(
+                role_level=3,
+                role_permissions=[],
+            )
+            is False
+        )
 
 
 class TestComputeDisabledReason:
     async def test_returns_none_for_superadmin(self):
-        assert compute_disabled_reason("superadmin") is None
+        assert (
+            compute_disabled_reason(
+                role_level=0,
+                role_permissions=[("eval", "update")],
+            )
+            is None
+        )
 
     async def test_returns_reason_for_admin(self):
-        reason = compute_disabled_reason("admin")
+        reason = compute_disabled_reason(
+            role_level=1,
+            role_permissions=[],
+        )
         assert reason is not None
 
     async def test_returns_reason_for_low_role(self):
-        reason = compute_disabled_reason("admin")
+        reason = compute_disabled_reason(
+            role_level=1,
+            role_permissions=[],
+        )
         assert reason is not None
 
 
 class TestHasAccess:
     async def test_superadmin_always_has_access(self):
-        assert has_access("superadmin", None, [_DEPT]) is True
+        assert has_access(role_level=0, user_department_ids=None, eval_department_ids=[_DEPT]) is True
 
     async def test_no_entity_departments_means_accessible(self):
-        assert has_access("member", [_DEPT], None) is True
+        assert has_access(role_level=3, user_department_ids=[_DEPT], eval_department_ids=None) is True
 
     async def test_overlap_grants_access(self):
-        assert has_access("admin", [_DEPT], [_DEPT]) is True
+        assert has_access(role_level=1, user_department_ids=[_DEPT], eval_department_ids=[_DEPT]) is True
 
     async def test_no_overlap_denies_access(self):
-        assert has_access("admin", [_DEPT], [_OTHER]) is False
+        assert has_access(role_level=1, user_department_ids=[_DEPT], eval_department_ids=[_OTHER]) is False
 
 
 class TestCanDeleteDuplicateCreateDraft:
     async def test_can_delete_superadmin(self):
-        assert compute_can_delete("superadmin") is True
+        assert (
+            compute_can_delete(
+                role_level=0,
+                role_permissions=[("eval", "delete")],
+            )
+            is True
+        )
 
     async def test_can_delete_admin_denied(self):
-        assert compute_can_delete("admin") is False
+        assert (
+            compute_can_delete(
+                role_level=1,
+                role_permissions=[],
+            )
+            is False
+        )
 
     async def test_can_duplicate_granted(self):
-        assert compute_can_duplicate("superadmin") is True
+        assert (
+            compute_can_duplicate(
+                role_level=0,
+                role_permissions=[("eval", "duplicate")],
+            )
+            is True
+        )
 
     async def test_can_duplicate_denied(self):
-        assert compute_can_duplicate("member") is False
+        assert (
+            compute_can_duplicate(
+                role_level=3,
+                role_permissions=[],
+            )
+            is False
+        )
 
     async def test_superadmin_can_create(self):
-        assert compute_can_create("superadmin") is True
+        assert (
+            compute_can_create(
+                role_level=0,
+                role_permissions=[("eval", "create")],
+            )
+            is True
+        )
 
     async def test_admin_cannot_create(self):
-        assert compute_can_create("admin") is False
+        assert (
+            compute_can_create(
+                role_level=1,
+                role_permissions=[],
+            )
+            is False
+        )
 
     async def test_can_draft_granted(self):
-        assert compute_can_draft("superadmin") is True
+        assert (
+            compute_can_draft(
+                role_level=0,
+                role_permissions=[("eval", "draft")],
+            )
+            is True
+        )
 
     async def test_can_draft_denied(self):
-        assert compute_can_draft("member") is False
+        assert (
+            compute_can_draft(
+                role_level=3,
+                role_permissions=[],
+            )
+            is False
+        )

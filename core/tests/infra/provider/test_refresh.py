@@ -17,6 +17,8 @@ class _FakeProfile:
     name: str = "Test User"
     group_id: object = None
     department_ids: list = None
+    role_level: int = 0
+    role_permissions: list = None
 
 
 class _FakeConnCtx:

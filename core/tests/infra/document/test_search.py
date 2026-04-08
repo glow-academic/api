@@ -30,6 +30,8 @@ class _FakeProfile:
     is_active = True
     session_id = None
     group_id = uuid4()
+    role_level = 1
+    role_permissions = []
 
 
 class _FakeConn:

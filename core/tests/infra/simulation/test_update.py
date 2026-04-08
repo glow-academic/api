@@ -26,6 +26,8 @@ async def test_update_returns_empty_results_for_no_items(monkeypatch):
         name: str = "U"
         group_id: object = None
         department_ids: list = None
+        role_level: int = 0
+        role_permissions: list = None
     async def mock_resolve(pool, pid, redis, **kw):
         return P(profiles_id=uuid4())
     async def mock_invalidate(tags, redis=None):

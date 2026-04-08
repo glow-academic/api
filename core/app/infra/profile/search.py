@@ -274,18 +274,18 @@ async def search_profile_impl(
         target_is_self = a.id == profile_id
 
         can_edit = compute_can_edit(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             target_is_self=target_is_self,
             target_department_ids=None,
             target_role=target_role,
             user_department_ids=user_department_ids,
         )
         can_delete = compute_can_delete(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             target_is_self=target_is_self,
             target_role=target_role,
         )
-        can_duplicate = compute_can_duplicate(user_role)
+        can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
         profiles_list.append(
             ListProfilesApiProfile(

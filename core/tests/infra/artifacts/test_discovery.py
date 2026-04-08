@@ -146,7 +146,6 @@ async def test_get_resource_output_schema_fields_reads_tool_args_outputs(
         redis=redis_client,
         args_ids=[arg.id],
         args_output_ids=[output_one.id, output_two.id],
-        operation="create",
     )
 
     fields = await get_resource_output_schema_fields(conn, str(tool.id))
@@ -187,7 +186,6 @@ async def test_map_template_values_to_table_columns_uses_tool_output_template_ma
         redis=redis_client,
         args_ids=[arg.id],
         args_output_ids=[output.id],
-        operation="create",
     )
 
     mapped = await map_template_values_to_table_columns(
@@ -218,7 +216,6 @@ async def test_map_template_values_to_table_columns_falls_back_when_column_missi
         redis=redis_client,
         args_ids=[arg.id],
         args_output_ids=[output.id],
-        operation="create",
     )
 
     mapped = await map_template_values_to_table_columns(

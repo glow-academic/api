@@ -246,17 +246,17 @@ async def search_model_impl(
         dept_ids = [str(d) for d in (a.department_ids or [])]
 
         can_edit = compute_can_edit(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             model_department_ids=dept_ids,
             active_agent_count=0,
             user_department_ids=user_department_ids,
         )
         can_delete = compute_can_delete(
-            user_role=user_role,
+            role_level=user_role_level, role_permissions=profile.role_permissions,
             model_department_ids=dept_ids,
             active_agent_count=0,
         )
-        can_duplicate = compute_can_duplicate(user_role)
+        can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
         models_list.append(
             ListModelApiModel(

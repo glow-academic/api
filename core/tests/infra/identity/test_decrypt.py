@@ -29,6 +29,7 @@ def _identity(*, name: str = "Alice") -> ProfileIdentityContext:
         settings_id=uuid4(),
         requests_per_day=100,
         is_active=True,
+        role_level=1,
     )
 
 

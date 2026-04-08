@@ -15,6 +15,8 @@ class _P:
     name: str = "U"
     group_id: object = None
     department_ids: list = None
+    role_level: int = 0
+    role_permissions: list = None
 
 
 class _Ctx:
