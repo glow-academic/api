@@ -775,13 +775,35 @@ async def attempt_start_impl(
         logger.exception(f"Invalid attempt_start payload: {e}")
         return
 
+    # --- Resolve user identity for ledger (lightweight) ---
+    _ledger_email: str | None = None
+    _ledger_name: str | None = None
+    try:
+        _identity_for_ledger = await resolve_profile_identity_context(
+            pool, profile_id_uuid, redis or Redis(), bypass_cache=False,
+        )
+        if _identity_for_ledger:
+            _ledger_email = _identity_for_ledger.primary_email
+            _ledger_name = _identity_for_ledger.name
+    except Exception:
+        pass  # Non-fatal — ledger works without user info
+
     # --- Ledger gate: verify usage before allowing attempt start ---
     try:
         from app.infra.ledger.gate import LedgerDenied, ledger_gate, record_start
 
         attempt_id_for_ledger = str(uuid.uuid4())
-        await ledger_gate(attempt_id=attempt_id_for_ledger)
-        record_start()
+        await ledger_gate(
+            attempt_id=attempt_id_for_ledger,
+            profile_id=profile_id,
+            email=_ledger_email,
+            name=_ledger_name,
+        )
+        record_start(
+            profile_id=profile_id,
+            email=_ledger_email,
+            name=_ledger_name,
+        )
     except LedgerDenied as e:
         logger.warning(f"Attempt blocked by ledger gate: {e.reason}")
         await emit(

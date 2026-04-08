@@ -6,12 +6,15 @@ from app.infra.ledger.chain import (
     GENESIS_HASH,
     count_entries,
     increment_counter,
+    increment_user_counter,
     read_counters,
     read_latest,
+    read_user_counters,
+    reset_user_counters,
     write_entry,
 )
 from app.infra.ledger.client import phone_home
-from app.infra.ledger.types import LedgerEntry, LearnLoopCheckpoint
+from app.infra.ledger.types import LedgerEntry, LearnLoopCheckpoint, UserUsage
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -27,23 +30,48 @@ class LedgerDenied(Exception):
         super().__init__(reason)
 
 
-def record_start() -> dict[str, int]:
+def record_start(
+    *,
+    profile_id: str | None = None,
+    email: str | None = None,
+    name: str | None = None,
+    role: str | None = None,
+) -> dict[str, int]:
     """Record an attempt start in the outcome counters."""
+    if profile_id:
+        increment_user_counter(profile_id, "started", email=email, name=name, role=role)
     return increment_counter("started")
 
 
-def record_completion(*, passed: bool) -> dict[str, int]:
+def record_completion(
+    *,
+    passed: bool,
+    profile_id: str | None = None,
+    email: str | None = None,
+    name: str | None = None,
+    role: str | None = None,
+) -> dict[str, int]:
     """Record an attempt completion in the outcome counters.
 
     Call with passed=True if the attempt met the passing threshold.
     """
+    if profile_id:
+        increment_user_counter(profile_id, "completed", email=email, name=name, role=role)
+        if passed:
+            increment_user_counter(profile_id, "passed")
     counters = increment_counter("completed")
     if passed:
         counters = increment_counter("passed")
     return counters
 
 
-async def ledger_gate(*, attempt_id: str) -> LedgerEntry:
+async def ledger_gate(
+    *,
+    attempt_id: str,
+    profile_id: str | None = None,
+    email: str | None = None,
+    name: str | None = None,
+) -> LedgerEntry:
     """Check the ledger, phone home if needed, and write the next entry.
 
     Returns the newly written LedgerEntry on success.
@@ -57,7 +85,12 @@ async def ledger_gate(*, attempt_id: str) -> LedgerEntry:
     needs_check = latest is None or latest.num_to_next_check <= 0
 
     if needs_check:
-        checkpoint = await _phone_home(latest)
+        checkpoint = await _phone_home(
+            latest,
+            profile_id=profile_id,
+            email=email,
+            name=name,
+        )
 
         if not checkpoint.authorized:
             raise LedgerDenied(
@@ -67,6 +100,7 @@ async def ledger_gate(*, attempt_id: str) -> LedgerEntry:
         entry = _build_entry(
             latest=latest,
             attempt_id=attempt_id,
+            profile_id=profile_id,
             is_checkpoint=True,
             checkpoint=checkpoint,
             num_left=checkpoint.num_left,
@@ -77,6 +111,7 @@ async def ledger_gate(*, attempt_id: str) -> LedgerEntry:
         entry = _build_entry(
             latest=latest,
             attempt_id=attempt_id,
+            profile_id=profile_id,
             is_checkpoint=False,
             checkpoint=None,
             num_left=latest.num_left - 1 if latest.num_left is not None else None,
@@ -97,11 +132,18 @@ async def ledger_gate(*, attempt_id: str) -> LedgerEntry:
 # ---------------------------------------------------------------------------
 
 
-async def _phone_home(latest: LedgerEntry | None) -> LearnLoopCheckpoint:
+async def _phone_home(
+    latest: LedgerEntry | None,
+    *,
+    profile_id: str | None = None,
+    email: str | None = None,
+    name: str | None = None,
+) -> LearnLoopCheckpoint:
     """Phone home to LearnLoop and return the checkpoint response.
 
     Always sends running totals (started, completed, passed) so LearnLoop
     can diff against its last known state. Self-healing if phone-homes fail.
+    Also sends per-user usage deltas since the last checkpoint.
     """
     current_sequence = latest.sequence if latest else 0
     current_hash = latest.hash if latest else GENESIS_HASH
@@ -112,21 +154,45 @@ async def _phone_home(latest: LedgerEntry | None) -> LearnLoopCheckpoint:
     # Read outcome counters (running totals)
     counters = read_counters()
 
+    # Build per-user usage from accumulated counters
+    user_counters = read_user_counters()
+    user_usage = [
+        UserUsage(
+            profile_id=pid,
+            email=data.get("email"),
+            name=data.get("name"),
+            role=data.get("role"),
+            started=data.get("started", 0),
+            completed=data.get("completed", 0),
+            passed=data.get("passed", 0),
+        )
+        for pid, data in user_counters.items()
+    ]
+
     logger.info(
         f"Phoning home to LearnLoop (sequence={current_sequence}, "
         f"attempts_since_last_check={attempts_since}, "
         f"started={counters['started']}, completed={counters['completed']}, "
-        f"passed={counters['passed']})"
+        f"passed={counters['passed']}, users={len(user_usage)})"
     )
 
-    return await phone_home(
+    checkpoint = await phone_home(
         current_sequence=current_sequence,
         current_hash=current_hash,
         attempts_since_last_check=attempts_since,
         started=counters["started"],
         completed=counters["completed"],
         passed=counters["passed"],
+        user_usage=user_usage,
+        current_profile_id=profile_id,
+        current_email=email,
+        current_name=name,
     )
+
+    # Reset per-user counters after successful phone-home (deltas reported)
+    reset_user_counters()
+
+    return checkpoint
 
 
 def _count_since_last_checkpoint(latest: LedgerEntry | None) -> int:
@@ -150,6 +216,7 @@ def _build_entry(
     *,
     latest: LedgerEntry | None,
     attempt_id: str,
+    profile_id: str | None = None,
     is_checkpoint: bool,
     checkpoint: LearnLoopCheckpoint | None,
     num_left: int | None,
@@ -160,6 +227,7 @@ def _build_entry(
         sequence=(latest.sequence + 1) if latest else 1,
         previous_hash=latest.hash if latest else GENESIS_HASH,
         attempt_id=attempt_id,
+        profile_id=profile_id,
         is_checkpoint=is_checkpoint,
         checkpoint=checkpoint,
         num_left=num_left,

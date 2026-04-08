@@ -88,6 +88,7 @@ def count_entries() -> int:
 # ---------------------------------------------------------------------------
 
 _COUNTERS_PATH = LEDGER_DIR / "_counters.json"
+_USER_COUNTERS_PATH = LEDGER_DIR / "_user_counters.json"
 
 
 def read_counters() -> dict[str, int]:
@@ -110,6 +111,54 @@ def increment_counter(field: str, count: int = 1) -> dict[str, int]:
     _ensure_dir()
     _COUNTERS_PATH.write_text(json.dumps(counters, indent=2) + "\n")
     return counters
+
+
+# ---------------------------------------------------------------------------
+# Per-user counters
+# ---------------------------------------------------------------------------
+
+def read_user_counters() -> dict[str, dict[str, Any]]:
+    """Read per-user outcome counters. Keyed by profile_id.
+
+    Returns: {"profile_id": {"email": "...", "name": "...", "role": "...", "started": N, ...}}
+    """
+    _ensure_dir()
+    if _USER_COUNTERS_PATH.exists():
+        return json.loads(_USER_COUNTERS_PATH.read_text())
+    return {}
+
+
+def increment_user_counter(
+    profile_id: str,
+    field: str,
+    *,
+    email: str | None = None,
+    name: str | None = None,
+    role: str | None = None,
+    count: int = 1,
+) -> dict[str, dict[str, Any]]:
+    """Increment a per-user counter and update user metadata."""
+    users = read_user_counters()
+    if profile_id not in users:
+        users[profile_id] = {"started": 0, "completed": 0, "passed": 0}
+    users[profile_id][field] = users[profile_id].get(field, 0) + count
+    # Update metadata on every call (in case name/email changed)
+    if email:
+        users[profile_id]["email"] = email
+    if name:
+        users[profile_id]["name"] = name
+    if role:
+        users[profile_id]["role"] = role
+    _ensure_dir()
+    _USER_COUNTERS_PATH.write_text(json.dumps(users, indent=2) + "\n")
+    return users
+
+
+def reset_user_counters() -> None:
+    """Reset per-user counters after a successful phone-home."""
+    _ensure_dir()
+    if _USER_COUNTERS_PATH.exists():
+        _USER_COUNTERS_PATH.write_text("{}\n")
 
 
 # ---------------------------------------------------------------------------

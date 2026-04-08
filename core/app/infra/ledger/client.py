@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from app.infra.ledger.types import LearnLoopCheckpoint
+from app.infra.ledger.types import LearnLoopCheckpoint, UserUsage
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -35,11 +35,20 @@ async def phone_home(
     started: int = 0,
     completed: int = 0,
     passed: int = 0,
+    user_usage: list[UserUsage] | None = None,
+    current_profile_id: str | None = None,
+    current_email: str | None = None,
+    current_name: str | None = None,
 ) -> LearnLoopCheckpoint:
     """Call LearnLoop to report usage and get authorization.
 
     Sends the current ledger state + outcome counters (running totals).
     LearnLoop diffs against its last known state to record deltas.
+
+    Also sends:
+    - user_usage: per-user deltas since last checkpoint (for auditing/billing)
+    - current_profile_id/email/name: the user requesting this attempt
+      (so LearnLoop can make per-user authorization decisions)
     """
     url = f"{_learnloop_url()}/provision/usage/check"
     payload: dict[str, Any] = {
@@ -50,6 +59,16 @@ async def phone_home(
         "completed": completed,
         "passed": passed,
     }
+    # Per-user usage deltas since last checkpoint
+    if user_usage:
+        payload["user_usage"] = [u.model_dump(exclude_none=True) for u in user_usage]
+    # Current user requesting this attempt (for per-user auth decisions)
+    if current_profile_id:
+        payload["current_user"] = {
+            "profile_id": current_profile_id,
+            **({"email": current_email} if current_email else {}),
+            **({"name": current_name} if current_name else {}),
+        }
     headers = {
         "Authorization": f"Bearer {_deployment_token()}",
     }
