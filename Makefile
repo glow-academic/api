@@ -254,10 +254,17 @@ migrate: check-venv
 	@echo "Restoring from fresh template..."
 	@DB_BACKUP=fresh.sql.gz bash database/scripts/start.sh
 	@echo ""
-	@echo "Applying all migrations..."
+	@echo "Applying additive migrations..."
 	@export PGPASSWORD="$${DB_PASSWORD:-mypassword}"; \
-	for f in $$(ls database/migrate/*.sql 2>/dev/null | sort); do \
-		echo "  Applying: $$(basename $$f)"; \
+	for f in $$(ls database/migrate/add/*.sql 2>/dev/null | sort); do \
+		echo "  Applying (add): $$(basename $$f)"; \
+		psql -h "$${DB_HOST:-localhost}" -p "$${DB_PORT:-5432}" -U "$${DB_USER:-myuser}" -d "$${DB_NAME:-glowapi}" -v ON_ERROR_STOP=1 -f "$$f" > /dev/null; \
+	done
+	@echo "Applying destructive migrations..."
+	@export PGPASSWORD="$${DB_PASSWORD:-mypassword}"; \
+	for f in $$(ls database/migrate/remove/*.sql 2>/dev/null | sort); do \
+		case "$$f" in *.gitkeep) continue;; esac; \
+		echo "  Applying (remove): $$(basename $$f)"; \
 		psql -h "$${DB_HOST:-localhost}" -p "$${DB_PORT:-5432}" -U "$${DB_USER:-myuser}" -d "$${DB_NAME:-glowapi}" -v ON_ERROR_STOP=1 -f "$$f" > /dev/null; \
 	done
 	@echo "Updating schema.sql..."
