@@ -21,11 +21,19 @@ ALTER TABLE profiles_resource ADD COLUMN IF NOT EXISTS role_id UUID;
 -- 4. Enhance request_limits_resource
 --    Rename requests_per_day → "limit" (generic count)
 --    Add interval column (native Postgres INTERVAL type)
-ALTER TABLE request_limits_resource RENAME COLUMN requests_per_day TO "limit";
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'request_limits_resource' AND column_name = 'requests_per_day') THEN
+    ALTER TABLE request_limits_resource RENAME COLUMN requests_per_day TO "limit";
+  END IF;
+END $$;
 ALTER TABLE request_limits_resource ADD COLUMN IF NOT EXISTS "interval" INTERVAL NOT NULL DEFAULT INTERVAL '1 day';
 
 -- 5. Add unique constraint on name (replaces old UNIQUE(role, name))
-ALTER TABLE roles_resource ADD CONSTRAINT roles_resource_name_unique UNIQUE (name);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'roles_resource_name_unique') THEN
+    ALTER TABLE roles_resource ADD CONSTRAINT roles_resource_name_unique UNIQUE (name);
+  END IF;
+END $$;
 
 -- 6. Track migration
 INSERT INTO migration_tracking (migration_number, migration_file, migration_type) VALUES
