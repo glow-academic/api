@@ -86,7 +86,7 @@ async def delete_field_impl(
             active_parameter_count = len(active_parameter_ids)
 
             if not compute_can_delete(
-                user_role=profile.role,
+                role_level=profile.role_level, role_permissions=profile.role_permissions,
                 field_department_ids=ctx.department_ids,
                 active_parameter_count=active_parameter_count,
             ):

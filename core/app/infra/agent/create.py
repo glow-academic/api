@@ -75,7 +75,7 @@ async def create_agent_impl(
     # ── Step 2: Permission check ───────────────────────────────────────
 
     if not compute_can_create(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         user_department_ids=profile.department_ids,
     ):
         raise HTTPException(

@@ -133,7 +133,7 @@ async def get_model_impl(
                 detail=f"Model {model_id} not found",
             )
 
-        if not has_access(profile.role, profile.department_ids, perms.department_ids):
+        if not has_access(profile.role_level, profile.department_ids, perms.department_ids):
             raise HTTPException(
                 status_code=403,
                 detail="You don't have access to this model. It may be restricted to other departments.",
@@ -171,14 +171,14 @@ async def get_model_impl(
     active_agent_count = perms.active_agent_count if perms else 0
 
     can_edit = compute_can_edit(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         model_department_ids=perms_department_ids,
         active_agent_count=active_agent_count,
         user_department_ids=profile.department_ids,
     )
 
     disabled_reason = compute_disabled_reason(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         model_department_ids=perms_department_ids,
         active_agent_count=active_agent_count,
     )

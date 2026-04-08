@@ -83,7 +83,7 @@ async def update_tool_impl(
                     detail=f"Item {idx}: Tool {item.tool_id} not found.",
                 )
             if not compute_can_edit(
-                user_role=profile.role,
+                role_level=profile.role_level, role_permissions=profile.role_permissions,
                 active_agent_count=perms.active_agent_count,
             ):
                 raise HTTPException(

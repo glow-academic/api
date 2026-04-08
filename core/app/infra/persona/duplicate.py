@@ -70,7 +70,7 @@ async def duplicate_persona_impl(
 
     # ── Step 2: Permission check ───────────────────────────────────────
 
-    if not compute_can_duplicate(user_role=profile.role):
+    if not compute_can_duplicate(role_level=profile.role_level, role_permissions=profile.role_permissions):
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to duplicate this persona.",

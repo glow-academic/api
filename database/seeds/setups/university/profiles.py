@@ -17,6 +17,7 @@ from database.seeds.profiles import (
     GUEST_REQUEST_LIMIT,
     INSTRUCTIONAL_ROLE,
     MEMBER_GTA_ROLE,
+    MEMBER_UTA_ROLE,
     PROFILE_ACTIVE,
     SUPERADMIN_ROLE,
 )
@@ -70,7 +71,7 @@ profiles = [
         name="TA Johnson",
         email="ta-johnson@university.edu",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        role_ids=[INSTRUCTIONAL_ROLE],
+        role_ids=[MEMBER_UTA_ROLE],
         flag_id=PROFILE_ACTIVE,
     ),
     # ── Benchmark ──────────────────────────────────────────────────────

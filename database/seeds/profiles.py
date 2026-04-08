@@ -18,6 +18,7 @@ SUPERADMIN_ROLE = UUID("019bbabc-5a3b-7481-bbf5-a7c2193bc5e4")
 ADMIN_ROLE = UUID("019bbabc-5a36-76d3-8fc3-8415fe308cd3")
 INSTRUCTIONAL_ROLE = UUID("019bbabc-5a3b-741e-bad3-474cc6c05fd6")
 MEMBER_GTA_ROLE = UUID("019bf21d-4d50-74fc-8c81-be446d602de2")
+MEMBER_UTA_ROLE = UUID("019bf21d-4d50-7039-b5ba-4aea69013072")
 GUEST_ROLE = UUID("019bbabc-5a37-7028-8b98-728b7aa54d0d")
 
 # Flags (from database/seeds/resources/flags.py)

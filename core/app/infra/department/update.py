@@ -90,7 +90,7 @@ async def update_department_impl(
                 detail=f"Item {idx}: Department {item.department_id} not found.",
             )
         if not compute_can_edit(
-            user_role=profile.role,
+            role_level=profile.role_level, role_permissions=profile.role_permissions,
             usage_count=perms.usage_count,
         ):
             raise HTTPException(

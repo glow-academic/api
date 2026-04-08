@@ -77,12 +77,12 @@ def build_cohort_get_result(
         if department.id
     ]
     can_edit = compute_can_edit(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         cohort_department_ids=cohort_department_ids,
         user_department_ids=profile.department_ids,
     )
     disabled_reason = compute_disabled_reason(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         cohort_department_ids=cohort_department_ids,
         user_department_ids=profile.department_ids,
     )

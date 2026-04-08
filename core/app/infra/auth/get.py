@@ -111,8 +111,8 @@ async def get_auth_impl(
         for resource in AUTH_RESOURCES
     }
 
-    can_edit = compute_can_edit(user_role=profile.role)
-    disabled_reason = compute_disabled_reason(user_role=profile.role)
+    can_edit = compute_can_edit(role_level=profile.role_level, role_permissions=profile.role_permissions)
+    disabled_reason = compute_disabled_reason(role_level=profile.role_level, role_permissions=profile.role_permissions)
 
     names_has_tools = scores.has_any.get("names", False)
     protocols_has_tools = scores.has_any.get("protocols", False)

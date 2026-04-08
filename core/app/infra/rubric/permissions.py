@@ -3,9 +3,16 @@
 Extracts business logic from SQL into Python for the two-pass architecture.
 These functions compute permissions, UI flags, and access control based on
 data fetched from the Pass 1 SQL query.
+
+Fully generic — no knowledge of specific role names.
+All checks use two mechanisms:
+  1. Permission set: (artifact, operation) tuples from role's permission_ids
+  2. Role level: integer hierarchy (0 = highest privilege)
 """
 
 from uuid import UUID
+
+from app.infra.permissions_helpers import has_permission
 
 __all__ = [
     "RUBRIC_RESOURCES",
@@ -15,28 +22,30 @@ __all__ = [
 
 
 def compute_can_edit(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     rubric_department_ids: list[str] | list[UUID] | None,
     active_simulation_count: int,
 ) -> bool:
     """Unified can_edit logic for both get and list views.
 
     Constraints:
-    1. Not a default rubric (unless superadmin)
+    1. Not a default rubric (unless level 0)
     2. Not linked to active simulations
-    3. User has superadmin role
+    3. User has rubric:update permission
     """
-    if not rubric_department_ids and user_role != "superadmin":
+    if not rubric_department_ids and role_level > 0:
         return False
 
     if active_simulation_count > 0:
         return False
 
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "rubric", "update")
 
 
 def compute_disabled_reason(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     rubric_department_ids: list[str] | list[UUID] | None,
     active_simulation_count: int,
 ) -> str | None:
@@ -44,7 +53,7 @@ def compute_disabled_reason(
 
     Returns None if editing is allowed.
     """
-    if not rubric_department_ids and user_role != "superadmin":
+    if not rubric_department_ids and role_level > 0:
         return (
             "This is a default rubric that cannot be edited. "
             "You can view the details but cannot make changes."
@@ -56,7 +65,7 @@ def compute_disabled_reason(
             "You can view the details but cannot make changes."
         )
 
-    if user_role != "superadmin":
+    if not has_permission(role_permissions, "rubric", "update"):
         return (
             "This rubric cannot be edited. "
             "You can view the details but cannot make changes."
@@ -66,18 +75,18 @@ def compute_disabled_reason(
 
 
 def has_access(
-    user_role: str | None,
+    role_level: int,
     user_department_ids: list[UUID] | None,
     rubric_department_ids: list[UUID] | None,
 ) -> bool:
     """Check if user has access to view the rubric.
 
     Access rules:
-    - Superadmin has access to all rubrics
+    - Level 0 (top-level) has access to all rubrics
     - User has access if rubric has no departments (default rubric)
     - User has access if they share at least one department with the rubric
     """
-    if user_role == "superadmin":
+    if role_level == 0:
         return True
 
     if not rubric_department_ids:
@@ -165,40 +174,53 @@ def compute_standards_required() -> bool:
 
 
 def compute_can_delete(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     rubric_department_ids: list[str] | None,
     active_simulation_count: int,
 ) -> bool:
     """Compute can_delete permission.
 
     Business logic:
-    - Default rubrics (no departments) cannot be deleted except by superadmin
+    - Default rubrics (no departments) cannot be deleted except by level 0
     - Rubrics linked to active simulations cannot be deleted
-    - Only superadmins can delete
+    - Must have rubric:delete permission
     """
-    if not rubric_department_ids and user_role != "superadmin":
+    if not rubric_department_ids and role_level > 0:
         return False
 
     if active_simulation_count > 0:
         return False
 
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "rubric", "delete")
 
 
-def compute_can_duplicate(user_role: str | None) -> bool:
+def compute_can_duplicate(
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute can_duplicate permission."""
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "rubric", "duplicate")
 
 
 # ========== Save/Create Endpoint Permission Functions ==========
 
 
 def compute_can_create(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     department_ids: list[str] | list[UUID] | None,
 ) -> bool:
-    """Compute permission to create a new rubric."""
-    if user_role != "superadmin":
+    """Compute permission to create a new rubric.
+
+    Business logic:
+    - Must have rubric:create permission
+    - Non-level-0 users cannot create general rubrics (empty department_ids)
+    """
+    if not has_permission(role_permissions, "rubric", "create"):
+        return False
+
+    if role_level > 0 and not department_ids:
         return False
 
     return True
@@ -207,9 +229,12 @@ def compute_can_create(
 # ========== Draft Endpoint Permission Functions ==========
 
 
-def compute_can_draft(user_role: str | None) -> bool:
+def compute_can_draft(
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute permission to create or update a draft."""
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "rubric", "draft")
 
 
 # ========== Agent Scoring - Rubric-specific Constants ==========

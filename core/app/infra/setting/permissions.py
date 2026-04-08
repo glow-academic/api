@@ -3,9 +3,16 @@
 Extracts business logic from SQL into Python for the two-pass architecture.
 These functions compute permissions, UI flags, and access control based on
 data fetched from the Pass 1 SQL query.
+
+Fully generic — no knowledge of specific role names.
+All checks use two mechanisms:
+  1. Permission set: (artifact, operation) tuples from role's permission_ids
+  2. Role level: integer hierarchy (0 = highest privilege)
 """
 
 from uuid import UUID
+
+from app.infra.permissions_helpers import has_permission
 
 SETTING_RESOURCES = {
     "names",
@@ -30,11 +37,11 @@ SETTING_GENERATION_RESOURCES = {
 
 
 def has_access(
-    user_role: str | None,
+    role_level: int,
     user_department_ids: list[UUID],
     setting_department_ids: list[UUID],
 ) -> bool:
-    if user_role == "superadmin":
+    if role_level == 0:
         return True
     if not setting_department_ids:
         return True
@@ -42,24 +49,25 @@ def has_access(
 
 
 def compute_can_edit(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     setting_department_ids: list[str] | list[UUID] | None = None,
     user_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
     """Unified can_edit logic for settings.
 
     Constraints:
-    1. Default settings (no departments) — only superadmin
-    2. Role check — admin/superadmin
-    3. Department subset check — non-superadmins must belong to ALL setting departments
+    1. Default settings (no departments) — only level 0
+    2. Must have setting:update permission
+    3. Department subset check — non-level-0 users must belong to ALL setting departments
     """
-    if not setting_department_ids and user_role != "superadmin":
+    if not setting_department_ids and role_level > 0:
         return False
-    if user_role not in ("admin", "superadmin"):
+    if not has_permission(role_permissions, "setting", "update"):
         return False
     if (
         user_department_ids is not None
-        and user_role != "superadmin"
+        and role_level > 0
         and setting_department_ids
     ):
         user_dept_set = {str(d) for d in user_department_ids}
@@ -70,21 +78,22 @@ def compute_can_edit(
 
 
 def compute_disabled_reason(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     setting_department_ids: list[str] | list[UUID] | None = None,
     user_department_ids: list[str] | list[UUID] | None = None,
 ) -> str | None:
     """Compute the reason why editing is disabled, if any."""
-    if not setting_department_ids and user_role != "superadmin":
+    if not setting_department_ids and role_level > 0:
         return "This is a default setting that cannot be edited."
-    if user_role not in ("admin", "superadmin"):
+    if not has_permission(role_permissions, "setting", "update"):
         return (
             "This setting cannot be edited. "
             "You can view the details but cannot make changes."
         )
     if (
         user_department_ids is not None
-        and user_role != "superadmin"
+        and role_level > 0
         and setting_department_ids
     ):
         user_dept_set = {str(d) for d in user_department_ids}
@@ -198,25 +207,32 @@ def derive_flag_key_and_label(name: str | None) -> tuple[str, str]:
 
 
 def compute_can_delete(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     setting_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
     """Compute can_delete permission.
 
     Business logic:
-    - Default settings (no departments) can only be deleted by superadmin
-    - Only admins and superadmins can delete
+    - Default settings (no departments) can only be deleted by level 0
+    - Must have setting:delete permission
     """
-    if not setting_department_ids and user_role != "superadmin":
+    if not setting_department_ids and role_level > 0:
         return False
-    return user_role in ("admin", "superadmin")
+    return has_permission(role_permissions, "setting", "delete")
 
 
-def compute_can_duplicate(user_role: str | None) -> bool:
+def compute_can_duplicate(
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute can_duplicate permission."""
-    return user_role in ("admin", "superadmin")
+    return has_permission(role_permissions, "setting", "duplicate")
 
 
-def compute_can_draft(user_role: str | None) -> bool:
+def compute_can_draft(
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute permission to create or update a draft."""
-    return user_role in ("admin", "superadmin")
+    return has_permission(role_permissions, "setting", "draft")

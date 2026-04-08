@@ -83,7 +83,7 @@ async def update_document_impl(
                     detail=f"Item {idx}: Document {item.document_id} not found.",
                 )
             if not compute_can_edit(
-                user_role=profile.role,
+                role_level=profile.role_level, role_permissions=profile.role_permissions,
                 document_department_ids=perms.department_ids,
                 active_scenario_count=perms.active_scenario_count,
                 user_department_ids=profile.department_ids,

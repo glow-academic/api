@@ -12,6 +12,7 @@ from app.infra.agent.selection import (
     select_multi_resource_agent,
 )
 from app.infra.api_types import CandidateAgent
+from app.infra.permissions_helpers import has_permission
 
 # Re-export for backwards compatibility
 __all__ = [
@@ -25,7 +26,8 @@ __all__ = [
 
 
 def compute_can_edit(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     provider_department_ids: list[str] | list[UUID] | None,
     active_model_count: int,
     user_department_ids: list[str] | list[UUID] | None = None,
@@ -33,27 +35,27 @@ def compute_can_edit(
     """Unified can_edit logic for get, list, and save views.
 
     Constraints:
-    1. Not a default provider (unless superadmin)
+    1. Not a default provider (unless level 0)
     2. Not linked to active models
-    3. User has admin/superadmin role
-    4. Non-superadmins must belong to ALL of the provider's departments
+    3. User has provider update permission
+    4. Non-level-0 users must belong to ALL of the provider's departments
     """
-    # Default providers can only be edited by superadmin
-    if not provider_department_ids and user_role != "superadmin":
+    # Default providers can only be edited by level 0
+    if not provider_department_ids and role_level > 0:
         return False
 
     # Providers in use by active models cannot be edited
     if active_model_count > 0:
         return False
 
-    # Role check
-    if user_role not in ("admin", "superadmin"):
+    # Permission check
+    if not has_permission(role_permissions, "provider", "update"):
         return False
 
     # Department subset check (when user_department_ids is available)
     if (
         user_department_ids is not None
-        and user_role != "superadmin"
+        and role_level > 0
         and provider_department_ids
     ):
         user_dept_set = {str(d) for d in user_department_ids}
@@ -65,7 +67,8 @@ def compute_can_edit(
 
 
 def compute_disabled_reason(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     provider_department_ids: list[str] | list[UUID] | None,
     active_model_count: int,
 ) -> str | None:
@@ -73,8 +76,8 @@ def compute_disabled_reason(
 
     Returns None if editing is allowed.
     """
-    # Default providers can only be edited by superadmin
-    if not provider_department_ids and user_role != "superadmin":
+    # Default providers can only be edited by level 0
+    if not provider_department_ids and role_level > 0:
         return (
             "This is a default provider that cannot be edited. "
             "You can view the details but cannot make changes."
@@ -87,8 +90,8 @@ def compute_disabled_reason(
             "You can view the details but cannot make changes."
         )
 
-    # Role check
-    if user_role not in ("admin", "superadmin"):
+    # Permission check
+    if not has_permission(role_permissions, "provider", "update"):
         return (
             "This provider cannot be edited. "
             "You can view the details but cannot make changes."
@@ -113,18 +116,18 @@ def get_missing_tools(
 
 
 def has_access(
-    user_role: str | None,
+    role_level: int,
     user_department_ids: list[UUID] | None,
     provider_department_ids: list[UUID] | None,
 ) -> bool:
     """Check if user has access to view the provider.
 
     Access rules:
-    - Superadmin has access to all providers
+    - Level 0 has access to all providers
     - User has access if provider has no departments (default provider)
     - User has access if they share at least one department with the provider
     """
-    if user_role == "superadmin":
+    if role_level == 0:
         return True
 
     # Default providers (no departments) are accessible to all
@@ -214,57 +217,59 @@ def compute_key_required() -> bool:
 
 
 def compute_can_delete(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     provider_department_ids: list[str] | list[UUID] | None,
     active_model_count: int,
 ) -> bool:
     """Compute can_delete permission.
 
     Business logic:
-    - Default providers (no departments) cannot be deleted except by superadmin
+    - Default providers (no departments) cannot be deleted except by level 0
     - Providers linked to active models cannot be deleted
-    - Only admins and superadmins can delete
+    - Only users with provider delete permission can delete
     """
-    # Default providers can only be deleted by superadmin
-    if not provider_department_ids and user_role != "superadmin":
+    # Default providers can only be deleted by level 0
+    if not provider_department_ids and role_level > 0:
         return False
 
     # Providers in use by active models cannot be deleted
     if active_model_count > 0:
         return False
 
-    # Only admins and superadmins can delete
-    return user_role in ("admin", "superadmin")
+    # Permission check
+    return has_permission(role_permissions, "provider", "delete")
 
 
-def compute_can_duplicate(user_role: str | None) -> bool:
+def compute_can_duplicate(role_permissions: list[tuple[str, str]]) -> bool:
     """Compute can_duplicate permission.
 
     Business logic:
-    - Only admin/superadmin can duplicate
+    - Only users with provider duplicate permission can duplicate
     """
-    return user_role in ("admin", "superadmin")
+    return has_permission(role_permissions, "provider", "duplicate")
 
 
 # ========== Save/Create Endpoint Permission Functions ==========
 
 
 def compute_can_create(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     department_ids: list[str] | list[UUID] | None,
 ) -> bool:
     """Compute permission to create a new provider.
 
     Business logic:
-    - Non-superadmins cannot create general objects (empty department_ids)
-    - Only admin/superadmin can create providers
+    - Only users with provider create permission can create
+    - Non-level-0 users cannot create general objects (empty department_ids)
     """
-    # Role check first
-    if user_role not in ("admin", "superadmin"):
+    # Permission check first
+    if not has_permission(role_permissions, "provider", "create"):
         return False
 
-    # Non-superadmins cannot create general objects (no departments)
-    if user_role != "superadmin" and not department_ids:
+    # Non-level-0 users cannot create general objects (no departments)
+    if role_level > 0 and not department_ids:
         return False
 
     return True
@@ -273,13 +278,13 @@ def compute_can_create(
 # ========== Draft Endpoint Permission Functions ==========
 
 
-def compute_can_draft(user_role: str | None) -> bool:
+def compute_can_draft(role_permissions: list[tuple[str, str]]) -> bool:
     """Compute permission to create or update a draft.
 
     Business logic:
-    - Only admin/superadmin can create/edit drafts
+    - Only users with provider draft permission can create/edit drafts
     """
-    return user_role in ("admin", "superadmin")
+    return has_permission(role_permissions, "provider", "draft")
 
 
 # ========== Agent Scoring - Provider-specific Constants ==========

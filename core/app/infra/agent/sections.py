@@ -119,13 +119,13 @@ def build_agent_get_result(
         perms.department_ids if perms else [],
     )
     can_edit = compute_can_edit(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         has_agent_access=has_agent_access,
         missing_tools=missing_tools,
         agent_id=agent_id,
     )
     disabled_reason = compute_disabled_reason(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         has_agent_access=has_agent_access,
         missing_tools=missing_tools,
         agent_id=agent_id,

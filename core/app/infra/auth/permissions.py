@@ -5,7 +5,7 @@ These functions compute permissions, UI flags, and access control based on
 data fetched from the Pass 1 SQL query.
 
 Auth permissions are simpler than persona: no department-based access,
-no scenario constraints. Just role-based (admin/superadmin).
+no scenario constraints. Just permission-based checks.
 """
 
 from uuid import UUID
@@ -15,6 +15,7 @@ from app.infra.agent.selection import (
     select_multi_resource_agent,
 )
 from app.infra.api_types import CandidateAgent
+from app.infra.permissions_helpers import has_permission
 
 # Re-export for backwards compatibility
 __all__ = [
@@ -27,23 +28,23 @@ __all__ = [
 
 
 def compute_can_edit(
-    user_role: str | None,
+    role_permissions: list[tuple[str, str]],
     active_settings_count: int = 0,
 ) -> bool:
     """Unified can_edit logic for both get and list views.
 
     Constraints:
     1. Not linked to active settings
-    2. User has superadmin role
+    2. User has auth update permission
     """
     if active_settings_count > 0:
         return False
 
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "auth", "update")
 
 
 def compute_disabled_reason(
-    user_role: str | None,
+    role_permissions: list[tuple[str, str]],
     active_settings_count: int = 0,
 ) -> str | None:
     """Compute the reason why editing is disabled, if any."""
@@ -53,7 +54,7 @@ def compute_disabled_reason(
             "You can view the details but cannot make changes."
         )
 
-    if user_role != "superadmin":
+    if not has_permission(role_permissions, "auth", "update"):
         return (
             "This auth entry cannot be edited. "
             "You can view the details but cannot make changes."
@@ -62,39 +63,39 @@ def compute_disabled_reason(
 
 
 def compute_can_delete(
-    user_role: str | None,
+    role_permissions: list[tuple[str, str]],
     active_settings_count: int = 0,
 ) -> bool:
     """Compute can_delete permission.
 
     Business logic:
     - Auths linked to active settings cannot be deleted
-    - Only superadmins can delete
+    - Only users with auth delete permission can delete
     """
     if active_settings_count > 0:
         return False
 
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "auth", "delete")
 
 
-def compute_can_duplicate(user_role: str | None) -> bool:
+def compute_can_duplicate(role_permissions: list[tuple[str, str]]) -> bool:
     """Compute can_duplicate permission."""
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "auth", "duplicate")
 
 
-def compute_can_create(user_role: str | None) -> bool:
+def compute_can_create(role_permissions: list[tuple[str, str]]) -> bool:
     """Compute permission to create a new auth."""
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "auth", "create")
 
 
-def compute_can_draft(user_role: str | None) -> bool:
+def compute_can_draft(role_permissions: list[tuple[str, str]]) -> bool:
     """Compute permission to create or update a draft."""
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "auth", "draft")
 
 
-def has_access(user_role: str | None) -> bool:
+def has_access(role_level: int) -> bool:
     """Auth view access follows the current route contract: any signed-in profile."""
-    return user_role is not None
+    return role_level is not None
 
 
 def compute_show_name(names_has_tools: bool) -> bool:

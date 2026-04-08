@@ -86,10 +86,10 @@ async def update_agent_impl(
                     detail=f"Item {idx}: Agent {item.agent_id} not found.",
                 )
             has_agent_access = has_access(
-                profile.role, profile.department_ids, perms.department_ids
+                profile.role_level, profile.department_ids, perms.department_ids
             )
             if not compute_can_edit(
-                user_role=profile.role,
+                role_level=profile.role_level, role_permissions=profile.role_permissions,
                 has_agent_access=has_agent_access,
                 missing_tools=[],
                 agent_id=item.agent_id,

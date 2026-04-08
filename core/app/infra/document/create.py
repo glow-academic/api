@@ -78,7 +78,7 @@ async def create_document_impl(
         department_id for item in items for department_id in (item.department_ids or [])
     ]
 
-    if not compute_can_create(profile.role, requested_department_ids or None):
+    if not compute_can_create(role_level=profile.role_level, role_permissions=profile.role_permissions, requested_department_ids or None):
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to create documents.",

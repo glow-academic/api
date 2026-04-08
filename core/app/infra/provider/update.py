@@ -83,7 +83,7 @@ async def update_provider_impl(
                     detail=f"Item {idx}: Provider {item.provider_id} not found.",
                 )
             if not compute_can_edit(
-                user_role=profile.role,
+                role_level=profile.role_level, role_permissions=profile.role_permissions,
                 provider_department_ids=perms.department_ids,
                 active_model_count=perms.active_model_count,
                 user_department_ids=profile.department_ids,

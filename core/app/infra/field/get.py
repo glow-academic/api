@@ -119,7 +119,7 @@ async def get_field_impl(
                 detail=f"Field {field_id} not found",
             )
 
-        if not has_access(profile.role, profile.department_ids, perms.department_ids):
+        if not has_access(profile.role_level, profile.department_ids, perms.department_ids):
             raise HTTPException(
                 status_code=403,
                 detail="You don't have access to this field. "
@@ -157,13 +157,13 @@ async def get_field_impl(
     ]
 
     can_edit = compute_can_edit(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         field_department_ids=field_department_ids,
         user_department_ids=profile.department_ids,
     )
 
     disabled_reason = compute_disabled_reason(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         field_department_ids=field_department_ids,
         user_department_ids=profile.department_ids,
     )

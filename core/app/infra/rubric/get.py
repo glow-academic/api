@@ -125,7 +125,7 @@ async def get_rubric_impl(
                 detail=f"Rubric {rubric_id} not found",
             )
 
-        if not has_access(profile.role, profile.department_ids, perms.department_ids):
+        if not has_access(profile.role_level, profile.department_ids, perms.department_ids):
             raise HTTPException(
                 status_code=403,
                 detail="You don't have access to this rubric. It may be restricted to other departments.",
@@ -163,13 +163,13 @@ async def get_rubric_impl(
     active_simulation_count = perms.active_simulation_count if perms else 0
 
     can_edit = compute_can_edit(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         rubric_department_ids=perms_department_ids,
         active_simulation_count=active_simulation_count,
     )
 
     disabled_reason = compute_disabled_reason(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         rubric_department_ids=perms_department_ids,
         active_simulation_count=active_simulation_count,
     )

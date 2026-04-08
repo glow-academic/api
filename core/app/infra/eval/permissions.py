@@ -2,27 +2,36 @@
 
 Pure Python business logic for eval permissions, UI flags, and access control.
 Used by the composable infra architecture GET endpoint.
+
+Fully generic — no knowledge of specific role names.
+All checks use two mechanisms:
+  1. Permission set: (artifact, operation) tuples from role's permission_ids
+  2. Role level: integer hierarchy (0 = highest privilege)
 """
 
 from uuid import UUID
 
+from app.infra.permissions_helpers import has_permission
+
 
 def compute_can_edit(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
 ) -> bool:
     """Unified can_edit logic for both get and list views.
 
     Constraints:
-    1. User has superadmin role
+    1. User has eval:update permission
     """
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "eval", "update")
 
 
 def compute_disabled_reason(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
 ) -> str | None:
     """Compute the reason why editing is disabled, if any."""
-    if user_role != "superadmin":
+    if not has_permission(role_permissions, "eval", "update"):
         return (
             "This eval cannot be edited. "
             "You can view the details but cannot make changes."
@@ -32,18 +41,18 @@ def compute_disabled_reason(
 
 
 def has_access(
-    user_role: str | None,
+    role_level: int,
     user_department_ids: list[UUID] | None,
     eval_department_ids: list[UUID] | None,
 ) -> bool:
     """Check if user has access to view the eval.
 
     Access rules:
-    - Superadmin has access to all evals
+    - Level 0 (top-level) has access to all evals
     - User has access if eval has no departments (general eval)
     - User has access if they share at least one department with the eval
     """
-    if user_role == "superadmin":
+    if role_level == 0:
         return True
 
     # General evals (no departments) are accessible to all
@@ -169,37 +178,45 @@ def compute_model_positions_required() -> bool:
 
 
 def compute_can_delete(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
 ) -> bool:
     """Compute can_delete permission.
 
     Business logic:
-    - Only superadmins can delete (no parent check needed)
+    - Must have eval:delete permission
     """
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "eval", "delete")
 
 
-def compute_can_duplicate(user_role: str | None) -> bool:
+def compute_can_duplicate(
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute can_duplicate permission."""
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "eval", "duplicate")
 
 
 # ========== Save/Create Endpoint Permission Functions ==========
 
 
 def compute_can_create(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
 ) -> bool:
     """Compute permission to create a new eval."""
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "eval", "create")
 
 
 # ========== Draft Endpoint Permission Functions ==========
 
 
-def compute_can_draft(user_role: str | None) -> bool:
+def compute_can_draft(
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute permission to create or update a draft."""
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "eval", "draft")
 
 
 # ========== Agent Scoring - Eval-specific Constants ==========

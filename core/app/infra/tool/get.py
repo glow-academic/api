@@ -125,7 +125,7 @@ async def get_tool_impl(
                 detail=f"Tool {tool_id} not found",
             )
 
-        if not has_access(profile.role):
+        if not has_access(profile.role_level):
             raise HTTPException(
                 status_code=403,
                 detail="You don't have access to this tool.",
@@ -161,12 +161,12 @@ async def get_tool_impl(
     active_agent_count = perms.active_agent_count if perms else 0
 
     can_edit = compute_can_edit(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         active_agent_count=active_agent_count,
     )
 
     disabled_reason = compute_disabled_reason(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         active_agent_count=active_agent_count,
     )
 

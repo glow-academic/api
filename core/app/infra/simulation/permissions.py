@@ -8,6 +8,7 @@ from uuid import UUID
 
 from app.infra.agent.selection import select_agents_for_artifact
 from app.infra.api_types import CandidateAgent
+from app.infra.permissions_helpers import has_permission
 
 # Re-export for use in get.py
 __all__ = [
@@ -35,12 +36,12 @@ SIMULATION_RESOURCES: set[str] = {
 
 
 def has_access(
-    user_role: str | None,
+    role_level: int,
     user_department_ids: list[UUID] | None,
     simulation_department_ids: list[UUID] | None,
 ) -> bool:
     """Check if user has access to the simulation."""
-    if user_role == "superadmin":
+    if role_level == 0:
         return True
     if not simulation_department_ids:
         return True
@@ -57,7 +58,8 @@ def has_access(
 
 
 def compute_can_edit(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     simulation_department_ids: list[str] | list[UUID] | None,
     cohort_usage_count: int,
     user_department_ids: list[str] | list[UUID] | None = None,
@@ -65,27 +67,27 @@ def compute_can_edit(
     """Unified can_edit logic for get, list, and save views.
 
     Constraints:
-    1. Not a default simulation (unless superadmin)
+    1. Not a default simulation (unless role_level == 0)
     2. Not linked to cohorts
-    3. User has admin/instructional/superadmin role
-    4. Non-superadmins must belong to ALL of the simulation's departments
+    3. User has simulation:update permission
+    4. Non-top-level users must belong to ALL of the simulation's departments
     """
-    # Default simulations can only be edited by superadmin
-    if not simulation_department_ids and user_role != "superadmin":
+    # Default simulations can only be edited by top-level role
+    if not simulation_department_ids and role_level > 0:
         return False
 
     # Simulations in use by cohorts cannot be edited
     if cohort_usage_count > 0:
         return False
 
-    # Role check
-    if user_role not in ("admin", "instructional", "superadmin"):
+    # Permission check
+    if not has_permission(role_permissions, "simulation", "update"):
         return False
 
     # Department subset check (when user_department_ids is available)
     if (
         user_department_ids is not None
-        and user_role != "superadmin"
+        and role_level > 0
         and simulation_department_ids
     ):
         user_dept_set = {str(d) for d in user_department_ids}
@@ -97,14 +99,15 @@ def compute_can_edit(
 
 
 def compute_disabled_reason(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     simulation_department_ids: list[str] | list[UUID] | None,
     cohort_usage_count: int,
     user_department_ids: list[str] | list[UUID] | None = None,
 ) -> str | None:
     """Compute reason why editing is disabled."""
-    # Default simulations can only be edited by superadmin
-    if not simulation_department_ids and user_role != "superadmin":
+    # Default simulations can only be edited by top-level role
+    if not simulation_department_ids and role_level > 0:
         return (
             "This is a default simulation that cannot be edited. "
             "You can view the details but cannot make changes."
@@ -117,8 +120,8 @@ def compute_disabled_reason(
             "You can view the details but cannot make changes."
         )
 
-    # Role check
-    if user_role not in ("admin", "instructional", "superadmin"):
+    # Permission check
+    if not has_permission(role_permissions, "simulation", "update"):
         return (
             "This simulation cannot be edited. "
             "You can view the details but cannot make changes."
@@ -127,7 +130,7 @@ def compute_disabled_reason(
     # Department subset check
     if (
         user_department_ids is not None
-        and user_role != "superadmin"
+        and role_level > 0
         and simulation_department_ids
     ):
         user_dept_set = {str(d) for d in user_department_ids}
@@ -147,31 +150,34 @@ def compute_disabled_reason(
 
 
 def compute_can_delete(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     simulation_department_ids: list[str] | list[UUID] | None,
     cohort_usage_count: int,
 ) -> bool:
     """Compute can_delete permission.
 
     Business logic:
-    - Default simulations (no departments) cannot be deleted except by superadmin
+    - Default simulations (no departments) cannot be deleted except by top-level role
     - Simulations linked to ANY cohort cannot be deleted
-    - Only admins, instructional, and superadmins can delete
+    - User must have simulation:delete permission
     """
-    if not simulation_department_ids and user_role != "superadmin":
+    if not simulation_department_ids and role_level > 0:
         return False
     if cohort_usage_count > 0:
         return False
-    return user_role in ("admin", "instructional", "superadmin")
+    return has_permission(role_permissions, "simulation", "delete")
 
 
-def compute_can_duplicate(user_role: str | None) -> bool:
+def compute_can_duplicate(
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute can_duplicate permission.
 
     Business logic:
-    - Only admin/instructional/superadmin can duplicate
+    - User must have simulation:duplicate permission
     """
-    return user_role in ("admin", "instructional", "superadmin")
+    return has_permission(role_permissions, "simulation", "duplicate")
 
 
 # =============================================================================
@@ -180,18 +186,19 @@ def compute_can_duplicate(user_role: str | None) -> bool:
 
 
 def compute_can_create(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     department_ids: list[str] | list[UUID] | None,
 ) -> bool:
     """Compute permission to create a new simulation.
 
     Business logic:
-    - Only admin/instructional/superadmin can create simulations
-    - Non-superadmins cannot create general objects (no departments)
+    - User must have simulation:create permission
+    - Non-top-level users cannot create general objects (no departments)
     """
-    if user_role not in ("admin", "instructional", "superadmin"):
+    if not has_permission(role_permissions, "simulation", "create"):
         return False
-    if user_role != "superadmin" and not department_ids:
+    if role_level > 0 and not department_ids:
         return False
     return True
 
@@ -201,13 +208,15 @@ def compute_can_create(
 # =============================================================================
 
 
-def compute_can_draft(user_role: str | None) -> bool:
+def compute_can_draft(
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute permission to create or update a draft.
 
     Business logic:
-    - Only admin/instructional/superadmin can create/edit drafts
+    - User must have simulation:draft permission
     """
-    return user_role in ("admin", "instructional", "superadmin")
+    return has_permission(role_permissions, "simulation", "draft")
 
 
 # =============================================================================

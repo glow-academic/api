@@ -16,6 +16,7 @@ from app.infra.agent.selection import (
     select_multi_resource_agent,
 )
 from app.infra.api_types import CandidateAgent
+from app.infra.permissions_helpers import has_permission
 
 # Re-export for backwards compatibility
 __all__ = [
@@ -32,18 +33,18 @@ __all__ = [
 
 
 def has_access(
-    user_role: str | None,
+    role_level: int,
     user_department_ids: list[UUID] | None,
     agent_department_ids: list[UUID] | None,
 ) -> bool:
     """Check if user has access to this agent.
 
     Access rules:
-    - Superadmin has access to all agents
+    - Level 0 has access to all agents
     - If agent has no departments, everyone has access
     - User must share at least one department with the agent
     """
-    if user_role == "superadmin":
+    if role_level == 0:
         return True
 
     # Agents with no departments are accessible to all
@@ -58,7 +59,8 @@ def has_access(
 
 
 def compute_can_edit(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     has_agent_access: bool,
     missing_tools: list[str],
     agent_id: UUID | None = None,
@@ -66,9 +68,13 @@ def compute_can_edit(
     """Compute whether user can edit this agent.
 
     Constraints:
-    1. New mode (agent_id is None): can edit if no critical tools missing
-    2. Detail mode: must have access and no missing tools
+    1. User must have agent update permission
+    2. New mode (agent_id is None): can edit if no critical tools missing
+    3. Detail mode: must have access and no missing tools
     """
+    if not has_permission(role_permissions, "agent", "update"):
+        return False
+
     if agent_id is None:
         return len(missing_tools) == 0
 
@@ -76,7 +82,8 @@ def compute_can_edit(
 
 
 def compute_disabled_reason(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     has_agent_access: bool,
     missing_tools: list[str],
     agent_id: UUID | None = None,
@@ -85,6 +92,12 @@ def compute_disabled_reason(
 
     Returns None if editing is allowed.
     """
+    if not has_permission(role_permissions, "agent", "update"):
+        return (
+            "This agent cannot be edited. "
+            "You can view the details but cannot make changes."
+        )
+
     if agent_id is not None and not has_agent_access:
         return (
             "You don't have access to this agent. "
@@ -246,66 +259,68 @@ def compute_rubrics_required() -> bool:
 
 
 def compute_list_can_edit(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     agent_department_ids: list[str] | None,
     active_settings_count: int = 0,
 ) -> bool:
     """Compute can_edit for list view.
 
     Business logic:
-    - Default agents (no departments) can only be edited by superadmin
+    - Default agents (no departments) can only be edited by level 0
     - Agents linked to active settings cannot be edited
-    - Only admins and superadmins can edit agents
+    - Only users with agent update permission can edit agents
     """
-    if not agent_department_ids and user_role != "superadmin":
+    if not agent_department_ids and role_level > 0:
         return False
     if active_settings_count > 0:
         return False
-    return user_role in ("admin", "superadmin")
+    return has_permission(role_permissions, "agent", "update")
 
 
 def compute_can_delete(
-    user_role: str | None,
+    role_permissions: list[tuple[str, str]],
     active_settings_count: int,
 ) -> bool:
     """Compute can_delete permission.
 
     Business logic:
     - Agents linked to active settings cannot be deleted
-    - Only admins and superadmins can delete
+    - Only users with agent delete permission can delete
     """
-    if user_role not in ("superadmin", "admin"):
+    if not has_permission(role_permissions, "agent", "delete"):
         return False
 
     return active_settings_count == 0
 
 
-def compute_can_duplicate(user_role: str | None) -> bool:
+def compute_can_duplicate(role_permissions: list[tuple[str, str]]) -> bool:
     """Compute can_duplicate permission.
 
     Business logic:
-    - Agent can be duplicated by admins and above
+    - Only users with agent duplicate permission can duplicate
     """
-    return user_role in ("superadmin", "admin")
+    return has_permission(role_permissions, "agent", "duplicate")
 
 
 # ========== Save/Create Endpoint Permission Functions ==========
 
 
 def compute_can_create(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     user_department_ids: list[str] | list[UUID] | None,
 ) -> bool:
     """Compute permission to create a new agent.
 
     Business logic:
-    - Only admin/superadmin can create agents
-    - Non-superadmins cannot create general objects (no departments)
+    - Only users with agent create permission can create agents
+    - Non-level-0 users cannot create general objects (no departments)
     """
-    if user_role not in ("admin", "superadmin"):
+    if not has_permission(role_permissions, "agent", "create"):
         return False
 
-    if user_role != "superadmin" and not user_department_ids:
+    if role_level > 0 and not user_department_ids:
         return False
 
     return True
@@ -314,13 +329,13 @@ def compute_can_create(
 # ========== Draft Endpoint Permission Functions ==========
 
 
-def compute_can_draft(user_role: str | None) -> bool:
+def compute_can_draft(role_permissions: list[tuple[str, str]]) -> bool:
     """Compute permission to create or update a draft.
 
     Business logic:
-    - Only admin/superadmin can create/edit drafts
+    - Only users with agent draft permission can create/edit drafts
     """
-    return user_role in ("superadmin", "admin")
+    return has_permission(role_permissions, "agent", "draft")
 
 
 # ========== Helpers ==========

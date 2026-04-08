@@ -3,6 +3,11 @@
 Extracts business logic from SQL into Python for the two-pass architecture.
 These functions compute permissions, UI flags, and access control based on
 data fetched from the Pass 1 SQL query.
+
+Fully generic — no knowledge of specific role names.
+All checks use two mechanisms:
+  1. Permission set: (artifact, operation) tuples from role's permission_ids
+  2. Role level: integer hierarchy (0 = highest privilege)
 """
 
 from uuid import UUID
@@ -12,6 +17,7 @@ from app.infra.agent.selection import (
     select_multi_resource_agent,
 )
 from app.infra.api_types import CandidateAgent
+from app.infra.permissions_helpers import has_permission
 
 # Re-export for backwards compatibility
 __all__ = [
@@ -25,7 +31,8 @@ __all__ = [
 
 
 def compute_can_edit(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     field_department_ids: list[str] | list[UUID] | None,
     active_parameter_count: int = 0,
     user_department_ids: list[str] | list[UUID] | None = None,
@@ -33,27 +40,27 @@ def compute_can_edit(
     """Unified can_edit logic for get, list, and save views.
 
     Constraints:
-    1. Not a default field (unless superadmin)
+    1. Not a default field (unless level 0)
     2. Not linked to active parameters
-    3. User has admin/superadmin role
-    4. Non-superadmins must belong to ALL of the field's departments
+    3. User has field:update permission
+    4. Non-level-0 users must belong to ALL of the field's departments
     """
-    # Default fields can only be edited by superadmin
-    if not field_department_ids and user_role != "superadmin":
+    # Default fields can only be edited by level 0
+    if not field_department_ids and role_level > 0:
         return False
 
     # Fields in use by active parameters cannot be edited
     if active_parameter_count > 0:
         return False
 
-    # Role check
-    if user_role not in ("admin", "superadmin"):
+    # Permission check
+    if not has_permission(role_permissions, "field", "update"):
         return False
 
     # Department subset check (when user_department_ids is available)
     if (
         user_department_ids is not None
-        and user_role != "superadmin"
+        and role_level > 0
         and field_department_ids
     ):
         user_dept_set = {str(d) for d in user_department_ids}
@@ -65,7 +72,8 @@ def compute_can_edit(
 
 
 def compute_disabled_reason(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     field_department_ids: list[str] | list[UUID] | None,
     active_parameter_count: int = 0,
     user_department_ids: list[str] | list[UUID] | None = None,
@@ -74,8 +82,8 @@ def compute_disabled_reason(
 
     Returns None if editing is allowed.
     """
-    # Default fields can only be edited by superadmin
-    if not field_department_ids and user_role != "superadmin":
+    # Default fields can only be edited by level 0
+    if not field_department_ids and role_level > 0:
         return (
             "This is a default field that cannot be edited. "
             "You can view the details but cannot make changes."
@@ -88,8 +96,8 @@ def compute_disabled_reason(
             "You can view the details but cannot make changes."
         )
 
-    # Role check
-    if user_role not in ("admin", "superadmin"):
+    # Permission check
+    if not has_permission(role_permissions, "field", "update"):
         return (
             "This field cannot be edited. "
             "You can view the details but cannot make changes."
@@ -98,7 +106,7 @@ def compute_disabled_reason(
     # Department subset check
     if (
         user_department_ids is not None
-        and user_role != "superadmin"
+        and role_level > 0
         and field_department_ids
     ):
         user_dept_set = {str(d) for d in user_department_ids}
@@ -113,18 +121,18 @@ def compute_disabled_reason(
 
 
 def has_access(
-    user_role: str | None,
+    role_level: int,
     user_department_ids: list[UUID] | None,
     field_department_ids: list[UUID] | None,
 ) -> bool:
     """Check if user has access to view the field.
 
     Access rules:
-    - Superadmin has access to all fields
+    - Level 0 (top-level) has access to all fields
     - User has access if field has no departments (default field)
     - User has access if they share at least one department with the field
     """
-    if user_role == "superadmin":
+    if role_level == 0:
         return True
 
     # Default fields (no departments) are accessible to all
@@ -194,58 +202,62 @@ def compute_conditional_parameters_required() -> bool:
 
 
 def compute_can_delete(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     field_department_ids: list[str] | list[UUID] | None,
     active_parameter_count: int,
 ) -> bool:
     """Compute can_delete permission.
 
     Business logic:
-    - Default fields (no departments) cannot be deleted except by superadmin
+    - Default fields (no departments) cannot be deleted except by level 0
     - Fields linked to active parameters cannot be deleted
-    - Only admins and superadmins can delete
+    - Must have field:delete permission
     """
-    # Default fields can only be deleted by superadmin
-    if not field_department_ids and user_role != "superadmin":
+    # Default fields can only be deleted by level 0
+    if not field_department_ids and role_level > 0:
         return False
 
     # Fields with active parameter links cannot be deleted
     if active_parameter_count > 0:
         return False
 
-    # Only admins and superadmins can delete
-    return user_role in ("admin", "superadmin")
+    # Must have field:delete permission
+    return has_permission(role_permissions, "field", "delete")
 
 
-def compute_can_duplicate(user_role: str | None) -> bool:
+def compute_can_duplicate(
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute can_duplicate permission.
 
     Business logic:
-    - Anyone with edit permissions can duplicate
-    - Currently always true for admin/superadmin
+    - Must have field:duplicate permission
     """
-    return user_role in ("admin", "superadmin")
+    return has_permission(role_permissions, "field", "duplicate")
 
 
 # ========== Save/Create Endpoint Permission Functions ==========
 
 
 def compute_can_create(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     department_ids: list[str] | list[UUID] | None,
 ) -> bool:
     """Compute permission to create a new field.
 
     Business logic:
-    - Non-superadmins cannot create general objects (empty department_ids)
-    - Only admin/superadmin can create fields
+    - Must have field:create permission
+    - Non-level-0 users cannot create general objects (empty department_ids)
     """
-    # Role check first
-    if user_role not in ("admin", "superadmin"):
+    # Permission check first
+    if not has_permission(role_permissions, "field", "create"):
         return False
 
-    # Non-superadmins cannot create general objects (no departments)
-    if user_role != "superadmin" and not department_ids:
+    # Non-level-0 users cannot create general objects (no departments)
+    if role_level > 0 and not department_ids:
         return False
 
     return True
@@ -254,13 +266,16 @@ def compute_can_create(
 # ========== Draft Endpoint Permission Functions ==========
 
 
-def compute_can_draft(user_role: str | None) -> bool:
+def compute_can_draft(
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute permission to create or update a draft.
 
     Business logic:
-    - Only admin/superadmin can create/edit drafts
+    - Must have field:draft permission
     """
-    return user_role in ("admin", "superadmin")
+    return has_permission(role_permissions, "field", "draft")
 
 
 # ========== Agent Scoring - Field-specific Constants ==========

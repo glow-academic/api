@@ -139,7 +139,7 @@ async def get_setting_impl(
                 detail=f"Setting {setting_id} not found",
             )
 
-        if not has_access(profile.role, profile.department_ids, perms.department_ids):
+        if not has_access(profile.role_level, profile.department_ids, perms.department_ids):
             raise HTTPException(
                 status_code=403,
                 detail="You don't have access to this setting. It may be restricted to other departments.",
@@ -177,13 +177,13 @@ async def get_setting_impl(
     perms_department_ids = perms.department_ids if perms else []
 
     can_edit = compute_can_edit(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         setting_department_ids=perms_department_ids,
         user_department_ids=profile.department_ids,
     )
 
     disabled_reason = compute_disabled_reason(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         setting_department_ids=perms_department_ids,
         user_department_ids=profile.department_ids,
     )

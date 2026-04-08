@@ -76,7 +76,7 @@ async def delete_provider_impl(
                 )
 
             if not compute_can_delete(
-                user_role=profile.role,
+                role_level=profile.role_level, role_permissions=profile.role_permissions,
                 provider_department_ids=ctx.department_ids,
                 active_model_count=ctx.active_model_count,
             ):

@@ -88,7 +88,7 @@ async def delete_agent_impl(
             )
 
             if not compute_can_delete(
-                user_role=profile.role,
+                role_level=profile.role_level, role_permissions=profile.role_permissions,
                 active_settings_count=active_settings_count or 0,
             ):
                 raise HTTPException(

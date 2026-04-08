@@ -6,6 +6,11 @@ data fetched from the Pass 1 SQL query.
 
 Key difference from persona: Profile has actor/target distinction
 (target_is_self flag, cannot delete own profile).
+
+Fully generic — no knowledge of specific role names.
+All checks use two mechanisms:
+  1. Permission set: (artifact, operation) tuples from role's permission_ids
+  2. Role level: integer hierarchy (0 = highest privilege)
 """
 
 from uuid import UUID
@@ -15,6 +20,7 @@ from app.infra.agent.selection import (
     select_multi_resource_agent,
 )
 from app.infra.api_types import CandidateAgent
+from app.infra.permissions_helpers import has_permission
 
 # Re-export for backwards compatibility
 __all__ = [
@@ -26,48 +32,37 @@ __all__ = [
     "PROFILE_GENERAL_RESOURCES",
 ]
 
-# Role hierarchy for list-view permission computation
-ROLE_HIERARCHY = {
-    "superadmin": 5,
-    "admin": 4,
-    "instructional": 3,
-    "member": 2,
-    "guest": 1,
-    "custom": 1,
-}
-
 
 def compute_can_edit(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     target_is_self: bool,
     target_department_ids: list[str] | list[UUID] | None,
-    target_role: str | None = None,
+    target_level: int | None = None,
     user_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
     """Unified can_edit logic for get, list, and save views.
 
     Constraints:
     1. Always allow editing self
-    2. Superadmin can edit all profiles
-    3. If target_role provided, use role hierarchy (can only edit lower ranks)
-    4. Fallback: admin can edit
-    5. Non-superadmins must belong to ALL of the target's departments
+    2. Level 0 (top-level) can edit all profiles
+    3. If target_level provided, use level hierarchy (can only edit lower levels)
+    4. Fallback: must have profile:update permission
+    5. Non-level-0 users must belong to ALL of the target's departments
     """
     if target_is_self:
         return True
 
-    if user_role == "superadmin":
+    if role_level == 0:
         return True
 
-    # Only admin/instructional/superadmin can edit others
-    if user_role not in ("admin", "instructional", "superadmin"):
+    # Must have profile:update permission to edit others
+    if not has_permission(role_permissions, "profile", "update"):
         return False
 
-    # List view: use role hierarchy (can only edit lower ranks)
-    if target_role is not None:
-        user_rank = ROLE_HIERARCHY.get(user_role or "", 0)
-        target_rank = ROLE_HIERARCHY.get(target_role or "", 0)
-        if user_rank <= target_rank:
+    # List view: use level hierarchy (can only edit higher-numbered levels)
+    if target_level is not None:
+        if role_level >= target_level:
             return False
 
     # Department subset check (when user_department_ids is available)
@@ -81,7 +76,8 @@ def compute_can_edit(
 
 
 def compute_disabled_reason(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     target_is_self: bool,
     target_department_ids: list[str] | list[UUID] | None,
 ) -> str | None:
@@ -89,26 +85,14 @@ def compute_disabled_reason(
 
     Returns None if editing is allowed.
     """
-    if user_role == "superadmin":
+    if role_level == 0:
         return None
 
-    if user_role in ("admin", "instructional"):
+    if has_permission(role_permissions, "profile", "update"):
         return None
 
-    if user_role == "staff" and target_is_self:
+    if target_is_self:
         return None
-
-    if user_role == "staff":
-        return (
-            "You can only edit your own profile. "
-            "Contact an administrator to make changes to other profiles."
-        )
-
-    if user_role == "learner":
-        return (
-            "You do not have permission to edit profiles. "
-            "Contact an administrator to make changes."
-        )
 
     return (
         "This profile cannot be edited. "
@@ -117,18 +101,18 @@ def compute_disabled_reason(
 
 
 def has_access(
-    user_role: str | None,
+    role_level: int,
     user_department_ids: list[UUID] | None,
     target_department_ids: list[UUID] | None,
 ) -> bool:
     """Check if user has access to view the profile.
 
     Access rules:
-    - Superadmin has access to all profiles
+    - Level 0 (top-level) has access to all profiles
     - User has access if profile has no departments (default profile)
     - User has access if they share at least one department with the profile
     """
-    if user_role == "superadmin":
+    if role_level == 0:
         return True
 
     # Default profiles (no departments) are accessible to all
@@ -204,89 +188,92 @@ def compute_roles_required() -> bool:
     return False
 
 
-def compute_role_options(user_role: str | None) -> list[str]:
-    """Compute which roles the user can assign, based on role hierarchy.
+def compute_role_options(role_level: int, all_roles: list[dict]) -> list[str]:
+    """Compute which roles the user can assign, based on role level.
 
-    Superadmin can assign all roles, admin can assign admin and below,
-    others can assign instructional and below.
+    Returns roles at or below the user's level (higher number = lower privilege).
+    all_roles should be a list of dicts with 'name' and 'level' keys.
     """
-    all_roles = ["superadmin", "admin", "instructional", "member", "guest", "custom"]
-    user_rank = ROLE_HIERARCHY.get(user_role or "", 0)
-
-    return [r for r in all_roles if ROLE_HIERARCHY.get(r, 0) <= user_rank]
+    return [r["name"] for r in all_roles if r["level"] >= role_level]
 
 
 # ========== List Endpoint Permission Functions ==========
 
 
 def compute_can_delete(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     target_is_self: bool,
-    target_role: str | None = None,
+    target_level: int | None = None,
 ) -> bool:
     """Compute can_delete permission.
 
     Business logic:
     - Cannot delete own profile
-    - Only admin/superadmin can delete (can only delete lower ranks)
+    - Must have profile:delete permission
+    - Can only delete users at a lower level (higher number)
     """
     if target_is_self:
         return False
 
-    # Only admin/superadmin can delete
-    if user_role not in ("admin", "superadmin"):
+    if not has_permission(role_permissions, "profile", "delete"):
         return False
 
-    # Superadmin can delete anyone (except self, checked above)
-    if user_role == "superadmin":
-        return True
+    # Can only delete users at a strictly lower level
+    if target_level is not None and role_level >= target_level:
+        return False
 
-    # Use role hierarchy: can only delete lower ranks
-    if target_role is not None:
-        user_rank = ROLE_HIERARCHY.get(user_role or "", 0)
-        target_rank = ROLE_HIERARCHY.get(target_role or "", 0)
-        return user_rank > target_rank
-
-    # Fallback: admin can delete
-    return user_role == "admin"
+    return True
 
 
-def compute_can_duplicate(user_role: str | None) -> bool:
+def compute_can_duplicate(
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute can_duplicate permission.
 
     Business logic:
-    - Only admin/superadmin can duplicate
+    - Must have profile:duplicate permission
     """
-    return user_role in ("admin", "superadmin")
+    return has_permission(role_permissions, "profile", "duplicate")
 
 
 # ========== Save/Create Endpoint Permission Functions ==========
 
 
 def compute_can_create(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     department_ids: list[str] | list[UUID] | None,
 ) -> bool:
     """Compute permission to create a new profile.
 
     Business logic:
-    - Non-superadmins cannot create general objects (empty department_ids)
-    - Only admin/superadmin can create profiles
+    - Must have profile:create permission
+    - Non-level-0 users cannot create general profiles (empty department_ids)
     """
-    _ = department_ids
-    return user_role in ("admin", "superadmin")
+    if not has_permission(role_permissions, "profile", "create"):
+        return False
+
+    if role_level > 0 and not department_ids:
+        return False
+
+    return True
 
 
 # ========== Draft Endpoint Permission Functions ==========
 
 
-def compute_can_draft(user_role: str | None) -> bool:
+def compute_can_draft(
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute permission to create or update a draft.
 
     Business logic:
-    - Only admin/superadmin can create/edit drafts
+    - Must have profile:draft permission
     """
-    return user_role in ("admin", "superadmin")
+    return has_permission(role_permissions, "profile", "draft")
 
 
 def get_missing_tools(

@@ -85,7 +85,7 @@ async def update_simulation_impl(
                     detail=f"Item {idx}: Simulation {item.simulation_id} not found.",
                 )
             if not compute_can_edit(
-                user_role=profile.role,
+                role_level=profile.role_level, role_permissions=profile.role_permissions,
                 simulation_department_ids=perms.department_ids,
                 cohort_usage_count=perms.cohort_usage_count,
                 user_department_ids=profile.department_ids,

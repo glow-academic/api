@@ -87,7 +87,7 @@ async def update_profile_impl(
                     detail=f"Item {idx}: Profile {item.profile_id} not found.",
                 )
             if not compute_can_edit(
-                user_role=profile.role,
+                role_level=profile.role_level, role_permissions=profile.role_permissions,
                 target_is_self=target_is_self,
                 target_department_ids=perms.department_ids,
                 user_department_ids=profile.department_ids,

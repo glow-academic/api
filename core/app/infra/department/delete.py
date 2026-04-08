@@ -80,7 +80,7 @@ async def delete_department_impl(
             )
 
         if not compute_can_delete(
-            user_role=profile.role,
+            role_level=profile.role_level, role_permissions=profile.role_permissions,
             total_usage=ctx.usage_count,
         ):
             raise HTTPException(

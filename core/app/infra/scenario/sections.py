@@ -101,13 +101,13 @@ def build_scenario_get_result(
     active_simulation_count = perms.active_simulation_count if perms else 0
 
     can_edit = compute_can_edit(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         scenario_department_ids=scenario_department_ids,
         active_simulation_count=active_simulation_count,
         user_department_ids=profile.department_ids,
     )
     disabled_reason = compute_disabled_reason(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         scenario_department_ids=scenario_department_ids,
         active_simulation_count=active_simulation_count,
         user_department_ids=profile.department_ids,

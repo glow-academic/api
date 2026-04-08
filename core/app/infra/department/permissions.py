@@ -3,6 +3,11 @@
 Extracts business logic from SQL into Python for the two-pass architecture.
 These functions compute permissions, UI flags, and access control based on
 data fetched from the Pass 1 SQL query.
+
+Fully generic — no knowledge of specific role names.
+All checks use two mechanisms:
+  1. Permission set: (artifact, operation) tuples from role's permission_ids
+  2. Role level: integer hierarchy (0 = highest privilege)
 """
 
 from uuid import UUID
@@ -12,6 +17,7 @@ from app.infra.agent.selection import (
     select_multi_resource_agent,
 )
 from app.infra.api_types import CandidateAgent
+from app.infra.permissions_helpers import has_permission
 
 # Re-export for backwards compatibility
 __all__ = [
@@ -25,26 +31,28 @@ __all__ = [
 
 
 def compute_can_edit(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     usage_count: int,
 ) -> bool:
     """Unified can_edit logic for both get and list views.
 
     Constraints:
-    1. User has superadmin role
+    1. User has department:update permission
     """
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "department", "update")
 
 
 def compute_disabled_reason(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     usage_count: int,
 ) -> str | None:
     """Compute the reason why editing is disabled, if any.
 
     Returns None if editing is allowed.
     """
-    if user_role != "superadmin":
+    if not has_permission(role_permissions, "department", "update"):
         return (
             "This department cannot be edited. "
             "You can view the details but cannot make changes."
@@ -70,14 +78,20 @@ def get_missing_tools(
 
 
 def has_access(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
 ) -> bool:
     """Check if user has access to view departments.
 
     Access rules:
-    - Departments are accessible to all members and above
+    - Level 0 always has access
+    - Otherwise, check for any department permission
     """
-    return user_role in ("member", "admin", "superadmin")
+    if role_level == 0:
+        return True
+
+    # Any department permission grants access
+    return any(artifact == "department" for artifact, _ in role_permissions)
 
 
 def compute_show_name(names_has_tools: bool) -> bool:
@@ -124,52 +138,62 @@ def compute_settings_required() -> bool:
 
 
 def compute_can_delete(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     total_usage: int,
 ) -> bool:
     """Compute can_delete permission.
 
     Business logic:
     - Departments with any active entity links cannot be deleted
-    - Only superadmins can delete
+    - Must have department:delete permission
     """
     if total_usage > 0:
         return False
 
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "department", "delete")
 
 
-def compute_can_duplicate(user_role: str | None) -> bool:
+def compute_can_duplicate(
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute can_duplicate permission.
 
     Business logic:
-    - Only superadmins can duplicate
+    - Must have department:duplicate permission
     """
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "department", "duplicate")
 
 
 # ========== Save/Create Endpoint Permission Functions ==========
 
 
-def compute_can_create(user_role: str | None) -> bool:
+def compute_can_create(
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute permission to create a new department.
 
     Business logic:
-    - Only superadmins can create departments
+    - Must have department:create permission
     """
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "department", "create")
 
 
 # ========== Draft Endpoint Permission Functions ==========
 
 
-def compute_can_draft(user_role: str | None) -> bool:
+def compute_can_draft(
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute permission to create or update a draft.
 
     Business logic:
-    - Only superadmins can create/edit drafts
+    - Must have department:draft permission
     """
-    return user_role == "superadmin"
+    return has_permission(role_permissions, "department", "draft")
 
 
 # ========== Agent Scoring - Department-specific Constants ==========

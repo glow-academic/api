@@ -103,7 +103,7 @@ async def create_scenario_impl(
     # ── Step 2: Permission check ───────────────────────────────────────
 
     if not compute_can_create(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         department_ids=_batch_department_scope(items),
     ):
         raise HTTPException(

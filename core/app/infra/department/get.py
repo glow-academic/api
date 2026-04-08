@@ -89,7 +89,7 @@ async def get_department_impl(
                 status_code=404,
                 detail=f"Department {department_id} not found",
             )
-        if not has_access(profile.role):
+        if not has_access(profile.role_level):
             raise HTTPException(
                 status_code=403,
                 detail="You don't have access to this department.",
@@ -117,9 +117,9 @@ async def get_department_impl(
     }
 
     usage_count = perms.usage_count if perms else 0
-    can_edit = compute_can_edit(user_role=profile.role, usage_count=usage_count)
+    can_edit = compute_can_edit(role_level=profile.role_level, role_permissions=profile.role_permissions, usage_count=usage_count)
     disabled_reason = compute_disabled_reason(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         usage_count=usage_count,
     )
 

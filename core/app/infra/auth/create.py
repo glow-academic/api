@@ -80,7 +80,7 @@ async def create_auth_impl(
 
     # ── Step 2: Permission check ───────────────────────────────────────
 
-    if not compute_can_create(user_role=profile.role):
+    if not compute_can_create(role_level=profile.role_level, role_permissions=profile.role_permissions):
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to create auths.",

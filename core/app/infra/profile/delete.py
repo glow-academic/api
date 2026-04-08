@@ -82,7 +82,7 @@ async def delete_profile_impl(
             target_role = target_ctx.role if target_ctx else None
 
             if not compute_can_delete(
-                user_role=profile.role,
+                role_level=profile.role_level, role_permissions=profile.role_permissions,
                 target_is_self=(target_id == profile_id),
                 target_role=target_role,
             ):

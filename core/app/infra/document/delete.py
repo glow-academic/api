@@ -78,7 +78,7 @@ async def delete_document_impl(
                 )
 
             if not compute_can_delete(
-                user_role=profile.role,
+                role_level=profile.role_level, role_permissions=profile.role_permissions,
                 document_department_ids=ctx.department_ids,
                 active_scenario_count=ctx.active_scenario_count,
             ):

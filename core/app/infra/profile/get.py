@@ -137,7 +137,7 @@ async def get_profile_impl(
                 detail=f"Profile {target_profile_id} not found",
             )
 
-        if not has_access(profile.role, profile.department_ids, perms.department_ids):
+        if not has_access(profile.role_level, profile.department_ids, perms.department_ids):
             raise HTTPException(
                 status_code=403,
                 detail="You don't have access to this profile. It may be restricted to other departments.",
@@ -174,14 +174,14 @@ async def get_profile_impl(
     perms_department_ids = perms.department_ids if perms else []
 
     can_edit = compute_can_edit(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         target_is_self=target_is_self,
         target_department_ids=perms_department_ids,
         user_department_ids=profile.department_ids,
     )
 
     disabled_reason = compute_disabled_reason(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         target_is_self=target_is_self,
         target_department_ids=perms_department_ids,
     )

@@ -104,7 +104,7 @@ async def search_field_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    user_role = profile.role
+    user_role_level = profile.role_level
     user_department_ids = profile.department_ids
     actor_name = profile.name
 

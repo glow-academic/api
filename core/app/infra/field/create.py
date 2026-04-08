@@ -78,7 +78,7 @@ async def create_field_impl(
         department_id for item in items for department_id in (item.department_ids or [])
     ]
     if not compute_can_create(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         department_ids=requested_department_ids or None,
     ):
         raise HTTPException(

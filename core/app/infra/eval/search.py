@@ -97,7 +97,7 @@ async def search_eval_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    user_role = profile.role
+    user_role_level = profile.role_level
     actor_name = profile.name
 
     # ── Step 2: Search evals ──────────────────────────────────────────

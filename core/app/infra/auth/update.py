@@ -89,7 +89,7 @@ async def update_auth_impl(
                 detail=f"Item {idx}: Auth {item.auth_id} not found.",
             )
         if not compute_can_edit(
-            user_role=profile.role,
+            role_level=profile.role_level, role_permissions=profile.role_permissions,
             active_settings_count=perms.active_settings_count,
         ):
             raise HTTPException(

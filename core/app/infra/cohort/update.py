@@ -90,13 +90,13 @@ async def update_cohort_impl(
                 status_code=404,
                 detail=f"Item {idx}: Cohort {item.cohort_id} not found.",
             )
-        if not has_access(profile.role, profile.department_ids, perms.department_ids):
+        if not has_access(profile.role_level, profile.department_ids, perms.department_ids):
             raise HTTPException(
                 status_code=403,
                 detail=f"Item {idx}: You don't have access to this cohort.",
             )
         if not compute_can_edit(
-            user_role=profile.role,
+            role_level=profile.role_level, role_permissions=profile.role_permissions,
             cohort_department_ids=perms.department_ids,
             user_department_ids=profile.department_ids,
         ):

@@ -139,7 +139,7 @@ async def get_simulation_impl(
                 detail=f"Simulation {simulation_id} not found",
             )
 
-        if not has_access(profile.role, profile.department_ids, perms.department_ids):
+        if not has_access(profile.role_level, profile.department_ids, perms.department_ids):
             raise HTTPException(
                 status_code=403,
                 detail="You don't have access to this simulation. "
@@ -177,14 +177,14 @@ async def get_simulation_impl(
     cohort_usage_count = perms.cohort_usage_count if perms else 0
 
     can_edit = compute_can_edit(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         simulation_department_ids=simulation_department_ids,
         cohort_usage_count=cohort_usage_count,
         user_department_ids=profile.department_ids,
     )
 
     disabled_reason = compute_disabled_reason(
-        user_role=profile.role,
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
         simulation_department_ids=simulation_department_ids,
         cohort_usage_count=cohort_usage_count,
         user_department_ids=profile.department_ids,

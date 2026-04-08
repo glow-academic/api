@@ -76,7 +76,7 @@ async def delete_tool_impl(
                 )
 
             if not compute_can_delete(
-                user_role=profile.role,
+                role_level=profile.role_level, role_permissions=profile.role_permissions,
                 active_agent_count=ctx.active_agent_count,
             ):
                 raise HTTPException(

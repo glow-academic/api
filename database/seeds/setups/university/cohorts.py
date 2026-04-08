@@ -9,8 +9,14 @@ Names and descriptions are CREATED as new resources.
 from database.seeds.ids import sid
 from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVERSITY_DEPT_RESOURCE
 from database.seeds.setups.university.profiles import (
+    BENCHMARK_PROFILE,
     PROFESSOR_SMITH,
     TA_JOHNSON,
+    UNI_ADMIN,
+    UNI_GUEST,
+    UNI_INSTRUCTIONAL,
+    UNI_MEMBER,
+    UNI_SUPERADMIN,
     UNIVERSITY_ADMIN,
 )
 from database.seeds.setups.university.simulations import (
@@ -50,7 +56,17 @@ cohorts = [
             AGGRESSIVE_PRACTICE,
             GENERAL_PRACTICE,
         ],
-        profile_ids=[PROFESSOR_SMITH, TA_JOHNSON],
+        profile_ids=[
+            UNI_SUPERADMIN,
+            UNIVERSITY_ADMIN,
+            PROFESSOR_SMITH,
+            TA_JOHNSON,
+            BENCHMARK_PROFILE,
+            UNI_ADMIN,
+            UNI_INSTRUCTIONAL,
+            UNI_MEMBER,
+            UNI_GUEST,
+        ],
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(

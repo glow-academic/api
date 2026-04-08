@@ -83,7 +83,7 @@ async def update_model_impl(
                     detail=f"Item {idx}: Model {item.model_id} not found.",
                 )
             if not compute_can_edit(
-                user_role=profile.role,
+                role_level=profile.role_level, role_permissions=profile.role_permissions,
                 model_department_ids=perms.department_ids,
                 active_agent_count=perms.active_agent_count,
                 user_department_ids=profile.department_ids,

@@ -12,6 +12,7 @@ from app.infra.agent.selection import (
     select_multi_resource_agent,
 )
 from app.infra.api_types import CandidateAgent
+from app.infra.permissions_helpers import has_permission
 
 # Re-export for backwards compatibility
 __all__ = [
@@ -27,7 +28,8 @@ __all__ = [
 
 
 def compute_can_edit(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     persona_department_ids: list[str] | list[UUID] | None,
     active_scenario_count: int,
     user_department_ids: list[str] | list[UUID] | None = None,
@@ -35,27 +37,27 @@ def compute_can_edit(
     """Unified can_edit logic for get, list, and save views.
 
     Constraints:
-    1. Not a default persona (unless superadmin)
+    1. Not a default persona (unless role_level == 0)
     2. Not linked to active scenarios
-    3. User has admin/instructional/superadmin role
-    4. Non-superadmins must belong to ALL of the persona's departments
+    3. User has persona:update permission
+    4. Non-top-level users must belong to ALL of the persona's departments
     """
-    # Default personas can only be edited by superadmin
-    if not persona_department_ids and user_role != "superadmin":
+    # Default personas can only be edited by top-level role
+    if not persona_department_ids and role_level > 0:
         return False
 
     # Personas in use by scenarios cannot be edited
     if active_scenario_count > 0:
         return False
 
-    # Role check
-    if user_role not in ("admin", "instructional", "superadmin"):
+    # Permission check
+    if not has_permission(role_permissions, "persona", "update"):
         return False
 
     # Department subset check (when user_department_ids is available)
     if (
         user_department_ids is not None
-        and user_role != "superadmin"
+        and role_level > 0
         and persona_department_ids
     ):
         user_dept_set = {str(d) for d in user_department_ids}
@@ -67,7 +69,8 @@ def compute_can_edit(
 
 
 def compute_disabled_reason(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     persona_department_ids: list[str] | list[UUID] | None,
     active_scenario_count: int,
     user_department_ids: list[str] | list[UUID] | None = None,
@@ -76,8 +79,8 @@ def compute_disabled_reason(
 
     Returns None if editing is allowed.
     """
-    # Default personas can only be edited by superadmin
-    if not persona_department_ids and user_role != "superadmin":
+    # Default personas can only be edited by top-level role
+    if not persona_department_ids and role_level > 0:
         return (
             "This is a default persona that cannot be edited. "
             "You can view the details but cannot make changes."
@@ -90,8 +93,8 @@ def compute_disabled_reason(
             "You can view the details but cannot make changes."
         )
 
-    # Role check
-    if user_role not in ("admin", "instructional", "superadmin"):
+    # Permission check
+    if not has_permission(role_permissions, "persona", "update"):
         return (
             "This persona cannot be edited. "
             "You can view the details but cannot make changes."
@@ -100,7 +103,7 @@ def compute_disabled_reason(
     # Department subset check
     if (
         user_department_ids is not None
-        and user_role != "superadmin"
+        and role_level > 0
         and persona_department_ids
     ):
         user_dept_set = {str(d) for d in user_department_ids}
@@ -148,18 +151,18 @@ def get_missing_tools(
 
 
 def has_access(
-    user_role: str | None,
+    role_level: int,
     user_department_ids: list[UUID] | None,
     persona_department_ids: list[UUID] | None,
 ) -> bool:
     """Check if user has access to view the persona.
 
     Access rules:
-    - Superadmin has access to all personas
+    - Top-level role (level 0) has access to all personas
     - User has access if persona has no departments (default persona)
     - User has access if they share at least one department with the persona
     """
-    if user_role == "superadmin":
+    if role_level == 0:
         return True
 
     # Default personas (no departments) are accessible to all
@@ -292,58 +295,61 @@ def compute_voices_required() -> bool:
 
 
 def compute_can_delete(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     persona_department_ids: list[str] | list[UUID] | None,
     active_scenario_count: int,
 ) -> bool:
     """Compute can_delete permission.
 
     Business logic:
-    - Default personas (no departments) cannot be deleted except by superadmin
+    - Default personas (no departments) cannot be deleted except by top-level role
     - Personas linked to active scenarios cannot be deleted
-    - Only admins, instructional, and superadmins can delete
+    - User must have persona:delete permission
     """
-    # Default personas can only be deleted by superadmin
-    if not persona_department_ids and user_role != "superadmin":
+    # Default personas can only be deleted by top-level role
+    if not persona_department_ids and role_level > 0:
         return False
 
     # Personas with active scenario links cannot be deleted
     if active_scenario_count > 0:
         return False
 
-    # Only admins, instructional, and superadmins can delete
-    return user_role in ("admin", "instructional", "superadmin")
+    # Permission check
+    return has_permission(role_permissions, "persona", "delete")
 
 
-def compute_can_duplicate(user_role: str | None) -> bool:
+def compute_can_duplicate(
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute can_duplicate permission.
 
     Business logic:
-    - Anyone with edit permissions can duplicate
-    - Currently always true for admin/instructional/superadmin
+    - User must have persona:duplicate permission
     """
-    return user_role in ("admin", "instructional", "superadmin")
+    return has_permission(role_permissions, "persona", "duplicate")
 
 
 # ========== Save/Create Endpoint Permission Functions ==========
 
 
 def compute_can_create(
-    user_role: str | None,
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
     department_ids: list[str] | list[UUID] | None,
 ) -> bool:
     """Compute permission to create a new persona.
 
-    Business logic (from SQL validate_department_create_permissions):
-    - Non-superadmins cannot create general objects (empty department_ids)
-    - Only admin/instructional/superadmin can create personas
+    Business logic:
+    - User must have persona:create permission
+    - Non-top-level users cannot create general objects (empty department_ids)
     """
-    # Role check first
-    if user_role not in ("admin", "instructional", "superadmin"):
+    # Permission check first
+    if not has_permission(role_permissions, "persona", "create"):
         return False
 
-    # Non-superadmins cannot create general objects (no departments)
-    if user_role != "superadmin" and not department_ids:
+    # Non-top-level users cannot create general objects (no departments)
+    if role_level > 0 and not department_ids:
         return False
 
     return True
@@ -352,13 +358,15 @@ def compute_can_create(
 # ========== Draft Endpoint Permission Functions ==========
 
 
-def compute_can_draft(user_role: str | None) -> bool:
+def compute_can_draft(
+    role_permissions: list[tuple[str, str]],
+) -> bool:
     """Compute permission to create or update a draft.
 
     Business logic:
-    - Only admin/instructional/superadmin can create/edit drafts
+    - User must have persona:draft permission
     """
-    return user_role in ("admin", "instructional", "superadmin")
+    return has_permission(role_permissions, "persona", "draft")
 
 
 # ========== Agent Scoring - Persona-specific Constants ==========

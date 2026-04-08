@@ -12,6 +12,7 @@ from app.infra.agent.selection import (
     select_multi_resource_agent,
 )
 from app.infra.api_types import CandidateAgent
+from app.infra.permissions_helpers import has_permission
 
 # Re-export for backwards compatibility
 __all__ = [
@@ -25,25 +26,25 @@ __all__ = [
 
 
 def compute_can_edit(
-    user_role: str | None,
+    role_permissions: list[tuple[str, str]],
     active_agent_count: int,
 ) -> bool:
     """Unified can_edit logic for both get and list views.
 
     Constraints:
     1. Not linked to active agents
-    2. User has admin/superadmin role
+    2. User has tool update permission
     """
     # Tools in use by active agents cannot be edited
     if active_agent_count > 0:
         return False
 
-    # Role check
-    return user_role in ("admin", "superadmin")
+    # Permission check
+    return has_permission(role_permissions, "tool", "update")
 
 
 def compute_disabled_reason(
-    user_role: str | None,
+    role_permissions: list[tuple[str, str]],
     active_agent_count: int,
 ) -> str | None:
     """Compute the reason why editing is disabled, if any.
@@ -57,8 +58,8 @@ def compute_disabled_reason(
             "You can view the details but cannot make changes."
         )
 
-    # Role check
-    if user_role not in ("admin", "superadmin"):
+    # Permission check
+    if not has_permission(role_permissions, "tool", "update"):
         return (
             "This tool cannot be edited. "
             "You can view the details but cannot make changes."
@@ -92,14 +93,14 @@ def get_missing_tools(
 
 
 def has_access(
-    user_role: str | None,
+    role_level: int,
 ) -> bool:
     """Check if user has access to view the tool.
 
     Access rules:
     - Tools are accessible to all authenticated users (no department scoping)
     """
-    return user_role is not None
+    return role_level is not None
 
 
 def compute_show_name(names_has_tools: bool) -> bool:
@@ -171,42 +172,42 @@ def compute_permissions_required() -> bool:
 
 
 def compute_can_delete(
-    user_role: str | None,
+    role_permissions: list[tuple[str, str]],
     active_agent_count: int,
 ) -> bool:
     """Compute can_delete permission.
 
     Business logic:
     - Tools linked to active agents cannot be deleted
-    - Only admins and superadmins can delete
+    - Only users with tool delete permission can delete
     """
     if active_agent_count > 0:
         return False
 
-    return user_role in ("admin", "superadmin")
+    return has_permission(role_permissions, "tool", "delete")
 
 
-def compute_can_duplicate(user_role: str | None) -> bool:
+def compute_can_duplicate(role_permissions: list[tuple[str, str]]) -> bool:
     """Compute can_duplicate permission."""
-    return user_role in ("admin", "superadmin")
+    return has_permission(role_permissions, "tool", "duplicate")
 
 
 # ========== Save/Create Endpoint Permission Functions ==========
 
 
 def compute_can_create(
-    user_role: str | None,
+    role_permissions: list[tuple[str, str]],
 ) -> bool:
     """Compute permission to create a new tool."""
-    return user_role in ("admin", "superadmin")
+    return has_permission(role_permissions, "tool", "create")
 
 
 # ========== Draft Endpoint Permission Functions ==========
 
 
-def compute_can_draft(user_role: str | None) -> bool:
+def compute_can_draft(role_permissions: list[tuple[str, str]]) -> bool:
     """Compute permission to create or update a draft."""
-    return user_role in ("admin", "superadmin")
+    return has_permission(role_permissions, "tool", "draft")
 
 
 # ========== Agent Scoring - Tool-specific Constants ==========

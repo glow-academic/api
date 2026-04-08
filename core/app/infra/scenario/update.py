@@ -102,7 +102,7 @@ async def update_scenario_impl(
                 detail=f"Item {idx}: Scenario {item.scenario_id} not found.",
             )
         if not compute_can_edit(
-            user_role=profile.role,
+            role_level=profile.role_level, role_permissions=profile.role_permissions,
             scenario_department_ids=perms.department_ids,
             active_simulation_count=perms.active_simulation_count,
             user_department_ids=profile.department_ids,
