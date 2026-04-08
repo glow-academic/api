@@ -93,36 +93,39 @@ async def resolve_auths_for_department(
     redis: Redis,
     department_id: UUID,
 ) -> list[AuthForSync]:
-    """Auths linked to a department via artifact junctions.
+    """Auths linked to a department via setting artifacts.
 
-    Chain: department_artifact → department_settings_junction → setting_artifact
-           → setting_auths_junction → auth_artifact → auth_resource (slug/name).
+    Chain: department_artifact → resource ID → find settings with that dept
+           → setting_auths_junction → auth resources (slug/name).
     """
-    # Step 1: Department artifact → setting artifact IDs (via junction)
-    dept_artifacts = await get_department_artifacts(
-        conn, [department_id], settings=True
-    )
-    if not dept_artifacts:
+    # Step 1: Get department's resource ID from self-link junction
+    dept_arts = await get_department_artifacts(conn, [department_id], departments=True)
+    if not dept_arts or not dept_arts[0].department_ids:
         return []
+    dept_resource_id = dept_arts[0].department_ids[0]
 
-    setting_artifact_ids = dept_artifacts[0].settings_ids or []
+    # Step 2: Get ALL setting artifacts with departments + auths junctions
+    setting_artifact_ids, _ = await search_settings(
+        conn, active_only=True, limit_count=100000
+    )
     if not setting_artifact_ids:
         return []
 
-    # Step 2: Setting artifacts → auth artifact IDs (via junction)
     setting_artifacts = await get_setting_artifacts(
-        conn, setting_artifact_ids, auths=True
+        conn, setting_artifact_ids, departments=True, auths=True
     )
 
+    # Step 3: Filter to settings linked to this department's resource ID
     auth_ids: set[UUID] = set()
     for sa in setting_artifacts:
-        if sa.auth_ids:
-            auth_ids.update(sa.auth_ids)
+        if dept_resource_id in (sa.department_ids or []):
+            if sa.auth_ids:
+                auth_ids.update(sa.auth_ids)
 
     if not auth_ids:
         return []
 
-    # Step 3: Auth resources for slug/name
+    # Step 4: Auth resources for slug/name
     auths = await get_auth_resources(conn, list(auth_ids), redis)
     return [
         AuthForSync(id=a.id, slug=a.slug, provider_id=a.protocol, name=a.name)
@@ -141,44 +144,31 @@ async def resolve_auths_for_realm(
 ) -> list[AuthForSync]:
     """Auths from default settings (not linked to any department).
 
-    Uses artifact junctions to find settings NOT linked to any department,
+    Finds settings with empty department_ids (realm-level/platform defaults),
     then resolves their auths via setting_auths_junction.
     """
-    # Step 1: Collect ALL setting artifact IDs linked to departments (via junctions)
-    dept_ids, _ = await search_departments(conn, active_only=True, limit_count=100000)
-    dept_setting_ids: set[UUID] = set()
-    if dept_ids:
-        dept_artifacts = await get_department_artifacts(conn, dept_ids, settings=True)
-        for da in dept_artifacts:
-            if da.settings_ids:
-                dept_setting_ids.update(da.settings_ids)
-
-    # Step 2: Get ALL active setting artifact IDs
+    # Step 1: Get ALL active setting artifacts with departments + auths
     setting_artifact_ids, _ = await search_settings(
         conn, active_only=True, limit_count=100000
     )
     if not setting_artifact_ids:
         return []
 
-    # Step 3: Filter to realm-level (not linked to any department)
-    realm_setting_ids = [
-        sid for sid in setting_artifact_ids if sid not in dept_setting_ids
-    ]
-    if not realm_setting_ids:
-        return []
+    setting_artifacts = await get_setting_artifacts(
+        conn, setting_artifact_ids, departments=True, auths=True
+    )
 
-    # Step 4: Get auth artifact IDs via setting_auths_junction
-    realm_settings = await get_setting_artifacts(conn, realm_setting_ids, auths=True)
-
+    # Step 2: Filter to realm-level (no department_ids)
     auth_ids: set[UUID] = set()
-    for sa in realm_settings:
-        if sa.auth_ids:
-            auth_ids.update(sa.auth_ids)
+    for sa in setting_artifacts:
+        if not sa.department_ids:  # No departments = realm-level
+            if sa.auth_ids:
+                auth_ids.update(sa.auth_ids)
 
     if not auth_ids:
         return []
 
-    # Step 5: Get auth resources for slug/name
+    # Step 3: Get auth resources for slug/name
     auths = await get_auth_resources(conn, list(auth_ids), redis)
     return [
         AuthForSync(id=a.id, slug=a.slug, provider_id=a.protocol, name=a.name)
@@ -349,32 +339,14 @@ async def resolve_auth_items(
 
     item_map = {i.id: i for i in items}
 
-    # Step 3: Resolve department settings and default settings
-    dept_setting_ids: set[UUID] = set()
-    all_dept_setting_ids: set[UUID] = set()
-
+    # Step 3: Get department's resource ID for matching
+    dept_resource_id: UUID | None = None
     if department_id:
         dept_arts = await get_department_artifacts(conn, [department_id], departments=True)
         if dept_arts and dept_arts[0].department_ids:
-            res_ids = [dept_arts[0].department_ids[0]]
-            depts = await get_department_resources(conn, res_ids, redis)
-            if depts and depts[0].setting_ids:
-                dept_setting_ids.update(depts[0].setting_ids)
+            dept_resource_id = dept_arts[0].department_ids[0]
 
-    # Get all department setting_ids (to identify defaults as "not in any dept")
-    dept_ids_all, _ = await search_departments(
-        conn, active_only=True, limit_count=100000
-    )
-    if dept_ids_all:
-        all_dept_arts = await get_department_artifacts(conn, dept_ids_all, departments=True)
-        all_res_ids = [a.department_ids[0] for a in all_dept_arts if a.department_ids]
-        if all_res_ids:
-            all_depts = await get_department_resources(conn, all_res_ids, redis)
-            for d in all_depts:
-                if d.setting_ids:
-                    all_dept_setting_ids.update(d.setting_ids)
-
-    # Step 4: Get ALL active setting artifacts with auth_item_keys + auth_item_values junctions
+    # Step 4: Get ALL active setting artifacts with departments + auth items
     setting_artifact_ids, _ = await search_settings(
         conn, active_only=True, limit_count=100000
     )
@@ -384,30 +356,28 @@ async def resolve_auth_items(
     setting_artifacts = await get_setting_artifacts(
         conn,
         setting_artifact_ids,
+        departments=True,
         auth_item_keys=True,
         auth_item_values=True,
-        settings=True,
     )
 
-    # Categorize setting artifacts into dept vs default
+    # Categorize setting artifacts into dept vs default using department_ids
     dept_auth_item_key_ids: list[UUID] = []
     dept_auth_item_value_ids: list[UUID] = []
     default_auth_item_key_ids: list[UUID] = []
     default_auth_item_value_ids: list[UUID] = []
 
     for sa in setting_artifacts:
-        settings_resource_ids = sa.setting_ids or []
-        is_dept = any(sr_id in dept_setting_ids for sr_id in settings_resource_ids)
-        is_default = any(
-            sr_id not in all_dept_setting_ids for sr_id in settings_resource_ids
-        )
+        has_departments = bool(sa.department_ids)
+        is_dept = dept_resource_id and dept_resource_id in (sa.department_ids or [])
+        is_default = not has_departments
 
         if is_dept:
             if sa.auth_item_keys_ids:
                 dept_auth_item_key_ids.extend(sa.auth_item_keys_ids)
             if sa.auth_item_value_ids:
                 dept_auth_item_value_ids.extend(sa.auth_item_value_ids)
-        if is_default and not is_dept:
+        if is_default:
             if sa.auth_item_keys_ids:
                 default_auth_item_key_ids.extend(sa.auth_item_keys_ids)
             if sa.auth_item_value_ids:
