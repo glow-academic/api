@@ -72,7 +72,8 @@ async def create_setting_impl(
 
     # ── Step 2: Permission check ───────────────────────────────────────
 
-    if profile.role not in ("admin", "superadmin"):
+    from app.infra.permissions_helpers import has_permission
+    if not has_permission(profile.role_permissions, "setting", "create"):
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to create settings.",

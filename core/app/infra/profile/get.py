@@ -244,7 +244,7 @@ async def get_profile_impl(
 
     # ── Step 7: Role options (computed in Python from hierarchy) ─────────
 
-    role_options = compute_role_options(profile.role)
+    role_options = compute_role_options(role_level=profile.role_level)
 
     # Selected role: from the target profile's roles resource
     selected_role: str | None = None

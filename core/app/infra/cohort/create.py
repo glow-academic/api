@@ -85,7 +85,7 @@ async def create_cohort_impl(
         if items and items[0].department_ids
         else []
     )
-    if not compute_can_create(profile.role, request_department_ids):
+    if not compute_can_create(role_level=profile.role_level, role_permissions=profile.role_permissions, request_department_ids):
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to create cohorts.",
