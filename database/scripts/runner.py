@@ -205,7 +205,9 @@ async def _seed_roles(
     from app.tools.resources.roles.create import create_role
 
     for item in items:
-        await create_role(conn, redis=redis, **item)
+        # Strip legacy 'artifacts' field (replaced by permission_ids)
+        clean = {k: v for k, v in item.items() if k != "artifacts"}
+        await create_role(conn, redis=redis, **clean)
     print(f"  OK: {len(items)} roles created")
 
 
