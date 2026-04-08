@@ -50,6 +50,8 @@ async def generate_keycloak_theme_providers(pool: Any) -> None:
         # Step 2: Get all default-idp profile aliases (per settings)
         setting_profiles = await resolve_setting_profiles_for_idp(conn, redis)
 
+        # First pass: collect department-scoped profile aliases
+        dept_scoped_aliases: set[str] = set()
         for sp in setting_profiles:
             profile_id = str(sp.profile_id)
             alias = f"default-idp-profile-{profile_id}"
@@ -62,7 +64,13 @@ async def generate_keycloak_theme_providers(pool: Any) -> None:
                 dept_aliases_list = profile_aliases_by_dept.setdefault(dept_key, [])
                 if alias not in dept_aliases_list:
                     dept_aliases_list.append(alias)
-            else:
+                dept_scoped_aliases.add(alias)
+
+        # Second pass: platform-level only for profiles NOT already department-scoped
+        for sp in setting_profiles:
+            profile_id = str(sp.profile_id)
+            alias = f"default-idp-profile-{profile_id}"
+            if not sp.department_id and alias not in dept_scoped_aliases:
                 if alias not in platform_profile_aliases:
                     platform_profile_aliases.append(alias)
 
