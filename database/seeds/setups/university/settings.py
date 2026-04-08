@@ -9,7 +9,7 @@ Provider keys and auth item keys are created by the keys module and linked here.
 
 from uuid import UUID
 
-from database.seeds.auths import AUTH_IDS
+from database.seeds.auths import AUTH_RESOURCE_IDS
 from database.seeds.ids import sid
 from database.seeds.setups.university.departments import (
     UNIVERSITY_DEPT,
@@ -100,7 +100,7 @@ settings = [
         description="Department-specific settings for the University, linking authentication, AI systems, and grading thresholds.",
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        auth_ids=list(AUTH_IDS.values()),
+        auth_ids=list(AUTH_RESOURCE_IDS.values()),
         provider_key_ids=PROVIDER_KEY_IDS,
         auth_item_key_ids=AUTH_ITEM_KEY_IDS,
         auth_item_value_ids=AUTH_ITEM_VALUE_IDS,

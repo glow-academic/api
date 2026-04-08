@@ -30,10 +30,16 @@ _FIELD_TO_ITEM = {
     "user_info_url": "userInfoUrl",
 }
 
-# Lookup: auth name → UUID (use explicit id if provided, else derive)
+# Lookup: auth name → artifact UUID (use explicit id if provided, else derive)
 from uuid import UUID as _UUID
 AUTH_IDS = {
     p["name"]: _UUID(p["id"]) if p.get("id") else sid(f"auth/{p['name']}")
+    for p in _auth_providers
+}
+
+# Lookup: auth name → resource UUID (deterministic, separate from artifact ID)
+AUTH_RESOURCE_IDS = {
+    p["name"]: sid(f"auth-resource/{p['name']}")
     for p in _auth_providers
 }
 
@@ -51,6 +57,7 @@ for _p in _auth_providers:
 auths = [
     dict(
         id=_UUID(p["id"]) if p.get("id") else sid(f"auth/{p['name']}"),
+        resource_id=sid(f"auth-resource/{p['name']}"),
         name=p.get("display_name", p["name"]),
         description=f'{p.get("display_name", p["name"])} authentication',
         slug=p.get("slug", p["name"]),

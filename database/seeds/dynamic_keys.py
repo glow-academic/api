@@ -123,3 +123,7 @@ PROVIDER_KEY_IDS = [pk["id"] for pk in provider_keys]
 AUTH_ITEM_KEY_IDS = [aik["id"] for aik in auth_item_keys]
 AUTH_ITEM_VALUE_IDS = [aiv["id"] for aiv in auth_item_values]
 AUTH_ID_LIST = list(AUTH_IDS.values())
+
+# Auth resource IDs for settings linkage (junctions need resource IDs, not artifact IDs)
+from database.seeds.auths import AUTH_RESOURCE_IDS  # noqa: E402
+AUTH_RESOURCE_ID_LIST = list(AUTH_RESOURCE_IDS.values())

@@ -10,9 +10,9 @@ from uuid import UUID
 
 from database.seeds.ids import sid
 from database.seeds.dynamic_keys import (
-    AUTH_ID_LIST,
     AUTH_ITEM_KEY_IDS,
     AUTH_ITEM_VALUE_IDS,
+    AUTH_RESOURCE_ID_LIST,
 )
 from database.seeds.profiles import SEED_PROFILE_RESOURCE
 from database.seeds.systems import (
@@ -130,7 +130,7 @@ settings = [
         description="Platform default settings — active on fresh deployments with no departments configured.",
         active_flag=True,
         department_ids=None,
-        auth_ids=AUTH_ID_LIST or None,
+        auth_ids=AUTH_RESOURCE_ID_LIST or None,
         auth_item_key_ids=AUTH_ITEM_KEY_IDS or None,
         auth_item_value_ids=AUTH_ITEM_VALUE_IDS or None,
         system_ids=ALL_SYSTEMS,
