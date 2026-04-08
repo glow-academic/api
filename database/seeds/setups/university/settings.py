@@ -21,14 +21,16 @@ from database.seeds.dynamic_keys import (
     PROVIDER_KEY_IDS,
 )
 from database.seeds.setups.university.colors import ALL_COLOR_IDS
-from database.seeds.profiles import SEED_PROFILE_RESOURCE
-from database.seeds.setups.university.profiles import BENCHMARK_PROFILE_RESOURCE
+from database.seeds.setups.university.profiles import (
+    BENCHMARK_PROFILE_RESOURCE,
+    UNI_SUPERADMIN_RESOURCE,
+)
 
 # ---------------------------------------------------------------------------
 # Profile resource IDs for setting linkage
 # ---------------------------------------------------------------------------
 
-SETTING_PROFILE_RESOURCE_IDS = [BENCHMARK_PROFILE_RESOURCE, SEED_PROFILE_RESOURCE]
+SETTING_PROFILE_RESOURCE_IDS = [BENCHMARK_PROFILE_RESOURCE, UNI_SUPERADMIN_RESOURCE]
 
 # ---------------------------------------------------------------------------
 # Pre-existing threshold resource IDs (from 01-resources/06-thresholds.sql)

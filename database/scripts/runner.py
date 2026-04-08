@@ -936,6 +936,15 @@ async def _run_profile_seeds(
 ) -> list[UUID]:
     """Run profile seed definitions through create_profile_impl."""
     from app.infra.profile.create import CreateProfileItem, create_profile_impl
+    from app.tools.resources.emails.create import create_email
+
+    # Resolve email string → email_ids before creation
+    for p in profile_defs:
+        email = p.pop("email", None)
+        if email and not p.get("email_ids"):
+            async with pool.acquire() as conn:
+                email_resp = await create_email(conn, email=email, redis=redis)
+            p["email_ids"] = [email_resp.id]
 
     items = [CreateProfileItem(**p) for p in profile_defs]
 
@@ -1249,58 +1258,6 @@ async def _cleanup_deactivated_junctions(pool: asyncpg.Pool) -> list[str]:
             print(f"  Cleaned up {total} deactivated junction row(s)")
 
     return update_stmts
-
-
-async def _run_update_pass(
-    pool: asyncpg.Pool,
-    redis: Redis,
-    setup: str,
-    modules: list[str],
-) -> None:
-    """Run update pass — links pre-existing base profiles to setup departments.
-
-    Base profiles (from main_modules) are shared across all setups.
-    Each setup adds department + email links to them via update_profile_impl.
-    This is the only update that can't be a create (the profiles already exist).
-    """
-    import importlib
-
-    # ── Profile updates ───────────────────────────────────────────────
-    if "profiles" in modules:
-        mod = importlib.import_module(f"database.seeds.setups.{setup}.profiles")
-        if hasattr(mod, "profile_updates"):
-            from app.infra.profile.update import update_profile_impl
-            from app.infra.profile.types import UpdateProfileItem
-            from app.tools.resources.emails.create import create_email
-
-            update_items: list[UpdateProfileItem] = []
-            for p in mod.profile_updates:
-                # Create email resource (not handled by _impl value resolution)
-                email_id = None
-                if "email" in p:
-                    async with pool.acquire() as conn:
-                        email_result = await create_email(
-                            conn,
-                            email=p["email"],
-                            redis=redis,
-                        )
-                        email_id = email_result.id
-
-                update_items.append(
-                    UpdateProfileItem(
-                        profile_id=p["profile_id"],
-                        department_ids=p.get("department_ids"),
-                        email_ids=[email_id] if email_id else None,
-                    )
-                )
-
-            await update_profile_impl(
-                pool,
-                redis,
-                profile_id=SEED_PROFILE_ID,
-                items=update_items,
-            )
-            print(f"  OK: {len(update_items)} profile(s) updated")
 
 
 async def _run_cohort_seeds(
@@ -1851,6 +1808,8 @@ async def main_setup(setup: str = "university", base_seed_file: Path | None = No
             elif module_name == "profiles":
                 if hasattr(mod, "profiles"):
                     await _run_profile_seeds(pool, redis_client, mod.profiles)
+                if hasattr(mod, "setup_profiles"):
+                    await _run_profile_seeds(pool, redis_client, mod.setup_profiles)
             elif module_name == "keys":
                 await _run_key_seeds(pool, redis_client, mod)
             elif module_name == "settings":
@@ -1877,10 +1836,6 @@ async def main_setup(setup: str = "university", base_seed_file: Path | None = No
         await pool.close()
         pool = await asyncpg.create_pool(pg_url)
         print("\n  FK checks re-enabled")
-
-        # ── Update pass — apply deferred updates from seed modules ────
-        print("\nApplying updates...")
-        await _run_update_pass(pool, redis_client, setup, setup_module.MODULES)
 
         # ── Cleanup deactivated junction rows before dump ─────────────
         # The update pass soft-deletes old junction rows (active=false),

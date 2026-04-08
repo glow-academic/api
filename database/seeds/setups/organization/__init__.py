@@ -9,8 +9,7 @@ Dependency order (each module may reference IDs from earlier modules):
   6. settings       (refs: departments, auth, keys, systems, thresholds)
   7. profiles       (updates: pre-existing profiles → department + email)
 
-Updates are applied automatically after all creates:
-  - profiles.profile_updates → link pre-existing base profiles to department + email
+All data is created at creation time — no update pass needed.
 """
 
 SETUP_NAME = "organization"

@@ -19,8 +19,7 @@ Dependency order (each module may reference IDs from earlier modules):
   16. texts         (refs: documents — text upload chain + document link)
   17. files         (refs: documents — file upload chain + document link)
 
-Updates are applied automatically after all creates:
-  - profiles.profile_updates → link pre-existing base profiles to department + email
+All data is created at creation time — no update pass needed.
 """
 
 SETUP_NAME = "university"

@@ -1,53 +1,81 @@
-"""Organization profile updates — link pre-existing profiles to this setup's department."""
-
-from uuid import UUID
+"""Organization profile seed definitions — setup-specific, independent from base modules."""
 
 from database.seeds.ids import sid
-from database.seeds.setups.organization.departments import ORGANIZATION_DEPT, ORGANIZATION_DEPT_RESOURCE
+from database.seeds.profiles import (
+    ADMIN_ROLE,
+    GUEST_ROLE,
+    GUEST_REQUEST_LIMIT,
+    INSTRUCTIONAL_ROLE,
+    MEMBER_GTA_ROLE,
+    PROFILE_ACTIVE,
+    SUPERADMIN_ROLE,
+)
+from database.seeds.setups.organization.departments import ORGANIZATION_DEPT_RESOURCE
 
 # ---------------------------------------------------------------------------
-# Pre-existing profile IDs (from 09-profiles in modules 01-10)
+# Deterministic IDs
 # ---------------------------------------------------------------------------
 
-DEFAULT_ADMIN = UUID("019b3be4-36ef-7a5f-98ab-ccb879770be0")
-DEFAULT_GUEST = UUID("019b3be4-36f0-792c-82d6-126664ed18b6")
-DEFAULT_INSTRUCTIONAL = UUID("019b3be4-36f0-785d-9d61-32eae65689ca")
-DEFAULT_MEMBER = UUID("019b3be4-36f0-7eb3-bc4e-bcab772edd92")
-DEFAULT_SUPERADMIN = UUID("019b3be4-36f0-788c-9df2-481eb5917940")
+ORG_SUPERADMIN = sid("org/profile/superadmin")
+ORG_SUPERADMIN_RESOURCE = sid("org/profile-resource/superadmin")
+ORG_ADMIN = sid("org/profile/admin")
+ORG_ADMIN_RESOURCE = sid("org/profile-resource/admin")
+ORG_INSTRUCTIONAL = sid("org/profile/instructional")
+ORG_INSTRUCTIONAL_RESOURCE = sid("org/profile-resource/instructional")
+ORG_MEMBER = sid("org/profile/member")
+ORG_MEMBER_RESOURCE = sid("org/profile-resource/member")
+ORG_GUEST = sid("org/profile/guest")
+ORG_GUEST_RESOURCE = sid("org/profile-resource/guest")
 
 # ---------------------------------------------------------------------------
-# Profile updates — link pre-existing profiles to this setup's department
+# Setup-specific profiles (created as new artifacts, not updates to base profiles)
 # ---------------------------------------------------------------------------
 
-profile_updates = [
+setup_profiles = [
     dict(
-        profile_id=DEFAULT_ADMIN,
-        resource_id=sid("org/profile-resource/default-admin"),
-        department_ids=[ORGANIZATION_DEPT_RESOURCE],
-        email="default-admin@organization.com",
-    ),
-    dict(
-        profile_id=DEFAULT_GUEST,
-        resource_id=sid("org/profile-resource/default-guest"),
-        department_ids=[ORGANIZATION_DEPT_RESOURCE],
-        email="default-guest@organization.com",
-    ),
-    dict(
-        profile_id=DEFAULT_INSTRUCTIONAL,
-        resource_id=sid("org/profile-resource/default-instructional"),
-        department_ids=[ORGANIZATION_DEPT_RESOURCE],
-        email="default-instructional@organization.com",
-    ),
-    dict(
-        profile_id=DEFAULT_MEMBER,
-        resource_id=sid("org/profile-resource/default-member"),
-        department_ids=[ORGANIZATION_DEPT_RESOURCE],
-        email="default-member@organization.com",
-    ),
-    dict(
-        profile_id=DEFAULT_SUPERADMIN,
-        resource_id=sid("org/profile-resource/default-superadmin"),
-        department_ids=[ORGANIZATION_DEPT_RESOURCE],
+        id=ORG_SUPERADMIN,
+        resource_id=ORG_SUPERADMIN_RESOURCE,
+        name="Default Superadmin",
         email="default-superadmin@organization.com",
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
+        role_ids=[SUPERADMIN_ROLE],
+        flag_ids=[PROFILE_ACTIVE],
+    ),
+    dict(
+        id=ORG_ADMIN,
+        resource_id=ORG_ADMIN_RESOURCE,
+        name="Default Admin",
+        email="default-admin@organization.com",
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
+        role_ids=[ADMIN_ROLE],
+        flag_ids=[PROFILE_ACTIVE],
+    ),
+    dict(
+        id=ORG_INSTRUCTIONAL,
+        resource_id=ORG_INSTRUCTIONAL_RESOURCE,
+        name="Default Instructional",
+        email="default-instructional@organization.com",
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
+        role_ids=[INSTRUCTIONAL_ROLE],
+        flag_ids=[PROFILE_ACTIVE],
+    ),
+    dict(
+        id=ORG_MEMBER,
+        resource_id=ORG_MEMBER_RESOURCE,
+        name="Default Member",
+        email="default-member@organization.com",
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
+        role_ids=[MEMBER_GTA_ROLE],
+        flag_ids=[PROFILE_ACTIVE],
+    ),
+    dict(
+        id=ORG_GUEST,
+        resource_id=ORG_GUEST_RESOURCE,
+        name="Default Guest",
+        email="default-guest@organization.com",
+        department_ids=[ORGANIZATION_DEPT_RESOURCE],
+        role_ids=[GUEST_ROLE],
+        flag_ids=[PROFILE_ACTIVE],
+        request_limit_id=GUEST_REQUEST_LIMIT,
     ),
 ]
