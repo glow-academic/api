@@ -8,24 +8,21 @@ Names are CREATED as new resources.
 Role and department IDs reference pre-existing resources (01-resources/).
 """
 
+from uuid import UUID
+
 from database.seeds.ids import sid
 from database.seeds.profiles import (
     ADMIN_ROLE,
     GUEST_ROLE,
+    GUEST_REQUEST_LIMIT,
     INSTRUCTIONAL_ROLE,
     MEMBER_GTA_ROLE,
-    SUPERADMIN_ROLE,
     PROFILE_ACTIVE,
-    GUEST_REQUEST_LIMIT,
+    SUPERADMIN_ROLE,
 )
 from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVERSITY_DEPT_RESOURCE
 
-# ---------------------------------------------------------------------------
-# Pre-existing role resource IDs (from database/seeds/resources/roles.py)
-# ---------------------------------------------------------------------------
-
-from uuid import UUID
-ROLE_BENCHMARK = UUID("019bdb94-b279-70c0-a610-6b9696fb5c94")
+BENCHMARK_ROLE = UUID("019bdb94-b279-70c0-a610-6b9696fb5c94")
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs — importable by other modules
@@ -52,7 +49,7 @@ profiles = [
         resource_id=UNIVERSITY_ADMIN_RESOURCE,
         name="University Admin",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        role_ids=[ROLE_ADMIN],
+        role_ids=[ADMIN_ROLE],
     ),
     # ── Professor Smith ──────────────────────────────────────────────────
     dict(
@@ -60,7 +57,7 @@ profiles = [
         resource_id=PROFESSOR_SMITH_RESOURCE,
         name="Professor Smith",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        role_ids=[ROLE_INSTRUCTIONAL],
+        role_ids=[INSTRUCTIONAL_ROLE],
     ),
     # ── TA Johnson ───────────────────────────────────────────────────────
     dict(
@@ -68,7 +65,7 @@ profiles = [
         resource_id=TA_JOHNSON_RESOURCE,
         name="TA Johnson",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        role_ids=[ROLE_INSTRUCTIONAL],
+        role_ids=[INSTRUCTIONAL_ROLE],
     ),
     # ── Benchmark ──────────────────────────────────────────────────────
     dict(
@@ -76,7 +73,7 @@ profiles = [
         resource_id=BENCHMARK_PROFILE_RESOURCE,
         name="Benchmark",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        role_ids=[ROLE_BENCHMARK],
+        role_ids=[BENCHMARK_ROLE],
     ),
 ]
 
