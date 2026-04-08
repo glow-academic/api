@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "2.11.0"
+    "version": "2.12.0"
   },
   "paths": {
     "/personas/get": {
@@ -44786,6 +44786,19 @@
             "title": "Id",
             "description": "Client-provided UUID for the agent"
           },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the resource snapshot"
+          },
           "name_id": {
             "anyOf": [
               {
@@ -45053,6 +45066,19 @@
             "title": "Id",
             "description": "Optional preset UUID for the new auth provider"
           },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the resource snapshot"
+          },
           "name_id": {
             "anyOf": [
               {
@@ -45317,6 +45343,19 @@
             ],
             "title": "Id",
             "description": "Optional pre-assigned UUID"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the resource snapshot"
           },
           "name_id": {
             "anyOf": [
@@ -45606,7 +45645,20 @@
               }
             ],
             "title": "Id",
-            "description": "Optional preset UUID for the new department"
+            "description": "Optional preset UUID for the new department artifact"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the departments_resource snapshot"
           },
           "name_id": {
             "anyOf": [
@@ -45788,6 +45840,19 @@
             ],
             "title": "Id",
             "description": "Optional pre-assigned UUID"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the resource snapshot"
           },
           "name_id": {
             "anyOf": [
@@ -46033,6 +46098,19 @@
             "title": "Id",
             "description": "Optional pre-assigned UUID"
           },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the resource snapshot"
+          },
           "name_id": {
             "anyOf": [
               {
@@ -46268,6 +46346,19 @@
             "title": "Id",
             "description": "Optional preset UUID for the new field"
           },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the resource snapshot"
+          },
           "name_id": {
             "anyOf": [
               {
@@ -46467,6 +46558,19 @@
             ],
             "title": "Id",
             "description": "Optional pre-assigned identifier"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the resource snapshot"
           },
           "name_id": {
             "anyOf": [
@@ -46783,6 +46887,19 @@
             "title": "Id",
             "description": "Optional pre-assigned identifier"
           },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the resource snapshot"
+          },
           "name_id": {
             "anyOf": [
               {
@@ -46969,6 +47086,19 @@
             ],
             "title": "Id",
             "description": "Client-provided UUID for the new persona"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the resource snapshot"
           },
           "name_id": {
             "anyOf": [
@@ -47359,6 +47489,19 @@
             "title": "Id",
             "description": "Optional preset UUID for the new profile"
           },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the resource snapshot"
+          },
           "name_id": {
             "anyOf": [
               {
@@ -47546,6 +47689,19 @@
             ],
             "title": "Id",
             "description": "Optional pre-assigned identifier"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the resource snapshot"
           },
           "name_id": {
             "anyOf": [
@@ -47775,6 +47931,19 @@
             "title": "Id",
             "description": "Optional pre-assigned UUID"
           },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the resource snapshot"
+          },
           "name_id": {
             "anyOf": [
               {
@@ -48002,6 +48171,19 @@
             ],
             "title": "Id",
             "description": "Client-provided UUID for the scenario"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the resource snapshot"
           },
           "name_id": {
             "anyOf": [
@@ -48535,7 +48717,20 @@
               }
             ],
             "title": "Id",
-            "description": "Optional preset UUID for the new setting"
+            "description": "Optional preset UUID for the new setting artifact"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the settings_resource snapshot"
           },
           "name_id": {
             "anyOf": [
@@ -48861,6 +49056,19 @@
             "title": "Id",
             "description": "Client-provided UUID for the simulation"
           },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the resource snapshot"
+          },
           "name_id": {
             "anyOf": [
               {
@@ -49150,6 +49358,19 @@
             ],
             "title": "Id",
             "description": "Optional pre-assigned identifier"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id",
+            "description": "Optional preset UUID for the resource snapshot"
           },
           "name_id": {
             "anyOf": [
