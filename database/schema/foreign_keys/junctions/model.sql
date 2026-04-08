@@ -137,15 +137,6 @@ ALTER TABLE ONLY public.model_providers_junction
 
 --
 
--- Name: model_providers_junction model_providers_junction_providers_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.model_providers_junction
-    ADD CONSTRAINT model_providers_junction_providers_id_fkey FOREIGN KEY (providers_id) REFERENCES public.providers_resource(id) ON DELETE CASCADE;
-
-
---
-
 -- Name: model_qualities_junction model_qualities_model_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 

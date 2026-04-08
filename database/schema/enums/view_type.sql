@@ -19,4 +19,8 @@ CREATE TYPE public.view_type AS ENUM (
 );
 
 
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
 --

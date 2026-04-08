@@ -10,12 +10,3 @@ ALTER TABLE ONLY public.provider_keys_resource
 
 
 --
-
--- Name: provider_keys_resource provider_keys_resource_provider_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.provider_keys_resource
-    ADD CONSTRAINT provider_keys_resource_provider_id_fkey FOREIGN KEY (provider_id) REFERENCES public.providers_resource(id) ON DELETE CASCADE;
-
-
---

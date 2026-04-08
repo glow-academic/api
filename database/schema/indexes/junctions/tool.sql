@@ -50,22 +50,6 @@ CREATE INDEX idx_tool_departments_mcp ON public.tool_departments_junction USING 
 
 --
 
--- Name: idx_tool_operations_operation_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_tool_operations_operation_id ON public.tool_operations_junction USING btree (operations_id);
-
-
---
-
--- Name: idx_tool_operations_tool_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_tool_operations_tool_id ON public.tool_operations_junction USING btree (tool_id);
-
-
---
-
 -- Name: tool_arg_positions_junction_arg_positions_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 

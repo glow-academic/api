@@ -49502,7 +49502,7 @@
             "title": "Args Outputs Ids",
             "description": "Argument output identifiers"
           },
-          "artifact_ids": {
+          "permission_ids": {
             "anyOf": [
               {
                 "items": {
@@ -49515,24 +49515,8 @@
                 "type": "null"
               }
             ],
-            "title": "Artifact Ids",
-            "description": "Artifact identifiers"
-          },
-          "operation_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Operation Ids",
-            "description": "Operation identifiers"
+            "title": "Permission Ids",
+            "description": "Permission identifiers"
           },
           "tool_ids": {
             "anyOf": [
@@ -75142,27 +75126,16 @@
             ],
             "description": "Argument output section"
           },
-          "artifacts": {
+          "permissions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ToolArtifactSection"
+                "$ref": "#/components/schemas/ToolPermissionSection"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Artifact section with resources"
-          },
-          "operations": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ToolOperationSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Operation section with resources"
+            "description": "Permission section with resources"
           }
         },
         "type": "object",
@@ -75357,27 +75330,16 @@
             ],
             "description": "Argument output section"
           },
-          "artifacts": {
+          "permissions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ToolArtifactSection"
+                "$ref": "#/components/schemas/ToolPermissionSection"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Artifact section with resources"
-          },
-          "operations": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ToolOperationSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Operation section with resources"
+            "description": "Permission section with resources"
           }
         },
         "type": "object",
@@ -75456,15 +75418,6 @@
             "title": "Args Output Ids",
             "description": "Associated args output UUIDs"
           },
-          "artifact_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Artifact Ids",
-            "description": "Associated artifact UUIDs"
-          },
           "department_ids": {
             "items": {
               "type": "string",
@@ -75501,14 +75454,14 @@
             "title": "Name Ids",
             "description": "Associated name UUIDs"
           },
-          "operation_ids": {
+          "permission_ids": {
             "items": {
               "type": "string",
               "format": "uuid"
             },
             "type": "array",
-            "title": "Operation Ids",
-            "description": "Associated operation UUIDs"
+            "title": "Permission Ids",
+            "description": "Associated permission UUIDs"
           },
           "profile_ids": {
             "items": {
@@ -75533,12 +75486,11 @@
           "arg_position_ids",
           "arg_ids",
           "args_output_ids",
-          "artifact_ids",
           "department_ids",
           "description_ids",
           "flag_ids",
           "name_ids",
-          "operation_ids",
+          "permission_ids",
           "profile_ids"
         ],
         "title": "GetToolDraftResponse"
@@ -81691,7 +81643,19 @@
               }
             ],
             "title": "Role",
-            "description": "User role (e.g. admin, user, viewer)"
+            "description": "User role enum (e.g. admin, member, custom)"
+          },
+          "role_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Name",
+            "description": "Display name of the role (from roles_resource)"
           },
           "initials": {
             "anyOf": [
@@ -92192,7 +92156,7 @@
             "title": "Args Output Ids",
             "description": "Argument output identifiers"
           },
-          "artifact_ids": {
+          "permission_ids": {
             "anyOf": [
               {
                 "items": {
@@ -92205,24 +92169,8 @@
                 "type": "null"
               }
             ],
-            "title": "Artifact Ids",
-            "description": "Artifact identifiers"
-          },
-          "operation_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Operation Ids",
-            "description": "Operation identifiers"
+            "title": "Permission Ids",
+            "description": "Permission identifiers"
           }
         },
         "type": "object",
@@ -113199,98 +113147,6 @@
         "type": "object",
         "title": "ToolArgSection"
       },
-      "ToolArtifactSection": {
-        "properties": {
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether this section is visible in the UI",
-            "default": false
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this section requires a selection",
-            "default": false
-          },
-          "suggestions": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Suggestions",
-            "description": "Suggested resource UUIDs for this section"
-          },
-          "show_ai_generate": {
-            "type": "boolean",
-            "title": "Show Ai Generate",
-            "description": "Whether AI generation is available for this section",
-            "default": false
-          },
-          "tool_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tool Id",
-            "description": "UUID of the create tool for this resource"
-          },
-          "link_tool_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Link Tool Id",
-            "description": "UUID of the link tool for this resource"
-          },
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned artifacts"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available artifacts"
-          }
-        },
-        "type": "object",
-        "title": "ToolArtifactSection"
-      },
       "ToolDescriptionSection": {
         "properties": {
           "show": {
@@ -113453,23 +113309,14 @@
             "title": "Args Output Ids",
             "description": "Argument output identifiers"
           },
-          "artifact_ids": {
+          "permission_ids": {
             "items": {
               "type": "string",
               "format": "uuid"
             },
             "type": "array",
-            "title": "Artifact Ids",
-            "description": "Artifact identifiers"
-          },
-          "operation_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Operation Ids",
-            "description": "Operation identifiers"
+            "title": "Permission Ids",
+            "description": "Permission identifiers"
           }
         },
         "type": "object",
@@ -113479,8 +113326,7 @@
           "arg_ids",
           "arg_position_ids",
           "args_output_ids",
-          "artifact_ids",
-          "operation_ids"
+          "permission_ids"
         ],
         "title": "ToolDraftFormState",
         "description": "Server-authoritative form state returned after draft save."
@@ -113769,7 +113615,7 @@
         "type": "object",
         "title": "ToolNameSection"
       },
-      "ToolOperationSection": {
+      "ToolPermissionSection": {
         "properties": {
           "show": {
             "type": "boolean",
@@ -113842,7 +113688,7 @@
               }
             ],
             "title": "Current",
-            "description": "Currently assigned operations"
+            "description": "Currently assigned permissions"
           },
           "resources": {
             "anyOf": [
@@ -113855,11 +113701,11 @@
               }
             ],
             "title": "Resources",
-            "description": "Available operations"
+            "description": "Available permissions"
           }
         },
         "type": "object",
-        "title": "ToolOperationSection"
+        "title": "ToolPermissionSection"
       },
       "ToolResultItem": {
         "properties": {
@@ -118389,7 +118235,7 @@
             "title": "Args Outputs Ids",
             "description": "Argument output identifiers"
           },
-          "artifact_ids": {
+          "permission_ids": {
             "anyOf": [
               {
                 "items": {
@@ -118402,24 +118248,8 @@
                 "type": "null"
               }
             ],
-            "title": "Artifact Ids",
-            "description": "Artifact identifiers"
-          },
-          "operation_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Operation Ids",
-            "description": "Operation identifiers"
+            "title": "Permission Ids",
+            "description": "Permission identifiers"
           },
           "tool_ids": {
             "anyOf": [

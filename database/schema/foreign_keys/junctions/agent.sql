@@ -83,15 +83,6 @@ ALTER TABLE ONLY public.agent_models_junction
 
 --
 
--- Name: agent_models_junction agent_models_junction_model_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.agent_models_junction
-    ADD CONSTRAINT agent_models_junction_model_id_fkey FOREIGN KEY (models_id) REFERENCES public.models_resource(id) ON DELETE CASCADE;
-
-
---
-
 -- Name: agent_names_junction agent_names_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 

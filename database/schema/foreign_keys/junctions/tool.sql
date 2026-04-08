@@ -56,24 +56,6 @@ ALTER TABLE ONLY public.tool_args_junction
 
 --
 
--- Name: tool_artifacts_junction tool_artifacts_junction_artifact_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tool_artifacts_junction
-    ADD CONSTRAINT tool_artifacts_junction_artifact_id_fkey FOREIGN KEY (artifacts_id) REFERENCES public.artifacts_resource(id) ON DELETE CASCADE;
-
-
---
-
--- Name: tool_artifacts_junction tool_artifacts_junction_tool_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tool_artifacts_junction
-    ADD CONSTRAINT tool_artifacts_junction_tool_id_fkey FOREIGN KEY (tool_id) REFERENCES public.tool_artifact(id) ON DELETE CASCADE;
-
-
---
-
 -- Name: tool_departments_junction tool_departments_department_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -146,20 +128,20 @@ ALTER TABLE ONLY public.tool_names_junction
 
 --
 
--- Name: tool_operations_junction tool_operations_operation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tool_permissions_junction tool_permissions_junction_permissions_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.tool_operations_junction
-    ADD CONSTRAINT tool_operations_operation_id_fkey FOREIGN KEY (operations_id) REFERENCES public.operations_resource(id);
+ALTER TABLE ONLY public.tool_permissions_junction
+    ADD CONSTRAINT tool_permissions_junction_permissions_id_fkey FOREIGN KEY (permissions_id) REFERENCES public.permissions_resource(id) ON DELETE CASCADE;
 
 
 --
 
--- Name: tool_operations_junction tool_operations_tool_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tool_permissions_junction tool_permissions_junction_tool_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.tool_operations_junction
-    ADD CONSTRAINT tool_operations_tool_id_fkey FOREIGN KEY (tool_id) REFERENCES public.tool_artifact(id);
+ALTER TABLE ONLY public.tool_permissions_junction
+    ADD CONSTRAINT tool_permissions_junction_tool_id_fkey FOREIGN KEY (tool_id) REFERENCES public.tool_artifact(id) ON DELETE CASCADE;
 
 
 --
