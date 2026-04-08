@@ -45,7 +45,7 @@ class FakePool:
         return _AcquireContext(self.conn)
 
 
-def _identity(*, role: str = "superadmin") -> SimpleNamespace:
+def _identity(*, role: str = "Super Administrator") -> SimpleNamespace:
     return SimpleNamespace(role=role, profiles_id=uuid4())
 
 
@@ -233,7 +233,7 @@ class TestResolveProfileUpsert:
         pool = FakePool()
 
         async def fake_identity(pool_arg, profile_id_arg, redis, *, bypass_cache=False):
-            return _identity(role="admin")
+            return _identity(role="Administrator")
 
         with pytest.raises(ValueError, match="cannot assign role"):
             await resolve_profile_upsert(
@@ -241,7 +241,7 @@ class TestResolveProfileUpsert:
                 None,
                 name="Test",
                 emails=["test@example.com"],
-                role="superadmin",
+                role="Super Administrator",
                 current_profile_id=uuid4(),
                 resolve_profile_identity_fn=fake_identity,
             )

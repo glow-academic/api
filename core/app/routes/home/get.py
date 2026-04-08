@@ -190,8 +190,7 @@ async def get_home_internal(
     profile = common.profile
     profiles_resource_id = profile.profiles_id
     actor_name = profile.name
-    user_role = profile.role
-    view_mode = compute_mode(False, user_role)
+    view_mode = compute_mode(False, role_level=profile.role_level)
     is_instructional = view_mode == "instructional"
 
     # --- Phase 1: Resolve home context + analytics facets in parallel ---

@@ -114,7 +114,7 @@ def build_agent_get_result(
         instructions_has_tools=instructions_has_tools,
     )
     has_agent_access = has_access(
-        profile.role,
+        profile.role_level,
         profile.department_ids,
         perms.department_ids if perms else [],
     )

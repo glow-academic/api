@@ -61,7 +61,7 @@ async def get_cohort_impl(
                 detail=f"Cohort {cohort_id} not found",
             )
         if not has_access(
-            common.profile.role,
+            common.profile.role_level,
             common.profile.department_ids,
             perms.department_ids,
         ):

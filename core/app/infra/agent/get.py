@@ -57,7 +57,7 @@ async def get_agent_impl(
                 detail=f"Agent {agent_id} not found",
             )
         if not has_access(
-            common.profile.role,
+            common.profile.role_level,
             common.profile.department_ids,
             perms.department_ids,
         ):

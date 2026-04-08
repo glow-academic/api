@@ -31,13 +31,13 @@ pytestmark = pytest.mark.asyncio
 
 
 def _profile_context(
-    *, profiles_id, department_ids, role="superadmin"
+    *, profiles_id, department_ids, role="Super Administrator"
 ) -> ProfileIdentityContext:
     return ProfileIdentityContext(
         profiles_id=profiles_id,
         name="Test User",
         role=role,
-        role_name=role.title(),
+        role_name=role,
         role_description="role",
         role_artifacts=[],
         primary_email="test@example.com",
@@ -87,7 +87,7 @@ async def test_profile_facts_facets_resolve_department_cohort_and_roles(
 
     assert facets.department_options[0].label == "Science"
     assert facets.cohort_options[0].label == "Fall 2025"
-    assert "admin" in facets.role_options
+    assert "Administrator" in facets.role_options
     assert facets.attempt_options == ["first_attempt", "latest_attempt"]
 
 
@@ -128,7 +128,7 @@ async def test_pricing_facets_resolve_departments_and_date_range(pool, redis_cli
         profile=_profile_context(
             profiles_id=profile.id,
             department_ids=[department.id],
-            role="admin",
+            role="Administrator",
         ),
     )
 
@@ -158,7 +158,7 @@ async def test_health_facets_resolve_date_range_only(pool, redis_client):
         profile=_profile_context(
             profiles_id=uuid4(),
             department_ids=[],
-            role="guest",
+            role="Guest",
         ),
     )
 

@@ -22,11 +22,11 @@ async def test_compute_mode_practice():
 
 
 async def test_compute_mode_member():
-    assert compute_mode(practice=False, user_role="member") == "member"
+    assert compute_mode(practice=False, role_level=3) == "member"
 
 
 async def test_compute_mode_instructional():
-    assert compute_mode(practice=False, user_role="admin") == "instructional"
+    assert compute_mode(practice=False, role_level=1) == "instructional"
 
 
 async def test_compute_score_status_high():

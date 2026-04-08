@@ -189,8 +189,7 @@ async def get_practice_internal(
     profile = common.profile
     profiles_resource_id = profile.profiles_id
     actor_name = profile.name
-    user_role = profile.role
-    is_instructional = user_role in ("instructional", "admin", "superadmin")
+    is_instructional = profile.role_level <= 2
 
     # --- Phase 1: Resolve practice context + analytics facets in parallel ---
     ctx, analytics_facets = await asyncio.gather(

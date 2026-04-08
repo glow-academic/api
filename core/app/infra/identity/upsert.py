@@ -128,7 +128,7 @@ async def resolve_profile_upsert(
             )
             role_id: UUID | None = None
             for r in role_items:
-                if r.role == role:
+                if r.name == role:
                     role_id = r.id
                     break
             if not role_id:

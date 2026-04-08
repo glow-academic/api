@@ -369,7 +369,7 @@ async def _auto_create_guest_profile(
             redis,
             name=name,
             emails=[email],
-            role="guest",
+            role="Guest",
             department_ids=department_ids or None,
         )
         logger.info(

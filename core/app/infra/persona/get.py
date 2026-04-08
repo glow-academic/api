@@ -63,7 +63,7 @@ async def get_persona_impl(
                 detail=f"Persona {persona_id} not found",
             )
         if not has_access(
-            common.profile.role,
+            common.profile.role_level,
             common.profile.department_ids,
             perms.department_ids,
         ):

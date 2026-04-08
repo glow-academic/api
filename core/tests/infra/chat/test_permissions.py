@@ -23,16 +23,31 @@ pytestmark = pytest.mark.asyncio
 
 async def test_compute_mode_returns_practice_when_practice_true():
     assert compute_mode(practice=True) == "practice"
-    assert compute_mode(practice=True, user_role="admin") == "practice"
+    assert compute_mode(practice=True, role_level=1) == "practice"
 
 
 async def test_compute_mode_returns_instructional_for_elevated_roles():
-    assert compute_mode(practice=False, user_role="instructional") == "instructional"
-    assert compute_mode(practice=False, user_role="admin") == "instructional"
-    assert compute_mode(practice=False, user_role="superadmin") == "instructional"
+    # Preferred: use role_level
+    assert compute_mode(practice=False, role_level=0) == "instructional"  # Super Administrator
+    assert compute_mode(practice=False, role_level=1) == "instructional"  # Administrator
+    assert compute_mode(practice=False, role_level=2) == "instructional"  # Instructional Staff
 
 
 async def test_compute_mode_returns_member_for_regular_roles():
+    # Preferred: use role_level
+    assert compute_mode(practice=False, role_level=3) == "member"  # GTA/UTA
+    assert compute_mode(practice=False, role_level=4) == "member"  # Guest
+    assert compute_mode(practice=False, role_level=99) == "member"  # default
+
+
+async def test_compute_mode_legacy_string_fallback():
+    """Legacy string-based role names still work when role_level is not provided."""
+    assert compute_mode(practice=False, user_role="instructional") == "instructional"
+    assert compute_mode(practice=False, user_role="admin") == "instructional"
+    assert compute_mode(practice=False, user_role="superadmin") == "instructional"
+    assert compute_mode(practice=False, user_role="Instructional Staff") == "instructional"
+    assert compute_mode(practice=False, user_role="Administrator") == "instructional"
+    assert compute_mode(practice=False, user_role="Super Administrator") == "instructional"
     assert compute_mode(practice=False, user_role="member") == "member"
     assert compute_mode(practice=False, user_role=None) == "member"
     assert compute_mode(practice=False, user_role="guest") == "member"

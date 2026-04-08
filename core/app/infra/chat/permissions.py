@@ -21,22 +21,38 @@ Functions for history endpoint:
 from __future__ import annotations
 
 
-def compute_mode(practice: bool, user_role: str | None = None) -> str:
+def compute_mode(
+    practice: bool,
+    user_role: str | None = None,
+    *,
+    role_level: int | None = None,
+) -> str:
     """Determine view mode from practice flag and user role.
 
     Args:
         practice: If True, returns 'practice' mode.
-        user_role: The user's role from profiles_resource (e.g., 'member',
-            'instructional', 'admin', 'superadmin'). Only used when practice=False.
+        user_role: Deprecated — kept for backward compatibility but ignored
+            when role_level is provided.
+        role_level: The numeric role level from the roles_resource (0 = highest
+            privilege).  Levels <= 2 are considered instructional.
 
     Returns:
         'practice' if practice=True,
-        'instructional' for instructional/admin/superadmin roles when practice=False,
+        'instructional' for elevated roles (level <= 2) when practice=False,
         'member' for all others when practice=False.
     """
     if practice:
         return "practice"
-    if user_role in ("instructional", "admin", "superadmin"):
+    # Prefer the authoritative numeric level when available
+    if role_level is not None:
+        if role_level <= 2:
+            return "instructional"
+        return "member"
+    # Legacy fallback for callers that still pass role names
+    if user_role in (
+        "instructional", "admin", "superadmin",
+        "Instructional Staff", "Administrator", "Super Administrator",
+    ):
         return "instructional"
     return "member"
 

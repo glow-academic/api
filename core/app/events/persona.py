@@ -149,7 +149,7 @@ async def _can_subscribe_persona_read(
         return False
 
     return has_access(
-        profile.role,
+        profile.role_level,
         profile.department_ids,
         perms.department_ids,
     )
@@ -176,7 +176,11 @@ async def _can_subscribe_persona_create(
         return False
 
     # Collection-scoped create events do not carry department scope yet.
-    return compute_can_create(profile.role, ["department-scoped"])
+    return compute_can_create(
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
+        department_ids=["department-scoped"],
+    )
 
 
 async def _can_subscribe_persona_edit(
@@ -207,7 +211,8 @@ async def _can_subscribe_persona_edit(
         return False
 
     return compute_can_edit(
-        user_role=profile.role,
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
         persona_department_ids=perms.department_ids,
         active_scenario_count=perms.active_scenario_count,
         user_department_ids=profile.department_ids,
@@ -242,7 +247,8 @@ async def _can_subscribe_persona_delete(
         return False
 
     return compute_can_delete(
-        user_role=profile.role,
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
         persona_department_ids=perms.department_ids,
         active_scenario_count=perms.active_scenario_count,
     )
@@ -268,7 +274,10 @@ async def _can_subscribe_persona_duplicate(
     if profile is None:
         return False
 
-    return compute_can_duplicate(profile.role)
+    return compute_can_duplicate(
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
+    )
 
 
 async def _can_subscribe_persona_draft(
@@ -291,7 +300,10 @@ async def _can_subscribe_persona_draft(
     if profile is None:
         return False
 
-    return compute_can_draft(profile.role)
+    return compute_can_draft(
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
+    )
 
 
 async def _passthrough_filter(

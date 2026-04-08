@@ -24,6 +24,15 @@ DEFAULT_ASSISTANT_COLOR = "#06b6d4"  # Cyan
 DEFAULT_ASSISTANT_ICON = "Bot"
 
 ROLE_HIERARCHY: dict[str, int] = {
+    # Canonical role names (from roles_resource.name)
+    "Guest": 0,
+    "GTA": 1,
+    "UTA": 1,
+    "Benchmark": 1,
+    "Instructional Staff": 2,
+    "Administrator": 3,
+    "Super Administrator": 4,
+    # Legacy short names (backward compat for JWT claims / tests)
     "guest": 0,
     "member": 1,
     "instructional": 2,
