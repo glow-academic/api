@@ -21,7 +21,7 @@ async def test_gets_created_tool(conn, redis_client):
     assert items[0].department_ids == []
     assert items[0].args_ids == []
     assert items[0].args_output_ids == []
-    assert items[0].artifacts == []
+    assert items[0].permission_ids == []
     assert items[0].active is True
 
 

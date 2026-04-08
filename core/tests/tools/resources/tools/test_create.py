@@ -4,9 +4,8 @@ import pytest
 
 from app.tools.resources.args.create import create_arg
 from app.tools.resources.args_outputs.create import create_args_output
-from app.tools.resources.artifacts.create import create_artifact
 from app.tools.resources.departments.create import create_department
-from app.tools.resources.operations.create import create_operation
+from app.tools.resources.permissions.create import create_permission
 from app.tools.resources.tools.create import create_tool
 from app.tools.resources.tools.get import get_tools
 
@@ -46,25 +45,24 @@ async def test_sets_mcp_flag(conn, redis_client):
     assert result.generated is True
 
 
-async def test_round_trips_operation_targets_and_departments(conn, redis_client):
+async def test_round_trips_permissions_and_departments(conn, redis_client):
     department = await create_department(conn, "tool-dept", redis=redis_client)
-    operation = await create_operation(conn, "create", redis_client)
-    artifact = await create_artifact(conn, "profile", redis_client)
+    permission = await create_permission(
+        conn, artifact="profile", operation="create", redis=redis_client
+    )
 
     result = await create_tool(
         conn,
         "linked-tool",
         redis=redis_client,
         department_ids=[department.id],
-        operation=operation.operation,
-        artifacts=[artifact.artifact],
+        permission_ids=[permission.id],
     )
 
     items = await get_tools(conn, [result.id], redis_client, bypass_cache=True)
 
     assert items[0].department_ids == [department.id]
-    assert items[0].operation == operation.operation
-    assert items[0].artifacts == [artifact.artifact]
+    assert items[0].permission_ids == [permission.id]
 
 
 async def test_round_trips_args_and_outputs(conn, redis_client):
