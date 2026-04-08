@@ -39,7 +39,6 @@ class ProfileIdentityContext:
     profiles_id: UUID  # resource ID (from profile_profiles_junction)
     name: str
     role: str  # role name (e.g., "Super Administrator") — used for identity
-    role_level: int  # hierarchy level (0 = highest privilege)
     role_name: str  # display name from roles_resource (same as role)
     role_description: str
     role_artifacts: list[str]  # artifact types this role can access (derived from permissions)
@@ -50,10 +49,10 @@ class ProfileIdentityContext:
     settings_id: UUID | None  # from primary department's setting_ids[0]
     requests_per_day: int | None  # rate limit from profiles_resource
     is_active: bool
-    # Server-resolved session + group (set when session_id or group hints are provided)
+    # Fields with defaults must come after fields without defaults
+    role_level: int = 99  # hierarchy level (0 = highest privilege)
     session_id: UUID | None = None
     group_id: UUID | None = None
-    # Resolved permissions: (artifact, operation) tuples from permissions_resource
     role_permissions: list[tuple[str, str]] = field(default_factory=list)
 
 
