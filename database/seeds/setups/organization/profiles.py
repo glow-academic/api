@@ -68,6 +68,5 @@ setup_profiles = [
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
         role_ids=[GUEST_ROLE],
         flag_id=PROFILE_ACTIVE,
-        request_limit_id=GUEST_REQUEST_LIMIT,
     ),
 ]

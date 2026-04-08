@@ -69,6 +69,5 @@ setup_profiles = [
         email="guest@glow.local",
         role_ids=[GUEST_ROLE],
         flag_id=PROFILE_ACTIVE,
-        request_limit_id=GUEST_REQUEST_LIMIT,
     ),
 ]
