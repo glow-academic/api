@@ -157,6 +157,8 @@ async def _run_resource_seeds(
                 await _seed_temperature_levels(conn, redis, items)
             elif module_name == "permissions":
                 await _seed_permissions(conn, redis, items)
+            elif module_name == "args":
+                await _seed_args(conn, redis, items)
             elif module_name == "standard_groups":
                 await _seed_standard_groups(conn, redis, items)
             elif module_name == "standards":
@@ -315,6 +317,16 @@ async def _seed_permissions(
     for item in items:
         await create_permission(conn, redis=redis, **item)
     print(f"  OK: {len(items)} permissions created")
+
+
+async def _seed_args(
+    conn: asyncpg.Connection, redis: Redis, items: list[dict]
+) -> None:
+    from app.tools.resources.args.create import create_arg
+
+    for item in items:
+        await create_arg(conn, redis=redis, **item)
+    print(f"  OK: {len(items)} args created")
 
 
 async def _seed_standard_groups(
@@ -1282,7 +1294,7 @@ async def _run_tool_module_seeds(
 ) -> None:
     """Create tools from static definitions in tools_data.py."""
     from app.infra.tool.create import CreateToolItem, create_tool_impl
-    from app.tools.resources.args.create import create_arg
+    from database.seeds.resources.args import SHARED_ARGS
     from database.seeds.tools import tools
 
     print(f"  Loading {len(tools)} tool definitions.")
@@ -1291,23 +1303,15 @@ async def _run_tool_module_seeds(
     errors = 0
 
     for tool_def in tools:
-        # Step 1: Create args_resource entries for this tool
+        # Resolve arg keys → arg IDs from shared vocabulary
         arg_ids: list[UUID] = []
-        async with pool.acquire() as conn:
-            for arg in tool_def["args"]:
-                arg_resp = await create_arg(
-                    conn,
-                    name=arg["name"],
-                    field_type=arg["field_type"],
-                    redis=redis,
-                    id=arg["id"],
-                    description=arg.get("description", ""),
-                    required=arg.get("required", False),
-                    default_value=arg.get("default_value", ""),
-                )
-                arg_ids.append(arg_resp.id)
+        for arg_key in tool_def.get("args", []):
+            if arg_key in SHARED_ARGS:
+                arg_ids.append(SHARED_ARGS[arg_key]["id"])
+            else:
+                print(f"  WARNING: Unknown arg key '{arg_key}' in tool '{tool_def['name']}'")
 
-        # Step 2: Create tool via create_tool_impl
+        # Create tool via create_tool_impl
         item = CreateToolItem(
             id=tool_def["id"],
             name=tool_def["name"],

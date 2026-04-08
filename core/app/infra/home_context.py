@@ -83,11 +83,12 @@ async def resolve_home_context(
 
     async def _fetch_attempt_chats() -> list:
         async with pool.acquire() as conn:
-            return await search_attempt_chats(
+            items, _ = await search_attempt_chats(
                 conn,
                 cohort_ids=user_cohort_ids,
                 limit=10000,
             )
+            return items
 
     all_homes, all_attempt_chats = await asyncio.gather(
         _fetch_homes(),

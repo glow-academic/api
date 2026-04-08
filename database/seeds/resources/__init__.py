@@ -20,6 +20,7 @@ MODULES = [
     "request_limits",
     "reasoning_levels",
     "temperature_levels",
+    "args",
     "standard_groups",
     "standards",
     "items",
