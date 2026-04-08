@@ -95,8 +95,8 @@ async def search_profile_impl(
         "admin": 1,
         "instructional": 2,
         "member": 3,
+        "custom": 3,  # custom roles at same level as member
         "guest": 4,
-        "custom": 1,  # custom roles visible to admin and above
     }
     user_level = ROLE_LEVEL.get(user_role, 99)
     visible = {role for role, level in ROLE_LEVEL.items() if level >= user_level}
