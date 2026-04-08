@@ -87,15 +87,19 @@ async def search_profile_impl(
     actor_name = actor_profile.name
 
     # -- Step 2: Scope by role hierarchy + optional role_filter --
-    # Visible roles: roles at or below the requester's level
-    VISIBLE_ROLES: dict[str, set[str]] = {
-        "superadmin": {"superadmin", "admin", "instructional", "member", "guest"},
-        "admin": {"admin", "instructional", "member", "guest"},
-        "instructional": {"instructional", "member", "guest"},
-        "member": {"member", "guest"},
-        "guest": {"guest"},
+    # Visible roles: roles at or below the requester's level.
+    # Uses the role enum string from profiles_resource.role.
+    # "custom" roles are visible to admin and above.
+    ROLE_LEVEL: dict[str, int] = {
+        "superadmin": 0,
+        "admin": 1,
+        "instructional": 2,
+        "member": 3,
+        "guest": 4,
+        "custom": 1,  # custom roles visible to admin and above
     }
-    visible = VISIBLE_ROLES.get(user_role, set())
+    user_level = ROLE_LEVEL.get(user_role, 99)
+    visible = {role for role, level in ROLE_LEVEL.items() if level >= user_level}
 
     async with pool.acquire() as conn:
         all_roles = await get_roles(conn, None, redis)
@@ -114,7 +118,7 @@ async def search_profile_impl(
         if not role_ids_filter:
             return _empty_response(actor_name, total_count=0)
 
-        # -- Step 3: Search profiles (always exclude self) --
+        # -- Step 3: Search profiles --
 
         profile_ids, total_count = await search_profiles(
             conn,
@@ -122,7 +126,6 @@ async def search_profile_impl(
             department_ids=filter_department_ids,
             cohort_ids=cohort_ids,
             role_ids=role_ids_filter,
-            exclude_ids=[profile_id],
             limit_count=page_size,
             offset_count=page_offset,
         )
