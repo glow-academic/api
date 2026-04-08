@@ -196,8 +196,9 @@ async def _seed_flags(
     from app.tools.resources.flags.create import create_flag
 
     for item in items:
-        flag_type = item.pop("type", "active")
-        await create_flag(conn, redis=redis, flag_type=flag_type, **item)
+        clean = {k: v for k, v in item.items() if k != "type"}
+        flag_type = item.get("type", "active")
+        await create_flag(conn, redis=redis, flag_type=flag_type, **clean)
     print(f"  OK: {len(items)} flags created")
 
 
