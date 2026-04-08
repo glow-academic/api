@@ -1,22 +1,20 @@
 """Seed runner — executes Python seed definitions against a temp DB and dumps SQL.
 
 Usage:
-    python -m database.scripts.runner --modules              # Seed base → history/fresh.sql.gz
-    python -m database.scripts.runner --setup university     # Seed a setup → history/university.sql.gz
-    python -m database.scripts.runner --all                  # Seed modules + all setups
+    python -m database.scripts.runner --setup university     # Seed a single setup
+    python -m database.scripts.runner --all                  # Seed all setups
 
-Flow (modules):
+Each setup is fully independent — creates ALL platform resources (modules 01-10)
++ setup-specific data (departments, profiles, settings, etc.) from scratch.
+No shared base-seed.sql. Each generates its own history/{setup}.sql.gz.
+
+Flow:
   1. Spin up Postgres + Redis testcontainers
   2. Load schema
-  3. Run all Python seeds (resources, profiles, providers, models, agents,
-     auth, evals, systems, rubrics, tools)
-  4. Full dump → history/fresh.sql.gz
-
-Flow (setup):
-  1. Spin up Postgres + Redis testcontainers
-  2. Load schema + base-seed (from modules)
-  3. Run setup seed functions (infra-level create_*_impl)
-  4. Full dump → history/{setup}.sql.gz
+  3. Bootstrap setup's superadmin profile
+  4. Seed base modules (resources, providers, models, agents, etc.)
+  5. Seed setup-specific modules
+  6. Full dump → history/{setup}.sql.gz
 """
 
 from __future__ import annotations
@@ -1576,22 +1574,17 @@ async def _refresh_mvs(conn: asyncpg.Connection) -> None:
     print(f"  {len(unpopulated)} MVs refreshed.")
 
 
-async def main_modules() -> Path:
-    """Seed modules 01-10 through Python definitions.
+async def main_setup(setup: str = "university") -> None:
+    """Seed a fully independent setup — base modules + setup-specific data.
 
-    Execution order:
-      01 (resources)    — tool-level create_* (Python seeds)
-      09 (profiles)     — bootstrap with artifact + resource creates
-      02 (providers)    — _impl with SEED_PROFILE_ID
-      03 (models)       — _impl
-      04 (agents)       — _impl
-      06 (auth)         — _impl
-      08 (evals)        — _impl
-      10 (systems)      — tool-level create
-      07 (rubrics)      — _impl
-      05 (tools)        — static definitions from tools_data.py
+    Each setup is self-contained: it creates ALL platform resources,
+    bootstraps its own superadmin profile, then seeds setup-specific data.
+    No base-seed.sql, no shared state between setups.
+
+    Args:
+        setup: Name of the setup to seed (must match a directory in seeds/setups/).
     """
-    print("=== Seed Runner: modules ===\n")
+    print(f"=== Seed Runner: {setup} ===\n")
 
     pg, pg_url, redis_container, redis_url = await _start_containers()
 
@@ -1607,7 +1600,9 @@ async def main_modules() -> Path:
         os.environ.setdefault("SECRET_KEY", "seed_runner_secret_key")
         os.environ.setdefault("AUTH_SECRET", "seed_runner_auth_secret")
 
-        # Disable FK checks so resource IDs don't need to match artifact IDs
+        setup_module = importlib.import_module(f"database.seeds.setups.{setup}")
+
+        # Disable FK checks for all creates (base + setup)
         async with pool.acquire() as conn:
             dbname = await conn.fetchval("SELECT current_database()")
             await conn.execute(
@@ -1615,21 +1610,52 @@ async def main_modules() -> Path:
             )
         await pool.close()
         pool = await asyncpg.create_pool(pg_url)
-        print("  FK checks disabled for module creates")
+        print("  FK checks disabled")
 
-        # Module 01: resources (all via Python seeds)
-        print("\nSeeding module 01 (resources)...")
+        # ── Phase 1: Base platform modules ────────────────────────────
+        # These are shared definitions — every setup creates them.
+
+        print("\nSeeding base resources...")
         await _run_resource_seeds(pool, redis_client)
 
-        # Module 09: profiles (bootstrap — no profile_id needed)
-        print("\nSeeding module 09 (profiles)...")
-        await _run_profile_bootstrap(pool, redis_client)
+        # Bootstrap the setup's superadmin (for _impl profile_id)
+        print("\nBootstrapping setup profile...")
+        bootstrap = setup_module.BOOTSTRAP_PROFILE
+        seed_profile_id = bootstrap["id"]
+        from app.tools.artifacts.profile.create import (
+            create_profile as create_profile_artifact,
+        )
+        from app.tools.resources.names.create import create_name
+        from app.tools.resources.profiles.create import (
+            create_profile as create_profile_resource,
+        )
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                name_resp = await create_name(conn, name=bootstrap["name"], redis=redis_client)
+                profile_resource = await create_profile_resource(
+                    conn, redis_client,
+                    id=bootstrap.get("resource_id"),
+                    name=bootstrap["name"],
+                )
+                await create_profile_artifact(
+                    conn,
+                    id=bootstrap["id"],
+                    name_id=name_resp.id,
+                    role_ids=bootstrap.get("role_ids"),
+                    flag_ids=bootstrap.get("flag_ids"),
+                    profile_ids=[profile_resource.id],
+                    redis=redis_client,
+                )
+        print(f"  OK: {bootstrap['name']} bootstrapped ({seed_profile_id})")
 
-        # Module 02: providers
-        print("\nSeeding module 02 (providers)...")
+        # Override SEED_PROFILE_ID for all _impl calls in this setup
+        global SEED_PROFILE_ID
+        original_seed_profile_id = SEED_PROFILE_ID
+        SEED_PROFILE_ID = seed_profile_id
+
+        print("\nSeeding providers...")
         await _run_provider_module_seeds(pool, redis_client)
 
-        # Dynamic resources from model configs (must be created before models)
         print("\nSeeding dynamic model resources...")
         from database.seeds.models import dynamic_pricing, dynamic_voices
         async with pool.acquire() as conn:
@@ -1638,121 +1664,32 @@ async def main_modules() -> Path:
             if dynamic_voices:
                 await _seed_voices(conn, redis_client, dynamic_voices)
 
-        # Module 03: models
-        print("\nSeeding module 03 (models)...")
+        print("\nSeeding models...")
         await _run_model_module_seeds(pool, redis_client)
 
-        # Module 04: agents
-        print("\nSeeding module 04 (agents)...")
+        print("\nSeeding agents...")
         await _run_agent_module_seeds(pool, redis_client)
 
-        # Module 06: auth
-        print("\nSeeding module 06 (auth)...")
+        print("\nSeeding auth...")
         await _run_auth_module_seeds(pool, redis_client)
 
-        # Module 08: evals
-        print("\nSeeding module 08 (evals)...")
+        print("\nSeeding evals...")
         await _run_eval_module_seeds(pool, redis_client)
 
-        # Module 10: systems
-        print("\nSeeding module 10 (systems)...")
+        print("\nSeeding systems...")
         await _run_system_module_seeds(pool, redis_client)
 
-        # Module 07: rubrics
-        print("\nSeeding module 07 (rubrics)...")
+        print("\nSeeding rubrics...")
         await _run_rubric_module_seeds(pool, redis_client)
 
-        # Module 05: tools (static definitions)
-        print("\nSeeding module 05 (tools)...")
+        print("\nSeeding tools...")
         await _run_tool_module_seeds(pool, redis_client)
 
-        # Dynamic keys — all providers + all auth credentials from config
         print("\nSeeding dynamic keys...")
         import database.seeds.dynamic_keys as dk_mod
         await _run_key_seeds(pool, redis_client, dk_mod)
 
-        # Re-enable FK checks
-        async with pool.acquire() as conn:
-            dbname = await conn.fetchval("SELECT current_database()")
-            await conn.execute(
-                f"ALTER DATABASE {dbname} RESET session_replication_role"
-            )
-        await pool.close()
-        pool = await asyncpg.create_pool(pg_url)
-        print("\n  FK checks re-enabled")
-
-        await redis_client.aclose()
-        await pool.close()
-
-        print("\nDumping database via pg_dump...")
-        base_seed_file = BUILD_DIR / "base-seed.sql"
-        _pg_dump_data(pg, base_seed_file, "Base seed (all modules)")
-
-    finally:
-        pg.stop()
-        redis_container.stop()
-
-    print("\nDone!")
-    return base_seed_file
-
-
-async def main_setup(setup: str = "university", base_seed_file: Path | None = None) -> None:
-    """Seed a setup (module 11) through Python definitions.
-
-    Args:
-        setup: Name of the setup to seed (must match a directory in seeds/setups/).
-        base_seed_file: Path to base-seed.sql. If None, runs main_modules() first.
-    """
-    if base_seed_file is None:
-        print("No base-seed.sql provided, generating modules first...\n")
-        base_seed_file = await main_modules()
-
-    print(f"=== Seed Runner: {setup} ===\n")
-
-    pg, pg_url, redis_container, redis_url = await _start_containers()
-
-    try:
-        conn = await asyncpg.connect(pg_url)
-        await _load_schema(conn)
-        await conn.close()
-
-        # Load base seed via psql (pg_dump COPY format requires psql, not asyncpg)
-        print("Loading base-seed.sql...")
-        if not base_seed_file.exists():
-            raise FileNotFoundError(
-                "base-seed.sql not found. Run: python -m database.scripts.runner --modules"
-            )
-        _psql_load_file(pg, base_seed_file)
-        print("  Modules loaded.")
-
-        conn = await asyncpg.connect(pg_url)
-        await _refresh_mvs(conn)
-        await conn.close()
-
-        pool = await asyncpg.create_pool(pg_url)
-        redis_client = Redis.from_url(redis_url)
-
-        # SECRET_KEY and AUTH_SECRET default to runner placeholders if not in .env.
-        # With placeholder keys, encrypted values use "please_change_me" as input,
-        # so the resulting DB seeds are templates — users must set real keys after deploy.
-        os.environ.setdefault("SECRET_KEY", "seed_runner_secret_key")
-        os.environ.setdefault("AUTH_SECRET", "seed_runner_auth_secret")
-
-        setup_module = importlib.import_module(f"database.seeds.setups.{setup}")
-
-        # Disable FK checks during setup creates so forward-references
-        # (e.g., department.settings_ids before settings_resource exists) work.
-        # FKs are re-enabled after all creates, catching any actual violations.
-        # Use ALTER DATABASE so it applies to all new connections from the pool.
-        async with pool.acquire() as conn:
-            dbname = await conn.fetchval("SELECT current_database()")
-            await conn.execute(
-                f"ALTER DATABASE {dbname} SET session_replication_role = 'replica'"
-            )
-        # Reconnect pool so all connections pick up the new default
-        await pool.close()
-        pool = await asyncpg.create_pool(pg_url)
-        print("  FK checks disabled for setup creates")
+        # ── Phase 2: Setup-specific modules ───────────────────────────
 
         for module_name in setup_module.MODULES:
             print(f"\nSeeding {module_name}...")
@@ -1808,7 +1745,10 @@ async def main_setup(setup: str = "university", base_seed_file: Path | None = No
                     pool, redis_client, mod.document_files, assets_dir
                 )
 
-        # Re-enable FK checks after all creates
+        # Restore original SEED_PROFILE_ID
+        SEED_PROFILE_ID = original_seed_profile_id
+
+        # Re-enable FK checks
         async with pool.acquire() as conn:
             dbname = await conn.fetchval("SELECT current_database()")
             await conn.execute(
@@ -1818,44 +1758,17 @@ async def main_setup(setup: str = "university", base_seed_file: Path | None = No
         pool = await asyncpg.create_pool(pg_url)
         print("\n  FK checks re-enabled")
 
-        # ── Cleanup deactivated junction rows before dump ─────────────
-        # The update pass soft-deletes old junction rows (active=false),
-        # but pg_dump --on-conflict-do-nothing can't propagate that state
-        # to a DB that already has those rows as active=true from base-seed.
-        # Solution: collect UPDATE statements for the deactivated rows,
-        # delete them from testcontainer (so pg_dump won't conflict),
-        # then append the UPDATEs to the seed file.
-        deactivation_stmts = await _cleanup_deactivated_junctions(pool)
-
         await redis_client.aclose()
         await pool.close()
 
-        print("\nDumping database via pg_dump...")
-        output_file = BUILD_DIR / f"{setup}-seed.sql"
-        _pg_dump_data(pg, output_file, f"Setup: {setup}", on_conflict_do_nothing=True)
-
-        # Append deactivation UPDATEs after the INSERTs
-        if deactivation_stmts:
-            with open(output_file, "a") as f:
-                f.write(
-                    "\n-- Deactivate base-seed junction rows superseded by "
-                    "this setup's updates\n"
-                )
-                for stmt in deactivation_stmts:
-                    f.write(stmt + "\n")
-            print(
-                f"  Appended {len(deactivation_stmts)} deactivation "
-                f"UPDATE(s) to seed file"
-            )
-
-        # Full dump → history/{setup}.sql.gz (schema + base + setup data)
+        # Full dump → history/{setup}.sql.gz
         history_dir = DATABASE_DIR.parent / "history"
         history_dir.mkdir(parents=True, exist_ok=True)
         print(f"\nGenerating template: {setup}...")
         _pg_dump_full(
             pg,
             history_dir / f"{setup}.sql.gz",
-            f"Template: {setup} (schema + base modules + {setup} setup)",
+            f"Template: {setup} (fully independent)",
         )
 
     finally:
@@ -1866,23 +1779,20 @@ async def main_setup(setup: str = "university", base_seed_file: Path | None = No
 
 
 async def main_all() -> None:
-    """Seed modules + all discovered setups.
+    """Seed all discovered setups independently.
 
-    Runs:
-      1. main_modules()  → base-seed.sql (minimal platform resources)
-      2. main_setup() for each setup → history/{setup}.sql.gz
-         (including fresh, university, organization, etc.)
+    Each setup creates everything from scratch — base platform resources
+    + setup-specific data. No shared base-seed.sql.
     """
     setups = _discover_setups()
     print(f"Discovered setups: {', '.join(setups)}\n")
 
-    base_seed_file = await main_modules()
     for setup in setups:
-        await main_setup(setup, base_seed_file=base_seed_file)
+        await main_setup(setup)
 
     history_dir = DATABASE_DIR.parent / "history"
     templates = sorted(f.name for f in history_dir.glob("*.sql.gz"))
-    print(f"\n=== Templates regenerated: {', '.join(templates)} ==="  )
+    print(f"\n=== Templates regenerated: {', '.join(templates)} ===")
 
 
 if __name__ == "__main__":
@@ -1891,18 +1801,13 @@ if __name__ == "__main__":
         "--setup", default=None, help="Setup name (auto-discovered from seeds/setups/)"
     )
     parser.add_argument(
-        "--modules", action="store_true", help="Seed all modules → base-seed.sql"
-    )
-    parser.add_argument(
         "--all",
         action="store_true",
-        help="Seed modules + all setups → history/*.sql.gz",
+        help="Seed all setups → history/*.sql.gz",
     )
     args = parser.parse_args()
 
     if args.all:
         asyncio.run(main_all())
-    elif args.modules:
-        asyncio.run(main_modules())
     else:
         asyncio.run(main_setup(args.setup or "university"))

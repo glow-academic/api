@@ -14,6 +14,17 @@ All data is created at creation time — no update pass needed.
 
 SETUP_NAME = "organization"
 
+from database.seeds.setups.organization.profiles import ORG_SUPERADMIN, ORG_SUPERADMIN_RESOURCE
+from database.seeds.profiles import SUPERADMIN_ROLE, PROFILE_ACTIVE
+
+BOOTSTRAP_PROFILE = dict(
+    id=ORG_SUPERADMIN,
+    resource_id=ORG_SUPERADMIN_RESOURCE,
+    name="Default Superadmin",
+    role_ids=[SUPERADMIN_ROLE],
+    flag_ids=[PROFILE_ACTIVE],
+)
+
 # Dependency-ordered list of module names to seed.
 # Each corresponds to a .py file in this package.
 MODULES = [
