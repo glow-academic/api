@@ -18,6 +18,10 @@ COMMUNICATION_SKILLS = sid("uni/rubric/communication-skills")
 POLICY_KNOWLEDGE = sid("uni/rubric/policy-knowledge")
 DE_ESCALATION = sid("uni/rubric/de-escalation")
 
+COMMUNICATION_SKILLS_RESOURCE = sid("uni/rubric-resource/communication-skills")
+POLICY_KNOWLEDGE_RESOURCE = sid("uni/rubric-resource/policy-knowledge")
+DE_ESCALATION_RESOURCE = sid("uni/rubric-resource/de-escalation")
+
 # ---------------------------------------------------------------------------
 # Rubric definitions
 # ---------------------------------------------------------------------------
@@ -26,7 +30,7 @@ rubrics = [
     # ── Communication Skills ────────────────────────────────────────────
     dict(
         id=COMMUNICATION_SKILLS,
-        resource_id=sid("uni/rubric-resource/communication-skills"),
+        resource_id=COMMUNICATION_SKILLS_RESOURCE,
         name="Communication Skills",
         description=(
             "Evaluates clarity of explanations, active listening techniques, "
@@ -40,7 +44,7 @@ rubrics = [
     # ── Policy Knowledge ────────────────────────────────────────────────
     dict(
         id=POLICY_KNOWLEDGE,
-        resource_id=sid("uni/rubric-resource/policy-knowledge"),
+        resource_id=POLICY_KNOWLEDGE_RESOURCE,
         name="Policy Knowledge",
         description=(
             "Evaluates accuracy of policy citations, proper procedure "
@@ -55,7 +59,7 @@ rubrics = [
     # ── De-escalation ───────────────────────────────────────────────────
     dict(
         id=DE_ESCALATION,
-        resource_id=sid("uni/rubric-resource/de-escalation"),
+        resource_id=DE_ESCALATION_RESOURCE,
         name="De-escalation",
         description=(
             "Evaluates conflict resolution approach, emotional regulation, "

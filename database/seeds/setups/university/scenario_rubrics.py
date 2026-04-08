@@ -11,13 +11,19 @@ import by simulations.py or other consumers.
 from database.seeds.ids import sid
 from database.seeds.setups.university.rubrics import (
     COMMUNICATION_SKILLS,
+    COMMUNICATION_SKILLS_RESOURCE,
     DE_ESCALATION,
+    DE_ESCALATION_RESOURCE,
     POLICY_KNOWLEDGE,
+    POLICY_KNOWLEDGE_RESOURCE,
 )
 from database.seeds.setups.university.scenarios import (
     ACADEMIC_INTEGRITY_SCENARIO,
+    ACADEMIC_INTEGRITY_SCENARIO_RESOURCE,
     FERPA_SCENARIO,
+    FERPA_SCENARIO_RESOURCE,
     UPSET_STUDENT_SCENARIO,
+    UPSET_STUDENT_SCENARIO_RESOURCE,
 )
 
 # ---------------------------------------------------------------------------
@@ -35,6 +41,25 @@ FERPA_COMMUNICATION_SKILLS = sid("uni/scenario-rubric/ferpa+communication-skills
 UPSET_STUDENT_DE_ESCALATION = sid("uni/scenario-rubric/upset-student+de-escalation")
 UPSET_STUDENT_COMMUNICATION_SKILLS = sid(
     "uni/scenario-rubric/upset-student+communication-skills"
+)
+
+ACADEMIC_INTEGRITY_POLICY_KNOWLEDGE_RESOURCE = sid(
+    "uni/scenario-rubric-resource/academic-integrity+policy-knowledge"
+)
+ACADEMIC_INTEGRITY_COMMUNICATION_SKILLS_RESOURCE = sid(
+    "uni/scenario-rubric-resource/academic-integrity+communication-skills"
+)
+FERPA_POLICY_KNOWLEDGE_RESOURCE = sid(
+    "uni/scenario-rubric-resource/ferpa+policy-knowledge"
+)
+FERPA_COMMUNICATION_SKILLS_RESOURCE = sid(
+    "uni/scenario-rubric-resource/ferpa+communication-skills"
+)
+UPSET_STUDENT_DE_ESCALATION_RESOURCE = sid(
+    "uni/scenario-rubric-resource/upset-student+de-escalation"
+)
+UPSET_STUDENT_COMMUNICATION_SKILLS_RESOURCE = sid(
+    "uni/scenario-rubric-resource/upset-student+communication-skills"
 )
 
 # ---------------------------------------------------------------------------
@@ -59,37 +84,43 @@ scenario_rubrics = [
     # -- Academic Integrity + Policy Knowledge ---------------------------------
     dict(
         id=ACADEMIC_INTEGRITY_POLICY_KNOWLEDGE,
-        scenario_id=ACADEMIC_INTEGRITY_SCENARIO,
-        rubric_id=POLICY_KNOWLEDGE,
+        resource_id=ACADEMIC_INTEGRITY_POLICY_KNOWLEDGE_RESOURCE,
+        scenario_id=ACADEMIC_INTEGRITY_SCENARIO_RESOURCE,
+        rubric_id=POLICY_KNOWLEDGE_RESOURCE,
     ),
     # -- Academic Integrity + Communication Skills -----------------------------
     dict(
         id=ACADEMIC_INTEGRITY_COMMUNICATION_SKILLS,
-        scenario_id=ACADEMIC_INTEGRITY_SCENARIO,
-        rubric_id=COMMUNICATION_SKILLS,
+        resource_id=ACADEMIC_INTEGRITY_COMMUNICATION_SKILLS_RESOURCE,
+        scenario_id=ACADEMIC_INTEGRITY_SCENARIO_RESOURCE,
+        rubric_id=COMMUNICATION_SKILLS_RESOURCE,
     ),
     # -- FERPA + Policy Knowledge ----------------------------------------------
     dict(
         id=FERPA_POLICY_KNOWLEDGE,
-        scenario_id=FERPA_SCENARIO,
-        rubric_id=POLICY_KNOWLEDGE,
+        resource_id=FERPA_POLICY_KNOWLEDGE_RESOURCE,
+        scenario_id=FERPA_SCENARIO_RESOURCE,
+        rubric_id=POLICY_KNOWLEDGE_RESOURCE,
     ),
     # -- FERPA + Communication Skills ------------------------------------------
     dict(
         id=FERPA_COMMUNICATION_SKILLS,
-        scenario_id=FERPA_SCENARIO,
-        rubric_id=COMMUNICATION_SKILLS,
+        resource_id=FERPA_COMMUNICATION_SKILLS_RESOURCE,
+        scenario_id=FERPA_SCENARIO_RESOURCE,
+        rubric_id=COMMUNICATION_SKILLS_RESOURCE,
     ),
     # -- Upset Student + De-escalation -----------------------------------------
     dict(
         id=UPSET_STUDENT_DE_ESCALATION,
-        scenario_id=UPSET_STUDENT_SCENARIO,
-        rubric_id=DE_ESCALATION,
+        resource_id=UPSET_STUDENT_DE_ESCALATION_RESOURCE,
+        scenario_id=UPSET_STUDENT_SCENARIO_RESOURCE,
+        rubric_id=DE_ESCALATION_RESOURCE,
     ),
     # -- Upset Student + Communication Skills ----------------------------------
     dict(
         id=UPSET_STUDENT_COMMUNICATION_SKILLS,
-        scenario_id=UPSET_STUDENT_SCENARIO,
-        rubric_id=COMMUNICATION_SKILLS,
+        resource_id=UPSET_STUDENT_COMMUNICATION_SKILLS_RESOURCE,
+        scenario_id=UPSET_STUDENT_SCENARIO_RESOURCE,
+        rubric_id=COMMUNICATION_SKILLS_RESOURCE,
     ),
 ]

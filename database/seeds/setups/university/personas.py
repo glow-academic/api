@@ -25,6 +25,16 @@ PROFESSOR = sid("uni/persona/professor")
 STUDENT = sid("uni/persona/student")
 INSTRUCTIONAL_STAFF = sid("uni/persona/instructional-staff")
 
+CONFUSED_RESOURCE = sid("uni/persona-resource/confused")
+HAPPY_RESOURCE = sid("uni/persona-resource/happy")
+PASSIVE_RESOURCE = sid("uni/persona-resource/passive")
+AGGRESSIVE_HIGH_RESOURCE = sid("uni/persona-resource/aggressive-high")
+AGGRESSIVE_MEDIUM_RESOURCE = sid("uni/persona-resource/aggressive-medium")
+AGGRESSIVE_LOW_RESOURCE = sid("uni/persona-resource/aggressive-low")
+PROFESSOR_RESOURCE = sid("uni/persona-resource/professor")
+STUDENT_RESOURCE = sid("uni/persona-resource/student")
+INSTRUCTIONAL_STAFF_RESOURCE = sid("uni/persona-resource/instructional-staff")
+
 # ---------------------------------------------------------------------------
 # Persona definitions
 # ---------------------------------------------------------------------------
@@ -33,7 +43,7 @@ personas = [
     # ── Confused ──────────────────────────────────────────────────────────
     dict(
         id=CONFUSED,
-        resource_id=sid("uni/persona-resource/confused"),
+        resource_id=CONFUSED_RESOURCE,
         name="Confused",
         description="Seeks to understand by asking questions and exploring ideas",
         icon="HelpCircle",
@@ -58,7 +68,7 @@ personas = [
     # ── Happy ─────────────────────────────────────────────────────────────
     dict(
         id=HAPPY,
-        resource_id=sid("uni/persona-resource/happy"),
+        resource_id=HAPPY_RESOURCE,
         name="Happy",
         description="Provides uplifting feedback and cheerful responses.",
         icon="SmilePlus",
@@ -83,7 +93,7 @@ personas = [
     # ── Passive ───────────────────────────────────────────────────────────
     dict(
         id=PASSIVE,
-        resource_id=sid("uni/persona-resource/passive"),
+        resource_id=PASSIVE_RESOURCE,
         name="Passive",
         description="Low engagement and a tendency to avoid conflict or assertiveness.",
         icon="Cloud",
@@ -108,7 +118,7 @@ personas = [
     # ── Aggressive (High) ────────────────────────────────────────────────
     dict(
         id=AGGRESSIVE_HIGH,
-        resource_id=sid("uni/persona-resource/aggressive-high"),
+        resource_id=AGGRESSIVE_HIGH_RESOURCE,
         name="Aggressive (High)",
         description="Pushes back on your ideas and challenges assumptions, with high intensity.",
         icon="Zap",
@@ -134,7 +144,7 @@ personas = [
     # ── Aggressive (Medium) ──────────────────────────────────────────────
     dict(
         id=AGGRESSIVE_MEDIUM,
-        resource_id=sid("uni/persona-resource/aggressive-medium"),
+        resource_id=AGGRESSIVE_MEDIUM_RESOURCE,
         name="Aggressive (Medium)",
         description="Pushes back on your ideas and challenges assumptions.",
         icon="Zap",
@@ -159,7 +169,7 @@ personas = [
     # ── Aggressive (Low) ─────────────────────────────────────────────────
     dict(
         id=AGGRESSIVE_LOW,
-        resource_id=sid("uni/persona-resource/aggressive-low"),
+        resource_id=AGGRESSIVE_LOW_RESOURCE,
         name="Aggressive (Low)",
         description="Pushes back on your ideas and challenges assumptions, with milder intensity.",
         icon="Zap",
@@ -184,7 +194,7 @@ personas = [
     # ── Professor ─────────────────────────────────────────────────────────
     dict(
         id=PROFESSOR,
-        resource_id=sid("uni/persona-resource/professor"),
+        resource_id=PROFESSOR_RESOURCE,
         name="Professor",
         description=(
             "Represents a faculty member perspective, providing guidance on "
@@ -204,7 +214,7 @@ personas = [
     # ── Student ───────────────────────────────────────────────────────────
     dict(
         id=STUDENT,
-        resource_id=sid("uni/persona-resource/student"),
+        resource_id=STUDENT_RESOURCE,
         name="Student",
         description=(
             "Represents a typical student perspective, asking questions and "
@@ -224,7 +234,7 @@ personas = [
     # ── Instructional Staff ───────────────────────────────────────────────
     dict(
         id=INSTRUCTIONAL_STAFF,
-        resource_id=sid("uni/persona-resource/instructional-staff"),
+        resource_id=INSTRUCTIONAL_STAFF_RESOURCE,
         name="Instructional Staff",
         description=(
             "Represents teaching assistants and instructional support staff, "
