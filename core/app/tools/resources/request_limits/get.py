@@ -39,7 +39,7 @@ async def get_request_limits(
 
     rows = await conn.fetch(
         """
-        SELECT id, requests_per_day,
+        SELECT id, "limit", "interval"::text,
                created_at, active, mcp, generated
         FROM request_limits_resource
         WHERE id = ANY($1)
@@ -51,7 +51,8 @@ async def get_request_limits(
     items = [
         GetRequestLimitResponse(
             id=r["id"],
-            requests_per_day=r["requests_per_day"],
+            limit=r["limit"],
+            interval=r["interval"],
             created_at=r["created_at"],
             active=r["active"],
             mcp=r["mcp"],

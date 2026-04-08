@@ -12,20 +12,22 @@ from app.utils.cache.invalidate_tags import invalidate_tags
 
 async def create_request_limit(
     conn: asyncpg.Connection,
-    requests_per_day: int,
+    limit: int,
     redis: Redis,
     id: UUID | None = None,
+    interval: str = "1 day",
     mcp: bool = False,
     soft: bool = False,
 ) -> GetRequestLimitResponse:
     """Create a request_limit resource (plain INSERT — no unique constraint)."""
     request_limit_id = await conn.fetchval(
         """
-        INSERT INTO request_limits_resource (id, requests_per_day, active, mcp, generated)
-        VALUES (COALESCE($4, uuidv7()), $1, $2, $3, $3)
+        INSERT INTO request_limits_resource (id, "limit", "interval", active, mcp, generated)
+        VALUES (COALESCE($5, uuidv7()), $1, $2::interval, $3, $4, $4)
         RETURNING id
         """,
-        requests_per_day,
+        limit,
+        interval,
         not soft,
         mcp,
         id,

@@ -38,10 +38,11 @@ class ProfileIdentityContext:
 
     profiles_id: UUID  # resource ID (from profile_profiles_junction)
     name: str
-    role: str  # enum value: "superadmin", "admin", etc.
-    role_name: str  # display name from roles_resource
+    role: str  # role name (e.g., "Super Administrator") — used for identity
+    role_level: int  # hierarchy level (0 = highest privilege)
+    role_name: str  # display name from roles_resource (same as role)
     role_description: str
-    role_artifacts: list[str]  # artifact types this role can access
+    role_artifacts: list[str]  # artifact types this role can access (derived from permissions)
     primary_email: str | None
     emails: list[str]  # all emails
     primary_department_id: UUID | None
@@ -163,13 +164,15 @@ async def resolve_profile_identity_context(
     name = names_res[0].name if names_res else ""
 
     role = ""
+    role_level = 99
     role_name = ""
     role_description = ""
     role_artifacts: list[str] = []
     role_permissions: list[tuple[str, str]] = []
     if roles_res:
         r = roles_res[0]
-        role = r.role
+        role = r.name
+        role_level = r.level
         role_name = r.name
         role_description = r.description
 
@@ -181,9 +184,6 @@ async def resolve_profile_identity_context(
             role_permissions = [(p.artifact, p.operation) for p in perms]
             # Derive unique artifact strings for sidebar visibility
             role_artifacts = list(dict.fromkeys(p.artifact for p in perms))
-        else:
-            # Fallback to legacy artifacts field if no permission_ids yet
-            role_artifacts = r.artifacts or []
 
     # Primary department: find the one with is_primary=True on the resource
     primary_department_id: UUID | None = None

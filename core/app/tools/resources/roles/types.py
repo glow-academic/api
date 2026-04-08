@@ -8,13 +8,13 @@ from pydantic import BaseModel
 
 class GetRoleResponse(BaseModel):
     id: UUID
-    role: str
     name: str
     description: str
     icon_id: UUID | None
     color_id: UUID | None
-    artifacts: list[str]
+    level: int
     permission_ids: list[UUID]
+    request_limit_ids: list[UUID]
     created_at: datetime
     active: bool
     generated: bool

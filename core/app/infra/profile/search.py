@@ -82,39 +82,27 @@ async def search_profile_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    user_role = actor_profile.role
+    user_level = actor_profile.role_level
     user_department_ids = actor_profile.department_ids
     actor_name = actor_profile.name
 
     # -- Step 2: Scope by role hierarchy + optional role_filter --
-    # Visible roles: roles at or below the requester's level.
-    # Uses the role enum string from profiles_resource.role.
-    # "custom" roles are visible to admin and above.
-    ROLE_LEVEL: dict[str, int] = {
-        "superadmin": 0,
-        "admin": 1,
-        "instructional": 2,
-        "member": 3,
-        "custom": 3,  # custom roles at same level as member
-        "guest": 4,
-    }
-    user_level = ROLE_LEVEL.get(user_role, 99)
-    visible = {role for role, level in ROLE_LEVEL.items() if level >= user_level}
+    # Visible roles: roles at or below the requester's level (from DB).
 
     async with pool.acquire() as conn:
         all_roles = await get_roles(conn, None, redis)
 
-        # Start with hierarchy-scoped roles
-        allowed_roles = {r.role for r in all_roles if r.role in visible}
+        # Show roles at or below the user's level
+        allowed_role_names = {r.name for r in all_roles if r.level >= user_level}
 
         # Intersect with explicit role_filter if provided
         if role_filter:
-            if role_filter in allowed_roles:
-                allowed_roles = {role_filter}
+            if role_filter in allowed_role_names:
+                allowed_role_names = {role_filter}
             else:
                 return _empty_response(actor_name, total_count=0)
 
-        role_ids_filter = [r.id for r in all_roles if r.role in allowed_roles]
+        role_ids_filter = [r.id for r in all_roles if r.name in allowed_role_names]
         if not role_ids_filter:
             return _empty_response(actor_name, total_count=0)
 
@@ -253,7 +241,7 @@ async def search_profile_impl(
         if a.role_ids:
             role_obj = role_map.get(a.role_ids[0])
             if role_obj:
-                target_role = role_obj.role
+                target_role = role_obj.name
                 target_role_name = role_obj.name
 
         # Resolve departments

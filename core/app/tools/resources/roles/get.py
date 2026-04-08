@@ -35,8 +35,8 @@ async def get_roles(
     if ids is not None:
         rows = await conn.fetch(
             """
-            SELECT id, role, name, description, icon_id, color_id,
-                   permission_ids, created_at, active, generated, mcp
+            SELECT id, name, description, icon_id, color_id, level,
+                   permission_ids, request_limit_ids, created_at, active, generated, mcp
             FROM roles_resource
             WHERE id = ANY($1)
             ORDER BY array_position($1, id)
@@ -46,8 +46,8 @@ async def get_roles(
     else:
         rows = await conn.fetch(
             """
-            SELECT id, role, name, description, icon_id, color_id,
-                   permission_ids, created_at, active, generated, mcp
+            SELECT id, name, description, icon_id, color_id, level,
+                   permission_ids, request_limit_ids, created_at, active, generated, mcp
             FROM roles_resource
             ORDER BY created_at
         """,
@@ -56,13 +56,13 @@ async def get_roles(
     items = [
         GetRoleResponse(
             id=r["id"],
-            role=r["role"],
             name=r["name"],
             description=r["description"],
             icon_id=r["icon_id"],
             color_id=r["color_id"],
-            artifacts=[],  # Legacy — derived from permission_ids
+            level=r["level"],
             permission_ids=list(r["permission_ids"] or []),
+            request_limit_ids=list(r["request_limit_ids"] or []),
             created_at=r["created_at"],
             active=r["active"],
             generated=r["generated"],

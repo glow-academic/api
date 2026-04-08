@@ -8,7 +8,8 @@ from pydantic import BaseModel
 
 class GetRequestLimitResponse(BaseModel):
     id: UUID
-    requests_per_day: int
+    limit: int
+    interval: str
     created_at: datetime
     active: bool
     mcp: bool
