@@ -155,10 +155,8 @@ async def _run_resource_seeds(
                 await _seed_reasoning_levels(conn, redis, items)
             elif module_name == "temperature_levels":
                 await _seed_temperature_levels(conn, redis, items)
-            elif module_name == "operations":
-                await _seed_operations(conn, redis, items)
-            elif module_name == "artifacts":
-                await _seed_artifacts(conn, redis, items)
+            elif module_name == "permissions":
+                await _seed_permissions(conn, redis, items)
             elif module_name == "standard_groups":
                 await _seed_standard_groups(conn, redis, items)
             elif module_name == "standards":
@@ -307,24 +305,14 @@ async def _seed_temperature_levels(
     print(f"  OK: {len(items)} temperature_levels created")
 
 
-async def _seed_operations(
+async def _seed_permissions(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
-    from app.tools.resources.operations.create import create_operation
+    from app.tools.resources.permissions.create import create_permission
 
     for item in items:
-        await create_operation(conn, redis=redis, **item)
-    print(f"  OK: {len(items)} operations created")
-
-
-async def _seed_artifacts(
-    conn: asyncpg.Connection, redis: Redis, items: list[dict]
-) -> None:
-    from app.tools.resources.artifacts.create import create_artifact
-
-    for item in items:
-        await create_artifact(conn, redis=redis, **item)
-    print(f"  OK: {len(items)} artifacts created")
+        await create_permission(conn, redis=redis, **item)
+    print(f"  OK: {len(items)} permissions created")
 
 
 async def _seed_standard_groups(
@@ -1323,8 +1311,7 @@ async def _run_tool_module_seeds(
             name=tool_def["name"],
             description=tool_def["description"],
             args_ids=arg_ids if arg_ids else None,
-            operation_ids=[tool_def["operation_id"]],
-            artifact_ids=[tool_def["artifact_id"]],
+            permission_ids=[tool_def["permission_id"]],
         )
 
         try:

@@ -7,6 +7,20 @@ guest (limited access).
 
 from uuid import UUID
 
+from database.seeds.resources.permissions import PERMISSION_IDS
+
+_STANDARD_OPS = ["get", "search", "docs", "refresh", "export"]
+
+
+def _pids(artifact_names: list[str]) -> list:
+    """Build permission_ids from artifact names x standard operations."""
+    return [
+        PERMISSION_IDS[(a, op)]
+        for a in artifact_names
+        for op in _STANDARD_OPS
+        if (a, op) in PERMISSION_IDS
+    ]
+
 roles = [
     dict(
         id=UUID("019bbabc-5a3b-741e-bad3-474cc6c05fd6"),
@@ -36,6 +50,27 @@ roles = [
             "invocation",
             "test",
         ],
+        permission_ids=_pids([
+            "home",
+            "practice",
+            "leaderboard",
+            "chat",
+            "attempt",
+            "dashboard",
+            "reports",
+            "record",
+            "activity",
+            "session",
+            "pricing",
+            "group",
+            "cohort",
+            "simulation",
+            "scenario",
+            "persona",
+            "benchmark",
+            "invocation",
+            "test",
+        ]),
     ),
     dict(
         id=UUID("019bbabc-5a3b-7481-bbf5-a7c2193bc5e4"),
@@ -79,6 +114,41 @@ roles = [
             "eval",
             "auth",
         ],
+        permission_ids=_pids([
+            "home",
+            "practice",
+            "leaderboard",
+            "chat",
+            "attempt",
+            "dashboard",
+            "reports",
+            "record",
+            "activity",
+            "session",
+            "pricing",
+            "group",
+            "cohort",
+            "simulation",
+            "scenario",
+            "persona",
+            "benchmark",
+            "invocation",
+            "test",
+            "profile",
+            "document",
+            "parameter",
+            "field",
+            "agent",
+            "model",
+            "provider",
+            "tool",
+            "health",
+            "setting",
+            "department",
+            "rubric",
+            "eval",
+            "auth",
+        ]),
     ),
     dict(
         id=UUID("019bbabc-5a36-76d3-8fc3-8415fe308cd3"),
@@ -118,6 +188,37 @@ roles = [
             "health",
             "setting",
         ],
+        permission_ids=_pids([
+            "home",
+            "practice",
+            "leaderboard",
+            "chat",
+            "attempt",
+            "dashboard",
+            "reports",
+            "record",
+            "activity",
+            "session",
+            "pricing",
+            "group",
+            "cohort",
+            "simulation",
+            "scenario",
+            "persona",
+            "benchmark",
+            "invocation",
+            "test",
+            "profile",
+            "document",
+            "parameter",
+            "field",
+            "agent",
+            "model",
+            "provider",
+            "tool",
+            "health",
+            "setting",
+        ]),
     ),
     dict(
         id=UUID("019bbabc-5a37-7028-8b98-728b7aa54d0d"),
@@ -127,6 +228,7 @@ roles = [
         icon_id=UUID("019b995b-52f7-7525-b425-73423c427909"),
         color_id=UUID("019b995b-52f1-7d09-889a-b24887bd2cb2"),
         artifacts=["practice", "chat", "attempt"],
+        permission_ids=_pids(["practice", "chat", "attempt"]),
     ),
     dict(
         id=UUID("019bdb94-b279-70c0-a610-6b9696fb5c94"),
@@ -136,6 +238,7 @@ roles = [
         icon_id=UUID("019bb3ba-adb7-7045-884f-ee58692da3d1"),
         color_id=UUID("019b9eb0-c7ab-7dce-a088-16018f3dbf37"),
         artifacts=["benchmark", "invocation", "test"],
+        permission_ids=_pids(["benchmark", "invocation", "test"]),
     ),
     dict(
         id=UUID("019bf21d-4d50-74fc-8c81-be446d602de2"),
@@ -145,6 +248,7 @@ roles = [
         icon_id=None,
         color_id=None,
         artifacts=["home", "practice", "leaderboard", "chat", "attempt"],
+        permission_ids=_pids(["home", "practice", "leaderboard", "chat", "attempt"]),
     ),
     dict(
         id=UUID("019bf21d-4d50-7039-b5ba-4aea69013072"),
@@ -154,5 +258,6 @@ roles = [
         icon_id=None,
         color_id=None,
         artifacts=["home", "practice", "leaderboard", "chat", "attempt"],
+        permission_ids=_pids(["home", "practice", "leaderboard", "chat", "attempt"]),
     ),
 ]
