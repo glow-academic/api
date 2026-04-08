@@ -279,7 +279,7 @@ def compute_list_can_edit(
 
 
 def compute_can_delete(
-    role_permissions: list[tuple[str, str]],
+    role_level: int, role_permissions: list[tuple[str, str]],
     active_settings_count: int,
 ) -> bool:
     """Compute can_delete permission.
@@ -294,7 +294,7 @@ def compute_can_delete(
     return active_settings_count == 0
 
 
-def compute_can_duplicate(role_permissions: list[tuple[str, str]]) -> bool:
+def compute_can_duplicate(role_level: int, role_permissions: list[tuple[str, str]]) -> bool:
     """Compute can_duplicate permission.
 
     Business logic:
@@ -329,7 +329,7 @@ def compute_can_create(
 # ========== Draft Endpoint Permission Functions ==========
 
 
-def compute_can_draft(role_permissions: list[tuple[str, str]]) -> bool:
+def compute_can_draft(role_level: int, role_permissions: list[tuple[str, str]]) -> bool:
     """Compute permission to create or update a draft.
 
     Business logic:

@@ -26,7 +26,7 @@ __all__ = [
 
 
 def compute_can_edit(
-    role_permissions: list[tuple[str, str]],
+    role_level: int, role_permissions: list[tuple[str, str]],
     active_agent_count: int,
 ) -> bool:
     """Unified can_edit logic for both get and list views.
@@ -172,7 +172,7 @@ def compute_permissions_required() -> bool:
 
 
 def compute_can_delete(
-    role_permissions: list[tuple[str, str]],
+    role_level: int, role_permissions: list[tuple[str, str]],
     active_agent_count: int,
 ) -> bool:
     """Compute can_delete permission.
@@ -187,7 +187,7 @@ def compute_can_delete(
     return has_permission(role_permissions, "tool", "delete")
 
 
-def compute_can_duplicate(role_permissions: list[tuple[str, str]]) -> bool:
+def compute_can_duplicate(role_level: int, role_permissions: list[tuple[str, str]]) -> bool:
     """Compute can_duplicate permission."""
     return has_permission(role_permissions, "tool", "duplicate")
 
@@ -196,7 +196,7 @@ def compute_can_duplicate(role_permissions: list[tuple[str, str]]) -> bool:
 
 
 def compute_can_create(
-    role_permissions: list[tuple[str, str]],
+    role_level: int, role_permissions: list[tuple[str, str]],
 ) -> bool:
     """Compute permission to create a new tool."""
     return has_permission(role_permissions, "tool", "create")
@@ -205,7 +205,7 @@ def compute_can_create(
 # ========== Draft Endpoint Permission Functions ==========
 
 
-def compute_can_draft(role_permissions: list[tuple[str, str]]) -> bool:
+def compute_can_draft(role_level: int, role_permissions: list[tuple[str, str]]) -> bool:
     """Compute permission to create or update a draft."""
     return has_permission(role_permissions, "tool", "draft")
 

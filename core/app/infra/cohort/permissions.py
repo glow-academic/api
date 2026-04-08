@@ -203,7 +203,7 @@ def compute_can_delete(
 
 
 def compute_can_duplicate(
-    role_permissions: list[tuple[str, str]],
+    role_level: int, role_permissions: list[tuple[str, str]],
 ) -> bool:
     """Compute can_duplicate permission.
 
@@ -433,7 +433,7 @@ def compute_can_create(
 
 
 def compute_can_draft(
-    role_permissions: list[tuple[str, str]],
+    role_level: int, role_permissions: list[tuple[str, str]],
 ) -> bool:
     """Compute permission to create or update a draft.
 

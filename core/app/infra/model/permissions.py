@@ -246,7 +246,7 @@ def compute_can_delete(
     return has_permission(role_permissions, "model", "delete")
 
 
-def compute_can_duplicate(role_permissions: list[tuple[str, str]]) -> bool:
+def compute_can_duplicate(role_level: int, role_permissions: list[tuple[str, str]]) -> bool:
     return has_permission(role_permissions, "model", "duplicate")
 
 
@@ -268,7 +268,7 @@ def compute_can_create(
 # ========== Draft Endpoint Permission Functions ==========
 
 
-def compute_can_draft(role_permissions: list[tuple[str, str]]) -> bool:
+def compute_can_draft(role_level: int, role_permissions: list[tuple[str, str]]) -> bool:
     return has_permission(role_permissions, "model", "draft")
 
 

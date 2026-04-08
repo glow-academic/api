@@ -28,7 +28,7 @@ __all__ = [
 
 
 def compute_can_edit(
-    role_permissions: list[tuple[str, str]],
+    role_level: int, role_permissions: list[tuple[str, str]],
     active_settings_count: int = 0,
 ) -> bool:
     """Unified can_edit logic for both get and list views.
@@ -63,7 +63,7 @@ def compute_disabled_reason(
 
 
 def compute_can_delete(
-    role_permissions: list[tuple[str, str]],
+    role_level: int, role_permissions: list[tuple[str, str]],
     active_settings_count: int = 0,
 ) -> bool:
     """Compute can_delete permission.
@@ -78,17 +78,17 @@ def compute_can_delete(
     return has_permission(role_permissions, "auth", "delete")
 
 
-def compute_can_duplicate(role_permissions: list[tuple[str, str]]) -> bool:
+def compute_can_duplicate(role_level: int, role_permissions: list[tuple[str, str]]) -> bool:
     """Compute can_duplicate permission."""
     return has_permission(role_permissions, "auth", "duplicate")
 
 
-def compute_can_create(role_permissions: list[tuple[str, str]]) -> bool:
+def compute_can_create(role_level: int, role_permissions: list[tuple[str, str]]) -> bool:
     """Compute permission to create a new auth."""
     return has_permission(role_permissions, "auth", "create")
 
 
-def compute_can_draft(role_permissions: list[tuple[str, str]]) -> bool:
+def compute_can_draft(role_level: int, role_permissions: list[tuple[str, str]]) -> bool:
     """Compute permission to create or update a draft."""
     return has_permission(role_permissions, "auth", "draft")
 
