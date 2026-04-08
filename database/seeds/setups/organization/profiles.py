@@ -32,15 +32,7 @@ ORG_GUEST_RESOURCE = sid("org/profile-resource/guest")
 # ---------------------------------------------------------------------------
 
 setup_profiles = [
-    dict(
-        id=ORG_SUPERADMIN,
-        resource_id=ORG_SUPERADMIN_RESOURCE,
-        name="Default Superadmin",
-        email="default-superadmin@organization.com",
-        department_ids=[ORGANIZATION_DEPT_RESOURCE],
-        role_ids=[SUPERADMIN_ROLE],
-        flag_ids=[PROFILE_ACTIVE],
-    ),
+    # Note: superadmin is bootstrapped by the runner, not created here.
     dict(
         id=ORG_ADMIN,
         resource_id=ORG_ADMIN_RESOURCE,

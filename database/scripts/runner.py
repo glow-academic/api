@@ -1625,6 +1625,7 @@ async def main_setup(setup: str = "university") -> None:
         from app.tools.artifacts.profile.create import (
             create_profile as create_profile_artifact,
         )
+        from app.tools.resources.emails.create import create_email as create_email_resource
         from app.tools.resources.names.create import create_name
         from app.tools.resources.profiles.create import (
             create_profile as create_profile_resource,
@@ -1632,10 +1633,15 @@ async def main_setup(setup: str = "university") -> None:
         async with pool.acquire() as conn:
             async with conn.transaction():
                 name_resp = await create_name(conn, name=bootstrap["name"], redis=redis_client)
+                email_ids = None
+                if bootstrap.get("email"):
+                    email_resp = await create_email_resource(conn, email=bootstrap["email"], redis=redis_client)
+                    email_ids = [email_resp.id]
                 profile_resource = await create_profile_resource(
                     conn, redis_client,
                     id=bootstrap.get("resource_id"),
                     name=bootstrap["name"],
+                    department_ids=bootstrap.get("department_ids"),
                 )
                 await create_profile_artifact(
                     conn,
@@ -1644,6 +1650,8 @@ async def main_setup(setup: str = "university") -> None:
                     role_ids=bootstrap.get("role_ids"),
                     flag_ids=bootstrap.get("flag_ids"),
                     profile_ids=[profile_resource.id],
+                    email_ids=email_ids,
+                    department_ids=bootstrap.get("department_ids"),
                     redis=redis_client,
                 )
         print(f"  OK: {bootstrap['name']} bootstrapped ({seed_profile_id})")

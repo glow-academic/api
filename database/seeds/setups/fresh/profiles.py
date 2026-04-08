@@ -36,14 +36,8 @@ FRESH_GUEST_RESOURCE = sid("fresh/profile-resource/guest")
 # ---------------------------------------------------------------------------
 
 setup_profiles = [
-    dict(
-        id=FRESH_SUPERADMIN,
-        resource_id=FRESH_SUPERADMIN_RESOURCE,
-        name="Default Superadmin",
-        email="superadmin@glow.local",
-        role_ids=[SUPERADMIN_ROLE],
-        flag_ids=[PROFILE_ACTIVE],
-    ),
+    # Note: superadmin is bootstrapped by the runner, not created here.
+    # It gets email via the bootstrap process.
     dict(
         id=FRESH_ADMIN,
         resource_id=FRESH_ADMIN_RESOURCE,

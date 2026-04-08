@@ -94,15 +94,7 @@ UNI_GUEST_RESOURCE = sid("uni/profile-resource/guest")
 
 # These are setup-specific profiles — created as new artifacts, not updates to base profiles
 setup_profiles = [
-    dict(
-        id=UNI_SUPERADMIN,
-        resource_id=UNI_SUPERADMIN_RESOURCE,
-        name="Default Superadmin",
-        email="default-superadmin@university.edu",
-        department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        role_ids=[SUPERADMIN_ROLE],
-        flag_ids=[PROFILE_ACTIVE],
-    ),
+    # Note: superadmin is bootstrapped by the runner, not created here.
     dict(
         id=UNI_ADMIN,
         resource_id=UNI_ADMIN_RESOURCE,

@@ -24,6 +24,7 @@ All data is created at creation time — no update pass needed.
 
 SETUP_NAME = "university"
 
+from database.seeds.setups.university.departments import UNIVERSITY_DEPT_RESOURCE
 from database.seeds.setups.university.profiles import UNI_SUPERADMIN, UNI_SUPERADMIN_RESOURCE
 from database.seeds.profiles import SUPERADMIN_ROLE, PROFILE_ACTIVE
 
@@ -31,6 +32,8 @@ BOOTSTRAP_PROFILE = dict(
     id=UNI_SUPERADMIN,
     resource_id=UNI_SUPERADMIN_RESOURCE,
     name="Default Superadmin",
+    email="default-superadmin@university.edu",
+    department_ids=[UNIVERSITY_DEPT_RESOURCE],
     role_ids=[SUPERADMIN_ROLE],
     flag_ids=[PROFILE_ACTIVE],
 )
