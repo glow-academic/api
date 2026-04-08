@@ -387,6 +387,7 @@ async def _run_profile_bootstrap(
     from app.tools.artifacts.profile.create import (
         create_profile as create_profile_artifact,
     )
+    from app.tools.resources.emails.create import create_email
     from app.tools.resources.names.create import create_name
     from app.tools.resources.profiles.create import (
         create_profile as create_profile_resource,
@@ -400,7 +401,13 @@ async def _run_profile_bootstrap(
                 name_resp = await create_name(conn, name=p["name"], redis=redis)
                 name_id = name_resp.id
 
-                # Step 2: create profiles_resource (denormalized snapshot)
+                # Step 2: create email resource (if provided)
+                email_ids = None
+                if p.get("email"):
+                    email_resp = await create_email(conn, email=p["email"], redis=redis)
+                    email_ids = [email_resp.id]
+
+                # Step 3: create profiles_resource (denormalized snapshot)
                 profile_resource = await create_profile_resource(
                     conn,
                     redis,
@@ -409,7 +416,7 @@ async def _run_profile_bootstrap(
                 )
                 profiles_resource_id = profile_resource.id
 
-                # Step 3: create profile artifact with junctions
+                # Step 4: create profile artifact with junctions (including email)
                 await create_profile_artifact(
                     conn,
                     id=p["id"],
@@ -417,6 +424,7 @@ async def _run_profile_bootstrap(
                     role_ids=p.get("role_ids"),
                     flag_ids=p.get("flag_ids"),
                     profile_ids=[profiles_resource_id],
+                    email_ids=email_ids,
                     request_limit_id=p.get("request_limit_id"),
                     redis=redis,
                 )
@@ -1025,43 +1033,9 @@ async def _run_default_setting_seed(
     redis: Redis,
 ) -> None:
     """Create the default setting with all data included at creation time."""
-    from database.seeds.setting import profile_updates, settings
+    from database.seeds.setting import settings
 
-    # Create the setting (profile_artifact_ids resolved by _run_setting_seeds)
     await _run_setting_seeds(pool, redis, settings)
-
-    # ── Profile email updates ──────────────────────────────────────────
-    if profile_updates:
-        from app.infra.profile.update import update_profile_impl
-        from app.infra.profile.types import UpdateProfileItem
-        from app.tools.resources.emails.create import create_email
-
-        update_items: list = []
-        for p in profile_updates:
-            email_id = None
-            if "email" in p:
-                async with pool.acquire() as conn:
-                    email_result = await create_email(
-                        conn,
-                        email=p["email"],
-                        redis=redis,
-                    )
-                    email_id = email_result.id
-
-            update_items.append(
-                UpdateProfileItem(
-                    profile_id=p["profile_id"],
-                    email_ids=[email_id] if email_id else None,
-                )
-            )
-
-        await update_profile_impl(
-            pool,
-            redis,
-            profile_id=SEED_PROFILE_ID,
-            items=update_items,
-        )
-        print(f"  OK: {len(update_items)} default profile(s) updated with emails")
 
 
 async def _run_color_seeds(
