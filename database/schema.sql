@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 2Ef6mJSOU87OnbOcwcGYvtnFgT0PfBejOpMlLG4wi2BxTFuQWPy4o7bh2C0fNb5
+\restrict 2q7VgPoPFDwx4RNkBXZqF1M2VVEnBHSWazwhN9NBr0diReMHagqWkFPTOLGwMbk
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -13446,21 +13446,6 @@ CREATE TABLE public.tool_drafts_args_outputs_connection (
 
 
 --
--- Name: tool_drafts_artifacts_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.tool_drafts_artifacts_connection (
-    draft_id uuid NOT NULL,
-    artifacts_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    generated boolean DEFAULT false NOT NULL,
-    mcp boolean DEFAULT false NOT NULL,
-    active boolean DEFAULT true NOT NULL
-);
-
-
---
 -- Name: tool_drafts_departments_connection; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -13555,17 +13540,16 @@ CREATE TABLE public.tool_drafts_names_connection (
 
 
 --
--- Name: tool_drafts_operations_connection; Type: TABLE; Schema: public; Owner: -
+-- Name: tool_drafts_permissions_connection; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.tool_drafts_operations_connection (
+CREATE TABLE public.tool_drafts_permissions_connection (
     draft_id uuid NOT NULL,
-    operations_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    permissions_id uuid NOT NULL,
+    active boolean DEFAULT true NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
-    active boolean DEFAULT true NOT NULL
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 
@@ -19351,14 +19335,6 @@ ALTER TABLE ONLY public.tool_drafts_args_outputs_connection
 
 
 --
--- Name: tool_drafts_artifacts_connection tool_drafts_artifacts_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tool_drafts_artifacts_connection
-    ADD CONSTRAINT tool_drafts_artifacts_connection_pkey PRIMARY KEY (draft_id, artifacts_id);
-
-
---
 -- Name: tool_drafts_departments_connection tool_drafts_departments_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19399,11 +19375,11 @@ ALTER TABLE ONLY public.tool_drafts_names_connection
 
 
 --
--- Name: tool_drafts_operations_connection tool_drafts_operations_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: tool_drafts_permissions_connection tool_drafts_permissions_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.tool_drafts_operations_connection
-    ADD CONSTRAINT tool_drafts_operations_connection_pkey PRIMARY KEY (draft_id, operations_id);
+ALTER TABLE ONLY public.tool_drafts_permissions_connection
+    ADD CONSTRAINT tool_drafts_permissions_connection_pkey PRIMARY KEY (draft_id, permissions_id);
 
 
 --
@@ -39938,5 +39914,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 2Ef6mJSOU87OnbOcwcGYvtnFgT0PfBejOpMlLG4wi2BxTFuQWPy4o7bh2C0fNb5
+\unrestrict 2q7VgPoPFDwx4RNkBXZqF1M2VVEnBHSWazwhN9NBr0diReMHagqWkFPTOLGwMbk
 
