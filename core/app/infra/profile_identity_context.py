@@ -231,6 +231,7 @@ async def resolve_profile_identity_context(
         role_name=role_name,
         role_description=role_description,
         role_artifacts=role_artifacts,
+        role_level=role_level,
         role_permissions=role_permissions,
         primary_email=primary_email,
         emails=all_emails,
