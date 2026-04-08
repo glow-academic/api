@@ -10,7 +10,6 @@ class GetProfileResponse(BaseModel):
     id: UUID
     name: str | None
     description: str | None
-    role: str
     department_ids: list[UUID]
     role_id: UUID | None
     emails: list[str]
