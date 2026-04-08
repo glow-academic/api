@@ -20,6 +20,8 @@ from app.tools.artifacts.department.search import search_departments
 from app.tools.artifacts.setting.get import (
     get_settings as get_setting_artifacts,
 )
+from app.tools.artifacts.profile.get import get_profiles as get_profile_artifacts
+from app.tools.artifacts.profile.search import search_profiles
 from app.tools.artifacts.setting.search import search_settings
 from app.tools.resources.auth_item_keys.get import get_auth_item_keys
 from app.tools.resources.auth_item_values.get import get_auth_item_values
@@ -232,50 +234,64 @@ async def resolve_setting_profiles_for_idp(
         conn, setting_artifact_ids, profiles=True, settings=True
     )
 
-    # Step 3: Build setting_artifact → (profile_ids, settings_resource_ids)
-    # and collect all profile IDs
-    all_profile_ids: set[UUID] = set()
-    # (profile_id, setting_artifact_id, settings_resource_id)
+    # Step 3: Build setting_artifact → (profile_resource_ids, settings_resource_ids)
+    # and collect all profile resource IDs
+    all_profile_resource_ids: set[UUID] = set()
+    # (profile_resource_id, setting_artifact_id, settings_resource_id)
     profile_setting_links: list[tuple[UUID, UUID, UUID | None]] = []
 
     for sa in setting_artifacts:
-        profile_ids = sa.profile_ids or []
+        profile_resource_ids = sa.profile_ids or []
         settings_resource_ids = sa.setting_ids or []
 
-        for pid in profile_ids:
-            all_profile_ids.add(pid)
-            # Link profile to each settings_resource_id for dept lookup
+        for prid in profile_resource_ids:
+            all_profile_resource_ids.add(prid)
             if settings_resource_ids:
                 for sr_id in settings_resource_ids:
-                    profile_setting_links.append((pid, sa.id, sr_id))
+                    profile_setting_links.append((prid, sa.id, sr_id))
             else:
-                profile_setting_links.append((pid, sa.id, None))
+                profile_setting_links.append((prid, sa.id, None))
 
-    if not all_profile_ids:
+    if not all_profile_resource_ids:
         return []
 
-    # Step 4: Get profile details
-    profiles = await get_profiles(conn, list(all_profile_ids), redis)
+    # Step 4: Resolve profile resource IDs → artifact IDs
+    # Search all profile artifacts with self-link to build resource→artifact map
+    profile_artifact_ids, _ = await search_profiles(conn, active_only=True, limit_count=100000)
+    profile_arts = await get_profile_artifacts(
+        conn, profile_artifact_ids, profiles=True
+    ) if profile_artifact_ids else []
+    profile_resource_to_artifact: dict[UUID, UUID] = {
+        a.profile_ids[0]: a.id for a in profile_arts if a.profile_ids
+    }
+
+    # Get profile resource details for name/role
+    profiles = await get_profiles(conn, list(all_profile_resource_ids), redis)
     profile_map = {p.id: p for p in profiles}
 
-    # Step 5: Build results with department scope
+    # Step 5: Build results with department scope (using artifact IDs)
     results: list[SettingProfileForIdp] = []
-    seen: set[tuple[UUID, UUID | None]] = set()  # (profile_id, department_id)
+    seen: set[tuple[UUID, UUID | None]] = set()  # (profile_artifact_id, department_id)
 
-    for pid, setting_artifact_id, sr_id in profile_setting_links:
-        profile = profile_map.get(pid)
+    for prid, setting_artifact_id, sr_id in profile_setting_links:
+        profile = profile_map.get(prid)
         if not profile or not profile.active:
+            continue
+
+        # Resolve profile resource ID → artifact ID
+        profile_artifact_id = profile_resource_to_artifact.get(prid)
+        if not profile_artifact_id:
             continue
 
         if sr_id and sr_id in dept_setting_ids:
             # Department-scoped
             for dept_id in dept_setting_map.get(sr_id, []):
-                key = (pid, dept_id)
+                key = (profile_artifact_id, dept_id)
                 if key not in seen:
                     seen.add(key)
                     results.append(
                         SettingProfileForIdp(
-                            profile_id=pid,
+                            profile_id=profile_artifact_id,
                             profile_name=profile.name,
                             role=profile.role,
                             setting_id=setting_artifact_id,
@@ -284,12 +300,12 @@ async def resolve_setting_profiles_for_idp(
                     )
         else:
             # Default (non-department)
-            key = (pid, None)
+            key = (profile_artifact_id, None)
             if key not in seen:
                 seen.add(key)
                 results.append(
                     SettingProfileForIdp(
-                        profile_id=pid,
+                        profile_id=profile_artifact_id,
                         profile_name=profile.name,
                         role=profile.role,
                         setting_id=setting_artifact_id,
