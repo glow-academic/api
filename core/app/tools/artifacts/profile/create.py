@@ -68,7 +68,7 @@ async def _lookup_request_limit_value(
     items = await get_request_limits(conn, [request_limit_id], redis, bypass_cache=True)
     if not items:
         raise ValueError(f"Unknown request_limit_id: {request_limit_id}")
-    return items[0].requests_per_day
+    return items[0].limit
 
 
 async def _insert_profile_request_limit(
