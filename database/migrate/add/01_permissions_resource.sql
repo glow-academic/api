@@ -45,7 +45,18 @@ CREATE TABLE IF NOT EXISTS tool_permissions_junction (
     FOREIGN KEY (permissions_id) REFERENCES permissions_resource(id) ON DELETE CASCADE
 );
 
--- 5. Track migration
+-- 5. Create tool_drafts_permissions_connection (replaces artifacts + operations connections)
+CREATE TABLE IF NOT EXISTS tool_drafts_permissions_connection (
+    draft_id UUID NOT NULL,
+    permissions_id UUID NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT true,
+    generated BOOLEAN NOT NULL DEFAULT false,
+    mcp BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (draft_id, permissions_id)
+);
+
+-- 6. Track migration
 INSERT INTO migration_tracking (migration_number, migration_file, migration_type) VALUES
   (1, '01_permissions_resource.sql', 'add')
 ON CONFLICT (migration_number, migration_type) DO NOTHING;

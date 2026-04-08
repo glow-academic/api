@@ -23,7 +23,6 @@ async def search_tools(
     offset_count: int = 0,
     exclude_ids: list[UUID] | None = None,
     department_ids: list[UUID] | None = None,
-    operation: str | None = None,
     bypass_cache: bool = False,
     *,
     agent: bool = False,
@@ -43,8 +42,6 @@ async def search_tools(
                 department_ids,
             )
         )
-    if operation:
-        extra_conditions.append(("{alias}.operation = ${idx}", operation))
 
     tags = ["resources", "tools"]
     key = cache_key(
@@ -55,7 +52,6 @@ async def search_tools(
             "offset_count": offset_count,
             "exclude_ids": [str(i) for i in (exclude_ids or [])],
             "department_ids": sorted(str(i) for i in (department_ids or [])),
-            "operation": operation,
             **artifact_filters,
         },
     )

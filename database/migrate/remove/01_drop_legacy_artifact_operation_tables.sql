@@ -10,9 +10,11 @@
 --   - tools_resource.operation + artifacts → tools_resource.permission_ids
 -- ══════════════════════════════════════════════════════════════
 
--- 1. Drop tool legacy junctions
+-- 1. Drop tool legacy junctions and draft connections
 DROP TABLE IF EXISTS tool_artifacts_junction;
 DROP TABLE IF EXISTS tool_operations_junction;
+DROP TABLE IF EXISTS tool_drafts_artifacts_connection;
+DROP TABLE IF EXISTS tool_drafts_operations_connection;
 
 -- 2. Drop legacy lookup tables
 DROP TABLE IF EXISTS artifacts_resource;

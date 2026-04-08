@@ -102,8 +102,7 @@ async def test_no_junctions_when_none_provided(conn, redis_client):
         args=True,
         args_outputs=True,
         arg_positions=True,
-        artifacts=True,
-        operations=True,
+        permissions=True,
         tools=True,
     )
     t = items[0]
@@ -114,6 +113,5 @@ async def test_no_junctions_when_none_provided(conn, redis_client):
     assert t.args_ids == []
     assert t.args_outputs_ids == []
     assert t.arg_positions_ids == []
-    assert t.artifact_ids == []
-    assert t.operation_ids == []
+    assert t.permission_ids == []
     assert t.tool_ids == []
