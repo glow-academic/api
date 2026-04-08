@@ -414,6 +414,9 @@ async def _run_profile_bootstrap(
                     redis,
                     id=p.get("resource_id"),
                     name=p["name"],
+                    department_ids=p.get("department_ids"),
+                    emails=[p["email"]] if p.get("email") else None,
+                    primary_email=p.get("email"),
                 )
                 profiles_resource_id = profile_resource.id
 
@@ -1636,6 +1639,8 @@ async def main_setup(setup: str = "university") -> None:
                     id=bootstrap.get("resource_id"),
                     name=bootstrap["name"],
                     department_ids=bootstrap.get("department_ids"),
+                    emails=[bootstrap["email"]] if bootstrap.get("email") else None,
+                    primary_email=bootstrap.get("email"),
                 )
                 await create_profile_artifact(
                     conn,

@@ -91,6 +91,9 @@ async def resolve_profile_permissions_context(
     return ProfilePermissionsContext(
         exists=True,
         department_ids=department_ids,
+        role_id=role_id,
+        emails=emails if emails else None,
+        primary_email=primary_email,
         active_cohort_count=total,
     )
 
@@ -166,17 +169,28 @@ async def create_denormalized_snapshot(
     id: UUID | None = None,
     name_id: UUID | None,
     department_ids: list[UUID] | None = None,
+    email_ids: list[UUID] | None = None,
+    role_id: UUID | None = None,
 ) -> UUID:
     """Create a profiles_resource snapshot by hydrating IDs to values."""
-
-    async def _empty() -> list:
-        return []
+    from app.tools.resources.emails.get import get_emails
 
     names = (
         await get_names(conn, [name_id], redis, bypass_cache=True)
         if name_id
-        else await _empty()
+        else []
     )
+
+    # Resolve email IDs to strings for denormalized snapshot
+    emails: list[str] = []
+    primary_email: str | None = None
+    if email_ids:
+        email_objs = await get_emails(conn, email_ids, redis, bypass_cache=True)
+        for e in email_objs:
+            if e.email:
+                emails.append(e.email)
+                if not primary_email:
+                    primary_email = e.email
 
     result = await create_profile_resource(
         conn,
@@ -185,5 +199,8 @@ async def create_denormalized_snapshot(
         name=names[0].name if names else "",
         description="",
         department_ids=department_ids,
+        role_id=role_id,
+        emails=emails if emails else None,
+        primary_email=primary_email,
     )
     return result.id

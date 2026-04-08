@@ -121,6 +121,7 @@ async def create_profile_impl(
                     id=item.resource_id,
                     name_id=item.name_id,
                     department_ids=item.department_ids,
+                    email_ids=item.email_ids,
                 )
 
                 result = await create_profile_artifact(
