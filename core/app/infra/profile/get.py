@@ -249,7 +249,7 @@ async def get_profile_impl(
     # Selected role: from the target profile's roles resource
     selected_role: str | None = None
     if profile_ctx.resources["roles"].selected:
-        selected_role = profile_ctx.resources["roles"].selected[0].role
+        selected_role = profile_ctx.resources["roles"].selected[0].name
 
     # ── Step 8: Response assembly ────────────────────────────────────────
 

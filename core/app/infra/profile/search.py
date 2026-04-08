@@ -320,7 +320,7 @@ async def search_profile_impl(
 
     role_filter_section = ListFilterSection(
         options=[
-            ListFilterOption(id=str(r.role), name=r.name, count=0) for r in role_facet
+            ListFilterOption(id=str(r.name), name=r.name, count=0) for r in role_facet
         ],
         selected_ids=[role_filter] if role_filter else None,
         search=role_search,

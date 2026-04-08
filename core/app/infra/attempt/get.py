@@ -111,7 +111,7 @@ async def get_attempt_internal(
         pool, profile_id, redis, bypass_cache
     )
     profiles_id = requester.profiles_id if requester else None
-    requester_role: str | None = requester.role if requester else None
+    requester_role: str | None = requester.role if requester else None  # role from ProfileIdentityContext (name)
 
     ctx = await resolve_attempt_context(
         pool,
@@ -221,7 +221,7 @@ async def get_attempt_internal(
 
     attempt_owner_role: str | None = None
     if attempt_item.profile_id and attempt_item.profile_id in profile_map:
-        attempt_owner_role = profile_map[attempt_item.profile_id].role
+        attempt_owner_role = None  # role dropped from profiles_resource
 
     if not check_attempt_access(
         attempt_item.profile_id,

@@ -293,7 +293,7 @@ async def resolve_setting_profiles_for_idp(
                         SettingProfileForIdp(
                             profile_id=profile_artifact_id,
                             profile_name=profile.name,
-                            role=profile.role,
+                            role=None,  # role column dropped from profiles_resource
                             setting_id=setting_artifact_id,
                             department_id=dept_id,
                         )
@@ -307,7 +307,7 @@ async def resolve_setting_profiles_for_idp(
                     SettingProfileForIdp(
                         profile_id=profile_artifact_id,
                         profile_name=profile.name,
-                        role=profile.role,
+                        role=None,  # role column dropped from profiles_resource
                         setting_id=setting_artifact_id,
                         department_id=None,
                     )

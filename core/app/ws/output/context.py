@@ -77,7 +77,7 @@ async def context_output(data: dict[str, Any]) -> None:
 
         role_resources = [
             {
-                "role": r.role,
+                "role": r.name,
                 "name": r.name,
                 "description": r.description,
                 "icon_value": None,

@@ -90,7 +90,7 @@ async def get_profile_context(
 
             role_resources = [
                 QGetProfileContextV4RoleResource(
-                    role=r.role,
+                    role=r.name,
                     name=r.name,
                     description=r.description,
                     icon_value=None,

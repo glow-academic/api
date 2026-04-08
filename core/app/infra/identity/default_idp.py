@@ -365,7 +365,7 @@ async def resolve_authorization(
         "profile_id": str(resolved_profile_id),
         "email": resolved_email,
         "name": profile.name or "",
-        "role": profile.role if profile.role else None,
+        "role": None,  # role column dropped from profiles_resource
         "nonce": nonce,
         "expires_at": expires_at,
         "client_id": client_id,
