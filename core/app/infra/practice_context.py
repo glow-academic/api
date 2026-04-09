@@ -21,8 +21,8 @@ from redis.asyncio import Redis
 
 from app.infra.types import ArtifactContext, ResourcePair
 
-# Cohort search
-from app.tools.artifacts.cohort.search import search_cohorts
+# Cohort search (resource-level — returns resource IDs, not artifact IDs)
+from app.tools.resources.cohorts.search import search_cohorts
 
 # Entry fetchers (raw MV reads)
 from app.tools.entries.attempt.search import search_attempts
@@ -60,13 +60,16 @@ async def resolve_practice_context(
     Resources (hydrated from IDs derived from chat_mv + practice_mv):
       - simulations, cohorts, personas, rubrics, standard_groups, standards
     """
-    # Step 1: Resolve user's cohort IDs
+    # Step 1: Resolve user's cohort resource IDs
     async with pool.acquire() as conn:
-        user_cohort_ids, _total = await search_cohorts(
+        user_cohorts = await search_cohorts(
             conn,
+            redis,
             profile_ids=[profiles_resource_id],
             limit_count=1000,
+            bypass_cache=bypass_cache,
         )
+    user_cohort_ids = [c.id for c in user_cohorts if c.id]
 
     # Step 2: Parallel raw MV reads (attempt_chats scoped by cohort for superset)
 

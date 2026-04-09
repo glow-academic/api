@@ -8,6 +8,16 @@ Names and descriptions are CREATED as new resources.
 
 from database.seeds.ids import sid
 from database.seeds.setups.university.departments import UNIVERSITY_DEPT_RESOURCE
+from database.seeds.setups.university.profile_personas import (
+    ALL_PROFILE_PERSONA_IDS,
+    PP_ADMIN,
+    PP_INSTRUCTIONAL,
+    PP_MEMBER,
+    PP_PROFESSOR_SMITH,
+    PP_SUPERADMIN,
+    PP_TA_JOHNSON,
+    PP_UNIVERSITY_ADMIN,
+)
 from database.seeds.setups.university.profiles import (
     BENCHMARK_PROFILE_RESOURCE,
     PROFESSOR_SMITH_RESOURCE,
@@ -67,6 +77,7 @@ cohorts = [
             UNI_MEMBER_RESOURCE,
             UNI_GUEST_RESOURCE,
         ],
+        profile_persona_ids=ALL_PROFILE_PERSONA_IDS,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -79,7 +90,24 @@ cohorts = [
             FERPA_TRAINING_RESOURCE,
             UPSET_STUDENT_TRAINING_RESOURCE,
         ],
-        profile_ids=[UNIVERSITY_ADMIN_RESOURCE, PROFESSOR_SMITH_RESOURCE, TA_JOHNSON_RESOURCE],
+        profile_ids=[
+            UNI_SUPERADMIN_RESOURCE,
+            UNIVERSITY_ADMIN_RESOURCE,
+            PROFESSOR_SMITH_RESOURCE,
+            TA_JOHNSON_RESOURCE,
+            UNI_ADMIN_RESOURCE,
+            UNI_INSTRUCTIONAL_RESOURCE,
+            UNI_MEMBER_RESOURCE,
+        ],
+        profile_persona_ids=[
+            PP_SUPERADMIN,
+            PP_UNIVERSITY_ADMIN,
+            PP_PROFESSOR_SMITH,
+            PP_TA_JOHNSON,
+            PP_ADMIN,
+            PP_INSTRUCTIONAL,
+            PP_MEMBER,
+        ],
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
 ]

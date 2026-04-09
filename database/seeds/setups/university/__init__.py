@@ -52,6 +52,7 @@ MODULES = [
     "scenario_rubrics",
     "simulations",
     "profiles",
+    "profile_personas",
     "cohorts",
     "colors",
     "settings",

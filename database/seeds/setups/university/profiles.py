@@ -51,8 +51,8 @@ profiles = [
         name="University Admin",
         email="university-admin@university.edu",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        role_ids=[ADMIN_ROLE],
-        flag_id=PROFILE_ACTIVE,
+        role_id=ADMIN_ROLE,
+        active_flag_id=PROFILE_ACTIVE,
     ),
     # ── Professor Smith ──────────────────────────────────────────────────
     dict(
@@ -61,8 +61,8 @@ profiles = [
         name="Professor Smith",
         email="professor-smith@university.edu",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        role_ids=[INSTRUCTIONAL_ROLE],
-        flag_id=PROFILE_ACTIVE,
+        role_id=INSTRUCTIONAL_ROLE,
+        active_flag_id=PROFILE_ACTIVE,
     ),
     # ── TA Johnson ───────────────────────────────────────────────────────
     dict(
@@ -71,8 +71,8 @@ profiles = [
         name="TA Johnson",
         email="ta-johnson@university.edu",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        role_ids=[MEMBER_UTA_ROLE],
-        flag_id=PROFILE_ACTIVE,
+        role_id=MEMBER_UTA_ROLE,
+        active_flag_id=PROFILE_ACTIVE,
     ),
     # ── Benchmark ──────────────────────────────────────────────────────
     dict(
@@ -81,8 +81,8 @@ profiles = [
         name="Benchmark",
         email="benchmark@university.edu",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        role_ids=[BENCHMARK_ROLE],
-        flag_id=PROFILE_ACTIVE,
+        role_id=BENCHMARK_ROLE,
+        active_flag_id=PROFILE_ACTIVE,
     ),
 ]
 
@@ -110,8 +110,8 @@ setup_profiles = [
         name="Default Admin",
         email="default-admin@university.edu",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        role_ids=[ADMIN_ROLE],
-        flag_id=PROFILE_ACTIVE,
+        role_id=ADMIN_ROLE,
+        active_flag_id=PROFILE_ACTIVE,
     ),
     dict(
         id=UNI_INSTRUCTIONAL,
@@ -119,8 +119,8 @@ setup_profiles = [
         name="Default Instructional",
         email="default-instructional@university.edu",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        role_ids=[INSTRUCTIONAL_ROLE],
-        flag_id=PROFILE_ACTIVE,
+        role_id=INSTRUCTIONAL_ROLE,
+        active_flag_id=PROFILE_ACTIVE,
     ),
     dict(
         id=UNI_MEMBER,
@@ -128,8 +128,8 @@ setup_profiles = [
         name="Default Member",
         email="default-member@university.edu",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        role_ids=[MEMBER_GTA_ROLE],
-        flag_id=PROFILE_ACTIVE,
+        role_id=MEMBER_GTA_ROLE,
+        active_flag_id=PROFILE_ACTIVE,
     ),
     dict(
         id=UNI_GUEST,
@@ -137,7 +137,7 @@ setup_profiles = [
         name="Default Guest",
         email="default-guest@university.edu",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        role_ids=[GUEST_ROLE],
-        flag_id=PROFILE_ACTIVE,
+        role_id=GUEST_ROLE,
+        active_flag_id=PROFILE_ACTIVE,
     ),
 ]

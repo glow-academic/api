@@ -75,6 +75,7 @@ simulations = [
         description="Seeks to understand by asking questions and exploring ideas.",
         scenario_ids=[CONFUSED_SCENARIO_RESOURCE],
         flag_ids=[PRACTICE_FLAG],
+        practice_flag_id=PRACTICE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -84,6 +85,7 @@ simulations = [
         description="Provides uplifting feedback and cheerful responses.",
         scenario_ids=[HAPPY_SCENARIO_RESOURCE],
         flag_ids=[PRACTICE_FLAG],
+        practice_flag_id=PRACTICE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -93,6 +95,7 @@ simulations = [
         description="Responds with minimal engagement and requires prompting.",
         scenario_ids=[PASSIVE_SCENARIO_RESOURCE],
         flag_ids=[PRACTICE_FLAG],
+        practice_flag_id=PRACTICE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -102,6 +105,7 @@ simulations = [
         description="Challenges with confrontational and resistant responses.",
         scenario_ids=[AGGRESSIVE_SCENARIO_RESOURCE],
         flag_ids=[PRACTICE_FLAG],
+        practice_flag_id=PRACTICE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -111,6 +115,7 @@ simulations = [
         description="A flexible simulation for open-ended practice with any persona.",
         scenario_ids=[GENERAL_SCENARIO_RESOURCE],
         flag_ids=[PRACTICE_FLAG],
+        practice_flag_id=PRACTICE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Training Simulations (multiple scenarios, structured) ──────────────

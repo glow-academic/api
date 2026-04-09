@@ -24,6 +24,7 @@ async def search_cohorts(
     exclude_ids: list[UUID] | None = None,
     department_ids: list[UUID] | None = None,
     simulation_ids: list[UUID] | None = None,
+    profile_ids: list[UUID] | None = None,
     bypass_cache: bool = False,
     *,
     cohort: bool = False,
@@ -50,6 +51,13 @@ async def search_cohorts(
                 simulation_ids,
             )
         )
+    if profile_ids:
+        extra_conditions.append(
+            (
+                "(COALESCE(array_length(${idx}::uuid[], 1), 0) = 0 OR {alias}.profile_ids && ${idx}::uuid[])",
+                profile_ids,
+            )
+        )
 
     tags = ["resources", "cohorts"]
     key = cache_key(
@@ -61,6 +69,7 @@ async def search_cohorts(
             "exclude_ids": [str(i) for i in (exclude_ids or [])],
             "department_ids": sorted(str(i) for i in (department_ids or [])),
             "simulation_ids": sorted(str(i) for i in (simulation_ids or [])),
+            "profile_ids": sorted(str(i) for i in (profile_ids or [])),
             **artifact_filters,
         },
     )

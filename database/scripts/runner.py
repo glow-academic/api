@@ -159,6 +159,8 @@ async def _run_resource_seeds(
                 await _seed_permissions(conn, redis, items)
             elif module_name == "args":
                 await _seed_args(conn, redis, items)
+            elif module_name == "args_outputs":
+                await _seed_args_outputs(conn, redis, items)
             elif module_name == "standard_groups":
                 await _seed_standard_groups(conn, redis, items)
             elif module_name == "standards":
@@ -330,6 +332,16 @@ async def _seed_args(
     print(f"  OK: {len(items)} args created")
 
 
+async def _seed_args_outputs(
+    conn: asyncpg.Connection, redis: Redis, items: list[dict]
+) -> None:
+    from app.tools.resources.args_outputs.create import create_args_output
+
+    for item in items:
+        await create_args_output(conn, redis=redis, **item)
+    print(f"  OK: {len(items)} args_outputs created")
+
+
 async def _seed_standard_groups(
     conn: asyncpg.Connection, redis: Redis, items: list[dict]
 ) -> None:
@@ -415,6 +427,7 @@ async def _run_profile_bootstrap(
                     id=p.get("resource_id"),
                     name=p["name"],
                     department_ids=p.get("department_ids"),
+                    role_id=p.get("role_ids", [None])[0],
                     emails=[p["email"]] if p.get("email") else None,
                     primary_email=p.get("email"),
                 )
@@ -1287,6 +1300,33 @@ async def _run_cohort_seeds(
     return created_ids
 
 
+async def _run_profile_persona_seeds(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    profile_persona_defs: list[dict],
+) -> list[UUID]:
+    """Run profile-persona seed definitions through create_profile_persona."""
+    from app.tools.resources.profile_personas.create import create_profile_persona
+
+    created_ids: list[UUID] = []
+    async with pool.acquire() as conn:
+        for pp in profile_persona_defs:
+            try:
+                result = await create_profile_persona(
+                    conn,
+                    profile_id=pp["profile_id"],
+                    persona_id=pp["persona_id"],
+                    redis=redis,
+                    id=pp.get("id"),
+                )
+                created_ids.append(result.id)
+                print(f"  OK: Profile persona created successfully")
+            except Exception as e:
+                print(f"  ERROR: {e}")
+
+    return created_ids
+
+
 # ---------------------------------------------------------------------------
 # Tool seed execution (static definitions from tools_data.py)
 # ---------------------------------------------------------------------------
@@ -1299,6 +1339,7 @@ async def _run_tool_module_seeds(
     """Create tools from static definitions in tools_data.py."""
     from app.infra.tool.create import CreateToolItem, create_tool_impl
     from database.seeds.resources.args import SHARED_ARGS
+    from database.seeds.resources.args_outputs import SHARED_ARGS_OUTPUTS
     from database.seeds.tools import tools
 
     print(f"  Loading {len(tools)} tool definitions.")
@@ -1315,13 +1356,23 @@ async def _run_tool_module_seeds(
             else:
                 print(f"  WARNING: Unknown arg key '{arg_key}' in tool '{tool_def['name']}'")
 
+        # Resolve args_output keys → args_output IDs from shared vocabulary
+        args_output_ids: list[UUID] = []
+        for ao_key in tool_def.get("args_outputs", []):
+            if ao_key in SHARED_ARGS_OUTPUTS:
+                args_output_ids.append(SHARED_ARGS_OUTPUTS[ao_key]["id"])
+            else:
+                print(f"  WARNING: Unknown args_output key '{ao_key}' in tool '{tool_def['name']}'")
+
         # Create tool via create_tool_impl
         item = CreateToolItem(
             id=tool_def["id"],
+            resource_id=tool_def.get("resource_id"),
             name=tool_def["name"],
             description=tool_def["description"],
             args_ids=arg_ids if arg_ids else None,
-            permission_ids=[tool_def["permission_id"]],
+            args_outputs_ids=args_output_ids if args_output_ids else None,
+            permission_ids=tool_def["permission_ids"],
         )
 
         try:
@@ -1639,6 +1690,7 @@ async def main_setup(setup: str = "university") -> None:
                     id=bootstrap.get("resource_id"),
                     name=bootstrap["name"],
                     department_ids=bootstrap.get("department_ids"),
+                    role_id=bootstrap.get("role_ids", [None])[0],
                     emails=[bootstrap["email"]] if bootstrap.get("email") else None,
                     primary_email=bootstrap.get("email"),
                 )
@@ -1735,6 +1787,10 @@ async def main_setup(setup: str = "university") -> None:
                     await _run_profile_seeds(pool, redis_client, mod.profiles)
                 if hasattr(mod, "setup_profiles"):
                     await _run_profile_seeds(pool, redis_client, mod.setup_profiles)
+            elif module_name == "profile_personas":
+                await _run_profile_persona_seeds(
+                    pool, redis_client, mod.profile_personas
+                )
             elif module_name == "keys":
                 await _run_key_seeds(pool, redis_client, mod)
             elif module_name == "settings":

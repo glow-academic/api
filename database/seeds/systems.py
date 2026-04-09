@@ -16,11 +16,11 @@ from database.seeds.agents import (
     ATTEMPT_CHAT_AGENT,
     ATTEMPT_CHAT_AGENT_2,
     ATTEMPT_GRADE_AGENT,
-    ATTEMPT_INSIGHT_AGENT,
     AUTH_AGENT,
     BENCHMARK_AGENT,
     CHAT_AGENT,
     COHORT_AGENT,
+    COMPOSER_AGENT,
     DASHBOARD_AGENT,
     DEPARTMENT_AGENT,
     DOCUMENT_AGENT,
@@ -48,7 +48,6 @@ from database.seeds.agents import (
     SETTING_AGENT,
     SIMULATION_AGENT,
     TEST_GRADE_AGENT,
-    TEST_INSIGHT_AGENT,
     TOOL_AGENT,
 )
 
@@ -60,7 +59,7 @@ ACTIVITY_SYSTEM = UUID("019caf25-99c7-78a6-849d-1258f99e47e4")
 AGENT_SYSTEM = UUID("019caf25-99c8-7bba-946c-e6b9d55d2fc3")
 ATTEMPT_CHAT_SYSTEM = UUID("019caf25-99ca-7f95-9038-206fe1734be3")
 ATTEMPT_GRADE_SYSTEM = UUID("019caf25-99cb-700e-b879-41628a9218c5")
-ATTEMPT_INSIGHT_SYSTEM = UUID("019caf25-99cc-7cc3-a040-981957508b2a")
+COMPOSER_SYSTEM = UUID("019daf25-0000-7000-8000-000000000001")
 AUTH_SYSTEM = UUID("019caf25-99cd-7470-bc4b-7eb189b96d43")
 BENCHMARK_SYSTEM = UUID("019caf25-99cf-7087-81ee-58450c4a9aca")
 CHAT_SYSTEM = UUID("019caf25-99d0-7d2c-bfba-49be9f4acd87")
@@ -90,7 +89,6 @@ SESSION_SYSTEM = UUID("019caf25-99ed-79c0-926c-d302897f4322")
 SETTING_SYSTEM = UUID("019caf25-99ee-7f5e-934d-1c9eaeb52f24")
 SIMULATION_SYSTEM = UUID("019caf25-99ef-7358-87a9-29cb15f52fd3")
 TEST_GRADE_SYSTEM = UUID("019caf25-99f2-7ea3-8a59-24fcd0ff8b8c")
-TEST_INSIGHT_SYSTEM = UUID("019caf25-99f1-7230-bee2-f5e15bd56400")
 TOOL_SYSTEM = UUID("019caf25-99f3-7408-b7d0-968fe57800f7")
 
 # ---------------------------------------------------------------------------
@@ -121,12 +119,6 @@ systems = [
         name="Attempt Grade System",
         description="System for attempt-grade agents",
         agent_ids=[ATTEMPT_GRADE_AGENT],
-    ),
-    dict(
-        id=ATTEMPT_INSIGHT_SYSTEM,
-        name="Attempt Insight System",
-        description="System for attempt-insight agents",
-        agent_ids=[ATTEMPT_INSIGHT_AGENT],
     ),
     dict(
         id=AUTH_SYSTEM,
@@ -303,15 +295,15 @@ systems = [
         agent_ids=[TEST_GRADE_AGENT],
     ),
     dict(
-        id=TEST_INSIGHT_SYSTEM,
-        name="Test Insight System",
-        description="System for test-insight agents",
-        agent_ids=[TEST_INSIGHT_AGENT],
-    ),
-    dict(
         id=TOOL_SYSTEM,
         name="Tool System",
         description="System for tool agents",
         agent_ids=[TOOL_AGENT],
+    ),
+    dict(
+        id=COMPOSER_SYSTEM,
+        name="Composer System",
+        description="System for cross-cutting content, deployment, and infrastructure operations",
+        agent_ids=[COMPOSER_AGENT],
     ),
 ]
