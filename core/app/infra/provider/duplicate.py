@@ -40,6 +40,7 @@ async def duplicate_provider_impl(
     profile_id: UUID,
     provider_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicateProviderApiResponse:
     """Provider duplicate using composable infra functions.
 
@@ -141,6 +142,7 @@ async def duplicate_provider_impl(
                 value_ids=original.value_ids,
                 provider_ids=original.provider_ids,
                 flag_ids=flag_ids,
+                soft=soft,
             )
 
     # -- Step 7: Invalidate cache -----------------------------------------------

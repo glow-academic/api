@@ -36,6 +36,7 @@ async def delete_eval_impl(
     profile_id: UUID,
     eval_ids: list[UUID],
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DeleteEvalApiResponse:
     """Eval bulk delete using composable infra functions.
 
@@ -100,7 +101,7 @@ async def delete_eval_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_evals(conn, eval_ids)
+            result = await delete_evals(conn, eval_ids, soft=soft)
 
     # ── Step 6: Invalidate cache ──────────────────────────────────────
 

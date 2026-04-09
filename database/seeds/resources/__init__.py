@@ -21,6 +21,7 @@ MODULES = [
     "reasoning_levels",
     "temperature_levels",
     "args",
+    "args_outputs",
     "standard_groups",
     "standards",
     "items",

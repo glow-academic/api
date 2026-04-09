@@ -40,6 +40,7 @@ async def update_parameter_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Parameter bulk update using composable infra functions.
 
@@ -149,6 +150,7 @@ async def update_parameter_impl(
                     flag_ids=item.flag_ids,
                     field_ids=item.field_ids,
                     parameter_ids=[parameters_resource_id],
+                    soft=soft,
                 )
 
         results.append(

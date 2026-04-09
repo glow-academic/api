@@ -1,79 +1,110 @@
-"""Scenario video upload."""
+"""Scenario video upload endpoint — composable infra architecture.
 
-import os
-import uuid
+Thin route handler. Core logic lives in app.infra.scenario.video_upload.
+"""
+
+from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, Response, UploadFile
-from pydantic import BaseModel
 
-from app.infra.globals import VIDEO_FOLDER, get_pool, get_redis_client
-from app.tools.entries.uploads.create import create_upload
-from app.utils.cache.invalidate_tags import invalidate_tags
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.scenario.types import VideoUploadScenarioApiResponse
+from app.infra.scenario.video_upload import video_upload_scenario_impl
 from app.utils.error.handle_route_error import handle_route_error
 from app.utils.mime.get_content_type import get_content_type
 
 router = APIRouter()
 
+ALLOWED_VIDEO_TYPES = {
+    "video/mp4",
+    "video/webm",
+    "video/ogg",
+    "video/quicktime",
+    "video/x-msvideo",
+    "video/x-matroska",
+}
 
-class VideoUploadResponse(BaseModel):
-    upload_id: uuid.UUID
 
-
-@router.post("/upload", response_model=VideoUploadResponse)
+@router.post("/upload", response_model=VideoUploadScenarioApiResponse)
 async def upload_video(
     file: UploadFile,
     http_request: Request,
     response: Response,
-) -> VideoUploadResponse:
-    """Upload a video file via multipart form-data."""
-    tags = ["uploads"]
-
+    name: str | None = None,
+    description: str | None = None,
+) -> VideoUploadScenarioApiResponse:
+    """Upload a video for later use in scenarios."""
     try:
+        profile_id = http_request.state.profile_id
+        session_id = http_request.state.session_id
+        if not profile_id:
+            raise HTTPException(
+                status_code=401,
+                detail="Profile ID is required. Please sign in again.",
+            )
+
+        # -- Validate file ------------------------------------------------------
         if not file.filename:
             raise HTTPException(status_code=400, detail="Missing filename")
+
+        content_type = file.content_type or get_content_type(file.filename)
+        if content_type not in ALLOWED_VIDEO_TYPES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported video type: {content_type}",
+            )
 
         file_bytes = await file.read()
         if not file_bytes:
             raise HTTPException(status_code=400, detail="Empty file")
 
-        upload_uuid = uuid.uuid4()
-        _, ext = os.path.splitext(file.filename)
-        if not ext:
-            ext = ".bin"
-
-        final_file_path = f"video/{upload_uuid}{ext}"
-        final_full_path = VIDEO_FOLDER / f"{upload_uuid}{ext}"
-
-        with open(final_full_path, "wb") as f:
-            f.write(file_bytes)
-
-        content_type = file.content_type or get_content_type(file.filename)
-        file_size = len(file_bytes)
-
-        session_id = getattr(http_request.state, "session_id", None)
-
+        # -- Run with audit -----------------------------------------------------
         pool = get_pool()
-        async with pool.acquire() as conn:
-            result = await create_upload(
-                conn,
-                session_id=uuid.UUID(session_id) if session_id else uuid.UUID(int=0),
-                file_path=final_file_path,
-                mime_type=content_type,
-                size=file_size,
+        redis = get_redis_client()
+
+        async def _runner() -> VideoUploadScenarioApiResponse:
+            return await video_upload_scenario_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                file_bytes=file_bytes,
+                filename=file.filename,
+                content_type=content_type,
+                name=name,
+                description=description,
             )
 
-        await invalidate_tags(tags, redis=get_redis_client())
-        response.headers["X-Invalidate-Tags"] = ",".join(tags)
+        response_data = await run_artifact_operation_with_audit(
+            pool,
+            redis,
+            artifact="scenario",
+            profile_id=profile_id,
+            session_id=session_id,
+            operation="video_upload",
+            arguments={
+                "filename": file.filename,
+                "content_type": content_type,
+                "size": len(file_bytes),
+                "name": name,
+                "description": description,
+            },
+            response_model=VideoUploadScenarioApiResponse,
+            runner=_runner,
+            upload_folder=get_upload_folder(),
+        )
 
-        return VideoUploadResponse(upload_id=result.id)
-
+        response.headers["X-Invalidate-Tags"] = "uploads,resources,videos"
+        return response_data
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         handle_route_error(
             error=e,
             route_path=http_request.url.path,
-            operation="upload_scenario_video",
+            operation="video_upload_scenario",
             request=http_request,
         )
-        raise

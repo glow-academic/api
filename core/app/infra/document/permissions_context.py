@@ -132,7 +132,7 @@ async def resolve_document_values(
 
     # --- Match resources ---
 
-    if item.is_inactive is not None and item.flag_id is None:
+    if item.active_flag is not None and item.active_flag_id is None:
         results = await search_flags(
             conn,
             redis,
@@ -142,14 +142,25 @@ async def resolve_document_values(
         )
         match = next((f for f in results if f.type == "document_active"), None)
         if match and match.id:
-            if not item.is_inactive:
-                # Active → set the document_active flag
-                item.flag_id = match.id
-            # Inactive → leave flag_id as None (no flag)
-        elif not item.is_inactive:
+            if item.active_flag:
+                item.active_flag_id = match.id
+        elif item.active_flag:
             errors.append(
                 DocumentFieldError(
-                    field="is_inactive", message="Active flag resource not found"
+                    field="active_flag", message="Active flag resource not found"
+                )
+            )
+
+    if item.template_flag is not None and item.template_flag_id is None:
+        results = await search_flags(conn, redis, search=None, flag_type="template", limit_count=1000)
+        match = next((f for f in results if f.type == "template"), None)
+        if match and match.id:
+            if item.template_flag:
+                item.template_flag_id = match.id
+        elif item.template_flag:
+            errors.append(
+                DocumentFieldError(
+                    field="template_flag", message="Template flag resource not found"
                 )
             )
 
@@ -195,6 +206,7 @@ async def create_denormalized_snapshot(
     department_ids: list[UUID] | None = None,
     image_ids: list[UUID] | None = None,
     parameter_field_ids: list[UUID] | None = None,
+    template: bool = False,
 ) -> UUID:
     """Create a documents_resource snapshot by hydrating IDs to values.
 
@@ -230,5 +242,6 @@ async def create_denormalized_snapshot(
             department_ids=department_ids,
             image_ids=image_ids,
             parameter_field_ids=parameter_field_ids,
+            template=template,
         )
     return result.id

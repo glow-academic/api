@@ -40,6 +40,7 @@ async def update_agent_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Agent bulk update using composable infra functions.
 
@@ -142,6 +143,11 @@ async def update_agent_impl(
         # Artifact update inside transaction
         async with pool.acquire() as conn:
             async with conn.transaction():
+                # Combine existing flag_ids with active_flag_id
+                combined_flag_ids = list(item.flag_ids or [])
+                if item.active_flag_id:
+                    combined_flag_ids.append(item.active_flag_id)
+
                 await update_agent_artifact(
                     conn,
                     item.agent_id,
@@ -150,13 +156,14 @@ async def update_agent_impl(
                     if item.description_id
                     else _UNSET,
                     department_ids=item.department_ids,
-                    flag_ids=item.flag_ids,
+                    flag_ids=combined_flag_ids or None,
                     model_ids=item.model_ids,
                     reasoning_level_ids=item.reasoning_level_ids,
                     temperature_level_ids=item.temperature_level_ids,
                     tool_ids=item.tool_ids,
                     voice_ids=item.voice_ids,
                     agent_ids=[agents_resource_id],
+                    soft=soft,
                 )
 
         results.append(

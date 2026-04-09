@@ -38,6 +38,7 @@ async def delete_field_impl(
     profile_id: UUID,
     field_ids: list[UUID],
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DeleteFieldApiResponse:
     """Field bulk delete using composable infra functions.
 
@@ -112,7 +113,7 @@ async def delete_field_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_fields(conn, field_ids)
+            result = await delete_fields(conn, field_ids, soft=soft)
 
     # -- Step 7: Invalidate cache ----------------------------------------------
 

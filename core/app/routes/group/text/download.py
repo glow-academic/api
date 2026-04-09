@@ -1,54 +1,76 @@
-"""Group text download."""
+"""Group text download endpoint — composable infra architecture.
 
-import os
+Thin route handler. Core logic lives in app.infra.group.text_download.
+"""
+
+from __future__ import annotations
+
 import urllib.parse
-import uuid
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
 
-from app.infra.globals import UPLOAD_FOLDER, get_pool
-from app.tools.entries.uploads.get import get_upload
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.group.media_types import (
+    TextDownloadGroupApiRequest,
+    TextDownloadGroupApiResult,
+)
+from app.infra.group.text_download import text_download_group_impl
 from app.utils.error.handle_route_error import handle_route_error
-from app.utils.mime.get_content_type import get_content_type
 
 router = APIRouter()
 
 
-class TextDownloadRequest(BaseModel):
-    upload_id: uuid.UUID
-
-
 @router.post("/download", response_model=None)
 async def download_text(
-    request: TextDownloadRequest,
+    request: TextDownloadGroupApiRequest,
     http_request: Request,
+    response: Response,
 ) -> FileResponse:
-    """Download a text file by upload ID."""
+    """Download a text file by text resource ID."""
     try:
+        profile_id = http_request.state.profile_id
+        session_id = http_request.state.session_id
+        if not profile_id:
+            raise HTTPException(
+                status_code=401,
+                detail="Profile ID is required. Please sign in again.",
+            )
+
         pool = get_pool()
-        async with pool.acquire() as conn:
-            result = await get_upload(conn, request.upload_id)
+        redis = get_redis_client()
 
-        if result is None:
-            raise HTTPException(status_code=404, detail="Upload not found")
+        async def _runner() -> TextDownloadGroupApiResult:
+            return await text_download_group_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                text_id=request.text_id,
+            )
 
-        stored_path = result.file_path or ""
-        file_path = os.path.join(UPLOAD_FOLDER, stored_path)
+        result = await run_artifact_operation_with_audit(
+            pool,
+            redis,
+            artifact="group",
+            profile_id=profile_id,
+            session_id=session_id,
+            operation="text_download",
+            arguments={"text_id": str(request.text_id)},
+            response_model=TextDownloadGroupApiResult,
+            runner=_runner,
+            upload_folder=get_upload_folder(),
+        )
 
-        if not os.path.exists(file_path):
-            raise HTTPException(status_code=404, detail="Text file not found")
-
-        content_type = get_content_type(result.file_path or "", result.mime_type or "")
-
-        filename = os.path.basename(result.file_path or "")
-        encoded_filename = urllib.parse.quote(filename, safe="")
-        content_disposition = f"inline; filename=\"{encoded_filename}\"; filename*=UTF-8''{encoded_filename}"
+        encoded = urllib.parse.quote(result.filename, safe="")
+        content_disposition = (
+            f"inline; filename=\"{encoded}\"; filename*=UTF-8''{encoded}"
+        )
 
         return FileResponse(
-            path=file_path,
-            media_type=content_type,
+            path=result.file_path,
+            media_type=result.content_type,
             headers={
                 "Content-Disposition": content_disposition,
                 "Cache-Control": "private, max-age=0, must-revalidate",
@@ -60,7 +82,6 @@ async def download_text(
         handle_route_error(
             error=e,
             route_path=http_request.url.path,
-            operation="download_group_text",
+            operation="text_download_group",
             request=http_request,
         )
-        raise

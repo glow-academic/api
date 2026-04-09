@@ -38,6 +38,7 @@ async def delete_simulation_impl(
     profile_id: UUID,
     simulation_ids: list[UUID],
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DeleteSimulationApiResponse:
     """Simulation bulk delete using composable infra functions.
 
@@ -104,7 +105,7 @@ async def delete_simulation_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_simulations(conn, simulation_ids)
+            result = await delete_simulations(conn, simulation_ids, soft=soft)
 
     # ── Step 6: Invalidate cache ──────────────────────────────────────
 

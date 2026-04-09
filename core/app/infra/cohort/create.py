@@ -48,6 +48,7 @@ async def create_cohort_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Cohort bulk create using composable infra functions.
 
@@ -135,7 +136,7 @@ async def create_cohort_impl(
             simulation_availability_ids=item.simulation_availability_ids,
         )
 
-        flag_ids = [item.flag_id] if item.flag_id else None
+        flag_ids = [item.active_flag_id] if item.active_flag_id else None
 
         # Artifact create inside transaction
         async with pool.acquire() as conn:
@@ -153,6 +154,7 @@ async def create_cohort_impl(
                     profile_ids=item.profile_ids,
                     profile_persona_ids=item.profile_persona_ids,
                     cohort_ids=[cohorts_resource_id],
+                    soft=soft,
                 )
 
         results.append(

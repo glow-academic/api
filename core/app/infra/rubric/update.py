@@ -40,6 +40,7 @@ async def update_rubric_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Rubric bulk update using composable infra functions.
 
@@ -132,7 +133,12 @@ async def update_rubric_impl(
             description_id=item.description_id,
             department_ids=item.department_ids,
             standard_group_ids=item.standard_group_ids,
+            simulation_rubric=bool(item.simulation_rubric_flag_id),
+            video_rubric=bool(item.video_rubric_flag_id),
         )
+
+        combined_flag_ids = [fid for fid in [item.active_flag_id, item.simulation_rubric_flag_id, item.video_rubric_flag_id] if fid]
+        flag_ids = combined_flag_ids if combined_flag_ids else None
 
         # Artifact update inside transaction
         async with pool.acquire() as conn:
@@ -145,11 +151,12 @@ async def update_rubric_impl(
                     if item.description_id
                     else _UNSET,
                     department_ids=item.department_ids,
-                    flag_ids=[item.active_flag_id] if item.active_flag_id else None,
+                    flag_ids=flag_ids,
                     point_ids=item.point_ids,
                     standard_group_ids=item.standard_group_ids,
                     standard_ids=item.standard_ids,
                     rubric_ids=[rubrics_resource_id],
+                    soft=soft,
                 )
 
         results.append(

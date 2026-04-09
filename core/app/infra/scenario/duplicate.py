@@ -40,6 +40,7 @@ async def duplicate_scenario_impl(
     profile_id: UUID,
     scenario_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicateScenarioApiResponse:
     """Scenario duplicate using composable infra functions.
 
@@ -153,6 +154,7 @@ async def duplicate_scenario_impl(
                 video_ids=original.video_ids,
                 scenario_ids=original.scenario_ids,
                 flag_ids=flag_ids,
+                soft=soft,
             )
 
     # -- Step 7: Invalidate cache -----------------------------------------------

@@ -28,6 +28,11 @@ async def create_scenario(
     question_ids: list[UUID] | None = None,
     option_ids: list[UUID] | None = None,
     problem_statement_ids: list[UUID] | None = None,
+    images_enabled: bool | None = None,
+    objectives_enabled: bool | None = None,
+    problem_statement_enabled: bool | None = None,
+    questions_enabled: bool | None = None,
+    video_enabled: bool | None = None,
 ) -> GetScenarioResponse:
     """Create a scenario resource (plain INSERT — no unique constraint)."""
     scenario_id = await conn.fetchval(
@@ -36,13 +41,17 @@ async def create_scenario(
             id, name, description, active, mcp, generated,
             department_ids, persona_ids, parameter_field_ids, document_ids,
             objective_ids, image_ids, video_ids, question_ids, option_ids,
-            problem_statement_ids
+            problem_statement_ids,
+            images_enabled, objectives_enabled, problem_statement_enabled,
+            questions_enabled, video_enabled
         )
         VALUES (
             COALESCE($5, uuidv7()), $1, $2, $3, $4, $4,
             $6, $7, $8, $9,
             $10, $11, $12, $13, $14,
-            $15
+            $15,
+            COALESCE($16, true), COALESCE($17, true), COALESCE($18, true),
+            COALESCE($19, true), COALESCE($20, true)
         )
         RETURNING id
     """,
@@ -61,6 +70,11 @@ async def create_scenario(
         question_ids or [],
         option_ids or [],
         problem_statement_ids or [],
+        images_enabled,
+        objectives_enabled,
+        problem_statement_enabled,
+        questions_enabled,
+        video_enabled,
     )
 
     await invalidate_tags(["resources", "scenarios"], redis=redis)

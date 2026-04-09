@@ -165,6 +165,9 @@ class CreateAgentItem(BaseModel):
     # Dual-mode: departments (match by name)
     department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for matching")
+    # Active flag
+    active_flag: bool | None = Field(None, description="Whether this agent is active")
+    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
     # ID-only fields
     flag_ids: list[UUID] | None = Field(None, description="Associated flag UUIDs")
     model_ids: list[UUID] | None = Field(None, description="Associated model UUIDs")
@@ -203,6 +206,9 @@ class UpdateAgentItem(BaseModel):
     # Dual-mode: departments (match by name)
     department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for matching")
+    # Active flag
+    active_flag: bool | None = Field(None, description="Whether this agent is active")
+    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
     # ID-only fields
     flag_ids: list[UUID] | None = Field(None, description="Associated flag UUIDs")
     model_ids: list[UUID] | None = Field(None, description="Associated model UUIDs")

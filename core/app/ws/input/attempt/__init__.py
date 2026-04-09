@@ -1,15 +1,20 @@
 """Input: attempt.* events."""
 
 from . import (  # noqa: F401
+    audio_download,
     audio_frame,
     audio_mute,
     audio_start,
     audio_stop,
+    audio_upload,
     docs,
     end,
     end_all,
     export,
+    file_download,
+    file_preview,
     get,
+    image_download,
     join,
     leave,
     message,
@@ -19,5 +24,7 @@ from . import (  # noqa: F401
     search,
     start,
     stop,
+    text_download,
     use_previous,
+    video_download,
 )

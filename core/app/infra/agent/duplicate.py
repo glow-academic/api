@@ -40,6 +40,7 @@ async def duplicate_agent_impl(
     profile_id: UUID,
     agent_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicateAgentApiResponse:
     """Agent duplicate using composable infra functions.
 
@@ -147,6 +148,7 @@ async def duplicate_agent_impl(
                 voice_ids=original.voice_ids,
                 agent_ids=original.agent_ids,
                 flag_ids=flag_ids,
+                soft=soft,
             )
 
     # -- Step 7: Invalidate cache -----------------------------------------------

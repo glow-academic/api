@@ -36,6 +36,7 @@ async def delete_persona_impl(
     profile_id: UUID,
     persona_ids: list[UUID],
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DeletePersonaApiResponse:
     """Persona bulk delete using composable infra functions.
 
@@ -101,7 +102,7 @@ async def delete_persona_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_personas(conn, persona_ids)
+            result = await delete_personas(conn, persona_ids, soft=soft)
 
     # ── Step 6: Invalidate cache ──────────────────────────────────────
 

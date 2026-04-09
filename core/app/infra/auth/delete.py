@@ -39,6 +39,7 @@ async def delete_auth_impl(
     profile_id: UUID,
     auth_ids: list[UUID],
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DeleteAuthApiResponse:
     """Auth bulk delete using composable infra functions.
 
@@ -114,7 +115,7 @@ async def delete_auth_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_auths(conn, auth_ids)
+            result = await delete_auths(conn, auth_ids, soft=soft)
 
     # -- Step 6: Invalidate cache -----------------------------------------------
 

@@ -114,7 +114,7 @@ async def resolve_cohort_values(
 
     # --- Match resources ---
 
-    if item.is_inactive is not None and item.flag_id is None:
+    if item.active_flag is not None and item.active_flag_id is None:
         results = await search_flags(
             conn,
             redis,
@@ -124,14 +124,12 @@ async def resolve_cohort_values(
         )
         match = next((f for f in results if f.type == "cohort_active"), None)
         if match and match.id:
-            if not item.is_inactive:
-                # Active → set the cohort_active flag
-                item.flag_id = match.id
-            # Inactive → leave flag_id as None (no flag)
-        elif not item.is_inactive:
+            if item.active_flag:
+                item.active_flag_id = match.id
+        elif item.active_flag:
             errors.append(
                 CohortFieldError(
-                    field="is_inactive", message="Active flag resource not found"
+                    field="active_flag", message="Active flag resource not found"
                 )
             )
 

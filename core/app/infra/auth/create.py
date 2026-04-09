@@ -49,6 +49,7 @@ async def create_auth_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Auth bulk create using composable infra functions.
 
@@ -142,6 +143,7 @@ async def create_auth_impl(
                     auth_ids=[auths_resource_id]
                     if auths_resource_id
                     else item.auth_resource_ids,
+                    soft=soft,
                 )
 
         results.append(

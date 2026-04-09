@@ -30,6 +30,7 @@ from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.fields.create import (
     create_field as create_field_resource,
 )
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
 
@@ -153,6 +154,25 @@ async def resolve_field_values(
                 )
         if not any(e.field == "departments" for e in errors):
             item.department_ids = resolved_ids
+
+    # --- Active flag resolution ---
+
+    if item.active_flag is not None and item.active_flag_id is None:
+        results = await search_flags(
+            conn, redis, search=None,
+            flag_type="field_active",
+            limit_count=1000,
+        )
+        match = next((f for f in results if f.type == "field_active"), None)
+        if match and match.id:
+            if item.active_flag:
+                item.active_flag_id = match.id
+        elif item.active_flag:
+            errors.append(
+                FieldFieldError(
+                    field="active_flag", message="Active flag resource not found"
+                )
+            )
 
     # --- Validate required fields (create only) ---
 

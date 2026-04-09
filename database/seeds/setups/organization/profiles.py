@@ -39,8 +39,8 @@ setup_profiles = [
         name="Default Admin",
         email="default-admin@organization.com",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
-        role_ids=[ADMIN_ROLE],
-        flag_id=PROFILE_ACTIVE,
+        role_id=ADMIN_ROLE,
+        active_flag_id=PROFILE_ACTIVE,
     ),
     dict(
         id=ORG_INSTRUCTIONAL,
@@ -48,8 +48,8 @@ setup_profiles = [
         name="Default Instructional",
         email="default-instructional@organization.com",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
-        role_ids=[INSTRUCTIONAL_ROLE],
-        flag_id=PROFILE_ACTIVE,
+        role_id=INSTRUCTIONAL_ROLE,
+        active_flag_id=PROFILE_ACTIVE,
     ),
     dict(
         id=ORG_MEMBER,
@@ -57,8 +57,8 @@ setup_profiles = [
         name="Default Member",
         email="default-member@organization.com",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
-        role_ids=[MEMBER_GTA_ROLE],
-        flag_id=PROFILE_ACTIVE,
+        role_id=MEMBER_GTA_ROLE,
+        active_flag_id=PROFILE_ACTIVE,
     ),
     dict(
         id=ORG_GUEST,
@@ -66,7 +66,7 @@ setup_profiles = [
         name="Default Guest",
         email="default-guest@organization.com",
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
-        role_ids=[GUEST_ROLE],
-        flag_id=PROFILE_ACTIVE,
+        role_id=GUEST_ROLE,
+        active_flag_id=PROFILE_ACTIVE,
     ),
 ]

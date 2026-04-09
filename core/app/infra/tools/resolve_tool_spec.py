@@ -3,24 +3,31 @@
 Assembly layer that reads pre-enriched data from the tool_def dict
 (populated by prepare_pipeline.py) — zero DB calls.
 
-The LLM specifies intent via `artifact` and `operation` fields in its
-inputs. These are auto-added to every tool's input schema. If the tool
-has only one permission, they default to that permission's values.
+Routing (artifact + operation) is determined from args_outputs, not
+from special input fields. This means routing can be:
+  - Hardcoded:    template="agent"                    (single-permission tools)
+  - Pass-through: template="{{ artifact }}"           (multi-permission tools)
+  - Conditional:  template="{% if x %}persona{% else %}scenario{% endif %}"
 
-Resolution logic:
-  1. Extract artifact + operation from inputs (or default if single permission)
-  2. Validate (artifact, operation) is in the tool's _permissions
-  3. Build a single-target InfraOperationSpec
-  4. Strip artifact + operation from inputs before rendering
+The args_outputs named "artifact" and "operation" are rendered first
+to determine routing, then stripped from the output_map before execution.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+from jinja2 import Environment
+
 from app.infra.tools.execute_infra_operation import (
     InfraOperationSpec,
     InfraTarget,
+)
+
+_jinja_env = Environment(
+    autoescape=True,
+    trim_blocks=True,
+    lstrip_blocks=True,
 )
 
 
@@ -33,14 +40,13 @@ def resolve_tool_spec(
     Args:
         tool_def: Tool definition dict with _args_outputs and _permissions
             (enriched by prepare_pipeline.py).
-        inputs: LLM tool call arguments. May include `artifact` and
-            `operation` to specify intent.
+        inputs: LLM tool call arguments.
 
     Returns:
         A ready-to-execute InfraOperationSpec with a single target.
 
     Raises:
-        ValueError: If the tool is misconfigured or the requested
+        ValueError: If the tool is misconfigured or the resolved
             (artifact, operation) is not permitted.
     """
     tool_name = tool_def.get("name", "unknown")
@@ -53,13 +59,33 @@ def resolve_tool_spec(
     if not permissions:
         raise ValueError(f"Tool '{tool_name}' has no permissions (_permissions)")
 
-    # --- Resolve target (artifact, operation) from inputs ---
-    # Make a mutable copy so we can strip the routing fields
-    inputs = dict(inputs)
-    req_artifact = inputs.pop("artifact", None)
-    req_operation = inputs.pop("operation", None)
+    # --- Separate routing outputs from payload outputs ---
+    routing_templates: dict[str, str] = {}
+    payload_outputs: dict[str, str] = {}
 
-    # Build the allowed set from permissions
+    for ao in args_outputs:
+        name = ao.get("name")
+        template = ao.get("template")
+        if not name or not template:
+            continue
+        if name in ("artifact", "operation"):
+            routing_templates[name] = template
+        else:
+            payload_outputs[name] = template
+
+    # --- Resolve routing by rendering artifact + operation templates ---
+    req_artifact = None
+    req_operation = None
+
+    if "artifact" in routing_templates:
+        rendered = _jinja_env.from_string(routing_templates["artifact"]).render(**inputs)
+        req_artifact = rendered.strip() if rendered.strip() else None
+
+    if "operation" in routing_templates:
+        rendered = _jinja_env.from_string(routing_templates["operation"]).render(**inputs)
+        req_operation = rendered.strip() if rendered.strip() else None
+
+    # --- Validate against permissions ---
     allowed = {
         (p["artifact"], p["operation"])
         for p in permissions
@@ -70,7 +96,6 @@ def resolve_tool_spec(
         raise ValueError(f"Tool '{tool_name}' has no valid permission targets")
 
     if req_artifact and req_operation:
-        # LLM specified intent — validate it's allowed
         target_pair = (req_artifact, req_operation)
         if target_pair not in allowed:
             raise ValueError(
@@ -78,29 +103,20 @@ def resolve_tool_spec(
                 f"Allowed: {sorted(allowed)}"
             )
     elif len(allowed) == 1:
-        # Single permission — default to it
         target_pair = next(iter(allowed))
     else:
-        # Multiple permissions but LLM didn't specify — error
         raise ValueError(
-            f"Tool '{tool_name}' has {len(allowed)} permissions but inputs "
-            f"did not specify 'artifact' and 'operation'. "
-            f"Allowed: {sorted(allowed)}"
+            f"Tool '{tool_name}' has {len(allowed)} permissions but routing "
+            f"could not be resolved. Ensure args_outputs include 'artifact' "
+            f"and 'operation' templates. Allowed: {sorted(allowed)}"
         )
 
-    # --- Build output_map from args_outputs ---
-    output_map: dict[str, str] = {}
-    for ao in args_outputs:
-        name = ao.get("name")
-        template = ao.get("template")
-        if name and template:
-            output_map[name] = template
-
-    if not output_map:
-        raise ValueError(f"Tool '{tool_name}' has no valid output mappings")
+    # --- Build spec with payload outputs only ---
+    if not payload_outputs:
+        raise ValueError(f"Tool '{tool_name}' has no payload output mappings")
 
     return InfraOperationSpec(
         inputs=inputs,
-        output_map=output_map,
+        output_map=payload_outputs,
         targets=[InfraTarget(artifact=target_pair[0], operation=target_pair[1])],
     )

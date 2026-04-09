@@ -29,6 +29,7 @@ from app.tools.resources.agents.create import (
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.get import get_descriptions
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
 from app.tools.resources.voices.get import get_voices
@@ -136,6 +137,25 @@ async def resolve_agent_values(
                 )
         if not any(e.field == "departments" for e in errors):
             item.department_ids = resolved_ids
+
+    # --- Active flag resolution ---
+
+    if item.active_flag is not None and item.active_flag_id is None:
+        results = await search_flags(
+            conn, redis, search=None,
+            flag_type="agent_active",
+            limit_count=1000,
+        )
+        match = next((f for f in results if f.type == "agent_active"), None)
+        if match and match.id:
+            if item.active_flag:
+                item.active_flag_id = match.id
+        elif item.active_flag:
+            errors.append(
+                AgentFieldError(
+                    field="active_flag", message="Active flag resource not found"
+                )
+            )
 
     # --- Validate required fields (create only) ---
 

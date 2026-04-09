@@ -40,6 +40,7 @@ async def update_model_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Model bulk update using composable infra functions.
 
@@ -140,6 +141,11 @@ async def update_model_impl(
         # Artifact update inside transaction
         async with pool.acquire() as conn:
             async with conn.transaction():
+                # Combine existing flag_ids with active_flag_id
+                combined_flag_ids = list(item.flag_ids or [])
+                if item.active_flag_id:
+                    combined_flag_ids.append(item.active_flag_id)
+
                 await update_model_artifact(
                     conn,
                     item.model_id,
@@ -148,7 +154,7 @@ async def update_model_impl(
                     if item.description_id
                     else _UNSET,
                     department_ids=item.department_ids,
-                    flag_ids=item.flag_ids,
+                    flag_ids=combined_flag_ids or None,
                     modality_ids=item.modality_ids,
                     model_ids=[models_resource_id],
                     pricing_ids=item.pricing_ids,
@@ -158,6 +164,7 @@ async def update_model_impl(
                     temperature_level_ids=item.temperature_level_ids,
                     value_ids=item.value_ids,
                     voice_ids=item.voice_ids,
+                    soft=soft,
                 )
 
         results.append(

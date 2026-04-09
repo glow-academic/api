@@ -38,6 +38,7 @@ async def delete_document_impl(
     profile_id: UUID,
     document_ids: list[UUID],
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DeleteDocumentApiResponse:
     """Document bulk delete using composable infra functions.
 
@@ -104,7 +105,7 @@ async def delete_document_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_documents(conn, document_ids)
+            result = await delete_documents(conn, document_ids, soft=soft)
 
     # -- Step 6: Invalidate cache -------------------------------------------------
 

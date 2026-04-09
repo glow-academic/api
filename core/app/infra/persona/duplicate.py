@@ -40,6 +40,7 @@ async def duplicate_persona_impl(
     profile_id: UUID,
     persona_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicatePersonaApiResponse:
     """Persona duplicate using composable infra functions.
 
@@ -150,6 +151,7 @@ async def duplicate_persona_impl(
                 parameter_field_ids=original.parameter_field_ids,
                 voice_ids=original.voice_ids,
                 flag_ids=flag_ids,
+                soft=soft,
             )
 
     # ── Step 7: Invalidate cache ───────────────────────────────────────

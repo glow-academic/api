@@ -40,6 +40,7 @@ async def duplicate_profile_impl(
     profile_id: UUID,
     target_profile_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicateProfileApiResponse:
     """Profile duplicate using composable infra functions.
 
@@ -140,6 +141,7 @@ async def duplicate_profile_impl(
                 profile_ids=original.profile_ids,
                 flag_ids=flag_ids,
                 redis=redis,
+                soft=soft,
             )
 
     # ── Step 7: Invalidate cache ───────────────────────────────────────

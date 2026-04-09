@@ -44880,6 +44880,31 @@
             "title": "Departments",
             "description": "Department names for matching"
           },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether this agent is active"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Active flag resource UUID"
+          },
           "flag_ids": {
             "anyOf": [
               {
@@ -45516,7 +45541,20 @@
             "title": "Profile Persona Ids",
             "description": "Profile persona UUIDs"
           },
-          "is_inactive": {
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "UUID of the flag option to set active status"
+          },
+          "active_flag": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -45525,8 +45563,8 @@
                 "type": "null"
               }
             ],
-            "title": "Is Inactive",
-            "description": "Whether the cohort is inactive"
+            "title": "Active Flag",
+            "description": "Whether the cohort is active (resolved to flag_id)"
           },
           "departments": {
             "anyOf": [
@@ -45917,7 +45955,20 @@
             "title": "Flag Id",
             "description": "Flag option UUID"
           },
-          "is_inactive": {
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "UUID of the flag option to set active status"
+          },
+          "active_flag": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -45926,8 +45977,33 @@
                 "type": "null"
               }
             ],
-            "title": "Is Inactive",
-            "description": "Whether the document is inactive"
+            "title": "Active Flag",
+            "description": "Whether the document is active (resolved to flag_id)"
+          },
+          "template_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Flag",
+            "description": "Whether this is a template document"
+          },
+          "template_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Flag Id",
+            "description": "Template flag resource UUID"
           },
           "department_ids": {
             "anyOf": [
@@ -46271,6 +46347,31 @@
             ],
             "title": "Model Position Ids",
             "description": "Model position UUIDs"
+          },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether this eval is active"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Active flag resource UUID"
           }
         },
         "type": "object",
@@ -46408,6 +46509,31 @@
             ],
             "title": "Description",
             "description": "Description value to resolve or create"
+          },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether this field is active"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Active flag resource UUID"
           },
           "flag_id": {
             "anyOf": [
@@ -46652,6 +46778,31 @@
             ],
             "title": "Departments",
             "description": "Department names to match"
+          },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether this model is active"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Active flag resource UUID"
           },
           "flag_ids": {
             "anyOf": [
@@ -47540,7 +47691,7 @@
             "title": "Request Limit Id",
             "description": "UUID of the request limit resource"
           },
-          "flag_id": {
+          "active_flag_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -47550,7 +47701,7 @@
                 "type": "null"
               }
             ],
-            "title": "Flag Id",
+            "title": "Active Flag Id",
             "description": "UUID of the flag option"
           },
           "department_ids": {
@@ -47600,21 +47751,18 @@
             "title": "Email Ids",
             "description": "Email resource UUIDs"
           },
-          "role_ids": {
+          "role_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Role Ids",
-            "description": "Role resource UUIDs"
+            "title": "Role Id",
+            "description": "Role resource UUID"
           }
         },
         "type": "object",
@@ -48018,6 +48166,56 @@
             ],
             "title": "Active Flag",
             "description": "Active flag boolean value"
+          },
+          "simulation_rubric_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Rubric Flag",
+            "description": "Whether this is a simulation rubric"
+          },
+          "simulation_rubric_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Rubric Flag Id",
+            "description": "Simulation rubric flag resource UUID"
+          },
+          "video_rubric_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Rubric Flag",
+            "description": "Whether this is a video rubric"
+          },
+          "video_rubric_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Rubric Flag Id",
+            "description": "Video rubric flag resource UUID"
           },
           "department_ids": {
             "anyOf": [
@@ -48509,6 +48707,66 @@
             ],
             "title": "Active Flag",
             "description": "Active flag boolean value"
+          },
+          "images_enabled_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Images Enabled Flag",
+            "description": "Whether images are enabled"
+          },
+          "objectives_enabled_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objectives Enabled Flag",
+            "description": "Whether objectives are enabled"
+          },
+          "problem_statement_enabled_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Statement Enabled Flag",
+            "description": "Whether problem statement is enabled"
+          },
+          "questions_enabled_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questions Enabled Flag",
+            "description": "Whether questions are enabled"
+          },
+          "video_enabled_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Enabled Flag",
+            "description": "Whether video is enabled"
           },
           "departments": {
             "anyOf": [
@@ -49119,22 +49377,6 @@
             "title": "Description",
             "description": "Description text value"
           },
-          "flag_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Ids",
-            "description": "Associated flag UUIDs"
-          },
           "department_ids": {
             "anyOf": [
               {
@@ -49231,19 +49473,20 @@
             "title": "Scenario Time Limit Ids",
             "description": "Associated scenario time limit UUIDs"
           },
-          "is_inactive": {
+          "active_flag_id": {
             "anyOf": [
               {
-                "type": "boolean"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Is Inactive",
-            "description": "Whether the simulation is inactive"
+            "title": "Active Flag Id",
+            "description": "UUID of the flag option to set active status"
           },
-          "is_practice": {
+          "active_flag": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -49252,8 +49495,33 @@
                 "type": "null"
               }
             ],
-            "title": "Is Practice",
+            "title": "Active Flag",
+            "description": "Whether the simulation is active (resolved to flag_id)"
+          },
+          "practice_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Practice Flag",
             "description": "Whether this is a practice simulation"
+          },
+          "practice_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Practice Flag Id",
+            "description": "Practice flag resource UUID"
           },
           "departments": {
             "anyOf": [
@@ -49533,6 +49801,31 @@
             ],
             "title": "Tool Ids",
             "description": "Related tool identifiers"
+          },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether this tool is active"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Active flag resource UUID"
           }
         },
         "type": "object",
@@ -90568,7 +90861,7 @@
             "title": "Request Limit",
             "description": "Request limit value to resolve or create"
           },
-          "flag_id": {
+          "active_flag_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -90578,7 +90871,7 @@
                 "type": "null"
               }
             ],
-            "title": "Flag Id",
+            "title": "Active Flag Id",
             "description": "UUID of the flag option"
           },
           "department_ids": {
@@ -90613,21 +90906,18 @@
             "title": "Email Ids",
             "description": "Email resource UUIDs"
           },
-          "role_ids": {
+          "role_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Role Ids",
-            "description": "Role resource UUIDs"
+            "title": "Role Id",
+            "description": "Role resource UUID"
           },
           "request_limit_ids": {
             "anyOf": [
@@ -90648,7 +90938,7 @@
         },
         "type": "object",
         "title": "PatchProfileDraftApiRequest",
-        "description": "Request model for new-style profile draft endpoint.\n\nDual-mode for creatable resources only:\n  - name/name_id\nID-only for non-creatable resources:\n  - flag_id, department_ids, email_ids, role_ids, request_limit_ids\n\nClient always sends full state (append-only \u2014 each write is a new version snapshot)."
+        "description": "Request model for new-style profile draft endpoint.\n\nDual-mode for creatable resources only:\n  - name/name_id\nID-only for non-creatable resources:\n  - active_flag_id, department_ids, email_ids, role_ids, request_limit_ids\n\nClient always sends full state (append-only \u2014 each write is a new version snapshot)."
       },
       "PatchProfileDraftApiResponse": {
         "properties": {
@@ -95518,7 +95808,7 @@
             "title": "Name Id",
             "description": "Resolved name resource UUID"
           },
-          "flag_id": {
+          "active_flag_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -95528,7 +95818,7 @@
                 "type": "null"
               }
             ],
-            "title": "Flag Id",
+            "title": "Active Flag Id",
             "description": "Resolved flag option UUID"
           },
           "department_ids": {
@@ -95549,14 +95839,18 @@
             "title": "Email Ids",
             "description": "Assigned email resource UUIDs"
           },
-          "role_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Role Ids",
-            "description": "Assigned role resource UUIDs"
+          "role_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Id",
+            "description": "Assigned role resource UUID"
           },
           "request_limit_ids": {
             "items": {
@@ -95572,7 +95866,6 @@
         "required": [
           "department_ids",
           "email_ids",
-          "role_ids",
           "request_limit_ids"
         ],
         "title": "ProfileDraftFormState",
@@ -113926,6 +114219,31 @@
             "title": "Departments",
             "description": "Department names for matching"
           },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether this agent is active"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Active flag resource UUID"
+          },
           "flag_ids": {
             "anyOf": [
               {
@@ -114528,7 +114846,20 @@
             "title": "Profile Persona Ids",
             "description": "Profile persona UUIDs"
           },
-          "is_inactive": {
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "UUID of the flag option to set active status"
+          },
+          "active_flag": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -114537,8 +114868,8 @@
                 "type": "null"
               }
             ],
-            "title": "Is Inactive",
-            "description": "Whether the cohort is inactive"
+            "title": "Active Flag",
+            "description": "Whether the cohort is active (resolved to flag_id)"
           },
           "departments": {
             "anyOf": [
@@ -114895,7 +115226,20 @@
             "title": "Flag Id",
             "description": "Flag option UUID"
           },
-          "is_inactive": {
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "UUID of the flag option to set active status"
+          },
+          "active_flag": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -114904,8 +115248,33 @@
                 "type": "null"
               }
             ],
-            "title": "Is Inactive",
-            "description": "Whether the document is inactive"
+            "title": "Active Flag",
+            "description": "Whether the document is active (resolved to flag_id)"
+          },
+          "template_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Flag",
+            "description": "Whether this is a template document"
+          },
+          "template_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Flag Id",
+            "description": "Template flag resource UUID"
           },
           "department_ids": {
             "anyOf": [
@@ -115232,6 +115601,31 @@
             ],
             "title": "Model Position Ids",
             "description": "Model position UUIDs"
+          },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether this eval is active"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Active flag resource UUID"
           }
         },
         "type": "object",
@@ -115352,6 +115746,31 @@
             ],
             "title": "Description",
             "description": "Description value to resolve or create"
+          },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether this field is active"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Active flag resource UUID"
           },
           "flag_id": {
             "anyOf": [
@@ -115579,6 +115998,31 @@
             ],
             "title": "Departments",
             "description": "Department names to match"
+          },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether this model is active"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Active flag resource UUID"
           },
           "flag_ids": {
             "anyOf": [
@@ -116375,7 +116819,7 @@
             "title": "Request Limit Id",
             "description": "UUID of the request limit resource"
           },
-          "flag_id": {
+          "active_flag_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -116385,7 +116829,7 @@
                 "type": "null"
               }
             ],
-            "title": "Flag Id",
+            "title": "Active Flag Id",
             "description": "UUID of the flag option"
           },
           "department_ids": {
@@ -116435,21 +116879,18 @@
             "title": "Email Ids",
             "description": "Email resource UUIDs"
           },
-          "role_ids": {
+          "role_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Role Ids",
-            "description": "Role resource UUIDs"
+            "title": "Role Id",
+            "description": "Role resource UUID"
           }
         },
         "type": "object",
@@ -116819,6 +117260,56 @@
             ],
             "title": "Active Flag",
             "description": "Active flag boolean value"
+          },
+          "simulation_rubric_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Rubric Flag",
+            "description": "Whether this is a simulation rubric"
+          },
+          "simulation_rubric_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Rubric Flag Id",
+            "description": "Simulation rubric flag resource UUID"
+          },
+          "video_rubric_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Rubric Flag",
+            "description": "Whether this is a video rubric"
+          },
+          "video_rubric_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Rubric Flag Id",
+            "description": "Video rubric flag resource UUID"
           },
           "department_ids": {
             "anyOf": [
@@ -117293,6 +117784,66 @@
             ],
             "title": "Active Flag",
             "description": "Active flag boolean value"
+          },
+          "images_enabled_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Images Enabled Flag",
+            "description": "Whether images are enabled"
+          },
+          "objectives_enabled_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objectives Enabled Flag",
+            "description": "Whether objectives are enabled"
+          },
+          "problem_statement_enabled_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Statement Enabled Flag",
+            "description": "Whether problem statement is enabled"
+          },
+          "questions_enabled_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questions Enabled Flag",
+            "description": "Whether questions are enabled"
+          },
+          "video_enabled_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Enabled Flag",
+            "description": "Whether video is enabled"
           },
           "departments": {
             "anyOf": [
@@ -117869,22 +118420,6 @@
             "title": "Description",
             "description": "Description text value"
           },
-          "flag_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Ids",
-            "description": "Associated flag UUIDs"
-          },
           "department_ids": {
             "anyOf": [
               {
@@ -117981,19 +118516,20 @@
             "title": "Scenario Time Limit Ids",
             "description": "Associated scenario time limit UUIDs"
           },
-          "is_inactive": {
+          "active_flag_id": {
             "anyOf": [
               {
-                "type": "boolean"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Is Inactive",
-            "description": "Whether the simulation is inactive"
+            "title": "Active Flag Id",
+            "description": "UUID of the flag option to set active status"
           },
-          "is_practice": {
+          "active_flag": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -118002,8 +118538,33 @@
                 "type": "null"
               }
             ],
-            "title": "Is Practice",
+            "title": "Active Flag",
+            "description": "Whether the simulation is active (resolved to flag_id)"
+          },
+          "practice_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Practice Flag",
             "description": "Whether this is a practice simulation"
+          },
+          "practice_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Practice Flag Id",
+            "description": "Practice flag resource UUID"
           },
           "departments": {
             "anyOf": [
@@ -118266,6 +118827,31 @@
             ],
             "title": "Tool Ids",
             "description": "Related tool identifiers"
+          },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether this tool is active"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Active flag resource UUID"
           }
         },
         "type": "object",

@@ -24,7 +24,6 @@ from app.infra.tools.execute_infra_operation import (
     execute_infra_operation,
 )
 from app.infra.tools.resolve_tool_spec import resolve_tool_spec
-from app.infra.tools.tool_executor import execute_tool_call
 from app.infra.websocket.generation_types import (
     GenerateArtifactPayload,
     GenerateErrorApiRequest,
@@ -998,6 +997,8 @@ async def generate_artifact_impl(
                                     profile_id=_profile_id,
                                     session_id=_session_id,
                                     group_id=_group_id,
+                                    sid=sid,
+                                    soft=True,
                                 )
                                 results = await execute_infra_operation(ctx, spec)
                                 tool_result_str = json.dumps(

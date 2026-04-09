@@ -40,6 +40,7 @@ async def update_field_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Field bulk update using composable infra functions.
 
@@ -134,6 +135,13 @@ async def update_field_impl(
         # Artifact update inside transaction
         async with pool.acquire() as conn:
             async with conn.transaction():
+                # Combine existing flag_id with active_flag_id
+                combined_flag_ids = []
+                if item.flag_id:
+                    combined_flag_ids.append(item.flag_id)
+                if item.active_flag_id:
+                    combined_flag_ids.append(item.active_flag_id)
+
                 await update_field_artifact(
                     conn,
                     item.field_id,
@@ -142,9 +150,10 @@ async def update_field_impl(
                     if item.description_id
                     else _UNSET,
                     department_ids=item.department_ids,
-                    flag_ids=[item.flag_id] if item.flag_id else None,
+                    flag_ids=combined_flag_ids or None,
                     conditional_parameter_ids=item.conditional_parameter_ids,
                     field_ids=[fields_resource_id],
+                    soft=soft,
                 )
 
         results.append(

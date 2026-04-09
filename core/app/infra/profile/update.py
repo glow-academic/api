@@ -43,6 +43,7 @@ async def update_profile_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Profile bulk update using composable infra functions.
 
@@ -136,6 +137,8 @@ async def update_profile_impl(
                 [item.profile_id],
                 names=True,
                 departments=True,
+                roles=True,
+                emails=True,
             )
         if existing:
             art = existing[0]
@@ -145,9 +148,21 @@ async def update_profile_impl(
                 if item.department_ids is not None
                 else list(art.department_ids or [])
             )
+            eff_role_id = (
+                item.role_id
+                if item.role_id is not None
+                else (art.role_ids[0] if art.role_ids else None)
+            )
+            eff_email_ids = (
+                item.email_ids
+                if item.email_ids is not None
+                else list(art.email_ids or [])
+            )
         else:
             eff_name_id = item.name_id
             eff_department_ids = item.department_ids
+            eff_role_id = item.role_id
+            eff_email_ids = item.email_ids
 
         # Create denormalized snapshot OUTSIDE transaction (read-only hydration)
         async with pool.acquire() as conn:
@@ -156,6 +171,8 @@ async def update_profile_impl(
                 redis,
                 name_id=eff_name_id,
                 department_ids=eff_department_ids,
+                email_ids=eff_email_ids,
+                role_id=eff_role_id,
             )
 
         # Artifact update inside transaction
@@ -169,11 +186,12 @@ async def update_profile_impl(
                     if item.request_limit_id
                     else _UNSET,
                     department_ids=item.department_ids,
-                    flag_ids=[item.flag_id] if item.flag_id else None,
+                    flag_ids=[item.active_flag_id] if item.active_flag_id else None,
                     email_ids=item.email_ids,
-                    role_ids=item.role_ids,
+                    role_ids=[item.role_id] if item.role_id else None,
                     profile_ids=[profiles_resource_id],
                     redis=redis,
+                    soft=soft,
                 )
 
         results.append(

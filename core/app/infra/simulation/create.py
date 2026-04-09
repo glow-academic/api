@@ -44,6 +44,7 @@ async def create_simulation_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Simulation bulk create using composable infra functions.
 
@@ -123,6 +124,7 @@ async def create_simulation_impl(
             id=item.resource_id,
             name_id=item.name_id,
             description_id=item.description_id,
+            practice=bool(item.practice_flag_id),
             department_ids=item.department_ids,
             scenario_ids=item.scenario_ids,
             scenario_rubric_ids=item.scenario_rubric_ids,
@@ -130,6 +132,13 @@ async def create_simulation_impl(
             scenario_position_ids=item.scenario_position_ids,
             scenario_flag_ids=item.scenario_flag_ids,
         )
+
+        # Combine dedicated *_flag_id fields into flag_ids for the artifact
+        combined_flag_ids: list[UUID] = []
+        if item.active_flag_id:
+            combined_flag_ids.append(item.active_flag_id)
+        if item.practice_flag_id:
+            combined_flag_ids.append(item.practice_flag_id)
 
         # Artifact create inside transaction
         async with pool.acquire() as conn:
@@ -140,13 +149,14 @@ async def create_simulation_impl(
                     name_id=item.name_id,
                     description_id=item.description_id,
                     department_ids=item.department_ids,
-                    flag_ids=item.flag_ids,
+                    flag_ids=combined_flag_ids or None,
                     scenario_ids=item.scenario_ids,
                     scenario_flag_ids=item.scenario_flag_ids,
                     scenario_position_ids=item.scenario_position_ids,
                     scenario_rubric_ids=item.scenario_rubric_ids,
                     scenario_time_limit_ids=item.scenario_time_limit_ids,
                     simulation_ids=[simulations_resource_id],
+                    soft=soft,
                 )
 
         results.append(

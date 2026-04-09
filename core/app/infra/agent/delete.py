@@ -36,6 +36,7 @@ async def delete_agent_impl(
     profile_id: UUID,
     agent_ids: list[UUID],
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DeleteAgentApiResponse:
     """Agent bulk delete using composable infra functions.
 
@@ -113,7 +114,7 @@ async def delete_agent_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_agents(conn, agent_ids)
+            result = await delete_agents(conn, agent_ids, soft=soft)
 
     # -- Step 6: Invalidate cache -----------------------------------------------
 

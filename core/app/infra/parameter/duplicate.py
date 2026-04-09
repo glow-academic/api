@@ -40,6 +40,7 @@ async def duplicate_parameter_impl(
     profile_id: UUID,
     parameter_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicateParameterApiResponse:
     """Parameter duplicate using composable infra functions.
 
@@ -121,6 +122,7 @@ async def duplicate_parameter_impl(
                 field_ids=original.field_ids,
                 parameter_ids=original.parameter_ids,
                 flag_ids=None,
+                soft=soft,
             )
 
     # -- Step 6: Invalidate cache -----------------------------------------------

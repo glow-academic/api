@@ -40,6 +40,7 @@ async def duplicate_cohort_impl(
     profile_id: UUID,
     cohort_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicateCohortApiResponse:
     """Cohort duplicate using composable infra functions.
 
@@ -147,6 +148,7 @@ async def duplicate_cohort_impl(
                 simulation_position_ids=original.simulation_position_ids,
                 cohort_ids=original.cohort_ids,
                 flag_ids=flag_ids,
+                soft=soft,
             )
 
     # -- Step 7: Invalidate cache -----------------------------------------------

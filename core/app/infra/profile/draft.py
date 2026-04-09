@@ -139,10 +139,10 @@ async def patch_profile_draft_impl(
                 version=new_version,
                 profile_ids=[profile.profiles_id],
                 name_ids=[request.name_id] if request.name_id else None,
-                flag_ids=[request.flag_id] if request.flag_id else None,
+                flag_ids=[request.active_flag_id] if request.active_flag_id else None,
                 department_ids=request.department_ids,
                 email_ids=request.email_ids,
-                role_ids=request.role_ids,
+                role_ids=[request.role_id] if request.role_id else None,
                 request_limit_ids=request.request_limit_ids,
             )
 
@@ -150,10 +150,10 @@ async def patch_profile_draft_impl(
 
     form_state = ProfileDraftFormState(
         name_id=request.name_id,
-        flag_id=request.flag_id,
+        active_flag_id=request.active_flag_id,
         department_ids=request.department_ids or [],
         email_ids=request.email_ids or [],
-        role_ids=request.role_ids or [],
+        role_id=request.role_id,
         request_limit_ids=request.request_limit_ids or [],
     )
 

@@ -40,6 +40,7 @@ async def duplicate_eval_impl(
     profile_id: UUID,
     eval_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicateEvalApiResponse:
     """Eval duplicate using composable infra functions.
 
@@ -145,6 +146,7 @@ async def duplicate_eval_impl(
                 model_rubric_ids=original.model_rubric_ids,
                 eval_ids=original.eval_ids,
                 flag_ids=flag_ids,
+                soft=soft,
             )
 
     # -- Step 7: Invalidate cache -----------------------------------------------

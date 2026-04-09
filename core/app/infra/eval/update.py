@@ -44,6 +44,7 @@ async def update_eval_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Eval bulk update using composable infra functions.
 
@@ -137,6 +138,11 @@ async def update_eval_impl(
             model_position_ids=item.model_position_ids,
         )
 
+        # Combine active_flag_id with any other flag_ids
+        combined_flag_ids = list(item.flag_ids or [])
+        if item.active_flag_id:
+            combined_flag_ids.append(item.active_flag_id)
+
         # Artifact update inside transaction
         async with pool.acquire() as conn:
             async with conn.transaction():
@@ -148,12 +154,13 @@ async def update_eval_impl(
                     if item.description_id
                     else _UNSET,
                     department_ids=item.department_ids,
-                    flag_ids=item.flag_ids,
+                    flag_ids=combined_flag_ids or None,
                     model_ids=item.model_ids,
                     model_flag_ids=item.model_flag_ids,
                     model_rubric_ids=item.model_rubric_ids,
                     model_position_ids=item.model_position_ids,
                     eval_ids=[evals_resource_id],
+                    soft=soft,
                 )
 
         results.append(

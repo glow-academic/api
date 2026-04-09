@@ -148,6 +148,9 @@ class CreateToolItem(BaseModel):
     args_outputs_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
     tool_ids: list[UUID] | None = Field(None, description="Related tool identifiers")
+    # Value-based fields for CSV import (match-by-name resolution)
+    active_flag: bool | None = Field(None, description="Whether this tool is active")
+    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
 
 
 class CreateToolApiRequest(BaseModel):
@@ -186,6 +189,9 @@ class UpdateToolItem(BaseModel):
     args_outputs_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
     tool_ids: list[UUID] | None = Field(None, description="Related tool identifiers")
+    # Value-based fields for CSV import (match-by-name resolution)
+    active_flag: bool | None = Field(None, description="Whether this tool is active")
+    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
 
 
 class UpdateToolApiRequest(BaseModel):

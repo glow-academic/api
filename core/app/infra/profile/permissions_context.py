@@ -91,9 +91,6 @@ async def resolve_profile_permissions_context(
     return ProfilePermissionsContext(
         exists=True,
         department_ids=department_ids,
-        role_id=role_id,
-        emails=emails if emails else None,
-        primary_email=primary_email,
         active_cohort_count=total,
     )
 

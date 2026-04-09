@@ -45,6 +45,7 @@ async def update_auth_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Auth bulk update using composable infra functions.
 
@@ -154,6 +155,7 @@ async def update_auth_impl(
                     auth_ids=[auths_resource_id]
                     if auths_resource_id
                     else item.auth_resource_ids,
+                    soft=soft,
                 )
 
         results.append(

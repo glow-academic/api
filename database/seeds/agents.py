@@ -121,7 +121,6 @@ agents = [
         model_ids=_role_model("text"),
         tool_ids=[
             sid("tool-resource/attempt/archive"),
-            sid("tool-resource/attempt/audio"),
             sid("tool-resource/attempt/end"),
             sid("tool-resource/attempt/end-all"),
             sid("tool-resource/attempt/export"),
@@ -134,6 +133,12 @@ agents = [
             sid("tool-resource/attempt/start"),
             sid("tool-resource/attempt/stop"),
             sid("tool-resource/attempt/use-previous"),
+            sid("tool-resource/attempt-audio/create"),
+            sid("tool-resource/attempt-audio/download"),
+            sid("tool-resource/attempt-audio/start"),
+            sid("tool-resource/attempt-audio/frame"),
+            sid("tool-resource/attempt-audio/stop"),
+            sid("tool-resource/attempt-audio/mute"),
         ],
     ),
     dict(
@@ -260,6 +265,11 @@ agents = [
             sid("tool-resource/document/refresh"),
             sid("tool-resource/document/search"),
             sid("tool-resource/document/update"),
+            sid("tool-resource/document-text/create"),
+            sid("tool-resource/document-text/download"),
+            sid("tool-resource/document-file/create"),
+            sid("tool-resource/document-file/download"),
+            sid("tool-resource/document-file/preview"),
         ],
     ),
     dict(
@@ -561,6 +571,10 @@ agents = [
         description="Image generation agent for creating scenario visuals",
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_ids=_role_model("image"),
+        tool_ids=[
+            sid("tool-resource/scenario-image/create"),
+            sid("tool-resource/scenario-image/download"),
+        ],
     ),
     dict(
         id=SCENARIO_VIDEO_AGENT,
@@ -568,6 +582,10 @@ agents = [
         description="Video generation agent for creating scenario visuals",
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_ids=_role_model("video"),
+        tool_ids=[
+            sid("tool-resource/scenario-video/create"),
+            sid("tool-resource/scenario-video/download"),
+        ],
     ),
     dict(
         id=SESSION_AGENT,

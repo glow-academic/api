@@ -162,6 +162,32 @@ async def resolve_rubric_values(
                 )
             )
 
+    if item.simulation_rubric_flag is not None and item.simulation_rubric_flag_id is None:
+        results = await search_flags(conn, redis, search=None, flag_type="simulation_rubric", limit_count=1000)
+        match = next((f for f in results if f.type == "simulation_rubric"), None)
+        if match and match.id:
+            if item.simulation_rubric_flag:
+                item.simulation_rubric_flag_id = match.id
+        elif item.simulation_rubric_flag:
+            errors.append(
+                RubricFieldError(
+                    field="simulation_rubric_flag", message="Simulation rubric flag resource not found"
+                )
+            )
+
+    if item.video_rubric_flag is not None and item.video_rubric_flag_id is None:
+        results = await search_flags(conn, redis, search=None, flag_type="video_rubric", limit_count=1000)
+        match = next((f for f in results if f.type == "video_rubric"), None)
+        if match and match.id:
+            if item.video_rubric_flag:
+                item.video_rubric_flag_id = match.id
+        elif item.video_rubric_flag:
+            errors.append(
+                RubricFieldError(
+                    field="video_rubric_flag", message="Video rubric flag resource not found"
+                )
+            )
+
     if item.departments is not None and item.department_ids is None:
         all_depts = await search_departments(
             conn,
@@ -203,6 +229,8 @@ async def create_denormalized_snapshot(
     description_id: UUID | None,
     department_ids: list[UUID] | None = None,
     standard_group_ids: list[UUID] | None = None,
+    simulation_rubric: bool = False,
+    video_rubric: bool = False,
 ) -> UUID:
     """Create a rubrics_resource snapshot by hydrating IDs to values.
 
@@ -237,5 +265,7 @@ async def create_denormalized_snapshot(
             description=descriptions[0].description if descriptions else "",
             department_ids=department_ids,
             standard_group_ids=standard_group_ids,
+            simulation_rubric=simulation_rubric,
+            video_rubric=video_rubric,
         )
     return result.id

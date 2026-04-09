@@ -28,6 +28,7 @@ from app.tools.resources.evals.create import (
     create_eval as create_eval_resource,
 )
 from app.tools.resources.names.create import create_name
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 
 if TYPE_CHECKING:
@@ -110,6 +111,23 @@ async def resolve_eval_values(
         item.description_id = result.id
 
     # --- Match resources ---
+
+    if item.active_flag is not None and item.active_flag_id is None:
+        results = await search_flags(
+            conn, redis, search=None,
+            flag_type="eval_active",
+            limit_count=1000,
+        )
+        match = next((f for f in results if f.type == "eval_active"), None)
+        if match and match.id:
+            if item.active_flag:
+                item.active_flag_id = match.id
+        elif item.active_flag:
+            errors.append(
+                EvalFieldError(
+                    field="active_flag", message="Active flag resource not found"
+                )
+            )
 
     if item.departments is not None and item.department_ids is None:
         all_depts = await search_departments(

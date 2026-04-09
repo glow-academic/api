@@ -8,8 +8,13 @@ from . import (  # noqa: F401
     drafts,
     duplicate,
     export,
+    file_download,
+    file_preview,
+    file_upload,
     get,
     refresh,
     search,
+    text_download,
+    text_upload,
     update,
 )

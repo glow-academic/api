@@ -40,6 +40,7 @@ async def duplicate_auth_impl(
     profile_id: UUID,
     auth_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicateAuthApiResponse:
     """Auth duplicate using composable infra functions.
 
@@ -144,6 +145,7 @@ async def duplicate_auth_impl(
                 protocol_ids=original.protocol_ids,
                 auth_ids=original.auth_ids,
                 flag_ids=flag_ids,
+                soft=soft,
             )
 
     # ── Step 7: Invalidate cache ───────────────────────────────────────

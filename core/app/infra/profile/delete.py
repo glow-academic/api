@@ -37,6 +37,7 @@ async def delete_profile_impl(
     profile_id: UUID,
     profile_ids: list[UUID],
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DeleteProfileApiResponse:
     """Profile bulk delete using composable infra functions.
 
@@ -108,7 +109,7 @@ async def delete_profile_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_profiles(conn, profile_ids)
+            result = await delete_profiles(conn, profile_ids, soft=soft)
 
     # -- Step 7: Invalidate cache -------------------------------------------------
 

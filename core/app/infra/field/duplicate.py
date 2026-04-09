@@ -40,6 +40,7 @@ async def duplicate_field_impl(
     profile_id: UUID,
     field_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicateFieldApiResponse:
     """Field duplicate using composable infra functions.
 
@@ -139,6 +140,7 @@ async def duplicate_field_impl(
                 conditional_parameter_ids=original.conditional_parameter_ids,
                 field_ids=original.field_ids,
                 flag_ids=flag_ids,
+                soft=soft,
             )
 
     # -- Step 7: Invalidate cache -----------------------------------------------

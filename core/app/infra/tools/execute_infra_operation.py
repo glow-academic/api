@@ -6,8 +6,11 @@ Black-box function that bridges tool artifacts to API-level infra functions:
   2. For each target (artifact, operation):
      a. Filter rendered values to accepted fields
      b. Construct Pydantic item
-     c. Execute infra function
+     c. Execute via run_artifact_operation_with_audit (canonical audit path)
   3. Return results
+
+All three call paths (HTTP, WebSocket, Generation) go through the same
+audit mechanism: run_artifact_operation_with_audit.
 
 InfraContext bundles all system-provided infrastructure (pool, redis,
 profile, session, etc.) — these are pass-throughs that the tool interface
@@ -38,6 +41,7 @@ from jinja2 import Environment, TemplateError
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
+from app.infra.events.audit import run_artifact_operation_with_audit
 from app.registry.operations import (
     INFRA_OPS,
     get_accepted_fields,
@@ -70,6 +74,8 @@ class InfraContext(BaseModel):
     session_id: UUID | None = Field(default=None, description="Session context")
     group_id: UUID | None = Field(default=None, description="Group context")
     draft_id: UUID | None = Field(default=None, description="Draft context")
+    sid: str = Field(default="", description="Socket ID for event emission")
+    soft: bool = Field(default=False, description="Create dormant records (active=False) for generation pipeline")
 
 
 # ---------------------------------------------------------------------------
@@ -182,7 +188,7 @@ def render_output_map(
 
 
 # ---------------------------------------------------------------------------
-# Per-target: filter, build, execute
+# Per-target: filter, build
 # ---------------------------------------------------------------------------
 
 
@@ -255,6 +261,8 @@ async def execute_infra_operation(
     """Execute infra operations from arbitrary inputs + Jinja output mappings.
 
     This is the black-box bridge between tool artifacts and API-level functions.
+    Each target is executed through run_artifact_operation_with_audit — the
+    same audit path used by HTTP routes and WebSocket handlers.
 
     Args:
         ctx: System-provided infrastructure (pool, redis, profile, session).
@@ -292,22 +300,41 @@ async def execute_infra_operation(
             # Build Pydantic item
             item = build_item(filtered, target.artifact, target.operation)
 
-            # Execute
-            result = await fn(
+            # Execute through canonical audit path
+            async def _runner() -> Any:
+                return await fn(
+                    ctx.pool,
+                    ctx.redis,
+                    profile_id=ctx.profile_id,
+                    items=[item],
+                    session_id=ctx.session_id,
+                    draft_id=ctx.draft_id,
+                    group_id=ctx.group_id,
+                    soft=ctx.soft,
+                )
+
+            result = await run_artifact_operation_with_audit(
                 ctx.pool,
                 ctx.redis,
+                artifact=target.artifact,
+                operation=target.operation,
                 profile_id=ctx.profile_id,
-                items=[item],
                 session_id=ctx.session_id,
-                draft_id=ctx.draft_id,
                 group_id=ctx.group_id,
+                draft_id=ctx.draft_id,
+                sid=ctx.sid,
+                rooms=[ctx.sid] if ctx.sid else [],
+                runner=_runner,
+                arguments=filtered,
             )
 
             results.append(InfraOperationResult(
                 artifact=target.artifact,
                 operation=target.operation,
                 success=True,
-                result=result,
+                result=result if isinstance(result, dict) else
+                    result.model_dump(mode="json") if hasattr(result, "model_dump") else
+                    {"result": str(result)},
                 fields_used=fields_used,
             ))
 

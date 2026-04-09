@@ -40,6 +40,7 @@ async def update_tool_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Tool bulk update using composable infra functions.
 
@@ -131,6 +132,11 @@ async def update_tool_impl(
             permission_ids=item.permission_ids,
         )
 
+        # Combine active_flag_id with any other flag_ids
+        combined_flag_ids = list(item.flag_ids or [])
+        if item.active_flag_id:
+            combined_flag_ids.append(item.active_flag_id)
+
         # Artifact update inside transaction
         async with pool.acquire() as conn:
             async with conn.transaction():
@@ -142,12 +148,13 @@ async def update_tool_impl(
                     if item.description_id
                     else _UNSET,
                     department_ids=item.department_ids,
-                    flag_ids=item.flag_ids,
+                    flag_ids=combined_flag_ids or None,
                     arg_positions_ids=item.arg_positions_ids,
                     args_ids=item.args_ids,
                     args_outputs_ids=item.args_outputs_ids,
                     permission_ids=item.permission_ids,
                     tool_ids=[tools_resource_id],
+                    soft=soft,
                 )
 
         results.append(

@@ -199,12 +199,12 @@ class CreateProfileItem(BaseModel):
     name: str | None = Field(None, description="Name value to resolve or create")
     # Optional single-select — provide IDs only
     request_limit_id: UUID | None = Field(None, description="UUID of the request limit resource")
-    flag_id: UUID | None = Field(None, description="UUID of the flag option")
+    active_flag_id: UUID | None = Field(None, description="UUID of the flag option")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     departments: list[str] | None = Field(None, description="Department names to resolve")
     email_ids: list[UUID] | None = Field(None, description="Email resource UUIDs")
-    role_ids: list[UUID] | None = Field(None, description="Role resource UUIDs")
+    role_id: UUID | None = Field(None, description="Role resource UUID")
 
 
 class CreateProfileApiRequest(BaseModel):
@@ -230,12 +230,12 @@ class UpdateProfileItem(BaseModel):
     name_id: UUID | None = Field(None, description="UUID of the name resource")
     name: str | None = Field(None, description="Name value to resolve or create")
     request_limit_id: UUID | None = Field(None, description="UUID of the request limit resource")
-    flag_id: UUID | None = Field(None, description="UUID of the flag option")
+    active_flag_id: UUID | None = Field(None, description="UUID of the flag option")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     departments: list[str] | None = Field(None, description="Department names to resolve")
     email_ids: list[UUID] | None = Field(None, description="Email resource UUIDs")
-    role_ids: list[UUID] | None = Field(None, description="Role resource UUIDs")
+    role_id: UUID | None = Field(None, description="Role resource UUID")
 
 
 class UpdateProfileApiRequest(BaseModel):
@@ -296,7 +296,7 @@ class PatchProfileDraftApiRequest(BaseModel):
     Dual-mode for creatable resources only:
       - name/name_id
     ID-only for non-creatable resources:
-      - flag_id, department_ids, email_ids, role_ids, request_limit_ids
+      - active_flag_id, department_ids, email_ids, role_ids, request_limit_ids
 
     Client always sends full state (append-only — each write is a new version snapshot).
     """
@@ -311,10 +311,10 @@ class PatchProfileDraftApiRequest(BaseModel):
     request_limit: int | None = Field(None, description="Request limit value to resolve or create")
 
     # Non-creatable — ID-only
-    flag_id: UUID | None = Field(None, description="UUID of the flag option")
+    active_flag_id: UUID | None = Field(None, description="UUID of the flag option")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     email_ids: list[UUID] | None = Field(None, description="Email resource UUIDs")
-    role_ids: list[UUID] | None = Field(None, description="Role resource UUIDs")
+    role_id: UUID | None = Field(None, description="Role resource UUID")
     request_limit_ids: list[UUID] | None = Field(None, description="Request limit resource UUIDs")
 
 
@@ -322,10 +322,10 @@ class ProfileDraftFormState(BaseModel):
     """Server-authoritative form state returned after draft save."""
 
     name_id: UUID | None = Field(None, description="Resolved name resource UUID")
-    flag_id: UUID | None = Field(None, description="Resolved flag option UUID")
+    active_flag_id: UUID | None = Field(None, description="Resolved flag option UUID")
     department_ids: list[UUID] = Field(..., description="Assigned department UUIDs")
     email_ids: list[UUID] = Field(..., description="Assigned email resource UUIDs")
-    role_ids: list[UUID] = Field(..., description="Assigned role resource UUIDs")
+    role_id: UUID | None = Field(None, description="Assigned role resource UUID")
     request_limit_ids: list[UUID] = Field(..., description="Assigned request limit UUIDs")
 
 

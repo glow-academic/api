@@ -36,6 +36,7 @@ async def delete_cohort_impl(
     profile_id: UUID,
     cohort_ids: list[UUID],
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DeleteCohortApiResponse:
     """Cohort bulk delete using composable infra functions.
 
@@ -102,7 +103,7 @@ async def delete_cohort_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_cohorts(conn, cohort_ids)
+            result = await delete_cohorts(conn, cohort_ids, soft=soft)
 
     # ── Step 6: Invalidate cache ──────────────────────────────────────
 

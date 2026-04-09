@@ -39,6 +39,7 @@ async def delete_department_impl(
     profile_id: UUID,
     department_ids: list[UUID],
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DeleteDepartmentApiResponse:
     """Department bulk delete using composable infra functions.
 
@@ -105,7 +106,7 @@ async def delete_department_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_departments(conn, department_ids)
+            result = await delete_departments(conn, department_ids, soft=soft)
 
     # -- Step 6: Invalidate cache -----------------------------------------------
 

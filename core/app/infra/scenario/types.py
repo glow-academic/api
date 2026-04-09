@@ -864,6 +864,92 @@ class ImageDownloadScenarioApiResult(BaseModel):
 
 
 # =============================================================================
+# Video Upload/Download Types
+# =============================================================================
+
+
+class VideoUploadScenarioApiResponse(BaseModel):
+    """Response model for scenario video upload endpoint."""
+
+    video_id: UUID = Field(..., description="UUID of the created videos_resource")
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry (file on disk)")
+
+
+class VideoDownloadScenarioApiRequest(BaseModel):
+    """Request model for scenario video download endpoint."""
+
+    video_id: UUID = Field(..., description="UUID of the videos_resource to download")
+
+
+class VideoDownloadScenarioApiResult(BaseModel):
+    """Resolved file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
+
+
+# =============================================================================
+# Text Download Types
+# =============================================================================
+
+
+class TextDownloadScenarioApiRequest(BaseModel):
+    """Request model for scenario text download endpoint."""
+
+    text_id: UUID = Field(..., description="UUID of the texts_resource to download")
+
+
+class TextDownloadScenarioApiResult(BaseModel):
+    """Resolved file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
+
+
+# =============================================================================
+# File Download/Preview Types
+# =============================================================================
+
+
+class FileDownloadScenarioApiRequest(BaseModel):
+    """Request model for scenario file download endpoint."""
+
+    file_id: UUID = Field(..., description="UUID of the files_resource to download")
+
+
+class FileDownloadScenarioApiResult(BaseModel):
+    """Resolved file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
+
+
+class FilePreviewScenarioApiRequest(BaseModel):
+    """Request model for scenario file preview endpoint."""
+
+    file_id: UUID = Field(..., description="UUID of the files_resource to preview")
+
+
+class FilePreviewScenarioApiResult(BaseModel):
+    """Resolved preview info returned by the infra function.
+
+    preview_bytes contains the PNG image of the first page.
+    """
+
+    preview_bytes: bytes = Field(..., description="PNG image bytes of the first page")
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+
+
+# =============================================================================
 # SQL Row Types (for internal use)
 # =============================================================================
 

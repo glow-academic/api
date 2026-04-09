@@ -36,6 +36,7 @@ async def delete_provider_impl(
     profile_id: UUID,
     provider_ids: list[UUID],
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DeleteProviderApiResponse:
     """Provider bulk delete using composable infra functions.
 
@@ -102,7 +103,7 @@ async def delete_provider_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_providers(conn, provider_ids)
+            result = await delete_providers(conn, provider_ids, soft=soft)
 
     # -- Step 6: Invalidate cache -------------------------------------------------
 

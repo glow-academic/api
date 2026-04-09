@@ -40,6 +40,7 @@ async def duplicate_document_impl(
     profile_id: UUID,
     document_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicateDocumentApiResponse:
     """Document duplicate using composable infra functions.
 
@@ -145,6 +146,7 @@ async def duplicate_document_impl(
                 text_ids=original.texts_ids,
                 document_ids=original.document_ids,
                 flag_ids=flag_ids,
+                soft=soft,
             )
 
     # -- Step 7: Invalidate cache -----------------------------------------------

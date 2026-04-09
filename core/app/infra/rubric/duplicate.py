@@ -40,6 +40,7 @@ async def duplicate_rubric_impl(
     profile_id: UUID,
     rubric_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicateRubricApiResponse:
     """Rubric duplicate using composable infra functions.
 
@@ -143,6 +144,7 @@ async def duplicate_rubric_impl(
                 standard_ids=original.standard_ids,
                 rubric_ids=original.rubric_ids,
                 flag_ids=flag_ids,
+                soft=soft,
             )
 
     # -- Step 7: Invalidate cache -----------------------------------------------

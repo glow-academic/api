@@ -44,6 +44,7 @@ async def create_agent_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Agent bulk create using composable infra functions.
 
@@ -127,19 +128,25 @@ async def create_agent_impl(
         # Artifact create inside transaction
         async with pool.acquire() as conn:
             async with conn.transaction():
+                # Combine existing flag_ids with active_flag_id
+                combined_flag_ids = list(item.flag_ids or [])
+                if item.active_flag_id:
+                    combined_flag_ids.append(item.active_flag_id)
+
                 result = await create_agent_artifact(
                     conn,
                     id=item.id,
                     name_id=item.name_id,
                     description_id=item.description_id,
                     department_ids=item.department_ids,
-                    flag_ids=item.flag_ids,
+                    flag_ids=combined_flag_ids or None,
                     model_ids=item.model_ids,
                     reasoning_level_ids=item.reasoning_level_ids,
                     temperature_level_ids=item.temperature_level_ids,
                     tool_ids=item.tool_ids,
                     voice_ids=item.voice_ids,
                     agent_ids=[agents_resource_id],
+                    soft=soft,
                 )
 
         results.append(

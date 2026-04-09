@@ -1,55 +1,61 @@
-"""Document file preview — PDF first-page thumbnail."""
+"""Document file preview endpoint — composable infra architecture.
 
-import os
-import uuid
+Thin route handler. Core logic lives in app.infra.document.file_preview.
+"""
+
+from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import BaseModel
 
-from app.infra.globals import UPLOAD_FOLDER, get_pool
-from app.tools.entries.uploads.get import get_upload
-from app.utils.document.pdf_first_page_to_image_bytes import (
-    pdf_first_page_to_image_bytes,
-)
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.document.file_preview import file_preview_document_impl
+from app.infra.document.types import FilePreviewDocumentApiRequest
 from app.utils.error.handle_route_error import handle_route_error
-from app.utils.mime.get_content_type import get_content_type
 
 router = APIRouter()
 
 
-class FilePreviewRequest(BaseModel):
-    upload_id: uuid.UUID
-
-
 @router.post("/preview", response_model=None)
 async def preview_file(
-    request: FilePreviewRequest,
+    request: FilePreviewDocumentApiRequest,
     http_request: Request,
+    response: Response,
 ) -> Response:
     """Return a PNG preview of the first page of a PDF upload."""
     try:
-        pool = get_pool()
-        async with pool.acquire() as conn:
-            result = await get_upload(conn, request.upload_id)
-
-        if result is None:
-            raise HTTPException(status_code=404, detail="Upload not found")
-
-        stored_path = result.file_path or ""
-        file_path = os.path.join(UPLOAD_FOLDER, stored_path)
-
-        if not os.path.exists(file_path):
-            raise HTTPException(status_code=404, detail="File not found")
-
-        content_type = get_content_type(result.file_path or "", result.mime_type or "")
-        if content_type != "application/pdf":
+        profile_id = http_request.state.profile_id
+        session_id = http_request.state.session_id
+        if not profile_id:
             raise HTTPException(
-                status_code=400, detail="Preview only supported for PDF files"
+                status_code=401,
+                detail="Profile ID is required. Please sign in again.",
             )
 
-        preview_bytes = pdf_first_page_to_image_bytes(file_path)
-        if not preview_bytes:
-            raise HTTPException(status_code=500, detail="Failed to generate preview")
+        pool = get_pool()
+        redis = get_redis_client()
+
+        async def _runner() -> bytes:
+            return await file_preview_document_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                file_id=request.file_id,
+            )
+
+        preview_bytes = await run_artifact_operation_with_audit(
+            pool,
+            redis,
+            artifact="document",
+            profile_id=profile_id,
+            session_id=session_id,
+            operation="file_preview",
+            arguments={"file_id": str(request.file_id)},
+            response_model=None,
+            runner=_runner,
+            upload_folder=get_upload_folder(),
+        )
 
         return Response(
             content=preview_bytes,
@@ -62,7 +68,6 @@ async def preview_file(
         handle_route_error(
             error=e,
             route_path=http_request.url.path,
-            operation="preview_document_file",
+            operation="file_preview_document",
             request=http_request,
         )
-        raise

@@ -45,6 +45,7 @@ async def create_department_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Department bulk create using composable infra functions.
 
@@ -136,6 +137,7 @@ async def create_department_impl(
                     department_ids=[departments_resource_id],
                     flag_ids=[item.active_flag_id] if item.active_flag_id else None,
                     settings_ids=item.settings_ids,
+                    soft=soft,
                 )
 
         saved_department_ids.append(result.id)

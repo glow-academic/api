@@ -44,6 +44,7 @@ async def create_profile_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Profile bulk create using composable infra functions.
 
@@ -122,6 +123,7 @@ async def create_profile_impl(
                     name_id=item.name_id,
                     department_ids=item.department_ids,
                     email_ids=item.email_ids,
+                    role_id=item.role_id,
                 )
 
                 result = await create_profile_artifact(
@@ -130,11 +132,12 @@ async def create_profile_impl(
                     name_id=item.name_id,
                     request_limit_id=item.request_limit_id,
                     department_ids=item.department_ids,
-                    flag_ids=[item.flag_id] if item.flag_id else None,
+                    flag_ids=[item.active_flag_id] if item.active_flag_id else None,
                     email_ids=item.email_ids,
-                    role_ids=item.role_ids,
+                    role_ids=[item.role_id] if item.role_id else None,
                     profile_ids=[profiles_resource_id],
                     redis=redis,
+                    soft=soft,
                 )
 
                 results.append(

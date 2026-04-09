@@ -186,6 +186,9 @@ class CreateEvalItem(BaseModel):
     model_flag_ids: list[UUID] | None = Field(None, description="Model flag UUIDs")
     model_rubric_ids: list[UUID] | None = Field(None, description="Model rubric UUIDs")
     model_position_ids: list[UUID] | None = Field(None, description="Model position UUIDs")
+    # Value-based fields for CSV import (match-by-name resolution)
+    active_flag: bool | None = Field(None, description="Whether this eval is active")
+    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
 
 
 class CreateEvalApiRequest(BaseModel):
@@ -223,6 +226,9 @@ class UpdateEvalItem(BaseModel):
     model_flag_ids: list[UUID] | None = Field(None, description="Model flag UUIDs")
     model_rubric_ids: list[UUID] | None = Field(None, description="Model rubric UUIDs")
     model_position_ids: list[UUID] | None = Field(None, description="Model position UUIDs")
+    # Value-based fields for CSV import (match-by-name resolution)
+    active_flag: bool | None = Field(None, description="Whether this eval is active")
+    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
 
 
 class UpdateEvalApiRequest(BaseModel):

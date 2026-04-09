@@ -143,6 +143,37 @@ import pathlib; \
 p.write_text(json.dumps(get_openapi(title=fastapi_app.title, version='0.1.0', routes=fastapi_app.routes, description='Auto-generated OpenAPI schema'), indent=2)); \
 print('✅ openapi.json written to', p.resolve())"
 
+# Provision a deployment token from the LearnLoop API (local dev only).
+# Creates a fresh provision token in the learnloop DB, claims it via HTTP,
+# and exports DEPLOYMENT_TOKEN for the server process.
+# Requires: learnloop-api running on AUTH_ISSUER (default http://localhost:8100).
+provision-token:
+	@LEARNLOOP_DB=$${LEARNLOOP_DB_NAME:-learnloopapi}; \
+	LEARNLOOP_URL=$${AUTH_ISSUER:-http://localhost:8100}; \
+	DB_U=$${DB_USER:-myuser}; \
+	DB_P=$${DB_PASSWORD:-mypassword}; \
+	DB_H=$${DB_HOST:-localhost}; \
+	DB_PT=$${DB_PORT:-5432}; \
+	TOKEN=$$(PGPASSWORD=$$DB_P psql -h $$DB_H -p $$DB_PT -U $$DB_U -d $$LEARNLOOP_DB -tAqc " \
+		INSERT INTO provision_tokens (organization_id, deployment_id, token, expires_at) \
+		SELECT d.organization_id, d.id, 'pt_' || encode(gen_random_bytes(32), 'hex'), \
+		       NOW() + interval '1 hour' \
+		FROM deployments d WHERE d.name = 'glow-api' AND d.active = true \
+		RETURNING token" 2>/dev/null | head -1 | tr -d '[:space:]'); \
+	if [ -z "$$TOKEN" ]; then \
+		echo "⚠️  Could not create provision token (is learnloop DB seeded?)"; \
+		echo "   Continuing without DEPLOYMENT_TOKEN..."; \
+	else \
+		DT=$$(printf '{"token":"%s"}' "$$TOKEN" | curl -sf -X POST "$$LEARNLOOP_URL/provision/claim" \
+			-H 'Content-Type: application/json' \
+			-d @- | $(VENV_PYTHON) -c "import sys,json; print(json.load(sys.stdin).get('deployment_token',''))" 2>/dev/null); \
+		if [ -n "$$DT" ]; then \
+			echo "$$DT"; \
+		else \
+			echo "⚠️  Could not claim provision token (is learnloop-api running on $$LEARNLOOP_URL?)"; \
+		fi; \
+	fi
+
 # Start all services in foreground with combined logs
 run: check-venv
 	@echo "🚀 Starting GLOW API services..."
@@ -154,7 +185,14 @@ run: check-venv
 	@echo "Press Ctrl+C to stop all services"
 	@echo "----------------------------------------"
 	@psql postgresql://$${DB_USER:-myuser}:$${DB_PASSWORD:-mypassword}@localhost:$(DATABASE_PORT)/$${DB_NAME:-glowapi} -c "CREATE SCHEMA IF NOT EXISTS keycloak; CREATE SCHEMA IF NOT EXISTS migrations;" 2>/dev/null || true
-	@trap 'echo ""; echo "🛑 Stopping all services..."; pkill -f "redis-server.*$(REDIS_PORT)" 2>/dev/null || true; pkill -f "uvicorn.*$(SERVER_PORT)" 2>/dev/null || true; pkill -f "stream-logs.js" 2>/dev/null || true; pkill -f "docker logs.*glow-keycloak" 2>/dev/null || true; docker stop glow-keycloak 2>/dev/null; docker rm glow-keycloak 2>/dev/null; echo "✅ All services stopped"; exit 0' INT; \
+	@DEPLOYMENT_TOKEN=$$($(MAKE) -s provision-token 2>/dev/null); \
+	if [ -n "$$DEPLOYMENT_TOKEN" ]; then \
+		echo "✅ Deployment token provisioned"; \
+	else \
+		echo "⚠️  No deployment token (learnloop-api not running?)"; \
+	fi; \
+	export DEPLOYMENT_TOKEN; \
+	trap 'echo ""; echo "🛑 Stopping all services..."; pkill -f "redis-server.*$(REDIS_PORT)" 2>/dev/null || true; pkill -f "uvicorn.*$(SERVER_PORT)" 2>/dev/null || true; pkill -f "stream-logs.js" 2>/dev/null || true; pkill -f "docker logs.*glow-keycloak" 2>/dev/null || true; docker stop glow-keycloak 2>/dev/null; docker rm glow-keycloak 2>/dev/null; echo "✅ All services stopped"; exit 0' INT; \
 	exec 2>/dev/null; \
 	if docker ps --filter name=glow-keycloak --format "{{.Names}}" | grep -q "^glow-keycloak$$"; then \
 		echo "✅ Keycloak already running, attaching to logs..."; \
@@ -248,6 +286,7 @@ cleanup:
 DB_BACKUP ?= fresh.sql.gz
 restore-db:
 	@DB_BACKUP=$(DB_BACKUP) bash database/scripts/start.sh
+	@rm -rf uploads/ledger && echo "✅ Ledger cleared"
 
 # Migrate: restore fresh, apply all migrations, update schema, regenerate templates
 migrate: check-venv

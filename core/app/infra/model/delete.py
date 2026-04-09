@@ -36,6 +36,7 @@ async def delete_model_impl(
     profile_id: UUID,
     model_ids: list[UUID],
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DeleteModelApiResponse:
     """Model bulk delete using composable infra functions.
 
@@ -102,7 +103,7 @@ async def delete_model_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_models(conn, model_ids)
+            result = await delete_models(conn, model_ids, soft=soft)
 
     # -- Step 6: Invalidate cache ----------------------------------------------
 

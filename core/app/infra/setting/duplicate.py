@@ -40,6 +40,7 @@ async def duplicate_setting_impl(
     profile_id: UUID,
     setting_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicateSettingApiResponse:
     """Setting duplicate using composable infra functions.
 
@@ -153,6 +154,7 @@ async def duplicate_setting_impl(
                 threshold_ids=original.threshold_ids,
                 setting_ids=original.setting_ids,
                 flag_ids=flag_ids,
+                soft=soft,
             )
 
     # ── Step 7: Invalidate cache ───────────────────────────────────────

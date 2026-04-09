@@ -36,6 +36,7 @@ async def delete_setting_impl(
     profile_id: UUID,
     setting_ids: list[UUID],
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DeleteSettingApiResponse:
     """Setting bulk delete using composable infra functions.
 
@@ -101,7 +102,7 @@ async def delete_setting_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_settings(conn, setting_ids)
+            result = await delete_settings(conn, setting_ids, soft=soft)
 
     # -- Step 6: Invalidate cache -----------------------------------------------
 

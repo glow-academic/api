@@ -72,6 +72,7 @@ async def create_scenario_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Scenario bulk create using composable infra functions.
 
@@ -157,6 +158,11 @@ async def create_scenario_impl(
             problem_statement_ids=[item.problem_statement_id]
             if item.problem_statement_id
             else None,
+            images_enabled=item.images_enabled_flag,
+            objectives_enabled=item.objectives_enabled_flag,
+            problem_statement_enabled=item.problem_statement_enabled_flag,
+            questions_enabled=item.questions_enabled_flag,
+            video_enabled=item.video_enabled_flag,
         )
 
         flag_ids = _collect_flag_ids(item)
@@ -183,6 +189,7 @@ async def create_scenario_impl(
                     question_ids=item.question_ids,
                     video_ids=item.video_ids,
                     scenario_ids=[scenarios_resource_id],
+                    soft=soft,
                 )
 
         results.append(

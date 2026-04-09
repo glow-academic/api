@@ -40,6 +40,7 @@ async def duplicate_department_impl(
     profile_id: UUID,
     department_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicateDepartmentApiResponse:
     """Department duplicate using composable infra functions.
 
@@ -138,6 +139,7 @@ async def duplicate_department_impl(
                 department_ids=original.department_ids,
                 settings_ids=original.settings_ids,
                 flag_ids=flag_ids,
+                soft=soft,
             )
 
     # ── Step 7: Invalidate cache ───────────────────────────────────────

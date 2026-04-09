@@ -26,6 +26,7 @@ from app.tools.artifacts.tool.get import (
 )
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.get import get_descriptions
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
 from app.tools.resources.tools.create import (
@@ -109,6 +110,25 @@ async def resolve_tool_values(
     if item.description is not None and item.description_id is None:
         result = await create_description(conn, item.description, redis)
         item.description_id = result.id
+
+    # --- Match resources ---
+
+    if item.active_flag is not None and item.active_flag_id is None:
+        results = await search_flags(
+            conn, redis, search=None,
+            flag_type="tool_active",
+            limit_count=1000,
+        )
+        match = next((f for f in results if f.type == "tool_active"), None)
+        if match and match.id:
+            if item.active_flag:
+                item.active_flag_id = match.id
+        elif item.active_flag:
+            errors.append(
+                ToolFieldError(
+                    field="active_flag", message="Active flag resource not found"
+                )
+            )
 
     # --- Validate required fields (create only) ---
 

@@ -132,41 +132,41 @@ async def resolve_simulation_values(
 
         # --- Match resources ---
 
-        if item.is_inactive is not None and item.flag_ids is None:
+        if item.active_flag is not None and item.active_flag_id is None:
             results = await search_flags(
                 conn,
                 redis,
                 search=None,
-                flag_type="simulation_inactive",
+                flag_type="simulation_active",
                 limit_count=1000,
             )
-            match = next((f for f in results if f.type == "simulation_inactive"), None)
+            match = next((f for f in results if f.type == "simulation_active"), None)
             if match and match.id:
-                if item.is_inactive:
-                    item.flag_ids = [match.id]
-            elif item.is_inactive:
+                if item.active_flag:
+                    item.active_flag_id = match.id
+            elif item.active_flag:
                 errors.append(
                     SimulationFieldError(
-                        field="is_inactive", message="Inactive flag resource not found"
+                        field="active_flag", message="Active flag resource not found"
                     )
                 )
 
-        if item.is_practice is not None:
+        if item.practice_flag is not None and item.practice_flag_id is None:
             results = await search_flags(
                 conn,
                 redis,
                 search=None,
-                flag_type="simulation_practice",
+                flag_type="practice",
                 limit_count=1000,
             )
-            match = next((f for f in results if f.type == "simulation_practice"), None)
+            match = next((f for f in results if f.type == "practice"), None)
             if match and match.id:
-                if item.is_practice:
-                    item.flag_ids = (item.flag_ids or []) + [match.id]
-            elif item.is_practice:
+                if item.practice_flag:
+                    item.practice_flag_id = match.id
+            elif item.practice_flag:
                 errors.append(
                     SimulationFieldError(
-                        field="is_practice",
+                        field="practice_flag",
                         message="Practice flag resource not found",
                     )
                 )
@@ -237,6 +237,7 @@ async def create_denormalized_snapshot(
     id: UUID | None = None,
     name_id: UUID | None,
     description_id: UUID | None,
+    practice: bool = False,
     department_ids: list[UUID] | None = None,
     scenario_ids: list[UUID] | None = None,
     scenario_rubric_ids: list[UUID] | None = None,
@@ -275,6 +276,7 @@ async def create_denormalized_snapshot(
             id=id,
             name=names[0].name if names else "",
             description=descriptions[0].description if descriptions else "",
+            practice=practice,
             department_ids=department_ids,
             scenario_ids=scenario_ids,
             scenario_rubric_ids=scenario_rubric_ids,

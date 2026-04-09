@@ -40,6 +40,7 @@ async def duplicate_tool_impl(
     profile_id: UUID,
     tool_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicateToolApiResponse:
     """Tool duplicate using composable infra functions.
 
@@ -145,6 +146,7 @@ async def duplicate_tool_impl(
                 permission_ids=original.permission_ids,
                 tool_ids=original.tool_ids,
                 flag_ids=flag_ids,
+                soft=soft,
             )
 
     # -- Step 7: Invalidate cache -----------------------------------------------

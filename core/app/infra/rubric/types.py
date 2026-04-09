@@ -126,6 +126,10 @@ class CreateRubricItem(BaseModel):
     description: str | None = Field(None, description="Description value for resolution")
     active_flag_id: UUID | None = Field(None, description="Active flag option UUID")
     active_flag: bool | None = Field(None, description="Active flag boolean value")
+    simulation_rubric_flag: bool | None = Field(None, description="Whether this is a simulation rubric")
+    simulation_rubric_flag_id: UUID | None = Field(None, description="Simulation rubric flag resource UUID")
+    video_rubric_flag: bool | None = Field(None, description="Whether this is a video rubric")
+    video_rubric_flag_id: UUID | None = Field(None, description="Video rubric flag resource UUID")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for resolution")
@@ -161,6 +165,10 @@ class UpdateRubricItem(BaseModel):
     description: str | None = Field(None, description="Description value for resolution")
     active_flag_id: UUID | None = Field(None, description="Active flag option UUID")
     active_flag: bool | None = Field(None, description="Active flag boolean value")
+    simulation_rubric_flag: bool | None = Field(None, description="Whether this is a simulation rubric")
+    simulation_rubric_flag_id: UUID | None = Field(None, description="Simulation rubric flag resource UUID")
+    video_rubric_flag: bool | None = Field(None, description="Whether this is a video rubric")
+    video_rubric_flag_id: UUID | None = Field(None, description="Video rubric flag resource UUID")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for resolution")

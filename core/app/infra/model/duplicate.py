@@ -40,6 +40,7 @@ async def duplicate_model_impl(
     profile_id: UUID,
     model_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicateModelApiResponse:
     """Model duplicate using composable infra functions.
 
@@ -153,6 +154,7 @@ async def duplicate_model_impl(
                 value_ids=original.value_ids,
                 voice_ids=original.voice_ids,
                 flag_ids=flag_ids,
+                soft=soft,
             )
 
     # -- Step 7: Invalidate cache -----------------------------------------------

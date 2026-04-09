@@ -29,15 +29,6 @@ ALTER TABLE ONLY public.tool_args_junction
 
 --
 
--- Name: tool_args_outputs_junction tool_args_outputs_args_outputs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tool_args_outputs_junction
-    ADD CONSTRAINT tool_args_outputs_args_outputs_id_fkey FOREIGN KEY (args_outputs_id) REFERENCES public.args_outputs_resource(id) ON DELETE CASCADE;
-
-
---
-
 -- Name: tool_args_outputs_junction tool_args_outputs_tool_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 

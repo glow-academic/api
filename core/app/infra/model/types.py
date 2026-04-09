@@ -215,6 +215,9 @@ class CreateModelItem(BaseModel):
     # Dual-mode: departments (match by name)
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     departments: list[str] | None = Field(None, description="Department names to match")
+    # Active flag
+    active_flag: bool | None = Field(None, description="Whether this model is active")
+    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
     # ID-only fields
     flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
     modality_ids: list[UUID] | None = Field(None, description="Modality identifiers")
@@ -261,6 +264,9 @@ class UpdateModelItem(BaseModel):
     # Dual-mode: departments (match by name)
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     departments: list[str] | None = Field(None, description="Department names to match")
+    # Active flag
+    active_flag: bool | None = Field(None, description="Whether this model is active")
+    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
     # ID-only fields
     flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
     modality_ids: list[UUID] | None = Field(None, description="Modality identifiers")

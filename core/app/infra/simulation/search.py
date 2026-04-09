@@ -72,7 +72,7 @@ SIMULATION_IMPORT_FIELDS: list[dict[str, Any]] = [
         "description": "Whether the simulation is inactive (true/false)",
     },
     {
-        "key": "is_practice",
+        "key": "practice_flag",
         "label": "Practice",
         "type": "boolean",
         "example": "false",

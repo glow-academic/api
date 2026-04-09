@@ -44,6 +44,7 @@ async def create_setting_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Setting bulk create using composable infra functions.
 
@@ -143,6 +144,7 @@ async def create_setting_impl(
                     setting_ids=[settings_resource_id]
                     if settings_resource_id
                     else item.setting_resource_ids,
+                    soft=soft,
                 )
 
         results.append(

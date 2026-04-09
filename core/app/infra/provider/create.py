@@ -44,6 +44,7 @@ async def create_provider_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Provider bulk create using composable infra functions.
 
@@ -142,6 +143,7 @@ async def create_provider_impl(
                     key_ids=item.key_ids,
                     provider_ids=[providers_resource_id],
                     value_ids=item.value_ids,
+                    soft=soft,
                 )
 
         results.append(

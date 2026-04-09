@@ -40,6 +40,7 @@ async def duplicate_simulation_impl(
     profile_id: UUID,
     simulation_id: UUID,
     session_id: UUID | None = None,
+    soft: bool = False,
 ) -> DuplicateSimulationApiResponse:
     """Simulation duplicate using composable infra functions.
 
@@ -147,6 +148,7 @@ async def duplicate_simulation_impl(
                 scenario_time_limit_ids=original.scenario_time_limit_ids,
                 simulation_ids=original.simulation_ids,
                 flag_ids=flag_ids,
+                soft=soft,
             )
 
     # -- Step 7: Invalidate cache -----------------------------------------------

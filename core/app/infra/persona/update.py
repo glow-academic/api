@@ -40,6 +40,7 @@ async def update_persona_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Persona bulk update using composable infra functions.
 
@@ -153,6 +154,7 @@ async def update_persona_impl(
                     parameter_field_ids=item.parameter_field_ids,
                     persona_ids=[personas_resource_id],
                     voice_ids=item.voice_ids,
+                    soft=soft,
                 )
 
                 results.append(

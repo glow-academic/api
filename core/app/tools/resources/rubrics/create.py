@@ -20,12 +20,14 @@ async def create_rubric(
     soft: bool = False,
     department_ids: list[UUID] | None = None,
     standard_group_ids: list[UUID] | None = None,
+    simulation_rubric: bool = False,
+    video_rubric: bool = False,
 ) -> GetRubricResponse:
     """Create a rubric resource (plain INSERT — no unique constraint)."""
     rubric_id = await conn.fetchval(
         """
-        INSERT INTO rubrics_resource (id, name, description, active, mcp, generated, department_ids, standard_group_ids)
-        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, $4, $6, $7)
+        INSERT INTO rubrics_resource (id, name, description, active, mcp, generated, department_ids, standard_group_ids, simulation_rubric, video_rubric)
+        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, $4, $6, $7, $8, $9)
         RETURNING id
     """,
         name,
@@ -35,6 +37,8 @@ async def create_rubric(
         id,
         department_ids or [],
         standard_group_ids or [],
+        simulation_rubric,
+        video_rubric,
     )
 
     await invalidate_tags(["resources", "rubrics"], redis=redis)

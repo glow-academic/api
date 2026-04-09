@@ -44,6 +44,7 @@ async def create_document_impl(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    soft: bool = False,
 ) -> dict:
     """Document bulk create using composable infra functions.
 
@@ -126,9 +127,11 @@ async def create_document_impl(
             department_ids=item.department_ids,
             image_ids=item.image_ids,
             parameter_field_ids=item.field_ids,
+            template=bool(item.template_flag_id),
         )
 
-        flag_ids = [item.flag_id] if item.flag_id else None
+        combined_flag_ids = [fid for fid in [item.active_flag_id, item.template_flag_id] if fid]
+        flag_ids = combined_flag_ids if combined_flag_ids else None
 
         # Artifact create inside transaction
         async with pool.acquire() as conn:
@@ -145,6 +148,7 @@ async def create_document_impl(
                     parameter_field_ids=item.field_ids,
                     text_ids=item.text_ids,
                     document_ids=[documents_resource_id],
+                    soft=soft,
                 )
 
         results.append(

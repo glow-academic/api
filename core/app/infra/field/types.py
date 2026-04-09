@@ -148,6 +148,9 @@ class CreateFieldItem(BaseModel):
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="UUID of the description resource")
     description: str | None = Field(None, description="Description value to resolve or create")
+    # Active flag
+    active_flag: bool | None = Field(None, description="Whether this field is active")
+    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
     # Optional single-select — provide ID only
     flag_id: UUID | None = Field(None, description="UUID of the flag option")
     # Optional multi-select — provide IDs or values
@@ -184,6 +187,9 @@ class UpdateFieldItem(BaseModel):
     name: str | None = Field(None, description="Name value to resolve or create")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
     description: str | None = Field(None, description="Description value to resolve or create")
+    # Active flag
+    active_flag: bool | None = Field(None, description="Whether this field is active")
+    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
     # Optional single-select — provide ID only
     flag_id: UUID | None = Field(None, description="UUID of the flag option")
     # Optional multi-select — provide IDs or values

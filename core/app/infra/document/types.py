@@ -294,7 +294,10 @@ class CreateDocumentItem(BaseModel):
     description: str | None = Field(None, description="Description value for resolution")
     # Flag — provide ID or boolean
     flag_id: UUID | None = Field(None, description="Flag option UUID")
-    is_inactive: bool | None = Field(None, description="Whether the document is inactive")
+    active_flag_id: UUID | None = Field(None, description="UUID of the flag option to set active status")
+    active_flag: bool | None = Field(None, description="Whether the document is active (resolved to flag_id)")
+    template_flag: bool | None = Field(None, description="Whether this is a template document")
+    template_flag_id: UUID | None = Field(None, description="Template flag resource UUID")
     # Multi-select — provide IDs or names
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for resolution")
@@ -334,7 +337,10 @@ class UpdateDocumentItem(BaseModel):
     description: str | None = Field(None, description="Description value for resolution")
     # Flag — provide ID or boolean
     flag_id: UUID | None = Field(None, description="Flag option UUID")
-    is_inactive: bool | None = Field(None, description="Whether the document is inactive")
+    active_flag_id: UUID | None = Field(None, description="UUID of the flag option to set active status")
+    active_flag: bool | None = Field(None, description="Whether the document is active (resolved to flag_id)")
+    template_flag: bool | None = Field(None, description="Whether this is a template document")
+    template_flag_id: UUID | None = Field(None, description="Template flag resource UUID")
     # Multi-select — provide IDs or names
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for resolution")
@@ -503,3 +509,71 @@ class ExportDocumentApiResponse(BaseModel):
     file_name: str = Field(..., description="Suggested file name for download")
     mime_type: str = Field(..., description="MIME type of the exported content")
     row_count: int = Field(..., description="Number of rows in the export")
+
+
+# =============================================================================
+# Text Upload/Download Types
+# =============================================================================
+
+
+class TextUploadDocumentApiResponse(BaseModel):
+    """Response model for document text upload endpoint."""
+
+    text_id: UUID = Field(..., description="UUID of the created texts_resource")
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry (file on disk)")
+
+
+class TextDownloadDocumentApiRequest(BaseModel):
+    """Request model for document text download endpoint."""
+
+    text_id: UUID = Field(..., description="UUID of the texts_resource to download")
+
+
+class TextDownloadDocumentApiResult(BaseModel):
+    """Resolved file info returned by the infra function.
+
+    The transport layer (HTTP/WS) uses this to serve the file appropriately.
+    """
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
+
+
+# =============================================================================
+# File Upload/Download/Preview Types
+# =============================================================================
+
+
+class FileUploadDocumentApiResponse(BaseModel):
+    """Response model for document file upload endpoint."""
+
+    file_id: UUID = Field(..., description="UUID of the created files_resource")
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry (file on disk)")
+
+
+class FileDownloadDocumentApiRequest(BaseModel):
+    """Request model for document file download endpoint."""
+
+    file_id: UUID = Field(..., description="UUID of the files_resource to download")
+
+
+class FileDownloadDocumentApiResult(BaseModel):
+    """Resolved file info returned by the infra function.
+
+    The transport layer (HTTP/WS) uses this to serve the file appropriately.
+    """
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
+
+
+class FilePreviewDocumentApiRequest(BaseModel):
+    """Request model for document file preview endpoint."""
+
+    file_id: UUID = Field(..., description="UUID of the files_resource to preview")

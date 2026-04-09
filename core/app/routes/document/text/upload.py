@@ -1,14 +1,16 @@
-"""Document text upload."""
+"""Document text upload endpoint — composable infra architecture.
 
-import os
-import uuid
+Thin route handler. Core logic lives in app.infra.document.text_upload.
+"""
+
+from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, Response, UploadFile
-from pydantic import BaseModel
 
-from app.infra.globals import UPLOAD_FOLDER, get_pool, get_redis_client
-from app.tools.entries.uploads.create import create_upload
-from app.utils.cache.invalidate_tags import invalidate_tags
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.document.text_upload import text_upload_document_impl
+from app.infra.document.types import TextUploadDocumentApiResponse
 from app.utils.error.handle_route_error import handle_route_error
 from app.utils.mime.get_content_type import get_content_type
 
@@ -25,20 +27,23 @@ ALLOWED_TEXT_TYPES = {
 }
 
 
-class TextUploadResponse(BaseModel):
-    upload_id: uuid.UUID
-
-
-@router.post("/upload", response_model=TextUploadResponse)
+@router.post("/upload", response_model=TextUploadDocumentApiResponse)
 async def upload_text(
     file: UploadFile,
     http_request: Request,
     response: Response,
-) -> TextUploadResponse:
-    """Upload a text file via multipart form-data."""
-    tags = ["uploads"]
-
+) -> TextUploadDocumentApiResponse:
+    """Upload a text file for later use in documents."""
     try:
+        profile_id = http_request.state.profile_id
+        session_id = http_request.state.session_id
+        if not profile_id:
+            raise HTTPException(
+                status_code=401,
+                detail="Profile ID is required. Please sign in again.",
+            )
+
+        # -- Validate file ------------------------------------------------------
         if not file.filename:
             raise HTTPException(status_code=400, detail="Missing filename")
 
@@ -53,41 +58,48 @@ async def upload_text(
         if not file_bytes:
             raise HTTPException(status_code=400, detail="Empty file")
 
-        upload_uuid = uuid.uuid4()
-        _, ext = os.path.splitext(file.filename)
-        if not ext:
-            ext = ".txt"
-
-        final_file_path = f"{upload_uuid}{ext}"
-        final_full_path = UPLOAD_FOLDER / f"{upload_uuid}{ext}"
-
-        with open(final_full_path, "wb") as f:
-            f.write(file_bytes)
-
-        session_id = getattr(http_request.state, "session_id", None)
-
+        # -- Run with audit -----------------------------------------------------
         pool = get_pool()
-        async with pool.acquire() as conn:
-            result = await create_upload(
-                conn,
-                session_id=uuid.UUID(session_id) if session_id else uuid.UUID(int=0),
-                file_path=final_file_path,
-                mime_type=content_type,
-                size=len(file_bytes),
+        redis = get_redis_client()
+
+        async def _runner() -> TextUploadDocumentApiResponse:
+            return await text_upload_document_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                file_bytes=file_bytes,
+                filename=file.filename,
+                content_type=content_type,
             )
 
-        await invalidate_tags(tags, redis=get_redis_client())
-        response.headers["X-Invalidate-Tags"] = ",".join(tags)
+        response_data = await run_artifact_operation_with_audit(
+            pool,
+            redis,
+            artifact="document",
+            profile_id=profile_id,
+            session_id=session_id,
+            operation="text_upload",
+            arguments={
+                "filename": file.filename,
+                "content_type": content_type,
+                "size": len(file_bytes),
+            },
+            response_model=TextUploadDocumentApiResponse,
+            runner=_runner,
+            upload_folder=get_upload_folder(),
+        )
 
-        return TextUploadResponse(upload_id=result.id)
-
+        response.headers["X-Invalidate-Tags"] = "uploads,resources,texts"
+        return response_data
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         handle_route_error(
             error=e,
             route_path=http_request.url.path,
-            operation="upload_document_text",
+            operation="text_upload_document",
             request=http_request,
         )
-        raise

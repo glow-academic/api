@@ -173,6 +173,108 @@ async def resolve_scenario_values(
                     )
                 )
 
+        if item.images_enabled_flag is not None and item.images_enabled_flag_id is None:
+            results = await search_flags(
+                conn,
+                redis,
+                search=None,
+                flag_type="images_enabled",
+                limit_count=1000,
+            )
+            match = next((f for f in results if f.type == "images_enabled"), None)
+            if match and match.id:
+                if item.images_enabled_flag:
+                    item.images_enabled_flag_id = match.id
+            elif item.images_enabled_flag:
+                errors.append(
+                    ScenarioFieldError(
+                        field="images_enabled_flag",
+                        message="Images enabled flag resource not found",
+                    )
+                )
+
+        if item.objectives_enabled_flag is not None and item.objectives_enabled_flag_id is None:
+            results = await search_flags(
+                conn,
+                redis,
+                search=None,
+                flag_type="objectives_enabled",
+                limit_count=1000,
+            )
+            match = next((f for f in results if f.type == "objectives_enabled"), None)
+            if match and match.id:
+                if item.objectives_enabled_flag:
+                    item.objectives_enabled_flag_id = match.id
+            elif item.objectives_enabled_flag:
+                errors.append(
+                    ScenarioFieldError(
+                        field="objectives_enabled_flag",
+                        message="Objectives enabled flag resource not found",
+                    )
+                )
+
+        if item.problem_statement_enabled_flag is not None and item.problem_statement_enabled_flag_id is None:
+            results = await search_flags(
+                conn,
+                redis,
+                search=None,
+                flag_type="problem_statement_enabled",
+                limit_count=1000,
+            )
+            match = next(
+                (f for f in results if f.type == "problem_statement_enabled"), None
+            )
+            if match and match.id:
+                if item.problem_statement_enabled_flag:
+                    item.problem_statement_enabled_flag_id = match.id
+            elif item.problem_statement_enabled_flag:
+                errors.append(
+                    ScenarioFieldError(
+                        field="problem_statement_enabled_flag",
+                        message="Problem statement enabled flag resource not found",
+                    )
+                )
+
+        if item.questions_enabled_flag is not None and item.questions_enabled_flag_id is None:
+            results = await search_flags(
+                conn,
+                redis,
+                search=None,
+                flag_type="questions_enabled",
+                limit_count=1000,
+            )
+            match = next((f for f in results if f.type == "questions_enabled"), None)
+            if match and match.id:
+                if item.questions_enabled_flag:
+                    item.questions_enabled_flag_id = match.id
+            elif item.questions_enabled_flag:
+                errors.append(
+                    ScenarioFieldError(
+                        field="questions_enabled_flag",
+                        message="Questions enabled flag resource not found",
+                    )
+                )
+
+        if item.video_enabled_flag is not None and item.video_enabled_flag_id is None:
+            results = await search_flags(
+                conn,
+                redis,
+                search=None,
+                flag_type="video_enabled",
+                limit_count=1000,
+            )
+            match = next((f for f in results if f.type == "video_enabled"), None)
+            if match and match.id:
+                if item.video_enabled_flag:
+                    item.video_enabled_flag_id = match.id
+            elif item.video_enabled_flag:
+                errors.append(
+                    ScenarioFieldError(
+                        field="video_enabled_flag",
+                        message="Video enabled flag resource not found",
+                    )
+                )
+
         if item.departments is not None and item.department_ids is None:
             all_depts = await search_departments(
                 conn,
@@ -424,6 +526,11 @@ async def create_denormalized_snapshot(
     question_ids: list[UUID] | None = None,
     option_ids: list[UUID] | None = None,
     problem_statement_ids: list[UUID] | None = None,
+    images_enabled: bool | None = None,
+    objectives_enabled: bool | None = None,
+    problem_statement_enabled: bool | None = None,
+    questions_enabled: bool | None = None,
+    video_enabled: bool | None = None,
 ) -> UUID:
     """Create a scenarios_resource snapshot by hydrating IDs to values.
 
@@ -466,5 +573,10 @@ async def create_denormalized_snapshot(
             question_ids=question_ids,
             option_ids=option_ids,
             problem_statement_ids=problem_statement_ids,
+            images_enabled=images_enabled,
+            objectives_enabled=objectives_enabled,
+            problem_statement_enabled=problem_statement_enabled,
+            questions_enabled=questions_enabled,
+            video_enabled=video_enabled,
         )
     return result.id
