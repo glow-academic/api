@@ -48,10 +48,20 @@ ValidatePayloadFn = Callable[..., str | None]
 
 
 def resolve_primary_artifact_type(data: dict[str, Any]) -> str:
-    """Resolve the primary artifact type name from raw request data."""
+    """Resolve the primary artifact type name from raw request data.
+
+    Checks new `permissions` field first, falls back to legacy `artifact_types`.
+    """
+    # New format: permissions: [{ artifact: "persona", operation: "create" }]
+    permissions_raw = data.get("permissions") or []
+    if permissions_raw and isinstance(permissions_raw[0], dict):
+        return permissions_raw[0].get("artifact", "unknown")
+
+    # Legacy format: artifact_types: [{ name: "persona", operation: "get" }]
     artifact_types_raw = data.get("artifact_types") or []
     if artifact_types_raw and isinstance(artifact_types_raw[0], dict):
         return artifact_types_raw[0].get("name", "unknown")
+
     return "unknown"
 
 
@@ -303,7 +313,14 @@ async def generate_prepare_impl(
         setup_generation_test_fn = setup_generation_test_fn or setup_generation_test
 
         # --- Step 1: Validate (pure) ---
-        resource_types = [rt.name for rt in payload.resource_types if rt]
+        # New format: resources is a plain list of strings
+        # Legacy format: resource_types is a list of ResourceTypeItem
+        if payload.resources:
+            resource_types = payload.resources
+        elif payload.resource_types:
+            resource_types = [rt.name for rt in payload.resource_types if rt]
+        else:
+            resource_types = []
         error = validate_payload_fn(
             resource_types_raw=resource_types,
             artifact_type=artifact_type,
