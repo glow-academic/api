@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ASIP4ArtRllAszt87PhzDltgO8AGe7Vg7grH7IdXRCqn9hq6aAmcJKGXB9Ea6oQ
+\restrict 0S0kAU0TTOZJMiIrIIlF9SsXh7p062t30e52KUFivXah67nxrMFK71C08gaaoW3
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -264,6 +264,7 @@ CREATE TYPE public.operation_type AS ENUM (
     'export',
     'refresh',
     'docs',
+    'csv',
     'start',
     'next',
     'end',
@@ -272,18 +273,32 @@ CREATE TYPE public.operation_type AS ENUM (
     'grade',
     'stop',
     'response',
-    'use_previous',
-    'audio',
+    'previous',
     'archive',
-    'events',
+    'image_upload',
+    'image_download',
+    'video_upload',
+    'video_download',
+    'text_upload',
+    'text_download',
+    'file_upload',
+    'file_download',
+    'file_preview',
+    'audio_start',
+    'audio_frame',
+    'audio_stop',
+    'audio_mute',
+    'audio_upload',
+    'audio_download',
+    'call_download',
     'run',
     'generate',
     'problem',
     'resolve',
     'emulate',
+    'unemulate',
     'context',
-    'decrypt',
-    'unemulate'
+    'decrypt'
 );
 
 
@@ -38944,14 +38959,6 @@ ALTER TABLE ONLY public.tool_args_junction
 
 
 --
--- Name: tool_args_outputs_junction tool_args_outputs_args_outputs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tool_args_outputs_junction
-    ADD CONSTRAINT tool_args_outputs_args_outputs_id_fkey FOREIGN KEY (args_outputs_id) REFERENCES public.args_outputs_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: tool_args_outputs_junction tool_args_outputs_tool_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -39795,5 +39802,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ASIP4ArtRllAszt87PhzDltgO8AGe7Vg7grH7IdXRCqn9hq6aAmcJKGXB9Ea6oQ
+\unrestrict 0S0kAU0TTOZJMiIrIIlF9SsXh7p062t30e52KUFivXah67nxrMFK71C08gaaoW3
 

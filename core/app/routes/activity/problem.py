@@ -30,7 +30,7 @@ class CreateProblemResponse(BaseModel):
 router = APIRouter()
 
 
-@router.post("/problem", response_model=CreateProblemResponse)
+@router.post("/problem", response_model=CreateProblemResponse, tags=["activity"])
 async def create_problem(
     request: CreateProblemRequest,
     http_request: Request,

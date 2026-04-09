@@ -2,6 +2,7 @@
 
 from . import (  # noqa: F401
     create,
+    decrypt,
     delete,
     docs,
     draft,

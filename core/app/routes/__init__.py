@@ -6,7 +6,6 @@ from fastapi.responses import JSONResponse
 
 from app.infra.identity.middleware import require_auth
 from app.routes.activity import router as activity_artifact_router
-from app.routes.activity.problem import router as problem_router
 from app.routes.agent import router as agents_router
 from app.routes.attempt import router as attempt_artifact_router
 from app.routes.auth import router as auth_router
@@ -16,17 +15,14 @@ from app.routes.benchmark import router as benchmark_artifact_router
 from app.routes.chat import router as chat_artifact_router
 from app.routes.cohort import router as cohorts_router
 from app.routes.connect import router as connect_router
-from app.routes.context import router as context_router
 from app.routes.dashboard import router as dashboard_artifact_router
 from app.routes.department import router as departments_router
 from app.routes.disconnect import router as disconnect_router
 from app.routes.discovery import router as discovery_router
 from app.routes.docs import router as docs_router
 from app.routes.document import router as documents_router
-from app.routes.emulate import router as emulate_router
 from app.routes.eval import router as evals_router
 from app.routes.field import router as fields_router
-from app.routes.generate import router as generate_router
 from app.routes.group import router as group_router
 from app.routes.health import router as health_artifact_router
 from app.routes.home import router as home_artifact_router
@@ -51,7 +47,6 @@ from app.routes.stream import router as stream_router
 from app.routes.test import router as test_artifact_router
 from app.routes.token import router as token_router
 from app.routes.tool import router as tools_router
-from app.routes.unemulate import router as unemulate_router
 from app.routes.userinfo import router as userinfo_router
 from app.routes.well_known import router as well_known_router
 from app.version import __version__
@@ -105,11 +100,6 @@ api_router.include_router(test_artifact_router)
 # Root-level actions
 api_router.include_router(connect_router)
 api_router.include_router(disconnect_router)
-api_router.include_router(context_router)
-api_router.include_router(problem_router)
-api_router.include_router(emulate_router)
-api_router.include_router(unemulate_router)
-api_router.include_router(generate_router)
 
 # Docs
 api_router.include_router(docs_router)

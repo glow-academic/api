@@ -637,6 +637,7 @@ _I = "app.infra"
 def _infra(
     name: str,
     *,
+    # Standard CRUD
     create: bool = False,
     update: bool = False,
     delete: bool = False,
@@ -648,6 +649,24 @@ def _infra(
     export: bool = False,
     refresh: bool = False,
     docs: bool = False,
+    csv: bool = False,
+    # Media operations
+    image_upload: bool = False,
+    image_download: bool = False,
+    video_upload: bool = False,
+    video_download: bool = False,
+    text_upload: bool = False,
+    text_download: bool = False,
+    file_upload: bool = False,
+    file_download: bool = False,
+    file_preview: bool = False,
+    audio_start: bool = False,
+    audio_frame: bool = False,
+    audio_stop: bool = False,
+    audio_mute: bool = False,
+    audio_upload: bool = False,
+    audio_download: bool = False,
+    call_download: bool = False,
 ) -> dict[tuple[str, str], tuple[str, str] | None]:
     """Helper to generate infra op entries for a standard artifact."""
     d: dict[tuple[str, str], tuple[str, str] | None] = {}
@@ -673,6 +692,41 @@ def _infra(
         d[(name, "refresh")] = (f"{_I}.{name}.refresh", f"refresh_{name}_impl")
     if docs:
         d[(name, "docs")] = (f"{_I}.{name}.docs", f"docs_{name}_impl")
+    if csv:
+        d[(name, "csv")] = (f"{_I}.{name}.csv", f"csv_{name}_impl")
+    # Media operations
+    if image_upload:
+        d[(name, "image_upload")] = (f"{_I}.{name}.image_upload", f"image_upload_{name}_impl")
+    if image_download:
+        d[(name, "image_download")] = (f"{_I}.{name}.image_download", f"image_download_{name}_impl")
+    if video_upload:
+        d[(name, "video_upload")] = (f"{_I}.{name}.video_upload", f"video_upload_{name}_impl")
+    if video_download:
+        d[(name, "video_download")] = (f"{_I}.{name}.video_download", f"video_download_{name}_impl")
+    if text_upload:
+        d[(name, "text_upload")] = (f"{_I}.{name}.text_upload", f"text_upload_{name}_impl")
+    if text_download:
+        d[(name, "text_download")] = (f"{_I}.{name}.text_download", f"text_download_{name}_impl")
+    if file_upload:
+        d[(name, "file_upload")] = (f"{_I}.{name}.file_upload", f"file_upload_{name}_impl")
+    if file_download:
+        d[(name, "file_download")] = (f"{_I}.{name}.file_download", f"file_download_{name}_impl")
+    if file_preview:
+        d[(name, "file_preview")] = (f"{_I}.{name}.file_preview", f"file_preview_{name}_impl")
+    if audio_start:
+        d[(name, "audio_start")] = (f"{_I}.{name}.audio_start", f"audio_start_{name}_impl")
+    if audio_frame:
+        d[(name, "audio_frame")] = (f"{_I}.{name}.audio_frame", f"audio_frame_{name}_impl")
+    if audio_stop:
+        d[(name, "audio_stop")] = (f"{_I}.{name}.audio_stop", f"audio_stop_{name}_impl")
+    if audio_mute:
+        d[(name, "audio_mute")] = (f"{_I}.{name}.audio_mute", f"audio_mute_{name}_impl")
+    if audio_upload:
+        d[(name, "audio_upload")] = (f"{_I}.{name}.audio_upload", f"audio_upload_{name}_impl")
+    if audio_download:
+        d[(name, "audio_download")] = (f"{_I}.{name}.audio_download", f"audio_download_{name}_impl")
+    if call_download:
+        d[(name, "call_download")] = (f"{_I}.{name}.call_download", f"call_download_{name}_impl")
     return d
 
 
@@ -685,29 +739,39 @@ _FULL_CRUD = dict(
 
 INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     # --- Full CRUD artifacts ---
-    **_infra("agent", **_FULL_CRUD),
+    **_infra("agent", **_FULL_CRUD, csv=True),
     **_infra("auth", **_FULL_CRUD),
-    **_infra("cohort", **_FULL_CRUD),
-    **_infra("department", **_FULL_CRUD),
-    **_infra("document", **_FULL_CRUD),
-    **_infra("eval", **_FULL_CRUD),
-    **_infra("field", **_FULL_CRUD),
-    **_infra("model", **_FULL_CRUD),
-    **_infra("parameter", **_FULL_CRUD),
-    **_infra("persona", **_FULL_CRUD),
+    **_infra("cohort", **_FULL_CRUD, csv=True),
+    **_infra("department", **_FULL_CRUD, csv=True),
+    **_infra("document", **_FULL_CRUD, csv=True,
+             text_upload=True, text_download=True,
+             file_upload=True, file_download=True, file_preview=True),
+    **_infra("eval", **_FULL_CRUD, csv=True),
+    **_infra("field", **_FULL_CRUD, csv=True),
+    **_infra("model", **_FULL_CRUD, csv=True),
+    **_infra("parameter", **_FULL_CRUD, csv=True),
+    **_infra("persona", **_FULL_CRUD, csv=True),
     **_infra("profile", **_FULL_CRUD),
-    **_infra("provider", **_FULL_CRUD),
-    **_infra("rubric", **_FULL_CRUD),
-    **_infra("scenario", **_FULL_CRUD),
-    **_infra("setting", **_FULL_CRUD),
-    **_infra("simulation", **_FULL_CRUD),
+    **_infra("provider", **_FULL_CRUD, csv=True),
+    **_infra("rubric", **_FULL_CRUD, csv=True),
+    **_infra("scenario", **_FULL_CRUD, csv=True,
+             image_upload=True, image_download=True,
+             video_upload=True, video_download=True,
+             text_download=True,
+             file_download=True, file_preview=True),
+    **_infra("setting", **_FULL_CRUD, csv=True),
+    **_infra("simulation", **_FULL_CRUD, csv=True),
     **_infra("tool", **_FULL_CRUD),
     # --- View + partial artifacts ---
     **_infra("activity", export=True, refresh=True, docs=True),
     **_infra("benchmark", get=True, export=True, refresh=True, docs=True),
     **_infra("chat", get=True, draft=True, drafts=True, export=True, refresh=True, docs=True),
     **_infra("dashboard", export=True, refresh=True, docs=True),
-    **_infra("group", get=True, export=True, refresh=True, docs=True),
+    **_infra("group", get=True, export=True, refresh=True, docs=True,
+             image_download=True, video_download=True,
+             text_download=True,
+             file_download=True, file_preview=True,
+             audio_download=True, call_download=True),
     **_infra("health", get=True, export=True, refresh=True, docs=True),
     **_infra("invocation", get=True, draft=True, drafts=True, export=True, refresh=True, docs=True),
     **_infra("leaderboard", export=True, refresh=True, docs=True),
@@ -715,7 +779,7 @@ INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     **_infra("reports", get=True, export=True, refresh=True, docs=True),
     **_infra("session", get=True, export=True, refresh=True, docs=True),
     **_infra("test", get=True, search=True, export=True, refresh=True, docs=True),
-    # --- Attempt state-machine operations ---
+    # --- Attempt state-machine + media operations ---
     ("attempt", "get"): (f"{_I}.attempt.get", "get_attempt_impl"),
     ("attempt", "search"): (f"{_I}.attempt.search", "search_attempt_impl"),
     ("attempt", "export"): (f"{_I}.attempt.export", "export_attempt_impl"),
@@ -729,7 +793,18 @@ INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("attempt", "grade"): (f"{_I}.attempt.grade", "attempt_grade_internal_impl"),
     ("attempt", "stop"): (f"{_I}.attempt.stop", "attempt_stop_internal_impl"),
     ("attempt", "response"): (f"{_I}.attempt.response", "attempt_response_internal_impl"),
-    ("attempt", "use_previous"): (f"{_I}.attempt.use_previous", "attempt_use_previous_internal_impl"),
+    ("attempt", "previous"): (f"{_I}.attempt.previous", "attempt_previous_internal_impl"),
+    ("attempt", "audio_start"): (f"{_I}.attempt.audio_start", "audio_start_attempt_impl"),
+    ("attempt", "audio_frame"): (f"{_I}.attempt.audio_frame", "audio_frame_attempt_impl"),
+    ("attempt", "audio_stop"): (f"{_I}.attempt.audio_stop", "audio_stop_attempt_impl"),
+    ("attempt", "audio_mute"): (f"{_I}.attempt.audio_mute", "audio_mute_attempt_impl"),
+    ("attempt", "audio_upload"): (f"{_I}.attempt.audio_upload", "audio_upload_attempt_impl"),
+    ("attempt", "audio_download"): (f"{_I}.attempt.audio_download", "audio_download_attempt_impl"),
+    ("attempt", "image_download"): (f"{_I}.attempt.image_download", "image_download_attempt_impl"),
+    ("attempt", "video_download"): (f"{_I}.attempt.video_download", "video_download_attempt_impl"),
+    ("attempt", "text_download"): (f"{_I}.attempt.text_download", "text_download_attempt_impl"),
+    ("attempt", "file_download"): (f"{_I}.attempt.file_download", "file_download_attempt_impl"),
+    ("attempt", "file_preview"): (f"{_I}.attempt.file_preview", "file_preview_attempt_impl"),
     # --- Test state-machine operations ---
     ("test", "start"): (f"{_I}.test.start", "test_start_internal_impl"),
     ("test", "end"): (f"{_I}.test.end", "test_end_internal_impl"),

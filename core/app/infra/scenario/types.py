@@ -530,6 +530,11 @@ class CreateScenarioItem(BaseModel):
     option_ids: list[UUID] | None = Field(None, description="Associated option UUIDs")
     # Value-based fields for CSV import (resolved to IDs server-side)
     active_flag: bool | None = Field(None, description="Active flag boolean value")
+    images_enabled_flag: bool | None = Field(None, description="Whether images are enabled")
+    objectives_enabled_flag: bool | None = Field(None, description="Whether objectives are enabled")
+    problem_statement_enabled_flag: bool | None = Field(None, description="Whether problem statement is enabled")
+    questions_enabled_flag: bool | None = Field(None, description="Whether questions are enabled")
+    video_enabled_flag: bool | None = Field(None, description="Whether video is enabled")
     departments: list[str] | None = Field(None, description="Department names for matching")
     personas: list[str] | None = Field(None, description="Persona names for matching")
     documents: list[str] | None = Field(None, description="Document names for matching")
@@ -592,6 +597,11 @@ class UpdateScenarioItem(BaseModel):
     option_ids: list[UUID] | None = Field(None, description="Associated option UUIDs")
     # Value-based fields for CSV import (resolved to IDs server-side)
     active_flag: bool | None = Field(None, description="Active flag boolean value")
+    images_enabled_flag: bool | None = Field(None, description="Whether images are enabled")
+    objectives_enabled_flag: bool | None = Field(None, description="Whether objectives are enabled")
+    problem_statement_enabled_flag: bool | None = Field(None, description="Whether problem statement is enabled")
+    questions_enabled_flag: bool | None = Field(None, description="Whether questions are enabled")
+    video_enabled_flag: bool | None = Field(None, description="Whether video is enabled")
     departments: list[str] | None = Field(None, description="Department names for matching")
     personas: list[str] | None = Field(None, description="Persona names for matching")
     documents: list[str] | None = Field(None, description="Document names for matching")
@@ -820,6 +830,37 @@ class GetScenarioDraftsApiResponse(BaseModel):
     """Response model for scenario drafts list endpoint."""
 
     entries: list[GetScenarioDraftResponse] | None = Field(None, description="List of scenario draft entries")
+
+
+# =============================================================================
+# Image Upload Types
+# =============================================================================
+
+
+class ImageUploadScenarioApiResponse(BaseModel):
+    """Response model for scenario image upload endpoint."""
+
+    image_id: UUID = Field(..., description="UUID of the created images_resource")
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry (file on disk)")
+
+
+class ImageDownloadScenarioApiRequest(BaseModel):
+    """Request model for scenario image download endpoint."""
+
+    image_id: UUID = Field(..., description="UUID of the images_resource to download")
+
+
+class ImageDownloadScenarioApiResult(BaseModel):
+    """Resolved file info returned by the infra function.
+
+    The transport layer (HTTP/WS) uses this to serve the file appropriately.
+    """
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
 
 
 # =============================================================================

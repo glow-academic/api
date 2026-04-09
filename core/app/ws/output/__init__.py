@@ -68,11 +68,7 @@ from . import (  # noqa: F401
     # Connect/disconnect (top-level)
     connected,
     disconnected,
-    # Non-artifact actions (top-level)
-    context,
-    emulate,
-    unemulate,
-    problem,
+    # Non-artifact actions (now under their artifact folders)
     docs,
     # Generate pipeline
     generate_pipeline,

@@ -9,6 +9,8 @@ from . import (  # noqa: F401
     duplicate,
     export,
     get,
+    image_download,
+    image_upload,
     refresh,
     search,
     update,
