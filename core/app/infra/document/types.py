@@ -6,12 +6,13 @@ Section-first API responses following the gold standard pattern (REFERENCE.md).
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.document_drafts.types import GetDocumentDraftResponse
 from app.tools.resources.parameters.types import GetParameterResponse
 
@@ -277,11 +278,29 @@ class DocumentResultItem(BaseModel):
 # ========== Create Endpoint Types ==========
 
 
-class CreateDocumentItem(BaseModel):
+class CreateDocumentItem(ScopedItem):
     """Single document item for create — no document_id.
 
     Required fields (name): provide ID or value.
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name_id": "names",
+        "name": "names",
+        "description_id": "descriptions",
+        "description": "descriptions",
+        "flag_id": "flags",
+        "active_flag_id": "flags",
+        "active_flag": "flags",
+        "template_flag": "flags",
+        "template_flag_id": "flags",
+        "department_ids": "departments",
+        "departments": "departments",
+        "field_ids": "fields",
+        "upload_ids": "uploads",
+        "image_ids": "images",
+        "text_ids": "texts",
+    }
 
     id: UUID | None = Field(None, description="Optional pre-assigned UUID")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
@@ -323,11 +342,13 @@ class CreateDocumentApiResponse(BaseModel):
 # ========== Update Endpoint Types ==========
 
 
-class UpdateDocumentItem(BaseModel):
+class UpdateDocumentItem(ScopedItem):
     """Single document item for update — document_id required, all fields optional.
 
     Only provided fields are updated (partial update).
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateDocumentItem.RESOURCE_TYPE_MAP
 
     document_id: UUID = Field(..., description="Document UUID to update")  # Required — which document to update
     # Optional single-select — provide ID or value
@@ -433,7 +454,7 @@ class DraftTextValue(BaseModel):
     content: str = Field(..., description="Text content to create")
 
 
-class PatchDocumentDraftApiRequest(BaseModel):
+class PatchDocumentDraftApiRequest(ScopedItem):
     """Request model for new-style document draft endpoint.
 
     Dual-mode for creatable resources only:
@@ -445,6 +466,22 @@ class PatchDocumentDraftApiRequest(BaseModel):
 
     Client always sends full state (append-only — each write is a new version snapshot).
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "description": "descriptions",
+        "description_id": "descriptions",
+        "files": "files",
+        "file_ids": "files",
+        "texts": "texts",
+        "text_ids": "texts",
+        "flag_ids": "flags",
+        "department_ids": "departments",
+        "image_ids": "images",
+        "parameter_field_ids": "fields",
+        "parameter_ids": "parameters",
+    }
 
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to patch")
     expected_version: int = Field(0, description="Expected draft version for concurrency control")

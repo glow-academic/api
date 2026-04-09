@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.eval_drafts.types import GetEvalDraftResponse
 
 
@@ -163,11 +164,27 @@ class EvalResultItem(BaseModel):
 # ========== Create Endpoint Types ==========
 
 
-class CreateEvalItem(BaseModel):
+class CreateEvalItem(ScopedItem):
     """Single eval item for create — no eval_id.
 
     Required fields (name): provide ID or value.
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name_id": "names",
+        "name": "names",
+        "description_id": "descriptions",
+        "description": "descriptions",
+        "flag_ids": "flags",
+        "department_ids": "departments",
+        "departments": "departments",
+        "model_ids": "models",
+        "model_flag_ids": "model_flags",
+        "model_rubric_ids": "model_rubrics",
+        "model_position_ids": "model_positions",
+        "active_flag": "flags",
+        "active_flag_id": "flags",
+    }
 
     id: UUID | None = Field(None, description="Optional pre-assigned UUID")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
@@ -206,11 +223,13 @@ class CreateEvalApiResponse(BaseModel):
 # ========== Update Endpoint Types ==========
 
 
-class UpdateEvalItem(BaseModel):
+class UpdateEvalItem(ScopedItem):
     """Single eval item for update — eval_id required, all fields optional.
 
     Only provided fields are updated (partial update).
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateEvalItem.RESOURCE_TYPE_MAP
 
     eval_id: UUID = Field(..., description="Eval UUID to update")  # Required — which eval to update
     # Optional single-select — provide ID or value
@@ -293,7 +312,7 @@ class DuplicateEvalApiResponse(BaseModel):
 # ========== Draft Endpoint Types (composable infra) ==========
 
 
-class PatchEvalDraftApiRequest(BaseModel):
+class PatchEvalDraftApiRequest(ScopedItem):
     """Request model for new-style eval draft endpoint.
 
     Dual-mode for creatable resources only:
@@ -303,6 +322,17 @@ class PatchEvalDraftApiRequest(BaseModel):
 
     Client always sends full state (append-only — each write is a new version snapshot).
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "description": "descriptions",
+        "description_id": "descriptions",
+        "flag_ids": "flags",
+        "department_ids": "departments",
+        "model_ids": "models",
+        "rubric_ids": "rubrics",
+    }
 
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to patch")
     expected_version: int = Field(0, description="Expected draft version for concurrency control")

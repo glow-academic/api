@@ -5,10 +5,12 @@ Python-computed permissions and UI flags.
 """
 
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+from app.infra.resource_type_filter import ScopedItem
 
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.simulation_drafts.types import (
@@ -538,11 +540,30 @@ class SimulationResultItem(BaseModel):
 # =============================================================================
 
 
-class CreateSimulationItem(BaseModel):
+class CreateSimulationItem(ScopedItem):
     """Single simulation item for create — no simulation_id.
 
     Required fields (name): provide ID or value.
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name_id": "names",
+        "name": "names",
+        "description_id": "descriptions",
+        "description": "descriptions",
+        "department_ids": "departments",
+        "departments": "departments",
+        "scenario_ids": "scenarios",
+        "scenarios": "scenarios",
+        "scenario_flag_ids": "scenario_flags",
+        "scenario_position_ids": "scenario_positions",
+        "scenario_rubric_ids": "scenario_rubrics",
+        "scenario_time_limit_ids": "scenario_time_limits",
+        "active_flag_id": "flags",
+        "active_flag": "flags",
+        "practice_flag": "flags",
+        "practice_flag_id": "flags",
+    }
 
     id: UUID | None = Field(None, description="Client-provided UUID for the simulation")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
@@ -586,11 +607,13 @@ class CreateSimulationApiResponse(BaseModel):
 # =============================================================================
 
 
-class UpdateSimulationItem(BaseModel):
+class UpdateSimulationItem(ScopedItem):
     """Single simulation item for update — simulation_id required, all fields optional.
 
     Only provided fields are updated (partial update).
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateSimulationItem.RESOURCE_TYPE_MAP
 
     simulation_id: UUID = Field(..., description="UUID of the simulation to update")
     # Optional single-select — provide ID or value
@@ -736,7 +759,7 @@ class DraftScenarioTimeLimitValue(BaseModel):
     negative: bool = Field(False, description="Whether the time limit is negative")
 
 
-class PatchSimulationDraftApiRequest(BaseModel):
+class PatchSimulationDraftApiRequest(ScopedItem):
     """Request model for new-style simulation draft endpoint.
 
     Dual-mode for creatable resources:
@@ -749,6 +772,24 @@ class PatchSimulationDraftApiRequest(BaseModel):
 
     Client always sends full state (append-only — each write is a new version snapshot).
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "description": "descriptions",
+        "description_id": "descriptions",
+        "flag_ids": "flags",
+        "department_ids": "departments",
+        "scenario_ids": "scenarios",
+        "scenario_flag_ids": "scenario_flags",
+        "scenario_flags": "scenario_flags",
+        "scenario_position_ids": "scenario_positions",
+        "scenario_positions": "scenario_positions",
+        "scenario_rubric_ids": "scenario_rubrics",
+        "scenario_rubrics": "scenario_rubrics",
+        "scenario_time_limit_ids": "scenario_time_limits",
+        "scenario_time_limits": "scenario_time_limits",
+    }
 
     input_draft_id: UUID | None = Field(None, description="UUID of the input draft")
     expected_version: int = Field(0, description="Expected draft version for optimistic lock")

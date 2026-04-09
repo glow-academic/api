@@ -10,10 +10,12 @@ Architecture:
 - bundle.py (BUNDLE): Section-first customization before starting chat
 """
 
-from typing import Any
+from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+from app.infra.resource_type_filter import ScopedItem
 
 from app.infra.api_types import InternalResponseBase
 from app.tools.entries.chat_drafts.types import GetChatDraftResponse
@@ -464,7 +466,7 @@ class DraftOptionValue(BaseModel):
     question_id: UUID | None = Field(None, description="UUID of the parent question")
 
 
-class PatchChatDraftApiRequest(BaseModel):
+class PatchChatDraftApiRequest(ScopedItem):
     """Request model for new-style chat draft endpoint.
 
     Single-select creatables: name, description, problem_statement
@@ -508,6 +510,33 @@ class PatchChatDraftApiRequest(BaseModel):
     scenario_ids: list[UUID] | None = Field(None, description="Selected scenario resource IDs")
     video_ids: list[UUID] | None = Field(None, description="Selected video resource IDs")
     department_ids: list[UUID] | None = Field(None, description="Selected department resource IDs")
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_ids": "names",
+        "description": "descriptions",
+        "description_ids": "descriptions",
+        "problem_statement": "problem_statements",
+        "problem_statement_ids": "problem_statements",
+        "objectives": "objectives",
+        "objective_ids": "objectives",
+        "images": "images",
+        "image_ids": "images",
+        "videos": "videos",
+        "video_ids": "videos",
+        "questions": "questions",
+        "question_ids": "questions",
+        "options": "options",
+        "option_ids": "options",
+        "document_ids": "documents",
+        "field_ids": "fields",
+        "flag_ids": "flags",
+        "parameter_field_ids": "parameter_fields",
+        "parameter_ids": "parameters",
+        "persona_ids": "personas",
+        "scenario_ids": "scenarios",
+        "department_ids": "departments",
+    }
 
 
 class SaveChatFieldError(BaseModel):

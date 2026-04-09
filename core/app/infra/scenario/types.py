@@ -5,10 +5,12 @@ Python-computed permissions and UI flags.
 """
 
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+from app.infra.resource_type_filter import ScopedItem
 
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.scenario_drafts.types import GetScenarioDraftResponse
@@ -494,11 +496,51 @@ class ScenarioResultItem(BaseModel):
 # =============================================================================
 
 
-class CreateScenarioItem(BaseModel):
+class CreateScenarioItem(ScopedItem):
     """Single scenario item for create — no scenario_id.
 
     Required fields (name): provide ID or value.
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name_id": "names",
+        "name": "names",
+        "description_id": "descriptions",
+        "description": "descriptions",
+        "problem_statement_id": "problem_statements",
+        "problem_statement": "problem_statements",
+        "active_flag_id": "flags",
+        "active_flag": "flags",
+        "objectives_enabled_flag_id": "flags",
+        "objectives_enabled_flag": "flags",
+        "images_enabled_flag_id": "flags",
+        "images_enabled_flag": "flags",
+        "video_enabled_flag_id": "flags",
+        "video_enabled_flag": "flags",
+        "questions_enabled_flag_id": "flags",
+        "questions_enabled_flag": "flags",
+        "problem_statement_enabled_flag_id": "flags",
+        "problem_statement_enabled_flag": "flags",
+        "department_ids": "departments",
+        "departments": "departments",
+        "persona_ids": "personas",
+        "personas": "personas",
+        "document_ids": "documents",
+        "documents": "documents",
+        "parameter_ids": "parameters",
+        "parameter_field_ids": "parameter_fields",
+        "parameter_fields": "parameter_fields",
+        "image_ids": "images",
+        "images": "images",
+        "objective_ids": "objectives",
+        "objectives": "objectives",
+        "video_ids": "videos",
+        "videos": "videos",
+        "question_ids": "questions",
+        "questions": "questions",
+        "option_ids": "options",
+        "options": "options",
+    }
 
     id: UUID | None = Field(None, description="Client-provided UUID for the scenario")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
@@ -563,11 +605,13 @@ class CreateScenarioApiResponse(BaseModel):
 # =============================================================================
 
 
-class UpdateScenarioItem(BaseModel):
+class UpdateScenarioItem(ScopedItem):
     """Single scenario item for update — scenario_id required, all fields optional.
 
     Only provided fields are updated (partial update).
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateScenarioItem.RESOURCE_TYPE_MAP
 
     scenario_id: UUID = Field(..., description="UUID of the scenario to update")
     # Dual-mode: provide ID or raw value
@@ -748,7 +792,7 @@ class DraftOptionValue(BaseModel):
     question_id: UUID | None = Field(None, description="UUID of the parent question")
 
 
-class PatchScenarioDraftApiRequest(BaseModel):
+class PatchScenarioDraftApiRequest(ScopedItem):
     """Request model for new-style scenario draft endpoint.
 
     Dual-mode for creatable resources:
@@ -763,6 +807,30 @@ class PatchScenarioDraftApiRequest(BaseModel):
 
     Client always sends full state (append-only — each write is a new version snapshot).
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "description": "descriptions",
+        "description_id": "descriptions",
+        "problem_statement": "problem_statements",
+        "problem_statement_id": "problem_statements",
+        "objectives": "objectives",
+        "objective_ids": "objectives",
+        "images": "images",
+        "image_ids": "images",
+        "videos": "videos",
+        "video_ids": "videos",
+        "questions": "questions",
+        "question_ids": "questions",
+        "options": "options",
+        "option_ids": "options",
+        "flag_ids": "flags",
+        "department_ids": "departments",
+        "persona_ids": "personas",
+        "document_ids": "documents",
+        "parameter_field_ids": "parameter_fields",
+    }
 
     input_draft_id: UUID | None = Field(None, description="UUID of the input draft")
     expected_version: int = Field(0, description="Expected draft version for optimistic lock")

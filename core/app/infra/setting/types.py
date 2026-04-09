@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.infra.api_types import BaseResourceSection
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.setting_drafts.types import GetSettingDraftResponse
 
 # ========== Flag Enrichment ==========
@@ -155,7 +157,7 @@ class SettingResultItem(BaseModel):
 # ========== Create Endpoint Types ==========
 
 
-class CreateSettingItem(BaseModel):
+class CreateSettingItem(ScopedItem):
     """Single setting item for create — no setting_id.
 
     Required fields (name): provide ID or value.
@@ -186,6 +188,26 @@ class CreateSettingItem(BaseModel):
     threshold_ids: list[UUID] | None = Field(None, description="Threshold UUIDs to assign")
     setting_resource_ids: list[UUID] | None = Field(None, description="Setting resource UUIDs")
 
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name_id": "names",
+        "name": "names",
+        "description_id": "descriptions",
+        "description": "descriptions",
+        "active_flag_id": "flags",
+        "active_flag": "flags",
+        "department_ids": "departments",
+        "departments": "departments",
+        "color_ids": "colors",
+        "profile_ids": "profiles",
+        "auth_ids": "auths",
+        "provider_key_ids": "provider_keys",
+        "auth_item_key_ids": "auth_item_keys",
+        "auth_item_value_ids": "auth_item_values",
+        "system_ids": "systems",
+        "threshold_ids": "thresholds",
+        "setting_resource_ids": "setting_resources",
+    }
+
 
 class CreateSettingApiRequest(BaseModel):
     """Request model for bulk create setting endpoint."""
@@ -202,7 +224,7 @@ class CreateSettingApiResponse(BaseModel):
 # ========== Update Endpoint Types ==========
 
 
-class UpdateSettingItem(BaseModel):
+class UpdateSettingItem(ScopedItem):
     """Single setting item for update — setting_id required, all fields optional.
 
     Only provided fields are updated (partial update).
@@ -230,6 +252,8 @@ class UpdateSettingItem(BaseModel):
     threshold_ids: list[UUID] | None = Field(None, description="Threshold UUIDs to assign")
     setting_resource_ids: list[UUID] | None = Field(None, description="Setting resource UUIDs")
 
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateSettingItem.RESOURCE_TYPE_MAP
+
 
 class UpdateSettingApiRequest(BaseModel):
     """Request model for bulk update setting endpoint."""
@@ -253,7 +277,7 @@ class SaveSettingFieldError(BaseModel):
 # ========== Draft Endpoint Types (composable infra) ==========
 
 
-class PatchSettingDraftApiRequest(BaseModel):
+class PatchSettingDraftApiRequest(ScopedItem):
     """Request model for new-style setting draft endpoint.
 
     Dual-mode for creatable resources only:
@@ -283,6 +307,21 @@ class PatchSettingDraftApiRequest(BaseModel):
     provider_key_ids: list[UUID] | None = Field(None, description="Provider key UUIDs")
     auth_item_key_ids: list[UUID] | None = Field(None, description="Auth item key UUIDs")
     threshold_ids: list[UUID] | None = Field(None, description="Threshold UUIDs to assign")
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "description": "descriptions",
+        "description_id": "descriptions",
+        "flag_id": "flags",
+        "department_ids": "departments",
+        "color_ids": "colors",
+        "profile_ids": "profiles",
+        "auth_ids": "auths",
+        "provider_key_ids": "provider_keys",
+        "auth_item_key_ids": "auth_item_keys",
+        "threshold_ids": "thresholds",
+    }
 
 
 class SettingDraftFormState(BaseModel):

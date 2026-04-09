@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.parameter_drafts.types import GetParameterDraftResponse
 
 # ---------------------------------------------------------------------------
@@ -200,7 +202,7 @@ class ParameterResultItem(BaseModel):
 # ========== Create Endpoint Types ==========
 
 
-class CreateParameterItem(BaseModel):
+class CreateParameterItem(ScopedItem):
     """Single parameter item for create — no parameter_id."""
 
     id: UUID | None = Field(None, description="Optional pre-assigned identifier")
@@ -218,6 +220,17 @@ class CreateParameterItem(BaseModel):
     flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
     field_ids: list[UUID] | None = Field(None, description="Field identifiers")
 
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name_id": "names",
+        "name": "names",
+        "description_id": "descriptions",
+        "description": "descriptions",
+        "department_ids": "departments",
+        "departments": "departments",
+        "flag_ids": "flags",
+        "field_ids": "fields",
+    }
+
 
 class CreateParameterApiRequest(BaseModel):
     """Request model for bulk create parameter endpoint."""
@@ -234,7 +247,7 @@ class CreateParameterApiResponse(BaseModel):
 # ========== Update Endpoint Types ==========
 
 
-class UpdateParameterItem(BaseModel):
+class UpdateParameterItem(ScopedItem):
     """Single parameter item for update — parameter_id required, all fields optional."""
 
     parameter_id: UUID = Field(..., description="Target parameter identifier to update")
@@ -248,6 +261,8 @@ class UpdateParameterItem(BaseModel):
     departments: list[str] | None = Field(None, description="Department names to match")
     flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
     field_ids: list[UUID] | None = Field(None, description="Field identifiers")
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateParameterItem.RESOURCE_TYPE_MAP
 
 
 class UpdateParameterApiRequest(BaseModel):
@@ -272,7 +287,7 @@ class SaveParameterFieldError(BaseModel):
 # ========== Draft Endpoint Types (composable infra) ==========
 
 
-class PatchParameterDraftApiRequest(BaseModel):
+class PatchParameterDraftApiRequest(ScopedItem):
     """Request model for new-style parameter draft endpoint.
 
     Dual-mode for creatable resources only:
@@ -296,6 +311,16 @@ class PatchParameterDraftApiRequest(BaseModel):
     flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     field_ids: list[UUID] | None = Field(None, description="Field identifiers")
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "description": "descriptions",
+        "description_id": "descriptions",
+        "flag_ids": "flags",
+        "department_ids": "departments",
+        "field_ids": "fields",
+    }
 
 
 class ParameterDraftFormState(BaseModel):

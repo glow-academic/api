@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import datetime as dt
-from typing import Any
+from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.agent_drafts.types import GetAgentDraftResponse
 
 
@@ -147,11 +148,29 @@ class AgentResultItem(BaseModel):
 # ========== Create Endpoint Types ==========
 
 
-class CreateAgentItem(BaseModel):
+class CreateAgentItem(ScopedItem):
     """Single agent item for create — no agent_id.
 
     Required fields (name): provide ID or value.
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name_id": "names",
+        "name": "names",
+        "description_id": "descriptions",
+        "description": "descriptions",
+        "department_ids": "departments",
+        "departments": "departments",
+        "active_flag": "flags",
+        "active_flag_id": "flags",
+        "flag_ids": "flags",
+        "model_ids": "models",
+        "reasoning_level_ids": "reasoning_levels",
+        "temperature_level_ids": "temperature_levels",
+        "tool_ids": "tools",
+        "voice_ids": "voices",
+        "agent_ids": "agents",
+    }
 
     id: UUID | None = Field(None, description="Client-provided UUID for the agent")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
@@ -193,8 +212,10 @@ class CreateAgentApiResponse(BaseModel):
 # ========== Update Endpoint Types ==========
 
 
-class UpdateAgentItem(BaseModel):
+class UpdateAgentItem(ScopedItem):
     """Single agent item for update — agent_id required, all fields optional."""
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateAgentItem.RESOURCE_TYPE_MAP
 
     agent_id: UUID = Field(..., description="UUID of the agent to update")
     # Dual-mode: name
@@ -272,7 +293,7 @@ class DuplicateAgentApiResponse(BaseModel):
     message: str = Field(..., description="Human-readable result message")
 
 
-class PatchAgentDraftApiRequest(BaseModel):
+class PatchAgentDraftApiRequest(ScopedItem):
     """Request model for new-style agent draft endpoint.
 
     Dual-mode for creatable resources only:
@@ -283,6 +304,21 @@ class PatchAgentDraftApiRequest(BaseModel):
 
     Client always sends full state (append-only — each write is a new version snapshot).
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "description": "descriptions",
+        "description_id": "descriptions",
+        "flag_ids": "flags",
+        "department_ids": "departments",
+        "model_ids": "models",
+        "tool_ids": "tools",
+        "reasoning_level_ids": "reasoning_levels",
+        "temperature_level_ids": "temperature_levels",
+        "voice_ids": "voices",
+        "rubric_ids": "rubrics",
+    }
 
     group_id: UUID | None = Field(None, description="UUID of the owning group")
     input_draft_id: UUID | None = Field(None, description="UUID of the input draft")

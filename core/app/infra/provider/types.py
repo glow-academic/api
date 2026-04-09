@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.provider_drafts.types import GetProviderDraftResponse
 
 
@@ -137,7 +138,7 @@ class ProviderResultItem(BaseModel):
 # ========== Create Endpoint Types ==========
 
 
-class CreateProviderItem(BaseModel):
+class CreateProviderItem(ScopedItem):
     """Single provider item for create — no provider_id."""
 
     id: UUID | None = Field(None, description="Optional pre-assigned identifier")
@@ -159,6 +160,20 @@ class CreateProviderItem(BaseModel):
     key_ids: list[UUID] | None = Field(None, description="API key resource identifiers")
     value_ids: list[UUID] | None = Field(None, description="Value resource identifiers")
 
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name_id": "names",
+        "name": "names",
+        "description_id": "descriptions",
+        "description": "descriptions",
+        "active_flag_id": "flags",
+        "active_flag": "flags",
+        "department_ids": "departments",
+        "departments": "departments",
+        "endpoint_ids": "endpoints",
+        "key_ids": "keys",
+        "value_ids": "values",
+    }
+
 
 class CreateProviderApiRequest(BaseModel):
     """Request model for bulk create provider endpoint."""
@@ -175,7 +190,7 @@ class CreateProviderApiResponse(BaseModel):
 # ========== Update Endpoint Types ==========
 
 
-class UpdateProviderItem(BaseModel):
+class UpdateProviderItem(ScopedItem):
     """Single provider item for update — provider_id required, all fields optional."""
 
     provider_id: UUID = Field(..., description="Target provider identifier to update")
@@ -193,6 +208,8 @@ class UpdateProviderItem(BaseModel):
     endpoint_ids: list[UUID] | None = Field(None, description="Endpoint resource identifiers")
     key_ids: list[UUID] | None = Field(None, description="API key resource identifiers")
     value_ids: list[UUID] | None = Field(None, description="Value resource identifiers")
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateProviderItem.RESOURCE_TYPE_MAP
 
 
 class UpdateProviderApiRequest(BaseModel):
@@ -247,7 +264,7 @@ class DuplicateProviderApiResponse(BaseModel):
 # ========== Draft Endpoint Types (composable infra) ==========
 
 
-class PatchProviderDraftApiRequest(BaseModel):
+class PatchProviderDraftApiRequest(ScopedItem):
     """Request model for new-style provider draft endpoint.
 
     Dual-mode for creatable resources only:
@@ -273,6 +290,18 @@ class PatchProviderDraftApiRequest(BaseModel):
     endpoint_ids: list[UUID] | None = Field(None, description="Endpoint resource identifiers")
     key_ids: list[UUID] | None = Field(None, description="API key resource identifiers")
     value_ids: list[UUID] | None = Field(None, description="Value resource identifiers")
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "description": "descriptions",
+        "description_id": "descriptions",
+        "flag_id": "flags",
+        "department_ids": "departments",
+        "endpoint_ids": "endpoints",
+        "key_ids": "keys",
+        "value_ids": "values",
+    }
 
 
 class ProviderDraftFormState(BaseModel):

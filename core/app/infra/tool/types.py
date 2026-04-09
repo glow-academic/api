@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.tool_drafts.types import GetToolDraftResponse
 
 
@@ -125,7 +127,7 @@ class ToolResultItem(BaseModel):
 # ========== Create Endpoint Types ==========
 
 
-class CreateToolItem(BaseModel):
+class CreateToolItem(ScopedItem):
     """Single tool item for create — no tool_id.
 
     Required fields (name): provide ID or value.
@@ -152,6 +154,22 @@ class CreateToolItem(BaseModel):
     active_flag: bool | None = Field(None, description="Whether this tool is active")
     active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
 
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name_id": "names",
+        "name": "names",
+        "description_id": "descriptions",
+        "description": "descriptions",
+        "department_ids": "departments",
+        "flag_ids": "flags",
+        "arg_positions_ids": "arg_positions",
+        "args_ids": "args",
+        "args_outputs_ids": "args_outputs",
+        "permission_ids": "permissions",
+        "tool_ids": "tools",
+        "active_flag": "flags",
+        "active_flag_id": "flags",
+    }
+
 
 class CreateToolApiRequest(BaseModel):
     """Request model for bulk create tool endpoint."""
@@ -168,7 +186,7 @@ class CreateToolApiResponse(BaseModel):
 # ========== Update Endpoint Types ==========
 
 
-class UpdateToolItem(BaseModel):
+class UpdateToolItem(ScopedItem):
     """Single tool item for update — tool_id required, all fields optional.
 
     Only provided fields are updated (partial update).
@@ -192,6 +210,8 @@ class UpdateToolItem(BaseModel):
     # Value-based fields for CSV import (match-by-name resolution)
     active_flag: bool | None = Field(None, description="Whether this tool is active")
     active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateToolItem.RESOURCE_TYPE_MAP
 
 
 class UpdateToolApiRequest(BaseModel):
@@ -243,7 +263,7 @@ class DuplicateToolApiResponse(BaseModel):
     message: str = Field(..., description="Result message")
 
 
-class PatchToolDraftApiRequest(BaseModel):
+class PatchToolDraftApiRequest(ScopedItem):
     """Request model for new-style tool draft endpoint.
 
     Dual-mode for creatable resources only:
@@ -270,6 +290,19 @@ class PatchToolDraftApiRequest(BaseModel):
     arg_position_ids: list[UUID] | None = Field(None, description="Argument position identifiers")
     args_output_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "description": "descriptions",
+        "description_id": "descriptions",
+        "flag_ids": "flags",
+        "department_ids": "departments",
+        "arg_ids": "args",
+        "arg_position_ids": "arg_positions",
+        "args_output_ids": "args_outputs",
+        "permission_ids": "permissions",
+    }
 
 
 class ToolDraftFormState(BaseModel):

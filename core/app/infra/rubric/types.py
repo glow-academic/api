@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.rubric_drafts.types import GetRubricDraftResponse
 
 
@@ -112,8 +113,26 @@ class RubricResultItem(BaseModel):
 # ========== Create Endpoint Types ==========
 
 
-class CreateRubricItem(BaseModel):
+class CreateRubricItem(ScopedItem):
     """Single rubric item for create — no rubric_id."""
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name_id": "names",
+        "name": "names",
+        "description_id": "descriptions",
+        "description": "descriptions",
+        "active_flag_id": "flags",
+        "active_flag": "flags",
+        "simulation_rubric_flag": "flags",
+        "simulation_rubric_flag_id": "flags",
+        "video_rubric_flag": "flags",
+        "video_rubric_flag_id": "flags",
+        "department_ids": "departments",
+        "departments": "departments",
+        "point_ids": "points",
+        "standard_group_ids": "standard_groups",
+        "standard_ids": "standards",
+    }
 
     id: UUID | None = Field(None, description="Optional pre-assigned UUID")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
@@ -154,8 +173,10 @@ class CreateRubricApiResponse(BaseModel):
 # ========== Update Endpoint Types ==========
 
 
-class UpdateRubricItem(BaseModel):
+class UpdateRubricItem(ScopedItem):
     """Single rubric item for update — rubric_id required, all fields optional."""
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateRubricItem.RESOURCE_TYPE_MAP
 
     rubric_id: UUID = Field(..., description="Rubric UUID to update")  # Required — which rubric to update
     # Optional single-select — provide ID or value
@@ -230,7 +251,7 @@ class DuplicateRubricApiResponse(BaseModel):
 # ========== Draft Endpoint Types (composable infra) ==========
 
 
-class PatchRubricDraftApiRequest(BaseModel):
+class PatchRubricDraftApiRequest(ScopedItem):
     """Request model for new-style rubric draft endpoint.
 
     Dual-mode for creatable resources only:
@@ -240,6 +261,18 @@ class PatchRubricDraftApiRequest(BaseModel):
 
     Client always sends full state (append-only — each write is a new version snapshot).
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "description": "descriptions",
+        "description_id": "descriptions",
+        "flag_id": "flags",
+        "department_ids": "departments",
+        "point_ids": "points",
+        "standard_group_ids": "standard_groups",
+        "standard_ids": "standards",
+    }
 
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to patch")
     expected_version: int = Field(0, description="Expected draft version for concurrency control")

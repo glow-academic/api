@@ -8,12 +8,13 @@ modalities, temperature_levels, pricing, reasoning_levels, qualities, voices.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.model_drafts.types import GetModelDraftResponse
 
 # =============================================================================
@@ -197,11 +198,32 @@ class ModelResultItem(BaseModel):
 # =============================================================================
 
 
-class CreateModelItem(BaseModel):
+class CreateModelItem(ScopedItem):
     """Single model item for create — no model_id.
 
     Required fields (name): provide ID or value.
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name_id": "names",
+        "name": "names",
+        "description_id": "descriptions",
+        "description": "descriptions",
+        "department_ids": "departments",
+        "departments": "departments",
+        "active_flag": "flags",
+        "active_flag_id": "flags",
+        "flag_ids": "flags",
+        "modality_ids": "modalities",
+        "pricing_ids": "pricing",
+        "provider_ids": "providers",
+        "quality_ids": "qualities",
+        "reasoning_level_ids": "reasoning_levels",
+        "temperature_level_ids": "temperature_levels",
+        "value_ids": "values",
+        "voice_ids": "voices",
+        "model_ids": "models",
+    }
 
     id: UUID | None = Field(None, description="Optional pre-assigned identifier")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
@@ -248,11 +270,13 @@ class CreateModelApiResponse(BaseModel):
 # =============================================================================
 
 
-class UpdateModelItem(BaseModel):
+class UpdateModelItem(ScopedItem):
     """Single model item for update — model_id required, all fields optional.
 
     Only provided fields are updated (partial update).
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateModelItem.RESOURCE_TYPE_MAP
 
     model_id: UUID = Field(..., description="Target model identifier to update")
     # Dual-mode: name
@@ -348,7 +372,7 @@ class DuplicateModelApiResponse(BaseModel):
 # =============================================================================
 
 
-class PatchModelDraftApiRequest(BaseModel):
+class PatchModelDraftApiRequest(ScopedItem):
     """Request model for new-style model draft endpoint.
 
     Dual-mode for creatable resources only:
@@ -359,6 +383,23 @@ class PatchModelDraftApiRequest(BaseModel):
 
     Client always sends full state (append-only — each write is a new version snapshot).
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "description": "descriptions",
+        "description_id": "descriptions",
+        "flag_ids": "flags",
+        "department_ids": "departments",
+        "modality_ids": "modalities",
+        "pricing_ids": "pricing",
+        "provider_ids": "providers",
+        "quality_ids": "qualities",
+        "reasoning_level_ids": "reasoning_levels",
+        "temperature_level_ids": "temperature_levels",
+        "value_ids": "values",
+        "voice_ids": "voices",
+    }
 
     input_draft_id: UUID | None = Field(None, description="Existing draft ID to update")
     expected_version: int = Field(0, description="Expected draft version for concurrency")

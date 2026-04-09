@@ -53,6 +53,7 @@ async def create_persona_impl(
     *,
     profile_id: UUID,
     items: list,
+    resources: list[str] | None = None,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
@@ -69,6 +70,11 @@ async def create_persona_impl(
       6. invalidate_tags
     """
     from app.infra.persona.permissions import compute_can_create
+
+    # ── Step 0: Scope fields by resources ─────────────────────────────
+
+    if resources:
+        items = [item.scoped(resources) for item in items]
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

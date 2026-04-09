@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -16,6 +17,7 @@ from app.infra.shared_types import (
     QGetToolsV4Item,
 )
 from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.auth_drafts.types import GetAuthDraftResponse
 
 
@@ -269,11 +271,28 @@ class AuthResultItem(BaseModel):
 # ========== Create Endpoint Types ==========
 
 
-class CreateAuthItem(BaseModel):
+class CreateAuthItem(ScopedItem):
     """Single auth item for create — no auth_id.
 
     Required fields (name): provide ID or value.
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name_id": "names",
+        "name": "names",
+        "description_id": "descriptions",
+        "description": "descriptions",
+        "slug_id": "slugs",
+        "slug": "slugs",
+        "active_flag_id": "flags",
+        "active_flag": "flags",
+        "department_ids": "departments",
+        "departments": "departments",
+        "protocol_ids": "protocols",
+        "protocol": "protocols",
+        "item_ids": "items",
+        "auth_resource_ids": "auths",
+    }
 
     id: UUID | None = Field(None, description="Optional preset UUID for the new auth provider")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
@@ -313,8 +332,10 @@ class CreateAuthApiResponse(BaseModel):
 # ========== Update Endpoint Types ==========
 
 
-class UpdateAuthItem(BaseModel):
+class UpdateAuthItem(ScopedItem):
     """Single auth item for update — auth_id required, all fields optional."""
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateAuthItem.RESOURCE_TYPE_MAP
 
     auth_id: UUID = Field(..., description="UUID of the auth provider to update")
     # Optional single-select — provide ID or value
@@ -392,7 +413,7 @@ class DuplicateAuthApiResponse(BaseModel):
 # ========== Draft Endpoint Types (composable infra) ==========
 
 
-class PatchAuthDraftApiRequest(BaseModel):
+class PatchAuthDraftApiRequest(ScopedItem):
     """Request model for new-style auth draft endpoint.
 
     Dual-mode for creatable resources only:
@@ -402,6 +423,18 @@ class PatchAuthDraftApiRequest(BaseModel):
 
     Client always sends full state (append-only — each write is a new version snapshot).
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "description": "descriptions",
+        "description_id": "descriptions",
+        "flag_id": "flags",
+        "department_ids": "departments",
+        "protocol_ids": "protocols",
+        "slug_ids": "slugs",
+        "item_ids": "items",
+    }
 
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
     expected_version: int = Field(0, description="Expected draft version for optimistic locking")

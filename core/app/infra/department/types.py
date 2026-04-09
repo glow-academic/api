@@ -5,9 +5,12 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
+from typing import ClassVar
+
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import BaseResourceSection
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.department_drafts.types import (
     GetDepartmentDraftResponse,
 )
@@ -95,11 +98,22 @@ class DepartmentResultItem(BaseModel):
 # ========== Create Endpoint Types ==========
 
 
-class CreateDepartmentItem(BaseModel):
+class CreateDepartmentItem(ScopedItem):
     """Single department item for create — no department_id.
 
     Required fields (name): provide ID or value.
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name_id": "names",
+        "name": "names",
+        "description_id": "descriptions",
+        "description": "descriptions",
+        "active_flag_id": "flags",
+        "active_flag": "flags",
+        "settings_ids": "settings",
+        "department_ids": "departments",
+    }
 
     id: UUID | None = Field(None, description="Optional preset UUID for the new department artifact")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the departments_resource snapshot")
@@ -132,8 +146,10 @@ class CreateDepartmentApiResponse(BaseModel):
 # ========== Update Endpoint Types ==========
 
 
-class UpdateDepartmentItem(BaseModel):
+class UpdateDepartmentItem(ScopedItem):
     """Single department item for update — department_id required, all fields optional."""
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateDepartmentItem.RESOURCE_TYPE_MAP
 
     department_id: UUID = Field(..., description="UUID of the department to update")
     # Optional single-select — provide ID or value
@@ -200,7 +216,7 @@ class DuplicateDepartmentApiResponse(BaseModel):
 # ========== Draft Endpoint Types (composable infra) ==========
 
 
-class PatchDepartmentDraftApiRequest(BaseModel):
+class PatchDepartmentDraftApiRequest(ScopedItem):
     """Request model for new-style department draft endpoint.
 
     Dual-mode for creatable resources only:
@@ -210,6 +226,15 @@ class PatchDepartmentDraftApiRequest(BaseModel):
 
     Client always sends full state (append-only — each write is a new version snapshot).
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "description": "descriptions",
+        "description_id": "descriptions",
+        "flag_id": "flags",
+        "setting_ids": "settings",
+    }
 
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
     expected_version: int = Field(0, description="Expected draft version for optimistic locking")

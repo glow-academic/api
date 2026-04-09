@@ -6,11 +6,12 @@ Includes Suite/Bundle types for the customization flow and socket generation lay
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.invocation_drafts.types import (
     GetInvocationDraftResponse,
 )
@@ -176,7 +177,7 @@ class SaveInvocationFieldError(BaseModel):
     message: str = Field(..., description="Error message")
 
 
-class PatchInvocationDraftApiRequest(BaseModel):
+class PatchInvocationDraftApiRequest(ScopedItem):
     """Request model for new-style invocation draft endpoint.
 
     Client always sends full state (append-only — each write is a new version snapshot).
@@ -201,6 +202,22 @@ class PatchInvocationDraftApiRequest(BaseModel):
     pricing_ids: list[UUID] | None = Field(None, description="Selected pricing IDs")
     reasoning_level_ids: list[UUID] | None = Field(None, description="Selected reasoning level IDs")
     voice_ids: list[UUID] | None = Field(None, description="Selected voice IDs")
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_ids": "names",
+        "description": "descriptions",
+        "description_ids": "descriptions",
+        "value_ids": "values",
+        "flag_ids": "flags",
+        "department_ids": "departments",
+        "key_ids": "keys",
+        "endpoint_ids": "endpoints",
+        "temperature_level_ids": "temperature_levels",
+        "pricing_ids": "pricing",
+        "reasoning_level_ids": "reasoning_levels",
+        "voice_ids": "voices",
+    }
 
 
 class InvocationDraftFormState(BaseModel):

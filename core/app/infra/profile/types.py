@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 from app.infra.shared_types import QGetProfileContextV4RoleResource
 from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.profile_drafts.types import GetProfileDraftResponse
 
 # ---------------------------------------------------------------------------
@@ -188,8 +190,19 @@ class ProfileResultItem(BaseModel):
 # ========== Create Endpoint Types ==========
 
 
-class CreateProfileItem(BaseModel):
+class CreateProfileItem(ScopedItem):
     """Single profile item for create — no profile_id."""
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name_id": "names",
+        "name": "names",
+        "request_limit_id": "request_limits",
+        "active_flag_id": "flags",
+        "department_ids": "departments",
+        "departments": "departments",
+        "email_ids": "emails",
+        "role_id": "roles",
+    }
 
     id: UUID | None = Field(None, description="Optional preset UUID for the new profile")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
@@ -222,8 +235,10 @@ class CreateProfileApiResponse(BaseModel):
 # ========== Update Endpoint Types ==========
 
 
-class UpdateProfileItem(BaseModel):
+class UpdateProfileItem(ScopedItem):
     """Single profile item for update — profile_id required, all fields optional."""
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateProfileItem.RESOURCE_TYPE_MAP
 
     profile_id: UUID = Field(..., description="UUID of the profile to update")
     # Optional single-select — provide ID or value
@@ -290,7 +305,7 @@ class DuplicateProfileApiResponse(BaseModel):
 # ========== Draft Endpoint Types (composable infra) ==========
 
 
-class PatchProfileDraftApiRequest(BaseModel):
+class PatchProfileDraftApiRequest(ScopedItem):
     """Request model for new-style profile draft endpoint.
 
     Dual-mode for creatable resources only:
@@ -300,6 +315,18 @@ class PatchProfileDraftApiRequest(BaseModel):
 
     Client always sends full state (append-only — each write is a new version snapshot).
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "email": "emails",
+        "request_limit": "request_limits",
+        "active_flag_id": "flags",
+        "department_ids": "departments",
+        "email_ids": "emails",
+        "role_id": "roles",
+        "request_limit_ids": "request_limits",
+    }
 
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
     expected_version: int = Field(0, description="Expected draft version for optimistic locking")

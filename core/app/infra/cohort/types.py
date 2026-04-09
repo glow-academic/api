@@ -5,9 +5,12 @@ SQL-computed permissions and UI flags.
 """
 
 from datetime import datetime
+from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+from app.infra.resource_type_filter import ScopedItem
 
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.cohort_drafts.types import GetCohortDraftResponse
@@ -327,11 +330,30 @@ class CohortResultItem(BaseModel):
 # =============================================================================
 
 
-class CreateCohortItem(BaseModel):
+class CreateCohortItem(ScopedItem):
     """Single cohort item for create — no cohort_id.
 
     Required fields (name): provide ID or value.
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name_id": "names",
+        "name": "names",
+        "description_id": "descriptions",
+        "description": "descriptions",
+        "flag_id": "flags",
+        "active_flag_id": "flags",
+        "active_flag": "flags",
+        "department_ids": "departments",
+        "departments": "departments",
+        "simulation_ids": "simulations",
+        "simulations": "simulations",
+        "simulation_position_ids": "simulation_positions",
+        "simulation_availability_ids": "simulation_availability",
+        "profile_ids": "profiles",
+        "profiles": "profiles",
+        "profile_persona_ids": "profile_personas",
+    }
 
     id: UUID | None = Field(None, description="Optional pre-assigned UUID")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
@@ -376,8 +398,10 @@ class CreateCohortApiResponse(BaseModel):
 # =============================================================================
 
 
-class UpdateCohortItem(BaseModel):
+class UpdateCohortItem(ScopedItem):
     """Single cohort item for update — cohort_id required, all fields optional."""
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateCohortItem.RESOURCE_TYPE_MAP
 
     cohort_id: UUID = Field(..., description="Cohort UUID to update")  # Required — which cohort to update
     # Optional single-select — provide ID or value
@@ -492,7 +516,7 @@ class DraftProfilePersonaValue(BaseModel):
     persona_id: UUID = Field(..., description="Associated persona UUID")
 
 
-class PatchCohortDraftApiRequest(BaseModel):
+class PatchCohortDraftApiRequest(ScopedItem):
     """Request model for new-style cohort draft endpoint.
 
     Dual-mode for creatable resources:
@@ -504,6 +528,23 @@ class PatchCohortDraftApiRequest(BaseModel):
 
     Client always sends full state (append-only — each write is a new version snapshot).
     """
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "description": "descriptions",
+        "description_id": "descriptions",
+        "flag_id": "flags",
+        "department_ids": "departments",
+        "simulation_ids": "simulations",
+        "profile_ids": "profiles",
+        "simulation_position_ids": "simulation_positions",
+        "simulation_positions": "simulation_positions",
+        "simulation_availability_ids": "simulation_availability",
+        "simulation_availability": "simulation_availability",
+        "profile_persona_ids": "profile_personas",
+        "profile_personas": "profile_personas",
+    }
 
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to patch")
     expected_version: int = Field(0, description="Expected draft version for concurrency control")

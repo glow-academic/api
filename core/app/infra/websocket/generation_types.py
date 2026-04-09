@@ -127,42 +127,109 @@ class EntryTypeItem(BaseModel):
     operation: EntryOperation
 
 
-class GeneratePayload(BaseModel):
-    """Unified client-to-server payload for the `generate` WebSocket event."""
+class PermissionPair(BaseModel):
+    """Human-readable (artifact, operation) pair."""
 
-    artifact_types: list[ArtifactTypeItem]
-    artifact_id: Any | None = None
-    draft_id: Any | None = None
-    resource_types: list[ResourceTypeItem]
+    artifact: str
+    operation: str
+
+
+class GeneratePayload(BaseModel):
+    """Unified client-to-server payload for the `generate` WebSocket event.
+
+    Permissions — which tools the AI can use (provide one or both):
+      permissions: [("persona", "create"), ...]  — human-readable pairs
+      permission_ids: ["uuid", ...]              — direct permission resource UUIDs
+
+    Resources — field-level filter within artifact tools:
+      resources: ["names", "descriptions"]       — only these fields are processed
+      (empty or omitted = all fields)
+
+    Legacy fields (artifact_types, resource_types, entry_types) are still
+    accepted for backward compatibility and converted to the new format.
+    """
+
+    # ── New canonical fields ──────────────────────────────────────────
+    permissions: list[PermissionPair] | None = None
+    permission_ids: list[str] | None = None
+    resources: list[str] | None = None
+
+    # ── Legacy fields (backward compatibility) ────────────────────────
+    artifact_types: list[ArtifactTypeItem] | None = None
+    resource_types: list[ResourceTypeItem] | None = None
     entry_types: list[EntryTypeItem] | None = None
 
-    @model_validator(mode="before")
-    @classmethod
-    def _coerce_resource_types(cls, data: Any) -> Any:
-        """Auto-coerce plain strings to ResourceTypeItem for backward compatibility."""
-        if isinstance(data, dict):
-            raw = data.get("resource_types")
-            if isinstance(raw, list):
-                data["resource_types"] = [
-                    {"name": item, "operation": "create"}
-                    if isinstance(item, str)
-                    else item
-                    for item in raw
-                ]
-        return data
-
-    @property
-    def artifact_type(self) -> str:
-        """Derived primary artifact type — the name of the first artifact_types entry."""
-        return self.artifact_types[0].name if self.artifact_types else "unknown"
-
+    # ── Common fields ─────────────────────────────────────────────────
+    artifact_id: Any | None = None
+    draft_id: Any | None = None
     user_instructions: list[str] | None = None
-    save: bool = False
     run_id: str | None = None
     group_id: str | None = None
     modality: str = "call"
     extra_messages: list[dict[str, str]] | None = None
     metadata: dict[str, Any] | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_legacy_fields(cls, data: Any) -> Any:
+        """Coerce legacy formats for backward compatibility.
+
+        - Plain string resource_types → ResourceTypeItem
+        - artifact_types → permissions (if permissions not provided)
+        """
+        if not isinstance(data, dict):
+            return data
+
+        # Coerce plain string resource_types to ResourceTypeItem
+        raw_rt = data.get("resource_types")
+        if isinstance(raw_rt, list):
+            data["resource_types"] = [
+                {"name": item, "operation": "create"}
+                if isinstance(item, str)
+                else item
+                for item in raw_rt
+            ]
+
+        # Coerce plain string permissions to PermissionPair
+        raw_perms = data.get("permissions")
+        if isinstance(raw_perms, list) and raw_perms:
+            data["permissions"] = [
+                {"artifact": p[0], "operation": p[1]}
+                if isinstance(p, (list, tuple))
+                else p
+                for p in raw_perms
+            ]
+
+        return data
+
+    @property
+    def artifact_type(self) -> str:
+        """Derived primary artifact type for backward compatibility."""
+        if self.permissions:
+            return self.permissions[0].artifact
+        if self.artifact_types:
+            return self.artifact_types[0].name
+        return "unknown"
+
+    @property
+    def resolved_permissions(self) -> list[PermissionPair]:
+        """Canonical permission list — merges permissions + legacy artifact_types."""
+        result: list[PermissionPair] = []
+        if self.permissions:
+            result.extend(self.permissions)
+        if self.artifact_types:
+            for at in self.artifact_types:
+                pair = PermissionPair(artifact=at.name, operation=at.operation)
+                if pair not in result:
+                    result.append(pair)
+        return result
+
+    @property
+    def resolved_resources(self) -> list[str] | None:
+        """Canonical resource filter — prefers new `resources` field."""
+        if self.resources is not None:
+            return self.resources
+        return None
 
 
 # ═══════════════════════════════════════════════════════════════════════════

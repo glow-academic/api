@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import ClassVar  # used by RESOURCE_TYPE_MAP
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+from app.infra.resource_type_filter import ScopedItem
 
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.tools.entries.persona_drafts.types import GetPersonaDraftResponse
@@ -457,7 +460,7 @@ class PersonaResultItem(BaseModel):
 # ========== Create Endpoint Types ==========
 
 
-class CreatePersonaItem(BaseModel):
+class CreatePersonaItem(ScopedItem):
     """Single persona item for create — no persona_id.
 
     Required fields (name, color, icon, instructions): provide ID or value.
@@ -490,6 +493,29 @@ class CreatePersonaItem(BaseModel):
     voice_ids: list[UUID] | None = Field(None, description="Voice resource UUIDs to associate")
     voices: list[str] | None = Field(None, description="Voice values (resolved to UUIDs server-side)")
 
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "description": "descriptions",
+        "description_id": "descriptions",
+        "color": "colors",
+        "color_id": "colors",
+        "icon": "icons",
+        "icon_id": "icons",
+        "instructions": "instructions",
+        "instructions_id": "instructions",
+        "active_flag": "flags",
+        "active_flag_id": "flags",
+        "departments": "departments",
+        "department_ids": "departments",
+        "parameter_fields": "parameter_fields",
+        "parameter_field_ids": "parameter_fields",
+        "examples": "examples",
+        "example_ids": "examples",
+        "voices": "voices",
+        "voice_ids": "voices",
+    }
+
 
 class CreatePersonaApiRequest(BaseModel):
     """Request model for bulk create persona endpoint."""
@@ -506,7 +532,7 @@ class CreatePersonaApiResponse(BaseModel):
 # ========== Update Endpoint Types ==========
 
 
-class UpdatePersonaItem(BaseModel):
+class UpdatePersonaItem(ScopedItem):
     """Single persona item for update — persona_id required, all fields optional.
 
     Only provided fields are updated (partial update).
@@ -535,6 +561,8 @@ class UpdatePersonaItem(BaseModel):
     examples: list[str] | None = Field(None, description="Example texts (creates new example resources)")
     voice_ids: list[UUID] | None = Field(None, description="Voice resource UUIDs to associate (replaces existing)")
     voices: list[str] | None = Field(None, description="Voice values (resolved to UUIDs server-side)")
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreatePersonaItem.RESOURCE_TYPE_MAP
 
 
 class UpdatePersonaApiRequest(BaseModel):
@@ -599,7 +627,7 @@ class DuplicatePersonaApiResponse(BaseModel):
 # ========== Draft Endpoint Types (composable infra) ==========
 
 
-class PatchPersonaDraftApiRequest(BaseModel):
+class PatchPersonaDraftApiRequest(ScopedItem):
     """Request model for new-style persona draft endpoint.
 
     Dual-mode for creatable resources only:
@@ -632,6 +660,23 @@ class PatchPersonaDraftApiRequest(BaseModel):
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to associate")
     parameter_field_ids: list[UUID] | None = Field(None, description="Parameter field UUIDs to associate")
     voice_ids: list[UUID] | None = Field(None, description="Voice resource UUIDs to associate")
+
+    RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
+        "name": "names",
+        "name_id": "names",
+        "description": "descriptions",
+        "description_id": "descriptions",
+        "instructions": "instructions",
+        "instructions_id": "instructions",
+        "examples": "examples",
+        "example_ids": "examples",
+        "color_id": "colors",
+        "icon_id": "icons",
+        "flag_id": "flags",
+        "department_ids": "departments",
+        "parameter_field_ids": "parameter_fields",
+        "voice_ids": "voices",
+    }
 
 
 class DraftFormState(BaseModel):
