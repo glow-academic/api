@@ -1,19 +1,19 @@
-"""Invocation key decrypt endpoint — thin route, delegates to infra.
+"""Invocation key decrypt endpoint — composable infra architecture.
 
-Scoped authorization: validates the key belongs to the invocation before decrypting.
+Thin route handler. Core logic lives in app.infra.invocation.decrypt.
 """
 
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
-from app.infra.globals import get_pool, get_redis_client
-from app.infra.identity.decrypt import resolve_decrypt
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.invocation.decrypt import decrypt_invocation_impl
 from app.infra.invocation.types import (
     DecryptInvocationKeyApiRequest,
     DecryptInvocationKeyApiResponse,
 )
-from app.tools.entries.invocation.get import get_invocations
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -28,6 +28,7 @@ async def decrypt_invocation_key(
     """Decrypt a key scoped to an invocation entry."""
     try:
         profile_id = http_request.state.profile_id
+        session_id = http_request.state.session_id
         if not profile_id:
             raise HTTPException(
                 status_code=401,
@@ -38,37 +39,34 @@ async def decrypt_invocation_key(
         pool = get_pool()
         redis = get_redis_client()
 
-        # Validate key belongs to this invocation
-        async with pool.acquire() as conn:
-            invocations = await get_invocations(conn, [request.invocation_id])
-
-        if not invocations:
-            raise HTTPException(status_code=404, detail="Invocation not found")
-
-        invocation = invocations[0]
-        if request.key_id not in (invocation.key_ids or []):
-            raise HTTPException(
-                status_code=403,
-                detail="Key does not belong to this invocation",
+        async def _runner() -> DecryptInvocationKeyApiResponse:
+            return await decrypt_invocation_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                invocation_id=request.invocation_id,
+                key_id=request.key_id,
+                bypass_cache=bypass_cache,
             )
 
-        result = await resolve_decrypt(
+        response_data = await run_artifact_operation_with_audit(
             pool,
             redis,
+            artifact="invocation",
+            operation="decrypt",
             profile_id=profile_id,
-            key_id=request.key_id,
-            bypass_cache=bypass_cache,
+            session_id=session_id,
+            arguments=request.model_dump(mode="json"),
+            runner=_runner,
+            upload_folder=get_upload_folder(),
+            response_model=DecryptInvocationKeyApiResponse,
         )
 
-        return DecryptInvocationKeyApiResponse(
-            key=result.key,
-            name=result.name,
-            actor_name=result.actor_name,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        return response_data
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         handle_route_error(
             error=e,

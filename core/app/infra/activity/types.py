@@ -88,3 +88,43 @@ class ExportActivityApiResponse(BaseModel):
     file_name: str = Field(..., description="Suggested download file name")
     mime_type: str = Field(..., description="MIME type of the export file")
     row_count: int = Field(..., description="Number of rows in the export")
+
+
+# =============================================================================
+# Problem Types
+# =============================================================================
+
+
+class CreateProblemApiRequest(BaseModel):
+    """Request for creating a problem entry."""
+
+    type: str = Field(..., description="Problem type: feature, bug, question, or other")
+    message: str = Field(..., description="Problem description message")
+
+
+class CreateProblemApiResponse(BaseModel):
+    """Response for creating a problem entry."""
+
+    problem_id: UUID = Field(..., description="ID of the created problem")
+    success: bool = Field(..., description="Whether the problem was created successfully")
+    message: str = Field(..., description="Status message")
+
+
+# =============================================================================
+# Resolve Types
+# =============================================================================
+
+
+class ResolveProblemApiRequest(BaseModel):
+    """Request for resolving a problem entry."""
+
+    problem_id: UUID = Field(..., description="ID of the problem to resolve")
+    resolved: bool = Field(True, description="Whether the problem is resolved")
+
+
+class ResolveProblemApiResponse(BaseModel):
+    """Response for resolving a problem entry."""
+
+    problem_id: UUID = Field(..., description="ID of the resolved problem")
+    resolved: bool = Field(..., description="Current resolved status")
+    updated_at: datetime = Field(..., description="Timestamp of the update")

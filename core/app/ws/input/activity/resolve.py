@@ -1,52 +1,61 @@
-"""Input: activity.resolve — resolve a problem entry."""
+"""Input: activity.resolve"""
 
 from typing import Any
+from uuid import UUID
 
-from app.infra.globals import get_internal_sio, sio
-from app.infra.websocket.find_profile_by_socket import find_profile_by_socket
-from app.infra.websocket.find_session_by_socket import find_session_by_socket
-from app.utils.logging.db_logger import get_logger
+from pydantic import BaseModel, Field
 
-logger = get_logger(__name__)
+from app.infra.activity.resolve import resolve_activity_impl
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
+from app.infra.identity.socket import resolve_socket_identity
 
 internal_sio = get_internal_sio()
 
 
-@sio.event  # type: ignore
+class ActivityResolvePayload(BaseModel):
+    """Payload for activity.resolve socket event."""
+
+    problem_id: UUID = Field(...)
+    resolved: bool = Field(True)
+
+
+@sio.on("activity.resolve")  # type: ignore
 async def activity_resolve(sid: str, data: dict[str, Any]) -> None:
+    identity = await resolve_socket_identity(sid)
+    if not identity:
+        return
+
     try:
-        profile_id_str = await find_profile_by_socket(sid)
-        if not profile_id_str:
-            await sio.emit(
-                "activity.resolve.failed",
-                {"message": "Profile not found. Please reconnect."},
-                room=sid,
-            )
-            return
-
-        session_id_str = await find_session_by_socket(sid)
-        if not session_id_str:
-            await sio.emit(
-                "activity.resolve.failed",
-                {"message": "Session not found. Please reconnect."},
-                room=sid,
-            )
-            return
-
-        await internal_sio.emit(
-            "activity.resolve",
-            {
-                "sid": sid,
-                "profile_id": profile_id_str,
-                "session_id": session_id_str,
-                "problem_id": data.get("problem_id"),
-                "resolved": data.get("resolved", True),
-            },
-        )
+        payload = ActivityResolvePayload(**data)
     except Exception as e:
-        logger.exception(f"Error in activity.resolve input: {e}")
-        await sio.emit(
-            "activity.resolve.failed",
-            {"message": f"Invalid request: {e}"},
-            room=sid,
-        )
+        await internal_sio.emit("activity.resolve.failed", {
+            "sid": sid,
+            "rooms": [sid],
+            "message": str(e),
+            "error_type": "validation",
+        })
+        return
+
+    pool = get_pool()
+    redis = get_redis_client()
+
+    await run_artifact_operation_with_audit(
+        pool,
+        redis,
+        artifact="activity",
+        operation="resolve",
+        profile_id=identity.profile_id,
+        session_id=identity.session_id,
+        sid=sid,
+        rooms=[sid],
+        runner=lambda: resolve_activity_impl(
+            pool,
+            redis,
+            profile_id=identity.profile_id,
+            session_id=identity.session_id,
+            problem_id=payload.problem_id,
+            resolved=payload.resolved,
+        ),
+        arguments=payload.model_dump(mode="json"),
+    )

@@ -1,20 +1,19 @@
-"""Setting key decrypt endpoint — thin route, delegates to infra.
+"""Setting key decrypt endpoint — composable infra architecture.
 
-Scoped authorization: validates the key belongs to the setting
-(as a provider_key or auth_item_key) before decrypting.
+Thin route handler. Core logic lives in app.infra.setting.decrypt.
 """
 
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
-from app.infra.globals import get_pool, get_redis_client
-from app.infra.identity.decrypt import resolve_decrypt
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.setting.decrypt import decrypt_setting_impl
 from app.infra.setting.types import (
     DecryptSettingKeyApiRequest,
     DecryptSettingKeyApiResponse,
 )
-from app.tools.artifacts.setting.get import get_settings
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -29,6 +28,7 @@ async def decrypt_setting_key(
     """Decrypt a key scoped to a setting artifact."""
     try:
         profile_id = http_request.state.profile_id
+        session_id = http_request.state.session_id
         if not profile_id:
             raise HTTPException(
                 status_code=401,
@@ -39,46 +39,34 @@ async def decrypt_setting_key(
         pool = get_pool()
         redis = get_redis_client()
 
-        # Validate key belongs to this setting (provider_keys or auth_item_keys)
-        async with pool.acquire() as conn:
-            settings = await get_settings(
-                conn,
-                [request.setting_id],
-                provider_keys=True,
-                auth_item_keys=True,
-                active=None,
+        async def _runner() -> DecryptSettingKeyApiResponse:
+            return await decrypt_setting_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                setting_id=request.setting_id,
+                key_id=request.key_id,
+                bypass_cache=bypass_cache,
             )
 
-        if not settings:
-            raise HTTPException(status_code=404, detail="Setting not found")
-
-        setting = settings[0]
-        all_key_ids = list(setting.provider_key_ids or []) + list(
-            setting.auth_item_keys_ids or []
-        )
-        if request.key_id not in all_key_ids:
-            raise HTTPException(
-                status_code=403,
-                detail="Key does not belong to this setting",
-            )
-
-        result = await resolve_decrypt(
+        response_data = await run_artifact_operation_with_audit(
             pool,
             redis,
+            artifact="setting",
+            operation="decrypt",
             profile_id=profile_id,
-            key_id=request.key_id,
-            bypass_cache=bypass_cache,
+            session_id=session_id,
+            arguments=request.model_dump(mode="json"),
+            runner=_runner,
+            upload_folder=get_upload_folder(),
+            response_model=DecryptSettingKeyApiResponse,
         )
 
-        return DecryptSettingKeyApiResponse(
-            key=result.key,
-            name=result.name,
-            actor_name=result.actor_name,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        return response_data
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         handle_route_error(
             error=e,

@@ -1,43 +1,38 @@
-"""Input: unemulate — exit innermost emulation layer."""
+"""Input: profile.unemulate"""
 
 from typing import Any
 
-from app.infra.globals import get_internal_sio, sio
-from app.infra.websocket.find_profile_by_socket import find_profile_by_socket
-from app.infra.websocket.find_session_by_socket import find_session_by_socket
-from app.utils.logging.db_logger import get_logger
-
-logger = get_logger(__name__)
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
+from app.infra.identity.socket import resolve_socket_identity
+from app.infra.profile.unemulate import unemulate_profile_impl
 
 internal_sio = get_internal_sio()
 
 
-@sio.event  # type: ignore
-async def unemulate(sid: str, data: dict[str, Any]) -> None:
-    try:
-        profile_id_str = await find_profile_by_socket(sid)
-        if not profile_id_str:
-            await sio.emit(
-                "unemulate_error",
-                {"message": "Profile not found. Please reconnect."},
-                room=sid,
-            )
-            return
+@sio.on("profile.unemulate")  # type: ignore
+async def profile_unemulate(sid: str, data: dict[str, Any]) -> None:
+    identity = await resolve_socket_identity(sid)
+    if not identity:
+        return
 
-        session_id_str = await find_session_by_socket(sid)
+    pool = get_pool()
+    redis = get_redis_client()
 
-        await internal_sio.emit(
-            "unemulate",
-            {
-                "sid": sid,
-                "profile_id": profile_id_str,
-                "session_id": session_id_str,
-            },
-        )
-    except Exception as e:
-        logger.exception(f"Error in unemulate input: {e}")
-        await sio.emit(
-            "unemulate_error",
-            {"message": f"Invalid request: {e}"},
-            room=sid,
-        )
+    await run_artifact_operation_with_audit(
+        pool,
+        redis,
+        artifact="profile",
+        operation="unemulate",
+        profile_id=identity.profile_id,
+        session_id=identity.session_id,
+        sid=sid,
+        rooms=[sid],
+        runner=lambda: unemulate_profile_impl(
+            pool,
+            redis,
+            profile_id=identity.profile_id,
+            actor_profile_id=identity.actor_profile_id,
+        ),
+        arguments={"profile_id": str(identity.profile_id)},
+    )

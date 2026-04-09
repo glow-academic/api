@@ -1,47 +1,28 @@
-"""Problem resolve endpoint."""
+"""Problem resolve endpoint — thin HTTP adapter over the canonical shared operation."""
 
-from datetime import datetime
-from uuid import UUID
+from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import BaseModel
 
-from app.infra.globals import get_pool, get_redis_client
-from app.tools.entries.calls.create import create_call
-from app.tools.entries.groups.create import create_group
-from app.tools.entries.resolves.create import create_resolve
-from app.tools.entries.runs.create import create_run
-from app.utils.cache.invalidate_tags import invalidate_tags
+from app.infra.activity.resolve import resolve_activity_impl
+from app.infra.activity.types import ResolveProblemApiRequest, ResolveProblemApiResponse
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.error.handle_route_error import handle_route_error
-
-
-# Inline request/response schemas
-class ResolveProblemRequest(BaseModel):
-    problem_id: UUID
-    resolved: bool = True
-
-
-class ResolveProblemResponse(BaseModel):
-    problem_id: UUID
-    resolved: bool
-    updated_at: datetime
-
 
 router = APIRouter()
 
 
-@router.post("/resolve", response_model=ResolveProblemResponse)
+@router.post("/resolve", response_model=ResolveProblemApiResponse)
 async def resolve_problem(
-    request: ResolveProblemRequest,
+    request: ResolveProblemApiRequest,
     http_request: Request,
     response: Response,
-) -> ResolveProblemResponse:
+) -> ResolveProblemApiResponse:
     """Resolve or unresolve a problem entry."""
-    tags = ["problems", "views", "activity", "summary"]
-
     try:
-        # Get profile_id from header (set by router-level dependency)
         profile_id = http_request.state.profile_id
+        session_id = http_request.state.session_id
         if not profile_id:
             raise HTTPException(
                 status_code=401,
@@ -49,36 +30,33 @@ async def resolve_problem(
             )
 
         pool = get_pool()
+        redis = get_redis_client()
 
-        # Create group → run → call → resolve entry chain
-        session_id = http_request.state.session_id
-        async with pool.acquire() as conn:
-            group_result = await create_group(conn, session_id=session_id)
-            run_result = await create_run(
-                conn, group_id=group_result.id, session_id=session_id
-            )
-            call_result = await create_call(
-                conn, run_id=run_result.id, session_id=session_id
-            )
-
-            await create_resolve(
-                conn,
+        async def _runner() -> ResolveProblemApiResponse:
+            return await resolve_activity_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
                 problem_id=request.problem_id,
                 resolved=request.resolved,
-                call_id=call_result.id,
             )
 
-        result_data = ResolveProblemResponse(
-            problem_id=request.problem_id,
-            resolved=request.resolved,
-            updated_at=datetime.now(),
+        response_data = await run_artifact_operation_with_audit(
+            pool,
+            redis,
+            artifact="activity",
+            operation="resolve",
+            profile_id=profile_id,
+            session_id=session_id,
+            arguments=request.model_dump(mode="json"),
+            response_model=ResolveProblemApiResponse,
+            runner=_runner,
+            upload_folder=get_upload_folder(),
         )
 
-        # Invalidate cache after mutation
-        await invalidate_tags(tags, redis=get_redis_client())
-        response.headers["X-Invalidate-Tags"] = ",".join(tags)
-
-        return result_data
+        response.headers["X-Invalidate-Tags"] = "problems,views,activity,summary"
+        return response_data
     except HTTPException:
         raise
     except Exception as e:

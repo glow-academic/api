@@ -1,46 +1,52 @@
-"""Input: provider.decrypt — decrypt a provider key."""
+"""Input: provider.decrypt"""
 
 from typing import Any
 
-from app.infra.globals import get_internal_sio, sio
-from app.infra.websocket.find_profile_by_socket import find_profile_by_socket
-from app.infra.websocket.find_session_by_socket import find_session_by_socket
-from app.utils.logging.db_logger import get_logger
-
-logger = get_logger(__name__)
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
+from app.infra.identity.socket import resolve_socket_identity
+from app.infra.provider.decrypt import decrypt_provider_impl
+from app.infra.provider.types import DecryptProviderKeyApiRequest
 
 internal_sio = get_internal_sio()
 
 
-@sio.event  # type: ignore
+@sio.on("provider.decrypt")  # type: ignore
 async def provider_decrypt(sid: str, data: dict[str, Any]) -> None:
+    identity = await resolve_socket_identity(sid)
+    if not identity:
+        return
+
     try:
-        profile_id_str = await find_profile_by_socket(sid)
-        if not profile_id_str:
-            await sio.emit(
-                "provider.decrypt.failed",
-                {"message": "Profile not found. Please reconnect."},
-                room=sid,
-            )
-            return
-
-        session_id_str = await find_session_by_socket(sid)
-
-        await internal_sio.emit(
-            "provider.decrypt",
-            {
-                "sid": sid,
-                "profile_id": profile_id_str,
-                "session_id": session_id_str,
-                "provider_id": data.get("provider_id"),
-                "key_id": data.get("key_id"),
-                "bypass_cache": data.get("bypass_cache", False),
-            },
-        )
+        payload = DecryptProviderKeyApiRequest(**data)
     except Exception as e:
-        logger.exception(f"Error in provider.decrypt input: {e}")
-        await sio.emit(
-            "provider.decrypt.failed",
-            {"message": f"Invalid request: {e}"},
-            room=sid,
-        )
+        await internal_sio.emit("provider.decrypt.failed", {
+            "sid": sid,
+            "rooms": [sid],
+            "message": str(e),
+            "error_type": "validation",
+        })
+        return
+
+    pool = get_pool()
+    redis = get_redis_client()
+
+    await run_artifact_operation_with_audit(
+        pool,
+        redis,
+        artifact="provider",
+        operation="decrypt",
+        profile_id=identity.profile_id,
+        session_id=identity.session_id,
+        sid=sid,
+        rooms=[sid],
+        runner=lambda: decrypt_provider_impl(
+            pool,
+            redis,
+            profile_id=identity.profile_id,
+            provider_id=payload.provider_id,
+            key_id=payload.key_id,
+            bypass_cache=data.get("bypass_cache", False),
+        ),
+        arguments=payload.model_dump(mode="json"),
+    )

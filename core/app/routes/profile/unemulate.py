@@ -11,9 +11,8 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
-from app.infra.identity.emulate import resolve_unemulation
 from app.infra.profile.types import UnemulateProfileApiResponse
-from app.utils.cache.invalidate_tags import invalidate_tags
+from app.infra.profile.unemulate import unemulate_profile_impl
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -39,22 +38,7 @@ async def unemulate_profile(
         pool = get_pool()
         redis = get_redis_client()
 
-        async def _runner() -> UnemulateProfileApiResponse:
-            origin = actor_profile_id or UUID(profile_id)
-            result = await resolve_unemulation(pool, actor_profile_id=origin)
-
-            if not result.ok:
-                raise HTTPException(
-                    status_code=400, detail=result.reason or "Cannot exit emulation"
-                )
-
-            tags = ["profile"]
-            await invalidate_tags(tags, redis=redis)
-            response.headers["X-Invalidate-Tags"] = ",".join(tags)
-
-            return UnemulateProfileApiResponse(ok=result.ok, reason=result.reason)
-
-        return await run_artifact_operation_with_audit(
+        result = await run_artifact_operation_with_audit(
             pool,
             redis,
             artifact="profile",
@@ -63,9 +47,18 @@ async def unemulate_profile(
             operation="unemulate",
             arguments={"profile_id": str(profile_id)},
             response_model=UnemulateProfileApiResponse,
-            runner=_runner,
+            runner=lambda: unemulate_profile_impl(
+                pool,
+                redis,
+                profile_id=UUID(profile_id),
+                actor_profile_id=actor_profile_id,
+            ),
             upload_folder=get_upload_folder(),
         )
+
+        response.headers["X-Invalidate-Tags"] = "profile"
+        return result
+
     except HTTPException:
         raise
     except Exception as e:

@@ -1,79 +1,60 @@
-"""Input: problem — create a problem/bug report entry."""
+"""Input: activity.problem"""
 
 from typing import Any
 
-from app.infra.globals import get_internal_sio, sio
-from app.infra.websocket.find_profile_by_socket import find_profile_by_socket
-from app.infra.websocket.find_session_by_socket import find_session_by_socket
-from app.utils.logging.db_logger import get_logger
+from pydantic import BaseModel, Field
 
-logger = get_logger(__name__)
+from app.infra.activity.problem import problem_activity_impl
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
+from app.infra.identity.socket import resolve_socket_identity
 
 internal_sio = get_internal_sio()
 
 
+class ActivityProblemPayload(BaseModel):
+    """Payload for activity.problem socket event."""
+
+    type: str = Field(...)
+    message: str = Field(...)
+
+
 @sio.event  # type: ignore
 async def problem(sid: str, data: dict[str, Any]) -> None:
+    identity = await resolve_socket_identity(sid)
+    if not identity:
+        return
+
     try:
-        profile_id_str = await find_profile_by_socket(sid)
-        if not profile_id_str:
-            await sio.emit(
-                "problem_error",
-                {"message": "Profile not found. Please reconnect."},
-                room=sid,
-            )
-            return
-
-        session_id_str = await find_session_by_socket(sid)
-        if not session_id_str:
-            await sio.emit(
-                "problem_error",
-                {"message": "Session not found. Please reconnect."},
-                room=sid,
-            )
-            return
-
-        problem_type = data.get("type")
-        message = data.get("message")
-
-        if not problem_type or problem_type not in ("feature", "bug", "question", "other"):
-            await sio.emit(
-                "problem_error",
-                {"message": f"Invalid problem type: {problem_type}"},
-                room=sid,
-            )
-            return
-
-        if not message or not message.strip():
-            await sio.emit(
-                "problem_error",
-                {"message": "Message is required."},
-                room=sid,
-            )
-            return
-
-        if len(message) > 1000:
-            await sio.emit(
-                "problem_error",
-                {"message": "Message must be less than 1000 characters."},
-                room=sid,
-            )
-            return
-
-        await internal_sio.emit(
-            "problem",
-            {
-                "sid": sid,
-                "profile_id": profile_id_str,
-                "session_id": session_id_str,
-                "type": problem_type,
-                "message": message,
-            },
-        )
+        payload = ActivityProblemPayload(**data)
     except Exception as e:
-        logger.exception(f"Error in problem input: {e}")
-        await sio.emit(
-            "problem_error",
-            {"message": f"Invalid request: {e}"},
-            room=sid,
-        )
+        await internal_sio.emit("activity.problem.failed", {
+            "sid": sid,
+            "rooms": [sid],
+            "message": str(e),
+            "error_type": "validation",
+        })
+        return
+
+    pool = get_pool()
+    redis = get_redis_client()
+
+    await run_artifact_operation_with_audit(
+        pool,
+        redis,
+        artifact="activity",
+        operation="problem",
+        profile_id=identity.profile_id,
+        session_id=identity.session_id,
+        sid=sid,
+        rooms=[sid],
+        runner=lambda: problem_activity_impl(
+            pool,
+            redis,
+            profile_id=identity.profile_id,
+            session_id=identity.session_id,
+            type=payload.type,
+            message=payload.message,
+        ),
+        arguments=payload.model_dump(mode="json"),
+    )
