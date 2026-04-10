@@ -192,7 +192,7 @@ run: check-venv
 		echo "⚠️  No deployment token (learnloop-api not running?)"; \
 	fi; \
 	export DEPLOYMENT_TOKEN; \
-	trap 'echo ""; echo "🛑 Stopping all services..."; pkill -f "redis-server.*$(REDIS_PORT)" 2>/dev/null || true; pkill -f "uvicorn.*$(SERVER_PORT)" 2>/dev/null || true; pkill -f "stream-logs.js" 2>/dev/null || true; pkill -f "docker logs.*glow-keycloak" 2>/dev/null || true; docker stop glow-keycloak 2>/dev/null; docker rm glow-keycloak 2>/dev/null; echo "✅ All services stopped"; exit 0' INT; \
+	trap 'echo ""; echo "🛑 Stopping all services..."; pkill -f "redis-server.*$(REDIS_PORT)" 2>/dev/null || true; pkill -f "uvicorn.*$(SERVER_PORT)" 2>/dev/null || true; pkill -f "stream-logs.js" 2>/dev/null || true; pkill -f "docker logs.*glow-keycloak" 2>/dev/null || true; echo "✅ All services stopped (run make stop to also stop Keycloak)"; exit 0' INT; \
 	exec 2>/dev/null; \
 	if docker ps --filter name=glow-keycloak --format "{{.Names}}" | grep -q "^glow-keycloak$$"; then \
 		echo "✅ Keycloak already running, attaching to logs..."; \
