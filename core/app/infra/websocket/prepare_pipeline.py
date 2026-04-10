@@ -92,79 +92,6 @@ def compute_agent_modalities(
     return frozenset(modalities) if modalities else frozenset({"call"})
 
 
-def build_agent_groups(
-    *,
-    resource_types: list[str],
-    config_systems: list[Any],
-    config_agents: list[Any],
-    agents_by_id: dict[UUID, Any],
-    tools_by_id: dict[UUID, Any],
-    systems_by_id: dict[UUID, Any],
-    resource_system_ids: dict[str, UUID],
-    resource_agent_ids: dict[str, UUID],
-    requested_modality: str = "call",
-) -> dict[UUID, list[str]]:
-    """Map resource_types → agent_id groups via system → agent resolution.
-
-    Uses modality-aware scoring: prefers the most specialized agent whose
-    tool-derived output modalities include the requested modality.
-
-    Falls back through: systems → legacy resource_agent_ids → first agent.
-    """
-    agent_groups: dict[UUID, list[str]] = {}
-
-    if config_systems:
-        default_system_id = next(iter(systems_by_id), None)
-        for rt in resource_types:
-            system_id = resource_system_ids.get(rt) or default_system_id
-            system = systems_by_id.get(system_id) if system_id else None
-            candidate_ids = (getattr(system, "agent_ids", None) or []) if system else []
-            candidates = [aid for aid in candidate_ids if aid in agents_by_id]
-            if not candidates:
-                continue
-
-            # Score: prefer agents supporting requested modality with fewest total
-            scored = []
-            for aid in candidates:
-                agent_mods = compute_agent_modalities(aid, agents_by_id, tools_by_id)
-                if requested_modality in agent_mods:
-                    scored.append((len(agent_mods), aid))
-
-            if scored:
-                scored.sort()
-                resolved_id = scored[0][1]
-            else:
-                resolved_id = candidates[0]
-
-            agent_groups.setdefault(resolved_id, []).append(rt)
-
-    # Legacy fallback: resource_agent_ids
-    if not agent_groups:
-        for rt in resource_types:
-            aid = resource_agent_ids.get(rt)
-            if aid is not None:
-                agent_groups.setdefault(aid, []).append(rt)
-
-    if not agent_groups:
-        for _rt, aid in resource_agent_ids.items():
-            if aid is not None:
-                agent_groups[aid] = resource_types
-                break
-
-    # Final fallback: first agent
-    if not agent_groups and config_agents:
-        first = config_agents[0]
-        if first.id:
-            agent_groups[first.id] = resource_types
-
-    return agent_groups
-
-
-# ---------------------------------------------------------------------------
-# Jinja context
-# ---------------------------------------------------------------------------
-
-
 def dump_fetcher_result(result: object) -> dict[str, Any]:
     """Dump a fetcher result into a dict with resources, entries, config-chain fields."""
     dumped: dict[str, Any] = {}
@@ -708,52 +635,6 @@ def build_agent_groups_from_scores(
             agent_groups.setdefault(best.agent_id, []).append(rt)
 
     return agent_groups
-
-
-def build_jinja_from_ws_ctx(
-    ws_ctx: Any,
-    entry_results: dict[str, dict[str, Any]] | None = None,
-) -> dict[str, Any]:
-    """Build namespaced Jinja context from WebsocketContext.artifacts.
-
-    Maps ws_ctx.artifacts (keyed "get.persona" etc) into the shape
-    build_namespaced_context produces: {artifacts: {name: {operation: {resources: ..., entries: ...}}}}.
-    """
-    context: dict[str, Any] = {"artifacts": {}}
-
-    for key, art_ctx in ws_ctx.artifacts.items():
-        # key is "get.persona" → split into operation="get", name="persona"
-        parts = key.split(".", 1)
-        if len(parts) != 2:
-            continue
-        operation, name = parts
-
-        # Flatten resources: "get.names" → just the list under "names"
-        resources_flat: dict[str, Any] = {}
-        for rkey, rval in art_ctx.resources.items():
-            # rkey is "get.names" or "search.names"
-            rparts = rkey.split(".", 1)
-            if len(rparts) == 2:
-                resources_flat[rkey] = rval
-
-        # Flatten entries similarly
-        entries_flat: dict[str, Any] = {}
-        for ekey, eval_ in art_ctx.entries.items():
-            entries_flat[ekey] = eval_
-
-        artifact_data: dict[str, Any] = {
-            "resources": resources_flat,
-            "entries": entries_flat,
-        }
-
-        context["artifacts"].setdefault(name, {})[operation] = artifact_data
-
-    # Merge entry_results (problems, messages) same as build_namespaced_context
-    if entry_results:
-        for name, ops in entry_results.items():
-            context["artifacts"].setdefault(name, {}).update(ops)
-
-    return context
 
 
 # Re-export from canonical location

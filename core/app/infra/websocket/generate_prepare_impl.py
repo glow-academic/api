@@ -34,9 +34,7 @@ from app.utils.logging.db_logger import get_logger
 logger = get_logger(__name__)
 
 ResolveWebsocketContextFn = Callable[..., Awaitable[Any]]
-FetchEntryTypesFn = Callable[[list[Any], Any], Awaitable[dict[str, dict[str, Any]]]]
 BuildAgentGroupsFromScoresFn = Callable[..., dict[uuid.UUID, list[str]]]
-BuildJinjaFromWsCtxFn = Callable[..., dict[str, Any]]
 ResolveAgentConfigFn = Callable[..., Any]
 BuildAgentDispatchFn = Callable[..., Any]
 CreateRunFn = Callable[..., Awaitable[Any]]
@@ -195,9 +193,7 @@ async def generate_prepare_impl(
     artifact_config: Any,
     validate_payload_fn: ValidatePayloadFn | None = None,
     resolve_websocket_context_fn: ResolveWebsocketContextFn | None = None,
-    fetch_entry_types_fn: FetchEntryTypesFn | None = None,
     build_agent_groups_from_scores_fn: BuildAgentGroupsFromScoresFn | None = None,
-    build_jinja_from_ws_ctx_fn: BuildJinjaFromWsCtxFn | None = None,
     resolve_agent_config_fn: ResolveAgentConfigFn | None = None,
     build_agent_dispatch_fn: BuildAgentDispatchFn | None = None,
     create_run_fn: CreateRunFn | None = None,
@@ -282,8 +278,6 @@ async def generate_prepare_impl(
         from app.infra.websocket.prepare_pipeline import (
             build_agent_dispatch,
             build_agent_groups_from_scores,
-            build_jinja_from_ws_ctx,
-            compute_all_artifact_types,
             compute_createable_resources,
             enrich_tools_with_args,
             enrich_tools_with_args_outputs,
@@ -291,19 +285,15 @@ async def generate_prepare_impl(
             resolve_agent_config,
             validate_payload,
         )
+        # compute_all_artifact_types removed — no longer needed for canonical context
         from app.tools.entries.runs.create import create_run
 
         validate_payload_fn = validate_payload_fn or validate_payload
         resolve_websocket_context_fn = (
             resolve_websocket_context_fn or resolve_websocket_context
         )
-        # fetch_entry_types_fn — no longer used (model fetches via get tool)
         build_agent_groups_from_scores_fn = (
             build_agent_groups_from_scores_fn or build_agent_groups_from_scores
-        )
-        # build_jinja_from_ws_ctx_fn — replaced by build_canonical_context
-        build_jinja_from_ws_ctx_fn = (
-            build_jinja_from_ws_ctx_fn or build_jinja_from_ws_ctx
         )
         resolve_agent_config_fn = resolve_agent_config_fn or resolve_agent_config
         build_agent_dispatch_fn = build_agent_dispatch_fn or build_agent_dispatch
@@ -409,7 +399,6 @@ async def generate_prepare_impl(
             all_tool_dicts, config_tools, ws_ctx.permissions
         )
         createable_resources = compute_createable_resources(config_tools)
-        all_artifact_types = compute_all_artifact_types(all_tool_dicts)
 
         # Prompts/instructions
         prompts_by_id = {p.id: p for p in ws_ctx.prompts}
@@ -481,14 +470,6 @@ async def generate_prepare_impl(
 
         for agent_group_id, agent_resource_types in agent_groups.items():
             agent_resource = agents_by_id.get(agent_group_id) or config_agents[0]
-
-            # DEBUG: check provider key value before resolve
-            if agent_resource.model_id:
-                _m = models_by_id.get(agent_resource.model_id)
-                if _m and getattr(_m, 'provider_id', None):
-                    _p = providers_by_id.get(_m.provider_id)
-                    if _p:
-                        logger.info(f"[DEBUG] Provider '{_p.name}' key starts with: '{getattr(_p, 'key', '')[:20] if getattr(_p, 'key', None) else 'NONE'}'")
 
             llm_config = resolve_agent_config_fn(
                 agent_resource, models_by_id, providers_by_id
@@ -628,35 +609,3 @@ async def _emit_error(
     )
 
 
-async def _fetch_entry_types(
-    entry_types: list[Any],
-    conn: Any,
-) -> dict[str, dict[str, Any]]:
-    """Fetch data for each entry_type item. Returns {name: {operation: data}}."""
-    from app.registry.operations import ENTRY_OPS, resolve_callable
-
-    results: dict[str, dict[str, Any]] = {}
-    for item in entry_types:
-        if item.operation != "get":
-            continue
-        fn = resolve_callable(item.name, item.operation, ENTRY_OPS)
-        if fn is None:
-            continue
-        try:
-            result = await fn(conn)
-            if hasattr(result, "model_dump"):
-                results.setdefault(item.name, {})[item.operation] = result.model_dump(
-                    mode="json"
-                )
-            elif isinstance(result, list):
-                results.setdefault(item.name, {})[item.operation] = [
-                    r.model_dump(mode="json") if hasattr(r, "model_dump") else r
-                    for r in result
-                ]
-            else:
-                results.setdefault(item.name, {})[item.operation] = result
-        except Exception as e:
-            logger.warning(
-                f"Failed to fetch entry_type '{item.name}.{item.operation}': {e}"
-            )
-    return results
