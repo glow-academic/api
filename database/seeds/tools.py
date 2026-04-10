@@ -1,10 +1,12 @@
 """Tool definitions for seeding.
 
 Tools reference shared args by key (from database/seeds/resources/args.py).
+Tool response templates are in database/seeds/tool_instructions/{slug}.jinja.
 Regenerate with: python database/scripts/generate_tools.py
 """
 
 from database.seeds.ids import sid
+from database.seeds.tool_instructions import instruction_id_for_tool as _iid
 
 tools = [
     dict(
@@ -15,6 +17,7 @@ tools = [
         permission_ids=[sid("permission/activity/export")],
         args=[],
         args_outputs=["artifact_activity", "operation_export"],
+        instruction_id=_iid("Activity Export"),
     ),
     dict(
         id="f7e125ab-1519-51e8-aabf-b07fee350eb8",
@@ -24,6 +27,7 @@ tools = [
         permission_ids=[sid("permission/activity/get")],
         args=[],
         args_outputs=["artifact_activity", "operation_get"],
+        instruction_id=_iid("Activity Get"),
     ),
     dict(
         id="1efe81c6-e3a4-5294-b987-eadaa51dc6ee",
@@ -33,6 +37,7 @@ tools = [
         permission_ids=[sid("permission/activity/problem")],
         args=["type", "message"],
         args_outputs=["artifact_activity", "operation_problem", "type", "message"],
+        instruction_id=_iid("Activity Problem"),
     ),
     dict(
         id="13a9ad5c-8caa-5acb-b334-c5fb5d25eb61",
@@ -42,6 +47,7 @@ tools = [
         permission_ids=[sid("permission/activity/refresh")],
         args=[],
         args_outputs=["artifact_activity", "operation_refresh"],
+        instruction_id=_iid("Activity Refresh"),
     ),
     dict(
         id="7e3beb89-3c22-58a8-bb29-cc06aab5ec1f",
@@ -51,6 +57,7 @@ tools = [
         permission_ids=[sid("permission/activity/resolve")],
         args=["problem_id", "resolved"],
         args_outputs=["artifact_activity", "operation_resolve", "problem_id", "resolved"],
+        instruction_id=_iid("Activity Resolve"),
     ),
     dict(
         id="7a48b064-ef50-5478-b36d-2cf4b9fc6bde",
@@ -60,6 +67,7 @@ tools = [
         permission_ids=[sid("permission/activity/search")],
         args=["date_from", "date_to", "department_ids", "roles", "active", "page", "page_size", "sort_order"],
         args_outputs=["artifact_activity", "operation_search", "date_from", "date_to", "department_ids", "roles", "active", "page", "page_size", "sort_order"],
+        instruction_id=_iid("Activity Search"),
     ),
     dict(
         id="4a233fa2-c38e-5f93-b55d-faaf86e31612",
@@ -69,6 +77,7 @@ tools = [
         permission_ids=[sid("permission/agent/create")],
         args=["name_id", "name", "description_id", "description", "department_ids", "departments", "active_flag", "active_flag_id", "flag_ids", "model_id", "reasoning_level_ids", "temperature_level_ids", "tool_ids", "voice_ids", "agent_ids", "prompt_id", "instruction_ids"],
         args_outputs=["artifact_agent", "operation_create", "name_id", "name", "description_id", "description", "department_ids", "departments", "active_flag", "active_flag_id", "flag_ids", "model_id", "reasoning_level_ids", "temperature_level_ids", "tool_ids", "voice_ids", "agent_ids", "prompt_id", "instruction_ids"],
+        instruction_id=_iid("Agent Create"),
     ),
     dict(
         id="815e7936-b3e6-57c0-9ccf-0ba4288b5541",
@@ -78,6 +87,7 @@ tools = [
         permission_ids=[sid("permission/agent/delete")],
         args=["agent_ids"],
         args_outputs=["artifact_agent", "operation_delete", "agent_ids"],
+        instruction_id=_iid("Agent Delete"),
     ),
     dict(
         id="bae63b89-e5b0-5049-95d9-7465b6f613dc",
@@ -87,6 +97,7 @@ tools = [
         permission_ids=[sid("permission/agent/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_ids", "department_ids", "model_id", "tool_ids", "reasoning_level_ids", "temperature_level_ids", "voice_ids", "rubric_ids"],
         args_outputs=["artifact_agent", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_ids", "department_ids", "model_id", "tool_ids", "reasoning_level_ids", "temperature_level_ids", "voice_ids", "rubric_ids"],
+        instruction_id=_iid("Agent Draft"),
     ),
     dict(
         id="0a17eaf1-36bb-58fe-ac46-b5f71dcc58c0",
@@ -96,6 +107,7 @@ tools = [
         permission_ids=[sid("permission/agent/drafts")],
         args=[],
         args_outputs=["artifact_agent", "operation_drafts"],
+        instruction_id=_iid("Agent Drafts"),
     ),
     dict(
         id="473e2d0b-a42e-5308-86cd-4654c1225e34",
@@ -105,6 +117,7 @@ tools = [
         permission_ids=[sid("permission/agent/duplicate")],
         args=["agent_id"],
         args_outputs=["artifact_agent", "operation_duplicate", "agent_id"],
+        instruction_id=_iid("Agent Duplicate"),
     ),
     dict(
         id="95f2d5d2-95a8-5ae8-a2d8-5be994f2633a",
@@ -114,6 +127,7 @@ tools = [
         permission_ids=[sid("permission/agent/export")],
         args=["agent_id"],
         args_outputs=["artifact_agent", "operation_export", "agent_id"],
+        instruction_id=_iid("Agent Export"),
     ),
     dict(
         id="17cb2698-c44a-5655-80d9-0e2a09455b0d",
@@ -123,6 +137,7 @@ tools = [
         permission_ids=[sid("permission/agent/get")],
         args=["agent_id"],
         args_outputs=["artifact_agent", "operation_get", "agent_id"],
+        instruction_id=_iid("Agent Get"),
     ),
     dict(
         id="53aa8ce2-2f54-5398-9534-219330f929b5",
@@ -132,6 +147,7 @@ tools = [
         permission_ids=[sid("permission/agent/refresh")],
         args=[],
         args_outputs=["artifact_agent", "operation_refresh"],
+        instruction_id=_iid("Agent Refresh"),
     ),
     dict(
         id="61523ad4-e805-5353-9092-a92907388b5d",
@@ -141,6 +157,7 @@ tools = [
         permission_ids=[sid("permission/agent/search")],
         args=["search", "filter_department_ids", "filter_model_ids", "filter_tool_ids", "department_search", "model_search", "tool_search", "page_size", "page_offset"],
         args_outputs=["artifact_agent", "operation_search", "search", "filter_department_ids", "filter_model_ids", "filter_tool_ids", "department_search", "model_search", "tool_search", "page_size", "page_offset"],
+        instruction_id=_iid("Agent Search"),
     ),
     dict(
         id="48861156-5f1e-5d03-8722-fb334b801b30",
@@ -150,6 +167,7 @@ tools = [
         permission_ids=[sid("permission/agent/update")],
         args=["agent_id", "name_id", "name", "description_id", "description", "department_ids", "departments", "active_flag", "active_flag_id", "flag_ids", "model_id", "reasoning_level_ids", "temperature_level_ids", "tool_ids", "voice_ids", "agent_ids"],
         args_outputs=["artifact_agent", "operation_update", "agent_id", "name_id", "name", "description_id", "description", "department_ids", "departments", "active_flag", "active_flag_id", "flag_ids", "model_id", "reasoning_level_ids", "temperature_level_ids", "tool_ids", "voice_ids", "agent_ids"],
+        instruction_id=_iid("Agent Update"),
     ),
     dict(
         id="502f1088-5451-59e7-afc1-af26c1b3d7de",
@@ -159,6 +177,7 @@ tools = [
         permission_ids=[sid("permission/attempt/archive")],
         args=["archived", "attempt_ids", "start_date", "end_date", "cohort_ids", "department_ids", "simulation_ids", "scenario_ids", "profile_ids_filter", "infinite_mode"],
         args_outputs=["artifact_attempt", "operation_archive", "archived", "attempt_ids", "start_date", "end_date", "cohort_ids", "department_ids", "simulation_ids", "scenario_ids", "profile_ids_filter", "infinite_mode"],
+        instruction_id=_iid("Attempt Archive"),
     ),
     dict(
         id="5a666ce5-034a-5068-81b8-d178d1f87857",
@@ -168,6 +187,7 @@ tools = [
         permission_ids=[sid("permission/attempt/end")],
         args=["attempt_id", "chat_id", "grade", "score", "passed", "time_taken", "feedbacks", "strengths", "improvements", "analyses", "highlights", "replacements"],
         args_outputs=["artifact_attempt", "operation_end", "attempt_id", "chat_id", "grade", "score", "passed", "time_taken", "feedbacks", "strengths", "improvements", "analyses", "highlights", "replacements"],
+        instruction_id=_iid("Attempt End"),
     ),
     dict(
         id="c93bb68e-89bc-5d12-b94f-1c29a4cfe5b2",
@@ -177,6 +197,7 @@ tools = [
         permission_ids=[sid("permission/attempt/end_all")],
         args=[],
         args_outputs=["artifact_attempt", "operation_end_all"],
+        instruction_id=_iid("Attempt End All"),
     ),
     dict(
         id="eabd6a15-35be-5160-b51e-a0f665d9a833",
@@ -186,6 +207,7 @@ tools = [
         permission_ids=[sid("permission/attempt/export")],
         args=["attempt_id"],
         args_outputs=["artifact_attempt", "operation_export", "attempt_id"],
+        instruction_id=_iid("Attempt Export"),
     ),
     dict(
         id="6cc63656-fc69-51a8-908d-e05a0f9e35f0",
@@ -195,6 +217,7 @@ tools = [
         permission_ids=[sid("permission/attempt/get")],
         args=["practice", "target_profile_id", "start_date", "end_date", "cohort_ids", "department_ids", "simulation_ids", "scenario_ids", "infinite_mode", "search", "profile_search", "simulation_search", "scenario_search", "sort_by", "sort_order", "page", "page_size", "show_archived"],
         args_outputs=["artifact_attempt", "operation_get", "practice", "target_profile_id", "start_date", "end_date", "cohort_ids", "department_ids", "simulation_ids", "scenario_ids", "infinite_mode", "search", "profile_search", "simulation_search", "scenario_search", "sort_by", "sort_order", "page", "page_size", "show_archived"],
+        instruction_id=_iid("Attempt Get"),
     ),
     dict(
         id="f338b515-017f-5d4e-99e9-9db120fdee32",
@@ -204,6 +227,7 @@ tools = [
         permission_ids=[sid("permission/attempt/grade")],
         args=["attempt_id", "chat_id", "resource_types", "user_instructions", "score", "passed", "time_taken", "feedbacks", "strengths", "improvements", "analyses", "highlights", "replacements"],
         args_outputs=["artifact_attempt", "operation_grade", "attempt_id", "chat_id", "resource_types", "user_instructions", "score", "passed", "time_taken", "feedbacks", "strengths", "improvements", "analyses", "highlights", "replacements"],
+        instruction_id=_iid("Attempt Grade"),
     ),
     dict(
         id="c0405c1e-b158-521f-b018-5d7b48229e2e",
@@ -213,6 +237,7 @@ tools = [
         permission_ids=[sid("permission/attempt/message")],
         args=["attempt_id", "chat_id", "message", "parent_message_id", "assistant_content", "hints", "contents"],
         args_outputs=["artifact_attempt", "operation_message", "attempt_id", "chat_id", "message", "parent_message_id", "assistant_content", "hints", "contents"],
+        instruction_id=_iid("Attempt Message"),
     ),
     dict(
         id="0a96ff5d-2e0d-53e1-a182-1aa92d0a2f32",
@@ -222,6 +247,7 @@ tools = [
         permission_ids=[sid("permission/attempt/next")],
         args=[],
         args_outputs=["artifact_attempt", "operation_next"],
+        instruction_id=_iid("Attempt Next"),
     ),
     dict(
         id="b8dcf644-d5a5-54ff-9156-da3af9d143a9",
@@ -231,6 +257,7 @@ tools = [
         permission_ids=[sid("permission/attempt/refresh")],
         args=[],
         args_outputs=["artifact_attempt", "operation_refresh"],
+        instruction_id=_iid("Attempt Refresh"),
     ),
     dict(
         id="b78e2d07-e68c-525f-9c44-2b5806c9ddb3",
@@ -240,6 +267,7 @@ tools = [
         permission_ids=[sid("permission/attempt/response")],
         args=[],
         args_outputs=["artifact_attempt", "operation_response"],
+        instruction_id=_iid("Attempt Response"),
     ),
     dict(
         id="8871e59a-9228-53fa-994a-93498ff71850",
@@ -249,6 +277,7 @@ tools = [
         permission_ids=[sid("permission/attempt/search")],
         args=["attempt_id", "chat_id", "home_id", "practice_id", "include_entries", "search", "limit", "cursor"],
         args_outputs=["artifact_attempt", "operation_search", "attempt_id", "chat_id", "home_id", "practice_id", "include_entries", "search", "limit", "cursor"],
+        instruction_id=_iid("Attempt Search"),
     ),
     dict(
         id="680d00aa-35b9-505e-988f-7f0052977ec3",
@@ -258,6 +287,7 @@ tools = [
         permission_ids=[sid("permission/attempt/start")],
         args=[],
         args_outputs=["artifact_attempt", "operation_start"],
+        instruction_id=_iid("Attempt Start"),
     ),
     dict(
         id="304ac127-2e79-576d-a1ed-97aa17053fc0",
@@ -267,6 +297,7 @@ tools = [
         permission_ids=[sid("permission/attempt/stop")],
         args=[],
         args_outputs=["artifact_attempt", "operation_stop"],
+        instruction_id=_iid("Attempt Stop"),
     ),
     dict(
         id="4849b15b-c865-530a-9ed7-48f2572e4d4d",
@@ -276,6 +307,7 @@ tools = [
         permission_ids=[sid("permission/attempt/previous")],
         args=[],
         args_outputs=["artifact_attempt", "operation_previous"],
+        instruction_id=_iid("Attempt Use Previous"),
     ),
     dict(
         id="cbe97ff0-4581-5be4-bf43-ead3e7c1cda6",
@@ -285,6 +317,7 @@ tools = [
         permission_ids=[sid("permission/auth/create")],
         args=["name_id", "name", "description_id", "description", "slug_id", "slug", "active_flag_id", "active_flag", "department_ids", "departments", "protocol_ids", "protocol", "item_ids", "auth_resource_ids"],
         args_outputs=["artifact_auth", "operation_create", "name_id", "name", "description_id", "description", "slug_id", "slug", "active_flag_id", "active_flag", "department_ids", "departments", "protocol_ids", "protocol", "item_ids", "auth_resource_ids"],
+        instruction_id=_iid("Auth Create"),
     ),
     dict(
         id="619a1519-c8b6-5dfd-9b1c-3a4620784059",
@@ -294,6 +327,7 @@ tools = [
         permission_ids=[sid("permission/auth/delete")],
         args=["auth_ids"],
         args_outputs=["artifact_auth", "operation_delete", "auth_ids"],
+        instruction_id=_iid("Auth Delete"),
     ),
     dict(
         id="2334ed3f-bea0-52f5-a4eb-2cd6e41904c6",
@@ -303,6 +337,7 @@ tools = [
         permission_ids=[sid("permission/auth/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_id", "department_ids", "protocol_ids", "slug_ids", "item_ids"],
         args_outputs=["artifact_auth", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_id", "department_ids", "protocol_ids", "slug_ids", "item_ids"],
+        instruction_id=_iid("Auth Draft"),
     ),
     dict(
         id="498d0346-a25b-53c3-9bca-d84c70e44d32",
@@ -312,6 +347,7 @@ tools = [
         permission_ids=[sid("permission/auth/drafts")],
         args=[],
         args_outputs=["artifact_auth", "operation_drafts"],
+        instruction_id=_iid("Auth Drafts"),
     ),
     dict(
         id="eb18c45a-af26-5f59-8219-62297ffac028",
@@ -321,6 +357,7 @@ tools = [
         permission_ids=[sid("permission/auth/duplicate")],
         args=["auth_id"],
         args_outputs=["artifact_auth", "operation_duplicate", "auth_id"],
+        instruction_id=_iid("Auth Duplicate"),
     ),
     dict(
         id="1a90d6ba-822c-5bad-9d70-e9bb912a55c0",
@@ -330,6 +367,7 @@ tools = [
         permission_ids=[sid("permission/auth/export")],
         args=["auth_id"],
         args_outputs=["artifact_auth", "operation_export", "auth_id"],
+        instruction_id=_iid("Auth Export"),
     ),
     dict(
         id="4b9c870b-b1dc-50f0-bfc7-3cfec00498ee",
@@ -339,6 +377,7 @@ tools = [
         permission_ids=[sid("permission/auth/get")],
         args=["auth_id"],
         args_outputs=["artifact_auth", "operation_get", "auth_id"],
+        instruction_id=_iid("Auth Get"),
     ),
     dict(
         id="c0259670-2583-5015-9eb4-916888dcf1f5",
@@ -348,6 +387,7 @@ tools = [
         permission_ids=[sid("permission/auth/refresh")],
         args=[],
         args_outputs=["artifact_auth", "operation_refresh"],
+        instruction_id=_iid("Auth Refresh"),
     ),
     dict(
         id="d064aa5d-cd44-5bba-b9da-d3a174fa2be4",
@@ -357,6 +397,7 @@ tools = [
         permission_ids=[sid("permission/auth/search")],
         args=["search", "filter_department_ids", "department_search", "page_size", "page_offset"],
         args_outputs=["artifact_auth", "operation_search", "search", "filter_department_ids", "department_search", "page_size", "page_offset"],
+        instruction_id=_iid("Auth Search"),
     ),
     dict(
         id="2c6d108b-026c-5074-9a3b-786439cf2cc9",
@@ -366,6 +407,7 @@ tools = [
         permission_ids=[sid("permission/auth/update")],
         args=["auth_id", "name_id", "name", "description_id", "description", "slug_id", "slug", "active_flag_id", "active_flag", "department_ids", "departments", "protocol_ids", "protocol", "item_ids", "auth_resource_ids"],
         args_outputs=["artifact_auth", "operation_update", "auth_id", "name_id", "name", "description_id", "description", "slug_id", "slug", "active_flag_id", "active_flag", "department_ids", "departments", "protocol_ids", "protocol", "item_ids", "auth_resource_ids"],
+        instruction_id=_iid("Auth Update"),
     ),
     dict(
         id="ae380854-789b-597e-8394-360300ba24b1",
@@ -375,6 +417,7 @@ tools = [
         permission_ids=[sid("permission/benchmark/export")],
         args=[],
         args_outputs=["artifact_benchmark", "operation_export"],
+        instruction_id=_iid("Benchmark Export"),
     ),
     dict(
         id="9744bbcd-88be-5328-8b7c-2070c1dcfd13",
@@ -384,6 +427,7 @@ tools = [
         permission_ids=[sid("permission/benchmark/get")],
         args=["start_date", "end_date", "department_ids", "history_page", "history_page_size", "history_eval_ids", "history_search", "history_archived", "history_sort_by", "history_sort_order"],
         args_outputs=["artifact_benchmark", "operation_get", "start_date", "end_date", "department_ids", "history_page", "history_page_size", "history_eval_ids", "history_search", "history_archived", "history_sort_by", "history_sort_order"],
+        instruction_id=_iid("Benchmark Get"),
     ),
     dict(
         id="8c774f81-ffa2-5a74-b3bc-c9d86a6918f5",
@@ -393,6 +437,7 @@ tools = [
         permission_ids=[sid("permission/benchmark/refresh")],
         args=[],
         args_outputs=["artifact_benchmark", "operation_refresh"],
+        instruction_id=_iid("Benchmark Refresh"),
     ),
     dict(
         id="70ed3d6f-7de0-5f7e-a208-43550f11ae3d",
@@ -402,6 +447,7 @@ tools = [
         permission_ids=[sid("permission/benchmark/search")],
         args=["start_date", "end_date", "department_ids", "history_page", "history_page_size", "history_eval_ids", "history_search", "history_archived", "history_sort_by", "history_sort_order"],
         args_outputs=["artifact_benchmark", "operation_search", "start_date", "end_date", "department_ids", "history_page", "history_page_size", "history_eval_ids", "history_search", "history_archived", "history_sort_by", "history_sort_order"],
+        instruction_id=_iid("Benchmark Search"),
     ),
     dict(
         id="2f873abd-65d6-5197-b3d4-30a1d84d8f54",
@@ -411,6 +457,7 @@ tools = [
         permission_ids=[sid("permission/chat/draft")],
         args=["input_draft_id", "expected_version", "name", "description", "problem_statement", "objectives", "images", "videos", "questions", "options", "name_ids", "description_ids", "document_ids", "field_ids", "flag_ids", "image_ids", "objective_ids", "option_ids", "parameter_field_ids", "parameter_ids", "persona_ids", "problem_statement_ids", "question_ids", "scenario_ids", "video_ids", "department_ids"],
         args_outputs=["artifact_chat", "operation_draft", "input_draft_id", "expected_version", "name", "description", "problem_statement", "objectives", "images", "videos", "questions", "options", "name_ids", "description_ids", "document_ids", "field_ids", "flag_ids", "image_ids", "objective_ids", "option_ids", "parameter_field_ids", "parameter_ids", "persona_ids", "problem_statement_ids", "question_ids", "scenario_ids", "video_ids", "department_ids"],
+        instruction_id=_iid("Chat Draft"),
     ),
     dict(
         id="7a83974a-c8b9-5135-b02f-58400c8f14b6",
@@ -420,6 +467,7 @@ tools = [
         permission_ids=[sid("permission/chat/drafts")],
         args=[],
         args_outputs=["artifact_chat", "operation_drafts"],
+        instruction_id=_iid("Chat Drafts"),
     ),
     dict(
         id="f0a20c3e-061d-51e0-8219-810eb5694b71",
@@ -429,6 +477,7 @@ tools = [
         permission_ids=[sid("permission/chat/export")],
         args=["chat_entry_id", "attempt_id", "draft_id"],
         args_outputs=["artifact_chat", "operation_export", "chat_entry_id", "attempt_id", "draft_id"],
+        instruction_id=_iid("Chat Export"),
     ),
     dict(
         id="a02bce0b-96bc-5c7c-a832-7435787c741b",
@@ -438,6 +487,7 @@ tools = [
         permission_ids=[sid("permission/chat/get")],
         args=["practice", "start_date", "end_date", "cohort_ids", "department_ids", "simulation_ids", "scenario_ids", "infinite_mode", "search", "sort_by", "sort_order", "page", "page_size", "profile_ids", "show_archived"],
         args_outputs=["artifact_chat", "operation_get", "practice", "start_date", "end_date", "cohort_ids", "department_ids", "simulation_ids", "scenario_ids", "infinite_mode", "search", "sort_by", "sort_order", "page", "page_size", "profile_ids", "show_archived"],
+        instruction_id=_iid("Chat Get"),
     ),
     dict(
         id="0ffa5dee-de05-5a12-bc72-7568764a7168",
@@ -447,6 +497,7 @@ tools = [
         permission_ids=[sid("permission/chat/refresh")],
         args=[],
         args_outputs=["artifact_chat", "operation_refresh"],
+        instruction_id=_iid("Chat Refresh"),
     ),
     dict(
         id="0d8aedcf-6d06-573d-9a1c-19c010dbbfb2",
@@ -456,6 +507,7 @@ tools = [
         permission_ids=[sid("permission/cohort/create")],
         args=["name_id", "name", "description_id", "description", "flag_id", "department_ids", "simulation_ids", "simulation_position_ids", "simulation_availability_ids", "profile_ids", "profile_persona_ids", "active_flag_id", "active_flag", "departments", "simulations", "profiles"],
         args_outputs=["artifact_cohort", "operation_create", "name_id", "name", "description_id", "description", "flag_id", "department_ids", "simulation_ids", "simulation_position_ids", "simulation_availability_ids", "profile_ids", "profile_persona_ids", "active_flag_id", "active_flag", "departments", "simulations", "profiles"],
+        instruction_id=_iid("Cohort Create"),
     ),
     dict(
         id="c34bc6ac-857c-50ff-959e-4763a12b3044",
@@ -465,6 +517,7 @@ tools = [
         permission_ids=[sid("permission/cohort/delete")],
         args=["cohort_ids"],
         args_outputs=["artifact_cohort", "operation_delete", "cohort_ids"],
+        instruction_id=_iid("Cohort Delete"),
     ),
     dict(
         id="906d0c32-5624-54b4-9736-1bdcac51729e",
@@ -474,6 +527,7 @@ tools = [
         permission_ids=[sid("permission/cohort/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_id", "department_ids", "simulation_ids", "profile_ids", "simulation_position_ids", "simulation_positions", "simulation_availability_ids", "simulation_availability", "profile_persona_ids", "profile_personas"],
         args_outputs=["artifact_cohort", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_id", "department_ids", "simulation_ids", "profile_ids", "simulation_position_ids", "simulation_positions", "simulation_availability_ids", "simulation_availability", "profile_persona_ids", "profile_personas"],
+        instruction_id=_iid("Cohort Draft"),
     ),
     dict(
         id="bc5d30b9-959e-5d25-abda-c37d1d4a78a9",
@@ -483,6 +537,7 @@ tools = [
         permission_ids=[sid("permission/cohort/drafts")],
         args=[],
         args_outputs=["artifact_cohort", "operation_drafts"],
+        instruction_id=_iid("Cohort Drafts"),
     ),
     dict(
         id="7f3b747f-e2b3-5032-9bc2-16a9069720ef",
@@ -492,6 +547,7 @@ tools = [
         permission_ids=[sid("permission/cohort/duplicate")],
         args=["cohort_id"],
         args_outputs=["artifact_cohort", "operation_duplicate", "cohort_id"],
+        instruction_id=_iid("Cohort Duplicate"),
     ),
     dict(
         id="256654bc-e7a1-550f-8a0e-bcc3790817e0",
@@ -501,6 +557,7 @@ tools = [
         permission_ids=[sid("permission/cohort/export")],
         args=["search", "filter_simulation_ids", "filter_profile_ids", "filter_department_ids"],
         args_outputs=["artifact_cohort", "operation_export", "search", "filter_simulation_ids", "filter_profile_ids", "filter_department_ids"],
+        instruction_id=_iid("Cohort Export"),
     ),
     dict(
         id="d41ae36f-d200-5fab-9ad7-cade0dabbcc9",
@@ -510,6 +567,7 @@ tools = [
         permission_ids=[sid("permission/cohort/get")],
         args=["cohort_id", "descriptions_search", "simulation_search", "simulation_show_selected", "profile_search", "profile_show_selected"],
         args_outputs=["artifact_cohort", "operation_get", "cohort_id", "descriptions_search", "simulation_search", "simulation_show_selected", "profile_search", "profile_show_selected"],
+        instruction_id=_iid("Cohort Get"),
     ),
     dict(
         id="53cdf3e4-869d-5773-8318-74f639018b91",
@@ -519,6 +577,7 @@ tools = [
         permission_ids=[sid("permission/cohort/refresh")],
         args=[],
         args_outputs=["artifact_cohort", "operation_refresh"],
+        instruction_id=_iid("Cohort Refresh"),
     ),
     dict(
         id="da6519ae-18e9-5d3e-b9c7-6022fb08c264",
@@ -528,6 +587,7 @@ tools = [
         permission_ids=[sid("permission/cohort/search")],
         args=["search", "filter_profile_ids", "filter_simulation_ids", "filter_department_ids", "profile_search", "simulation_search", "department_search", "flag_search", "page_size", "page_offset"],
         args_outputs=["artifact_cohort", "operation_search", "search", "filter_profile_ids", "filter_simulation_ids", "filter_department_ids", "profile_search", "simulation_search", "department_search", "flag_search", "page_size", "page_offset"],
+        instruction_id=_iid("Cohort Search"),
     ),
     dict(
         id="448ecf59-89ee-53d0-8c85-dcdf180f26b1",
@@ -537,6 +597,7 @@ tools = [
         permission_ids=[sid("permission/cohort/update")],
         args=["cohort_id", "name_id", "name", "description_id", "description", "flag_id", "department_ids", "simulation_ids", "simulation_position_ids", "simulation_availability_ids", "profile_ids", "profile_persona_ids", "active_flag_id", "active_flag", "departments", "simulations", "profiles"],
         args_outputs=["artifact_cohort", "operation_update", "cohort_id", "name_id", "name", "description_id", "description", "flag_id", "department_ids", "simulation_ids", "simulation_position_ids", "simulation_availability_ids", "profile_ids", "profile_persona_ids", "active_flag_id", "active_flag", "departments", "simulations", "profiles"],
+        instruction_id=_iid("Cohort Update"),
     ),
     dict(
         id="eddf3edd-fb3b-57af-a75f-e73dc06aeec4",
@@ -546,6 +607,7 @@ tools = [
         permission_ids=[sid("permission/dashboard/export")],
         args=[],
         args_outputs=["artifact_dashboard", "operation_export"],
+        instruction_id=_iid("Dashboard Export"),
     ),
     dict(
         id="3560190d-b76a-51c2-92b9-49f8de156beb",
@@ -555,6 +617,7 @@ tools = [
         permission_ids=[sid("permission/dashboard/get")],
         args=[],
         args_outputs=["artifact_dashboard", "operation_get"],
+        instruction_id=_iid("Dashboard Get"),
     ),
     dict(
         id="4893e110-d694-5137-bbc1-3aede11ed3de",
@@ -564,6 +627,7 @@ tools = [
         permission_ids=[sid("permission/dashboard/refresh")],
         args=[],
         args_outputs=["artifact_dashboard", "operation_refresh"],
+        instruction_id=_iid("Dashboard Refresh"),
     ),
     dict(
         id="05de300e-1216-585f-b9fd-f74c6d530f23",
@@ -573,6 +637,7 @@ tools = [
         permission_ids=[sid("permission/dashboard/search")],
         args=["start_date", "end_date", "cohort_ids", "department_ids", "target_profile_id", "practice", "scenario_ids", "infinite_mode", "show_archived", "sort_by", "sort_order", "page", "page_size", "simulation_search", "scenario_search", "profile_search"],
         args_outputs=["artifact_dashboard", "operation_search", "start_date", "end_date", "cohort_ids", "department_ids", "target_profile_id", "practice", "scenario_ids", "infinite_mode", "show_archived", "sort_by", "sort_order", "page", "page_size", "simulation_search", "scenario_search", "profile_search"],
+        instruction_id=_iid("Dashboard Search"),
     ),
     dict(
         id="a2fb4635-ba97-5542-993b-ec4ab14488a5",
@@ -582,6 +647,7 @@ tools = [
         permission_ids=[sid("permission/department/create")],
         args=["name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "settings_ids", "department_ids", "is_primary"],
         args_outputs=["artifact_department", "operation_create", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "settings_ids", "department_ids", "is_primary"],
+        instruction_id=_iid("Department Create"),
     ),
     dict(
         id="2a4b70f3-1017-59d6-81fc-ba0b0a2fff91",
@@ -591,6 +657,7 @@ tools = [
         permission_ids=[sid("permission/department/delete")],
         args=["department_ids"],
         args_outputs=["artifact_department", "operation_delete", "department_ids"],
+        instruction_id=_iid("Department Delete"),
     ),
     dict(
         id="083fa6fe-5e6c-5c94-8026-d5a2190d8115",
@@ -600,6 +667,7 @@ tools = [
         permission_ids=[sid("permission/department/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_id", "setting_ids"],
         args_outputs=["artifact_department", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_id", "setting_ids"],
+        instruction_id=_iid("Department Draft"),
     ),
     dict(
         id="b3d94c12-8ad4-5b13-8dd2-17c732909ff4",
@@ -609,6 +677,7 @@ tools = [
         permission_ids=[sid("permission/department/drafts")],
         args=[],
         args_outputs=["artifact_department", "operation_drafts"],
+        instruction_id=_iid("Department Drafts"),
     ),
     dict(
         id="45050bb3-67e5-5c7e-a5c7-7c8ccb615664",
@@ -618,6 +687,7 @@ tools = [
         permission_ids=[sid("permission/department/duplicate")],
         args=["department_id"],
         args_outputs=["artifact_department", "operation_duplicate", "department_id"],
+        instruction_id=_iid("Department Duplicate"),
     ),
     dict(
         id="4e90d0cf-e25e-517f-af03-e2c148fcd133",
@@ -627,6 +697,7 @@ tools = [
         permission_ids=[sid("permission/department/export")],
         args=["department_id"],
         args_outputs=["artifact_department", "operation_export", "department_id"],
+        instruction_id=_iid("Department Export"),
     ),
     dict(
         id="c6a3a721-a82f-5613-b8e3-72270571dfdd",
@@ -636,6 +707,7 @@ tools = [
         permission_ids=[sid("permission/department/get")],
         args=["department_id"],
         args_outputs=["artifact_department", "operation_get", "department_id"],
+        instruction_id=_iid("Department Get"),
     ),
     dict(
         id="0ac4fbe9-e095-50b7-9147-b5a17f77b455",
@@ -645,6 +717,7 @@ tools = [
         permission_ids=[sid("permission/department/refresh")],
         args=[],
         args_outputs=["artifact_department", "operation_refresh"],
+        instruction_id=_iid("Department Refresh"),
     ),
     dict(
         id="65afc73d-40f5-508e-9c03-03b8bc7cbf74",
@@ -654,6 +727,7 @@ tools = [
         permission_ids=[sid("permission/department/search")],
         args=["search", "page_size", "page_offset"],
         args_outputs=["artifact_department", "operation_search", "search", "page_size", "page_offset"],
+        instruction_id=_iid("Department Search"),
     ),
     dict(
         id="bc5e0ce1-13b3-56f4-ab9f-464ed2d54989",
@@ -663,6 +737,7 @@ tools = [
         permission_ids=[sid("permission/department/update")],
         args=["department_id", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "settings_ids", "department_ids"],
         args_outputs=["artifact_department", "operation_update", "department_id", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "settings_ids", "department_ids"],
+        instruction_id=_iid("Department Update"),
     ),
     dict(
         id="b9dc7f89-2fbf-5f08-9025-9f1e89c58003",
@@ -672,6 +747,7 @@ tools = [
         permission_ids=[sid("permission/document/create")],
         args=["name_id", "name", "description_id", "description", "flag_id", "active_flag_id", "active_flag", "template_flag", "template_flag_id", "department_ids", "departments", "field_ids", "upload_ids", "image_ids", "text_ids"],
         args_outputs=["artifact_document", "operation_create", "name_id", "name", "description_id", "description", "flag_id", "active_flag_id", "active_flag", "template_flag", "template_flag_id", "department_ids", "departments", "field_ids", "upload_ids", "image_ids", "text_ids"],
+        instruction_id=_iid("Document Create"),
     ),
     dict(
         id="446a4253-1b13-59ef-aa34-fd73b0d9ba33",
@@ -681,6 +757,7 @@ tools = [
         permission_ids=[sid("permission/document/delete")],
         args=["document_ids"],
         args_outputs=["artifact_document", "operation_delete", "document_ids"],
+        instruction_id=_iid("Document Delete"),
     ),
     dict(
         id="5a4c3390-da4d-5c46-bcaa-8dab4f199438",
@@ -690,6 +767,7 @@ tools = [
         permission_ids=[sid("permission/document/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "files", "file_ids", "texts", "text_ids", "flag_ids", "department_ids", "image_ids", "parameter_field_ids", "parameter_ids"],
         args_outputs=["artifact_document", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "files", "file_ids", "texts", "text_ids", "flag_ids", "department_ids", "image_ids", "parameter_field_ids", "parameter_ids"],
+        instruction_id=_iid("Document Draft"),
     ),
     dict(
         id="6f2a8778-22dd-5c8f-b4fa-2adc19c62628",
@@ -699,6 +777,7 @@ tools = [
         permission_ids=[sid("permission/document/drafts")],
         args=[],
         args_outputs=["artifact_document", "operation_drafts"],
+        instruction_id=_iid("Document Drafts"),
     ),
     dict(
         id="154e838a-93b0-595e-88f2-530194839ad2",
@@ -708,6 +787,7 @@ tools = [
         permission_ids=[sid("permission/document/duplicate")],
         args=["document_id"],
         args_outputs=["artifact_document", "operation_duplicate", "document_id"],
+        instruction_id=_iid("Document Duplicate"),
     ),
     dict(
         id="ac9e3292-8c84-5579-8ed4-6fc03b845d99",
@@ -717,6 +797,7 @@ tools = [
         permission_ids=[sid("permission/document/export")],
         args=["document_id"],
         args_outputs=["artifact_document", "operation_export", "document_id"],
+        instruction_id=_iid("Document Export"),
     ),
     dict(
         id="29511c88-94b6-5fe2-84cc-04b78e64c013",
@@ -726,6 +807,7 @@ tools = [
         permission_ids=[sid("permission/document/get")],
         args=["document_id"],
         args_outputs=["artifact_document", "operation_get", "document_id"],
+        instruction_id=_iid("Document Get"),
     ),
     dict(
         id="ee78d6fd-49ad-5d5d-960e-c3541884e622",
@@ -735,6 +817,7 @@ tools = [
         permission_ids=[sid("permission/document/refresh")],
         args=[],
         args_outputs=["artifact_document", "operation_refresh"],
+        instruction_id=_iid("Document Refresh"),
     ),
     dict(
         id="1c23af40-471f-5bf4-8177-c431ab56f9cb",
@@ -744,6 +827,7 @@ tools = [
         permission_ids=[sid("permission/document/search")],
         args=["search", "scenario_ids", "field_ids", "filter_department_ids", "scenario_search", "field_search", "department_search", "page_size", "page_offset"],
         args_outputs=["artifact_document", "operation_search", "search", "scenario_ids", "field_ids", "filter_department_ids", "scenario_search", "field_search", "department_search", "page_size", "page_offset"],
+        instruction_id=_iid("Document Search"),
     ),
     dict(
         id="51209c89-905e-53d0-9c7b-eae665f7a0a4",
@@ -753,6 +837,7 @@ tools = [
         permission_ids=[sid("permission/document/update")],
         args=["document_id", "name_id", "name", "description_id", "description", "flag_id", "active_flag_id", "active_flag", "template_flag", "template_flag_id", "department_ids", "departments", "field_ids", "upload_ids", "image_ids", "text_ids"],
         args_outputs=["artifact_document", "operation_update", "document_id", "name_id", "name", "description_id", "description", "flag_id", "active_flag_id", "active_flag", "template_flag", "template_flag_id", "department_ids", "departments", "field_ids", "upload_ids", "image_ids", "text_ids"],
+        instruction_id=_iid("Document Update"),
     ),
     dict(
         id="3f8d829b-6fcc-5a01-9ff1-2e77d70824b6",
@@ -762,6 +847,7 @@ tools = [
         permission_ids=[sid("permission/eval/create")],
         args=["name_id", "name", "description_id", "description", "flag_ids", "department_ids", "departments", "model_ids", "model_flag_ids", "model_rubric_ids", "model_position_ids", "active_flag", "active_flag_id"],
         args_outputs=["artifact_eval", "operation_create", "name_id", "name", "description_id", "description", "flag_ids", "department_ids", "departments", "model_ids", "model_flag_ids", "model_rubric_ids", "model_position_ids", "active_flag", "active_flag_id"],
+        instruction_id=_iid("Eval Create"),
     ),
     dict(
         id="911fefb0-6f13-5bdb-982f-ee2a5c7ccd2c",
@@ -771,6 +857,7 @@ tools = [
         permission_ids=[sid("permission/eval/delete")],
         args=["eval_ids"],
         args_outputs=["artifact_eval", "operation_delete", "eval_ids"],
+        instruction_id=_iid("Eval Delete"),
     ),
     dict(
         id="8388f6a9-36d1-5b9a-8f18-2a0f608ac841",
@@ -780,6 +867,7 @@ tools = [
         permission_ids=[sid("permission/eval/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_ids", "department_ids", "model_ids", "rubric_ids"],
         args_outputs=["artifact_eval", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_ids", "department_ids", "model_ids", "rubric_ids"],
+        instruction_id=_iid("Eval Draft"),
     ),
     dict(
         id="1e9e7c6e-df57-5c4a-a1b8-bfc85589fe95",
@@ -789,6 +877,7 @@ tools = [
         permission_ids=[sid("permission/eval/drafts")],
         args=[],
         args_outputs=["artifact_eval", "operation_drafts"],
+        instruction_id=_iid("Eval Drafts"),
     ),
     dict(
         id="df90ca0c-5f2a-5b74-9131-3c1456c0820e",
@@ -798,6 +887,7 @@ tools = [
         permission_ids=[sid("permission/eval/duplicate")],
         args=["eval_id"],
         args_outputs=["artifact_eval", "operation_duplicate", "eval_id"],
+        instruction_id=_iid("Eval Duplicate"),
     ),
     dict(
         id="1d240a35-0bc5-53dd-a549-cf73ce7ea7a5",
@@ -807,6 +897,7 @@ tools = [
         permission_ids=[sid("permission/eval/export")],
         args=["eval_id"],
         args_outputs=["artifact_eval", "operation_export", "eval_id"],
+        instruction_id=_iid("Eval Export"),
     ),
     dict(
         id="50570745-2a72-5b19-aae2-105e8159e802",
@@ -816,6 +907,7 @@ tools = [
         permission_ids=[sid("permission/eval/get")],
         args=["eval_id"],
         args_outputs=["artifact_eval", "operation_get", "eval_id"],
+        instruction_id=_iid("Eval Get"),
     ),
     dict(
         id="97f67765-10cc-563f-a6e8-3ad6fd15d36b",
@@ -825,6 +917,7 @@ tools = [
         permission_ids=[sid("permission/eval/refresh")],
         args=[],
         args_outputs=["artifact_eval", "operation_refresh"],
+        instruction_id=_iid("Eval Refresh"),
     ),
     dict(
         id="fea17452-7a64-5a1b-a543-8572d143f47e",
@@ -834,6 +927,7 @@ tools = [
         permission_ids=[sid("permission/eval/search")],
         args=["search", "filter_department_ids", "department_search", "page_size", "page_offset"],
         args_outputs=["artifact_eval", "operation_search", "search", "filter_department_ids", "department_search", "page_size", "page_offset"],
+        instruction_id=_iid("Eval Search"),
     ),
     dict(
         id="8ab5d2c5-ee40-50d0-8fec-c6f32b9a5db2",
@@ -843,6 +937,7 @@ tools = [
         permission_ids=[sid("permission/eval/update")],
         args=["eval_id", "name_id", "name", "description_id", "description", "flag_ids", "department_ids", "departments", "model_ids", "model_flag_ids", "model_rubric_ids", "model_position_ids", "active_flag", "active_flag_id"],
         args_outputs=["artifact_eval", "operation_update", "eval_id", "name_id", "name", "description_id", "description", "flag_ids", "department_ids", "departments", "model_ids", "model_flag_ids", "model_rubric_ids", "model_position_ids", "active_flag", "active_flag_id"],
+        instruction_id=_iid("Eval Update"),
     ),
     dict(
         id="0c5fb9bb-5dee-56e1-af14-ba000dd05f69",
@@ -852,6 +947,7 @@ tools = [
         permission_ids=[sid("permission/field/create")],
         args=["name_id", "name", "description_id", "description", "active_flag", "active_flag_id", "flag_id", "department_ids", "departments", "conditional_parameter_ids", "field_ids"],
         args_outputs=["artifact_field", "operation_create", "name_id", "name", "description_id", "description", "active_flag", "active_flag_id", "flag_id", "department_ids", "departments", "conditional_parameter_ids", "field_ids"],
+        instruction_id=_iid("Field Create"),
     ),
     dict(
         id="a6ef2dcf-08fc-5b5a-9f27-51012109bada",
@@ -861,6 +957,7 @@ tools = [
         permission_ids=[sid("permission/field/delete")],
         args=["field_ids"],
         args_outputs=["artifact_field", "operation_delete", "field_ids"],
+        instruction_id=_iid("Field Delete"),
     ),
     dict(
         id="2a2267cd-8f28-5de2-8c15-45238795c5a2",
@@ -870,6 +967,7 @@ tools = [
         permission_ids=[sid("permission/field/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_id", "department_ids", "conditional_parameter_ids"],
         args_outputs=["artifact_field", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_id", "department_ids", "conditional_parameter_ids"],
+        instruction_id=_iid("Field Draft"),
     ),
     dict(
         id="e1b640bd-776e-58a8-8a3a-a7915079e079",
@@ -879,6 +977,7 @@ tools = [
         permission_ids=[sid("permission/field/drafts")],
         args=[],
         args_outputs=["artifact_field", "operation_drafts"],
+        instruction_id=_iid("Field Drafts"),
     ),
     dict(
         id="1238501d-320e-5a12-a04a-0eb8d8d81e87",
@@ -888,6 +987,7 @@ tools = [
         permission_ids=[sid("permission/field/duplicate")],
         args=["field_id"],
         args_outputs=["artifact_field", "operation_duplicate", "field_id"],
+        instruction_id=_iid("Field Duplicate"),
     ),
     dict(
         id="0f2f3f73-afe6-52bc-9257-fad2d02c8f9e",
@@ -897,6 +997,7 @@ tools = [
         permission_ids=[sid("permission/field/export")],
         args=["field_id"],
         args_outputs=["artifact_field", "operation_export", "field_id"],
+        instruction_id=_iid("Field Export"),
     ),
     dict(
         id="624a1a82-a770-5c0c-b6f6-780e6105a650",
@@ -906,6 +1007,7 @@ tools = [
         permission_ids=[sid("permission/field/get")],
         args=["field_id", "descriptions_search", "conditional_parameter_search", "conditional_parameter_show_selected"],
         args_outputs=["artifact_field", "operation_get", "field_id", "descriptions_search", "conditional_parameter_search", "conditional_parameter_show_selected"],
+        instruction_id=_iid("Field Get"),
     ),
     dict(
         id="c3270196-51c2-5ec2-bda8-f8fc03e66f12",
@@ -915,6 +1017,7 @@ tools = [
         permission_ids=[sid("permission/field/refresh")],
         args=[],
         args_outputs=["artifact_field", "operation_refresh"],
+        instruction_id=_iid("Field Refresh"),
     ),
     dict(
         id="40332499-b958-5ff0-b26e-c1904100a8d8",
@@ -924,6 +1027,7 @@ tools = [
         permission_ids=[sid("permission/field/search")],
         args=["search", "parameter_ids", "persona_ids", "filter_department_ids", "parameter_search", "persona_search", "department_search", "page_size", "page_offset"],
         args_outputs=["artifact_field", "operation_search", "search", "parameter_ids", "persona_ids", "filter_department_ids", "parameter_search", "persona_search", "department_search", "page_size", "page_offset"],
+        instruction_id=_iid("Field Search"),
     ),
     dict(
         id="19936242-b01f-507c-bfd1-ab98e9973a9d",
@@ -933,6 +1037,7 @@ tools = [
         permission_ids=[sid("permission/field/update")],
         args=["field_id", "name_id", "name", "description_id", "description", "active_flag", "active_flag_id", "flag_id", "department_ids", "departments", "conditional_parameter_ids", "field_ids"],
         args_outputs=["artifact_field", "operation_update", "field_id", "name_id", "name", "description_id", "description", "active_flag", "active_flag_id", "flag_id", "department_ids", "departments", "conditional_parameter_ids", "field_ids"],
+        instruction_id=_iid("Field Update"),
     ),
     dict(
         id="0ac89962-650d-58f3-9cf9-6dcde6da84f6",
@@ -942,6 +1047,7 @@ tools = [
         permission_ids=[sid("permission/group/export")],
         args=["group_id"],
         args_outputs=["artifact_group", "operation_export", "group_id"],
+        instruction_id=_iid("Group Export"),
     ),
     dict(
         id="3167d978-1c26-5fb6-acb6-c77b0019305c",
@@ -951,6 +1057,7 @@ tools = [
         permission_ids=[sid("permission/group/generate")],
         args=[],
         args_outputs=["artifact_group", "operation_generate"],
+        instruction_id=_iid("Group Generate"),
     ),
     dict(
         id="4fabbfb3-81ec-56fe-9cff-9515e252c681",
@@ -960,6 +1067,7 @@ tools = [
         permission_ids=[sid("permission/group/get")],
         args=["agent_id", "model_id", "date_from", "date_to", "sort_by", "sort_order", "page_limit", "page_offset"],
         args_outputs=["artifact_group", "operation_get", "agent_id", "model_id", "date_from", "date_to", "sort_by", "sort_order", "page_limit", "page_offset"],
+        instruction_id=_iid("Group Get"),
     ),
     dict(
         id="167eb7f7-8ca8-5339-b58f-54deed33dd0d",
@@ -969,6 +1077,7 @@ tools = [
         permission_ids=[sid("permission/group/refresh")],
         args=[],
         args_outputs=["artifact_group", "operation_refresh"],
+        instruction_id=_iid("Group Refresh"),
     ),
     dict(
         id="5b5469ce-c2df-5c86-ae9c-81b31efbb251",
@@ -978,6 +1087,7 @@ tools = [
         permission_ids=[sid("permission/health/export")],
         args=[],
         args_outputs=["artifact_health", "operation_export"],
+        instruction_id=_iid("Health Export"),
     ),
     dict(
         id="b64245d4-c539-54bc-8ee9-f835a856f005",
@@ -987,6 +1097,7 @@ tools = [
         permission_ids=[sid("permission/health/get")],
         args=["service", "date_from", "date_to", "page_limit", "page_offset"],
         args_outputs=["artifact_health", "operation_get", "service", "date_from", "date_to", "page_limit", "page_offset"],
+        instruction_id=_iid("Health Get"),
     ),
     dict(
         id="205e83e5-7189-5464-83fb-d88a835fe560",
@@ -996,6 +1107,7 @@ tools = [
         permission_ids=[sid("permission/health/refresh")],
         args=[],
         args_outputs=["artifact_health", "operation_refresh"],
+        instruction_id=_iid("Health Refresh"),
     ),
     dict(
         id="a59db208-22dd-5951-8df2-a47ee4bd43e3",
@@ -1005,6 +1117,7 @@ tools = [
         permission_ids=[sid("permission/home/export")],
         args=[],
         args_outputs=["artifact_home", "operation_export"],
+        instruction_id=_iid("Home Export"),
     ),
     dict(
         id="19b0fa1f-0327-57c5-9777-d8f857337c7f",
@@ -1014,6 +1127,7 @@ tools = [
         permission_ids=[sid("permission/home/get")],
         args=[],
         args_outputs=["artifact_home", "operation_get"],
+        instruction_id=_iid("Home Get"),
     ),
     dict(
         id="9f18d019-77a3-5b07-abea-a2b3540d7748",
@@ -1023,6 +1137,7 @@ tools = [
         permission_ids=[sid("permission/home/refresh")],
         args=[],
         args_outputs=["artifact_home", "operation_refresh"],
+        instruction_id=_iid("Home Refresh"),
     ),
     dict(
         id="65665e15-f208-59fd-83ff-491f6c7c8490",
@@ -1032,6 +1147,7 @@ tools = [
         permission_ids=[sid("permission/home/search")],
         args=["sort_by", "sort_order", "page", "page_size", "simulation_search", "scenario_search", "scenario_ids", "infinite_mode"],
         args_outputs=["artifact_home", "operation_search", "sort_by", "sort_order", "page", "page_size", "simulation_search", "scenario_search", "scenario_ids", "infinite_mode"],
+        instruction_id=_iid("Home Search"),
     ),
     dict(
         id="0c73a382-4668-5122-9e83-cce9fea855df",
@@ -1041,6 +1157,7 @@ tools = [
         permission_ids=[sid("permission/invocation/decrypt")],
         args=[],
         args_outputs=["artifact_invocation", "operation_decrypt"],
+        instruction_id=_iid("Invocation Decrypt"),
     ),
     dict(
         id="2a8c806e-6e7e-5739-96e5-741d08e2d24c",
@@ -1050,6 +1167,7 @@ tools = [
         permission_ids=[sid("permission/invocation/draft")],
         args=["input_draft_id", "expected_version", "name", "description", "name_ids", "description_ids", "value_id", "flag_ids", "department_ids", "key_ids", "endpoint_ids", "temperature_level_ids", "pricing_ids", "reasoning_level_ids", "voice_ids"],
         args_outputs=["artifact_invocation", "operation_draft", "input_draft_id", "expected_version", "name", "description", "name_ids", "description_ids", "value_id", "flag_ids", "department_ids", "key_ids", "endpoint_ids", "temperature_level_ids", "pricing_ids", "reasoning_level_ids", "voice_ids"],
+        instruction_id=_iid("Invocation Draft"),
     ),
     dict(
         id="9886f0a5-eee6-5cc8-92c0-edcc43acb659",
@@ -1059,6 +1177,7 @@ tools = [
         permission_ids=[sid("permission/invocation/drafts")],
         args=[],
         args_outputs=["artifact_invocation", "operation_drafts"],
+        instruction_id=_iid("Invocation Drafts"),
     ),
     dict(
         id="401fc6c1-299a-5840-87c4-2788c59504c5",
@@ -1068,6 +1187,7 @@ tools = [
         permission_ids=[sid("permission/invocation/export")],
         args=["test_id", "invocation_entry_id", "draft_id"],
         args_outputs=["artifact_invocation", "operation_export", "test_id", "invocation_entry_id", "draft_id"],
+        instruction_id=_iid("Invocation Export"),
     ),
     dict(
         id="321b4d4b-07dc-5511-a359-7af0bda7c44b",
@@ -1077,6 +1197,7 @@ tools = [
         permission_ids=[sid("permission/invocation/get")],
         args=["test_id", "descriptions_search"],
         args_outputs=["artifact_invocation", "operation_get", "test_id", "descriptions_search"],
+        instruction_id=_iid("Invocation Get"),
     ),
     dict(
         id="db914f5a-9d03-59f6-a98e-05582edfa23b",
@@ -1086,6 +1207,7 @@ tools = [
         permission_ids=[sid("permission/invocation/refresh")],
         args=[],
         args_outputs=["artifact_invocation", "operation_refresh"],
+        instruction_id=_iid("Invocation Refresh"),
     ),
     dict(
         id="60585e46-b32b-52cb-820d-8b885f201d60",
@@ -1095,6 +1217,7 @@ tools = [
         permission_ids=[sid("permission/leaderboard/export")],
         args=[],
         args_outputs=["artifact_leaderboard", "operation_export"],
+        instruction_id=_iid("Leaderboard Export"),
     ),
     dict(
         id="fa6c219b-068f-5f12-989f-930bf3ac8be3",
@@ -1104,6 +1227,7 @@ tools = [
         permission_ids=[sid("permission/leaderboard/get")],
         args=[],
         args_outputs=["artifact_leaderboard", "operation_get"],
+        instruction_id=_iid("Leaderboard Get"),
     ),
     dict(
         id="84b81d50-a051-5dd9-b420-4c79b88f9bb5",
@@ -1113,6 +1237,7 @@ tools = [
         permission_ids=[sid("permission/leaderboard/refresh")],
         args=[],
         args_outputs=["artifact_leaderboard", "operation_refresh"],
+        instruction_id=_iid("Leaderboard Refresh"),
     ),
     dict(
         id="84c5e905-3cc3-56a9-88ad-4e85d69b3e27",
@@ -1122,6 +1247,7 @@ tools = [
         permission_ids=[sid("permission/leaderboard/search")],
         args=["start_date", "end_date", "cohort_ids", "simulation_ids", "department_ids", "simulation_filters", "target_profile_id", "cohort_id", "simulation_id", "scenario_ids", "search", "sort_by", "sort_order", "page_limit", "page_offset"],
         args_outputs=["artifact_leaderboard", "operation_search", "start_date", "end_date", "cohort_ids", "simulation_ids", "department_ids", "simulation_filters", "target_profile_id", "cohort_id", "simulation_id", "scenario_ids", "search", "sort_by", "sort_order", "page_limit", "page_offset"],
+        instruction_id=_iid("Leaderboard Search"),
     ),
     dict(
         id="70bdfcfa-4cff-5e85-9c2d-4f351b4f54fc",
@@ -1131,6 +1257,7 @@ tools = [
         permission_ids=[sid("permission/model/create")],
         args=["name_id", "name", "description_id", "description", "department_ids", "departments", "active_flag", "active_flag_id", "flag_ids", "modality_ids", "pricing_ids", "provider_id", "quality_ids", "reasoning_level_ids", "temperature_level_ids", "value_id", "value", "voice_ids", "model_ids"],
         args_outputs=["artifact_model", "operation_create", "name_id", "name", "description_id", "description", "department_ids", "departments", "active_flag", "active_flag_id", "flag_ids", "modality_ids", "pricing_ids", "provider_id", "quality_ids", "reasoning_level_ids", "temperature_level_ids", "value_id", "value", "voice_ids", "model_ids"],
+        instruction_id=_iid("Model Create"),
     ),
     dict(
         id="73c8e961-b9e3-5e67-ab9d-b93e989e7cfd",
@@ -1140,6 +1267,7 @@ tools = [
         permission_ids=[sid("permission/model/delete")],
         args=["model_ids"],
         args_outputs=["artifact_model", "operation_delete", "model_ids"],
+        instruction_id=_iid("Model Delete"),
     ),
     dict(
         id="d53b302a-2b60-50cd-ab3e-132685009022",
@@ -1149,6 +1277,7 @@ tools = [
         permission_ids=[sid("permission/model/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_ids", "department_ids", "modality_ids", "pricing_ids", "provider_id", "quality_ids", "reasoning_level_ids", "temperature_level_ids", "value_id", "voice_ids"],
         args_outputs=["artifact_model", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_ids", "department_ids", "modality_ids", "pricing_ids", "provider_id", "quality_ids", "reasoning_level_ids", "temperature_level_ids", "value_id", "voice_ids"],
+        instruction_id=_iid("Model Draft"),
     ),
     dict(
         id="4d4bcb69-bee6-58d1-a026-0d97e5121f0a",
@@ -1158,6 +1287,7 @@ tools = [
         permission_ids=[sid("permission/model/drafts")],
         args=[],
         args_outputs=["artifact_model", "operation_drafts"],
+        instruction_id=_iid("Model Drafts"),
     ),
     dict(
         id="870e444a-1214-50e1-b07a-9bded72eb3ea",
@@ -1167,6 +1297,7 @@ tools = [
         permission_ids=[sid("permission/model/duplicate")],
         args=["model_id"],
         args_outputs=["artifact_model", "operation_duplicate", "model_id"],
+        instruction_id=_iid("Model Duplicate"),
     ),
     dict(
         id="4d49dd21-58f4-5316-983c-b792777d9a13",
@@ -1176,6 +1307,7 @@ tools = [
         permission_ids=[sid("permission/model/export")],
         args=["model_id"],
         args_outputs=["artifact_model", "operation_export", "model_id"],
+        instruction_id=_iid("Model Export"),
     ),
     dict(
         id="31d61a6e-b0f0-5d41-acac-fff78dd586f5",
@@ -1185,6 +1317,7 @@ tools = [
         permission_ids=[sid("permission/model/get")],
         args=["model_id"],
         args_outputs=["artifact_model", "operation_get", "model_id"],
+        instruction_id=_iid("Model Get"),
     ),
     dict(
         id="d23a11df-a4b6-54c4-b117-d335633d7e16",
@@ -1194,6 +1327,7 @@ tools = [
         permission_ids=[sid("permission/model/refresh")],
         args=[],
         args_outputs=["artifact_model", "operation_refresh"],
+        instruction_id=_iid("Model Refresh"),
     ),
     dict(
         id="af85f397-9a27-507b-8828-8345f2cda821",
@@ -1203,6 +1337,7 @@ tools = [
         permission_ids=[sid("permission/model/search")],
         args=["search", "filter_provider_ids", "filter_department_ids", "filter_agent_ids", "provider_search", "department_search", "agent_search", "page_size", "page_offset"],
         args_outputs=["artifact_model", "operation_search", "search", "filter_provider_ids", "filter_department_ids", "filter_agent_ids", "provider_search", "department_search", "agent_search", "page_size", "page_offset"],
+        instruction_id=_iid("Model Search"),
     ),
     dict(
         id="3ee5fa67-3469-5e38-930e-6fb0df679572",
@@ -1212,6 +1347,7 @@ tools = [
         permission_ids=[sid("permission/model/update")],
         args=["model_id", "name_id", "name", "description_id", "description", "department_ids", "departments", "active_flag", "active_flag_id", "flag_ids", "modality_ids", "pricing_ids", "provider_id", "quality_ids", "reasoning_level_ids", "temperature_level_ids", "value_id", "voice_ids", "model_ids"],
         args_outputs=["artifact_model", "operation_update", "model_id", "name_id", "name", "description_id", "description", "department_ids", "departments", "active_flag", "active_flag_id", "flag_ids", "modality_ids", "pricing_ids", "provider_id", "quality_ids", "reasoning_level_ids", "temperature_level_ids", "value_id", "voice_ids", "model_ids"],
+        instruction_id=_iid("Model Update"),
     ),
     dict(
         id="81885fc7-ad41-5f5e-914f-002576351412",
@@ -1221,6 +1357,7 @@ tools = [
         permission_ids=[sid("permission/parameter/create")],
         args=["name_id", "name", "description_id", "description", "department_ids", "departments", "flag_ids", "field_ids"],
         args_outputs=["artifact_parameter", "operation_create", "name_id", "name", "description_id", "description", "department_ids", "departments", "flag_ids", "field_ids"],
+        instruction_id=_iid("Parameter Create"),
     ),
     dict(
         id="f3e6d1ac-de3d-529c-aac3-d6230a4761c4",
@@ -1230,6 +1367,7 @@ tools = [
         permission_ids=[sid("permission/parameter/delete")],
         args=["parameter_ids"],
         args_outputs=["artifact_parameter", "operation_delete", "parameter_ids"],
+        instruction_id=_iid("Parameter Delete"),
     ),
     dict(
         id="926d9a00-6398-5b21-835f-70e0f4702cf6",
@@ -1239,6 +1377,7 @@ tools = [
         permission_ids=[sid("permission/parameter/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_ids", "department_ids", "field_ids"],
         args_outputs=["artifact_parameter", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_ids", "department_ids", "field_ids"],
+        instruction_id=_iid("Parameter Draft"),
     ),
     dict(
         id="9c86ba2d-84c6-55e1-ae26-a6e395491ffe",
@@ -1248,6 +1387,7 @@ tools = [
         permission_ids=[sid("permission/parameter/drafts")],
         args=[],
         args_outputs=["artifact_parameter", "operation_drafts"],
+        instruction_id=_iid("Parameter Drafts"),
     ),
     dict(
         id="e3061ea6-4124-5692-9160-7703705ab193",
@@ -1257,6 +1397,7 @@ tools = [
         permission_ids=[sid("permission/parameter/duplicate")],
         args=["parameter_id"],
         args_outputs=["artifact_parameter", "operation_duplicate", "parameter_id"],
+        instruction_id=_iid("Parameter Duplicate"),
     ),
     dict(
         id="4755b335-3fce-5893-9a0a-d24ac92fef9e",
@@ -1266,6 +1407,7 @@ tools = [
         permission_ids=[sid("permission/parameter/export")],
         args=["parameter_id"],
         args_outputs=["artifact_parameter", "operation_export", "parameter_id"],
+        instruction_id=_iid("Parameter Export"),
     ),
     dict(
         id="f5f2cea2-c108-5cc7-9f45-f250897f8070",
@@ -1275,6 +1417,7 @@ tools = [
         permission_ids=[sid("permission/parameter/get")],
         args=["parameter_id"],
         args_outputs=["artifact_parameter", "operation_get", "parameter_id"],
+        instruction_id=_iid("Parameter Get"),
     ),
     dict(
         id="b55b4347-cc38-591a-82d4-976382aa301e",
@@ -1284,6 +1427,7 @@ tools = [
         permission_ids=[sid("permission/parameter/refresh")],
         args=[],
         args_outputs=["artifact_parameter", "operation_refresh"],
+        instruction_id=_iid("Parameter Refresh"),
     ),
     dict(
         id="a12b2301-1b72-5bd5-a180-86c39bafe751",
@@ -1293,6 +1437,7 @@ tools = [
         permission_ids=[sid("permission/parameter/search")],
         args=["search", "scenario_ids", "field_ids", "filter_department_ids", "scenario_search", "field_search", "department_search", "page_size", "page_offset"],
         args_outputs=["artifact_parameter", "operation_search", "search", "scenario_ids", "field_ids", "filter_department_ids", "scenario_search", "field_search", "department_search", "page_size", "page_offset"],
+        instruction_id=_iid("Parameter Search"),
     ),
     dict(
         id="1cd4b685-586f-5f9e-8ab0-cafbb2a3bfc3",
@@ -1302,6 +1447,7 @@ tools = [
         permission_ids=[sid("permission/parameter/update")],
         args=["parameter_id", "name_id", "name", "description_id", "description", "department_ids", "departments", "flag_ids", "field_ids"],
         args_outputs=["artifact_parameter", "operation_update", "parameter_id", "name_id", "name", "description_id", "description", "department_ids", "departments", "flag_ids", "field_ids"],
+        instruction_id=_iid("Parameter Update"),
     ),
     dict(
         id="ddac56a9-7873-5240-a904-d6557e05c7e1",
@@ -1311,6 +1457,7 @@ tools = [
         permission_ids=[sid("permission/persona/create")],
         args=["name_id", "name", "color_id", "color", "icon_id", "icon", "instructions_id", "instructions", "description_id", "description", "active_flag_id", "active_flag", "department_ids", "departments", "parameter_field_ids", "parameter_fields", "example_ids", "examples", "voice_ids", "voices"],
         args_outputs=["artifact_persona", "operation_create", "name_id", "name", "color_id", "color", "icon_id", "icon", "instructions_id", "instructions", "description_id", "description", "active_flag_id", "active_flag", "department_ids", "departments", "parameter_field_ids", "parameter_fields", "example_ids", "examples", "voice_ids", "voices"],
+        instruction_id=_iid("Persona Create"),
     ),
     dict(
         id="0da58846-1820-515e-b8f0-03e213cbbd68",
@@ -1320,6 +1467,7 @@ tools = [
         permission_ids=[sid("permission/persona/delete")],
         args=["persona_ids"],
         args_outputs=["artifact_persona", "operation_delete", "persona_ids"],
+        instruction_id=_iid("Persona Delete"),
     ),
     dict(
         id="e69bb8ae-940d-5521-8681-446061e4ce68",
@@ -1329,6 +1477,7 @@ tools = [
         permission_ids=[sid("permission/persona/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "instructions", "instructions_id", "examples", "example_ids", "color_id", "icon_id", "flag_id", "department_ids", "parameter_field_ids", "voice_ids"],
         args_outputs=["artifact_persona", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "instructions", "instructions_id", "examples", "example_ids", "color_id", "icon_id", "flag_id", "department_ids", "parameter_field_ids", "voice_ids"],
+        instruction_id=_iid("Persona Draft"),
     ),
     dict(
         id="14353a32-5d7c-539a-8ce0-0f94416e9d2e",
@@ -1338,6 +1487,7 @@ tools = [
         permission_ids=[sid("permission/persona/drafts")],
         args=[],
         args_outputs=["artifact_persona", "operation_drafts"],
+        instruction_id=_iid("Persona Drafts"),
     ),
     dict(
         id="11c22914-df61-5c0b-b626-47758252e8da",
@@ -1347,6 +1497,7 @@ tools = [
         permission_ids=[sid("permission/persona/duplicate")],
         args=["persona_id"],
         args_outputs=["artifact_persona", "operation_duplicate", "persona_id"],
+        instruction_id=_iid("Persona Duplicate"),
     ),
     dict(
         id="787d8d72-8f28-5c44-b885-9eb5fb52072f",
@@ -1356,6 +1507,7 @@ tools = [
         permission_ids=[sid("permission/persona/export")],
         args=["persona_id", "search", "scenario_ids", "field_ids", "filter_department_ids"],
         args_outputs=["artifact_persona", "operation_export", "persona_id", "search", "scenario_ids", "field_ids", "filter_department_ids"],
+        instruction_id=_iid("Persona Export"),
     ),
     dict(
         id="baed6bf7-d5a8-5100-be59-7c35ed8b57ea",
@@ -1365,6 +1517,7 @@ tools = [
         permission_ids=[sid("permission/persona/get")],
         args=["persona_id", "color_search", "icon_search", "descriptions_search", "instructions_search", "parameter_field_search", "parameter_ids", "color_show_selected", "icon_show_selected", "parameter_field_show_selected"],
         args_outputs=["artifact_persona", "operation_get", "persona_id", "color_search", "icon_search", "descriptions_search", "instructions_search", "parameter_field_search", "parameter_ids", "color_show_selected", "icon_show_selected", "parameter_field_show_selected"],
+        instruction_id=_iid("Persona Get"),
     ),
     dict(
         id="9855859a-3c8b-5b72-8d26-1b729c6fa42f",
@@ -1374,6 +1527,7 @@ tools = [
         permission_ids=[sid("permission/persona/refresh")],
         args=[],
         args_outputs=["artifact_persona", "operation_refresh"],
+        instruction_id=_iid("Persona Refresh"),
     ),
     dict(
         id="4ae614e6-9f8e-55aa-b398-093e02b9ef4f",
@@ -1383,6 +1537,7 @@ tools = [
         permission_ids=[sid("permission/persona/search")],
         args=["search", "scenario_ids", "field_ids", "filter_department_ids", "scenario_search", "field_search", "department_search", "color_search", "icon_search", "voice_search", "instruction_search", "page_size", "page_offset"],
         args_outputs=["artifact_persona", "operation_search", "search", "scenario_ids", "field_ids", "filter_department_ids", "scenario_search", "field_search", "department_search", "color_search", "icon_search", "voice_search", "instruction_search", "page_size", "page_offset"],
+        instruction_id=_iid("Persona Search"),
     ),
     dict(
         id="bb297505-40a0-5562-bdc7-f7e9a36b96b7",
@@ -1392,6 +1547,7 @@ tools = [
         permission_ids=[sid("permission/persona/update")],
         args=["persona_id", "name_id", "name", "color_id", "color", "icon_id", "icon", "instructions_id", "instructions", "description_id", "description", "active_flag_id", "active_flag", "department_ids", "departments", "parameter_field_ids", "parameter_fields", "example_ids", "examples", "voice_ids", "voices"],
         args_outputs=["artifact_persona", "operation_update", "persona_id", "name_id", "name", "color_id", "color", "icon_id", "icon", "instructions_id", "instructions", "description_id", "description", "active_flag_id", "active_flag", "department_ids", "departments", "parameter_field_ids", "parameter_fields", "example_ids", "examples", "voice_ids", "voices"],
+        instruction_id=_iid("Persona Update"),
     ),
     dict(
         id="835a2c19-64aa-531f-ac61-3081c1e1e255",
@@ -1401,6 +1557,7 @@ tools = [
         permission_ids=[sid("permission/practice/export")],
         args=[],
         args_outputs=["artifact_practice", "operation_export"],
+        instruction_id=_iid("Practice Export"),
     ),
     dict(
         id="4dee5c9d-a949-5b4c-be7a-fe705450d7c4",
@@ -1410,6 +1567,7 @@ tools = [
         permission_ids=[sid("permission/practice/get")],
         args=[],
         args_outputs=["artifact_practice", "operation_get"],
+        instruction_id=_iid("Practice Get"),
     ),
     dict(
         id="cfe5a8b2-d184-53fd-b4c9-4187902aceeb",
@@ -1419,6 +1577,7 @@ tools = [
         permission_ids=[sid("permission/practice/refresh")],
         args=[],
         args_outputs=["artifact_practice", "operation_refresh"],
+        instruction_id=_iid("Practice Refresh"),
     ),
     dict(
         id="f57894f0-3d0d-595e-9109-ba2d1d81fa7e",
@@ -1428,6 +1587,7 @@ tools = [
         permission_ids=[sid("permission/practice/search")],
         args=["sort_by", "sort_order", "page", "page_size", "simulation_search", "scenario_search", "show_archived", "scenario_ids", "infinite_mode"],
         args_outputs=["artifact_practice", "operation_search", "sort_by", "sort_order", "page", "page_size", "simulation_search", "scenario_search", "show_archived", "scenario_ids", "infinite_mode"],
+        instruction_id=_iid("Practice Search"),
     ),
     dict(
         id="16fe9456-1e83-5d5e-891d-4e453c9fe6cd",
@@ -1437,6 +1597,7 @@ tools = [
         permission_ids=[sid("permission/pricing/export")],
         args=[],
         args_outputs=["artifact_pricing", "operation_export"],
+        instruction_id=_iid("Pricing Export"),
     ),
     dict(
         id="30ae4226-7d90-54f0-a4ce-17cac37657b6",
@@ -1446,6 +1607,7 @@ tools = [
         permission_ids=[sid("permission/pricing/get")],
         args=["start_date", "end_date", "date_from", "date_to"],
         args_outputs=["artifact_pricing", "operation_get", "start_date", "end_date", "date_from", "date_to"],
+        instruction_id=_iid("Pricing Get"),
     ),
     dict(
         id="e19ac2ec-75ee-51d4-a2cd-b323da7ef605",
@@ -1455,6 +1617,7 @@ tools = [
         permission_ids=[sid("permission/pricing/refresh")],
         args=[],
         args_outputs=["artifact_pricing", "operation_refresh"],
+        instruction_id=_iid("Pricing Refresh"),
     ),
     dict(
         id="65e6e704-4f7b-5806-b8fb-f28127bd4ecd",
@@ -1464,6 +1627,7 @@ tools = [
         permission_ids=[sid("permission/pricing/search")],
         args=["start_date", "end_date", "date_from", "date_to", "page", "page_size", "sort_order"],
         args_outputs=["artifact_pricing", "operation_search", "start_date", "end_date", "date_from", "date_to", "page", "page_size", "sort_order"],
+        instruction_id=_iid("Pricing Search"),
     ),
     dict(
         id="146a3cc0-91c2-5d7d-8594-14bba710f800",
@@ -1473,6 +1637,7 @@ tools = [
         permission_ids=[sid("permission/profile/context")],
         args=[],
         args_outputs=["artifact_profile", "operation_context"],
+        instruction_id=_iid("Profile Context"),
     ),
     dict(
         id="8d170106-1dc4-569c-81f4-ca89d8e2b5d2",
@@ -1482,6 +1647,7 @@ tools = [
         permission_ids=[sid("permission/profile/create")],
         args=["name_id", "name", "request_limit_id", "active_flag_id", "department_ids", "departments", "email_ids", "role_id"],
         args_outputs=["artifact_profile", "operation_create", "name_id", "name", "request_limit_id", "active_flag_id", "department_ids", "departments", "email_ids", "role_id"],
+        instruction_id=_iid("Profile Create"),
     ),
     dict(
         id="4f2ddaed-1e54-5516-91af-c4b79bf56bb3",
@@ -1491,6 +1657,7 @@ tools = [
         permission_ids=[sid("permission/profile/delete")],
         args=["profile_ids"],
         args_outputs=["artifact_profile", "operation_delete", "profile_ids"],
+        instruction_id=_iid("Profile Delete"),
     ),
     dict(
         id="98108d2f-d383-5182-ace0-2d7a69798492",
@@ -1500,6 +1667,7 @@ tools = [
         permission_ids=[sid("permission/profile/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "email", "request_limit", "active_flag_id", "department_ids", "email_ids", "role_id", "request_limit_ids"],
         args_outputs=["artifact_profile", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "email", "request_limit", "active_flag_id", "department_ids", "email_ids", "role_id", "request_limit_ids"],
+        instruction_id=_iid("Profile Draft"),
     ),
     dict(
         id="879d37e0-b7d8-5e24-9345-0aaefe37c193",
@@ -1509,6 +1677,7 @@ tools = [
         permission_ids=[sid("permission/profile/drafts")],
         args=[],
         args_outputs=["artifact_profile", "operation_drafts"],
+        instruction_id=_iid("Profile Drafts"),
     ),
     dict(
         id="da656b67-1bee-5770-831d-4504f648e90c",
@@ -1518,6 +1687,7 @@ tools = [
         permission_ids=[sid("permission/profile/duplicate")],
         args=["target_profile_id"],
         args_outputs=["artifact_profile", "operation_duplicate", "target_profile_id"],
+        instruction_id=_iid("Profile Duplicate"),
     ),
     dict(
         id="c96f58a4-b4e6-563b-9bd8-59f29d0dd770",
@@ -1527,6 +1697,7 @@ tools = [
         permission_ids=[sid("permission/profile/emulate")],
         args=[],
         args_outputs=["artifact_profile", "operation_emulate"],
+        instruction_id=_iid("Profile Emulate"),
     ),
     dict(
         id="c0a255ec-5f08-5836-bfa6-308425c7dd8d",
@@ -1536,6 +1707,7 @@ tools = [
         permission_ids=[sid("permission/profile/export")],
         args=["profile_export_id"],
         args_outputs=["artifact_profile", "operation_export", "profile_export_id"],
+        instruction_id=_iid("Profile Export"),
     ),
     dict(
         id="b46c4c20-3481-54a4-b36c-70d0559cdf03",
@@ -1545,6 +1717,7 @@ tools = [
         permission_ids=[sid("permission/profile/get")],
         args=["target_profile_id"],
         args_outputs=["artifact_profile", "operation_get", "target_profile_id"],
+        instruction_id=_iid("Profile Get"),
     ),
     dict(
         id="3d383b43-37f2-599d-9a37-4b3a8da70083",
@@ -1554,6 +1727,7 @@ tools = [
         permission_ids=[sid("permission/profile/refresh")],
         args=[],
         args_outputs=["artifact_profile", "operation_refresh"],
+        instruction_id=_iid("Profile Refresh"),
     ),
     dict(
         id="7b0e21dd-94ce-58dd-87f7-46ebc16f8304",
@@ -1563,6 +1737,7 @@ tools = [
         permission_ids=[sid("permission/profile/search")],
         args=["search", "cohort_ids", "filter_department_ids", "role_filter", "cohort_search", "department_search", "role_search", "page_size", "page_offset"],
         args_outputs=["artifact_profile", "operation_search", "search", "cohort_ids", "filter_department_ids", "role_filter", "cohort_search", "department_search", "role_search", "page_size", "page_offset"],
+        instruction_id=_iid("Profile Search"),
     ),
     dict(
         id="200381ea-5eba-5cc3-b946-ff50f77080e8",
@@ -1572,6 +1747,7 @@ tools = [
         permission_ids=[sid("permission/profile/unemulate")],
         args=[],
         args_outputs=["artifact_profile", "operation_unemulate"],
+        instruction_id=_iid("Profile Unemulate"),
     ),
     dict(
         id="3b077fdd-dc0a-57a0-a24f-05653457123a",
@@ -1581,6 +1757,7 @@ tools = [
         permission_ids=[sid("permission/profile/update")],
         args=["profile_id", "name_id", "name", "request_limit_id", "active_flag_id", "department_ids", "departments", "email_ids", "role_id"],
         args_outputs=["artifact_profile", "operation_update", "profile_id", "name_id", "name", "request_limit_id", "active_flag_id", "department_ids", "departments", "email_ids", "role_id"],
+        instruction_id=_iid("Profile Update"),
     ),
     dict(
         id="2e3c8658-757e-516f-b9b3-8e433deee47d",
@@ -1590,6 +1767,7 @@ tools = [
         permission_ids=[sid("permission/provider/create")],
         args=["name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "department_ids", "departments", "endpoint_ids", "key_ids", "value_id", "endpoint", "key", "value"],
         args_outputs=["artifact_provider", "operation_create", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "department_ids", "departments", "endpoint_ids", "key_ids", "value_id", "endpoint", "key", "value"],
+        instruction_id=_iid("Provider Create"),
     ),
     dict(
         id="eeb16374-cf18-5d7c-8c8c-86b1a31513ac",
@@ -1599,6 +1777,7 @@ tools = [
         permission_ids=[sid("permission/provider/decrypt")],
         args=[],
         args_outputs=["artifact_provider", "operation_decrypt"],
+        instruction_id=_iid("Provider Decrypt"),
     ),
     dict(
         id="57453380-2b19-519a-b3a4-7867f9f45a61",
@@ -1608,6 +1787,7 @@ tools = [
         permission_ids=[sid("permission/provider/delete")],
         args=["provider_ids"],
         args_outputs=["artifact_provider", "operation_delete", "provider_ids"],
+        instruction_id=_iid("Provider Delete"),
     ),
     dict(
         id="98f24604-4554-5265-a89b-084d5e903c2b",
@@ -1617,6 +1797,7 @@ tools = [
         permission_ids=[sid("permission/provider/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_id", "department_ids", "endpoint_ids", "key_ids", "value_id"],
         args_outputs=["artifact_provider", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_id", "department_ids", "endpoint_ids", "key_ids", "value_id"],
+        instruction_id=_iid("Provider Draft"),
     ),
     dict(
         id="416a76d6-6a5f-572b-849d-5052f3d74c9b",
@@ -1626,6 +1807,7 @@ tools = [
         permission_ids=[sid("permission/provider/drafts")],
         args=[],
         args_outputs=["artifact_provider", "operation_drafts"],
+        instruction_id=_iid("Provider Drafts"),
     ),
     dict(
         id="61df783a-5114-5355-b805-87cb16c8db8a",
@@ -1635,6 +1817,7 @@ tools = [
         permission_ids=[sid("permission/provider/duplicate")],
         args=["provider_id"],
         args_outputs=["artifact_provider", "operation_duplicate", "provider_id"],
+        instruction_id=_iid("Provider Duplicate"),
     ),
     dict(
         id="a0033129-e449-55bd-afd5-416a978f9390",
@@ -1644,6 +1827,7 @@ tools = [
         permission_ids=[sid("permission/provider/export")],
         args=["provider_id"],
         args_outputs=["artifact_provider", "operation_export", "provider_id"],
+        instruction_id=_iid("Provider Export"),
     ),
     dict(
         id="04cfba7d-ea9f-5db7-9223-fa6eeee9964a",
@@ -1653,6 +1837,7 @@ tools = [
         permission_ids=[sid("permission/provider/get")],
         args=["provider_id"],
         args_outputs=["artifact_provider", "operation_get", "provider_id"],
+        instruction_id=_iid("Provider Get"),
     ),
     dict(
         id="710d6e35-48f8-5967-acd2-36d4ce19860a",
@@ -1662,6 +1847,7 @@ tools = [
         permission_ids=[sid("permission/provider/refresh")],
         args=[],
         args_outputs=["artifact_provider", "operation_refresh"],
+        instruction_id=_iid("Provider Refresh"),
     ),
     dict(
         id="0f7cad56-b4e1-5149-a573-b02dc23d9fe9",
@@ -1671,6 +1857,7 @@ tools = [
         permission_ids=[sid("permission/provider/search")],
         args=["search", "filter_department_ids", "filter_model_ids", "filter_status", "department_search", "model_search", "page_size", "page_offset"],
         args_outputs=["artifact_provider", "operation_search", "search", "filter_department_ids", "filter_model_ids", "filter_status", "department_search", "model_search", "page_size", "page_offset"],
+        instruction_id=_iid("Provider Search"),
     ),
     dict(
         id="ae5d23c1-dc1f-59ab-b733-e61be2b33a6d",
@@ -1680,6 +1867,7 @@ tools = [
         permission_ids=[sid("permission/provider/update")],
         args=["provider_id", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "department_ids", "departments", "endpoint_ids", "key_ids", "value_id"],
         args_outputs=["artifact_provider", "operation_update", "provider_id", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "department_ids", "departments", "endpoint_ids", "key_ids", "value_id"],
+        instruction_id=_iid("Provider Update"),
     ),
     dict(
         id="5b775fe9-6fd8-5203-af37-8f7ed1850160",
@@ -1689,6 +1877,7 @@ tools = [
         permission_ids=[sid("permission/record/export")],
         args=["target_profile_id"],
         args_outputs=["artifact_record", "operation_export", "target_profile_id"],
+        instruction_id=_iid("Record Export"),
     ),
     dict(
         id="b16e6a95-3f09-5438-b2a5-82532a0a58c9",
@@ -1698,6 +1887,7 @@ tools = [
         permission_ids=[sid("permission/record/get")],
         args=["target_profile_id", "start_date", "end_date", "cohort_ids", "simulation_ids", "department_ids", "simulation_filters", "actor_profile_id", "rubric_ids", "rubric_search", "simulation_picker_ids", "simulation_picker_search", "parameter_ids", "parameter_search", "scenario_ids", "scenario_search", "history_practice", "history_scenario_ids", "history_infinite_mode", "history_show_archived", "history_sort_by", "history_sort_order", "history_page", "history_page_size", "history_simulation_search", "history_scenario_search", "history_profile_search"],
         args_outputs=["artifact_record", "operation_get", "target_profile_id", "start_date", "end_date", "cohort_ids", "simulation_ids", "department_ids", "simulation_filters", "actor_profile_id", "rubric_ids", "rubric_search", "simulation_picker_ids", "simulation_picker_search", "parameter_ids", "parameter_search", "scenario_ids", "scenario_search", "history_practice", "history_scenario_ids", "history_infinite_mode", "history_show_archived", "history_sort_by", "history_sort_order", "history_page", "history_page_size", "history_simulation_search", "history_scenario_search", "history_profile_search"],
+        instruction_id=_iid("Record Get"),
     ),
     dict(
         id="2341abaf-b4aa-53c8-a961-c36fc6051774",
@@ -1707,6 +1897,7 @@ tools = [
         permission_ids=[sid("permission/record/refresh")],
         args=[],
         args_outputs=["artifact_record", "operation_refresh"],
+        instruction_id=_iid("Record Refresh"),
     ),
     dict(
         id="68216feb-45ea-59c4-af7d-8a2b4e7afbe7",
@@ -1716,6 +1907,7 @@ tools = [
         permission_ids=[sid("permission/record/search")],
         args=["target_profile_id", "start_date", "end_date", "cohort_ids", "department_ids", "practice", "scenario_ids", "infinite_mode", "show_archived", "sort_by", "sort_order", "page", "page_size", "simulation_search", "scenario_search"],
         args_outputs=["artifact_record", "operation_search", "target_profile_id", "start_date", "end_date", "cohort_ids", "department_ids", "practice", "scenario_ids", "infinite_mode", "show_archived", "sort_by", "sort_order", "page", "page_size", "simulation_search", "scenario_search"],
+        instruction_id=_iid("Record Search"),
     ),
     dict(
         id="dd6cf9d1-faf5-5ac5-bb91-bcd520577770",
@@ -1725,6 +1917,7 @@ tools = [
         permission_ids=[sid("permission/reports/export")],
         args=[],
         args_outputs=["artifact_reports", "operation_export"],
+        instruction_id=_iid("Reports Export"),
     ),
     dict(
         id="ec3a2bba-45ce-536b-b26c-3d5f04e47a76",
@@ -1734,6 +1927,7 @@ tools = [
         permission_ids=[sid("permission/reports/get")],
         args=[],
         args_outputs=["artifact_reports", "operation_get"],
+        instruction_id=_iid("Reports Get"),
     ),
     dict(
         id="cae46908-c09d-5298-99e4-b43934bc3be3",
@@ -1743,6 +1937,7 @@ tools = [
         permission_ids=[sid("permission/reports/refresh")],
         args=[],
         args_outputs=["artifact_reports", "operation_refresh"],
+        instruction_id=_iid("Reports Refresh"),
     ),
     dict(
         id="74a2a54e-1893-545e-9c94-64715262c825",
@@ -1752,6 +1947,7 @@ tools = [
         permission_ids=[sid("permission/reports/search")],
         args=["start_date", "end_date", "cohort_ids", "simulation_ids", "department_ids", "roles", "simulation_filters", "actor_profile_id", "target_profile_id", "profile_ids", "scenario_ids", "search", "sort_by", "sort_order", "page_limit", "page_offset"],
         args_outputs=["artifact_reports", "operation_search", "start_date", "end_date", "cohort_ids", "simulation_ids", "department_ids", "roles", "simulation_filters", "actor_profile_id", "target_profile_id", "profile_ids", "scenario_ids", "search", "sort_by", "sort_order", "page_limit", "page_offset"],
+        instruction_id=_iid("Reports Search"),
     ),
     dict(
         id="359be470-29e6-58d8-a014-9fdb64bfbedf",
@@ -1761,6 +1957,7 @@ tools = [
         permission_ids=[sid("permission/rubric/create")],
         args=["name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "simulation_rubric_flag", "simulation_rubric_flag_id", "video_rubric_flag", "video_rubric_flag_id", "department_ids", "departments", "point_ids", "standard_group_ids", "standard_ids"],
         args_outputs=["artifact_rubric", "operation_create", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "simulation_rubric_flag", "simulation_rubric_flag_id", "video_rubric_flag", "video_rubric_flag_id", "department_ids", "departments", "point_ids", "standard_group_ids", "standard_ids"],
+        instruction_id=_iid("Rubric Create"),
     ),
     dict(
         id="2a1626a2-8930-5001-baca-e411f15a15eb",
@@ -1770,6 +1967,7 @@ tools = [
         permission_ids=[sid("permission/rubric/delete")],
         args=["rubric_ids"],
         args_outputs=["artifact_rubric", "operation_delete", "rubric_ids"],
+        instruction_id=_iid("Rubric Delete"),
     ),
     dict(
         id="777ec0cb-dd48-54fd-97ed-cab922ad2584",
@@ -1779,6 +1977,7 @@ tools = [
         permission_ids=[sid("permission/rubric/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_id", "department_ids", "point_ids", "standard_group_ids", "standard_ids"],
         args_outputs=["artifact_rubric", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_id", "department_ids", "point_ids", "standard_group_ids", "standard_ids"],
+        instruction_id=_iid("Rubric Draft"),
     ),
     dict(
         id="81a0dd62-87d5-56d5-9e74-c4fb809b1aad",
@@ -1788,6 +1987,7 @@ tools = [
         permission_ids=[sid("permission/rubric/drafts")],
         args=[],
         args_outputs=["artifact_rubric", "operation_drafts"],
+        instruction_id=_iid("Rubric Drafts"),
     ),
     dict(
         id="97a48188-a310-560c-be97-5ea00f8234d6",
@@ -1797,6 +1997,7 @@ tools = [
         permission_ids=[sid("permission/rubric/duplicate")],
         args=["rubric_id"],
         args_outputs=["artifact_rubric", "operation_duplicate", "rubric_id"],
+        instruction_id=_iid("Rubric Duplicate"),
     ),
     dict(
         id="1c07d3f8-d34f-5bcb-8b30-b10af67d91fc",
@@ -1806,6 +2007,7 @@ tools = [
         permission_ids=[sid("permission/rubric/export")],
         args=["rubric_id"],
         args_outputs=["artifact_rubric", "operation_export", "rubric_id"],
+        instruction_id=_iid("Rubric Export"),
     ),
     dict(
         id="c5d34dc0-4cbb-5b19-8c2f-db98387759bd",
@@ -1815,6 +2017,7 @@ tools = [
         permission_ids=[sid("permission/rubric/get")],
         args=["rubric_id"],
         args_outputs=["artifact_rubric", "operation_get", "rubric_id"],
+        instruction_id=_iid("Rubric Get"),
     ),
     dict(
         id="10b4ec28-aba3-57f2-ad29-07c3f0695a9d",
@@ -1824,6 +2027,7 @@ tools = [
         permission_ids=[sid("permission/rubric/refresh")],
         args=[],
         args_outputs=["artifact_rubric", "operation_refresh"],
+        instruction_id=_iid("Rubric Refresh"),
     ),
     dict(
         id="a37b5fe5-ac73-5c85-9e56-97370ecc8b21",
@@ -1833,6 +2037,7 @@ tools = [
         permission_ids=[sid("permission/rubric/search")],
         args=["search", "filter_department_ids", "filter_simulation_ids", "department_search", "simulation_search", "page_size", "page_offset"],
         args_outputs=["artifact_rubric", "operation_search", "search", "filter_department_ids", "filter_simulation_ids", "department_search", "simulation_search", "page_size", "page_offset"],
+        instruction_id=_iid("Rubric Search"),
     ),
     dict(
         id="98fcb61a-ab59-5809-9813-4fc080ac1c80",
@@ -1842,6 +2047,7 @@ tools = [
         permission_ids=[sid("permission/rubric/update")],
         args=["rubric_id", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "simulation_rubric_flag", "simulation_rubric_flag_id", "video_rubric_flag", "video_rubric_flag_id", "department_ids", "departments", "point_ids", "standard_group_ids", "standard_ids"],
         args_outputs=["artifact_rubric", "operation_update", "rubric_id", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "simulation_rubric_flag", "simulation_rubric_flag_id", "video_rubric_flag", "video_rubric_flag_id", "department_ids", "departments", "point_ids", "standard_group_ids", "standard_ids"],
+        instruction_id=_iid("Rubric Update"),
     ),
     dict(
         id="176caf12-5439-5579-95e0-2b8e5fa53584",
@@ -1851,6 +2057,7 @@ tools = [
         permission_ids=[sid("permission/scenario/create")],
         args=["name_id", "name", "description_id", "description", "problem_statement_id", "problem_statement", "active_flag_id", "objectives_enabled_flag_id", "images_enabled_flag_id", "video_enabled_flag_id", "questions_enabled_flag_id", "problem_statement_enabled_flag_id", "department_ids", "persona_ids", "document_ids", "parameter_ids", "parameter_field_ids", "image_ids", "objective_ids", "video_ids", "question_ids", "option_ids", "active_flag", "images_enabled_flag", "objectives_enabled_flag", "problem_statement_enabled_flag", "questions_enabled_flag", "video_enabled_flag", "departments", "personas", "documents", "parameter_fields", "objectives", "images", "videos", "questions", "options"],
         args_outputs=["artifact_scenario", "operation_create", "name_id", "name", "description_id", "description", "problem_statement_id", "problem_statement", "active_flag_id", "objectives_enabled_flag_id", "images_enabled_flag_id", "video_enabled_flag_id", "questions_enabled_flag_id", "problem_statement_enabled_flag_id", "department_ids", "persona_ids", "document_ids", "parameter_ids", "parameter_field_ids", "image_ids", "objective_ids", "video_ids", "question_ids", "option_ids", "active_flag", "images_enabled_flag", "objectives_enabled_flag", "problem_statement_enabled_flag", "questions_enabled_flag", "video_enabled_flag", "departments", "personas", "documents", "parameter_fields", "objectives", "images", "videos", "questions", "options"],
+        instruction_id=_iid("Scenario Create"),
     ),
     dict(
         id="a5539636-917f-5a7a-8fed-cd47ad74b3b9",
@@ -1860,6 +2067,7 @@ tools = [
         permission_ids=[sid("permission/scenario/delete")],
         args=["scenario_ids"],
         args_outputs=["artifact_scenario", "operation_delete", "scenario_ids"],
+        instruction_id=_iid("Scenario Delete"),
     ),
     dict(
         id="471f5d8b-d88f-57c1-a894-f901c19994b2",
@@ -1869,6 +2077,7 @@ tools = [
         permission_ids=[sid("permission/scenario/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "problem_statement", "problem_statement_id", "objectives", "objective_ids", "images", "image_ids", "videos", "video_ids", "questions", "question_ids", "options", "option_ids", "flag_ids", "department_ids", "persona_ids", "document_ids", "parameter_field_ids"],
         args_outputs=["artifact_scenario", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "problem_statement", "problem_statement_id", "objectives", "objective_ids", "images", "image_ids", "videos", "video_ids", "questions", "question_ids", "options", "option_ids", "flag_ids", "department_ids", "persona_ids", "document_ids", "parameter_field_ids"],
+        instruction_id=_iid("Scenario Draft"),
     ),
     dict(
         id="3bdf61fe-78db-5bf7-a263-ed9c0c72f12a",
@@ -1878,6 +2087,7 @@ tools = [
         permission_ids=[sid("permission/scenario/drafts")],
         args=[],
         args_outputs=["artifact_scenario", "operation_drafts"],
+        instruction_id=_iid("Scenario Drafts"),
     ),
     dict(
         id="02482a87-9153-5788-94e8-e0107803206c",
@@ -1887,6 +2097,7 @@ tools = [
         permission_ids=[sid("permission/scenario/duplicate")],
         args=["scenario_id"],
         args_outputs=["artifact_scenario", "operation_duplicate", "scenario_id"],
+        instruction_id=_iid("Scenario Duplicate"),
     ),
     dict(
         id="7ca930fc-16cf-5d8a-85bd-b4f47f119936",
@@ -1896,6 +2107,7 @@ tools = [
         permission_ids=[sid("permission/scenario/export")],
         args=["scenario_id", "search", "persona_ids", "simulation_ids", "filter_department_ids"],
         args_outputs=["artifact_scenario", "operation_export", "scenario_id", "search", "persona_ids", "simulation_ids", "filter_department_ids"],
+        instruction_id=_iid("Scenario Export"),
     ),
     dict(
         id="0e9aa497-c25a-53d9-9111-d6e5f0c3f684",
@@ -1905,6 +2117,7 @@ tools = [
         permission_ids=[sid("permission/scenario/get")],
         args=["scenario_id", "document_ids", "problem_statement_ids", "filter_department_ids", "filter_persona_ids", "filter_document_ids", "filter_parameter_ids", "filter_field_ids", "persona_search", "document_search", "parameter_search", "description_search", "problem_statement_search", "image_search", "video_search", "question_search", "option_search", "persona_show_selected", "document_show_selected", "parameter_show_selected", "field_show_selected_by_param", "mcp", "parameter_ids"],
         args_outputs=["artifact_scenario", "operation_get", "scenario_id", "document_ids", "problem_statement_ids", "filter_department_ids", "filter_persona_ids", "filter_document_ids", "filter_parameter_ids", "filter_field_ids", "persona_search", "document_search", "parameter_search", "description_search", "problem_statement_search", "image_search", "video_search", "question_search", "option_search", "persona_show_selected", "document_show_selected", "parameter_show_selected", "field_show_selected_by_param", "mcp", "parameter_ids"],
+        instruction_id=_iid("Scenario Get"),
     ),
     dict(
         id="79dff643-c352-5811-9274-d096cf48d332",
@@ -1914,6 +2127,7 @@ tools = [
         permission_ids=[sid("permission/scenario/refresh")],
         args=[],
         args_outputs=["artifact_scenario", "operation_refresh"],
+        instruction_id=_iid("Scenario Refresh"),
     ),
     dict(
         id="b6f9925b-6054-50ca-a390-66e88620a034",
@@ -1923,6 +2137,7 @@ tools = [
         permission_ids=[sid("permission/scenario/search")],
         args=["search", "persona_ids", "simulation_ids", "filter_department_ids", "persona_search", "simulation_search", "department_search", "flag_search", "page_size", "page_offset"],
         args_outputs=["artifact_scenario", "operation_search", "search", "persona_ids", "simulation_ids", "filter_department_ids", "persona_search", "simulation_search", "department_search", "flag_search", "page_size", "page_offset"],
+        instruction_id=_iid("Scenario Search"),
     ),
     dict(
         id="d5bc114c-068f-5563-b4a3-482124970cdf",
@@ -1932,6 +2147,7 @@ tools = [
         permission_ids=[sid("permission/scenario/update")],
         args=["scenario_id", "name_id", "name", "description_id", "description", "problem_statement_id", "problem_statement", "active_flag_id", "objectives_enabled_flag_id", "images_enabled_flag_id", "video_enabled_flag_id", "questions_enabled_flag_id", "problem_statement_enabled_flag_id", "department_ids", "persona_ids", "document_ids", "parameter_ids", "parameter_field_ids", "image_ids", "objective_ids", "video_ids", "question_ids", "option_ids", "active_flag", "images_enabled_flag", "objectives_enabled_flag", "problem_statement_enabled_flag", "questions_enabled_flag", "video_enabled_flag", "departments", "personas", "documents", "parameter_fields", "objectives", "images", "videos", "questions", "options"],
         args_outputs=["artifact_scenario", "operation_update", "scenario_id", "name_id", "name", "description_id", "description", "problem_statement_id", "problem_statement", "active_flag_id", "objectives_enabled_flag_id", "images_enabled_flag_id", "video_enabled_flag_id", "questions_enabled_flag_id", "problem_statement_enabled_flag_id", "department_ids", "persona_ids", "document_ids", "parameter_ids", "parameter_field_ids", "image_ids", "objective_ids", "video_ids", "question_ids", "option_ids", "active_flag", "images_enabled_flag", "objectives_enabled_flag", "problem_statement_enabled_flag", "questions_enabled_flag", "video_enabled_flag", "departments", "personas", "documents", "parameter_fields", "objectives", "images", "videos", "questions", "options"],
+        instruction_id=_iid("Scenario Update"),
     ),
     dict(
         id="7ae791ab-9c2a-54b1-919f-7e78cba4d958",
@@ -1941,6 +2157,7 @@ tools = [
         permission_ids=[sid("permission/session/export")],
         args=["target_session_id"],
         args_outputs=["artifact_session", "operation_export", "target_session_id"],
+        instruction_id=_iid("Session Export"),
     ),
     dict(
         id="2c5cf346-69f2-5a04-8323-c4d33e54f19d",
@@ -1950,6 +2167,7 @@ tools = [
         permission_ids=[sid("permission/session/get")],
         args=["active", "date_from", "date_to", "department_ids", "roles", "sort_by", "sort_order", "page_limit", "page_offset"],
         args_outputs=["artifact_session", "operation_get", "active", "date_from", "date_to", "department_ids", "roles", "sort_by", "sort_order", "page_limit", "page_offset"],
+        instruction_id=_iid("Session Get"),
     ),
     dict(
         id="570878d6-4a3d-5f4e-9cd9-e82156c96f70",
@@ -1959,6 +2177,7 @@ tools = [
         permission_ids=[sid("permission/session/refresh")],
         args=[],
         args_outputs=["artifact_session", "operation_refresh"],
+        instruction_id=_iid("Session Refresh"),
     ),
     dict(
         id="10a921d9-5651-5195-be4f-ee3deb7ff8df",
@@ -1968,6 +2187,7 @@ tools = [
         permission_ids=[sid("permission/setting/create")],
         args=["name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "department_ids", "departments", "color_ids", "profile_ids", "auth_ids", "provider_key_ids", "auth_item_key_ids", "auth_item_value_ids", "system_ids", "threshold_ids", "setting_resource_ids"],
         args_outputs=["artifact_setting", "operation_create", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "department_ids", "departments", "color_ids", "profile_ids", "auth_ids", "provider_key_ids", "auth_item_key_ids", "auth_item_value_ids", "system_ids", "threshold_ids", "setting_resource_ids"],
+        instruction_id=_iid("Setting Create"),
     ),
     dict(
         id="7a865715-05dd-5ed9-9398-7f4bae0c120e",
@@ -1977,6 +2197,7 @@ tools = [
         permission_ids=[sid("permission/setting/decrypt")],
         args=[],
         args_outputs=["artifact_setting", "operation_decrypt"],
+        instruction_id=_iid("Setting Decrypt"),
     ),
     dict(
         id="03e8d32d-7763-50e0-a818-001da6d046e6",
@@ -1986,6 +2207,7 @@ tools = [
         permission_ids=[sid("permission/setting/delete")],
         args=["setting_ids"],
         args_outputs=["artifact_setting", "operation_delete", "setting_ids"],
+        instruction_id=_iid("Setting Delete"),
     ),
     dict(
         id="dc1e84a8-7f93-5505-ab76-7690e3cb9a8b",
@@ -1995,6 +2217,7 @@ tools = [
         permission_ids=[sid("permission/setting/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_id", "department_ids", "color_ids", "profile_ids", "auth_ids", "provider_key_ids", "auth_item_key_ids", "threshold_ids"],
         args_outputs=["artifact_setting", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_id", "department_ids", "color_ids", "profile_ids", "auth_ids", "provider_key_ids", "auth_item_key_ids", "threshold_ids"],
+        instruction_id=_iid("Setting Draft"),
     ),
     dict(
         id="4a9518e2-b82e-5fe4-8144-0b1cf9d18824",
@@ -2004,6 +2227,7 @@ tools = [
         permission_ids=[sid("permission/setting/drafts")],
         args=[],
         args_outputs=["artifact_setting", "operation_drafts"],
+        instruction_id=_iid("Setting Drafts"),
     ),
     dict(
         id="c29abd35-60c5-5707-8ed3-cf1cc1326ceb",
@@ -2013,6 +2237,7 @@ tools = [
         permission_ids=[sid("permission/setting/duplicate")],
         args=["setting_id"],
         args_outputs=["artifact_setting", "operation_duplicate", "setting_id"],
+        instruction_id=_iid("Setting Duplicate"),
     ),
     dict(
         id="75ccc5c3-32b6-5082-b1c5-ca1273def5a7",
@@ -2022,6 +2247,7 @@ tools = [
         permission_ids=[sid("permission/setting/export")],
         args=["setting_id"],
         args_outputs=["artifact_setting", "operation_export", "setting_id"],
+        instruction_id=_iid("Setting Export"),
     ),
     dict(
         id="a0f10474-d77d-5f44-beb0-8015a658f300",
@@ -2031,6 +2257,7 @@ tools = [
         permission_ids=[sid("permission/setting/get")],
         args=["setting_id", "color_search", "mcp"],
         args_outputs=["artifact_setting", "operation_get", "setting_id", "color_search", "mcp"],
+        instruction_id=_iid("Setting Get"),
     ),
     dict(
         id="58f5fd71-9c78-542d-bf39-a97e5d943686",
@@ -2040,6 +2267,7 @@ tools = [
         permission_ids=[sid("permission/setting/refresh")],
         args=[],
         args_outputs=["artifact_setting", "operation_refresh"],
+        instruction_id=_iid("Setting Refresh"),
     ),
     dict(
         id="9215de84-e6a7-54d5-86db-382a48293a30",
@@ -2049,6 +2277,7 @@ tools = [
         permission_ids=[sid("permission/setting/search")],
         args=[],
         args_outputs=["artifact_setting", "operation_search"],
+        instruction_id=_iid("Setting Search"),
     ),
     dict(
         id="0a5941d7-2859-51ab-a976-3d034a47b074",
@@ -2058,6 +2287,7 @@ tools = [
         permission_ids=[sid("permission/setting/update")],
         args=["setting_id", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "department_ids", "departments", "color_ids", "profile_ids", "auth_ids", "provider_key_ids", "auth_item_key_ids", "auth_item_value_ids", "system_ids", "threshold_ids", "setting_resource_ids"],
         args_outputs=["artifact_setting", "operation_update", "setting_id", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "department_ids", "departments", "color_ids", "profile_ids", "auth_ids", "provider_key_ids", "auth_item_key_ids", "auth_item_value_ids", "system_ids", "threshold_ids", "setting_resource_ids"],
+        instruction_id=_iid("Setting Update"),
     ),
     dict(
         id="9eb388c5-6909-58c4-b83b-9542b432a876",
@@ -2067,6 +2297,7 @@ tools = [
         permission_ids=[sid("permission/simulation/create")],
         args=["name_id", "name", "description_id", "description", "department_ids", "scenario_ids", "scenario_flag_ids", "scenario_position_ids", "scenario_rubric_ids", "scenario_time_limit_ids", "active_flag_id", "active_flag", "practice_flag", "practice_flag_id", "departments", "scenarios"],
         args_outputs=["artifact_simulation", "operation_create", "name_id", "name", "description_id", "description", "department_ids", "scenario_ids", "scenario_flag_ids", "scenario_position_ids", "scenario_rubric_ids", "scenario_time_limit_ids", "active_flag_id", "active_flag", "practice_flag", "practice_flag_id", "departments", "scenarios"],
+        instruction_id=_iid("Simulation Create"),
     ),
     dict(
         id="eb1ea075-d01d-5009-a0a2-ca9e5919eec5",
@@ -2076,6 +2307,7 @@ tools = [
         permission_ids=[sid("permission/simulation/delete")],
         args=["simulation_ids"],
         args_outputs=["artifact_simulation", "operation_delete", "simulation_ids"],
+        instruction_id=_iid("Simulation Delete"),
     ),
     dict(
         id="0e75316d-75f1-5832-ab7b-686d0bbefbf4",
@@ -2085,6 +2317,7 @@ tools = [
         permission_ids=[sid("permission/simulation/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_ids", "department_ids", "scenario_ids", "scenario_flag_ids", "scenario_flags", "scenario_position_ids", "scenario_positions", "scenario_rubric_ids", "scenario_rubrics", "scenario_time_limit_ids", "scenario_time_limits"],
         args_outputs=["artifact_simulation", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_ids", "department_ids", "scenario_ids", "scenario_flag_ids", "scenario_flags", "scenario_position_ids", "scenario_positions", "scenario_rubric_ids", "scenario_rubrics", "scenario_time_limit_ids", "scenario_time_limits"],
+        instruction_id=_iid("Simulation Draft"),
     ),
     dict(
         id="950f2cc4-0344-5d41-be64-9ea3b5309725",
@@ -2094,6 +2327,7 @@ tools = [
         permission_ids=[sid("permission/simulation/drafts")],
         args=[],
         args_outputs=["artifact_simulation", "operation_drafts"],
+        instruction_id=_iid("Simulation Drafts"),
     ),
     dict(
         id="19d7a637-2668-5adb-8722-740b531fd0c2",
@@ -2103,6 +2337,7 @@ tools = [
         permission_ids=[sid("permission/simulation/duplicate")],
         args=["simulation_id"],
         args_outputs=["artifact_simulation", "operation_duplicate", "simulation_id"],
+        instruction_id=_iid("Simulation Duplicate"),
     ),
     dict(
         id="a73f0522-f2b5-560a-95d9-9195accf8ffb",
@@ -2112,6 +2347,7 @@ tools = [
         permission_ids=[sid("permission/simulation/export")],
         args=["simulation_id", "search", "filter_scenario_ids", "filter_cohort_ids", "filter_department_ids"],
         args_outputs=["artifact_simulation", "operation_export", "simulation_id", "search", "filter_scenario_ids", "filter_cohort_ids", "filter_department_ids"],
+        instruction_id=_iid("Simulation Export"),
     ),
     dict(
         id="475ee052-c5db-5390-85ac-9bb46995b50e",
@@ -2121,6 +2357,7 @@ tools = [
         permission_ids=[sid("permission/simulation/get")],
         args=["simulation_id", "scenario_search", "filter_scenario_ids"],
         args_outputs=["artifact_simulation", "operation_get", "simulation_id", "scenario_search", "filter_scenario_ids"],
+        instruction_id=_iid("Simulation Get"),
     ),
     dict(
         id="b77f17a3-dd1a-5768-80f2-b49076da9295",
@@ -2130,6 +2367,7 @@ tools = [
         permission_ids=[sid("permission/simulation/refresh")],
         args=[],
         args_outputs=["artifact_simulation", "operation_refresh"],
+        instruction_id=_iid("Simulation Refresh"),
     ),
     dict(
         id="529141c8-3942-55c7-b244-444e1fe71796",
@@ -2139,6 +2377,7 @@ tools = [
         permission_ids=[sid("permission/simulation/search")],
         args=["search", "filter_scenario_ids", "filter_cohort_ids", "filter_department_ids", "scenario_search", "cohort_search", "department_search", "flag_search", "page_size", "page_offset"],
         args_outputs=["artifact_simulation", "operation_search", "search", "filter_scenario_ids", "filter_cohort_ids", "filter_department_ids", "scenario_search", "cohort_search", "department_search", "flag_search", "page_size", "page_offset"],
+        instruction_id=_iid("Simulation Search"),
     ),
     dict(
         id="5a29f9a2-f55a-5ade-a287-a5264d790060",
@@ -2148,6 +2387,7 @@ tools = [
         permission_ids=[sid("permission/simulation/update")],
         args=["simulation_id", "name_id", "name", "description_id", "description", "department_ids", "scenario_ids", "scenario_flag_ids", "scenario_position_ids", "scenario_rubric_ids", "scenario_time_limit_ids", "active_flag_id", "active_flag", "practice_flag", "practice_flag_id", "departments", "scenarios"],
         args_outputs=["artifact_simulation", "operation_update", "simulation_id", "name_id", "name", "description_id", "description", "department_ids", "scenario_ids", "scenario_flag_ids", "scenario_position_ids", "scenario_rubric_ids", "scenario_time_limit_ids", "active_flag_id", "active_flag", "practice_flag", "practice_flag_id", "departments", "scenarios"],
+        instruction_id=_iid("Simulation Update"),
     ),
     dict(
         id="0801462a-2403-517f-9de0-3120ce951af8",
@@ -2157,6 +2397,7 @@ tools = [
         permission_ids=[sid("permission/test/archive")],
         args=["test_ids", "archived"],
         args_outputs=["artifact_test", "operation_archive", "test_ids", "archived"],
+        instruction_id=_iid("Test Archive"),
     ),
     dict(
         id="b7f58069-2153-599a-9e65-6cc750799b1d",
@@ -2166,6 +2407,7 @@ tools = [
         permission_ids=[sid("permission/test/end")],
         args=["test_id", "test_invocation_id", "run_id", "grade", "score", "passed", "feedback"],
         args_outputs=["artifact_test", "operation_end", "test_id", "test_invocation_id", "run_id", "grade", "score", "passed", "feedback"],
+        instruction_id=_iid("Test End"),
     ),
     dict(
         id="c3ed0b59-1867-544e-b9f7-177863b01870",
@@ -2175,6 +2417,7 @@ tools = [
         permission_ids=[sid("permission/test/export")],
         args=["test_id"],
         args_outputs=["artifact_test", "operation_export", "test_id"],
+        instruction_id=_iid("Test Export"),
     ),
     dict(
         id="ce9dcdbe-e621-55e2-82a0-78cff71219ab",
@@ -2184,6 +2427,7 @@ tools = [
         permission_ids=[sid("permission/test/get")],
         args=["start_date", "end_date", "eval_ids", "department_ids", "page", "page_size", "search", "status", "archived", "sort_by", "sort_order"],
         args_outputs=["artifact_test", "operation_get", "start_date", "end_date", "eval_ids", "department_ids", "page", "page_size", "search", "status", "archived", "sort_by", "sort_order"],
+        instruction_id=_iid("Test Get"),
     ),
     dict(
         id="ab7d3866-bc5a-5a93-8e76-8b83f892fa3d",
@@ -2193,6 +2437,7 @@ tools = [
         permission_ids=[sid("permission/test/next")],
         args=[],
         args_outputs=["artifact_test", "operation_next"],
+        instruction_id=_iid("Test Next"),
     ),
     dict(
         id="5bd7c13a-8bbf-588a-8fb9-cb52c606d157",
@@ -2202,6 +2447,7 @@ tools = [
         permission_ids=[sid("permission/test/refresh")],
         args=[],
         args_outputs=["artifact_test", "operation_refresh"],
+        instruction_id=_iid("Test Refresh"),
     ),
     dict(
         id="2216bb71-2762-58f2-9d8f-78ce447429b8",
@@ -2211,6 +2457,7 @@ tools = [
         permission_ids=[sid("permission/test/run")],
         args=[],
         args_outputs=["artifact_test", "operation_run"],
+        instruction_id=_iid("Test Run"),
     ),
     dict(
         id="55459dcc-5cc8-5984-a7f4-7c5888625115",
@@ -2220,6 +2467,7 @@ tools = [
         permission_ids=[sid("permission/test/search")],
         args=["test_id", "invocation_id", "benchmark_id", "run_id", "include_entries", "search", "limit", "cursor"],
         args_outputs=["artifact_test", "operation_search", "test_id", "invocation_id", "benchmark_id", "run_id", "include_entries", "search", "limit", "cursor"],
+        instruction_id=_iid("Test Search"),
     ),
     dict(
         id="c0488aef-5177-5612-b499-7a9bee6a577c",
@@ -2229,6 +2477,7 @@ tools = [
         permission_ids=[sid("permission/test/start")],
         args=[],
         args_outputs=["artifact_test", "operation_start"],
+        instruction_id=_iid("Test Start"),
     ),
     dict(
         id="5aacd69e-1692-514f-a73c-e683ef687379",
@@ -2238,6 +2487,7 @@ tools = [
         permission_ids=[sid("permission/test/stop")],
         args=[],
         args_outputs=["artifact_test", "operation_stop"],
+        instruction_id=_iid("Test Stop"),
     ),
     dict(
         id="547621ae-8a64-5591-8f1a-743ec675b5e6",
@@ -2247,6 +2497,7 @@ tools = [
         permission_ids=[sid("permission/tool/create")],
         args=["name_id", "name", "description_id", "description", "department_ids", "flag_ids", "arg_positions_ids", "args_ids", "args_outputs_ids", "permission_ids", "tool_ids", "active_flag", "active_flag_id"],
         args_outputs=["artifact_tool", "operation_create", "name_id", "name", "description_id", "description", "department_ids", "flag_ids", "arg_positions_ids", "args_ids", "args_outputs_ids", "permission_ids", "tool_ids", "active_flag", "active_flag_id"],
+        instruction_id=_iid("Tool Create"),
     ),
     dict(
         id="b798dfe8-a0cc-5e6a-924a-599dc815d060",
@@ -2256,6 +2507,7 @@ tools = [
         permission_ids=[sid("permission/tool/delete")],
         args=["tool_ids"],
         args_outputs=["artifact_tool", "operation_delete", "tool_ids"],
+        instruction_id=_iid("Tool Delete"),
     ),
     dict(
         id="ed62bd06-ba7c-57d4-889c-5e2e65ac0f39",
@@ -2265,6 +2517,7 @@ tools = [
         permission_ids=[sid("permission/tool/draft")],
         args=["input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_ids", "department_ids", "arg_ids", "arg_position_ids", "args_output_ids", "permission_ids"],
         args_outputs=["artifact_tool", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "description", "description_id", "flag_ids", "department_ids", "arg_ids", "arg_position_ids", "args_output_ids", "permission_ids"],
+        instruction_id=_iid("Tool Draft"),
     ),
     dict(
         id="a8780476-94cc-582a-98a8-fc3bd2a76542",
@@ -2274,6 +2527,7 @@ tools = [
         permission_ids=[sid("permission/tool/drafts")],
         args=[],
         args_outputs=["artifact_tool", "operation_drafts"],
+        instruction_id=_iid("Tool Drafts"),
     ),
     dict(
         id="68636bce-e89c-5429-b3c6-9e9e6b43fc96",
@@ -2283,6 +2537,7 @@ tools = [
         permission_ids=[sid("permission/tool/duplicate")],
         args=["tool_id"],
         args_outputs=["artifact_tool", "operation_duplicate", "tool_id"],
+        instruction_id=_iid("Tool Duplicate"),
     ),
     dict(
         id="7f6c53c3-8c62-54a2-8362-68a3580ce8e7",
@@ -2292,6 +2547,7 @@ tools = [
         permission_ids=[sid("permission/tool/export")],
         args=["tool_id"],
         args_outputs=["artifact_tool", "operation_export", "tool_id"],
+        instruction_id=_iid("Tool Export"),
     ),
     dict(
         id="e9a229bf-3c20-503f-9a73-df7ae233369e",
@@ -2301,6 +2557,7 @@ tools = [
         permission_ids=[sid("permission/tool/get")],
         args=["tool_id"],
         args_outputs=["artifact_tool", "operation_get", "tool_id"],
+        instruction_id=_iid("Tool Get"),
     ),
     dict(
         id="057bff07-fe88-5879-8834-fb50e840b6bc",
@@ -2310,6 +2567,7 @@ tools = [
         permission_ids=[sid("permission/tool/refresh")],
         args=[],
         args_outputs=["artifact_tool", "operation_refresh"],
+        instruction_id=_iid("Tool Refresh"),
     ),
     dict(
         id="c1756625-7b22-503a-8131-096c6cc4b4dc",
@@ -2319,6 +2577,7 @@ tools = [
         permission_ids=[sid("permission/tool/search")],
         args=["search", "filter_department_ids", "filter_agent_ids", "filter_creatable", "department_search", "agent_search", "page_size", "page_offset"],
         args_outputs=["artifact_tool", "operation_search", "search", "filter_department_ids", "filter_agent_ids", "filter_creatable", "department_search", "agent_search", "page_size", "page_offset"],
+        instruction_id=_iid("Tool Search"),
     ),
     dict(
         id="7a5a784a-4b6b-574b-b323-374086a74bb1",
@@ -2328,6 +2587,7 @@ tools = [
         permission_ids=[sid("permission/tool/update")],
         args=["tool_id", "name_id", "name", "description_id", "description", "department_ids", "flag_ids", "arg_positions_ids", "args_ids", "args_outputs_ids", "permission_ids", "tool_ids", "active_flag", "active_flag_id"],
         args_outputs=["artifact_tool", "operation_update", "tool_id", "name_id", "name", "description_id", "description", "department_ids", "flag_ids", "arg_positions_ids", "args_ids", "args_outputs_ids", "permission_ids", "tool_ids", "active_flag", "active_flag_id"],
+        instruction_id=_iid("Tool Update"),
     ),
     # -----------------------------------------------------------------------
     # Composer tools — multi-permission tools for broad agents
@@ -2345,6 +2605,7 @@ tools = [
         ],
         args=["artifact", "operation", "name", "description", "instructions", "problem_statement"],
         args_outputs=["artifact_passthrough", "operation_passthrough", "name", "description", "instructions", "problem_statement"],
+        instruction_id=_iid("Create Content"),
     ),
     dict(
         id=sid("tool/create_deployment"),
@@ -2358,6 +2619,7 @@ tools = [
         ],
         args=["artifact", "operation", "name", "description"],
         args_outputs=["artifact_passthrough", "operation_passthrough", "name", "description"],
+        instruction_id=_iid("Create Deployment"),
     ),
     dict(
         id=sid("tool/create_infrastructure"),
@@ -2377,6 +2639,7 @@ tools = [
         ],
         args=["artifact", "operation", "name", "description"],
         args_outputs=["artifact_passthrough", "operation_passthrough", "name", "description"],
+        instruction_id=_iid("Create Infrastructure"),
     ),
     dict(
         id=sid("tool/update_content"),
@@ -2391,6 +2654,7 @@ tools = [
         ],
         args=["artifact", "operation", "name", "description", "instructions", "problem_statement"],
         args_outputs=["artifact_passthrough", "operation_passthrough", "name", "description", "instructions", "problem_statement"],
+        instruction_id=_iid("Update Content"),
     ),
     dict(
         id=sid("tool/update_deployment"),
@@ -2404,6 +2668,7 @@ tools = [
         ],
         args=["artifact", "operation", "name", "description"],
         args_outputs=["artifact_passthrough", "operation_passthrough", "name", "description"],
+        instruction_id=_iid("Update Deployment"),
     ),
     dict(
         id=sid("tool/update_infrastructure"),
@@ -2423,6 +2688,7 @@ tools = [
         ],
         args=["artifact", "operation", "name", "description"],
         args_outputs=["artifact_passthrough", "operation_passthrough", "name", "description"],
+        instruction_id=_iid("Update Infrastructure"),
     ),
     # --- Delete composers ---
     dict(
@@ -2438,6 +2704,7 @@ tools = [
         ],
         args=["artifact", "operation"],
         args_outputs=["artifact_passthrough", "operation_passthrough"],
+        instruction_id=_iid("Delete Content"),
     ),
     dict(
         id=sid("tool/delete_deployment"),
@@ -2451,6 +2718,7 @@ tools = [
         ],
         args=["artifact", "operation"],
         args_outputs=["artifact_passthrough", "operation_passthrough"],
+        instruction_id=_iid("Delete Deployment"),
     ),
     dict(
         id=sid("tool/delete_infrastructure"),
@@ -2470,6 +2738,7 @@ tools = [
         ],
         args=["artifact", "operation"],
         args_outputs=["artifact_passthrough", "operation_passthrough"],
+        instruction_id=_iid("Delete Infrastructure"),
     ),
     # --- Search composers ---
     dict(
@@ -2485,6 +2754,7 @@ tools = [
         ],
         args=["artifact", "operation", "search", "page", "page_size"],
         args_outputs=["artifact_passthrough", "operation_passthrough", "search", "page", "page_size"],
+        instruction_id=_iid("Search Content"),
     ),
     dict(
         id=sid("tool/search_deployment"),
@@ -2498,6 +2768,7 @@ tools = [
         ],
         args=["artifact", "operation", "search", "page", "page_size"],
         args_outputs=["artifact_passthrough", "operation_passthrough", "search", "page", "page_size"],
+        instruction_id=_iid("Search Deployment"),
     ),
     dict(
         id=sid("tool/search_infrastructure"),
@@ -2517,6 +2788,7 @@ tools = [
         ],
         args=["artifact", "operation", "search", "page", "page_size"],
         args_outputs=["artifact_passthrough", "operation_passthrough", "search", "page", "page_size"],
+        instruction_id=_iid("Search Infrastructure"),
     ),
     # --- Duplicate composers ---
     dict(
@@ -2532,6 +2804,7 @@ tools = [
         ],
         args=["artifact", "operation"],
         args_outputs=["artifact_passthrough", "operation_passthrough"],
+        instruction_id=_iid("Duplicate Content"),
     ),
     dict(
         id=sid("tool/duplicate_deployment"),
@@ -2545,6 +2818,7 @@ tools = [
         ],
         args=["artifact", "operation"],
         args_outputs=["artifact_passthrough", "operation_passthrough"],
+        instruction_id=_iid("Duplicate Deployment"),
     ),
     dict(
         id=sid("tool/duplicate_infrastructure"),
@@ -2564,6 +2838,7 @@ tools = [
         ],
         args=["artifact", "operation"],
         args_outputs=["artifact_passthrough", "operation_passthrough"],
+        instruction_id=_iid("Duplicate Infrastructure"),
     ),
     # --- Attempt lifecycle ---
     dict(
@@ -2582,6 +2857,7 @@ tools = [
         ],
         args=["artifact", "operation", "attempt_id", "simulation_id", "message", "feedback", "grade", "score"],
         args_outputs=["artifact_attempt", "operation_passthrough", "attempt_id", "simulation_id", "message", "feedback", "grade", "score"],
+        instruction_id=_iid("Run Attempt"),
     ),
     dict(
         id=sid("tool/manage_attempt"),
@@ -2597,6 +2873,7 @@ tools = [
         ],
         args=["artifact", "operation", "attempt_id", "search", "page", "page_size"],
         args_outputs=["artifact_attempt", "operation_passthrough", "attempt_id", "search", "page", "page_size"],
+        instruction_id=_iid("Manage Attempt"),
     ),
     # --- Test lifecycle ---
     dict(
@@ -2612,6 +2889,7 @@ tools = [
         ],
         args=["artifact", "operation", "test_id"],
         args_outputs=["artifact_test", "operation_passthrough", "test_id"],
+        instruction_id=_iid("Run Test"),
     ),
     # --- View dashboards ---
     dict(
@@ -2633,6 +2911,7 @@ tools = [
         ],
         args=["artifact", "operation"],
         args_outputs=["artifact_passthrough", "operation_passthrough"],
+        instruction_id=_iid("View Dashboards"),
     ),
     # ── Scenario Image tools ─────────────────────────────────────────────
     dict(
@@ -2643,6 +2922,7 @@ tools = [
         permission_ids=[sid("permission/scenario/image_upload")],
         args=["name", "description", "image"],
         args_outputs=["artifact_scenario_image", "operation_image_upload", "name", "description", "image"],
+        instruction_id=_iid("Scenario Image Create"),
     ),
     dict(
         id="019e0001-0001-7000-8000-000000000002",
@@ -2652,6 +2932,7 @@ tools = [
         permission_ids=[sid("permission/scenario/image_download")],
         args=["image_id"],
         args_outputs=["artifact_scenario_image", "operation_image_download", "image_id"],
+        instruction_id=_iid("Scenario Image Download"),
     ),
     # ── Scenario Video tools ─────────────────────────────────────────────
     dict(
@@ -2662,6 +2943,7 @@ tools = [
         permission_ids=[sid("permission/scenario/video_upload")],
         args=["name", "description", "video"],
         args_outputs=["artifact_scenario_video", "operation_video_upload", "name", "description", "video"],
+        instruction_id=_iid("Scenario Video Create"),
     ),
     dict(
         id="019e0001-0001-7000-8000-000000000004",
@@ -2671,6 +2953,7 @@ tools = [
         permission_ids=[sid("permission/scenario/video_download")],
         args=["video_id"],
         args_outputs=["artifact_scenario_video", "operation_video_download", "video_id"],
+        instruction_id=_iid("Scenario Video Download"),
     ),
     # ── Document Text tools ──────────────────────────────────────────────
     dict(
@@ -2681,6 +2964,7 @@ tools = [
         permission_ids=[sid("permission/document/text_upload")],
         args=["content"],
         args_outputs=["artifact_document_text", "operation_text_upload", "content"],
+        instruction_id=_iid("Document Text Create"),
     ),
     dict(
         id="019e0001-0001-7000-8000-000000000006",
@@ -2690,6 +2974,7 @@ tools = [
         permission_ids=[sid("permission/document/text_download")],
         args=["text_id"],
         args_outputs=["artifact_document_text", "operation_text_download", "text_id"],
+        instruction_id=_iid("Document Text Download"),
     ),
     # ── Document File tools ──────────────────────────────────────────────
     dict(
@@ -2700,6 +2985,7 @@ tools = [
         permission_ids=[sid("permission/document/file_upload")],
         args=["file"],
         args_outputs=["artifact_document_file", "operation_file_upload", "file"],
+        instruction_id=_iid("Document File Create"),
     ),
     dict(
         id="019e0001-0001-7000-8000-000000000008",
@@ -2709,6 +2995,7 @@ tools = [
         permission_ids=[sid("permission/document/file_download")],
         args=["file_id"],
         args_outputs=["artifact_document_file", "operation_file_download", "file_id"],
+        instruction_id=_iid("Document File Download"),
     ),
     dict(
         id="019e0001-0001-7000-8000-000000000009",
@@ -2718,6 +3005,7 @@ tools = [
         permission_ids=[sid("permission/document/file_preview")],
         args=["file_id"],
         args_outputs=["artifact_document_file", "operation_file_preview", "file_id"],
+        instruction_id=_iid("Document File Preview"),
     ),
     # ── Attempt Audio tools ──────────────────────────────────────────────
     dict(
@@ -2728,6 +3016,7 @@ tools = [
         permission_ids=[sid("permission/attempt/audio_upload")],
         args=["audio", "length_seconds"],
         args_outputs=["artifact_attempt_audio", "operation_audio_upload", "audio", "length_seconds"],
+        instruction_id=_iid("Attempt Audio Create"),
     ),
     dict(
         id="019e0001-0001-7000-8000-000000000011",
@@ -2737,6 +3026,7 @@ tools = [
         permission_ids=[sid("permission/attempt/audio_download")],
         args=["audio_id"],
         args_outputs=["artifact_attempt_audio", "operation_audio_download", "audio_id"],
+        instruction_id=_iid("Attempt Audio Download"),
     ),
     dict(
         id="019e0001-0001-7000-8000-000000000012",
@@ -2746,6 +3036,7 @@ tools = [
         permission_ids=[sid("permission/attempt/audio_start")],
         args=["chat_id"],
         args_outputs=["artifact_attempt_audio", "operation_audio_start", "chat_id"],
+        instruction_id=_iid("Attempt Audio Start"),
     ),
     dict(
         id="019e0001-0001-7000-8000-000000000013",
@@ -2755,6 +3046,7 @@ tools = [
         permission_ids=[sid("permission/attempt/audio_frame")],
         args=["chat_id", "audio_id"],
         args_outputs=["artifact_attempt_audio", "operation_audio_frame", "chat_id", "audio_id"],
+        instruction_id=_iid("Attempt Audio Frame"),
     ),
     dict(
         id="019e0001-0001-7000-8000-000000000014",
@@ -2764,6 +3056,7 @@ tools = [
         permission_ids=[sid("permission/attempt/audio_stop")],
         args=["chat_id"],
         args_outputs=["artifact_attempt_audio", "operation_audio_stop", "chat_id"],
+        instruction_id=_iid("Attempt Audio Stop"),
     ),
     dict(
         id="019e0001-0001-7000-8000-000000000015",
@@ -2773,5 +3066,6 @@ tools = [
         permission_ids=[sid("permission/attempt/audio_mute")],
         args=["chat_id", "muted"],
         args_outputs=["artifact_attempt_audio", "operation_audio_mute", "chat_id", "muted"],
+        instruction_id=_iid("Attempt Audio Mute"),
     ),
 ]

@@ -149,6 +149,7 @@ class CreateToolItem(ScopedItem):
     args_ids: list[UUID] | None = Field(None, description="Argument identifiers")
     args_outputs_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
+    instruction_id: UUID | None = Field(None, description="Response template instruction resource UUID")
     tool_ids: list[UUID] | None = Field(None, description="Related tool identifiers")
     # Value-based fields for CSV import (match-by-name resolution)
     active_flag: bool | None = Field(None, description="Whether this tool is active")

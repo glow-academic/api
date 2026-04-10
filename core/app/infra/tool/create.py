@@ -120,6 +120,7 @@ async def create_tool_impl(
             args_ids=item.args_ids,
             args_output_ids=item.args_outputs_ids,
             permission_ids=item.permission_ids,
+            instruction_id=item.instruction_id,
         )
 
         # Combine active_flag_id with any other flag_ids

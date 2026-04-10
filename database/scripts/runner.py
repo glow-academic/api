@@ -1361,6 +1361,25 @@ async def _run_profile_persona_seeds(
 # ---------------------------------------------------------------------------
 
 
+async def _run_tool_instruction_seeds(
+    pool: asyncpg.Pool,
+    redis: Redis,
+) -> None:
+    """Create tool response template instructions before tools."""
+    from app.tools.resources.instructions.create import create_instruction
+    from database.seeds.tool_instructions import get_tool_instructions
+
+    instructions = get_tool_instructions()
+    if not instructions:
+        print("  (no tool instructions to seed)")
+        return
+
+    async with pool.acquire() as conn:
+        for i in instructions:
+            await create_instruction(conn, template=i["template"], redis=redis, id=i["id"])
+    print(f"  OK: {len(instructions)} tool instructions created")
+
+
 async def _run_tool_module_seeds(
     pool: asyncpg.Pool,
     redis: Redis,
@@ -1402,6 +1421,7 @@ async def _run_tool_module_seeds(
             args_ids=arg_ids if arg_ids else None,
             args_outputs_ids=args_output_ids if args_output_ids else None,
             permission_ids=tool_def["permission_ids"],
+            instruction_id=tool_def.get("instruction_id"),
         )
 
         try:
@@ -1795,6 +1815,9 @@ async def main_setup(setup: str = "university") -> None:
 
         print("\nSeeding rubrics...")
         await _run_rubric_module_seeds(pool, redis_client)
+
+        print("\nSeeding tool instructions...")
+        await _run_tool_instruction_seeds(pool, redis_client)
 
         print("\nSeeding tools...")
         await _run_tool_module_seeds(pool, redis_client)

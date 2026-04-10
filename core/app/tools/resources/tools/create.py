@@ -19,6 +19,7 @@ async def create_tool(
     args_ids: list[UUID] | None = None,
     args_output_ids: list[UUID] | None = None,
     permission_ids: list[UUID] | None = None,
+    instruction_id: UUID | None = None,
     id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
@@ -34,12 +35,13 @@ async def create_tool(
             args_ids,
             args_output_ids,
             permission_ids,
+            instruction_id,
             active,
             mcp,
             generated
         )
         VALUES (
-            COALESCE($9, uuidv7()),
+            COALESCE($10, uuidv7()),
             $1,
             $2,
             $3,
@@ -48,7 +50,8 @@ async def create_tool(
             $6,
             $7,
             $8,
-            $8
+            $9,
+            $9
         )
         RETURNING id
         """,
@@ -58,6 +61,7 @@ async def create_tool(
         args_ids or [],
         args_output_ids or [],
         permission_ids or [],
+        instruction_id,
         not soft,
         mcp,
         id,
