@@ -268,4 +268,5 @@ async def resolve_websocket_context(
         prompts=all_prompts,
         instructions=all_instructions,
         rubrics=all_rubrics,
+        profile=profile,
     )

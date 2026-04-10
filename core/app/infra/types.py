@@ -73,3 +73,4 @@ class WebsocketContext:
     prompts: list
     instructions: list
     rubrics: list
+    profile: Any = None  # ProfileIdentityContext — for canonical context

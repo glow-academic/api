@@ -13,7 +13,6 @@ from typing import Any
 import asyncpg
 
 from app.infra.generation import convert_tools_to_dict
-from app.infra.generation.media_context import wrap_media_entries
 from app.infra.types import ArtifactRequest
 from app.infra.websocket.generation_types import (
     GenerateArtifactPayload,
@@ -298,10 +297,11 @@ async def generate_prepare_impl(
         resolve_websocket_context_fn = (
             resolve_websocket_context_fn or resolve_websocket_context
         )
-        fetch_entry_types_fn = fetch_entry_types_fn or _fetch_entry_types
+        # fetch_entry_types_fn — no longer used (model fetches via get tool)
         build_agent_groups_from_scores_fn = (
             build_agent_groups_from_scores_fn or build_agent_groups_from_scores
         )
+        # build_jinja_from_ws_ctx_fn — replaced by build_canonical_context
         build_jinja_from_ws_ctx_fn = (
             build_jinja_from_ws_ctx_fn or build_jinja_from_ws_ctx
         )
@@ -395,14 +395,6 @@ async def generate_prepare_impl(
             permissions=[{"artifact": p.artifact, "operation": p.operation} for p in payload.permissions] if payload.permissions else None,
             tool_graph=getattr(ws_ctx, "tool_graph", None),
         )
-
-        # Jinja context
-        entry_results: dict[str, dict[str, Any]] | None = None
-        if payload.entry_types:
-            entry_results = await fetch_entry_types_fn(payload.entry_types, conn)
-
-        jinja_context_base = build_jinja_from_ws_ctx_fn(ws_ctx, entry_results)
-        wrap_media_entries(jinja_context_base)
 
         # Tools
         config_tools = ws_ctx.tools
@@ -531,15 +523,17 @@ async def generate_prepare_impl(
                 agent_resource_types=agent_resource_types,
                 agent=agent_resource,
                 llm_config=llm_config,
-                jinja_context_base=jinja_context_base,
-                createable_resources=createable_resources,
                 all_tool_dicts=all_tool_dicts,
-                all_artifact_types=all_artifact_types,
                 system_prompt=system_prompt,
                 developer_instruction_templates=dev_templates,
                 payload_metadata=enriched_metadata,
                 save=None,
                 permissions=[{"artifact": p.artifact, "operation": p.operation} for p in payload.permissions] if payload.permissions else None,
+                artifact_type=artifact_type,
+                resources=resource_types,
+                draft_id=payload.draft_id,
+                modality=payload.modality or "call",
+                profile=ws_ctx.profile,
             )
 
             # Persist messages

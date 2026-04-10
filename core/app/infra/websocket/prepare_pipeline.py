@@ -454,45 +454,140 @@ def resolve_agent_config(
     )
 
 
+def build_canonical_context(
+    *,
+    artifact_type: str,
+    permissions: list[dict[str, str]] | None = None,
+    resources: list[str] | None = None,
+    draft_id: UUID | None = None,
+    modality: str = "call",
+    agent: Any,
+    llm_config: LLMConfig,
+    scoped_tools: list[dict[str, Any]],
+    profile: Any | None = None,
+) -> dict[str, Any]:
+    """Build the canonical 4-namespace Jinja context for developer instructions.
+
+    Four namespaces:
+      - request: what was asked (artifact_type, permissions, resources, draft_id)
+      - agent: who's doing the work (name, model, modalities, voices, qualities)
+      - profile: who's asking (name, email, role, department)
+      - tools: what's available (scoped tool list with names, descriptions, args)
+    """
+    from app.infra.artifacts.convert_tools_to_openai_format import sanitize_tool_name
+
+    return {
+        "request": {
+            "artifact_type": artifact_type,
+            "permissions": permissions or [],
+            "resources": resources or [],
+            "draft_id": str(draft_id) if draft_id else None,
+            "modality": modality,
+        },
+        "agent": {
+            "name": getattr(agent, "name", ""),
+            "model": llm_config.model,
+            "provider": llm_config.provider,
+            "temperature": llm_config.temperature,
+            "reasoning": llm_config.reasoning,
+            "modalities": list(getattr(agent, "modalities", [])) or ["call"],
+            "voices": list(getattr(agent, "voices", [])),
+            "qualities": [getattr(agent, "quality", None)] if getattr(agent, "quality", None) else [],
+        },
+        "profile": {
+            "name": getattr(profile, "name", "") if profile else "",
+            "email": getattr(profile, "primary_email", "") if profile else "",
+            "role": getattr(profile, "role", "") if profile else "",
+            "role_name": getattr(profile, "role_name", "") if profile else "",
+            "department_ids": [str(d) for d in getattr(profile, "department_ids", [])] if profile else [],
+        },
+        "tools": [
+            {
+                "name": sanitize_tool_name(td.get("name", "")),
+                "description": td.get("description", ""),
+                "args": list((td.get("arguments") or {}).keys()),
+            }
+            for td in scoped_tools
+        ],
+        # Flat aliases for convenience in templates
+        "artifact_type": artifact_type,
+        "permissions": permissions or [],
+        "resources": resources or [],
+        "draft_id": str(draft_id) if draft_id else None,
+        "llm_config": {
+            "model": llm_config.model,
+            "temperature": llm_config.temperature,
+            "reasoning": llm_config.reasoning,
+            "modality": modality,
+            "provider": llm_config.provider,
+            "voice": llm_config.voice,
+        },
+    }
+
+
 def build_agent_dispatch(
     *,
     agent_id: UUID,
     agent_resource_types: list[str],
     agent: Any,
     llm_config: LLMConfig,
-    jinja_context_base: dict[str, Any],
-    createable_resources: set[str],
     all_tool_dicts: list[dict[str, Any]],
-    all_artifact_types: list[str],
     system_prompt: str,
     developer_instruction_templates: list[str],
     payload_metadata: dict[str, Any],
     save: bool | None,
     permissions: list[dict[str, str]] | None = None,
+    artifact_type: str = "",
+    resources: list[str] | None = None,
+    draft_id: UUID | None = None,
+    modality: str = "call",
+    profile: Any | None = None,
 ) -> AgentDispatch:
     """Build a complete AgentDispatch for one agent (pure).
 
-    Scopes resource/entry types, clones jinja context, renders instructions,
-    builds message list, filters tools.
+    Scopes tools by permissions, builds canonical context, renders instructions,
+    builds message list.
     """
-    # Scope types
-    scoped_resource_types = [
-        rt for rt in agent_resource_types if rt in createable_resources
-    ]
-    scoped_entry_types = [
-        rt for rt in agent_resource_types if rt not in createable_resources
+    # Filter tools to agent's tool_ids
+    agent_tool_id_set = (
+        {str(tid) for tid in agent.tool_ids}
+        if getattr(agent, "tool_ids", None)
+        else set()
+    )
+    scoped_tools = [
+        td for td in all_tool_dicts if str(td.get("id", "")) in agent_tool_id_set
     ]
 
-    # Clone and inject per-agent context
-    jinja_context = copy.deepcopy(jinja_context_base)
-    jinja_context["resource_types"] = scoped_resource_types
-    jinja_context["entry_types"] = scoped_entry_types
-    jinja_context["artifact_types"] = all_artifact_types
+    # Least privilege: further filter tools to only those whose permissions
+    # intersect with the requested permissions.
+    if permissions:
+        perm_set = {(p["artifact"], p["operation"]) for p in permissions}
+        scoped_tools = [
+            td for td in scoped_tools
+            if any(
+                (tp.get("artifact"), tp.get("operation")) in perm_set
+                for tp in (td.get("_permissions") or [])
+            )
+        ]
 
-    if "resources" in jinja_context:
-        jinja_context["resources"]["types"] = scoped_resource_types
-    if "entries" in jinja_context:
-        jinja_context["entries"]["types"] = scoped_entry_types
+    # Exclude tools with no output mappings (can't be executed)
+    scoped_tools = [
+        td for td in scoped_tools
+        if td.get("_args_outputs")
+    ]
+
+    # Build canonical context for developer instruction rendering
+    jinja_context = build_canonical_context(
+        artifact_type=artifact_type,
+        permissions=permissions,
+        resources=resources,
+        draft_id=draft_id,
+        modality=modality,
+        agent=agent,
+        llm_config=llm_config,
+        scoped_tools=scoped_tools,
+        profile=profile,
+    )
 
     # Render developer instructions
     rendered_developer_messages = render_developer_instructions(
@@ -543,36 +638,6 @@ def build_agent_dispatch(
     # user_instructions are persisted
     # TODO: user_instructions should be passed in from payload, not accessed here
 
-    # Filter tools to agent's tool_ids
-    agent_tool_id_set = (
-        {str(tid) for tid in agent.tool_ids}
-        if getattr(agent, "tool_ids", None)
-        else set()
-    )
-    scoped_tools = [
-        td for td in all_tool_dicts if str(td.get("id", "")) in agent_tool_id_set
-    ]
-
-    # Least privilege: further filter tools to only those whose permissions
-    # intersect with the requested permissions. This prevents the LLM from
-    # seeing tools for artifacts it wasn't asked to act on.
-    if permissions:
-        perm_set = {(p["artifact"], p["operation"]) for p in permissions}
-        scoped_tools = [
-            td for td in scoped_tools
-            if any(
-                (tp.get("artifact"), tp.get("operation")) in perm_set
-                for tp in (td.get("_permissions") or [])
-            )
-        ]
-
-    # Exclude tools with no output mappings — they can't be executed by the
-    # infra layer and would cause "no output mappings" errors if the LLM calls them.
-    scoped_tools = [
-        td for td in scoped_tools
-        if td.get("_args_outputs")
-    ]
-
     # Metadata
     metadata: dict[str, Any] = dict(payload_metadata)
     if save is not None:
@@ -580,8 +645,8 @@ def build_agent_dispatch(
 
     return AgentDispatch(
         agent_id=agent_id,
-        resource_types=scoped_resource_types,
-        entry_types=scoped_entry_types,
+        resource_types=agent_resource_types,
+        entry_types=[],
         messages=messages,
         llm_config=llm_config,
         scoped_tools=scoped_tools,
