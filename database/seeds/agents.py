@@ -75,12 +75,56 @@ TOOL_AGENT = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 COMPOSER_AGENT = UUID("ab000010-0000-0000-0000-000000000010")
 
 # ---------------------------------------------------------------------------
+# Deterministic resource IDs for agent-resource associations
+# ---------------------------------------------------------------------------
+
+ACTIVITY_AGENT_RESOURCE = sid("agent-resource/activity")
+AGENT_AGENT_RESOURCE = sid("agent-resource/agent")
+ATTEMPT_CHAT_AGENT_RESOURCE = sid("agent-resource/attempt-chat")
+ATTEMPT_CHAT_AGENT_2_RESOURCE = sid("agent-resource/attempt-chat-2")
+ATTEMPT_GRADE_AGENT_RESOURCE = sid("agent-resource/attempt-grade")
+AUTH_AGENT_RESOURCE = sid("agent-resource/auth")
+BENCHMARK_AGENT_RESOURCE = sid("agent-resource/benchmark")
+CHAT_AGENT_RESOURCE = sid("agent-resource/chat")
+COHORT_AGENT_RESOURCE = sid("agent-resource/cohort")
+COMPOSER_AGENT_RESOURCE = sid("agent-resource/composer")
+DASHBOARD_AGENT_RESOURCE = sid("agent-resource/dashboard")
+DEPARTMENT_AGENT_RESOURCE = sid("agent-resource/department")
+DOCUMENT_AGENT_RESOURCE = sid("agent-resource/document")
+EVAL_AGENT_RESOURCE = sid("agent-resource/eval")
+FIELD_AGENT_RESOURCE = sid("agent-resource/field")
+GROUP_AGENT_RESOURCE = sid("agent-resource/group")
+HEALTH_AGENT_RESOURCE = sid("agent-resource/health")
+HOME_AGENT_RESOURCE = sid("agent-resource/home")
+INVOCATION_AGENT_RESOURCE = sid("agent-resource/invocation")
+LEADERBOARD_AGENT_RESOURCE = sid("agent-resource/leaderboard")
+MODEL_AGENT_RESOURCE = sid("agent-resource/model")
+PARAMETER_AGENT_RESOURCE = sid("agent-resource/parameter")
+PERSONA_AGENT_RESOURCE = sid("agent-resource/persona")
+PRACTICE_AGENT_RESOURCE = sid("agent-resource/practice")
+PRICING_AGENT_RESOURCE = sid("agent-resource/pricing")
+PROFILE_AGENT_RESOURCE = sid("agent-resource/profile")
+PROVIDER_AGENT_RESOURCE = sid("agent-resource/provider")
+RECORD_AGENT_RESOURCE = sid("agent-resource/record")
+REPORTS_AGENT_RESOURCE = sid("agent-resource/reports")
+RUBRIC_AGENT_RESOURCE = sid("agent-resource/rubric")
+SCENARIO_AGENT_RESOURCE = sid("agent-resource/scenario")
+SCENARIO_IMAGE_AGENT_RESOURCE = sid("agent-resource/scenario-image")
+SCENARIO_VIDEO_AGENT_RESOURCE = sid("agent-resource/scenario-video")
+SESSION_AGENT_RESOURCE = sid("agent-resource/session")
+SETTING_AGENT_RESOURCE = sid("agent-resource/setting")
+SIMULATION_AGENT_RESOURCE = sid("agent-resource/simulation")
+TEST_GRADE_AGENT_RESOURCE = sid("agent-resource/test-grade")
+TOOL_AGENT_RESOURCE = sid("agent-resource/tool")
+
+# ---------------------------------------------------------------------------
 # Agent definitions
 # ---------------------------------------------------------------------------
 
 agents = [
     dict(
         id=ACTIVITY_AGENT,
+        resource_id=ACTIVITY_AGENT_RESOURCE,
         name="Activity",
         description="Analytical insights agent for real-time activity monitoring",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -96,6 +140,7 @@ agents = [
     ),
     dict(
         id=AGENT_AGENT,
+        resource_id=AGENT_AGENT_RESOURCE,
         name="Agent",
         description="AI agent for generating and managing agent resources including names, descriptions, flags, departments, prompts, instructions, models, and tools using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -115,6 +160,7 @@ agents = [
     ),
     dict(
         id=ATTEMPT_CHAT_AGENT,
+        resource_id=ATTEMPT_CHAT_AGENT_RESOURCE,
         name="Attempt Chat",
         description="Conversational AI agent for conducting training dialogues as personas",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -143,6 +189,7 @@ agents = [
     ),
     dict(
         id=ATTEMPT_GRADE_AGENT,
+        resource_id=ATTEMPT_GRADE_AGENT_RESOURCE,
         name="Attempt Grade",
         description="Grading and evaluation agent for analyzing training attempt performance",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -153,6 +200,7 @@ agents = [
     ),
     dict(
         id=AUTH_AGENT,
+        resource_id=AUTH_AGENT_RESOURCE,
         name="Auth",
         description="AI agent for generating and managing auth resources including names, descriptions, flags, protocols, slugs, and items using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -172,6 +220,7 @@ agents = [
     ),
     dict(
         id=BENCHMARK_AGENT,
+        resource_id=BENCHMARK_AGENT_RESOURCE,
         name="Benchmark",
         description="AI agent for generating analytical insights about benchmark evaluation results including cross-model performance and scoring quality",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -185,6 +234,7 @@ agents = [
     ),
     dict(
         id=CHAT_AGENT,
+        resource_id=CHAT_AGENT_RESOURCE,
         name="Chat",
         description="AI agent for creating and managing training chat sessions with persona-driven scenario conversations",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -199,6 +249,7 @@ agents = [
     ),
     dict(
         id=COHORT_AGENT,
+        resource_id=COHORT_AGENT_RESOURCE,
         name="Cohort",
         description="AI agent for generating and managing cohort resources including names, descriptions, flags, departments, personas, and scenarios using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -218,6 +269,7 @@ agents = [
     ),
     dict(
         id=DASHBOARD_AGENT,
+        resource_id=DASHBOARD_AGENT_RESOURCE,
         name="Dashboard",
         description="Analytical insights agent for high-level organizational KPIs and trends",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -231,6 +283,7 @@ agents = [
     ),
     dict(
         id=DEPARTMENT_AGENT,
+        resource_id=DEPARTMENT_AGENT_RESOURCE,
         name="Department",
         description="AI agent for generating and managing department resources including names, descriptions, flags, and settings using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -250,6 +303,7 @@ agents = [
     ),
     dict(
         id=DOCUMENT_AGENT,
+        resource_id=DOCUMENT_AGENT_RESOURCE,
         name="Document",
         description="Agent for generating and working with documents, templates, and structured content",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -274,6 +328,7 @@ agents = [
     ),
     dict(
         id=EVAL_AGENT,
+        resource_id=EVAL_AGENT_RESOURCE,
         name="Eval",
         description="AI agent for generating and managing eval resources including names, descriptions, flags, departments, scenarios, rubrics, and various eval-specific resources using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -293,6 +348,7 @@ agents = [
     ),
     dict(
         id=FIELD_AGENT,
+        resource_id=FIELD_AGENT_RESOURCE,
         name="Field",
         description="AI agent for generating and managing field resources including names, descriptions, flags, departments, and conditional parameters using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -312,6 +368,7 @@ agents = [
     ),
     dict(
         id=GROUP_AGENT,
+        resource_id=GROUP_AGENT_RESOURCE,
         name="Group",
         description="Analytical insights agent for group-level analytics",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -325,6 +382,7 @@ agents = [
     ),
     dict(
         id=HEALTH_AGENT,
+        resource_id=HEALTH_AGENT_RESOURCE,
         name="Health",
         description="Analytical insights agent for system health monitoring",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -337,6 +395,7 @@ agents = [
     ),
     dict(
         id=HOME_AGENT,
+        resource_id=HOME_AGENT_RESOURCE,
         name="Home",
         description="Navigation and recommendation agent for home page overview",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -350,6 +409,7 @@ agents = [
     ),
     dict(
         id=INVOCATION_AGENT,
+        resource_id=INVOCATION_AGENT_RESOURCE,
         name="Invocation",
         description="AI agent for creating and managing benchmark invocations with model and tool configurations",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -365,6 +425,7 @@ agents = [
     ),
     dict(
         id=LEADERBOARD_AGENT,
+        resource_id=LEADERBOARD_AGENT_RESOURCE,
         name="Leaderboard",
         description="Analytical insights agent for performance rankings",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -378,6 +439,7 @@ agents = [
     ),
     dict(
         id=MODEL_AGENT,
+        resource_id=MODEL_AGENT_RESOURCE,
         name="Model",
         description="AI agent for generating and managing model resources including names, descriptions, flags, departments, endpoints, keys, modalities, and providers using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -397,6 +459,7 @@ agents = [
     ),
     dict(
         id=PARAMETER_AGENT,
+        resource_id=PARAMETER_AGENT_RESOURCE,
         name="Parameter",
         description="AI agent for generating and managing parameter resources including names, descriptions, flags, departments, and fields using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -416,6 +479,7 @@ agents = [
     ),
     dict(
         id=PERSONA_AGENT,
+        resource_id=PERSONA_AGENT_RESOURCE,
         name="Persona",
         description="AI agent for generating and managing persona resources including names, descriptions, colors, icons, instructions, examples, flags, departments, and fields using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -435,6 +499,7 @@ agents = [
     ),
     dict(
         id=PRACTICE_AGENT,
+        resource_id=PRACTICE_AGENT_RESOURCE,
         name="Practice",
         description="Navigation and recommendation agent for practice mode entry point",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -448,6 +513,7 @@ agents = [
     ),
     dict(
         id=PRICING_AGENT,
+        resource_id=PRICING_AGENT_RESOURCE,
         name="Pricing",
         description="Analytical insights agent for cost analytics and billing breakdowns",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -461,6 +527,7 @@ agents = [
     ),
     dict(
         id=PROFILE_AGENT,
+        resource_id=PROFILE_AGENT_RESOURCE,
         name="Profile",
         description="AI agent for generating and managing profile resources including names, descriptions, flags, departments, emails, cohorts, and request limits using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -483,6 +550,7 @@ agents = [
     ),
     dict(
         id=PROVIDER_AGENT,
+        resource_id=PROVIDER_AGENT_RESOURCE,
         name="Provider",
         description="AI agent for generating and managing provider resources including names, descriptions, flags, and endpoints using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -503,6 +571,7 @@ agents = [
     ),
     dict(
         id=RECORD_AGENT,
+        resource_id=RECORD_AGENT_RESOURCE,
         name="Record",
         description="Analytical insights agent for individual training record analytics",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -516,6 +585,7 @@ agents = [
     ),
     dict(
         id=REPORTS_AGENT,
+        resource_id=REPORTS_AGENT_RESOURCE,
         name="Reports",
         description="Analytical insights agent for detailed training outcome reports",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -529,6 +599,7 @@ agents = [
     ),
     dict(
         id=RUBRIC_AGENT,
+        resource_id=RUBRIC_AGENT_RESOURCE,
         name="Rubric",
         description="Agent for generating rubric descriptions and grid cell content",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -548,6 +619,7 @@ agents = [
     ),
     dict(
         id=SCENARIO_AGENT,
+        resource_id=SCENARIO_AGENT_RESOURCE,
         name="Scenario",
         description="Helps create distinct scenarios for chat interactions.",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -563,32 +635,35 @@ agents = [
             sid("tool-resource/scenario/refresh"),
             sid("tool-resource/scenario/search"),
             sid("tool-resource/scenario/update"),
+            sid("tool-resource/scenario-image/download"),
+            sid("tool-resource/scenario-video/download"),
         ],
     ),
     dict(
         id=SCENARIO_IMAGE_AGENT,
+        resource_id=SCENARIO_IMAGE_AGENT_RESOURCE,
         name="Scenario Image",
         description="Image generation agent for creating scenario visuals",
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_ids=_role_model("image"),
         tool_ids=[
             sid("tool-resource/scenario-image/create"),
-            sid("tool-resource/scenario-image/download"),
         ],
     ),
     dict(
         id=SCENARIO_VIDEO_AGENT,
+        resource_id=SCENARIO_VIDEO_AGENT_RESOURCE,
         name="Scenario Video",
         description="Video generation agent for creating scenario visuals",
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_ids=_role_model("video"),
         tool_ids=[
             sid("tool-resource/scenario-video/create"),
-            sid("tool-resource/scenario-video/download"),
         ],
     ),
     dict(
         id=SESSION_AGENT,
+        resource_id=SESSION_AGENT_RESOURCE,
         name="Session",
         description="Analytical insights agent for individual training session analytics",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -601,6 +676,7 @@ agents = [
     ),
     dict(
         id=SETTING_AGENT,
+        resource_id=SETTING_AGENT_RESOURCE,
         name="Setting",
         description="AI agent for generating and managing setting resources",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -621,6 +697,7 @@ agents = [
     ),
     dict(
         id=SIMULATION_AGENT,
+        resource_id=SIMULATION_AGENT_RESOURCE,
         name="Simulation",
         description="AI agent for generating and managing simulation scenario resources including scenarios, scenario positions, scenario flags, and scenario rubric grade agents",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -640,6 +717,7 @@ agents = [
     ),
     dict(
         id=TEST_GRADE_AGENT,
+        resource_id=TEST_GRADE_AGENT_RESOURCE,
         name="Test Grade",
         description="Benchmark test grading agent for evaluating model outputs against rubric standards",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -659,6 +737,7 @@ agents = [
     ),
     dict(
         id=TOOL_AGENT,
+        resource_id=TOOL_AGENT_RESOURCE,
         name="Tool",
         description="AI agent for generating and managing tool resources",
         flag_ids=[AGENT_ACTIVE_FLAG],
@@ -678,6 +757,7 @@ agents = [
     ),
     dict(
         id=COMPOSER_AGENT,
+        resource_id=COMPOSER_AGENT_RESOURCE,
         name="Composer",
         description="General-purpose orchestration agent for cross-cutting content, deployment, and infrastructure operations",
         flag_ids=[AGENT_ACTIVE_FLAG],

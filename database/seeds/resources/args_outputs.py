@@ -313,6 +313,25 @@ SHARED_ARGS_OUTPUTS = {
         name="page_size",
         template="{{ page_size }}",
     ),
+    # --- Payload: session/audio fields ---
+    "chat_id": dict(
+        id=sid("args_output/chat_id"),
+        args_id=sid("arg/chat_id"),
+        name="chat_id",
+        template="{{ chat_id }}",
+    ),
+    "length_seconds": dict(
+        id=sid("args_output/length_seconds"),
+        args_id=sid("arg/length_seconds"),
+        name="length_seconds",
+        template="{{ length_seconds }}",
+    ),
+    "muted": dict(
+        id=sid("args_output/muted"),
+        args_id=sid("arg/muted"),
+        name="muted",
+        template="{{ muted }}",
+    ),
     # --- Payload: ID reference fields ---
     "agent_id": dict(
         id=sid("args_output/agent_id"),

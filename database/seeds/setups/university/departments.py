@@ -27,5 +27,6 @@ departments = [
         name="University",
         description="Innovative base of knowledge in the emerging field of computing.",
         settings_ids=[sid("uni/setting-resource/university")],
+        is_primary=True,
     ),
 ]

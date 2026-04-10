@@ -159,6 +159,9 @@ class CreateProviderItem(ScopedItem):
     endpoint_ids: list[UUID] | None = Field(None, description="Endpoint resource identifiers")
     key_ids: list[UUID] | None = Field(None, description="API key resource identifiers")
     value_ids: list[UUID] | None = Field(None, description="Value resource identifiers")
+    # Direct value fields (for denormalized snapshot)
+    endpoint: str | None = Field(None, description="Provider API endpoint URL")
+    key: str | None = Field(None, description="Provider API key")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name_id": "names",

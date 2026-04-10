@@ -127,6 +127,8 @@ async def create_provider_impl(
             name_id=item.name_id,
             description_id=item.description_id,
             department_ids=item.department_ids,
+            endpoint=item.endpoint,
+            key=item.key,
         )
 
         # Artifact create inside transaction

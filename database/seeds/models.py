@@ -168,6 +168,7 @@ for _m in _config_models_raw:
 
     models.append(dict(
         id=sid(f"model/{_name}"),
+        resource_id=sid(f"model-resource/{_name}"),
         name=_name,
         description=_m.get("description", _name),
         provider_ids=[_prov_id],
@@ -187,6 +188,6 @@ for _m in _config_models_raw:
 ROLE_MODEL_IDS: dict[str, UUID] = {}
 for _role, _model_name in _roles.items():
     if _model_name:  # skip unconfigured roles (empty string)
-        ROLE_MODEL_IDS[_role] = sid(f"model/{_model_name}")
+        ROLE_MODEL_IDS[_role] = sid(f"model-resource/{_model_name}")
 
 DEFAULT_TEXT_MODEL: UUID | None = ROLE_MODEL_IDS.get("text")

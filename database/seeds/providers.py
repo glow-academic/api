@@ -16,16 +16,18 @@ except FileNotFoundError:
 
 _ai_providers = get_ai_providers(_config)
 
-# Lookup: provider name → UUID (used by models, keys)
-PROVIDER_IDS = {p["name"]: sid(f"provider/{p['name']}") for p in _ai_providers}
+# Lookup: provider name → resource UUID (used by models, keys)
+PROVIDER_IDS = {p["name"]: sid(f"provider-resource/{p['name']}") for p in _ai_providers}
 
 providers = [
     dict(
         id=sid(f"provider/{p['name']}"),
+        resource_id=sid(f"provider-resource/{p['name']}"),
         name=p["name"],
         description=f'{p["name"]} AI provider',
         active_flag=True,
         endpoint=p.get("endpoint"),
+        key=p.get("key"),
     )
     for p in _ai_providers
 ]

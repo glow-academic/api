@@ -22,6 +22,8 @@ SHARED_ARGS = {
     "icon": dict(id=sid("arg/icon"), name="icon", field_type="string", description="Icon identifier"),
     "image": dict(id=sid("arg/image"), name="image", field_type="string", description="Base64-encoded image data"),
     "image_id": dict(id=sid("arg/image_id"), name="image_id", field_type="uuid", description="Image resource UUID"),
+    "length_seconds": dict(id=sid("arg/length_seconds"), name="length_seconds", field_type="integer", description="Duration of audio in seconds"),
+    "muted": dict(id=sid("arg/muted"), name="muted", field_type="boolean", description="Whether to mute the microphone"),
     "problem_statement": dict(id=sid("arg/problem_statement"), name="problem_statement", field_type="string", description="Problem statement text"),
     "agent_search": dict(id=sid("arg/agent_search"), name="agent_search", field_type="string"),
     "analyses": dict(id=sid("arg/analyses"), name="analyses", field_type="object[]"),

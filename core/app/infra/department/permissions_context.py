@@ -162,6 +162,7 @@ async def create_denormalized_snapshot(
     name_id: UUID | None,
     description_id: UUID | None,
     setting_ids: list[UUID] | None = None,
+    is_primary: bool = False,
 ) -> UUID:
     """Create a departments_resource snapshot by hydrating IDs to values.
 
@@ -195,5 +196,6 @@ async def create_denormalized_snapshot(
             description=descriptions[0].description if descriptions else "",
             redis=redis,
             setting_ids=setting_ids,
+            is_primary=is_primary,
         )
     return result.id

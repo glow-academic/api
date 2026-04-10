@@ -20,6 +20,7 @@ from database.seeds.dynamic_keys import (
     AUTH_ITEM_VALUE_IDS,
     PROVIDER_KEY_IDS,
 )
+from database.seeds.setting import ALL_SYSTEMS
 from database.seeds.setups.university.colors import ALL_COLOR_IDS
 from database.seeds.setups.university.profiles import (
     BENCHMARK_PROFILE_RESOURCE,
@@ -44,44 +45,7 @@ THRESHOLD_DANGER = UUID("019b995b-5309-74df-991a-c28980b294f2")  # 70
 # Pre-existing system resource IDs (from 10-systems/)
 # ---------------------------------------------------------------------------
 
-SYSTEMS = [
-    UUID("019caf25-99c7-78a6-849d-1258f99e47e4"),  # Activity
-    UUID("019caf25-99c8-7bba-946c-e6b9d55d2fc3"),  # Agent
-    UUID("019caf25-99ca-7f95-9038-206fe1734be3"),  # Attempt Chat
-    UUID("019caf25-99cb-700e-b879-41628a9218c5"),  # Attempt Grade
-    UUID("019caf25-99cc-7cc3-a040-981957508b2a"),  # Attempt Insight
-    UUID("019caf25-99cd-7470-bc4b-7eb189b96d43"),  # Auth
-    UUID("019caf25-99cf-7087-81ee-58450c4a9aca"),  # Benchmark
-    UUID("019caf25-99d0-7d2c-bfba-49be9f4acd87"),  # Chat
-    UUID("019caf25-99d1-771d-a01f-80f8aae924df"),  # Cohort
-    UUID("019caf25-99d2-752b-ab22-5f9455aa1e9a"),  # Dashboard
-    UUID("019caf25-99d4-7fb7-8cec-e9a0de527479"),  # Department
-    UUID("019caf25-99d5-7ff1-a78c-485cbcd14b60"),  # Document
-    UUID("019caf25-99d6-70d6-90eb-f580991fcf89"),  # Eval
-    UUID("019caf25-99d7-792a-a47b-246dd0a84352"),  # Field
-    UUID("019caf25-99d9-73dc-a8be-a47def47c3e0"),  # Group
-    UUID("019caf25-99da-7af2-875a-9c8eb8fd70e9"),  # Health
-    UUID("019caf25-99db-7090-87a2-0c2dff148860"),  # Home
-    UUID("019caf25-99dc-73fa-848e-fcc5947b6bb1"),  # Invocation
-    UUID("019caf25-99de-7c11-9dd7-a8878ef28a07"),  # Leaderboard
-    UUID("019caf25-99df-716b-abc9-a4c3ba2f32c8"),  # Model
-    UUID("019caf25-99e0-7e2c-9f64-37bde94a00c6"),  # Parameter
-    UUID("019caf25-99e1-717c-b4ea-8a6055664887"),  # Persona
-    UUID("019caf25-99e3-723d-920c-78e5ac8f19dd"),  # Practice
-    UUID("019caf25-99e4-7571-8bb7-155d53173005"),  # Pricing
-    UUID("019caf25-99e5-75e8-b0f1-a5bd20b35bfa"),  # Profile
-    UUID("019caf25-99e6-7886-96fe-71a0bb6090d1"),  # Provider
-    UUID("019caf25-99e8-7cd5-8d61-a7800f1a6686"),  # Record
-    UUID("019caf25-99e9-72be-8c27-e3f264eeefa4"),  # Reports
-    UUID("019caf25-99ea-7f17-8bac-4ed76165c512"),  # Rubric
-    UUID("019caf25-99ec-727f-be3c-4224ee4f9bef"),  # Scenario
-    UUID("019caf25-99ed-79c0-926c-d302897f4322"),  # Session
-    UUID("019caf25-99ee-7f5e-934d-1c9eaeb52f24"),  # Setting
-    UUID("019caf25-99ef-7358-87a9-29cb15f52fd3"),  # Simulation
-    UUID("019caf25-99f1-7230-bee2-f5e15bd56400"),  # Test Insight
-    UUID("019caf25-99f2-7ea3-8a59-24fcd0ff8b8c"),  # Test Grade
-    UUID("019caf25-99f3-7408-b7d0-968fe57800f7"),  # Tool
-]
+SYSTEMS = ALL_SYSTEMS
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs

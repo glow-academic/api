@@ -19,12 +19,14 @@ async def create_provider(
     mcp: bool = False,
     soft: bool = False,
     department_ids: list[UUID] | None = None,
+    endpoint: str | None = None,
+    key: str | None = None,
 ) -> GetProviderResponse:
     """Create a provider resource (plain INSERT — no unique constraint)."""
     provider_id = await conn.fetchval(
         """
-        INSERT INTO providers_resource (id, name, description, active, mcp, generated, department_ids)
-        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, $4, $6)
+        INSERT INTO providers_resource (id, name, description, active, mcp, generated, department_ids, endpoint, key)
+        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, $4, $6, $7, $8)
         RETURNING id
         """,
         name,
@@ -33,6 +35,8 @@ async def create_provider(
         mcp,
         id,
         department_ids or [],
+        endpoint or "",
+        key or "",
     )
     await invalidate_tags(["resources", "providers"], redis=redis)
     items = await get_providers(conn, [provider_id], redis, bypass_cache=True)

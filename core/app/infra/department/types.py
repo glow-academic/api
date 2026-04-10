@@ -129,6 +129,7 @@ class CreateDepartmentItem(ScopedItem):
     # ID-only fields
     settings_ids: list[UUID] | None = Field(None, description="Setting UUIDs to assign")
     department_ids: list[UUID] | None = Field(None, description="Sub-department UUIDs to assign")
+    is_primary: bool = Field(False, description="Whether this is the primary department")
 
 
 class CreateDepartmentApiRequest(BaseModel):

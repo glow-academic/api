@@ -1581,16 +1581,39 @@ def _discover_setups() -> list[str]:
 # ---------------------------------------------------------------------------
 
 
+_active_containers: list = []
+
+
+def _cleanup_containers():
+    """Stop all active testcontainers — registered via atexit for crash safety."""
+    for c in _active_containers:
+        try:
+            c.stop()
+        except Exception:
+            pass
+    _active_containers.clear()
+
+
 async def _start_containers() -> tuple:
     """Start Postgres and Redis testcontainers, return (pg, pg_url, redis_container, redis_url)."""
+    import atexit
+    import signal
+
+    # Register cleanup for Ctrl+C and unexpected exits
+    atexit.register(_cleanup_containers)
+    signal.signal(signal.SIGINT, lambda *_: (_cleanup_containers(), exit(1)))
+    signal.signal(signal.SIGTERM, lambda *_: (_cleanup_containers(), exit(1)))
+
     print("Starting Postgres container...")
     pg = PostgresContainer("postgres:18")
     pg.start()
+    _active_containers.append(pg)
     pg_url = pg.get_connection_url().replace("postgresql+psycopg2://", "postgresql://")
 
     print("Starting Redis container...")
     redis_container = RedisContainer("redis:7-alpine")
     redis_container.start()
+    _active_containers.append(redis_container)
     redis_host = redis_container.get_container_host_ip()
     redis_port = redis_container.get_exposed_port(6379)
     redis_url = f"redis://{redis_host}:{redis_port}/0"
