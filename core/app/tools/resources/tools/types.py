@@ -14,6 +14,7 @@ class GetToolResponse(BaseModel):
     department_ids: list[UUID]
     args_ids: list[UUID]
     args_output_ids: list[UUID]
+    instruction_id: UUID | None = None
     created_at: datetime
     active: bool
     mcp: bool

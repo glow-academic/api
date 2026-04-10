@@ -1,1 +1,13 @@
-{# Persona Search response template #}
+{% if personas and personas|length > 0 %}
+## Personas ({{ personas|length }} results{% if has_more %}, more available{% endif %})
+
+{% for p in personas %}
+- **{{ p.name or '(unnamed)' }}**{% if p.description %} — {{ p.description[:80] }}{% if p.description|length > 80 %}...{% endif %}{% endif %}{% if p.color %} | {{ p.color.name }}{% endif %} (ID: `{{ p.id }}`)
+{% endfor %}
+
+{% if has_more %}
+Use `page_offset` to see more results.
+{% endif %}
+{% else %}
+No personas found matching the search criteria.
+{% endif %}

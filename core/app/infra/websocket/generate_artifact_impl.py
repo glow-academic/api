@@ -18,6 +18,7 @@ from app.infra.artifacts import (
     format_messages_for_litellm,
     stream_litellm_events,
 )
+from app.infra.artifacts.convert_tools_to_openai_format import sanitize_tool_name
 from app.infra.globals import UPLOAD_FOLDER, get_pool, get_redis_client
 from app.infra.tools.execute_infra_operation import (
     InfraContext,
@@ -290,9 +291,24 @@ async def _call_responses_api(
     if not LITELLM_AVAILABLE or not hasattr(litellm, "aresponses"):
         raise ValueError("litellm aresponses not available")
 
+    # The openai/ prefix tells litellm SDK to use OpenAI-compatible protocol.
+    # It doesn't mean "call OpenAI" — it means "speak OpenAI protocol to base_url."
+    effective_model = f"openai/{model}" if base_url and "/" not in model else model
+
+    # Ensure litellm SDK knows this model supports native streaming.
+    # Without this, unknown models fall back to MockResponsesAPIStreamingIterator
+    # which buffers tool call events. Any model routed through our proxy streams natively.
+    if effective_model not in litellm.model_cost:
+        litellm.model_cost[effective_model] = {
+            "supports_native_streaming": True,
+            "max_tokens": 128000,
+            "input_cost_per_token": 0,
+            "output_cost_per_token": 0,
+        }
+
     responses_kwargs: dict[str, Any] = {
         "input": responses_input,
-        "model": model,
+        "model": effective_model,
         "stream": True,
         "api_key": api_key,
         "temperature": temperature,
@@ -300,7 +316,8 @@ async def _call_responses_api(
     }
 
     if base_url:
-        responses_kwargs["base_url"] = base_url
+        # aresponses() uses GenericLiteLLMParams which expects "api_base", not "base_url"
+        responses_kwargs["api_base"] = base_url
 
     if tools:
         validated_tools = _validate_responses_tools(tools)
@@ -337,8 +354,11 @@ async def _call_chat_completions_api(
     if not LITELLM_AVAILABLE:
         raise ValueError("litellm is not available")
 
+    # The openai/ prefix tells litellm SDK to use OpenAI-compatible protocol.
+    effective_model = f"openai/{model}" if base_url and "/" not in model else model
+
     base_kwargs: dict[str, Any] = {
-        "model": model,
+        "model": effective_model,
         "messages": messages,
         "stream": True,
         "api_key": api_key,
@@ -409,10 +429,9 @@ async def generate_artifact_impl(
 
         model_config = data.llm_config
 
-        # Decrypt the API key if provided (keys are stored encrypted in the database)
-        decrypted_api_key: str | None = None
-        if model_config.api_key:
-            decrypted_api_key = decrypt_api_key_fn(model_config.api_key)
+        # API key is already decrypted by resolve_agent_config in prepare_pipeline.
+        # Use it directly — no need to decrypt again.
+        decrypted_api_key: str | None = model_config.api_key or None
 
         extra_body: dict[str, Any] = {}
         if model_config.voice is not None:
@@ -445,30 +464,33 @@ async def generate_artifact_impl(
                 if not isinstance(tool_def, dict):
                     continue
                 t_name = tool_def.get("name")
+                if not t_name:
+                    continue
+                # Use sanitized name as key — matches what the model sees
+                safe_name = sanitize_tool_name(t_name)
                 t_id = tool_def.get("id")
-                if t_name and t_id:
+                if t_id:
                     try:
-                        tool_id_by_name[t_name] = (
+                        tool_id_by_name[safe_name] = (
                             t_id
                             if isinstance(t_id, uuid.UUID)
                             else uuid.UUID(str(t_id))
                         )
                     except (ValueError, AttributeError):
                         pass
-                if t_name:
-                    tool_def_by_name[t_name] = tool_def
-                    t_resources = tool_def.get("resources") or []
-                    t_entries = tool_def.get("entries") or []
-                    t_artifacts = tool_def.get("artifacts") or []
-                    t_operation = tool_def.get("operation")
-                    if t_resources:
-                        tool_resource_type_by_name[t_name] = t_resources[0]
-                    if t_entries:
-                        tool_entry_type_by_name[t_name] = t_entries[0]
-                    if t_artifacts:
-                        tool_artifact_type_by_name[t_name] = t_artifacts[0]
-                    if t_operation is not None:
-                        tool_createable_by_name[t_name] = t_operation == "create"
+                tool_def_by_name[safe_name] = tool_def
+                t_resources = tool_def.get("resources") or []
+                t_entries = tool_def.get("entries") or []
+                t_artifacts = tool_def.get("artifacts") or []
+                t_operation = tool_def.get("operation")
+                if t_resources:
+                    tool_resource_type_by_name[safe_name] = t_resources[0]
+                if t_entries:
+                    tool_entry_type_by_name[safe_name] = t_entries[0]
+                if t_artifacts:
+                    tool_artifact_type_by_name[safe_name] = t_artifacts[0]
+                if t_operation is not None:
+                    tool_createable_by_name[safe_name] = t_operation == "create"
 
         tool_choice = model_config.tool_choice or "auto"
         await _emit_modality_event(
@@ -816,11 +838,18 @@ async def generate_artifact_impl(
                         if api_mode == "chat_completions" and len(raw_id) > 40
                         else raw_id
                     )
+                    # call_id is our internal UUID for ledger/receipt tracking.
+                    # tool_call_id is the item_id from the stream parser.
+                    # responses_call_id is the model's call_id needed for function_call_output.
+                    internal_call_id = str(uuid.uuid7()) if hasattr(uuid, "uuid7") else str(uuid.uuid4())
+                    responses_call_id = event.get("responses_call_id") or raw_id
                     tool_call_states.setdefault(
                         tool_call_id,
                         {
-                            "call_id": tool_call_id,
-                            "raw_id": raw_id,  # Keep original for responses API
+                            "call_id": internal_call_id,
+                            "raw_id": raw_id,
+                            "responses_call_id": responses_call_id,  # For function_call_output
+                            "tool_call_id": tool_call_id,
                             "tool_name": None,
                             "arguments": "",
                         },
@@ -855,8 +884,10 @@ async def generate_artifact_impl(
                     st = tool_call_states.setdefault(
                         tool_call_id,
                         {
-                            "call_id": tool_call_id,
+                            "call_id": str(uuid.uuid7()) if hasattr(uuid, "uuid7") else str(uuid.uuid4()),
                             "raw_id": raw_id,
+                            "responses_call_id": raw_id,
+                            "tool_call_id": tool_call_id,
                             "tool_name": None,
                             "arguments": "",
                         },
@@ -933,7 +964,7 @@ async def generate_artifact_impl(
                             "tool_name": tool_name,
                             "arguments": arguments_dict,
                             "arguments_delta": arguments_str,
-                            "call_id": tool_call_id,
+                            "call_id": st.get("call_id", tool_call_id),
                             "resolved_fields": complete_resolved,
                             "metadata": data.metadata,
                         },
@@ -1032,7 +1063,8 @@ async def generate_artifact_impl(
                     tool_results.append(
                         {
                             "tool_call_id": tool_call_id,
-                            "raw_id": raw_id,  # Original ID for responses API
+                            "raw_id": raw_id,
+                            "responses_call_id": st.get("responses_call_id", raw_id),  # Model's call_id for function_call_output
                             "tool_name": tool_name,
                             "arguments": arguments_dict,
                             "arguments_str": arguments_str,
@@ -1114,11 +1146,12 @@ async def generate_artifact_impl(
                     responses_input.append(item)
 
                 # 2. Append our function_call_output items (our responses to the tool calls)
+                # Use responses_call_id (the model's call_id) — OpenAI requires this to match
                 for tr in tool_results:
                     responses_input.append(
                         {
                             "type": "function_call_output",
-                            "call_id": tr["raw_id"],
+                            "call_id": tr.get("responses_call_id", tr["raw_id"]),
                             "output": tr["result_str"],
                         }
                     )

@@ -1,1 +1,15 @@
-{# Persona Create response template #}
+{% if success %}
+Persona created successfully.
+{% if results %}
+{% for r in results %}
+- **{{ r.message }}**{% if r.persona_id %} (ID: `{{ r.persona_id }}`){% endif %}
+{% endfor %}
+{% endif %}
+{% else %}
+Persona creation failed.
+{% if results %}
+{% for r in results %}
+- {{ r.message }}{% if r.errors %}: {{ r.errors | map(attribute='message') | join(', ') }}{% endif %}
+{% endfor %}
+{% endif %}
+{% endif %}

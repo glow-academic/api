@@ -92,6 +92,21 @@ CREATE TABLE public.tool_flags_junction (
 
 --
 
+-- Name: tool_instructions_junction; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tool_instructions_junction (
+    tool_id uuid NOT NULL,
+    instructions_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+
 -- Name: tool_names_junction; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -187,6 +202,15 @@ ALTER TABLE ONLY public.tool_descriptions_junction
 
 ALTER TABLE ONLY public.tool_flags_junction
     ADD CONSTRAINT tool_flags_pkey PRIMARY KEY (tool_id, flags_id);
+
+
+--
+
+-- Name: tool_instructions_junction tool_instructions_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tool_instructions_junction
+    ADD CONSTRAINT tool_instructions_junction_pkey PRIMARY KEY (tool_id, instructions_id);
 
 
 --

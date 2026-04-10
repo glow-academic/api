@@ -436,8 +436,12 @@ def resolve_agent_config(
         # Fallback: treat as plaintext if decryption fails (e.g. legacy data)
         api_key = encrypted_key
 
+    # Model name: user-facing alias (e.g. "glow-text").
+    # The openai/ prefix is added at the litellm SDK call site, not here.
+    model_name = getattr(model, "value", None) or model.name
+
     return LLMConfig(
-        model=getattr(model, "value", None) or model.name,
+        model=model_name,
         api_key=api_key,
         base_url=getattr(provider, "endpoint", "") or "",
         temperature=getattr(agent, "temperature", 0.0) or 0.0,
@@ -464,6 +468,7 @@ def build_agent_dispatch(
     developer_instruction_templates: list[str],
     payload_metadata: dict[str, Any],
     save: bool | None,
+    permissions: list[dict[str, str]] | None = None,
 ) -> AgentDispatch:
     """Build a complete AgentDispatch for one agent (pure).
 
@@ -546,6 +551,26 @@ def build_agent_dispatch(
     )
     scoped_tools = [
         td for td in all_tool_dicts if str(td.get("id", "")) in agent_tool_id_set
+    ]
+
+    # Least privilege: further filter tools to only those whose permissions
+    # intersect with the requested permissions. This prevents the LLM from
+    # seeing tools for artifacts it wasn't asked to act on.
+    if permissions:
+        perm_set = {(p["artifact"], p["operation"]) for p in permissions}
+        scoped_tools = [
+            td for td in scoped_tools
+            if any(
+                (tp.get("artifact"), tp.get("operation")) in perm_set
+                for tp in (td.get("_permissions") or [])
+            )
+        ]
+
+    # Exclude tools with no output mappings — they can't be executed by the
+    # infra layer and would cause "no output mappings" errors if the LLM calls them.
+    scoped_tools = [
+        td for td in scoped_tools
+        if td.get("_args_outputs")
     ]
 
     # Metadata

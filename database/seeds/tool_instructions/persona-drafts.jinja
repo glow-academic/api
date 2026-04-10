@@ -1,1 +1,9 @@
-{# Persona Drafts response template #}
+{% if drafts and drafts|length > 0 %}
+## Persona Drafts ({{ drafts|length }})
+
+{% for d in drafts %}
+- Draft `{{ d.id }}` — version {{ d.version }}{% if d.name %}, name: {{ d.name }}{% endif %}
+{% endfor %}
+{% else %}
+No persona drafts found.
+{% endif %}

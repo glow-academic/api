@@ -8,6 +8,8 @@ import json
 import re
 from typing import Any
 
+from app.infra.artifacts.convert_tools_to_openai_format import sanitize_tool_name
+
 
 def extract_template_var(template: str) -> str | None:
     """Extract variable name from a Jinja template like '{{ content }}'."""
@@ -112,5 +114,5 @@ def build_tool_output_schemas(
                     if arg_name:
                         resolved[col] = arg_name
             if resolved:
-                schemas[t_name] = resolved
+                schemas[sanitize_tool_name(t_name)] = resolved
     return schemas

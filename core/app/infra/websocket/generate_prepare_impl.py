@@ -378,9 +378,22 @@ async def generate_prepare_impl(
         config_agents = ws_ctx.agents
 
         # Agent groups from tool scores
+        # New path: use permissions to determine agent dispatch (artifact-level)
+        # Legacy path: use resource_types (resource-level)
+        dispatch_types = resource_types
+        if payload.permissions and not resource_types:
+            # No resource_types — use artifact names from permissions
+            dispatch_types = list({p.artifact for p in payload.permissions})
+        elif payload.permissions:
+            # Has resource_types AND permissions — use artifact names for dispatch
+            # (resource_types will be used for field filtering at execution time)
+            dispatch_types = list({p.artifact for p in payload.permissions})
+
         agent_groups = build_agent_groups_from_scores_fn(
-            resource_types=resource_types,
+            resource_types=dispatch_types,
             scores=ws_ctx.scores,
+            permissions=[{"artifact": p.artifact, "operation": p.operation} for p in payload.permissions] if payload.permissions else None,
+            tool_graph=getattr(ws_ctx, "tool_graph", None),
         )
 
         # Jinja context
@@ -477,6 +490,14 @@ async def generate_prepare_impl(
         for agent_group_id, agent_resource_types in agent_groups.items():
             agent_resource = agents_by_id.get(agent_group_id) or config_agents[0]
 
+            # DEBUG: check provider key value before resolve
+            if agent_resource.model_id:
+                _m = models_by_id.get(agent_resource.model_id)
+                if _m and getattr(_m, 'provider_id', None):
+                    _p = providers_by_id.get(_m.provider_id)
+                    if _p:
+                        logger.info(f"[DEBUG] Provider '{_p.name}' key starts with: '{getattr(_p, 'key', '')[:20] if getattr(_p, 'key', None) else 'NONE'}'")
+
             llm_config = resolve_agent_config_fn(
                 agent_resource, models_by_id, providers_by_id
             )
@@ -518,6 +539,7 @@ async def generate_prepare_impl(
                 developer_instruction_templates=dev_templates,
                 payload_metadata=enriched_metadata,
                 save=None,
+                permissions=[{"artifact": p.artifact, "operation": p.operation} for p in payload.permissions] if payload.permissions else None,
             )
 
             # Persist messages

@@ -38,6 +38,54 @@ except ImportError:
     redis = None  # type: ignore
 
 
+class _StreamingEventFilter(logging.Filter):
+    """Collapse high-frequency streaming deltas into a summary line."""
+
+    _DELTA_EVENTS = (
+        "generate_text_progress",
+        "generate_call_progress",
+    )
+    _BOUNDARY_EVENTS = (
+        "generate_text_complete",
+        "generate_text_start",
+        "generate_call_complete",
+        "generate_call_start",
+        "generate_run_complete",
+    )
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._counts: dict[str, int] = {}
+
+    def _flush_summary(self, record: logging.LogRecord) -> None:
+        if not self._counts:
+            return
+        parts = [f"{count} {name}" for name, count in self._counts.items()]
+        summary = ", ".join(parts)
+        record.msg = f"  ↳ [streaming] {summary}\n{record.msg}"
+        self._counts.clear()
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        msg = record.getMessage()
+
+        # Suppress engineio packet logs for delta events
+        if "Sending packet" in msg and any(e in msg for e in self._DELTA_EVENTS):
+            return False
+
+        # Count and suppress delta event emits
+        for event in self._DELTA_EVENTS:
+            if event in msg:
+                label = "text deltas" if "text" in event else "call deltas"
+                self._counts[label] = self._counts.get(label, 0) + 1
+                return False
+
+        # On boundary events, flush the summary
+        if any(event in msg for event in self._BOUNDARY_EVENTS):
+            self._flush_summary(record)
+
+        return True
+
+
 def _configure_named_loggers(
     logger_names: list[str],
     formatter: logging.Formatter,
@@ -158,7 +206,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[Any]:
             compact_formatter,
         )
 
-        # Configure Socket.IO loggers
+        # Configure Socket.IO loggers (filter out high-frequency streaming deltas)
+        _streaming_filter = _StreamingEventFilter()
         _configure_named_loggers(
             [
                 "socketio",
@@ -168,6 +217,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[Any]:
             ],
             compact_formatter,
         )
+        for _sio_logger_name in ["socketio", "engineio", "socketio.server", "engineio.server"]:
+            logging.getLogger(_sio_logger_name).addFilter(_streaming_filter)
 
         # Initialize Redis client for HTTP caching and socket ownership management
         import app.infra.globals as _globals

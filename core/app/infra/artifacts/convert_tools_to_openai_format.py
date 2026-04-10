@@ -1,10 +1,22 @@
 """Convert database tool configs to LiteLLM tool formats."""
 
+import re
 from typing import Any
 
 from openai.types.responses.function_tool_param import FunctionToolParam
 
 from app.infra.shared_types import IGetTextRunContextAndCreateRunV4Tool
+
+# OpenAI requires function names to match ^[a-zA-Z0-9_-]+$
+_INVALID_NAME_CHARS = re.compile(r"[^a-zA-Z0-9_-]")
+
+
+def sanitize_tool_name(name: str) -> str:
+    """Sanitize a tool name for OpenAI function calling.
+
+    Replaces any character not in [a-zA-Z0-9_-] with underscore.
+    """
+    return _INVALID_NAME_CHARS.sub("_", name)
 
 
 def _get_tool_attr(tool: Any, attr: str, default: Any = None) -> Any:
@@ -85,7 +97,7 @@ def convert_tools_to_openai_format(
             {
                 "type": "function",
                 "function": {
-                    "name": name,
+                    "name": sanitize_tool_name(name),
                     "description": _get_tool_attr(tool, "description") or "",
                     "parameters": {
                         "type": "object",
@@ -172,7 +184,7 @@ def convert_tools_to_responses_format(
         responses_tools.append(
             {
                 "type": "function",
-                "name": name,
+                "name": sanitize_tool_name(name),
                 "description": _get_tool_attr(tool, "description") or "",
                 "parameters": {
                     "type": "object",

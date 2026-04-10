@@ -34,7 +34,7 @@ async def get_providers(
 
     rows = await conn.fetch(
         """
-        SELECT id, name, description, department_ids, value, endpoint,
+        SELECT id, name, description, department_ids, value, endpoint, key,
                created_at, active, mcp, generated
         FROM providers_resource
         WHERE id = ANY($1)
@@ -51,6 +51,7 @@ async def get_providers(
             department_ids=r["department_ids"] or [],
             value=r["value"],
             endpoint=r["endpoint"],
+            key=r["key"],
             created_at=r["created_at"],
             active=r["active"],
             mcp=r["mcp"],

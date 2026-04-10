@@ -13,6 +13,7 @@ class GetProviderResponse(BaseModel):
     department_ids: list[UUID]
     value: str | None
     endpoint: str | None
+    key: str | None = None
     created_at: datetime
     active: bool
     mcp: bool

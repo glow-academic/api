@@ -101,6 +101,24 @@ ALTER TABLE ONLY public.tool_flags_junction
 
 --
 
+-- Name: tool_instructions_junction tool_instructions_instructions_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tool_instructions_junction
+    ADD CONSTRAINT tool_instructions_instructions_id_fkey FOREIGN KEY (instructions_id) REFERENCES public.instructions_resource(id) ON DELETE CASCADE;
+
+
+--
+
+-- Name: tool_instructions_junction tool_instructions_tool_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tool_instructions_junction
+    ADD CONSTRAINT tool_instructions_tool_id_fkey FOREIGN KEY (tool_id) REFERENCES public.tool_artifact(id) ON DELETE CASCADE;
+
+
+--
+
 -- Name: tool_names_junction tool_names_name_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 

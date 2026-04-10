@@ -1,1 +1,5 @@
-{# Persona Refresh response template #}
+{% if success %}
+Persona view refreshed.
+{% else %}
+Refresh failed.{% if message %} {{ message }}{% endif %}
+{% endif %}

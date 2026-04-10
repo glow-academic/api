@@ -358,6 +358,7 @@ async def _parse_responses_chunk(
                 "type": "tool_call_start",
                 "tool_call_id": item_id,
                 "tool_name": function_name,
+                "responses_call_id": call_id,  # Model's call_id for function_call_output
             }
 
     # Handle response.output_text.delta (for text content)
@@ -486,13 +487,13 @@ async def _parse_responses_chunk(
                     if arguments is not None
                     else item_state.get("arguments", "")
                 )
-                # Get the call_id from the item state (set during response.output_item.added)
+                # call_id is the model's function call ID (for Responses API conversation history)
                 call_id = item_state.get("call_id") or item_id
                 # Mark as done to prevent duplicate emission in cleanup loop
                 item_state["done"] = True
                 yield {
                     "type": "tool_call_complete",
-                    "tool_call_id": call_id,  # Use actual call_id from model
+                    "tool_call_id": item_id,  # Use item_id to match tool_call_start key
                     "name": item_state.get("name"),
                     "arguments": final_arguments,
                 }

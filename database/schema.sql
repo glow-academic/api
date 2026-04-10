@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 0S0kAU0TTOZJMiIrIIlF9SsXh7p062t30e52KUFivXah67nxrMFK71C08gaaoW3
+\restrict 38lLj90SGDq2hBgDK500nzkfw46mUDTDIc2gdawWFgXRF5lNFjtBNgU7Pzik6Ss
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -13485,6 +13485,21 @@ CREATE TABLE public.tool_drafts_flags_connection (
 
 
 --
+-- Name: tool_drafts_instructions_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tool_drafts_instructions_connection (
+    draft_id uuid NOT NULL,
+    instructions_id uuid NOT NULL,
+    version integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
 -- Name: tool_drafts_mv; Type: MATERIALIZED VIEW; Schema: public; Owner: -
 --
 
@@ -13561,6 +13576,20 @@ CREATE TABLE public.tool_flags_junction (
 
 
 --
+-- Name: tool_instructions_junction; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tool_instructions_junction (
+    tool_id uuid NOT NULL,
+    instructions_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
 -- Name: tool_names_junction; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -13617,7 +13646,8 @@ CREATE TABLE public.tools_resource (
     department_ids uuid[] DEFAULT ARRAY[]::uuid[],
     args_ids uuid[] DEFAULT ARRAY[]::uuid[],
     args_output_ids uuid[] DEFAULT ARRAY[]::uuid[],
-    permission_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL
+    permission_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
+    instruction_id uuid
 );
 
 
@@ -19337,6 +19367,14 @@ ALTER TABLE ONLY public.tool_drafts_flags_connection
 
 
 --
+-- Name: tool_drafts_instructions_connection tool_drafts_instructions_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tool_drafts_instructions_connection
+    ADD CONSTRAINT tool_drafts_instructions_connection_pkey PRIMARY KEY (draft_id, instructions_id, version);
+
+
+--
 -- Name: tool_drafts_names_connection tool_drafts_names_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19366,6 +19404,14 @@ ALTER TABLE ONLY public.tool_drafts_profiles_connection
 
 ALTER TABLE ONLY public.tool_flags_junction
     ADD CONSTRAINT tool_flags_pkey PRIMARY KEY (tool_id, flags_id);
+
+
+--
+-- Name: tool_instructions_junction tool_instructions_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tool_instructions_junction
+    ADD CONSTRAINT tool_instructions_junction_pkey PRIMARY KEY (tool_id, instructions_id);
 
 
 --
@@ -39111,6 +39157,22 @@ ALTER TABLE ONLY public.tool_drafts_flags_connection
 
 
 --
+-- Name: tool_drafts_instructions_connection tool_drafts_instructions_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tool_drafts_instructions_connection
+    ADD CONSTRAINT tool_drafts_instructions_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.tool_drafts_entry(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tool_drafts_instructions_connection tool_drafts_instructions_instructions_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tool_drafts_instructions_connection
+    ADD CONSTRAINT tool_drafts_instructions_instructions_id_fkey FOREIGN KEY (instructions_id) REFERENCES public.instructions_resource(id) ON DELETE CASCADE;
+
+
+--
 -- Name: tool_drafts_names_connection tool_drafts_names_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -39156,6 +39218,22 @@ ALTER TABLE ONLY public.tool_flags_junction
 
 ALTER TABLE ONLY public.tool_flags_junction
     ADD CONSTRAINT tool_flags_tool_id_fkey FOREIGN KEY (tool_id) REFERENCES public.tool_artifact(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tool_instructions_junction tool_instructions_instructions_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tool_instructions_junction
+    ADD CONSTRAINT tool_instructions_instructions_id_fkey FOREIGN KEY (instructions_id) REFERENCES public.instructions_resource(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tool_instructions_junction tool_instructions_tool_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tool_instructions_junction
+    ADD CONSTRAINT tool_instructions_tool_id_fkey FOREIGN KEY (tool_id) REFERENCES public.tool_artifact(id) ON DELETE CASCADE;
 
 
 --
@@ -39220,6 +39298,14 @@ ALTER TABLE ONLY public.tools_calls_connection
 
 ALTER TABLE ONLY public.tools_calls_connection
     ADD CONSTRAINT tools_calls_connection_id_fkey FOREIGN KEY (tools_id) REFERENCES public.tools_resource(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tools_resource tools_resource_instruction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tools_resource
+    ADD CONSTRAINT tools_resource_instruction_id_fkey FOREIGN KEY (instruction_id) REFERENCES public.instructions_resource(id) ON DELETE SET NULL;
 
 
 --
@@ -39802,5 +39888,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 0S0kAU0TTOZJMiIrIIlF9SsXh7p062t30e52KUFivXah67nxrMFK71C08gaaoW3
+\unrestrict 38lLj90SGDq2hBgDK500nzkfw46mUDTDIc2gdawWFgXRF5lNFjtBNgU7Pzik6Ss
 

@@ -1,1 +1,5 @@
-{# Persona Draft response template #}
+{% if success %}
+Draft saved successfully.{% if draft_id %} Draft ID: `{{ draft_id }}`, version {{ version }}.{% endif %}
+{% else %}
+Draft save failed.{% if message %} {{ message }}{% endif %}
+{% endif %}

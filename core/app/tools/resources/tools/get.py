@@ -35,7 +35,7 @@ async def get_tools(
         """
         SELECT id, name, description,
                permission_ids, department_ids, args_ids, args_output_ids,
-               created_at, active, mcp, generated
+               instruction_id, created_at, active, mcp, generated
         FROM tools_resource
         WHERE id = ANY($1)
         ORDER BY array_position($1, id)
@@ -52,6 +52,7 @@ async def get_tools(
             department_ids=r["department_ids"] or [],
             args_ids=r["args_ids"] or [],
             args_output_ids=r["args_output_ids"] or [],
+            instruction_id=r["instruction_id"],
             created_at=r["created_at"],
             active=r["active"],
             mcp=r["mcp"],

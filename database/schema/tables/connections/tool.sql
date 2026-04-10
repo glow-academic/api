@@ -98,6 +98,22 @@ CREATE TABLE public.tool_drafts_flags_connection (
 
 --
 
+-- Name: tool_drafts_instructions_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tool_drafts_instructions_connection (
+    draft_id uuid NOT NULL,
+    instructions_id uuid NOT NULL,
+    version integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+
 -- Name: tool_drafts_names_connection; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -195,6 +211,15 @@ ALTER TABLE ONLY public.tool_drafts_descriptions_connection
 
 ALTER TABLE ONLY public.tool_drafts_flags_connection
     ADD CONSTRAINT tool_drafts_flags_connection_pkey PRIMARY KEY (draft_id, flags_id);
+
+
+--
+
+-- Name: tool_drafts_instructions_connection tool_drafts_instructions_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tool_drafts_instructions_connection
+    ADD CONSTRAINT tool_drafts_instructions_connection_pkey PRIMARY KEY (draft_id, instructions_id, version);
 
 
 --

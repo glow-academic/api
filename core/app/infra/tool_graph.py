@@ -198,12 +198,15 @@ def score_tools(
 ) -> ArtifactToolScores:
     """Score and pick the best tool per target for a given artifact.
 
-    Scoring (per target):
+    Scoring (per target) — follows least privilege principle:
       1. Only consider tools whose target is in artifact_resources
-      2. Per agent, compute coverage = how many artifact_resources it covers
-      3. If modality specified, hard-filter to agents supporting that modality
-      4. Pick the agent with highest coverage (specialist wins)
-      5. Deterministic tiebreak by agent_id
+      2. If modality specified, hard-filter to agents supporting that modality
+      3. Pick the agent with the narrowest total scope (fewest distinct targets)
+      4. Tiebreak: higher coverage of requested resources, then agent_id
+
+    The narrowest-scope agent that fulfills the request wins. This ensures
+    the Persona agent (10 tools, 1 artifact) beats the Composer (19 tools,
+    28 artifacts) when the request is purely about personas.
 
     Returns the best ResolvedTool per target, has_any flags, and available_modalities.
     """
@@ -233,13 +236,21 @@ def score_tools(
         set().union(*agent_modalities.values()) if agent_modalities else set()
     )
 
-    # Compute per-agent coverage: how many artifact_resources does each agent touch?
+    # Compute per-agent coverage and scope
     agent_targets: dict[UUID, set[str]] = {}
     for t in graph.tools:
         agent_targets.setdefault(t.agent_id, set()).add(t.target)
 
+    # coverage: how many of the requested artifact_resources this agent handles
     agent_coverage: dict[UUID, int] = {
         agent_id: len(targets & artifact_resources)
+        for agent_id, targets in agent_targets.items()
+    }
+
+    # total_scope: how many distinct targets this agent covers overall
+    # (used for least-privilege tiebreak — fewer = more specialized)
+    agent_total_scope: dict[UUID, int] = {
+        agent_id: len(targets)
         for agent_id, targets in agent_targets.items()
     }
 
@@ -270,10 +281,16 @@ def score_tools(
             best[resource] = None
             continue
 
-        # Pick by: highest coverage, then agent_id for determinism
-        best[resource] = max(
+        # Least privilege: among agents that cover this resource, pick the
+        # one with the narrowest total scope (fewest distinct targets).
+        # Tiebreak by coverage (higher = better fit), then agent_id.
+        best[resource] = min(
             candidates,
-            key=lambda t: (agent_coverage.get(t.agent_id, 0), t.agent_id),
+            key=lambda t: (
+                agent_total_scope.get(t.agent_id, 999),
+                -agent_coverage.get(t.agent_id, 0),
+                t.agent_id,
+            ),
         )
 
     return ArtifactToolScores(
