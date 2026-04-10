@@ -8,8 +8,6 @@ Names are CREATED as new resources.
 Role and department IDs reference pre-existing resources (01-resources/).
 """
 
-from uuid import UUID
-
 from database.seeds.ids import sid
 from database.seeds.profiles import (
     ADMIN_ROLE,
@@ -23,7 +21,7 @@ from database.seeds.profiles import (
 )
 from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVERSITY_DEPT_RESOURCE
 
-BENCHMARK_ROLE = UUID("019bdb94-b279-70c0-a610-6b9696fb5c94")
+BENCHMARK_ROLE = sid("role/benchmark")
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs — importable by other modules

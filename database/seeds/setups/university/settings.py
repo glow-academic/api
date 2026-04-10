@@ -7,8 +7,6 @@ Names and descriptions are CREATED as new resources.
 Provider keys and auth item keys are created by the keys module and linked here.
 """
 
-from uuid import UUID
-
 from database.seeds.auths import AUTH_RESOURCE_IDS
 from database.seeds.ids import sid
 from database.seeds.setups.university.departments import (
@@ -37,9 +35,9 @@ SETTING_PROFILE_RESOURCE_IDS = [BENCHMARK_PROFILE_RESOURCE, UNI_SUPERADMIN_RESOU
 # Pre-existing threshold resource IDs (from 01-resources/06-thresholds.sql)
 # ---------------------------------------------------------------------------
 
-THRESHOLD_SUCCESS = UUID("019b995b-5308-7a8e-9d31-b08127742439")  # 85
-THRESHOLD_WARNING = UUID("019b995b-5309-714f-a5f6-5614613257b1")  # 80
-THRESHOLD_DANGER = UUID("019b995b-5309-74df-991a-c28980b294f2")  # 70
+THRESHOLD_SUCCESS = sid("threshold/85")
+THRESHOLD_WARNING = sid("threshold/80")
+THRESHOLD_DANGER = sid("threshold/70")
 
 # ---------------------------------------------------------------------------
 # Pre-existing system resource IDs (from 10-systems/)

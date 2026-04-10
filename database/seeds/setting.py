@@ -6,8 +6,6 @@ Auth providers are dynamically included from glow-deploy.yaml config.
 This gives a working login screen out of the box on fresh deploys.
 """
 
-from uuid import UUID
-
 from database.seeds.ids import sid
 from database.seeds.dynamic_keys import (
     AUTH_ITEM_KEY_IDS,
@@ -57,9 +55,9 @@ from database.seeds.systems import (
 # Pre-existing threshold resource IDs (from module 01 resources)
 # ---------------------------------------------------------------------------
 
-THRESHOLD_SUCCESS = UUID("019b995b-5308-7a8e-9d31-b08127742439")  # 85
-THRESHOLD_WARNING = UUID("019b995b-5309-714f-a5f6-5614613257b1")  # 80
-THRESHOLD_DANGER = UUID("019b995b-5309-74df-991a-c28980b294f2")  # 70
+THRESHOLD_SUCCESS = sid("threshold/85")
+THRESHOLD_WARNING = sid("threshold/80")
+THRESHOLD_DANGER = sid("threshold/70")
 
 # ---------------------------------------------------------------------------
 # All system IDs

@@ -7,8 +7,6 @@ Names and descriptions are CREATED as new resources.
 Flag IDs reference pre-existing resources from 01-resources/02-flags.sql.
 """
 
-from uuid import UUID
-
 from database.seeds.ids import sid
 from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVERSITY_DEPT_RESOURCE
 from database.seeds.setups.university.scenario_rubrics import (
@@ -60,7 +58,7 @@ UPSET_STUDENT_TRAINING_RESOURCE = sid("uni/simulation-resource/upset-student-tra
 # Pre-existing flag IDs (from 01-resources/02-flags.sql)
 # ---------------------------------------------------------------------------
 
-PRACTICE_FLAG = UUID("019b995a-86ef-78e3-8811-f5d0cfd31e3c")
+PRACTICE_FLAG = sid("flag/practice")
 
 # ---------------------------------------------------------------------------
 # Simulation definitions

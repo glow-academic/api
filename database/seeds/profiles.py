@@ -5,8 +5,6 @@ since _impl functions require a profile_id to already exist. Once the Default
 Superadmin is created, all subsequent modules use _impl with SEED_PROFILE_ID.
 """
 
-from uuid import UUID
-
 from database.seeds.ids import sid
 
 # ---------------------------------------------------------------------------
@@ -14,24 +12,24 @@ from database.seeds.ids import sid
 # ---------------------------------------------------------------------------
 
 # Roles (from database/seeds/resources/roles.py)
-SUPERADMIN_ROLE = UUID("019bbabc-5a3b-7481-bbf5-a7c2193bc5e4")
-ADMIN_ROLE = UUID("019bbabc-5a36-76d3-8fc3-8415fe308cd3")
-INSTRUCTIONAL_ROLE = UUID("019bbabc-5a3b-741e-bad3-474cc6c05fd6")
-MEMBER_GTA_ROLE = UUID("019bf21d-4d50-74fc-8c81-be446d602de2")
-MEMBER_UTA_ROLE = UUID("019bf21d-4d50-7039-b5ba-4aea69013072")
-GUEST_ROLE = UUID("019bbabc-5a37-7028-8b98-728b7aa54d0d")
+SUPERADMIN_ROLE = sid("role/super-administrator")
+ADMIN_ROLE = sid("role/administrator")
+INSTRUCTIONAL_ROLE = sid("role/instructional-staff")
+MEMBER_GTA_ROLE = sid("role/gta")
+MEMBER_UTA_ROLE = sid("role/uta")
+GUEST_ROLE = sid("role/guest")
 
 # Flags (from database/seeds/resources/flags.py)
-PROFILE_ACTIVE = UUID("019be334-bfc5-7197-8f3e-c203790334de")
+PROFILE_ACTIVE = sid("flag/profile-active")
 
 # Request limits (from database/seeds/resources/request_limits.py)
-GUEST_REQUEST_LIMIT = UUID("019bb553-e77f-797c-ae44-544fbe10351b")
+GUEST_REQUEST_LIMIT = sid("request-limit/daily-10")
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs — importable by other modules
 # ---------------------------------------------------------------------------
 
-SEED_PROFILE_ID = UUID("019b3be4-36f0-788c-9df2-481eb5917940")
+SEED_PROFILE_ID = sid("profile/bootstrap-superadmin")
 
 # Deterministic resource ID for the bootstrap profile
 SEED_PROFILE_RESOURCE = sid("default/profile-resource/superadmin")

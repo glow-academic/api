@@ -5,8 +5,6 @@ auth providers, and the fresh superadmin profile linked.
 This gives a working login screen out of the box.
 """
 
-from uuid import UUID
-
 from database.seeds.dynamic_keys import (
     AUTH_ITEM_KEY_IDS,
     AUTH_ITEM_VALUE_IDS,
@@ -57,9 +55,9 @@ from database.seeds.systems import (
 # Thresholds
 # ---------------------------------------------------------------------------
 
-THRESHOLD_SUCCESS = UUID("019b995b-5308-7a8e-9d31-b08127742439")  # 85
-THRESHOLD_WARNING = UUID("019b995b-5309-714f-a5f6-5614613257b1")  # 80
-THRESHOLD_DANGER = UUID("019b995b-5309-74df-991a-c28980b294f2")  # 70
+THRESHOLD_SUCCESS = sid("threshold/85")
+THRESHOLD_WARNING = sid("threshold/80")
+THRESHOLD_DANGER = sid("threshold/70")
 
 ALL_SYSTEMS = [
     ACTIVITY_SYSTEM, AGENT_SYSTEM, ATTEMPT_CHAT_SYSTEM, ATTEMPT_GRADE_SYSTEM,

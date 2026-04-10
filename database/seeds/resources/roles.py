@@ -6,8 +6,6 @@ level hierarchy, and request limits.
 Level: 0 = highest privilege (superadmin), higher = less privilege.
 """
 
-from uuid import UUID
-
 from database.seeds.ids import sid
 from database.seeds.resources.permissions import PERMISSION_IDS
 
@@ -24,7 +22,7 @@ _MEDIA_OPS = [
 ]
 
 # Request limit IDs (from request_limits seeds)
-DAILY_LIMIT_10 = UUID("019bb553-e77f-797c-ae44-544fbe10351b")
+DAILY_LIMIT_10 = sid("request-limit/daily-10")
 
 
 def _pids(artifact_names: list[str], ops: list[str] | None = None) -> list:
@@ -44,12 +42,12 @@ def _pids(artifact_names: list[str], ops: list[str] | None = None) -> list:
 roles = [
     # ── Superadmin (level 0): full CRUD on everything ──
     dict(
-        id=UUID("019bbabc-5a3b-7481-bbf5-a7c2193bc5e4"),
+        id=sid("role/super-administrator"),
         level=0,
         name="Super Administrator",
         description="Full system access to all data and permissions",
-        icon_id=UUID("019bb3ba-adb7-703a-b547-c08bb5bf1d86"),
-        color_id=UUID("019b9eb0-c7ab-7e82-99e7-a4bdcf523add"),
+        icon_id=sid("icon/crown"),
+        color_id=sid("color/amber"),
         permission_ids=(
             _pids([
                 "home", "practice", "leaderboard", "chat", "attempt",
@@ -65,12 +63,12 @@ roles = [
     ),
     # ── Admin (level 1): CRUD on most, read on system artifacts ──
     dict(
-        id=UUID("019bbabc-5a36-76d3-8fc3-8415fe308cd3"),
+        id=sid("role/administrator"),
         level=1,
         name="Administrator",
         description="Manages all content and users within departments",
-        icon_id=UUID("019b9eb0-c7ac-7a45-965e-a51bb3cc5eb6"),
-        color_id=UUID("019b995b-52f6-7746-a592-fbc338f61f5f"),
+        icon_id=sid("icon/shield"),
+        color_id=sid("color/blue"),
         permission_ids=(
             # CRUD on content + management artifacts
             _pids([
@@ -90,12 +88,12 @@ roles = [
     ),
     # ── Instructional (level 2): CRUD on training, read on analytics ──
     dict(
-        id=UUID("019bbabc-5a3b-741e-bad3-474cc6c05fd6"),
+        id=sid("role/instructional-staff"),
         level=2,
         name="Instructional Staff",
         description="Manages training content, cohorts, and simulations",
-        icon_id=UUID("019b995b-52f7-752e-b5df-c8ff97d35ae7"),
-        color_id=UUID("019b995b-52f6-7750-8e0d-a4a37ff9ad13"),
+        icon_id=sid("icon/graduation-cap"),
+        color_id=sid("color/violet"),
         permission_ids=(
             # CRUD on training artifacts
             _pids([
@@ -113,7 +111,7 @@ roles = [
     ),
     # ── GTA (level 3): read + practice ──
     dict(
-        id=UUID("019bf21d-4d50-74fc-8c81-be446d602de2"),
+        id=sid("role/gta"),
         level=3,
         name="GTA",
         description="Graduate Teaching Assistant",
@@ -126,7 +124,7 @@ roles = [
     ),
     # ── UTA (level 3): read + practice ──
     dict(
-        id=UUID("019bf21d-4d50-7039-b5ba-4aea69013072"),
+        id=sid("role/uta"),
         level=3,
         name="UTA",
         description="Undergraduate Teaching Assistant",
@@ -139,12 +137,12 @@ roles = [
     ),
     # ── Guest (level 4): minimal access ──
     dict(
-        id=UUID("019bbabc-5a37-7028-8b98-728b7aa54d0d"),
+        id=sid("role/guest"),
         level=4,
         name="Guest",
         description="Limited access, not logged in or not registered",
-        icon_id=UUID("019b995b-52f7-7525-b425-73423c427909"),
-        color_id=UUID("019b995b-52f1-7d09-889a-b24887bd2cb2"),
+        icon_id=sid("icon/user"),
+        color_id=sid("color/gray"),
         permission_ids=(
             _pids(["practice", "chat", "attempt"])
             + _pids(["attempt"], _MEDIA_OPS)
@@ -153,12 +151,12 @@ roles = [
     ),
     # ── Benchmark (level 3): system benchmarking access ──
     dict(
-        id=UUID("019bdb94-b279-70c0-a610-6b9696fb5c94"),
+        id=sid("role/benchmark"),
         level=3,
         name="Benchmark",
         description="Benchmark access role",
-        icon_id=UUID("019bb3ba-adb7-7045-884f-ee58692da3d1"),
-        color_id=UUID("019b9eb0-c7ab-7dce-a088-16018f3dbf37"),
+        icon_id=sid("icon/flame"),
+        color_id=sid("color/orange"),
         permission_ids=_pids(["benchmark", "invocation", "test"], _ALL_CRUD),
     ),
 ]

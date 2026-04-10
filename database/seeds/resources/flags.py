@@ -5,11 +5,11 @@ Flags control behaviors like active state, audio/text/video modes, rubric types,
 and various scenario configuration options.
 """
 
-from uuid import UUID
+from database.seeds.ids import sid
 
 flags = [
     dict(
-        id=UUID("019b995a-86ef-71e9-ad2c-6c2040afdffe"),
+        id=sid("flag/active"),
         name="active",
         description="Active flag",
         type="active",
@@ -17,7 +17,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019b995a-86ef-78fc-adec-fc4db3a87c0d"),
+        id=sid("flag/guest-login-enabled"),
         name="guest_login_enabled",
         description="Guest login enabled",
         type="guest_login_enabled",
@@ -25,7 +25,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019b995a-86ef-78e3-8811-f5d0cfd31e3c"),
+        id=sid("flag/practice"),
         name="Practice",
         description="Practice flag",
         type="practice",
@@ -33,7 +33,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019b995a-86ef-7800-b93b-7897b07eca47"),
+        id=sid("flag/video"),
         name="Video",
         description="Video enabled",
         type="video_enabled",
@@ -41,7 +41,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019b995a-86ef-7830-9317-80d8d52b1bb2"),
+        id=sid("flag/problem-statement"),
         name="Problem Statement",
         description="Problem statement enabled",
         type="problem_statement_enabled",
@@ -49,7 +49,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019b995a-86ef-77a3-a2a6-e6b760a9fcfe"),
+        id=sid("flag/objectives"),
         name="Objectives",
         description="Objectives enabled",
         type="objectives_enabled",
@@ -57,7 +57,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019b995a-86ef-781a-8ecb-8c0a6cfab122"),
+        id=sid("flag/questions"),
         name="Questions",
         description="Questions enabled",
         type="questions_enabled",
@@ -65,7 +65,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019b995a-86ef-77dc-8ddc-2013a6e3194f"),
+        id=sid("flag/images"),
         name="Images",
         description="Images enabled",
         type="images_enabled",
@@ -73,7 +73,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019b995a-86ef-789f-94fa-2bd3e0707baa"),
+        id=sid("flag/groups"),
         name="groups",
         description="Groups flag",
         type="groups",
@@ -81,7 +81,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019b995a-86ef-7879-89ed-3eadac3e0b84"),
+        id=sid("flag/dynamic"),
         name="dynamic",
         description="Dynamic flag",
         type="dynamic",
@@ -89,7 +89,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019b995a-86ef-78bb-87a8-0de554b128bb"),
+        id=sid("flag/template"),
         name="template",
         description="Template flag",
         type="template",
@@ -97,7 +97,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019bd1c8-54ed-738a-a5fe-a914fd802fd4"),
+        id=sid("flag/audio-enabled"),
         name="Audio Enabled",
         description="Audio enabled flag for simulation scenario",
         type="audio_enabled",
@@ -105,7 +105,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019bd1c8-54ed-750f-9ac8-e07932a65132"),
+        id=sid("flag/text-enabled"),
         name="Text Enabled",
         description="Text enabled flag for simulation scenario",
         type="text_enabled",
@@ -113,7 +113,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019bd1c8-54ed-74e9-a759-57eb8cb33e44"),
+        id=sid("flag/show-problem-statement"),
         name="Show Problem Statement",
         description="Show problem statement flag for simulation scenario",
         type="show_problem_statement",
@@ -121,7 +121,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019bd1c8-54ed-74d1-a0fa-87039f089a82"),
+        id=sid("flag/show-objectives"),
         name="Show Objectives",
         description="Show objectives flag for simulation scenario",
         type="show_objectives",
@@ -129,7 +129,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019bd1c8-54ed-74b4-b6ac-6e8cefab3f3e"),
+        id=sid("flag/show-images"),
         name="Show Images",
         description="Show images flag for simulation scenario",
         type="show_images",
@@ -137,7 +137,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019bd1c8-54ed-7494-b25c-2cb4b87bf1f9"),
+        id=sid("flag/hints-enabled"),
         name="Hints Enabled",
         description="Hints enabled flag for simulation scenario",
         type="hints_enabled",
@@ -145,7 +145,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019bd1c8-54ed-746e-8763-c56ec022d976"),
+        id=sid("flag/copy-paste-allowed"),
         name="Copy Paste Allowed",
         description="Copy paste allowed flag for simulation scenario",
         type="copy_paste_allowed",
@@ -153,7 +153,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019bc71d-3ec0-7a2f-a0d2-fe56d855f570"),
+        id=sid("flag/use-templates"),
         name="use_templates",
         description="Use templates flag for scenarios",
         type="use_templates",
@@ -161,7 +161,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019bcc4d-d9c6-7a09-b99a-919d8f85cab1"),
+        id=sid("flag/mcp"),
         name="mcp",
         description="Enable or disable the use of the MCP server",
         type="mcp",
@@ -169,7 +169,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019be334-bfc3-7423-93ff-cc162b6984e9"),
+        id=sid("flag/scenario-active"),
         name="Active",
         description="Controls whether this scenario is published and available for simulations",
         type="scenario_active",
@@ -177,7 +177,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019be334-bfc4-7dd2-bcbd-93f1af18c233"),
+        id=sid("flag/field-active"),
         name="field_active",
         description="Controls whether this field is visible and editable in forms",
         type="field_active",
@@ -185,7 +185,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019be334-bfc4-7ef6-b18f-7a556d94b225"),
+        id=sid("flag/model-active"),
         name="model_active",
         description="Controls whether this AI model is available for selection by agents",
         type="model_active",
@@ -193,7 +193,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019be334-bfc5-7197-8f3e-c203790334de"),
+        id=sid("flag/profile-active"),
         name="profile_active",
         description="Controls whether this user profile is active and can access the system",
         type="profile_active",
@@ -201,7 +201,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019be334-bfc5-7a16-a7ce-ed6bdc9a6e5d"),
+        id=sid("flag/provider-active"),
         name="provider_active",
         description="Controls whether this AI provider is available for use",
         type="provider_active",
@@ -209,7 +209,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019be334-bfc5-7dbf-aefd-d61c2e8eebc1"),
+        id=sid("flag/rubric-active"),
         name="rubric_active",
         description="Controls whether this rubric is available for grading simulations",
         type="rubric_active",
@@ -217,7 +217,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019be334-bfc6-717e-9377-b63fc43ae0c6"),
+        id=sid("flag/setting-active"),
         name="setting_active",
         description="Controls whether this setting is enabled and applied",
         type="setting_active",
@@ -225,7 +225,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019be334-bfc6-74fb-be11-ea6b522945bb"),
+        id=sid("flag/tool-active"),
         name="tool_active",
         description="Controls whether this tool is available for use by AI agents",
         type="tool_active",
@@ -233,7 +233,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019be334-bfc4-71d1-90f5-23e5037bca21"),
+        id=sid("flag/cohort-active"),
         name="Active",
         description="Controls whether this cohort is active and can run simulations",
         type="cohort_active",
@@ -241,7 +241,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019be334-bfc3-7998-9dcf-a00d3d137da5"),
+        id=sid("flag/persona-active"),
         name="Active",
         description="Controls whether this persona is available for use in scenarios",
         type="persona_active",
@@ -249,7 +249,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019be334-bfc6-73b3-ac0d-822d6864d660"),
+        id=sid("flag/simulation-active"),
         name="Active",
         description="Controls whether this simulation is active and can be started",
         type="simulation_active",
@@ -257,7 +257,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019be334-bfc4-76ac-80d3-c8ba7618bc7a"),
+        id=sid("flag/agent-active"),
         name="agent_active",
         description="Controls whether this AI agent is available for use in simulations",
         type="agent_active",
@@ -265,7 +265,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019be334-bfc4-79b2-949c-9f99ea25d2c0"),
+        id=sid("flag/auth-active"),
         name="auth_active",
         description="Controls whether this authentication method is enabled for login",
         type="auth_active",
@@ -273,7 +273,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019be334-bfc3-7c81-b7b6-de11e555da9d"),
+        id=sid("flag/department-active"),
         name="department_active",
         description="Controls whether this department is visible in the organization structure",
         type="department_active",
@@ -281,7 +281,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019be334-bfc4-7b69-96a1-6cf5422bba50"),
+        id=sid("flag/document-active"),
         name="document_active",
         description="Controls whether this document is available for reference in scenarios",
         type="document_active",
@@ -289,7 +289,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019be334-bfc4-7c9d-b9f9-19eb0fc849ec"),
+        id=sid("flag/eval-active"),
         name="eval_active",
         description="Controls whether this evaluation configuration is active and can be used",
         type="eval_active",
@@ -297,7 +297,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019c2085-4b7a-7522-b58b-d472e9fef570"),
+        id=sid("flag/simulation-rubric"),
         name="simulation_rubric",
         description="Rubric used for simulation grading",
         type="simulation_rubric",
@@ -305,7 +305,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019c2085-4b7c-7a5b-9b83-731223104ac7"),
+        id=sid("flag/video-rubric"),
         name="video_rubric",
         description="Rubric used for video grading",
         type="video_rubric",
@@ -313,7 +313,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("8d0c8f56-2d24-43cc-8dfb-bbe94804f48c"),
+        id=sid("flag/infinite-mode"),
         name="Infinite Mode",
         description="Enable infinite mode for unlimited attempts",
         type="infinite_mode",
@@ -321,7 +321,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019c7307-6fd9-73ba-ab1f-03fb6719f8dd"),
+        id=sid("flag/strengths-enabled"),
         name="Strengths Enabled",
         description="Enable strengths feedback for scenarios",
         type="strengths_enabled",
@@ -329,7 +329,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019c7307-6fd9-74b2-bc6a-ad91933ee830"),
+        id=sid("flag/use-custom"),
         name="Use Custom",
         description="Allow custom configuration for scenarios",
         type="use_custom",
@@ -337,7 +337,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019c7307-6fd8-7fa2-955b-b06b6c5f9896"),
+        id=sid("flag/analyses-enabled"),
         name="Analyses Enabled",
         description="Enable analysis feedback for scenarios",
         type="analyses_enabled",
@@ -345,7 +345,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019c7307-6fd9-7487-aaea-6d896596223b"),
+        id=sid("flag/use-previous"),
         name="Use Previous",
         description="Use previous attempt context for scenarios",
         type="use_previous",
@@ -353,7 +353,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019c7307-6fd9-7454-8f14-6f55256edc46"),
+        id=sid("flag/replacements-enabled"),
         name="Replacements Enabled",
         description="Enable replacement suggestions for scenarios",
         type="replacements_enabled",
@@ -361,7 +361,7 @@ flags = [
         value=True,
     ),
     dict(
-        id=UUID("019c7307-6fd9-7433-ad75-ac78d08e7ede"),
+        id=sid("flag/improvements-enabled"),
         name="Improvements Enabled",
         description="Enable improvements feedback for scenarios",
         type="improvements_enabled",

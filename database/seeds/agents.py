@@ -8,8 +8,6 @@ CreateAgentItem / create_agent_impl does not support prompt/instruction
 junctions. These must be added separately after initial creation.
 """
 
-from uuid import UUID
-
 from database.seeds.ids import sid
 from database.seeds.models import ROLE_MODEL_IDS
 
@@ -28,51 +26,51 @@ def _role_model(role: str) -> list:
 # ---------------------------------------------------------------------------
 
 # Flags (from database/seeds/resources/flags.py)
-AGENT_ACTIVE_FLAG = UUID("019be334-bfc4-76ac-80d3-c8ba7618bc7a")
+AGENT_ACTIVE_FLAG = sid("flag/agent-active")
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs — importable by other modules (e.g., systems.py)
 # When created via _impl, artifact ID = resource ID.
 # ---------------------------------------------------------------------------
 
-ACTIVITY_AGENT = UUID("ab00000a-0000-0000-0000-00000000000a")
-AGENT_AGENT = UUID("88888888-8888-8888-8888-888888888888")
-ATTEMPT_CHAT_AGENT = UUID("ab000002-0000-0000-0000-000000000002")
-ATTEMPT_CHAT_AGENT_2 = UUID("019c82b8-5d9a-7b9e-92f2-278f3c55d7aa")
-ATTEMPT_GRADE_AGENT = UUID("ab000003-0000-0000-0000-000000000003")
-AUTH_AGENT = UUID("22222222-2222-2222-2222-222222222222")
-BENCHMARK_AGENT = UUID("aabbccdd-aabb-ccdd-aabb-ccddaabbccdd")
-CHAT_AGENT = UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
-COHORT_AGENT = UUID("66666666-6666-6666-6666-666666666666")
-DASHBOARD_AGENT = UUID("ab000007-0000-0000-0000-000000000007")
-DEPARTMENT_AGENT = UUID("44444444-4444-4444-4444-444444444444")
-DOCUMENT_AGENT = UUID("019b3be4-3112-774d-82b2-c4c3ed98238e")
-EVAL_AGENT = UUID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
-FIELD_AGENT = UUID("ffffffff-ffff-ffff-ffff-ffffffffffff")
-GROUP_AGENT = UUID("ab00000f-0000-0000-0000-00000000000f")
-HEALTH_AGENT = UUID("ab00000d-0000-0000-0000-00000000000d")
-HOME_AGENT = UUID("ab000005-0000-0000-0000-000000000005")
-INVOCATION_AGENT = UUID("ab000001-0000-0000-0000-000000000001")
-LEADERBOARD_AGENT = UUID("ab00000e-0000-0000-0000-00000000000e")
-MODEL_AGENT = UUID("99999999-9999-9999-9999-999999999999")
-PARAMETER_AGENT = UUID("11111111-1111-1111-1111-111111111111")
-PERSONA_AGENT = UUID("cccccccc-cccc-cccc-cccc-cccccccccccc")
-PRACTICE_AGENT = UUID("ab000006-0000-0000-0000-000000000006")
-PRICING_AGENT = UUID("ab00000c-0000-0000-0000-00000000000c")
-PROFILE_AGENT = UUID("33333333-3333-3333-3333-333333333333")
-PROVIDER_AGENT = UUID("00000000-0000-0000-0000-000000000000")
-RECORD_AGENT = UUID("ab000009-0000-0000-0000-000000000009")
-REPORTS_AGENT = UUID("ab000008-0000-0000-0000-000000000008")
-RUBRIC_AGENT = UUID("019b3be4-3112-7786-ad7d-45ee39b86bc5")
-SCENARIO_AGENT = UUID("019b3be4-3112-7685-8967-a5488fadb090")
-SCENARIO_IMAGE_AGENT = UUID("f6533535-6087-4e6d-9fd3-ed92cc9c1021")
-SCENARIO_VIDEO_AGENT = UUID("3937bcae-527f-495f-82c5-476d18ce7fed")
-SESSION_AGENT = UUID("ab00000b-0000-0000-0000-00000000000b")
-SETTING_AGENT = UUID("77777777-7777-7777-7777-777777777777")
-SIMULATION_AGENT = UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
-TEST_GRADE_AGENT = UUID("ab000004-0000-0000-0000-000000000004")
-TOOL_AGENT = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
-COMPOSER_AGENT = UUID("ab000010-0000-0000-0000-000000000010")
+ACTIVITY_AGENT = sid("agent/activity")
+AGENT_AGENT = sid("agent/agent")
+ATTEMPT_CHAT_AGENT = sid("agent/attempt-chat")
+ATTEMPT_CHAT_AGENT_2 = sid("agent/attempt-chat-2")
+ATTEMPT_GRADE_AGENT = sid("agent/attempt-grade")
+AUTH_AGENT = sid("agent/auth")
+BENCHMARK_AGENT = sid("agent/benchmark")
+CHAT_AGENT = sid("agent/chat")
+COHORT_AGENT = sid("agent/cohort")
+DASHBOARD_AGENT = sid("agent/dashboard")
+DEPARTMENT_AGENT = sid("agent/department")
+DOCUMENT_AGENT = sid("agent/document")
+EVAL_AGENT = sid("agent/eval")
+FIELD_AGENT = sid("agent/field")
+GROUP_AGENT = sid("agent/group")
+HEALTH_AGENT = sid("agent/health")
+HOME_AGENT = sid("agent/home")
+INVOCATION_AGENT = sid("agent/invocation")
+LEADERBOARD_AGENT = sid("agent/leaderboard")
+MODEL_AGENT = sid("agent/model")
+PARAMETER_AGENT = sid("agent/parameter")
+PERSONA_AGENT = sid("agent/persona")
+PRACTICE_AGENT = sid("agent/practice")
+PRICING_AGENT = sid("agent/pricing")
+PROFILE_AGENT = sid("agent/profile")
+PROVIDER_AGENT = sid("agent/provider")
+RECORD_AGENT = sid("agent/record")
+REPORTS_AGENT = sid("agent/reports")
+RUBRIC_AGENT = sid("agent/rubric")
+SCENARIO_AGENT = sid("agent/scenario")
+SCENARIO_IMAGE_AGENT = sid("agent/scenario-image")
+SCENARIO_VIDEO_AGENT = sid("agent/scenario-video")
+SESSION_AGENT = sid("agent/session")
+SETTING_AGENT = sid("agent/setting")
+SIMULATION_AGENT = sid("agent/simulation")
+TEST_GRADE_AGENT = sid("agent/test-grade")
+TOOL_AGENT = sid("agent/tool")
+COMPOSER_AGENT = sid("agent/composer")
 
 # ---------------------------------------------------------------------------
 # Deterministic resource IDs for agent-resource associations
