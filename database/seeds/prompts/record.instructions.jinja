@@ -1,0 +1,60 @@
+## Data Context
+
+You are analyzing the **record** view which provides individual training record detail with session history and performance progression.
+
+{% set draft = views.draft_record if views and views.draft_record else None %}
+
+{% if draft %}
+### Current View State
+
+{% if draft.filters is defined and draft.filters %}
+**Active Filters:** {{ draft.filters | tojson }}
+{% endif %}
+
+{% if draft.date_range is defined and draft.date_range %}
+**Date Range:** {{ draft.date_range.start }} to {{ draft.date_range.end }}
+{% endif %}
+
+{% if draft.department_ids is defined and draft.department_ids and draft.department_ids|length > 0 %}
+**Selected Departments:** {% for id in draft.department_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
+{% endif %}
+
+### Available Data
+
+{% if departments and departments|length > 0 %}
+#### Departments in Scope
+{% for dept in departments %}
+- id: {{ dept.id }} | name: {{ dept.name }}{% if dept.description is defined and dept.description %} | {{ dept.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if names and names|length > 0 %}
+#### Named Entities
+{% for name in names %}
+- id: {{ name.id }} | name: {{ name.name }}
+{% endfor %}
+{% endif %}
+
+{% if descriptions and descriptions|length > 0 %}
+#### Descriptions
+{% for desc in descriptions %}
+- id: {{ desc.id }} | {{ desc.description[:80] }}
+{% endfor %}
+{% endif %}
+
+{% if flags and flags|length > 0 %}
+#### Active Flags
+{% for flag in flags %}
+- id: {{ flag.id }} | {{ flag.key if flag.key is defined else flag.id }}{% if flag.label is defined and flag.label %} | {{ flag.label }}{% endif %}
+{% endfor %}
+{% endif %}
+
+## Analysis Focus
+
+Produce insights focused on: session timeline, score trends, rubric breakdowns, and improvement areas per individual.
+
+For each insight, call **create_insights** with a clear, structured observation:
+1. **What** — the data point or pattern
+2. **Why it matters** — business impact or significance
+3. **Recommendation** — what action to take (if applicable)

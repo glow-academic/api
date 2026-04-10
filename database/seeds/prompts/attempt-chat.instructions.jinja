@@ -1,0 +1,37 @@
+## Context
+
+{% set draft = views.draft_attempt_chat if views and views.draft_attempt_chat else None %}
+
+{% if draft %}
+### Current State
+{% if draft.scenario_name is defined %}
+**Scenario:** {{ draft.scenario_name }}
+{% endif %}
+{% if draft.persona_name is defined %}
+**Persona:** {{ draft.persona_name }}
+{% endif %}
+{% if draft.rubric_name is defined %}
+**Rubric:** {{ draft.rubric_name }}
+{% endif %}
+{% if draft.department_ids is defined and draft.department_ids and draft.department_ids|length > 0 %}
+**Departments:** {% for id in draft.department_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if standard_groups and standard_groups|length > 0 %}
+### Rubric Standard Groups
+{% for sg in standard_groups %}
+- id: {{ sg.id }} | name: {{ sg.name }}{% if sg.description is defined %} | {{ sg.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if standards and standards|length > 0 %}
+### Rubric Standards
+{% for s in standards %}
+- id: {{ s.id }} | description: {{ s.description[:80] if s.description is defined else s.id }}
+{% endfor %}
+{% endif %}
+
+## Tool Usage
+
+Use the tools listed in the system prompt to generate structured output. Each tool call produces one entry.

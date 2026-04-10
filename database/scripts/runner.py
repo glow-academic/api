@@ -485,6 +485,35 @@ async def _run_model_module_seeds(
     print(f"  OK: {len(models)} models created")
 
 
+async def _run_prompt_and_instruction_seeds(
+    pool: asyncpg.Pool,
+    redis: Redis,
+) -> None:
+    """Module 04a — Create prompts and instructions before agents."""
+    from app.tools.resources.prompts.create import create_prompt
+    from app.tools.resources.instructions.create import create_instruction
+    from database.seeds.prompts import prompts, instructions
+
+    async with pool.acquire() as conn:
+        for p in prompts:
+            await create_prompt(
+                conn,
+                system_prompt=p["system_prompt"],
+                name=p["name"],
+                description=p["description"],
+                redis=redis,
+                id=p["id"],
+            )
+        for i in instructions:
+            await create_instruction(
+                conn,
+                template=i["template"],
+                redis=redis,
+                id=i["id"],
+            )
+    print(f"  OK: {len(prompts)} prompts + {len(instructions)} instructions created")
+
+
 async def _run_agent_module_seeds(
     pool: asyncpg.Pool,
     redis: Redis,
@@ -1748,6 +1777,9 @@ async def main_setup(setup: str = "university") -> None:
 
         print("\nSeeding models...")
         await _run_model_module_seeds(pool, redis_client)
+
+        print("\nSeeding prompts + instructions...")
+        await _run_prompt_and_instruction_seeds(pool, redis_client)
 
         print("\nSeeding agents...")
         await _run_agent_module_seeds(pool, redis_client)

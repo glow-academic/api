@@ -2,14 +2,12 @@
 
 Each dict maps directly to CreateAgentItem fields.
 String fields (name, description) are resolved by the _impl function.
-
-Note: Agent prompts and instructions are NOT included here — the
-CreateAgentItem / create_agent_impl does not support prompt/instruction
-junctions. These must be added separately after initial creation.
+Prompts and instructions are loaded from .jinja files via prompts.py.
 """
 
 from database.seeds.ids import sid
 from database.seeds.models import ROLE_MODEL_IDS
+from database.seeds.prompts import prompt_id as _prompt_id, instruction_id as _instruction_id
 
 # ---------------------------------------------------------------------------
 # Helper: role-based model assignment
@@ -135,6 +133,8 @@ agents = [
             sid("tool-resource/activity/resolve"),
             sid("tool-resource/activity/search"),
         ],
+        prompt_id=_prompt_id("Activity"),
+        instruction_ids=[_instruction_id("Activity")],
     ),
     dict(
         id=AGENT_AGENT,
@@ -155,6 +155,8 @@ agents = [
             sid("tool-resource/agent/search"),
             sid("tool-resource/agent/update"),
         ],
+        prompt_id=_prompt_id("Agent"),
+        instruction_ids=[_instruction_id("Agent")],
     ),
     dict(
         id=ATTEMPT_CHAT_AGENT,
@@ -184,6 +186,8 @@ agents = [
             sid("tool-resource/attempt-audio/stop"),
             sid("tool-resource/attempt-audio/mute"),
         ],
+        prompt_id=_prompt_id("Attempt Chat"),
+        instruction_ids=[_instruction_id("Attempt Chat")],
     ),
     dict(
         id=ATTEMPT_GRADE_AGENT,
@@ -195,6 +199,8 @@ agents = [
         tool_ids=[
             sid("tool-resource/attempt/grade"),
         ],
+        prompt_id=_prompt_id("Attempt Grade"),
+        instruction_ids=[_instruction_id("Attempt Grade")],
     ),
     dict(
         id=AUTH_AGENT,
@@ -215,6 +221,8 @@ agents = [
             sid("tool-resource/auth/search"),
             sid("tool-resource/auth/update"),
         ],
+        prompt_id=_prompt_id("Auth"),
+        instruction_ids=[_instruction_id("Auth")],
     ),
     dict(
         id=BENCHMARK_AGENT,
@@ -229,6 +237,8 @@ agents = [
             sid("tool-resource/benchmark/refresh"),
             sid("tool-resource/benchmark/search"),
         ],
+        prompt_id=_prompt_id("Benchmark"),
+        instruction_ids=[_instruction_id("Benchmark")],
     ),
     dict(
         id=CHAT_AGENT,
@@ -244,6 +254,8 @@ agents = [
             sid("tool-resource/chat/get"),
             sid("tool-resource/chat/refresh"),
         ],
+        prompt_id=_prompt_id("Chat"),
+        instruction_ids=[_instruction_id("Chat")],
     ),
     dict(
         id=COHORT_AGENT,
@@ -264,6 +276,8 @@ agents = [
             sid("tool-resource/cohort/search"),
             sid("tool-resource/cohort/update"),
         ],
+        prompt_id=_prompt_id("Cohort"),
+        instruction_ids=[_instruction_id("Cohort")],
     ),
     dict(
         id=DASHBOARD_AGENT,
@@ -278,6 +292,8 @@ agents = [
             sid("tool-resource/dashboard/refresh"),
             sid("tool-resource/dashboard/search"),
         ],
+        prompt_id=_prompt_id("Dashboard"),
+        instruction_ids=[_instruction_id("Dashboard")],
     ),
     dict(
         id=DEPARTMENT_AGENT,
@@ -298,6 +314,8 @@ agents = [
             sid("tool-resource/department/search"),
             sid("tool-resource/department/update"),
         ],
+        prompt_id=_prompt_id("Department"),
+        instruction_ids=[_instruction_id("Department")],
     ),
     dict(
         id=DOCUMENT_AGENT,
@@ -323,6 +341,8 @@ agents = [
             sid("tool-resource/document-file/download"),
             sid("tool-resource/document-file/preview"),
         ],
+        prompt_id=_prompt_id("Document"),
+        instruction_ids=[_instruction_id("Document")],
     ),
     dict(
         id=EVAL_AGENT,
@@ -343,6 +363,8 @@ agents = [
             sid("tool-resource/eval/search"),
             sid("tool-resource/eval/update"),
         ],
+        prompt_id=_prompt_id("Eval"),
+        instruction_ids=[_instruction_id("Eval")],
     ),
     dict(
         id=FIELD_AGENT,
@@ -363,6 +385,8 @@ agents = [
             sid("tool-resource/field/search"),
             sid("tool-resource/field/update"),
         ],
+        prompt_id=_prompt_id("Field"),
+        instruction_ids=[_instruction_id("Field")],
     ),
     dict(
         id=GROUP_AGENT,
@@ -377,6 +401,8 @@ agents = [
             sid("tool-resource/group/get"),
             sid("tool-resource/group/refresh"),
         ],
+        prompt_id=_prompt_id("Group"),
+        instruction_ids=[_instruction_id("Group")],
     ),
     dict(
         id=HEALTH_AGENT,
@@ -390,6 +416,8 @@ agents = [
             sid("tool-resource/health/get"),
             sid("tool-resource/health/refresh"),
         ],
+        prompt_id=_prompt_id("Health"),
+        instruction_ids=[_instruction_id("Health")],
     ),
     dict(
         id=HOME_AGENT,
@@ -404,6 +432,8 @@ agents = [
             sid("tool-resource/home/refresh"),
             sid("tool-resource/home/search"),
         ],
+        prompt_id=_prompt_id("Home"),
+        instruction_ids=[_instruction_id("Home")],
     ),
     dict(
         id=INVOCATION_AGENT,
@@ -420,6 +450,8 @@ agents = [
             sid("tool-resource/invocation/get"),
             sid("tool-resource/invocation/refresh"),
         ],
+        prompt_id=_prompt_id("Invocation"),
+        instruction_ids=[_instruction_id("Invocation")],
     ),
     dict(
         id=LEADERBOARD_AGENT,
@@ -434,6 +466,8 @@ agents = [
             sid("tool-resource/leaderboard/refresh"),
             sid("tool-resource/leaderboard/search"),
         ],
+        prompt_id=_prompt_id("Leaderboard"),
+        instruction_ids=[_instruction_id("Leaderboard")],
     ),
     dict(
         id=MODEL_AGENT,
@@ -454,6 +488,8 @@ agents = [
             sid("tool-resource/model/search"),
             sid("tool-resource/model/update"),
         ],
+        prompt_id=_prompt_id("Model"),
+        instruction_ids=[_instruction_id("Model")],
     ),
     dict(
         id=PARAMETER_AGENT,
@@ -474,6 +510,8 @@ agents = [
             sid("tool-resource/parameter/search"),
             sid("tool-resource/parameter/update"),
         ],
+        prompt_id=_prompt_id("Parameter"),
+        instruction_ids=[_instruction_id("Parameter")],
     ),
     dict(
         id=PERSONA_AGENT,
@@ -494,6 +532,8 @@ agents = [
             sid("tool-resource/persona/search"),
             sid("tool-resource/persona/update"),
         ],
+        prompt_id=_prompt_id("Persona"),
+        instruction_ids=[_instruction_id("Persona")],
     ),
     dict(
         id=PRACTICE_AGENT,
@@ -508,6 +548,8 @@ agents = [
             sid("tool-resource/practice/refresh"),
             sid("tool-resource/practice/search"),
         ],
+        prompt_id=_prompt_id("Practice"),
+        instruction_ids=[_instruction_id("Practice")],
     ),
     dict(
         id=PRICING_AGENT,
@@ -522,6 +564,8 @@ agents = [
             sid("tool-resource/pricing/refresh"),
             sid("tool-resource/pricing/search"),
         ],
+        prompt_id=_prompt_id("Pricing"),
+        instruction_ids=[_instruction_id("Pricing")],
     ),
     dict(
         id=PROFILE_AGENT,
@@ -545,6 +589,8 @@ agents = [
             sid("tool-resource/profile/unemulate"),
             sid("tool-resource/profile/update"),
         ],
+        prompt_id=_prompt_id("Profile"),
+        instruction_ids=[_instruction_id("Profile")],
     ),
     dict(
         id=PROVIDER_AGENT,
@@ -566,6 +612,8 @@ agents = [
             sid("tool-resource/provider/search"),
             sid("tool-resource/provider/update"),
         ],
+        prompt_id=_prompt_id("Provider"),
+        instruction_ids=[_instruction_id("Provider")],
     ),
     dict(
         id=RECORD_AGENT,
@@ -580,6 +628,8 @@ agents = [
             sid("tool-resource/record/refresh"),
             sid("tool-resource/record/search"),
         ],
+        prompt_id=_prompt_id("Record"),
+        instruction_ids=[_instruction_id("Record")],
     ),
     dict(
         id=REPORTS_AGENT,
@@ -594,6 +644,8 @@ agents = [
             sid("tool-resource/reports/refresh"),
             sid("tool-resource/reports/search"),
         ],
+        prompt_id=_prompt_id("Reports"),
+        instruction_ids=[_instruction_id("Reports")],
     ),
     dict(
         id=RUBRIC_AGENT,
@@ -614,6 +666,8 @@ agents = [
             sid("tool-resource/rubric/search"),
             sid("tool-resource/rubric/update"),
         ],
+        prompt_id=_prompt_id("Rubric"),
+        instruction_ids=[_instruction_id("Rubric")],
     ),
     dict(
         id=SCENARIO_AGENT,
@@ -636,6 +690,8 @@ agents = [
             sid("tool-resource/scenario-image/download"),
             sid("tool-resource/scenario-video/download"),
         ],
+        prompt_id=_prompt_id("Scenario"),
+        instruction_ids=[_instruction_id("Scenario")],
     ),
     dict(
         id=SCENARIO_IMAGE_AGENT,
@@ -671,6 +727,8 @@ agents = [
             sid("tool-resource/session/get"),
             sid("tool-resource/session/refresh"),
         ],
+        prompt_id=_prompt_id("Session"),
+        instruction_ids=[_instruction_id("Session")],
     ),
     dict(
         id=SETTING_AGENT,
@@ -692,6 +750,8 @@ agents = [
             sid("tool-resource/setting/search"),
             sid("tool-resource/setting/update"),
         ],
+        prompt_id=_prompt_id("Setting"),
+        instruction_ids=[_instruction_id("Setting")],
     ),
     dict(
         id=SIMULATION_AGENT,
@@ -712,6 +772,8 @@ agents = [
             sid("tool-resource/simulation/search"),
             sid("tool-resource/simulation/update"),
         ],
+        prompt_id=_prompt_id("Simulation"),
+        instruction_ids=[_instruction_id("Simulation")],
     ),
     dict(
         id=TEST_GRADE_AGENT,
@@ -732,6 +794,8 @@ agents = [
             sid("tool-resource/test/start"),
             sid("tool-resource/test/stop"),
         ],
+        prompt_id=_prompt_id("Test Grade"),
+        instruction_ids=[_instruction_id("Test Grade")],
     ),
     dict(
         id=TOOL_AGENT,
@@ -752,6 +816,8 @@ agents = [
             sid("tool-resource/tool/search"),
             sid("tool-resource/tool/update"),
         ],
+        prompt_id=_prompt_id("Tool"),
+        instruction_ids=[_instruction_id("Tool")],
     ),
     dict(
         id=COMPOSER_AGENT,

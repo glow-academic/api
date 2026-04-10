@@ -195,6 +195,8 @@ class CreateAgentItem(ScopedItem):
     tool_ids: list[UUID] | None = Field(None, description="Associated tool UUIDs")
     voice_ids: list[UUID] | None = Field(None, description="Associated voice UUIDs")
     agent_ids: list[UUID] | None = Field(None, description="Associated agent resource UUIDs")
+    prompt_id: UUID | None = Field(None, description="System prompt resource UUID")
+    instruction_ids: list[UUID] | None = Field(None, description="Instruction template resource UUIDs")
 
 
 class CreateAgentApiRequest(BaseModel):

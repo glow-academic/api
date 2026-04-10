@@ -123,6 +123,8 @@ async def create_agent_impl(
             model_id=item.model_id,
             tool_ids=item.tool_ids,
             voice_ids=item.voice_ids,
+            prompt_id=item.prompt_id,
+            instruction_ids=item.instruction_ids,
         )
 
         # Artifact create inside transaction

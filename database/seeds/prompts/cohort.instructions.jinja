@@ -1,0 +1,124 @@
+## Current Form State
+
+The user is currently editing a cohort with the following selections:
+
+{% set draft = views.draft_cohort if views and views.draft_cohort else None %}
+
+{% if names and names|length > 0 %}
+**Current Names:** {% for name in names %}{{ name.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.name_ids and draft.name_ids|length > 0 %}
+**Current Names IDs:** {% for id in draft.name_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Names:** (not selected)
+{% endif %}
+
+{% if descriptions and descriptions|length > 0 %}
+**Current Descriptions:** {% for desc in descriptions %}{{ desc.description[:100] }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.description_ids and draft.description_ids|length > 0 %}
+**Current Descriptions IDs:** {% for id in draft.description_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Descriptions:** (not selected)
+{% endif %}
+
+{% if flags and flags|length > 0 %}
+**Current Flags:** {% for item in flags %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.flag_ids and draft.flag_ids|length > 0 %}
+**Current Flags IDs:** {% for id in draft.flag_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Flags:** (not selected)
+{% endif %}
+
+{% if departments and departments|length > 0 %}
+**Current Departments:** {% for item in departments %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.department_ids and draft.department_ids|length > 0 %}
+**Current Departments IDs:** {% for id in draft.department_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Departments:** (not selected)
+{% endif %}
+
+{% if simulations and simulations|length > 0 %}
+**Current Simulations:** {% for item in simulations %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.simulation_ids and draft.simulation_ids|length > 0 %}
+**Current Simulations IDs:** {% for id in draft.simulation_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Simulations:** (not selected)
+{% endif %}
+
+{% if simulation_positions and simulation_positions|length > 0 %}
+**Current Simulation Positions:** {% for item in simulation_positions %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.simulation_position_ids and draft.simulation_position_ids|length > 0 %}
+**Current Simulation Positions IDs:** {% for id in draft.simulation_position_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Simulation Positions:** (not selected)
+{% endif %}
+
+{% if simulation_availability and simulation_availability|length > 0 %}
+**Current Simulation Availability:** {% for item in simulation_availability %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif draft and draft.simulation_availability_ids and draft.simulation_availability_ids|length > 0 %}
+**Current Simulation Availability IDs:** {% for id in draft.simulation_availability_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% else %}
+**Current Simulation Availability:** (not selected)
+{% endif %}
+
+---
+
+## Available Context Resources
+
+You have access to the following existing resources. Either **use_*** an existing resource OR **create_*** a new one — you only need to do ONE.
+
+{% if names and names|length > 0 %}
+### Available Names
+{% for item in names %}
+- id: {{ item.id }} | name: {{ item.name }}
+{% endfor %}
+{% endif %}
+
+{% if descriptions and descriptions|length > 0 %}
+### Available Descriptions
+{% for item in descriptions %}
+- id: {{ item.id }} | description: {{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if flags and flags|length > 0 %}
+### Available Flags
+{% for item in flags %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if departments and departments|length > 0 %}
+### Available Departments
+{% for item in departments %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if simulations and simulations|length > 0 %}
+### Available Simulations
+{% for item in simulations %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if simulation_positions and simulation_positions|length > 0 %}
+### Available Simulation Positions
+{% for item in simulation_positions %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if simulation_availability and simulation_availability|length > 0 %}
+### Available Simulation Availability
+{% for item in simulation_availability %}
+- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
+{% endfor %}
+{% endif %}
+
+## Tool Usage (Either/Or)
+
+For each resource, choose ONE approach:
+- **use_*** tools: When a suitable resource ALREADY EXISTS above (pass the existing id)
+- **create_*** tools: When you need to generate NEW content (nothing suitable exists)
+
+You do NOT need to both create and use — pick one based on whether a suitable resource exists.
