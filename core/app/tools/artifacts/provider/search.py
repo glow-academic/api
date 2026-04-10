@@ -24,7 +24,7 @@ async def search_providers(
     flag_ids: list[UUID] | None = None,
     key_ids: list[UUID] | None = None,
     provider_ids: list[UUID] | None = None,
-    value_ids: list[UUID] | None = None,
+    value_id: UUID | None = None,
     exclude_ids: list[UUID] | None = None,
     active_only: bool = True,
     limit_count: int = 20,
@@ -137,7 +137,7 @@ async def search_providers(
             ids=provider_ids,
         )
 
-    if value_ids:
+    if value_id:
         idx = add_junction_filter(
             conditions,
             params,
@@ -145,7 +145,7 @@ async def search_providers(
             junction_table="provider_values_junction",
             owner_col=OWNER_COL,
             resource_col="values_id",
-            ids=value_ids,
+            ids=[value_id],
         )
 
     # Exclude

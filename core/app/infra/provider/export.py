@@ -126,7 +126,8 @@ async def export_provider_impl(
         all_department_ids.extend(a.department_ids or [])
         all_endpoint_ids.extend(a.endpoint_ids or [])
         all_key_ids.extend(a.key_ids or [])
-        all_value_ids.extend(a.value_ids or [])
+        if a.value_id:
+            all_value_ids.append(a.value_id)
 
     async def _empty() -> list:
         return []
@@ -203,7 +204,7 @@ async def export_provider_impl(
             endpoint_map.get(eid, "") for eid in (a.endpoint_ids or [])
         )
         keys_str = PIPE.join(key_map.get(kid, "") for kid in (a.key_ids or []))
-        values_str = PIPE.join(value_map.get(vid, "") for vid in (a.value_ids or []))
+        values_str = value_map.get(a.value_id, "") if a.value_id else ""
 
         writer.writerow(
             [

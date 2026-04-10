@@ -17,7 +17,7 @@ BOOTSTRAP_PROFILE = dict(
     resource_id=FRESH_SUPERADMIN_RESOURCE,
     name="Default Superadmin",
     email="superadmin@glow.local",
-    role_ids=[SUPERADMIN_ROLE],
+    role_id=SUPERADMIN_ROLE,
     flag_ids=[PROFILE_ACTIVE],
 )
 

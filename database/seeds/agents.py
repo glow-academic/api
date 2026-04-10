@@ -16,9 +16,9 @@ from database.seeds.models import ROLE_MODEL_IDS
 # ---------------------------------------------------------------------------
 
 
-def _role_model(role: str) -> list:
+def _role_model(role: str):
     mid = ROLE_MODEL_IDS.get(role)
-    return [mid] if mid else []
+    return mid if mid else None
 
 
 # ---------------------------------------------------------------------------
@@ -126,7 +126,7 @@ agents = [
         name="Activity",
         description="Analytical insights agent for real-time activity monitoring",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/activity/export"),
             sid("tool-resource/activity/get"),
@@ -142,7 +142,7 @@ agents = [
         name="Agent",
         description="AI agent for generating and managing agent resources including names, descriptions, flags, departments, prompts, instructions, models, and tools using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/agent/create"),
             sid("tool-resource/agent/delete"),
@@ -162,7 +162,7 @@ agents = [
         name="Attempt Chat",
         description="Conversational AI agent for conducting training dialogues as personas",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/attempt/archive"),
             sid("tool-resource/attempt/end"),
@@ -191,7 +191,7 @@ agents = [
         name="Attempt Grade",
         description="Grading and evaluation agent for analyzing training attempt performance",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("grader"),
+        model_id=_role_model("grader"),
         tool_ids=[
             sid("tool-resource/attempt/grade"),
         ],
@@ -202,7 +202,7 @@ agents = [
         name="Auth",
         description="AI agent for generating and managing auth resources including names, descriptions, flags, protocols, slugs, and items using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/auth/create"),
             sid("tool-resource/auth/delete"),
@@ -222,7 +222,7 @@ agents = [
         name="Benchmark",
         description="AI agent for generating analytical insights about benchmark evaluation results including cross-model performance and scoring quality",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/benchmark/export"),
             sid("tool-resource/benchmark/get"),
@@ -236,7 +236,7 @@ agents = [
         name="Chat",
         description="AI agent for creating and managing training chat sessions with persona-driven scenario conversations",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/chat/draft"),
             sid("tool-resource/chat/drafts"),
@@ -251,7 +251,7 @@ agents = [
         name="Cohort",
         description="AI agent for generating and managing cohort resources including names, descriptions, flags, departments, personas, and scenarios using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/cohort/create"),
             sid("tool-resource/cohort/delete"),
@@ -271,7 +271,7 @@ agents = [
         name="Dashboard",
         description="Analytical insights agent for high-level organizational KPIs and trends",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/dashboard/export"),
             sid("tool-resource/dashboard/get"),
@@ -285,7 +285,7 @@ agents = [
         name="Department",
         description="AI agent for generating and managing department resources including names, descriptions, flags, and settings using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/department/create"),
             sid("tool-resource/department/delete"),
@@ -305,7 +305,7 @@ agents = [
         name="Document",
         description="Agent for generating and working with documents, templates, and structured content",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/document/create"),
             sid("tool-resource/document/delete"),
@@ -330,7 +330,7 @@ agents = [
         name="Eval",
         description="AI agent for generating and managing eval resources including names, descriptions, flags, departments, scenarios, rubrics, and various eval-specific resources using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/eval/create"),
             sid("tool-resource/eval/delete"),
@@ -350,7 +350,7 @@ agents = [
         name="Field",
         description="AI agent for generating and managing field resources including names, descriptions, flags, departments, and conditional parameters using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/field/create"),
             sid("tool-resource/field/delete"),
@@ -370,7 +370,7 @@ agents = [
         name="Group",
         description="Analytical insights agent for group-level analytics",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/group/export"),
             sid("tool-resource/group/generate"),
@@ -384,7 +384,7 @@ agents = [
         name="Health",
         description="Analytical insights agent for system health monitoring",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/health/export"),
             sid("tool-resource/health/get"),
@@ -397,7 +397,7 @@ agents = [
         name="Home",
         description="Navigation and recommendation agent for home page overview",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/home/export"),
             sid("tool-resource/home/get"),
@@ -411,7 +411,7 @@ agents = [
         name="Invocation",
         description="AI agent for creating and managing benchmark invocations with model and tool configurations",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/invocation/decrypt"),
             sid("tool-resource/invocation/draft"),
@@ -427,7 +427,7 @@ agents = [
         name="Leaderboard",
         description="Analytical insights agent for performance rankings",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/leaderboard/export"),
             sid("tool-resource/leaderboard/get"),
@@ -441,7 +441,7 @@ agents = [
         name="Model",
         description="AI agent for generating and managing model resources including names, descriptions, flags, departments, endpoints, keys, modalities, and providers using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/model/create"),
             sid("tool-resource/model/delete"),
@@ -461,7 +461,7 @@ agents = [
         name="Parameter",
         description="AI agent for generating and managing parameter resources including names, descriptions, flags, departments, and fields using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/parameter/create"),
             sid("tool-resource/parameter/delete"),
@@ -481,7 +481,7 @@ agents = [
         name="Persona",
         description="AI agent for generating and managing persona resources including names, descriptions, colors, icons, instructions, examples, flags, departments, and fields using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/persona/create"),
             sid("tool-resource/persona/delete"),
@@ -501,7 +501,7 @@ agents = [
         name="Practice",
         description="Navigation and recommendation agent for practice mode entry point",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/practice/export"),
             sid("tool-resource/practice/get"),
@@ -515,7 +515,7 @@ agents = [
         name="Pricing",
         description="Analytical insights agent for cost analytics and billing breakdowns",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/pricing/export"),
             sid("tool-resource/pricing/get"),
@@ -529,7 +529,7 @@ agents = [
         name="Profile",
         description="AI agent for generating and managing profile resources including names, descriptions, flags, departments, emails, cohorts, and request limits using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/profile/context"),
             sid("tool-resource/profile/create"),
@@ -552,7 +552,7 @@ agents = [
         name="Provider",
         description="AI agent for generating and managing provider resources including names, descriptions, flags, and endpoints using GPT-5.1",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/provider/create"),
             sid("tool-resource/provider/decrypt"),
@@ -573,7 +573,7 @@ agents = [
         name="Record",
         description="Analytical insights agent for individual training record analytics",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/record/export"),
             sid("tool-resource/record/get"),
@@ -587,7 +587,7 @@ agents = [
         name="Reports",
         description="Analytical insights agent for detailed training outcome reports",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/reports/export"),
             sid("tool-resource/reports/get"),
@@ -601,7 +601,7 @@ agents = [
         name="Rubric",
         description="Agent for generating rubric descriptions and grid cell content",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/rubric/create"),
             sid("tool-resource/rubric/delete"),
@@ -621,7 +621,7 @@ agents = [
         name="Scenario",
         description="Helps create distinct scenarios for chat interactions.",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/scenario/create"),
             sid("tool-resource/scenario/delete"),
@@ -643,7 +643,7 @@ agents = [
         name="Scenario Image",
         description="Image generation agent for creating scenario visuals",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("image"),
+        model_id=_role_model("image"),
         tool_ids=[
             sid("tool-resource/scenario-image/create"),
         ],
@@ -654,7 +654,7 @@ agents = [
         name="Scenario Video",
         description="Video generation agent for creating scenario visuals",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("video"),
+        model_id=_role_model("video"),
         tool_ids=[
             sid("tool-resource/scenario-video/create"),
         ],
@@ -665,7 +665,7 @@ agents = [
         name="Session",
         description="Analytical insights agent for individual training session analytics",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/session/export"),
             sid("tool-resource/session/get"),
@@ -678,7 +678,7 @@ agents = [
         name="Setting",
         description="AI agent for generating and managing setting resources",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/setting/create"),
             sid("tool-resource/setting/decrypt"),
@@ -699,7 +699,7 @@ agents = [
         name="Simulation",
         description="AI agent for generating and managing simulation scenario resources including scenarios, scenario positions, scenario flags, and scenario rubric grade agents",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/simulation/create"),
             sid("tool-resource/simulation/delete"),
@@ -719,7 +719,7 @@ agents = [
         name="Test Grade",
         description="Benchmark test grading agent for evaluating model outputs against rubric standards",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("grader"),
+        model_id=_role_model("grader"),
         tool_ids=[
             sid("tool-resource/test/archive"),
             sid("tool-resource/test/end"),
@@ -739,7 +739,7 @@ agents = [
         name="Tool",
         description="AI agent for generating and managing tool resources",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/tool/create"),
             sid("tool-resource/tool/delete"),
@@ -759,7 +759,7 @@ agents = [
         name="Composer",
         description="General-purpose orchestration agent for cross-cutting content, deployment, and infrastructure operations",
         flag_ids=[AGENT_ACTIVE_FLAG],
-        model_ids=_role_model("text"),
+        model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/create/content"),
             sid("tool-resource/create/deployment"),

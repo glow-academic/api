@@ -139,7 +139,7 @@ async def duplicate_provider_impl(
                 department_ids=original.department_ids,
                 endpoint_ids=original.endpoint_ids,
                 key_ids=original.key_ids,
-                value_ids=original.value_ids,
+                value_id=original.value_id,
                 provider_ids=original.provider_ids,
                 flag_ids=flag_ids,
                 soft=soft,

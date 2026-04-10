@@ -58,7 +58,7 @@ async def test_create_without_connections_returns_empty_lists(conn, profile_id):
     assert items[0].quality_ids == []
     assert items[0].reasoning_level_ids == []
     assert items[0].temperature_level_ids == []
-    assert items[0].value_ids == []
+    assert items[0].value_id is None
     assert items[0].voice_ids == []
 
 

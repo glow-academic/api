@@ -27,11 +27,11 @@ async def test_returns_base_columns(conn, redis_client):
     assert p.flag_ids is None
     assert p.modality_ids is None
     assert p.pricing_ids is None
-    assert p.provider_ids is None
+    assert p.provider_id is None
     assert p.quality_ids is None
     assert p.reasoning_level_ids is None
     assert p.temperature_level_ids is None
-    assert p.value_ids is None
+    assert p.value_id is None
     assert p.voice_ids is None
     assert p.model_ids is None
 
@@ -96,11 +96,11 @@ async def test_no_junctions_when_all_false(conn, redis_client):
         "flag_ids",
         "modality_ids",
         "pricing_ids",
-        "provider_ids",
+        "provider_id",
         "quality_ids",
         "reasoning_level_ids",
         "temperature_level_ids",
-        "value_ids",
+        "value_id",
         "voice_ids",
         "model_ids",
     ]:

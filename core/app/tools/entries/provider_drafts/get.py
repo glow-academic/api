@@ -63,7 +63,7 @@ async def get_provider_drafts(
             key_ids=r["key_ids"],
             name_ids=r["name_ids"],
             profile_ids=r["profile_ids"],
-            value_ids=r["value_ids"],
+            value_id=r["value_ids"][0] if r["value_ids"] else None,
         )
         for r in rows
     ]

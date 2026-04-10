@@ -28,7 +28,7 @@ async def search_models(
     quality_ids: list[UUID] | None = None,
     reasoning_level_ids: list[UUID] | None = None,
     temperature_level_ids: list[UUID] | None = None,
-    value_ids: list[UUID] | None = None,
+    value_id: UUID | None = None,
     voice_ids: list[UUID] | None = None,
     exclude_ids: list[UUID] | None = None,
     active_only: bool = True,
@@ -186,7 +186,7 @@ async def search_models(
             ids=temperature_level_ids,
         )
 
-    if value_ids:
+    if value_id:
         idx = add_junction_filter(
             conditions,
             params,
@@ -194,7 +194,7 @@ async def search_models(
             junction_table="model_values_junction",
             owner_col=OWNER_COL,
             resource_col="values_id",
-            ids=value_ids,
+            ids=[value_id],
         )
 
     if voice_ids:

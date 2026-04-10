@@ -20,11 +20,11 @@ class GetModelsResponse(BaseModel):
     flag_ids: list[UUID] | None = Field(None, description="Associated flag junction IDs")
     modality_ids: list[UUID] | None = Field(None, description="Associated modality junction IDs")
     pricing_ids: list[UUID] | None = Field(None, description="Associated pricing junction IDs")
-    provider_ids: list[UUID] | None = Field(None, description="Associated provider junction IDs")
+    provider_id: UUID | None = Field(None, description="Associated provider ID")
     quality_ids: list[UUID] | None = Field(None, description="Associated quality junction IDs")
     reasoning_level_ids: list[UUID] | None = Field(None, description="Associated reasoning level junction IDs")
     temperature_level_ids: list[UUID] | None = Field(None, description="Associated temperature level junction IDs")
-    value_ids: list[UUID] | None = Field(None, description="Associated value junction IDs")
+    value_id: UUID | None = Field(None, description="Associated value junction ID")
     voice_ids: list[UUID] | None = Field(None, description="Associated voice junction IDs")
     model_ids: list[UUID] | None = Field(None, description="Associated model junction IDs")
 

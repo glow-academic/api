@@ -129,13 +129,13 @@ async def update_model_impl(
             name_id=item.name_id,
             description_id=item.description_id,
             department_ids=item.department_ids,
-            provider_ids=item.provider_ids,
+            provider_id=item.provider_id,
             temperature_level_ids=item.temperature_level_ids,
             reasoning_level_ids=item.reasoning_level_ids,
             quality_ids=item.quality_ids,
             voice_ids=item.voice_ids,
             modality_ids=item.modality_ids,
-            value_ids=item.value_ids,
+            value_id=item.value_id,
         )
 
         # Artifact update inside transaction
@@ -158,11 +158,11 @@ async def update_model_impl(
                     modality_ids=item.modality_ids,
                     model_ids=[models_resource_id],
                     pricing_ids=item.pricing_ids,
-                    provider_ids=item.provider_ids,
+                    provider_id=item.provider_id,
                     quality_ids=item.quality_ids,
                     reasoning_level_ids=item.reasoning_level_ids,
                     temperature_level_ids=item.temperature_level_ids,
-                    value_ids=item.value_ids,
+                    value_id=item.value_id,
                     voice_ids=item.voice_ids,
                     soft=soft,
                 )

@@ -44,7 +44,7 @@ profiles = [
         id=SEED_PROFILE_ID,
         resource_id=SEED_PROFILE_RESOURCE,
         name="Bootstrap Superadmin",
-        role_ids=[SUPERADMIN_ROLE],
+        role_id=SUPERADMIN_ROLE,
         flag_ids=[PROFILE_ACTIVE],
     ),
 ]

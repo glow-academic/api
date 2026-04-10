@@ -61,8 +61,8 @@ async def test_provider_ids_filter(conn, redis_client):
     p2 = await conn.fetchval(
         "INSERT INTO providers_resource DEFAULT VALUES RETURNING id"
     )
-    m1 = await create_model(conn, provider_ids=[p1])
-    m2 = await create_model(conn, provider_ids=[p2])
+    m1 = await create_model(conn, provider_id=p1)
+    m2 = await create_model(conn, provider_id=p2)
     ids, _total = await search_models(conn, provider_ids=[p1])
     assert m1.id in ids
     assert m2.id not in ids

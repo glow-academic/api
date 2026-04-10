@@ -158,7 +158,7 @@ class CreateProviderItem(ScopedItem):
     # ID-only fields
     endpoint_ids: list[UUID] | None = Field(None, description="Endpoint resource identifiers")
     key_ids: list[UUID] | None = Field(None, description="API key resource identifiers")
-    value_ids: list[UUID] | None = Field(None, description="Value resource identifiers")
+    value_id: UUID | None = Field(None, description="Value resource identifier")
     # Direct value fields (for denormalized snapshot)
     endpoint: str | None = Field(None, description="Provider API endpoint URL")
     key: str | None = Field(None, description="Provider API key")
@@ -175,7 +175,7 @@ class CreateProviderItem(ScopedItem):
         "departments": "departments",
         "endpoint_ids": "endpoints",
         "key_ids": "keys",
-        "value_ids": "values",
+        "value_id": "values",
     }
 
 
@@ -211,7 +211,7 @@ class UpdateProviderItem(ScopedItem):
     # ID-only fields
     endpoint_ids: list[UUID] | None = Field(None, description="Endpoint resource identifiers")
     key_ids: list[UUID] | None = Field(None, description="API key resource identifiers")
-    value_ids: list[UUID] | None = Field(None, description="Value resource identifiers")
+    value_id: UUID | None = Field(None, description="Value resource identifier")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateProviderItem.RESOURCE_TYPE_MAP
 
@@ -274,7 +274,7 @@ class PatchProviderDraftApiRequest(ScopedItem):
     Dual-mode for creatable resources only:
       - name/name_id, description/description_id
     ID-only for non-creatable resources:
-      - flag_id, department_ids, endpoint_ids, key_ids, value_ids
+      - flag_id, department_ids, endpoint_ids, key_ids, value_id
 
     Client always sends full state (append-only — each write is a new version snapshot).
     """
@@ -293,7 +293,7 @@ class PatchProviderDraftApiRequest(ScopedItem):
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     endpoint_ids: list[UUID] | None = Field(None, description="Endpoint resource identifiers")
     key_ids: list[UUID] | None = Field(None, description="API key resource identifiers")
-    value_ids: list[UUID] | None = Field(None, description="Value resource identifiers")
+    value_id: UUID | None = Field(None, description="Value resource identifier")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
@@ -304,7 +304,7 @@ class PatchProviderDraftApiRequest(ScopedItem):
         "department_ids": "departments",
         "endpoint_ids": "endpoints",
         "key_ids": "keys",
-        "value_ids": "values",
+        "value_id": "values",
     }
 
 
@@ -317,7 +317,7 @@ class ProviderDraftFormState(BaseModel):
     department_ids: list[UUID] = Field(..., description="Department identifiers")
     endpoint_ids: list[UUID] = Field(..., description="Endpoint resource identifiers")
     key_ids: list[UUID] = Field(..., description="API key resource identifiers")
-    value_ids: list[UUID] = Field(..., description="Value resource identifiers")
+    value_id: UUID | None = Field(None, description="Value resource identifier")
 
 
 class PatchProviderDraftApiResponse(BaseModel):

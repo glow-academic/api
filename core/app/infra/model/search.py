@@ -165,7 +165,8 @@ async def search_model_impl(
     for a in artifacts:
         all_name_ids.extend(a.name_ids or [])
         all_description_ids.extend(a.description_ids or [])
-        all_provider_resource_ids.extend(a.provider_ids or [])
+        if a.provider_id:
+            all_provider_resource_ids.append(a.provider_id)
 
     async def _fetch_names() -> list:
         async with pool.acquire() as conn:
@@ -236,8 +237,8 @@ async def search_model_impl(
         provider_id: UUID | None = None
         provider_name: str | None = None
         base_url: str | None = None
-        if a.provider_ids:
-            pr = provider_resource_map.get(a.provider_ids[0])
+        if a.provider_id:
+            pr = provider_resource_map.get(a.provider_id)
             if pr:
                 provider_id = pr.id
                 provider_name = pr.name

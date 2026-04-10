@@ -20,7 +20,7 @@ class GetProvidersResponse(BaseModel):
     flag_ids: list[UUID] | None = Field(None, description="Associated flag junction IDs")
     endpoint_ids: list[UUID] | None = Field(None, description="Associated endpoint junction IDs")
     key_ids: list[UUID] | None = Field(None, description="Associated key junction IDs")
-    value_ids: list[UUID] | None = Field(None, description="Associated value junction IDs")
+    value_id: UUID | None = Field(None, description="Associated value junction ID")
     provider_ids: list[UUID] | None = Field(None, description="Associated provider junction IDs")
 
 

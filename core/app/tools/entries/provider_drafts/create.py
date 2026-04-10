@@ -24,7 +24,7 @@ async def create_provider_draft(
     key_ids: list[UUID] | None = None,
     name_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
-    value_ids: list[UUID] | None = None,
+    value_id: UUID | None = None,
 ) -> CreateProviderDraftResponse:
     """Create a provider_drafts entry with optional connection table links."""
     draft_id = await conn.fetchval(
@@ -60,7 +60,7 @@ async def create_provider_draft(
         ("provider_drafts_keys_connection", "keys_id", key_ids or []),
         ("provider_drafts_names_connection", "names_id", name_ids or []),
         ("provider_drafts_profiles_connection", "profiles_id", profile_ids or []),
-        ("provider_drafts_values_connection", "values_id", value_ids or []),
+        ("provider_drafts_values_connection", "values_id", [value_id] if value_id else []),
     ]
 
     for table, col, ids in connections:

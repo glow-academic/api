@@ -216,11 +216,11 @@ class CreateModelItem(ScopedItem):
         "flag_ids": "flags",
         "modality_ids": "modalities",
         "pricing_ids": "pricing",
-        "provider_ids": "providers",
+        "provider_id": "providers",
         "quality_ids": "qualities",
         "reasoning_level_ids": "reasoning_levels",
         "temperature_level_ids": "temperature_levels",
-        "value_ids": "values",
+        "value_id": "values",
         "voice_ids": "voices",
         "model_ids": "models",
     }
@@ -244,11 +244,11 @@ class CreateModelItem(ScopedItem):
     flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
     modality_ids: list[UUID] | None = Field(None, description="Modality identifiers")
     pricing_ids: list[UUID] | None = Field(None, description="Pricing tier identifiers")
-    provider_ids: list[UUID] | None = Field(None, description="Provider identifiers")
+    provider_id: UUID | None = Field(None, description="Provider identifier")
     quality_ids: list[UUID] | None = Field(None, description="Quality level identifiers")
     reasoning_level_ids: list[UUID] | None = Field(None, description="Reasoning level identifiers")
     temperature_level_ids: list[UUID] | None = Field(None, description="Temperature level identifiers")
-    value_ids: list[UUID] | None = Field(None, description="Value resource identifiers")
+    value_id: UUID | None = Field(None, description="Value resource identifier")
     value: str | None = Field(None, description="Direct model value/identifier (e.g. the actual API model name)")
     voice_ids: list[UUID] | None = Field(None, description="Voice identifiers")
     model_ids: list[UUID] | None = Field(None, description="Related model identifiers")
@@ -296,11 +296,11 @@ class UpdateModelItem(ScopedItem):
     flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
     modality_ids: list[UUID] | None = Field(None, description="Modality identifiers")
     pricing_ids: list[UUID] | None = Field(None, description="Pricing tier identifiers")
-    provider_ids: list[UUID] | None = Field(None, description="Provider identifiers")
+    provider_id: UUID | None = Field(None, description="Provider identifier")
     quality_ids: list[UUID] | None = Field(None, description="Quality level identifiers")
     reasoning_level_ids: list[UUID] | None = Field(None, description="Reasoning level identifiers")
     temperature_level_ids: list[UUID] | None = Field(None, description="Temperature level identifiers")
-    value_ids: list[UUID] | None = Field(None, description="Value resource identifiers")
+    value_id: UUID | None = Field(None, description="Value resource identifier")
     voice_ids: list[UUID] | None = Field(None, description="Voice identifiers")
     model_ids: list[UUID] | None = Field(None, description="Related model identifiers")
 
@@ -379,8 +379,8 @@ class PatchModelDraftApiRequest(ScopedItem):
     Dual-mode for creatable resources only:
       - name/name_id, description/description_id
     ID-only for non-creatable resources:
-      - flag_ids, department_ids, modality_ids, pricing_ids, provider_ids,
-        quality_ids, reasoning_level_ids, temperature_level_ids, value_ids, voice_ids
+      - flag_ids, department_ids, modality_ids, pricing_ids, provider_id,
+        quality_ids, reasoning_level_ids, temperature_level_ids, value_id, voice_ids
 
     Client always sends full state (append-only — each write is a new version snapshot).
     """
@@ -394,11 +394,11 @@ class PatchModelDraftApiRequest(ScopedItem):
         "department_ids": "departments",
         "modality_ids": "modalities",
         "pricing_ids": "pricing",
-        "provider_ids": "providers",
+        "provider_id": "providers",
         "quality_ids": "qualities",
         "reasoning_level_ids": "reasoning_levels",
         "temperature_level_ids": "temperature_levels",
-        "value_ids": "values",
+        "value_id": "values",
         "voice_ids": "voices",
     }
 
@@ -416,11 +416,11 @@ class PatchModelDraftApiRequest(ScopedItem):
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     modality_ids: list[UUID] | None = Field(None, description="Modality identifiers")
     pricing_ids: list[UUID] | None = Field(None, description="Pricing tier identifiers")
-    provider_ids: list[UUID] | None = Field(None, description="Provider identifiers")
+    provider_id: UUID | None = Field(None, description="Provider identifier")
     quality_ids: list[UUID] | None = Field(None, description="Quality level identifiers")
     reasoning_level_ids: list[UUID] | None = Field(None, description="Reasoning level identifiers")
     temperature_level_ids: list[UUID] | None = Field(None, description="Temperature level identifiers")
-    value_ids: list[UUID] | None = Field(None, description="Value resource identifiers")
+    value_id: UUID | None = Field(None, description="Value resource identifier")
     voice_ids: list[UUID] | None = Field(None, description="Voice identifiers")
 
 
@@ -433,11 +433,11 @@ class ModelDraftFormState(BaseModel):
     department_ids: list[UUID] = Field(..., description="Department identifiers")
     modality_ids: list[UUID] = Field(..., description="Modality identifiers")
     pricing_ids: list[UUID] = Field(..., description="Pricing tier identifiers")
-    provider_ids: list[UUID] = Field(..., description="Provider identifiers")
+    provider_id: UUID | None = Field(None, description="Provider identifier")
     quality_ids: list[UUID] = Field(..., description="Quality level identifiers")
     reasoning_level_ids: list[UUID] = Field(..., description="Reasoning level identifiers")
     temperature_level_ids: list[UUID] = Field(..., description="Temperature level identifiers")
-    value_ids: list[UUID] = Field(..., description="Value resource identifiers")
+    value_id: UUID | None = Field(None, description="Value resource identifier")
     voice_ids: list[UUID] = Field(..., description="Voice identifiers")
 
 

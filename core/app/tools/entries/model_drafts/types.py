@@ -30,5 +30,5 @@ class GetModelDraftResponse(BaseModel):
     quality_ids: list[UUID] = Field(..., description="Associated quality UUIDs")
     reasoning_level_ids: list[UUID] = Field(..., description="Associated reasoning level UUIDs")
     temperature_level_ids: list[UUID] = Field(..., description="Associated temperature level UUIDs")
-    value_ids: list[UUID] = Field(..., description="Associated value UUIDs")
+    value_id: UUID | None = Field(None, description="Associated value UUID")
     voice_ids: list[UUID] = Field(..., description="Associated voice UUIDs")

@@ -38,7 +38,7 @@ async def create_provider(
     flag_ids: list[UUID] | None = None,
     key_ids: list[UUID] | None = None,
     provider_ids: list[UUID] | None = None,
-    value_ids: list[UUID] | None = None,
+    value_id: UUID | None = None,
     active: bool | None = None,
     soft: bool = False,
     generated: bool = False,
@@ -74,7 +74,7 @@ async def create_provider(
             )
 
     # Multi-select junctions (simple)
-    multi_vals = [department_ids, endpoint_ids, key_ids, provider_ids, value_ids]
+    multi_vals = [department_ids, endpoint_ids, key_ids, provider_ids, [value_id] if value_id else None]
     for (table, col), vals in zip(MULTI_JUNCTIONS, multi_vals):
         if vals:
             await insert_multi(

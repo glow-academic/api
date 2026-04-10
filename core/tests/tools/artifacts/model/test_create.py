@@ -115,10 +115,10 @@ async def test_no_junctions_when_none_provided(conn, redis_client):
     assert p.flag_ids == []
     assert p.modality_ids == []
     assert p.pricing_ids == []
-    assert p.provider_ids == []
+    assert p.provider_id is None
     assert p.quality_ids == []
     assert p.reasoning_level_ids == []
     assert p.temperature_level_ids == []
-    assert p.value_ids == []
+    assert p.value_id is None
     assert p.voice_ids == []
     assert p.model_ids == []

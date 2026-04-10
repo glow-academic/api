@@ -26,7 +26,7 @@ async def create_model_draft(
     quality_ids: list[UUID] | None = None,
     reasoning_level_ids: list[UUID] | None = None,
     temperature_level_ids: list[UUID] | None = None,
-    value_ids: list[UUID] | None = None,
+    value_id: UUID | None = None,
     voice_ids: list[UUID] | None = None,
 ) -> CreateModelDraftResponse:
     """Create a model_drafts entry with optional connection table links."""
@@ -71,7 +71,7 @@ async def create_model_draft(
             "temperature_levels_id",
             temperature_level_ids or [],
         ),
-        ("model_drafts_values_connection", "values_id", value_ids or []),
+        ("model_drafts_values_connection", "values_id", [value_id] if value_id else []),
         ("model_drafts_voices_connection", "voices_id", voice_ids or []),
     ]
 

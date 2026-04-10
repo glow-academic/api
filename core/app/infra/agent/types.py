@@ -164,7 +164,7 @@ class CreateAgentItem(ScopedItem):
         "active_flag": "flags",
         "active_flag_id": "flags",
         "flag_ids": "flags",
-        "model_ids": "models",
+        "model_id": "models",
         "reasoning_level_ids": "reasoning_levels",
         "temperature_level_ids": "temperature_levels",
         "tool_ids": "tools",
@@ -189,7 +189,7 @@ class CreateAgentItem(ScopedItem):
     active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
     # ID-only fields
     flag_ids: list[UUID] | None = Field(None, description="Associated flag UUIDs")
-    model_ids: list[UUID] | None = Field(None, description="Associated model UUIDs")
+    model_id: UUID | None = Field(None, description="Associated model UUID")
     reasoning_level_ids: list[UUID] | None = Field(None, description="Associated reasoning level UUIDs")
     temperature_level_ids: list[UUID] | None = Field(None, description="Associated temperature level UUIDs")
     tool_ids: list[UUID] | None = Field(None, description="Associated tool UUIDs")
@@ -232,7 +232,7 @@ class UpdateAgentItem(ScopedItem):
     active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
     # ID-only fields
     flag_ids: list[UUID] | None = Field(None, description="Associated flag UUIDs")
-    model_ids: list[UUID] | None = Field(None, description="Associated model UUIDs")
+    model_id: UUID | None = Field(None, description="Associated model UUID")
     reasoning_level_ids: list[UUID] | None = Field(None, description="Associated reasoning level UUIDs")
     temperature_level_ids: list[UUID] | None = Field(None, description="Associated temperature level UUIDs")
     tool_ids: list[UUID] | None = Field(None, description="Associated tool UUIDs")
@@ -299,7 +299,7 @@ class PatchAgentDraftApiRequest(ScopedItem):
     Dual-mode for creatable resources only:
       - name/name_id, description/description_id
     ID-only for non-creatable resources:
-      - flag_ids, department_ids, model_ids, tool_ids, reasoning_level_ids,
+      - flag_ids, department_ids, model_id, tool_ids, reasoning_level_ids,
         temperature_level_ids, voice_ids, rubric_ids
 
     Client always sends full state (append-only — each write is a new version snapshot).
@@ -312,7 +312,7 @@ class PatchAgentDraftApiRequest(ScopedItem):
         "description_id": "descriptions",
         "flag_ids": "flags",
         "department_ids": "departments",
-        "model_ids": "models",
+        "model_id": "models",
         "tool_ids": "tools",
         "reasoning_level_ids": "reasoning_levels",
         "temperature_level_ids": "temperature_levels",
@@ -333,7 +333,7 @@ class PatchAgentDraftApiRequest(ScopedItem):
     # Non-creatable — ID-only
     flag_ids: list[UUID] | None = Field(None, description="Associated flag UUIDs")
     department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
-    model_ids: list[UUID] | None = Field(None, description="Associated model UUIDs")
+    model_id: UUID | None = Field(None, description="Associated model UUID")
     tool_ids: list[UUID] | None = Field(None, description="Associated tool UUIDs")
     reasoning_level_ids: list[UUID] | None = Field(None, description="Associated reasoning level UUIDs")
     temperature_level_ids: list[UUID] | None = Field(None, description="Associated temperature level UUIDs")
@@ -348,7 +348,7 @@ class AgentDraftFormState(BaseModel):
     description_id: UUID | None = Field(None, description="UUID of the selected description resource")
     flag_ids: list[UUID] = Field(..., description="Selected flag UUIDs")
     department_ids: list[UUID] = Field(..., description="Selected department UUIDs")
-    model_ids: list[UUID] = Field(..., description="Selected model UUIDs")
+    model_id: UUID | None = Field(None, description="Selected model UUID")
     tool_ids: list[UUID] = Field(..., description="Selected tool UUIDs")
     reasoning_level_ids: list[UUID] = Field(..., description="Selected reasoning level UUIDs")
     temperature_level_ids: list[UUID] = Field(..., description="Selected temperature level UUIDs")

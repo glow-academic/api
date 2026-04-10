@@ -27,7 +27,7 @@ async def create_invocation_draft(
     profile_ids: list[UUID] | None = None,
     reasoning_level_ids: list[UUID] | None = None,
     temperature_level_ids: list[UUID] | None = None,
-    value_ids: list[UUID] | None = None,
+    value_id: UUID | None = None,
     voice_ids: list[UUID] | None = None,
 ) -> CreateInvocationDraftResponse:
     """Create an invocation_drafts entry with optional connection table links."""
@@ -100,7 +100,7 @@ async def create_invocation_draft(
         (
             "invocation_drafts_values_connection",
             "values_id",
-            value_ids or [],
+            [value_id] if value_id else [],
         ),
     ]
 

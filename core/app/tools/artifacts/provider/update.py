@@ -47,7 +47,7 @@ async def update_provider(
     flag_ids: list[UUID] | None = None,
     key_ids: list[UUID] | None = None,
     provider_ids: list[UUID] | None = None,
-    value_ids: list[UUID] | None = None,
+    value_id: UUID | None = None,
     # Base columns
     active: bool | Any = _UNSET,
     soft: bool = False,
@@ -95,7 +95,7 @@ async def update_provider(
         endpoint_ids,
         key_ids,
         provider_ids,
-        value_ids,
+        [value_id] if value_id else None,
     ]
     for (table, col, constraint), vals in zip(MULTI_JUNCTIONS, multi_vals):
         if vals is not None:

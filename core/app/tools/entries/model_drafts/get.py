@@ -77,7 +77,7 @@ async def get_model_drafts(
             quality_ids=r["quality_ids"],
             reasoning_level_ids=r["reasoning_level_ids"],
             temperature_level_ids=r["temperature_level_ids"],
-            value_ids=r["value_ids"],
+            value_id=r["value_ids"][0] if r["value_ids"] else None,
             voice_ids=r["voice_ids"],
         )
         for r in rows

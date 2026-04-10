@@ -31,6 +31,6 @@ class GetInvocationDraftResponse(BaseModel):
     reasoning_level_ids: list[UUID] = Field(..., description="Associated reasoning level UUIDs")
     temperature_level_ids: list[UUID] = Field(..., description="Associated temperature level UUIDs")
     voice_ids: list[UUID] = Field(..., description="Associated voice UUIDs")
-    value_ids: list[UUID] = Field(..., description="Associated value UUIDs")
+    value_id: UUID | None = Field(None, description="Associated value UUID")
     pricing_ids: list[UUID] = Field(..., description="Associated pricing UUIDs")
     endpoint_ids: list[UUID] = Field(..., description="Associated endpoint UUIDs")

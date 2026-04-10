@@ -88,7 +88,7 @@ async def get_invocation_drafts(
             reasoning_level_ids=r["reasoning_level_ids"],
             temperature_level_ids=r["temperature_level_ids"],
             voice_ids=r["voice_ids"],
-            value_ids=r["value_ids"],
+            value_id=r["value_ids"][0] if r["value_ids"] else None,
             pricing_ids=r["pricing_ids"],
             endpoint_ids=r["endpoint_ids"],
         )

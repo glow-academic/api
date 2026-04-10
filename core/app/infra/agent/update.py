@@ -135,7 +135,7 @@ async def update_agent_impl(
             name_id=item.name_id,
             description_id=item.description_id,
             department_ids=item.department_ids,
-            model_id=item.model_ids[0] if item.model_ids else None,
+            model_id=item.model_id,
             tool_ids=item.tool_ids,
             voice_ids=item.voice_ids,
         )
@@ -157,7 +157,7 @@ async def update_agent_impl(
                     else _UNSET,
                     department_ids=item.department_ids,
                     flag_ids=combined_flag_ids or None,
-                    model_ids=item.model_ids,
+                    model_ids=[item.model_id] if item.model_id else None,
                     reasoning_level_ids=item.reasoning_level_ids,
                     temperature_level_ids=item.temperature_level_ids,
                     tool_ids=item.tool_ids,

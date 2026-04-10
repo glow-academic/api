@@ -207,7 +207,7 @@ async def resolve_model_context(
 
     async def _get_values() -> list:
         async with pool.acquire() as conn:
-            return await get_values(conn, merged.value_ids, redis, bypass_cache)
+            return await get_values(conn, [merged.value_id], redis, bypass_cache) if merged.value_id else []
 
     async def _search_values() -> list:
         async with pool.acquire() as conn:
@@ -217,14 +217,16 @@ async def resolve_model_context(
                 search=None,
                 limit_count=20,
                 offset_count=0,
-                exclude_ids=merged.value_ids,
+                exclude_ids=[merged.value_id] if merged.value_id else [],
                 bypass_cache=bypass_cache,
             )
 
     async def _get_providers() -> list:
+        if not merged.provider_id:
+            return []
         async with pool.acquire() as conn:
             return await get_providers(
-                conn, merged.provider_ids, redis, bypass_cache=bypass_cache
+                conn, [merged.provider_id], redis, bypass_cache=bypass_cache
             )
 
     async def _search_providers() -> list:
@@ -235,7 +237,7 @@ async def resolve_model_context(
                 search=None,
                 limit_count=20,
                 offset_count=0,
-                exclude_ids=merged.provider_ids,
+                exclude_ids=[merged.provider_id] if merged.provider_id else [],
                 bypass_cache=bypass_cache,
             )
 
@@ -458,8 +460,8 @@ class _MergedIds:
     description_ids: list[UUID]
     flag_ids: list[UUID]
     department_ids: list[UUID]
-    value_ids: list[UUID]
-    provider_ids: list[UUID]
+    value_id: UUID | None
+    provider_id: UUID | None
     modality_ids: list[UUID]
     temperature_level_ids: list[UUID]
     pricing_ids: list[UUID]
@@ -474,8 +476,8 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
     description_ids = list(artifact.description_ids or []) if artifact else []
     flag_ids = list(artifact.flag_ids or []) if artifact else []
     department_ids = list(artifact.department_ids or []) if artifact else []
-    value_ids = list(artifact.value_ids or []) if artifact else []
-    provider_ids = list(artifact.provider_ids or []) if artifact else []
+    value_id = artifact.value_id if artifact else None
+    provider_id = artifact.provider_id if artifact else None
     modality_ids = list(artifact.modality_ids or []) if artifact else []
     temperature_level_ids = (
         list(artifact.temperature_level_ids or []) if artifact else []
@@ -495,10 +497,10 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
             flag_ids = list(draft.flag_ids)
         if draft.department_ids:
             department_ids = list(draft.department_ids)
-        if draft.value_ids:
-            value_ids = list(draft.value_ids)
+        if draft.value_id is not None:
+            value_id = draft.value_id
         if draft.provider_ids:
-            provider_ids = list(draft.provider_ids)
+            provider_id = draft.provider_ids[0] if draft.provider_ids else None
         if draft.modality_ids:
             modality_ids = list(draft.modality_ids)
         if draft.temperature_level_ids:
@@ -517,8 +519,8 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
         description_ids=description_ids,
         flag_ids=flag_ids,
         department_ids=department_ids,
-        value_ids=value_ids,
-        provider_ids=provider_ids,
+        value_id=value_id,
+        provider_id=provider_id,
         modality_ids=modality_ids,
         temperature_level_ids=temperature_level_ids,
         pricing_ids=pricing_ids,

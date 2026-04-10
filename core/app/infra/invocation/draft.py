@@ -130,7 +130,7 @@ async def patch_invocation_draft_impl(
                 version=new_version,
                 name_ids=request.name_ids,
                 description_ids=request.description_ids,
-                value_ids=request.value_ids,
+                value_ids=[request.value_id] if request.value_id else None,
                 flag_ids=request.flag_ids,
                 department_ids=request.department_ids,
                 key_ids=request.key_ids,
@@ -146,7 +146,7 @@ async def patch_invocation_draft_impl(
     form_state = InvocationDraftFormState(
         name_ids=request.name_ids or [],
         description_ids=request.description_ids or [],
-        value_ids=request.value_ids or [],
+        value_id=request.value_id,
         flag_ids=request.flag_ids or [],
         department_ids=request.department_ids or [],
         key_ids=request.key_ids or [],

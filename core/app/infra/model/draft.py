@@ -137,11 +137,11 @@ async def patch_model_draft_impl(
                 department_ids=request.department_ids,
                 modality_ids=request.modality_ids,
                 pricing_ids=request.pricing_ids,
-                provider_ids=request.provider_ids,
+                provider_ids=[request.provider_id] if request.provider_id else None,
                 quality_ids=request.quality_ids,
                 reasoning_level_ids=request.reasoning_level_ids,
                 temperature_level_ids=request.temperature_level_ids,
-                value_ids=request.value_ids,
+                value_ids=[request.value_id] if request.value_id else None,
                 voice_ids=request.voice_ids,
             )
 
@@ -154,11 +154,11 @@ async def patch_model_draft_impl(
         department_ids=request.department_ids or [],
         modality_ids=request.modality_ids or [],
         pricing_ids=request.pricing_ids or [],
-        provider_ids=request.provider_ids or [],
+        provider_id=request.provider_id,
         quality_ids=request.quality_ids or [],
         reasoning_level_ids=request.reasoning_level_ids or [],
         temperature_level_ids=request.temperature_level_ids or [],
-        value_ids=request.value_ids or [],
+        value_id=request.value_id,
         voice_ids=request.voice_ids or [],
     )
 

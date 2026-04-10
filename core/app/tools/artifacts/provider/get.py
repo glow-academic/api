@@ -26,7 +26,7 @@ JUNCTIONS: list[tuple[str, str, str, str]] = [
     ("flags", "provider_flags_junction", "flags_id", "flag_ids"),
     ("endpoints", "provider_endpoints_junction", "endpoints_id", "endpoint_ids"),
     ("keys", "provider_keys_junction", "keys_id", "key_ids"),
-    ("values", "provider_values_junction", "values_id", "value_ids"),
+    ("values", "provider_values_junction", "values_id", "value_id"),
     ("providers", "provider_providers_junction", "providers_id", "provider_ids"),
 ]
 
@@ -111,7 +111,11 @@ async def get_providers(
         }
         for _, _, _, field in JUNCTIONS:
             if field in dict(r):
-                data[field] = r[field] or []
+                arr = r[field] or []
+                if field in ("value_id",):
+                    data[field] = arr[0] if arr else None
+                else:
+                    data[field] = arr
         results.append(GetProvidersResponse(**data))
 
     return results

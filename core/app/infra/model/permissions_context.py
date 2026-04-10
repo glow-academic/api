@@ -192,13 +192,13 @@ async def create_denormalized_snapshot(
     name_id: UUID | None,
     description_id: UUID | None,
     department_ids: list[UUID] | None = None,
-    provider_ids: list[UUID] | None = None,
+    provider_id: UUID | None = None,
     temperature_level_ids: list[UUID] | None = None,
     reasoning_level_ids: list[UUID] | None = None,
     quality_ids: list[UUID] | None = None,
     voice_ids: list[UUID] | None = None,
     modality_ids: list[UUID] | None = None,
-    value_ids: list[UUID] | None = None,
+    value_id: UUID | None = None,
     value: str | None = None,
 ) -> UUID:
     """Create a models_resource snapshot by hydrating IDs to values.
@@ -221,10 +221,10 @@ async def create_denormalized_snapshot(
             )
 
     async def _get_values() -> list:
-        if not value_ids:
+        if not value_id:
             return []
         async with pool.acquire() as conn:
-            return await get_values(conn, value_ids, redis, bypass_cache=True)
+            return await get_values(conn, [value_id], redis, bypass_cache=True)
 
     names, descriptions, values = await asyncio.gather(
         _get_names(),
@@ -233,9 +233,8 @@ async def create_denormalized_snapshot(
     )
 
     # Hydrate scalar fields from junction IDs:
-    # - provider_ids → provider_id (first UUID)
-    # - value_ids → value (text from values_resource)
-    provider_id = provider_ids[0] if provider_ids else None
+    # - provider_id (singular UUID)
+    # - value_id → value (text from values_resource)
     if value is None:
         value = values[0].value if values else ""
 

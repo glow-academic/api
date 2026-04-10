@@ -139,8 +139,10 @@ async def export_model_impl(
         all_name_ids.extend(a.name_ids or [])
         all_description_ids.extend(a.description_ids or [])
         all_department_ids.extend(a.department_ids or [])
-        all_value_ids.extend(a.value_ids or [])
-        all_provider_ids.extend(a.provider_ids or [])
+        if a.value_id:
+            all_value_ids.append(a.value_id)
+        if a.provider_id:
+            all_provider_ids.append(a.provider_id)
         all_modality_ids.extend(a.modality_ids or [])
         all_temperature_level_ids.extend(a.temperature_level_ids or [])
         all_reasoning_level_ids.extend(a.reasoning_level_ids or [])
@@ -241,8 +243,8 @@ async def export_model_impl(
         departments_str = PIPE.join(
             department_map.get(did, "") for did in (a.department_ids or [])
         )
-        value = value_map.get(a.value_ids[0], "") if a.value_ids else ""
-        provider = provider_map.get(a.provider_ids[0], "") if a.provider_ids else ""
+        value = value_map.get(a.value_id, "") if a.value_id else ""
+        provider = provider_map.get(a.provider_id, "") if a.provider_id else ""
         modalities_str = PIPE.join(
             modality_map.get(mid, "") for mid in (a.modality_ids or [])
         )

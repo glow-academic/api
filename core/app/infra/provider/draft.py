@@ -137,7 +137,7 @@ async def patch_provider_draft_impl(
                 department_ids=request.department_ids,
                 endpoint_ids=request.endpoint_ids,
                 key_ids=request.key_ids,
-                value_ids=request.value_ids,
+                value_ids=[request.value_id] if request.value_id else None,
             )
 
     # ── Step 5: Build form state (server is source of truth) ────────────
@@ -149,7 +149,7 @@ async def patch_provider_draft_impl(
         department_ids=request.department_ids or [],
         endpoint_ids=request.endpoint_ids or [],
         key_ids=request.key_ids or [],
-        value_ids=request.value_ids or [],
+        value_id=request.value_id,
     )
 
     # ── Step 6: Refresh MV ─────────────────────────────────────────────

@@ -26,4 +26,4 @@ class GetProviderDraftResponse(BaseModel):
     key_ids: list[UUID] = Field(..., description="Associated key UUIDs")
     name_ids: list[UUID] = Field(..., description="Associated name UUIDs")
     profile_ids: list[UUID] = Field(..., description="Associated profile UUIDs")
-    value_ids: list[UUID] = Field(..., description="Associated value UUIDs")
+    value_id: UUID | None = Field(None, description="Associated value UUID")

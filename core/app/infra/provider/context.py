@@ -183,7 +183,7 @@ async def resolve_provider_context(
 
     async def _get_values() -> list:
         async with pool.acquire() as conn:
-            return await get_values(conn, merged.value_ids, redis, bypass_cache)
+            return await get_values(conn, [merged.value_id], redis, bypass_cache) if merged.value_id else []
 
     async def _search_values() -> list:
         async with pool.acquire() as conn:
@@ -191,7 +191,7 @@ async def resolve_provider_context(
                 conn,
                 redis,
                 suggest_source="recent",
-                exclude_ids=merged.value_ids,
+                exclude_ids=[merged.value_id] if merged.value_id else [],
                 bypass_cache=bypass_cache,
                 provider=True,
             )
@@ -304,7 +304,7 @@ class _MergedIds:
     description_ids: list[UUID]
     flag_ids: list[UUID]
     department_ids: list[UUID]
-    value_ids: list[UUID]
+    value_id: UUID | None
     endpoint_ids: list[UUID]
     key_ids: list[UUID]
 
@@ -315,7 +315,7 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:  # noqa: ANN001
     description_ids = list(artifact.description_ids or []) if artifact else []
     flag_ids = list(artifact.flag_ids or []) if artifact else []
     department_ids = list(artifact.department_ids or []) if artifact else []
-    value_ids = list(artifact.value_ids or []) if artifact else []
+    value_id = artifact.value_id if artifact else None
     endpoint_ids = list(artifact.endpoint_ids or []) if artifact else []
     key_ids = list(artifact.key_ids or []) if artifact else []
 
@@ -329,8 +329,8 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:  # noqa: ANN001
             flag_ids = list(draft.flag_ids)
         if draft.department_ids:
             department_ids = list(draft.department_ids)
-        if draft.value_ids:
-            value_ids = list(draft.value_ids)
+        if draft.value_id is not None:
+            value_id = draft.value_id
         if draft.endpoint_ids:
             endpoint_ids = list(draft.endpoint_ids)
         if draft.key_ids:
@@ -341,7 +341,7 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:  # noqa: ANN001
         description_ids=description_ids,
         flag_ids=flag_ids,
         department_ids=department_ids,
-        value_ids=value_ids,
+        value_id=value_id,
         endpoint_ids=endpoint_ids,
         key_ids=key_ids,
     )

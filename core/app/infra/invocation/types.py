@@ -193,7 +193,7 @@ class PatchInvocationDraftApiRequest(ScopedItem):
     # All ID-only (matches GET response sections)
     name_ids: list[UUID] | None = Field(None, description="Selected name IDs")
     description_ids: list[UUID] | None = Field(None, description="Selected description IDs")
-    value_ids: list[UUID] | None = Field(None, description="Selected value IDs")
+    value_id: UUID | None = Field(None, description="Selected value ID")
     flag_ids: list[UUID] | None = Field(None, description="Selected flag IDs")
     department_ids: list[UUID] | None = Field(None, description="Selected department IDs")
     key_ids: list[UUID] | None = Field(None, description="Selected key IDs")
@@ -208,7 +208,7 @@ class PatchInvocationDraftApiRequest(ScopedItem):
         "name_ids": "names",
         "description": "descriptions",
         "description_ids": "descriptions",
-        "value_ids": "values",
+        "value_id": "values",
         "flag_ids": "flags",
         "department_ids": "departments",
         "key_ids": "keys",
@@ -225,7 +225,7 @@ class InvocationDraftFormState(BaseModel):
 
     name_ids: list[UUID] = Field(..., description="Saved name IDs")
     description_ids: list[UUID] = Field(..., description="Saved description IDs")
-    value_ids: list[UUID] = Field(..., description="Saved value IDs")
+    value_id: UUID | None = Field(None, description="Saved value ID")
     flag_ids: list[UUID] = Field(..., description="Saved flag IDs")
     department_ids: list[UUID] = Field(..., description="Saved department IDs")
     key_ids: list[UUID] = Field(..., description="Saved key IDs")

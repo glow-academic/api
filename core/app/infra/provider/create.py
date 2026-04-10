@@ -145,7 +145,7 @@ async def create_provider_impl(
                     flag_ids=[item.active_flag_id] if item.active_flag_id else None,
                     key_ids=item.key_ids,
                     provider_ids=[providers_resource_id],
-                    value_ids=item.value_ids,
+                    value_id=item.value_id,
                     soft=soft,
                 )
 

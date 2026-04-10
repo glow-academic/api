@@ -24,7 +24,7 @@ BOOTSTRAP_PROFILE = dict(
     name="Default Superadmin",
     email="default-superadmin@organization.com",
     department_ids=[ORGANIZATION_DEPT_RESOURCE],
-    role_ids=[SUPERADMIN_ROLE],
+    role_id=SUPERADMIN_ROLE,
     flag_ids=[PROFILE_ACTIVE],
 )
 

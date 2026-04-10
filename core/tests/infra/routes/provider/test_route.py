@@ -113,7 +113,7 @@ class TestProviderRoute:
                         "department_ids": [str(provider_route_actor.department_id)],
                         "endpoint_ids": [str(resources.endpoint_id)],
                         "key_ids": [str(resources.key_id)],
-                        "value_ids": [str(resources.value_id)],
+                        "value_id": str(resources.value_id),
                     }
                 ]
             },
@@ -216,7 +216,7 @@ class TestProviderRoute:
                         "department_ids": [str(provider_route_actor.department_id)],
                         "endpoint_ids": [str(updated.endpoint_id)],
                         "key_ids": [str(updated.key_id)],
-                        "value_ids": [str(updated.value_id)],
+                        "value_id": str(updated.value_id),
                     }
                 ]
             },
@@ -298,7 +298,7 @@ class TestProviderRoute:
                 "department_ids": [str(provider_route_actor.department_id)],
                 "endpoint_ids": [str(resources.endpoint_id)],
                 "key_ids": [str(resources.key_id)],
-                "value_ids": [str(resources.value_id)],
+                "value_id": str(resources.value_id),
             },
         )
 
@@ -466,7 +466,7 @@ class TestProviderRoute:
                         "department_ids": [str(provider_route_actor.department_id)],
                         "endpoint_ids": [str(resources.endpoint_id)],
                         "key_ids": [str(resources.key_id)],
-                        "value_ids": [str(resources.value_id)],
+                        "value_id": str(resources.value_id),
                     }
                 ]
             },

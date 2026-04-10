@@ -311,7 +311,7 @@ class PatchProfileDraftApiRequest(ScopedItem):
     Dual-mode for creatable resources only:
       - name/name_id
     ID-only for non-creatable resources:
-      - active_flag_id, department_ids, email_ids, role_ids, request_limit_ids
+      - active_flag_id, department_ids, email_ids, role_id, request_limit_ids
 
     Client always sends full state (append-only — each write is a new version snapshot).
     """

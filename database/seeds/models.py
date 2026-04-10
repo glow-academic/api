@@ -172,7 +172,7 @@ for _m in _config_models_raw:
         name=_name,
         value=_name,
         description=_m.get("description", _name),
-        provider_ids=[_prov_id],
+        provider_id=_prov_id,
         flag_ids=_flag_ids,
         modality_ids=_mod_ids,
         pricing_ids=_price_ids,

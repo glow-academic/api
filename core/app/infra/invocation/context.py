@@ -100,7 +100,7 @@ async def resolve_invocation_context(
     description_ids = list(draft.description_ids or []) if draft else []
     flag_ids = list(draft.flag_ids or []) if draft else []
     department_ids = list(draft.department_ids or []) if draft else []
-    value_ids = list(draft.value_ids or []) if draft else []
+    value_id = draft.value_id if draft else None
     key_ids = list(draft.key_ids or []) if draft else []
     endpoint_ids = list(draft.endpoint_ids or []) if draft else []
     modality_ids: list[UUID] = []  # no draft connection table for modalities
@@ -177,7 +177,7 @@ async def resolve_invocation_context(
 
     async def _get_values() -> list:
         async with pool.acquire() as conn:
-            return await get_values(conn, value_ids, redis, bypass_cache)
+            return await get_values(conn, [value_id], redis, bypass_cache) if value_id else []
 
     async def _search_values() -> list:
         async with pool.acquire() as conn:
@@ -187,7 +187,7 @@ async def resolve_invocation_context(
                 search=None,
                 limit_count=20,
                 offset_count=0,
-                exclude_ids=value_ids,
+                exclude_ids=[value_id] if value_id else [],
                 bypass_cache=bypass_cache,
             )
 

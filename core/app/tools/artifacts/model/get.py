@@ -21,7 +21,7 @@ JUNCTIONS: list[tuple[str, str, str, str]] = [
     ("flags", "model_flags_junction", "flags_id", "flag_ids"),
     ("modalities", "model_modalities_junction", "modalities_id", "modality_ids"),
     ("pricing", "model_pricing_junction", "pricing_id", "pricing_ids"),
-    ("providers", "model_providers_junction", "providers_id", "provider_ids"),
+    ("providers", "model_providers_junction", "providers_id", "provider_id"),
     ("qualities", "model_qualities_junction", "qualities_id", "quality_ids"),
     (
         "reasoning_levels",
@@ -35,7 +35,7 @@ JUNCTIONS: list[tuple[str, str, str, str]] = [
         "temperature_levels_id",
         "temperature_level_ids",
     ),
-    ("values", "model_values_junction", "values_id", "value_ids"),
+    ("values", "model_values_junction", "values_id", "value_id"),
     ("voices", "model_voices_junction", "voices_id", "voice_ids"),
     ("models", "model_models_junction", "models_id", "model_ids"),
 ]
@@ -131,7 +131,11 @@ async def get_models(
         }
         for _, _, _, field in JUNCTIONS:
             if field in dict(r):
-                data[field] = r[field] or []
+                arr = r[field] or []
+                if field in ("provider_id", "value_id"):
+                    data[field] = arr[0] if arr else None
+                else:
+                    data[field] = arr
         results.append(GetModelsResponse(**data))
 
     return results

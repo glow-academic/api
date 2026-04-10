@@ -125,7 +125,8 @@ async def search_provider_impl(
             )
         pids: set[UUID] = set()
         for m in model_artifacts:
-            pids.update(m.provider_ids or [])
+            if m.provider_id:
+                pids.add(m.provider_id)
         if pids:
             provider_resource_ids = list(pids)
         else:
@@ -195,8 +196,10 @@ async def search_provider_impl(
     for a in artifacts:
         all_name_ids.extend(a.name_ids or [])
         all_description_ids.extend(a.description_ids or [])
-        all_value_ids.extend(a.value_ids or [])
-        all_provider_resource_ids.extend(a.provider_ids or [])
+        if a.value_id:
+            all_value_ids.append(a.value_id)
+        if a.provider_id:
+            all_provider_resource_ids.append(a.provider_id)
 
     async def _fetch_names() -> list:
         async with pool.acquire() as conn:
@@ -259,8 +262,8 @@ async def search_provider_impl(
     for m in model_facet:
         if m.provider_id:
             for a in artifacts:
-                for prid in a.provider_ids or []:
-                    pr = provider_resource_map.get(prid)
+                if a.provider_id:
+                    pr = provider_resource_map.get(a.provider_id)
                     if pr and m.provider_id == pr.id:
                         provider_model_counts[a.id] = (
                             provider_model_counts.get(a.id, 0) + 1
@@ -273,7 +276,7 @@ async def search_provider_impl(
         desc_obj = (
             description_map.get(a.description_ids[0]) if a.description_ids else None
         )
-        value_obj = value_map.get(a.value_ids[0]) if a.value_ids else None
+        value_obj = value_map.get(a.value_id) if a.value_id else None
 
         dept_ids = list(a.department_ids or [])
         active_model_count = provider_model_counts.get(a.id, 0)
