@@ -1582,6 +1582,7 @@ def _discover_setups() -> list[str]:
 
 
 _active_containers: list = []
+_cleanup_registered = False
 
 
 def _cleanup_containers():
@@ -1596,13 +1597,12 @@ def _cleanup_containers():
 
 async def _start_containers() -> tuple:
     """Start Postgres and Redis testcontainers, return (pg, pg_url, redis_container, redis_url)."""
-    import atexit
-    import signal
+    global _cleanup_registered
 
-    # Register cleanup for Ctrl+C and unexpected exits
-    atexit.register(_cleanup_containers)
-    signal.signal(signal.SIGINT, lambda *_: (_cleanup_containers(), exit(1)))
-    signal.signal(signal.SIGTERM, lambda *_: (_cleanup_containers(), exit(1)))
+    if not _cleanup_registered:
+        import atexit
+        atexit.register(_cleanup_containers)
+        _cleanup_registered = True
 
     print("Starting Postgres container...")
     pg = PostgresContainer("postgres:18")
