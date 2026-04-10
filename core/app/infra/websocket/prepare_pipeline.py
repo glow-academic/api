@@ -421,12 +421,20 @@ def resolve_agent_config(
         )
         return None
 
-    api_key = getattr(provider, "key", "") or ""
-    if not api_key:
+    encrypted_key = getattr(provider, "key", "") or ""
+    if not encrypted_key:
         logger.warning(
             f"No API key for provider '{getattr(provider, 'name', '')}' — skipping"
         )
         return None
+
+    # Decrypt the stored key — providers_resource.key is always encrypted
+    try:
+        from app.utils.auth.decrypt_api_key import decrypt_api_key
+        api_key = decrypt_api_key(encrypted_key)
+    except Exception:
+        # Fallback: treat as plaintext if decryption fails (e.g. legacy data)
+        api_key = encrypted_key
 
     return LLMConfig(
         model=getattr(model, "value", None) or model.name,
@@ -571,14 +579,39 @@ def build_agent_groups_from_scores(
     *,
     resource_types: list[str],
     scores: Any,
+    permissions: list[dict] | None = None,
+    tool_graph: Any | None = None,
 ) -> dict[UUID, list[str]]:
-    """Map resource_types → agent_id groups using ArtifactToolScores.best.
+    """Map to agent_id groups using permissions or resource_types.
 
-    Each resource_type maps to the best ResolvedTool's agent_id via score_tools.
-    Groups by agent_id → [resource_types...].
+    New path (permissions): match (artifact, operation) pairs against the
+    tool graph's ResolvedTools. Groups by agent_id → [artifact_types...].
+
+    Legacy path (resource_types): match resource_types against
+    ArtifactToolScores.best. Groups by agent_id → [resource_types...].
     """
     agent_groups: dict[UUID, list[str]] = {}
 
+    # New path: permission-based matching
+    if permissions and tool_graph and hasattr(tool_graph, "tools"):
+        perm_set = {
+            (p.get("artifact") or p.get("name", ""), p.get("operation", ""))
+            if isinstance(p, dict) else (getattr(p, "artifact", ""), getattr(p, "operation", ""))
+            for p in permissions
+        }
+        for resolved_tool in tool_graph.tools:
+            if (resolved_tool.target, resolved_tool.operation) in perm_set:
+                agent_groups.setdefault(resolved_tool.agent_id, []).append(
+                    resolved_tool.target
+                )
+        # Dedupe resource lists per agent
+        agent_groups = {
+            aid: list(dict.fromkeys(rts))
+            for aid, rts in agent_groups.items()
+        }
+        return agent_groups
+
+    # Legacy path: resource_type scoring
     for rt in resource_types:
         best = scores.best.get(rt)
         if best is not None:
