@@ -30,7 +30,6 @@ from app.infra.tool_graph import score_tools
 from app.infra.types import (
     ArtifactContext,
     ArtifactRequest,
-    ArtifactWebsocketContext,
     WebsocketContext,
 )
 
@@ -122,20 +121,18 @@ async def resolve_websocket_context(
     requests: list[ArtifactRequest],
     bypass_cache: bool = False,
 ) -> WebsocketContext | None:
-    """Resolve websocket context across multiple artifacts.
+    """Resolve context for AI generation — agent chain + tool scoring.
 
     Steps:
-      1. resolve_common_context(profile_id) → profile, tool_graph, runs
-      2. Parallel: resolve each artifact via registry dispatch
-      3. score_tools(tool_graph, union of all scoring resources)
-      4. Collect unique system_ids from winning tools
-      5. Parallel: resolve_system_context for each system_id
-      6. Dedupe + flatten: systems, agents, models, tools, args, args_outputs
-      7. Build per-artifact ArtifactWebsocketContext
-      8. Return WebsocketContext
+      1. resolve_common_context(profile_id) → profile, tool_graph
+      2. Score tools using static scoring_resources from artifact config
+      3. Collect winning system_ids from scored tools
+      4. Resolve system contexts in parallel (agents, models, providers, tools)
+      5. Dedupe + flatten all resolved config
+      6. Return WebsocketContext
     """
 
-    # ── Step 1: Common context ────────────────────────────────────────────
+    # ── Step 1: Common context (profile + tool_graph) ───────────────────
 
     common = await resolve_common_context(
         pool,
@@ -149,44 +146,26 @@ async def resolve_websocket_context(
 
     profile = common.profile
 
-    # ── Step 2: Resolve each artifact in parallel ─────────────────────────
+    # ── Step 2: Tool scoring (uses static scoring_resources from config) ──
 
-    artifact_tasks = []
+    all_scoring_resources: set[str] = set()
     for req in requests:
         config = ARTIFACT_RESOLVERS.get(req.artifact_type)
         if config is None:
             raise ValueError(f"Unknown artifact type: {req.artifact_type}")
-
-        resolver_kwargs = {
-            config.id_kwarg: req.artifact_id,
-            "group_id": req.group_id,
-            "draft_id": req.draft_id,
-            "user_department_ids": profile.department_ids,
-            **(req.params or {}),
-            "bypass_cache": bypass_cache,
-        }
-        artifact_tasks.append(config.resolver(pool, redis, **resolver_kwargs))
-
-    artifact_contexts: list[ArtifactContext] = await asyncio.gather(*artifact_tasks)
-
-    # ── Step 3: Cross-artifact tool scoring ───────────────────────────────
-
-    all_scoring_resources: set[str] = set()
-    for req in requests:
-        config = ARTIFACT_RESOLVERS[req.artifact_type]
         all_scoring_resources.add(req.artifact_type)
         all_scoring_resources |= config.scoring_resources
 
     scores = score_tools(common.tool_graph, all_scoring_resources)
 
-    # ── Step 4: Collect winning system_ids ────────────────────────────────
+    # ── Step 3: Collect winning system_ids ────────────────────────────────
 
     system_ids: set[UUID] = set()
     for best_tool in scores.best.values():
         if best_tool is not None:
             system_ids.add(best_tool.system_id)
 
-    # ── Step 5: Resolve system contexts in parallel ───────────────────────
+    # ── Step 4: Resolve system contexts in parallel ──────────────────────
 
     if system_ids:
         system_contexts = await asyncio.gather(
@@ -204,7 +183,7 @@ async def resolve_websocket_context(
     else:
         system_contexts = []
 
-    # ── Step 6: Dedupe + flatten ──────────────────────────────────────────
+    # ── Step 5: Dedupe + flatten ──────────────────────────────────────────
 
     all_agents = dedupe_by_id([a for sc in system_contexts for a in sc.agents])
     all_models = dedupe_by_id([m for sc in system_contexts for m in sc.models])
@@ -223,41 +202,10 @@ async def resolve_websocket_context(
     )
     all_rubrics = dedupe_by_id([r for sc in system_contexts for r in sc.rubrics])
 
-    # Dedupe systems by system_id
-    seen_system_ids: set[UUID] = set()
-    all_systems: list = []
-    for sc in system_contexts:
-        if sc.system_id not in seen_system_ids:
-            seen_system_ids.add(sc.system_id)
-            all_systems.append(sc)
-
-    # ── Step 7: Build per-artifact websocket contexts ─────────────────────
-
-    artifacts_dict: dict[str, ArtifactWebsocketContext] = {}
-    for req, ctx in zip(requests, artifact_contexts):
-        key = f"get.{req.artifact_type}"
-
-        # Namespace resources: get.X (selected), search.X (suggestions)
-        resources_flat: dict[str, list] = {}
-        for rname, pair in ctx.resources.items():
-            resources_flat[f"get.{rname}"] = pair.selected
-            resources_flat[f"search.{rname}"] = pair.suggestions
-
-        # Namespace entries: get.X
-        entries_flat: dict[str, Any] = {f"get.{k}": v for k, v in ctx.entries.items()}
-
-        artifacts_dict[key] = ArtifactWebsocketContext(
-            params=req.params or {},
-            resources=resources_flat,
-            entries=entries_flat,
-        )
-
-    # ── Step 8: Return ────────────────────────────────────────────────────
+    # ── Step 6: Return ───────────────────────────────────────────────────
 
     return WebsocketContext(
-        artifacts=artifacts_dict,
         scores=scores,
-        systems=all_systems,
         agents=all_agents,
         models=all_models,
         providers=all_providers,

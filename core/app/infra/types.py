@@ -44,25 +44,10 @@ class ArtifactRequest:
 
 
 @dataclass(frozen=True)
-class ArtifactWebsocketContext:
-    """Flattened artifact context for websocket consumption.
-
-    Resources are prefixed: "get.names" (selected), "search.names" (suggestions).
-    Entries are prefixed: "get.draft_persona", "get.runs".
-    """
-
-    params: dict
-    resources: dict[str, list]
-    entries: dict[str, Any]
-
-
-@dataclass(frozen=True)
 class WebsocketContext:
-    """Full resolved websocket context across all artifacts."""
+    """Resolved context for AI generation — agent chain + scoring."""
 
-    artifacts: dict[str, ArtifactWebsocketContext]
     scores: Any  # ArtifactToolScores — resource → best tool picks
-    systems: list
     agents: list
     models: list
     providers: list

@@ -92,59 +92,6 @@ def compute_agent_modalities(
     return frozenset(modalities) if modalities else frozenset({"call"})
 
 
-def dump_fetcher_result(result: object) -> dict[str, Any]:
-    """Dump a fetcher result into a dict with resources, entries, config-chain fields."""
-    dumped: dict[str, Any] = {}
-
-    for ns in ("resources", "entries"):
-        val = getattr(result, ns, None)
-        if val and hasattr(val, "model_dump"):
-            dumped[ns] = val.model_dump(mode="json")
-
-    for key in (
-        "agents",
-        "systems",
-        "models",
-        "providers",
-        "tools",
-        "args",
-        "args_outputs",
-        "profile",
-        "params",
-    ):
-        val = getattr(result, key, None)
-        if val is None:
-            continue
-        if hasattr(val, "model_dump"):
-            dumped[key] = val.model_dump(mode="json")
-        elif isinstance(val, list):
-            dumped[key] = [
-                item.model_dump(mode="json") if hasattr(item, "model_dump") else item
-                for item in val
-            ]
-        else:
-            dumped[key] = val
-
-    return dumped
-
-
-def build_namespaced_context(
-    artifact_results: dict[str, dict[str, dict[str, Any]]],
-    entry_results: dict[str, dict[str, Any]] | None = None,
-) -> dict[str, Any]:
-    """Build the namespaced Jinja context: artifacts.{name}.{operation}.{...}."""
-    context: dict[str, Any] = {"artifacts": {}}
-
-    for name, ops in artifact_results.items():
-        context["artifacts"][name] = ops
-
-    if entry_results:
-        for name, ops in entry_results.items():
-            context["artifacts"].setdefault(name, {}).update(ops)
-
-    return context
-
-
 # ---------------------------------------------------------------------------
 # Tool enrichment
 # ---------------------------------------------------------------------------
