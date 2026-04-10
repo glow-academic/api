@@ -41,6 +41,7 @@ providers = [
         active_flag=True,
         endpoint=p.get("endpoint"),
         key=_encrypt_key(p.get("key")),
+        value=p["name"],
     )
     for p in _ai_providers
 ]

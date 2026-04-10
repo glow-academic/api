@@ -127,6 +127,7 @@ async def create_model_impl(
             voice_ids=item.voice_ids,
             modality_ids=item.modality_ids,
             value_ids=item.value_ids,
+            value=item.value,
         )
 
         # Artifact create inside transaction

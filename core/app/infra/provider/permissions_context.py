@@ -187,6 +187,7 @@ async def create_denormalized_snapshot(
     department_ids: list[UUID] | None = None,
     endpoint: str | None = None,
     key: str | None = None,
+    value: str | None = None,
 ) -> UUID:
     """Create a providers_resource snapshot by hydrating IDs to values.
 
@@ -222,5 +223,6 @@ async def create_denormalized_snapshot(
             department_ids=department_ids,
             endpoint=endpoint,
             key=key,
+            value=value,
         )
     return result.id

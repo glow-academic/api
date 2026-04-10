@@ -170,6 +170,7 @@ for _m in _config_models_raw:
         id=sid(f"model/{_name}"),
         resource_id=sid(f"model-resource/{_name}"),
         name=_name,
+        value=_name,
         description=_m.get("description", _name),
         provider_ids=[_prov_id],
         flag_ids=_flag_ids,

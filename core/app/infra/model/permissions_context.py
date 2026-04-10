@@ -199,6 +199,7 @@ async def create_denormalized_snapshot(
     voice_ids: list[UUID] | None = None,
     modality_ids: list[UUID] | None = None,
     value_ids: list[UUID] | None = None,
+    value: str | None = None,
 ) -> UUID:
     """Create a models_resource snapshot by hydrating IDs to values.
 
@@ -235,7 +236,8 @@ async def create_denormalized_snapshot(
     # - provider_ids → provider_id (first UUID)
     # - value_ids → value (text from values_resource)
     provider_id = provider_ids[0] if provider_ids else None
-    value = values[0].value if values else ""
+    if value is None:
+        value = values[0].value if values else ""
 
     async with pool.acquire() as conn:
         result = await create_model_resource(

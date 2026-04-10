@@ -249,6 +249,7 @@ class CreateModelItem(ScopedItem):
     reasoning_level_ids: list[UUID] | None = Field(None, description="Reasoning level identifiers")
     temperature_level_ids: list[UUID] | None = Field(None, description="Temperature level identifiers")
     value_ids: list[UUID] | None = Field(None, description="Value resource identifiers")
+    value: str | None = Field(None, description="Direct model value/identifier (e.g. the actual API model name)")
     voice_ids: list[UUID] | None = Field(None, description="Voice identifiers")
     model_ids: list[UUID] | None = Field(None, description="Related model identifiers")
 
