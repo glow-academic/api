@@ -9,6 +9,7 @@ Field references use deterministic IDs imported from fields.py.
 
 from database.seeds.ids import sid
 from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVERSITY_DEPT_RESOURCE
+from database.seeds.setups.university.fields import fields as _field_defs
 from database.seeds.setups.university.fields import (
     CLASS_FIELDS,
     CONCEPTS_FIELDS,
@@ -22,6 +23,19 @@ from database.seeds.setups.university.fields import (
     TEMPERAMENT_FIELDS,
     TIME_FIELDS,
 )
+
+# ---------------------------------------------------------------------------
+# Field artifact → resource ID lookup
+# parameters_resource.field_ids must reference fields_resource.id (resource IDs)
+# ---------------------------------------------------------------------------
+
+_FIELD_RESOURCE = {f["id"]: f["resource_id"] for f in _field_defs}
+
+
+def _to_resource_ids(artifact_ids: list) -> list:
+    """Convert field artifact IDs to resource IDs."""
+    return [_FIELD_RESOURCE[aid] for aid in artifact_ids if aid in _FIELD_RESOURCE]
+
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs
@@ -60,7 +74,7 @@ parameters = [
         resource_id=P_TEMPERAMENT_RESOURCE,
         name="Temperament",
         description="Emotional temperament types for personas (aggressive, passive, confused, happy)",
-        field_ids=TEMPERAMENT_FIELDS,
+        field_ids=_to_resource_ids(TEMPERAMENT_FIELDS),
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -68,7 +82,7 @@ parameters = [
         resource_id=P_PERSONA_TYPE_RESOURCE,
         name="Persona Type",
         description="Categorizes personas by their type (Emotion or Neutral)",
-        field_ids=PERSONA_TYPE_FIELDS,
+        field_ids=_to_resource_ids(PERSONA_TYPE_FIELDS),
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -76,7 +90,7 @@ parameters = [
         resource_id=P_INTENSITY_RESOURCE,
         name="Intensity",
         description="How emotionally charged or urgent the situation feels",
-        field_ids=INTENSITY_FIELDS,
+        field_ids=_to_resource_ids(INTENSITY_FIELDS),
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -84,7 +98,7 @@ parameters = [
         resource_id=P_CROWDEDNESS_RESOURCE,
         name="Crowdedness",
         description="How many students are present in the room",
-        field_ids=CROWDEDNESS_FIELDS,
+        field_ids=_to_resource_ids(CROWDEDNESS_FIELDS),
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -92,7 +106,7 @@ parameters = [
         resource_id=P_DEADLINE_RESOURCE,
         name="Deadline",
         description="How close it is to an assignment or project deadline",
-        field_ids=DEADLINE_FIELDS,
+        field_ids=_to_resource_ids(DEADLINE_FIELDS),
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -100,7 +114,7 @@ parameters = [
         resource_id=P_TIME_RESOURCE,
         name="Time",
         description="When the scenario occurs",
-        field_ids=TIME_FIELDS,
+        field_ids=_to_resource_ids(TIME_FIELDS),
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -108,7 +122,7 @@ parameters = [
         resource_id=P_LOCATION_RESOURCE,
         name="Location",
         description="Where the interaction is taking place",
-        field_ids=LOCATION_FIELDS,
+        field_ids=_to_resource_ids(LOCATION_FIELDS),
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -116,7 +130,7 @@ parameters = [
         resource_id=P_CLASS_RESOURCE,
         name="Class",
         description="Which course or subject the scenario is about",
-        field_ids=CLASS_FIELDS,
+        field_ids=_to_resource_ids(CLASS_FIELDS),
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -124,7 +138,7 @@ parameters = [
         resource_id=P_DOCUMENT_TYPE_RESOURCE,
         name="Document Type",
         description="Categorizes documents by their type (homework, project, quiz, etc.)",
-        field_ids=DOCUMENT_TYPE_FIELDS,
+        field_ids=_to_resource_ids(DOCUMENT_TYPE_FIELDS),
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -132,7 +146,7 @@ parameters = [
         resource_id=P_CONCEPTS_RESOURCE,
         name="Concepts",
         description="FERPA-related concepts for policy selection",
-        field_ids=CONCEPTS_FIELDS,
+        field_ids=_to_resource_ids(CONCEPTS_FIELDS),
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -140,7 +154,7 @@ parameters = [
         resource_id=P_ROLE_RESOURCE,
         name="Role",
         description="Role types for neutral personas (Student, Professor, Instructional Staff)",
-        field_ids=ROLE_FIELDS,
+        field_ids=_to_resource_ids(ROLE_FIELDS),
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
 ]
