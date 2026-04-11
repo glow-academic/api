@@ -28,6 +28,7 @@ from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 from app.infra.document.types import (
+    CreateDocumentApiRequest,
     CreateDocumentItem,
     DocumentFieldError,
     DocumentResultItem,
@@ -40,12 +41,12 @@ async def create_document_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: CreateDocumentApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> CreateDocumentApiResponse:
     """Document bulk create using composable infra functions.
 
     Flow:
@@ -56,6 +57,8 @@ async def create_document_impl(
       5. invalidate_tags
     """
     from app.infra.document.permissions import compute_can_create
+
+    items = request.documents
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -126,7 +129,7 @@ async def create_document_impl(
             description_id=item.description_id,
             department_ids=item.department_ids,
             image_ids=item.image_ids,
-            parameter_field_ids=item.field_ids,
+            parameter_field_ids=item.parameter_field_ids,
             template=bool(item.template_flag_id),
         )
 
@@ -145,7 +148,7 @@ async def create_document_impl(
                     flag_ids=flag_ids,
                     file_ids=item.upload_ids,
                     image_ids=item.image_ids,
-                    parameter_field_ids=item.field_ids,
+                    parameter_field_ids=item.parameter_field_ids,
                     text_ids=item.text_ids,
                     document_ids=[documents_resource_id],
                     soft=soft,
