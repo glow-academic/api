@@ -660,6 +660,7 @@ async def _run_department_seeds(
         CreateDepartmentItem,
         create_department_impl,
     )
+    from app.infra.department.types import CreateDepartmentApiRequest
 
     items = [CreateDepartmentItem(**d) for d in department_defs]
 
@@ -762,6 +763,7 @@ async def _run_simulation_seeds(
         CreateSimulationItem,
         create_simulation_impl,
     )
+    from app.infra.simulation.types import CreateSimulationApiRequest
 
     items = [CreateSimulationItem(**s) for s in simulation_defs]
 
@@ -879,6 +881,7 @@ async def _run_parameter_seeds(
         CreateParameterItem,
         create_parameter_impl,
     )
+    from app.infra.parameter.types import CreateParameterApiRequest
 
     items = [CreateParameterItem(**p) for p in parameter_defs]
 
