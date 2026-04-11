@@ -147,6 +147,19 @@ async def resolve_system_context(
         _get_rubrics(),
     )
 
+    # Collect tool instruction_ids (Layer 3 response templates) and merge
+    tool_instruction_ids = [
+        t.instruction_id for t in tools
+        if getattr(t, "instruction_id", None)
+        and t.instruction_id not in {i.id for i in instructions_list}
+    ]
+    if tool_instruction_ids:
+        async with pool.acquire() as conn:
+            tool_instructions = await get_instructions(
+                conn, tool_instruction_ids, redis, bypass_cache
+            )
+        instructions_list = list(instructions_list) + tool_instructions
+
     # Collect IDs for final level
     provider_ids = list({m.provider_id for m in models if m.provider_id})
     args_ids = list({aid for t in tools for aid in (t.args_ids or [])})
