@@ -11,17 +11,6 @@ class CreateCallResponse(BaseModel):
 
 
 class GetCallResponse(BaseModel):
-    id: UUID
-    run_id: UUID
-    session_id: UUID
-    external_call_id: str
-    created_at: datetime
-    active: bool
-    mcp: bool
-    generated: bool
-
-
-class SearchCallResponse(BaseModel):
     call_id: UUID
     run_id: UUID
     call_created_at: datetime
@@ -29,3 +18,7 @@ class SearchCallResponse(BaseModel):
     file_path: str | None
     mime_type: str | None
     tool_id: UUID | None
+
+
+# Search uses the same shape as Get (both read from calls_mv)
+SearchCallResponse = GetCallResponse
