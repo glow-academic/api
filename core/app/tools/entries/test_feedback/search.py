@@ -13,6 +13,7 @@ MV_NAME = "test_feedback_mv"
 async def search_test_feedback_entries(
     conn: asyncpg.Connection,
     grade_ids: list[UUID] | None = None,
+    tool_call_ids: list[UUID] | None = None,
     limit: int = 20,
     offset: int = 0,
     bypass_mv: bool = False,
@@ -22,21 +23,26 @@ async def search_test_feedback_entries(
 
     rows = await conn.fetch(
         f"""
-        SELECT feedback_id, grade_id, total, feedback, total_points, pass_points, created_at
+        SELECT feedback_id, grade_id, call_id, tool_call_id,
+               total, feedback, total_points, pass_points, created_at
         FROM {source}
         WHERE ($1::uuid[] IS NULL OR grade_id = ANY($1))
+          AND ($4::uuid[] IS NULL OR tool_call_id = ANY($4))
         ORDER BY created_at DESC
         LIMIT $2 OFFSET $3
         """,
         grade_ids,
         limit,
         offset,
+        tool_call_ids,
     )
 
     return [
         GetTestFeedbackResponse(
             feedback_id=r["feedback_id"],
             grade_id=r["grade_id"],
+            call_id=r["call_id"],
+            tool_call_id=r["tool_call_id"],
             total=r["total"],
             feedback=r["feedback"],
             total_points=r["total_points"],
