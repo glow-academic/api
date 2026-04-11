@@ -875,6 +875,8 @@ async def _run_parameter_field_seeds(
     redis: Redis,
     parameter_field_defs: list[dict],
 ) -> list[UUID]:
+    """Create parameter_fields_resource entries linking parameters to fields."""
+    from app.tools.resources.parameter_fields.create import create_parameter_field
 
     created_ids: list[UUID] = []
     async with pool.acquire() as conn:
