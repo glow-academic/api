@@ -765,6 +765,13 @@ permissions = [
         operation="search",
         name="Search Group",
     ),
+    dict(id=sid("permission/group/text_download"), artifact="group", operation="text_download", name="Text Download Group"),
+    dict(id=sid("permission/group/image_download"), artifact="group", operation="image_download", name="Image Download Group"),
+    dict(id=sid("permission/group/video_download"), artifact="group", operation="video_download", name="Video Download Group"),
+    dict(id=sid("permission/group/audio_download"), artifact="group", operation="audio_download", name="Audio Download Group"),
+    dict(id=sid("permission/group/file_download"), artifact="group", operation="file_download", name="File Download Group"),
+    dict(id=sid("permission/group/file_preview"), artifact="group", operation="file_preview", name="File Preview Group"),
+    dict(id=sid("permission/group/call_download"), artifact="group", operation="call_download", name="Call Download Group"),
     dict(
         id=sid("permission/health/docs"),
         artifact="health",
