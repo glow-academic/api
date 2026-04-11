@@ -11,14 +11,10 @@ class CreateCallResponse(BaseModel):
 
 
 class GetCallResponse(BaseModel):
-    call_id: UUID
+    id: UUID
     run_id: UUID
-    call_created_at: datetime
+    created_at: datetime
     upload_id: UUID | None
     file_path: str | None
     mime_type: str | None
     tool_id: UUID | None
-
-
-# Search uses the same shape as Get (both read from calls_mv)
-SearchCallResponse = GetCallResponse

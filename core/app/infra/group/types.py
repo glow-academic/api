@@ -8,7 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.runs_context import RunsContext
-from app.tools.entries.calls.types import SearchCallResponse
+from app.tools.entries.calls.types import GetCallResponse as SearchCallResponse
 from app.tools.entries.messages.types import SearchMessageResponse
 from app.tools.entries.runs.search import RunViewItem
 

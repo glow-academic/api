@@ -5,7 +5,7 @@ from uuid import UUID
 import asyncpg  # type: ignore
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
-from app.tools.entries.calls.types import SearchCallResponse
+from app.tools.entries.calls.types import GetCallResponse
 
 MV_NAME = "calls_mv"
 
@@ -17,7 +17,7 @@ async def search_calls(
     limit: int = 20,
     offset: int = 0,
     bypass_mv: bool = False,
-) -> list[SearchCallResponse]:
+) -> list[GetCallResponse]:
     """Search calls from calls_mv with declarative filters."""
     source = await resolve_mv_source(conn, MV_NAME, bypass_mv)
 
@@ -37,4 +37,15 @@ async def search_calls(
         offset,
     )
 
-    return [SearchCallResponse(**dict(r)) for r in rows]
+    return [
+        GetCallResponse(
+            id=r["call_id"],
+            run_id=r["run_id"],
+            created_at=r["call_created_at"],
+            upload_id=r["upload_id"],
+            file_path=r["file_path"],
+            mime_type=r["mime_type"],
+            tool_id=r["tool_id"],
+        )
+        for r in rows
+    ]
