@@ -47,6 +47,7 @@ from app.registry.operations import (
     get_accepted_fields,
     resolve_callable,
     resolve_item_class,
+    resolve_request_class,
 )
 from app.utils.logging.db_logger import get_logger
 
@@ -298,17 +299,30 @@ async def execute_infra_operation(
             accepted = get_accepted_fields(target.artifact, target.operation)
 
             if accepted is not None:
-                # Write path: filter → build Pydantic item → execute with items=[item]
+                # Write path: filter → build item → wrap in request → execute
                 filtered = filter_to_accepted(rendered, target.artifact, target.operation)
                 fields_used = list(filtered.keys())
                 item = build_item(filtered, target.artifact, target.operation)
+
+                # Construct the request object
+                request_cls = resolve_request_class(target.artifact, target.operation)
+                if request_cls is not None:
+                    # Batch-style (create/update): wrap item in the request's list field
+                    list_field = next(
+                        k for k, v in request_cls.model_fields.items()
+                        if "list" in str(v.annotation)
+                    )
+                    request_obj = request_cls(**{list_field: [item]})
+                else:
+                    # Flat-style (draft): the item IS the request
+                    request_obj = item
 
                 async def _runner() -> Any:
                     return await fn(
                         ctx.pool,
                         ctx.redis,
                         profile_id=ctx.profile_id,
-                        items=[item],
+                        request=request_obj,
                         session_id=ctx.session_id,
                         draft_id=ctx.draft_id,
                         group_id=ctx.group_id,
@@ -320,14 +334,20 @@ async def execute_infra_operation(
                 kwargs = {k: v for k, v in rendered.items() if v != ""}
                 fields_used = list(kwargs.keys())
 
+                # Context fields — only pass if not already in kwargs
+                ctx_defaults = {
+                    "profile_id": ctx.profile_id,
+                    "session_id": ctx.session_id,
+                    "draft_id": ctx.draft_id,
+                    "group_id": ctx.group_id,
+                }
+                ctx_kwargs = {k: v for k, v in ctx_defaults.items() if k not in kwargs}
+
                 async def _runner() -> Any:
                     return await fn(
                         ctx.pool,
                         ctx.redis,
-                        profile_id=ctx.profile_id,
-                        session_id=ctx.session_id,
-                        draft_id=ctx.draft_id,
-                        group_id=ctx.group_id,
+                        **ctx_kwargs,
                         **kwargs,
                     )
 
