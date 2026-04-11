@@ -343,7 +343,7 @@ async def execute_infra_operation(
                 sid=ctx.sid,
                 rooms=[ctx.sid] if ctx.sid else [],
                 runner=_runner,
-                arguments=filtered,
+                arguments=kwargs if accepted is None else filtered,
             )
 
             results.append(InfraOperationResult(
