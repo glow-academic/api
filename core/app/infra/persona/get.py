@@ -23,7 +23,7 @@ async def get_persona_impl(
     *,
     profile_id: UUID,
     session_id: UUID | None = None,
-    persona_id: UUID | None,
+    id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     parameter_ids: list[UUID] | None = None,
@@ -38,6 +38,7 @@ async def get_persona_impl(
     bypass_cache: bool = False,
 ) -> GetPersonaApiResponse:
     """Resolve the canonical persona artifact bundle for any surface."""
+    persona_id = id  # alias: tools send 'id', internal code uses 'persona_id'
     common = await resolve_common_context(
         pool,
         redis,

@@ -38,7 +38,7 @@ async def duplicate_persona_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    persona_id: UUID,
+    id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
 ) -> DuplicatePersonaApiResponse:
@@ -53,6 +53,7 @@ async def duplicate_persona_impl(
       6. create_persona → new artifact with original IDs + inactive flag
       7. invalidate_tags
     """
+    persona_id = id  # alias: tools send 'id', internal code uses 'persona_id'
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -160,6 +161,6 @@ async def duplicate_persona_impl(
 
     return DuplicatePersonaApiResponse(
         success=True,
-        persona_id=result.id,
+        id=result.id,
         message=f"Persona '{original_name}' duplicated successfully",
     )

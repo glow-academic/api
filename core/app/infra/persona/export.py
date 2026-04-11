@@ -56,7 +56,7 @@ async def export_persona_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    persona_id: UUID | None = None,
+    id: UUID | None = None,
 ) -> dict:
     """Persona full export using composable infra functions.
 
@@ -67,6 +67,7 @@ async def export_persona_impl(
       4. Parallel resource hydration → human-readable values
       5. Generate CSV + create upload entry
     """
+    persona_id = id  # alias: tools send 'id', internal code uses 'persona_id'
     from fastapi import HTTPException
 
     from app.infra.persona.types import ExportPersonaApiResponse
