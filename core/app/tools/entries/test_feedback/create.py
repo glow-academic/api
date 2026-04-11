@@ -13,6 +13,7 @@ async def create_test_feedback(
     conn: asyncpg.Connection,
     grade_id: UUID,
     call_id: UUID,
+    tool_call_id: UUID,
     total: int,
     *,
     id: UUID | None = None,
@@ -25,12 +26,13 @@ async def create_test_feedback(
     """Create a test_feedback entry."""
     entry_id = await conn.fetchval(
         """
-        INSERT INTO test_feedback_entry (id, grade_id, call_id, total, feedback, total_points, pass_points, active, mcp, generated)
-        VALUES (COALESCE($9, uuidv7()), $1, $2, $3, $4, $5, $6, $7, $8, true)
+        INSERT INTO test_feedback_entry (id, grade_id, call_id, tool_call_id, total, feedback, total_points, pass_points, active, mcp, generated)
+        VALUES (COALESCE($10, uuidv7()), $1, $2, $3, $4, $5, $6, $7, $8, $9, true)
         RETURNING id
         """,
         grade_id,
         call_id,
+        tool_call_id,
         total,
         feedback,
         total_points,

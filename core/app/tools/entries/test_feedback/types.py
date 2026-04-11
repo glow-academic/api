@@ -13,6 +13,8 @@ class CreateTestFeedbackResponse(BaseModel):
 class GetTestFeedbackResponse(BaseModel):
     feedback_id: UUID
     grade_id: UUID
+    call_id: UUID
+    tool_call_id: UUID
     total: int
     feedback: str
     total_points: int

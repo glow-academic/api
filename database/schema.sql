@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 38lLj90SGDq2hBgDK500nzkfw46mUDTDIc2gdawWFgXRF5lNFjtBNgU7Pzik6Ss
+\restrict wBeZFdmjSIaSigMaRPjv4yLsrSxDfn5PMlKcmhembtTFDktU6088PpQXEeItqUb
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -12085,7 +12085,9 @@ CREATE TABLE public.systems_resource (
     mcp boolean DEFAULT false NOT NULL,
     name text,
     description text,
-    agent_ids uuid[] DEFAULT ARRAY[]::uuid[]
+    agent_ids uuid[] DEFAULT ARRAY[]::uuid[],
+    resolution_strategy text,
+    resolution_threshold numeric
 );
 
 
@@ -12252,7 +12254,8 @@ CREATE TABLE public.test_feedback_entry (
     active boolean DEFAULT true CONSTRAINT benchmark_feedbacks_entry_active_not_null NOT NULL,
     call_id uuid NOT NULL,
     total_points integer NOT NULL,
-    pass_points integer NOT NULL
+    pass_points integer NOT NULL,
+    tool_call_id uuid NOT NULL
 );
 
 
@@ -12263,6 +12266,8 @@ CREATE TABLE public.test_feedback_entry (
 CREATE MATERIALIZED VIEW public.test_feedback_mv AS
  SELECT id AS feedback_id,
     grade_id,
+    call_id,
+    tool_call_id,
     total,
     feedback,
     total_points,
@@ -26661,6 +26666,13 @@ CREATE INDEX idx_test_entry_call_id ON public.test_entry USING btree (call_id);
 
 
 --
+-- Name: idx_test_feedback_entry_tool_call_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_test_feedback_entry_tool_call_id ON public.test_feedback_entry USING btree (tool_call_id);
+
+
+--
 -- Name: idx_test_feedback_mv_feedback_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -38445,6 +38457,14 @@ ALTER TABLE ONLY public.test_entry
 
 
 --
+-- Name: test_feedback_entry test_feedback_entry_tool_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.test_feedback_entry
+    ADD CONSTRAINT test_feedback_entry_tool_call_id_fkey FOREIGN KEY (tool_call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
+
+
+--
 -- Name: test_grade_entry test_grade_entry_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -39888,5 +39908,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 38lLj90SGDq2hBgDK500nzkfw46mUDTDIc2gdawWFgXRF5lNFjtBNgU7Pzik6Ss
+\unrestrict wBeZFdmjSIaSigMaRPjv4yLsrSxDfn5PMlKcmhembtTFDktU6088PpQXEeItqUb
 

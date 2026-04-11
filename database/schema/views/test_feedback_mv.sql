@@ -8,6 +8,8 @@
 CREATE MATERIALIZED VIEW public.test_feedback_mv AS
  SELECT id AS feedback_id,
     grade_id,
+    call_id,
+    tool_call_id,
     total,
     feedback,
     total_points,
