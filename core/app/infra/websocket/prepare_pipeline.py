@@ -370,28 +370,23 @@ def build_canonical_context(
     permissions: list[dict[str, str]] | None = None,
     resources: list[str] | None = None,
     artifact_id: UUID | None = None,
-    draft_id: UUID | None = None,
     modality: str = "call",
     agent: Any,
     llm_config: LLMConfig,
     scoped_tools: list[dict[str, Any]],
     profile: Any | None = None,
+    params: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the canonical 5-namespace Jinja context for developer instructions.
 
     Five namespaces:
-      - request: route-level identifiers (artifact_type, artifact_id, permissions, resources)
-      - query_params: contextual query parameters the model can pass to tools (draft_id, etc.)
+      - request: what was asked (artifact_type, artifact_id, permissions, resources, modality)
+      - params: contextual parameters the model can pass to tools (draft_id, etc.)
       - agent: who's doing the work (name, model, modalities, voices, qualities)
       - profile: who's asking (name, email, role, department)
       - tools: what's available (scoped tool list with names, descriptions, args)
     """
     from app.infra.artifacts.convert_tools_to_openai_format import sanitize_tool_name
-
-    # Build query_params — contextual values the model can pass to tools
-    query_params: dict[str, Any] = {}
-    if draft_id:
-        query_params["draft_id"] = str(draft_id)
 
     return {
         "request": {
@@ -401,7 +396,7 @@ def build_canonical_context(
             "resources": resources or [],
             "modality": modality,
         },
-        "query_params": query_params,
+        "params": params or {},
         "agent": {
             "name": getattr(agent, "name", ""),
             "model": llm_config.model,
@@ -458,9 +453,9 @@ def build_agent_dispatch(
     artifact_type: str = "",
     artifact_id: UUID | None = None,
     resources: list[str] | None = None,
-    draft_id: UUID | None = None,
     modality: str = "call",
     profile: Any | None = None,
+    params: dict[str, Any] | None = None,
 ) -> AgentDispatch:
     """Build a complete AgentDispatch for one agent (pure).
 
@@ -501,12 +496,12 @@ def build_agent_dispatch(
         permissions=permissions,
         resources=resources,
         artifact_id=artifact_id,
-        draft_id=draft_id,
         modality=modality,
         agent=agent,
         llm_config=llm_config,
         scoped_tools=scoped_tools,
         profile=profile,
+        params=params,
     )
 
     # Render developer instructions

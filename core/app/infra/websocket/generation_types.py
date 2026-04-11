@@ -161,7 +161,8 @@ class GeneratePayload(BaseModel):
 
     # ── Common fields ─────────────────────────────────────────────────
     artifact_id: Any | None = None
-    draft_id: Any | None = None
+    draft_id: Any | None = None  # Legacy — use params.draft_id instead
+    params: dict[str, Any] | None = None
     user_instructions: list[str] | None = None
     run_id: str | None = None
     group_id: str | None = None

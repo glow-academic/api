@@ -529,9 +529,9 @@ async def generate_prepare_impl(
                 artifact_type=artifact_type,
                 artifact_id=payload.artifact_id,
                 resources=resource_types,
-                draft_id=payload.draft_id,
                 modality=payload.modality or "call",
                 profile=ws_ctx.profile,
+                params=payload.params or ({"draft_id": str(payload.draft_id)} if payload.draft_id else {}),
             )
 
             # Persist messages
