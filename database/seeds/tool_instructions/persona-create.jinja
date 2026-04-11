@@ -1,15 +1,17 @@
-{% if success %}
+{% if success and results %}
 Persona created successfully.
-{% if results %}
 {% for r in results %}
-- **{{ r.message }}**{% if r.persona_id %} (ID: `{{ r.persona_id }}`){% endif %}
+{% if r.result and r.result.results %}
+{% for item in r.result.results %}
+- **{{ item.message }}**{% if item.persona_id %} (ID: `{{ item.persona_id }}`){% endif %}
 {% endfor %}
 {% endif %}
-{% else %}
+{% endfor %}
+{% elif results %}
 Persona creation failed.
-{% if results %}
 {% for r in results %}
-- {{ r.message }}{% if r.errors %}: {{ r.errors | map(attribute='message') | join(', ') }}{% endif %}
+- {{ r.error or r.message or 'Unknown error' }}
 {% endfor %}
-{% endif %}
+{% else %}
+No result returned.
 {% endif %}

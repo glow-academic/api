@@ -1,47 +1,26 @@
-{% if persona %}
-## Persona: {{ persona.name or '(unnamed)' }}
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+## Persona: {{ r.names.selected[0].name if r.names and r.names.selected else '(unnamed)' }}
 
-{% if persona.description %}{{ persona.description }}{% endif %}
+{% if r.descriptions and r.descriptions.selected %}{{ r.descriptions.selected[0].description }}{% endif %}
 
-{% if persona.color %}**Color:** {{ persona.color.name }} ({{ persona.color.hex_code }}){% endif %}
-{% if persona.icon %}**Icon:** {{ persona.icon.name }} ({{ persona.icon.value }}){% endif %}
-{% if persona.instructions %}**Instructions:** {{ persona.instructions.template[:200] }}{% if persona.instructions.template|length > 200 %}...{% endif %}{% endif %}
+{% if r.colors and r.colors.selected %}**Color:** {{ r.colors.selected[0].name }} ({{ r.colors.selected[0].hex_code }}){% endif %}
+{% if r.icons and r.icons.selected %}**Icon:** {{ r.icons.selected[0].name }} ({{ r.icons.selected[0].value }}){% endif %}
+{% if r.instructions and r.instructions.selected %}**Instructions:** {{ r.instructions.selected[0].template[:200] }}{% endif %}
 
-{% if persona.examples and persona.examples|length > 0 %}
-### Examples
-{% for ex in persona.examples %}- {{ ex.example[:100] }}{% if ex.example|length > 100 %}...{% endif %}
-{% endfor %}
-{% endif %}
-
-{% if persona.departments and persona.departments|length > 0 %}
-### Departments
-{% for dept in persona.departments %}- {{ dept.name }}
-{% endfor %}
-{% endif %}
-
-{% if persona.flags and persona.flags|length > 0 %}
-### Flags
-{% for flag in persona.flags %}- {{ flag.name }}
-{% endfor %}
-{% endif %}
-{% else %}
-No persona found.
-{% endif %}
-
-{% if available_colors and available_colors|length > 0 %}
+{% if r.colors and r.colors.suggestions %}
 ### Available Colors
-{% for c in available_colors %}- `{{ c.id }}` — {{ c.name }} ({{ c.hex_code }})
+{% for c in r.colors.suggestions %}- `{{ c.id }}` — {{ c.name }} ({{ c.hex_code }})
 {% endfor %}
 {% endif %}
 
-{% if available_icons and available_icons|length > 0 %}
+{% if r.icons and r.icons.suggestions %}
 ### Available Icons
-{% for i in available_icons %}- `{{ i.id }}` — {{ i.name }} ({{ i.value }})
+{% for i in r.icons.suggestions %}- `{{ i.id }}` — {{ i.name }} ({{ i.value }})
 {% endfor %}
 {% endif %}
-
-{% if available_instructions and available_instructions|length > 0 %}
-### Available Instructions
-{% for inst in available_instructions %}- `{{ inst.id }}` — {{ inst.template[:80] }}{% if inst.template|length > 80 %}...{% endif %}
-{% endfor %}
+{% elif results and results[0] and results[0].error %}
+Error fetching persona: {{ results[0].error }}
+{% else %}
+No persona data returned.
 {% endif %}

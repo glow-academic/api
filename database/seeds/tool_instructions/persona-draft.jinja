@@ -1,5 +1,9 @@
-{% if success %}
-Draft saved successfully.{% if draft_id %} Draft ID: `{{ draft_id }}`, version {{ version }}.{% endif %}
+{% if success and results and results[0] and results[0].result %}
+Draft saved successfully.
+{% set r = results[0].result %}
+{% if r.draft_id %}Draft ID: `{{ r.draft_id }}`.{% endif %}
+{% elif results and results[0] %}
+Draft save failed: {{ results[0].error or 'Unknown error' }}
 {% else %}
-Draft save failed.{% if message %} {{ message }}{% endif %}
+No result returned.
 {% endif %}

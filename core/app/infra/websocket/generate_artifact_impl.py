@@ -1064,10 +1064,15 @@ async def generate_artifact_impl(
                     response_template = td.get("_instruction_template") if td else None
                     if response_template and isinstance(tool_result, dict):
                         try:
-                            from jinja2 import Environment
-                            env = Environment()
+                            from jinja2 import Environment, Undefined
+                            env = Environment(undefined=Undefined)
                             tmpl = env.from_string(response_template)
-                            tool_result_str = tmpl.render(**tool_result)
+                            # Pass result as 'result' and also spread top-level keys
+                            # so templates can use either {{ result.success }} or {{ success }}
+                            template_ctx = {**tool_result, "result": tool_result}
+                            rendered = tmpl.render(**template_ctx).strip()
+                            if rendered:
+                                tool_result_str = rendered
                         except Exception as e:
                             logger.debug(f"Tool response template rendering failed: {e}")
 
