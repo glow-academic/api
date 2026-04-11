@@ -318,6 +318,12 @@ async def execute_infra_operation(
                 # Read path: pass rendered args as kwargs directly
                 # Strip empty strings — the function uses None defaults
                 kwargs = {k: v for k, v in rendered.items() if v != ""}
+
+                # Filter to only params the function actually accepts
+                import inspect
+                sig = inspect.signature(fn)
+                accepted_params = set(sig.parameters.keys())
+                kwargs = {k: v for k, v in kwargs.items() if k in accepted_params}
                 fields_used = list(kwargs.keys())
 
                 async def _runner() -> Any:
