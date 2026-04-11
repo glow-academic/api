@@ -293,25 +293,43 @@ async def execute_infra_operation(
                 ))
                 continue
 
-            # Filter rendered values to this target's accepted fields
-            filtered = filter_to_accepted(rendered, target.artifact, target.operation)
-            fields_used = list(filtered.keys())
+            # Check if this operation has a Pydantic item type (write operations)
+            # or should pass args as kwargs directly (read operations like get/search)
+            accepted = get_accepted_fields(target.artifact, target.operation)
 
-            # Build Pydantic item
-            item = build_item(filtered, target.artifact, target.operation)
+            if accepted is not None:
+                # Write path: filter → build Pydantic item → execute with items=[item]
+                filtered = filter_to_accepted(rendered, target.artifact, target.operation)
+                fields_used = list(filtered.keys())
+                item = build_item(filtered, target.artifact, target.operation)
 
-            # Execute through canonical audit path
-            async def _runner() -> Any:
-                return await fn(
-                    ctx.pool,
-                    ctx.redis,
-                    profile_id=ctx.profile_id,
-                    items=[item],
-                    session_id=ctx.session_id,
-                    draft_id=ctx.draft_id,
-                    group_id=ctx.group_id,
-                    soft=ctx.soft,
-                )
+                async def _runner() -> Any:
+                    return await fn(
+                        ctx.pool,
+                        ctx.redis,
+                        profile_id=ctx.profile_id,
+                        items=[item],
+                        session_id=ctx.session_id,
+                        draft_id=ctx.draft_id,
+                        group_id=ctx.group_id,
+                        soft=ctx.soft,
+                    )
+            else:
+                # Read path: pass rendered args as kwargs directly
+                # Strip empty strings — the function uses None defaults
+                kwargs = {k: v for k, v in rendered.items() if v != ""}
+                fields_used = list(kwargs.keys())
+
+                async def _runner() -> Any:
+                    return await fn(
+                        ctx.pool,
+                        ctx.redis,
+                        profile_id=ctx.profile_id,
+                        session_id=ctx.session_id,
+                        draft_id=ctx.draft_id,
+                        group_id=ctx.group_id,
+                        **kwargs,
+                    )
 
             result = await run_artifact_operation_with_audit(
                 ctx.pool,
