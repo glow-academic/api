@@ -369,6 +369,7 @@ def build_canonical_context(
     artifact_type: str,
     permissions: list[dict[str, str]] | None = None,
     resources: list[str] | None = None,
+    artifact_id: UUID | None = None,
     draft_id: UUID | None = None,
     modality: str = "call",
     agent: Any,
@@ -379,7 +380,7 @@ def build_canonical_context(
     """Build the canonical 4-namespace Jinja context for developer instructions.
 
     Four namespaces:
-      - request: what was asked (artifact_type, permissions, resources, draft_id)
+      - request: what was asked (artifact_type, permissions, resources, artifact_id, draft_id)
       - agent: who's doing the work (name, model, modalities, voices, qualities)
       - profile: who's asking (name, email, role, department)
       - tools: what's available (scoped tool list with names, descriptions, args)
@@ -391,6 +392,7 @@ def build_canonical_context(
             "artifact_type": artifact_type,
             "permissions": permissions or [],
             "resources": resources or [],
+            "artifact_id": str(artifact_id) if artifact_id else None,
             "draft_id": str(draft_id) if draft_id else None,
             "modality": modality,
         },
@@ -423,6 +425,7 @@ def build_canonical_context(
         "artifact_type": artifact_type,
         "permissions": permissions or [],
         "resources": resources or [],
+        "artifact_id": str(artifact_id) if artifact_id else None,
         "draft_id": str(draft_id) if draft_id else None,
         "llm_config": {
             "model": llm_config.model,
@@ -448,6 +451,7 @@ def build_agent_dispatch(
     save: bool | None,
     permissions: list[dict[str, str]] | None = None,
     artifact_type: str = "",
+    artifact_id: UUID | None = None,
     resources: list[str] | None = None,
     draft_id: UUID | None = None,
     modality: str = "call",
@@ -491,6 +495,7 @@ def build_agent_dispatch(
         artifact_type=artifact_type,
         permissions=permissions,
         resources=resources,
+        artifact_id=artifact_id,
         draft_id=draft_id,
         modality=modality,
         agent=agent,

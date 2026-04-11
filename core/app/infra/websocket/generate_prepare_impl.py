@@ -527,6 +527,7 @@ async def generate_prepare_impl(
                 save=None,
                 permissions=[{"artifact": p.artifact, "operation": p.operation} for p in payload.permissions] if payload.permissions else None,
                 artifact_type=artifact_type,
+                artifact_id=payload.artifact_id,
                 resources=resource_types,
                 draft_id=payload.draft_id,
                 modality=payload.modality or "call",
