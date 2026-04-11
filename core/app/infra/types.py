@@ -55,7 +55,8 @@ class WebsocketContext:
     args_outputs: list
     permissions: list
     prompts: list
-    instructions: list
+    instructions: list  # Agent developer instructions (Layer 2)
+    tool_instructions: list  # Tool response templates (Layer 3)
     rubrics: list
     profile: Any = None  # ProfileIdentityContext — for canonical context
     resolution_strategy: str | None = None

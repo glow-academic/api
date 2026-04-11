@@ -41,7 +41,8 @@ class SystemContext:
     args_outputs: list  # GetArgOutputResponse
     permissions: list  # GetPermissionResponse
     prompts: list  # GetPromptResponse
-    instructions: list  # GetInstructionResponse
+    instructions: list  # GetInstructionResponse — agent developer instructions (Layer 2)
+    tool_instructions: list  # GetInstructionResponse — tool response templates (Layer 3)
     rubrics: list  # GetRubricResponse
     resolution_strategy: str | None = None
     resolution_threshold: float | None = None
@@ -85,6 +86,7 @@ async def resolve_system_context(
             permissions=[],
             prompts=[],
             instructions=[],
+            tool_instructions=[],
             rubrics=[],
             resolution_strategy=system.resolution_strategy,
             resolution_threshold=system.resolution_threshold,
@@ -147,18 +149,18 @@ async def resolve_system_context(
         _get_rubrics(),
     )
 
-    # Collect tool instruction_ids (Layer 3 response templates) and merge
-    tool_instruction_ids = [
+    # Collect tool instruction_ids (Layer 3 response templates) — kept separate from agent instructions
+    tool_instruction_ids = list({
         t.instruction_id for t in tools
         if getattr(t, "instruction_id", None)
-        and t.instruction_id not in {i.id for i in instructions_list}
-    ]
+    })
     if tool_instruction_ids:
         async with pool.acquire() as conn:
-            tool_instructions = await get_instructions(
+            tool_instructions_list = await get_instructions(
                 conn, tool_instruction_ids, redis, bypass_cache
             )
-        instructions_list = list(instructions_list) + tool_instructions
+    else:
+        tool_instructions_list = []
 
     # Collect IDs for final level
     provider_ids = list({m.provider_id for m in models if m.provider_id})
@@ -210,6 +212,7 @@ async def resolve_system_context(
         permissions=permissions_list,
         prompts=prompts_list,
         instructions=instructions_list,
+        tool_instructions=tool_instructions_list,
         rubrics=rubrics_list,
         resolution_strategy=system.resolution_strategy,
         resolution_threshold=system.resolution_threshold,

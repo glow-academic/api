@@ -200,6 +200,9 @@ async def resolve_websocket_context(
     all_instructions = dedupe_by_id(
         [i for sc in system_contexts for i in sc.instructions]
     )
+    all_tool_instructions = dedupe_by_id(
+        [i for sc in system_contexts for i in sc.tool_instructions]
+    )
     all_rubrics = dedupe_by_id([r for sc in system_contexts for r in sc.rubrics])
 
     # ── Step 6: Resolution config (first system with a strategy wins) ───
@@ -225,6 +228,7 @@ async def resolve_websocket_context(
         permissions=all_permissions,
         prompts=all_prompts,
         instructions=all_instructions,
+        tool_instructions=all_tool_instructions,
         rubrics=all_rubrics,
         profile=profile,
         resolution_strategy=resolution_strategy,

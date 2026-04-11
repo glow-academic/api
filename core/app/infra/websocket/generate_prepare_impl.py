@@ -412,8 +412,10 @@ async def generate_prepare_impl(
         instructions_by_id = {i.id: i for i in ws_ctx.instructions}
 
         # Enrich tools with instruction templates (Layer 3 — tool response formatting)
+        # Uses tool_instructions (separate from agent instructions) keyed by instruction UUID
+        tool_instructions_by_id = {i.id: i for i in ws_ctx.tool_instructions}
         all_tool_dicts = enrich_tools_with_instruction_templates(
-            all_tool_dicts, config_tools, instructions_by_id
+            all_tool_dicts, config_tools, tool_instructions_by_id
         )
 
         # --- Step 8: Create run ---
