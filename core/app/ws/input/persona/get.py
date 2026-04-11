@@ -47,7 +47,7 @@ async def persona_get(sid: str, data: dict[str, Any]) -> None:
             redis,
             profile_id=identity.profile_id,
             session_id=identity.session_id,
-            persona_id=payload.persona_id,
+            id=payload.persona_id,
             draft_id=payload.draft_id,
             parameter_ids=[UUID(pid) for pid in payload.parameter_ids]
             if payload.parameter_ids

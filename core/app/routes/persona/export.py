@@ -26,5 +26,5 @@ async def export_personas(
         pool,
         redis,
         profile_id=profile_id,
-        persona_id=body.persona_id,
+        id=body.persona_id,
     )

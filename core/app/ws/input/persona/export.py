@@ -43,7 +43,7 @@ async def persona_export(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            persona_id=payload.persona_id,
+            id=payload.persona_id,
         ),
         arguments=payload.model_dump(mode="json"),
     )

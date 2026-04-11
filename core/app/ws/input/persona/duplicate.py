@@ -44,7 +44,7 @@ async def persona_duplicate(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            persona_id=payload.persona_id,
+            id=payload.id,
             session_id=identity.session_id,
         ),
         arguments=payload.model_dump(mode="json"),
