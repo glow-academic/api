@@ -220,6 +220,12 @@ permissions = [
     dict(id=sid("permission/attempt/audio_mute"), artifact="attempt", operation="audio_mute", name="Audio Mute Attempt"),
     dict(id=sid("permission/attempt/audio_upload"), artifact="attempt", operation="audio_upload", name="Audio Upload Attempt"),
     dict(id=sid("permission/attempt/audio_download"), artifact="attempt", operation="audio_download", name="Audio Download Attempt"),
+    dict(id=sid("permission/attempt/image_download"), artifact="attempt", operation="image_download", name="Image Download Attempt"),
+    dict(id=sid("permission/attempt/video_download"), artifact="attempt", operation="video_download", name="Video Download Attempt"),
+    dict(id=sid("permission/attempt/text_download"), artifact="attempt", operation="text_download", name="Text Download Attempt"),
+    dict(id=sid("permission/attempt/file_download"), artifact="attempt", operation="file_download", name="File Download Attempt"),
+    dict(id=sid("permission/attempt/file_preview"), artifact="attempt", operation="file_preview", name="File Preview Attempt"),
+
     dict(
         id=sid("permission/auth/create"),
         artifact="auth",
@@ -1507,6 +1513,10 @@ permissions = [
     dict(id=sid("permission/scenario/image_download"), artifact="scenario", operation="image_download", name="Image Download Scenario"),
     dict(id=sid("permission/scenario/video_upload"), artifact="scenario", operation="video_upload", name="Video Upload Scenario"),
     dict(id=sid("permission/scenario/video_download"), artifact="scenario", operation="video_download", name="Video Download Scenario"),
+    dict(id=sid("permission/scenario/text_download"), artifact="scenario", operation="text_download", name="Text Download Scenario"),
+    dict(id=sid("permission/scenario/file_download"), artifact="scenario", operation="file_download", name="File Download Scenario"),
+    dict(id=sid("permission/scenario/file_preview"), artifact="scenario", operation="file_preview", name="File Preview Scenario"),
+
     dict(
         id=sid("permission/session/docs"),
         artifact="session",
@@ -2125,4 +2135,19 @@ PERMISSION_IDS = {
     ("tool", "refresh"): sid("permission/tool/refresh"),
     ("tool", "search"): sid("permission/tool/search"),
     ("tool", "update"): sid("permission/tool/update"),
+    ("attempt", "image_download"): sid("permission/attempt/image_download"),
+    ("attempt", "video_download"): sid("permission/attempt/video_download"),
+    ("attempt", "text_download"): sid("permission/attempt/text_download"),
+    ("attempt", "file_download"): sid("permission/attempt/file_download"),
+    ("attempt", "file_preview"): sid("permission/attempt/file_preview"),
+    ("scenario", "text_download"): sid("permission/scenario/text_download"),
+    ("scenario", "file_download"): sid("permission/scenario/file_download"),
+    ("scenario", "file_preview"): sid("permission/scenario/file_preview"),
+    ("group", "text_download"): sid("permission/group/text_download"),
+    ("group", "image_download"): sid("permission/group/image_download"),
+    ("group", "video_download"): sid("permission/group/video_download"),
+    ("group", "audio_download"): sid("permission/group/audio_download"),
+    ("group", "file_download"): sid("permission/group/file_download"),
+    ("group", "file_preview"): sid("permission/group/file_preview"),
+    ("group", "call_download"): sid("permission/group/call_download"),
 }

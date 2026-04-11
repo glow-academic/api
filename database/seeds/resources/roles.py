@@ -58,7 +58,7 @@ roles = [
                 "provider", "tool", "health", "setting", "department",
                 "rubric", "eval", "auth",
             ], _ALL_CRUD)
-            + _pids(["scenario", "document", "attempt"], _MEDIA_OPS)
+            + _pids(["scenario", "document", "attempt", "group"], _MEDIA_OPS)
         ),
     ),
     # ── Admin (level 1): CRUD on most, read on system artifacts ──
@@ -83,7 +83,7 @@ roles = [
                 "pricing", "group", "benchmark", "invocation", "test",
                 "health",
             ])
-            + _pids(["scenario", "document", "attempt"], _MEDIA_OPS)
+            + _pids(["scenario", "document", "attempt", "group"], _MEDIA_OPS)
         ),
     ),
     # ── Instructional (level 2): CRUD on training, read on analytics ──
@@ -106,7 +106,7 @@ roles = [
                 "dashboard", "reports", "record", "activity", "session",
                 "pricing", "group", "benchmark", "invocation", "test",
             ])
-            + _pids(["scenario", "document", "attempt"], _MEDIA_OPS)
+            + _pids(["scenario", "document", "attempt", "group"], _MEDIA_OPS)
         ),
     ),
     # ── GTA (level 3): read + practice ──
