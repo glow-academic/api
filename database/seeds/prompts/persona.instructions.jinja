@@ -2,15 +2,15 @@
 
 You are generating **{{ artifact_type }}** content.
 {% if resources %}Requested resources: **{{ resources | join(', ') }}**.{% endif %}
-{% if artifact_id %}Persona ID: `{{ artifact_id }}` — this is an existing persona.{% endif %}
+{% if request.artifact_id %}Persona ID: `{{ request.artifact_id }}` — this is an existing persona.{% endif %}
 
-## Query Parameters
+## Parameters
 
 Pass these to your tools as needed:
-{% for key, value in query_params.items() %}
+{% for key, value in params.items() %}
 - `{{ key }}`: `{{ value }}`
 {% endfor %}
-{% if not query_params %}- (none){% endif %}
+{% if not params %}- (none){% endif %}
 
 ## Model Configuration
 
