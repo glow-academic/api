@@ -19,12 +19,15 @@ async def create_system(
     id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
+    resolution_strategy: str | None = None,
+    resolution_threshold: float | None = None,
 ) -> GetSystemResponse:
     """Create a system resource (plain INSERT — no unique constraint)."""
     system_id = await conn.fetchval(
         """
-        INSERT INTO systems_resource (id, name, description, agent_ids, active, mcp, generated)
-        VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, $5)
+        INSERT INTO systems_resource (id, name, description, agent_ids, active, mcp, generated,
+                                      resolution_strategy, resolution_threshold)
+        VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, $5, $7, $8)
         RETURNING id
         """,
         name,
@@ -33,6 +36,8 @@ async def create_system(
         not soft,
         mcp,
         id,
+        resolution_strategy,
+        resolution_threshold,
     )
     await invalidate_tags(["resources", "systems"], redis=redis)
     items = await get_systems(conn, [system_id], redis, bypass_cache=True)

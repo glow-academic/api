@@ -35,6 +35,7 @@ async def get_systems(
     rows = await conn.fetch(
         """
         SELECT id, name, description, agent_ids,
+               resolution_strategy, resolution_threshold,
                created_at, active, mcp, generated
         FROM systems_resource
         WHERE id = ANY($1)
@@ -49,6 +50,8 @@ async def get_systems(
             name=r["name"],
             description=r["description"],
             agent_ids=r["agent_ids"] or [],
+            resolution_strategy=r["resolution_strategy"],
+            resolution_threshold=r["resolution_threshold"],
             created_at=r["created_at"],
             active=r["active"],
             mcp=r["mcp"],
