@@ -11,6 +11,7 @@ Core draft function that composes existing black-box tools:
 
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
 import asyncpg
@@ -27,10 +28,17 @@ from app.infra.persona.types import (
 )
 from app.tools.entries.persona_drafts.create import create_persona_draft
 from app.tools.entries.persona_drafts.refresh import refresh_persona_drafts
+from app.tools.resources.colors.search import search_colors
+from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.examples.create import create_example
+from app.tools.resources.fields.get import get_fields
+from app.tools.resources.flags.search import search_flags
+from app.tools.resources.icons.search import search_icons
 from app.tools.resources.instructions.create import create_instruction
 from app.tools.resources.names.create import create_name
+from app.tools.resources.parameter_fields.search import search_parameter_fields
+from app.tools.resources.voices.search import search_voices
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 # ---------------------------------------------------------------------------
@@ -45,10 +53,13 @@ async def _resolve_creatable_values(
 ) -> list[SavePersonaFieldError]:
     """Resolve raw value fields to resource IDs (mutates request in place).
 
-    Only handles creatable resources: name, description, instructions, examples.
+    Handles creatable resources (name, description, instructions, examples)
+    and match resources (color, icon, active_flag, departments, parameter_fields, voices).
     Returns a list of errors (empty if all resolved).
     """
     errors: list[SavePersonaFieldError] = []
+
+    # --- Create resources ---
 
     async with pool.acquire() as conn:
         if request.name is not None and request.name_id is None:
@@ -70,6 +81,139 @@ async def _resolve_creatable_values(
                 resolved_ids.append(result.id)
             request.example_ids = resolved_ids
 
+    # --- Match resources ---
+
+    if request.color is not None and request.color_id is None:
+        async with pool.acquire() as conn:
+            results = await search_colors(
+                conn, redis, search=request.color, limit_count=20
+            )
+        match = next(
+            (r for r in results if r.name and r.name.lower() == request.color.lower()),
+            None,
+        )
+        if match and match.id:
+            request.color_id = match.id
+        else:
+            errors.append(
+                SavePersonaFieldError(
+                    field="color", message=f'Color "{request.color}" not found'
+                )
+            )
+
+    if request.icon is not None and request.icon_id is None:
+        async with pool.acquire() as conn:
+            results = await search_icons(
+                conn, redis, search=request.icon, limit_count=20
+            )
+        match = next(
+            (r for r in results if r.name and r.name.lower() == request.icon.lower()),
+            None,
+        )
+        if match and match.id:
+            request.icon_id = match.id
+        else:
+            errors.append(
+                SavePersonaFieldError(
+                    field="icon", message=f'Icon "{request.icon}" not found'
+                )
+            )
+
+    if request.active_flag is not None and request.active_flag_id is None:
+        async with pool.acquire() as conn:
+            results = await search_flags(
+                conn,
+                redis,
+                search=None,
+                flag_type="persona_active",
+                limit_count=100,
+            )
+        match = next((r for r in results if r.type == "persona_active"), None)
+        if match and match.id:
+            if request.active_flag:
+                request.active_flag_id = match.id
+        elif request.active_flag:
+            errors.append(
+                SavePersonaFieldError(
+                    field="active_flag", message="Active flag resource not found"
+                )
+            )
+
+    if request.departments is not None and request.department_ids is None:
+        async with pool.acquire() as conn:
+            all_depts = await search_departments(
+                conn, redis, search=None, limit_count=1000
+            )
+        dept_name_map = {d.name.lower(): d.id for d in all_depts if d.name and d.id}
+        resolved_ids = []
+        for dept_name in request.departments:
+            dept_id = dept_name_map.get(dept_name.lower())
+            if dept_id:
+                resolved_ids.append(dept_id)
+            else:
+                errors.append(
+                    SavePersonaFieldError(
+                        field="departments",
+                        message=f'Department "{dept_name}" not found',
+                    )
+                )
+        if not any(e.field == "departments" for e in errors):
+            request.department_ids = resolved_ids
+
+    if request.parameter_fields is not None and request.parameter_field_ids is None:
+        async with pool.acquire() as conn:
+            all_pf = await search_parameter_fields(conn, redis)
+        field_ids_list = [pf.field_id for pf in all_pf if pf.field_id]
+        if field_ids_list:
+            async with pool.acquire() as conn:
+                fields_list = await get_fields(conn, field_ids_list, redis)
+        else:
+            fields_list = []
+        field_name_map = {f.id: f.name for f in fields_list if f.name}
+        pf_name_map = {
+            field_name_map[pf.field_id].lower(): pf.id
+            for pf in all_pf
+            if pf.field_id and pf.id and pf.field_id in field_name_map
+        }
+        resolved_ids = []
+        for pf_name in request.parameter_fields:
+            pf_id = pf_name_map.get(pf_name.lower())
+            if pf_id:
+                resolved_ids.append(pf_id)
+            else:
+                errors.append(
+                    SavePersonaFieldError(
+                        field="parameter_fields",
+                        message=f'Parameter field "{pf_name}" not found',
+                    )
+                )
+        if not any(e.field == "parameter_fields" for e in errors):
+            request.parameter_field_ids = resolved_ids
+
+    if request.voices is not None and request.voice_ids is None:
+        async with pool.acquire() as conn:
+            all_voices = await search_voices(
+                conn,
+                redis,
+                search=None,
+                limit_count=1000,
+            )
+        voice_name_map = {v.voice.lower(): v.id for v in all_voices if v.voice and v.id}
+        resolved_ids = []
+        for voice_name in request.voices:
+            vid = voice_name_map.get(voice_name.lower())
+            if vid:
+                resolved_ids.append(vid)
+            else:
+                errors.append(
+                    SavePersonaFieldError(
+                        field="voices",
+                        message=f'Voice "{voice_name}" not found',
+                    )
+                )
+        if not any(e.field == "voices" for e in errors):
+            request.voice_ids = resolved_ids
+
     return errors
 
 
@@ -84,9 +228,16 @@ async def patch_persona_draft_impl(
     *,
     profile_id: UUID,
     session_id: UUID,
-    request: PatchPersonaDraftApiRequest,
+    request: PatchPersonaDraftApiRequest | None = None,
+    draft_id: UUID | None = None,
+    group_id: UUID | None = None,
+    soft: bool = False,
+    **kwargs: Any,
 ) -> PatchPersonaDraftApiResponse:
     """Persona draft using composable infra functions.
+
+    Accepts either a PatchPersonaDraftApiRequest object (from HTTP routes)
+    or kwargs directly (from AI generation read path).
 
     Flow:
       1. resolve_profile_identity_context → role
@@ -96,6 +247,13 @@ async def patch_persona_draft_impl(
       5. refresh_persona_drafts MV
       6. invalidate_tags
     """
+    # Build request from kwargs if not provided directly
+    if request is None:
+        # Filter out empty strings and None — only pass actual values
+        filtered = {k: v for k, v in kwargs.items() if v not in ("", None)}
+        if draft_id:
+            filtered["draft_id"] = draft_id
+        request = PatchPersonaDraftApiRequest(**filtered)
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -146,7 +304,7 @@ async def patch_persona_draft_impl(
                 instruction_ids=[request.instructions_id]
                 if request.instructions_id
                 else None,
-                flag_ids=[request.flag_id] if request.flag_id else None,
+                flag_ids=[request.active_flag_id] if request.active_flag_id else None,
                 department_ids=request.department_ids,
                 parameter_field_ids=request.parameter_field_ids,
                 example_ids=request.example_ids,
@@ -161,7 +319,7 @@ async def patch_persona_draft_impl(
         instructions_id=request.instructions_id,
         color_id=request.color_id,
         icon_id=request.icon_id,
-        active_flag_id=request.flag_id,
+        active_flag_id=request.active_flag_id,
         department_ids=request.department_ids or [],
         example_ids=request.example_ids or [],
         parameter_field_ids=request.parameter_field_ids or [],

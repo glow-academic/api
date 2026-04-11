@@ -863,8 +863,6 @@ INFRA_ITEM_TYPES: dict[tuple[str, str], tuple[str, str]] = {
     **_item_types("setting", "Setting"),
     **_item_types("simulation", "Simulation"),
     **_item_types("tool", "Tool"),
-    # Draft item types — PatchXxxDraftApiRequest classes
-    ("persona", "draft"): (f"{_IT}.persona.types", "PatchPersonaDraftApiRequest"),
 }
 
 
@@ -882,6 +880,29 @@ def resolve_item_class(
     module_path, class_name = entry
     mod = importlib.import_module(module_path)
     return getattr(mod, class_name)
+
+
+def resolve_request_class(
+    artifact: str,
+    operation: str,
+) -> type | None:
+    """Derive the API request wrapper class from the item type entry.
+
+    Convention: CreateFooItem → CreateFooApiRequest (same module).
+    Returns None if no item type is registered.
+    """
+    entry = INFRA_ITEM_TYPES.get((artifact, operation))
+    if entry is None:
+        return None
+    module_path, class_name = entry
+    # CreateFooItem → CreateFooApiRequest, UpdateFooItem → UpdateFooApiRequest
+    # PatchFooDraftApiRequest → already IS the request class (no wrapper)
+    if class_name.endswith("ApiRequest"):
+        # Draft-style: the item IS the request (flat, no wrapper)
+        return None
+    request_class_name = class_name.replace("Item", "ApiRequest")
+    mod = importlib.import_module(module_path)
+    return getattr(mod, request_class_name, None)
 
 
 def get_accepted_fields(artifact: str, operation: str) -> set[str] | None:
