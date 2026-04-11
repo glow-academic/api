@@ -48,6 +48,7 @@ MODULES = [
     "fields",
     "parameters",
     "parameter_fields",
+    "conditional_parameters",
     "content",
     "scenarios",
     "scenario_rubrics",

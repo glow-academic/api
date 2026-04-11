@@ -9,6 +9,14 @@ Names and descriptions are CREATED as new resources.
 from database.seeds.ids import sid
 from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVERSITY_DEPT_RESOURCE
 
+# Conditional parameter IDs — inline sid() to avoid circular import
+# (conditional_parameters.py → parameters.py → fields.py)
+_CP_INTENSITY = sid("uni/conditional-parameter/intensity")
+_CP_TEMPERAMENT = sid("uni/conditional-parameter/temperament")
+_CP_ROLE = sid("uni/conditional-parameter/role")
+_CP_CLASS = sid("uni/conditional-parameter/class")
+_CP_CONCEPTS = sid("uni/conditional-parameter/concepts")
+
 # ---------------------------------------------------------------------------
 # Deterministic IDs — organized by parameter group
 # ---------------------------------------------------------------------------
@@ -382,6 +390,7 @@ fields = [
         name="aggressive",
         description="Pushes back on ideas and challenges assumptions",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        conditional_parameter_ids=[_CP_INTENSITY],
     ),
     dict(
         id=F_CONFUSED,
@@ -411,6 +420,7 @@ fields = [
         name="Emotion",
         description="Personas with emotional temperaments (aggressive, passive, confused, happy)",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        conditional_parameter_ids=[_CP_TEMPERAMENT],
     ),
     dict(
         id=F_NEUTRAL,
@@ -418,6 +428,7 @@ fields = [
         name="Neutral",
         description="Personas with neutral roles (Student, Professor, Instructional Staff)",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        conditional_parameter_ids=[_CP_ROLE],
     ),
     # ── Intensity ─────────────────────────────────────────────────────────
     dict(
@@ -740,6 +751,7 @@ fields = [
         name="homework",
         description="Assignments, problem sets, exercises",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        conditional_parameter_ids=[_CP_CLASS],
     ),
     dict(
         id=F_LAB,
@@ -747,6 +759,7 @@ fields = [
         name="lab",
         description="Laboratory exercises, practical work",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        conditional_parameter_ids=[_CP_CLASS],
     ),
     dict(
         id=F_LECTURE,
@@ -754,6 +767,7 @@ fields = [
         name="lecture",
         description="Lecture notes, slides, presentations",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        conditional_parameter_ids=[_CP_CLASS],
     ),
     dict(
         id=F_MIDTERM,
@@ -761,6 +775,7 @@ fields = [
         name="midterm",
         description="Midterm exams, major tests",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        conditional_parameter_ids=[_CP_CLASS],
     ),
     dict(
         id=F_POLICY,
@@ -768,6 +783,7 @@ fields = [
         name="policy",
         description="Policy documents, guidelines, and regulations",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        conditional_parameter_ids=[_CP_CONCEPTS],
     ),
     dict(
         id=F_PROJECT,
@@ -775,6 +791,7 @@ fields = [
         name="project",
         description="Large assignments, final projects, group work",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        conditional_parameter_ids=[_CP_CLASS],
     ),
     dict(
         id=F_QUIZ,
@@ -782,6 +799,7 @@ fields = [
         name="quiz",
         description="Short assessments, pop quizzes",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        conditional_parameter_ids=[_CP_CLASS],
     ),
     dict(
         id=F_SYLLABUS,
@@ -789,6 +807,7 @@ fields = [
         name="syllabus",
         description="Course syllabus, course outline",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        conditional_parameter_ids=[_CP_CLASS],
     ),
     # ── Concepts (FERPA) ──────────────────────────────────────────────────
     dict(

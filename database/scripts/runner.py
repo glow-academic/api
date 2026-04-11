@@ -848,13 +848,33 @@ async def _run_field_seeds(
     return created_ids
 
 
+async def _run_conditional_parameter_seeds(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    conditional_parameter_defs: list[dict],
+) -> list[UUID]:
+    """Create conditional_parameters_resource entries."""
+    from app.tools.resources.conditional_parameters.create import create_conditional_parameter
+
+    created_ids: list[UUID] = []
+    async with pool.acquire() as conn:
+        for cp in conditional_parameter_defs:
+            result = await create_conditional_parameter(
+                conn,
+                parameter_id=cp["parameter_id"],
+                redis=redis,
+                id=cp["id"],
+            )
+            created_ids.append(result.id)
+    print(f"  OK: {len(created_ids)} conditional parameters created")
+    return created_ids
+
+
 async def _run_parameter_field_seeds(
     pool: asyncpg.Pool,
     redis: Redis,
     parameter_field_defs: list[dict],
 ) -> list[UUID]:
-    """Create parameter_fields_resource entries linking parameters to fields."""
-    from app.tools.resources.parameter_fields.create import create_parameter_field
 
     created_ids: list[UUID] = []
     async with pool.acquire() as conn:
@@ -1891,6 +1911,8 @@ async def main_setup(setup: str = "university") -> None:
                 await _run_parameter_seeds(pool, redis_client, mod.parameters)
             elif module_name == "parameter_fields":
                 await _run_parameter_field_seeds(pool, redis_client, mod.parameter_fields)
+            elif module_name == "conditional_parameters":
+                await _run_conditional_parameter_seeds(pool, redis_client, mod.conditional_parameters)
             elif module_name == "scenario_rubrics":
                 await _run_scenario_rubric_seeds(
                     pool, redis_client, mod.scenario_rubrics
