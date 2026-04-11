@@ -16,31 +16,49 @@ from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVER
 # ── Temperament fields (4) ────────────────────────────────────────────────
 
 F_AGGRESSIVE = sid("uni/field/aggressive")
+FR_AGGRESSIVE = sid("uni/field-resource/aggressive")
 F_CONFUSED = sid("uni/field/confused")
+FR_CONFUSED = sid("uni/field-resource/confused")
 F_HAPPY = sid("uni/field/happy")
+FR_HAPPY = sid("uni/field-resource/happy")
 F_PASSIVE = sid("uni/field/passive")
+FR_PASSIVE = sid("uni/field-resource/passive")
 
 TEMPERAMENT_FIELDS = [F_HAPPY, F_PASSIVE, F_CONFUSED, F_AGGRESSIVE]
+TEMPERAMENT_FIELD_RESOURCES = [FR_HAPPY, FR_PASSIVE, FR_CONFUSED, FR_AGGRESSIVE]
 
 # ── Persona Type fields (2) ───────────────────────────────────────────────
 
 F_EMOTION = sid("uni/field/emotion")
+FR_EMOTION = sid("uni/field-resource/emotion")
 F_NEUTRAL = sid("uni/field/neutral")
+FR_NEUTRAL = sid("uni/field-resource/neutral")
 
 PERSONA_TYPE_FIELDS = [F_EMOTION, F_NEUTRAL]
+PERSONA_TYPE_FIELD_RESOURCES = [FR_EMOTION, FR_NEUTRAL]
 
 # ── Intensity fields (10) ─────────────────────────────────────────────────
 
 F_VERY_CALM_1 = sid("uni/field/very-calm-1")
+FR_VERY_CALM_1 = sid("uni/field-resource/very-calm-1")
 F_CALM_2 = sid("uni/field/calm-2")
+FR_CALM_2 = sid("uni/field-resource/calm-2")
 F_MILD_3 = sid("uni/field/mild-3")
+FR_MILD_3 = sid("uni/field-resource/mild-3")
 F_SLIGHTLY_TENSE_4 = sid("uni/field/slightly-tense-4")
+FR_SLIGHTLY_TENSE_4 = sid("uni/field-resource/slightly-tense-4")
 F_MODERATE_5 = sid("uni/field/moderate-5")
+FR_MODERATE_5 = sid("uni/field-resource/moderate-5")
 F_NOTICEABLY_INTENSE_6 = sid("uni/field/noticeably-intense-6")
+FR_NOTICEABLY_INTENSE_6 = sid("uni/field-resource/noticeably-intense-6")
 F_TENSE_7 = sid("uni/field/tense-7")
+FR_TENSE_7 = sid("uni/field-resource/tense-7")
 F_VERY_TENSE_8 = sid("uni/field/very-tense-8")
+FR_VERY_TENSE_8 = sid("uni/field-resource/very-tense-8")
 F_EXTREMELY_INTENSE_9 = sid("uni/field/extremely-intense-9")
+FR_EXTREMELY_INTENSE_9 = sid("uni/field-resource/extremely-intense-9")
 F_MAXIMUM_INTENSITY_10 = sid("uni/field/maximum-intensity-10")
+FR_MAXIMUM_INTENSITY_10 = sid("uni/field-resource/maximum-intensity-10")
 
 INTENSITY_FIELDS = [
     F_VERY_CALM_1,
@@ -54,19 +72,52 @@ INTENSITY_FIELDS = [
     F_EXTREMELY_INTENSE_9,
     F_MAXIMUM_INTENSITY_10,
 ]
+INTENSITY_FIELD_RESOURCES = [    FR_VERY_CALM_1,
+    FR_CALM_2,
+    FR_MILD_3,
+    FR_SLIGHTLY_TENSE_4,
+    FR_MODERATE_5,
+    FR_NOTICEABLY_INTENSE_6,
+    FR_TENSE_7,
+    FR_VERY_TENSE_8,
+    FR_EXTREMELY_INTENSE_9,
+    FR_MAXIMUM_INTENSITY_10,
+]
+INTENSITY_FIELD_RESOURCES = [
+    FR_VERY_CALM_1,
+    FR_CALM_2,
+    FR_MILD_3,
+    FR_SLIGHTLY_TENSE_4,
+    FR_MODERATE_5,
+    FR_NOTICEABLY_INTENSE_6,
+    FR_TENSE_7,
+    FR_VERY_TENSE_8,
+    FR_EXTREMELY_INTENSE_9,
+    FR_MAXIMUM_INTENSITY_10,
+]
 
 # ── Crowdedness fields (10) ───────────────────────────────────────────────
 
 F_ALMOST_EMPTY_1 = sid("uni/field/almost-empty-1")
+FR_ALMOST_EMPTY_1 = sid("uni/field-resource/almost-empty-1")
 F_VERY_FEW_STUDENTS_2 = sid("uni/field/very-few-students-2")
+FR_VERY_FEW_STUDENTS_2 = sid("uni/field-resource/very-few-students-2")
 F_SPARSE_3 = sid("uni/field/sparse-3")
+FR_SPARSE_3 = sid("uni/field-resource/sparse-3")
 F_SOME_STUDENTS_4 = sid("uni/field/some-students-4")
+FR_SOME_STUDENTS_4 = sid("uni/field-resource/some-students-4")
 F_MODERATELY_BUSY_5 = sid("uni/field/moderately-busy-5")
+FR_MODERATELY_BUSY_5 = sid("uni/field-resource/moderately-busy-5")
 F_BUSY_6 = sid("uni/field/busy-6")
+FR_BUSY_6 = sid("uni/field-resource/busy-6")
 F_VERY_BUSY_7 = sid("uni/field/very-busy-7")
+FR_VERY_BUSY_7 = sid("uni/field-resource/very-busy-7")
 F_CROWDED_8 = sid("uni/field/crowded-8")
+FR_CROWDED_8 = sid("uni/field-resource/crowded-8")
 F_EXTREMELY_CROWDED_9 = sid("uni/field/extremely-crowded-9")
+FR_EXTREMELY_CROWDED_9 = sid("uni/field-resource/extremely-crowded-9")
 F_HECTIC_10 = sid("uni/field/hectic-10")
+FR_HECTIC_10 = sid("uni/field-resource/hectic-10")
 
 CROWDEDNESS_FIELDS = [
     F_ALMOST_EMPTY_1,
@@ -80,14 +131,42 @@ CROWDEDNESS_FIELDS = [
     F_EXTREMELY_CROWDED_9,
     F_HECTIC_10,
 ]
+CROWDEDNESS_FIELD_RESOURCES = [    FR_ALMOST_EMPTY_1,
+    FR_VERY_FEW_STUDENTS_2,
+    FR_SPARSE_3,
+    FR_SOME_STUDENTS_4,
+    FR_MODERATELY_BUSY_5,
+    FR_BUSY_6,
+    FR_VERY_BUSY_7,
+    FR_CROWDED_8,
+    FR_EXTREMELY_CROWDED_9,
+    FR_HECTIC_10,
+]
+CROWDEDNESS_FIELD_RESOURCES = [
+    FR_ALMOST_EMPTY_1,
+    FR_VERY_FEW_STUDENTS_2,
+    FR_SPARSE_3,
+    FR_SOME_STUDENTS_4,
+    FR_MODERATELY_BUSY_5,
+    FR_BUSY_6,
+    FR_VERY_BUSY_7,
+    FR_CROWDED_8,
+    FR_EXTREMELY_CROWDED_9,
+    FR_HECTIC_10,
+]
 
 # ── Deadline fields (5) ───────────────────────────────────────────────────
 
 F_NO_DEADLINE = sid("uni/field/no-deadline")
+FR_NO_DEADLINE = sid("uni/field-resource/no-deadline")
 F_END_OF_WEEK = sid("uni/field/end-of-week")
+FR_END_OF_WEEK = sid("uni/field-resource/end-of-week")
 F_COUPLE_OF_DAYS = sid("uni/field/couple-of-days")
+FR_COUPLE_OF_DAYS = sid("uni/field-resource/couple-of-days")
 F_NEXT_DAY = sid("uni/field/next-day")
+FR_NEXT_DAY = sid("uni/field-resource/next-day")
 F_FEW_HOURS = sid("uni/field/few-hours")
+FR_FEW_HOURS = sid("uni/field-resource/few-hours")
 
 DEADLINE_FIELDS = [
     F_NO_DEADLINE,
@@ -96,18 +175,40 @@ DEADLINE_FIELDS = [
     F_NEXT_DAY,
     F_FEW_HOURS,
 ]
+DEADLINE_FIELD_RESOURCES = [    FR_NO_DEADLINE,
+    FR_END_OF_WEEK,
+    FR_COUPLE_OF_DAYS,
+    FR_NEXT_DAY,
+    FR_FEW_HOURS,
+]
+DEADLINE_FIELD_RESOURCES = [
+    FR_NO_DEADLINE,
+    FR_END_OF_WEEK,
+    FR_COUPLE_OF_DAYS,
+    FR_NEXT_DAY,
+    FR_FEW_HOURS,
+]
 
 # ── Time fields (9) ───────────────────────────────────────────────────────
 
 F_900_AM = sid("uni/field/900-am")
+FR_900_AM = sid("uni/field-resource/900-am")
 F_1000_AM = sid("uni/field/1000-am")
+FR_1000_AM = sid("uni/field-resource/1000-am")
 F_1100_AM = sid("uni/field/1100-am")
+FR_1100_AM = sid("uni/field-resource/1100-am")
 F_1200_PM = sid("uni/field/1200-pm")
+FR_1200_PM = sid("uni/field-resource/1200-pm")
 F_100_PM = sid("uni/field/100-pm")
+FR_100_PM = sid("uni/field-resource/100-pm")
 F_200_PM = sid("uni/field/200-pm")
+FR_200_PM = sid("uni/field-resource/200-pm")
 F_300_PM = sid("uni/field/300-pm")
+FR_300_PM = sid("uni/field-resource/300-pm")
 F_400_PM = sid("uni/field/400-pm")
+FR_400_PM = sid("uni/field-resource/400-pm")
 F_500_PM = sid("uni/field/500-pm")
+FR_500_PM = sid("uni/field-resource/500-pm")
 
 TIME_FIELDS = [
     F_900_AM,
@@ -120,37 +221,78 @@ TIME_FIELDS = [
     F_400_PM,
     F_500_PM,
 ]
+TIME_FIELD_RESOURCES = [    FR_900_AM,
+    FR_1000_AM,
+    FR_1100_AM,
+    FR_1200_PM,
+    FR_100_PM,
+    FR_200_PM,
+    FR_300_PM,
+    FR_400_PM,
+    FR_500_PM,
+]
+TIME_FIELD_RESOURCES = [
+    FR_900_AM,
+    FR_1000_AM,
+    FR_1100_AM,
+    FR_1200_PM,
+    FR_100_PM,
+    FR_200_PM,
+    FR_300_PM,
+    FR_400_PM,
+    FR_500_PM,
+]
 
 # ── Location fields (3) ───────────────────────────────────────────────────
 
 F_LAWSON = sid("uni/field/lawson-computer-science-building")
+FR_LAWSON = sid("uni/field-resource/lawson-computer-science-building")
 F_FELIX_HAAS = sid("uni/field/felix-haas-hall")
+FR_FELIX_HAAS = sid("uni/field-resource/felix-haas-hall")
 F_DSAI = sid("uni/field/data-science-and-ai-building")
+FR_DSAI = sid("uni/field-resource/data-science-and-ai-building")
 
 LOCATION_FIELDS = [F_LAWSON, F_FELIX_HAAS, F_DSAI]
+LOCATION_FIELD_RESOURCES = [FR_LAWSON, FR_FELIX_HAAS, FR_DSAI]
 
 # ── Class fields (7) ──────────────────────────────────────────────────────
 
 F_CS_180 = sid("uni/field/cs-180")
+FR_CS_180 = sid("uni/field-resource/cs-180")
 F_CS_182 = sid("uni/field/cs-182")
+FR_CS_182 = sid("uni/field-resource/cs-182")
 F_CS_242 = sid("uni/field/cs-242")
+FR_CS_242 = sid("uni/field-resource/cs-242")
 F_CS_251 = sid("uni/field/cs-251")
+FR_CS_251 = sid("uni/field-resource/cs-251")
 F_CS_373 = sid("uni/field/cs-373")
+FR_CS_373 = sid("uni/field-resource/cs-373")
 F_CS_381 = sid("uni/field/cs-381")
+FR_CS_381 = sid("uni/field-resource/cs-381")
 F_CS_422 = sid("uni/field/cs-422")
+FR_CS_422 = sid("uni/field-resource/cs-422")
 
 CLASS_FIELDS = [F_CS_180, F_CS_182, F_CS_242, F_CS_251, F_CS_373, F_CS_381, F_CS_422]
+CLASS_FIELD_RESOURCES = [FR_CS_180, FR_CS_182, FR_CS_242, FR_CS_251, FR_CS_373, FR_CS_381, FR_CS_422]
 
 # ── Document Type fields (8) ──────────────────────────────────────────────
 
 F_HOMEWORK = sid("uni/field/homework")
+FR_HOMEWORK = sid("uni/field-resource/homework")
 F_LAB = sid("uni/field/lab")
+FR_LAB = sid("uni/field-resource/lab")
 F_LECTURE = sid("uni/field/lecture")
+FR_LECTURE = sid("uni/field-resource/lecture")
 F_MIDTERM = sid("uni/field/midterm")
+FR_MIDTERM = sid("uni/field-resource/midterm")
 F_POLICY = sid("uni/field/policy")
+FR_POLICY = sid("uni/field-resource/policy")
 F_PROJECT = sid("uni/field/project")
+FR_PROJECT = sid("uni/field-resource/project")
 F_QUIZ = sid("uni/field/quiz")
+FR_QUIZ = sid("uni/field-resource/quiz")
 F_SYLLABUS = sid("uni/field/syllabus")
+FR_SYLLABUS = sid("uni/field-resource/syllabus")
 
 DOCUMENT_TYPE_FIELDS = [
     F_HOMEWORK,
@@ -162,14 +304,38 @@ DOCUMENT_TYPE_FIELDS = [
     F_QUIZ,
     F_SYLLABUS,
 ]
+DOCUMENT_TYPE_FIELD_RESOURCES = [    FR_HOMEWORK,
+    FR_LAB,
+    FR_LECTURE,
+    FR_MIDTERM,
+    FR_POLICY,
+    FR_PROJECT,
+    FR_QUIZ,
+    FR_SYLLABUS,
+]
+DOCUMENT_TYPE_FIELD_RESOURCES = [
+    FR_HOMEWORK,
+    FR_LAB,
+    FR_LECTURE,
+    FR_MIDTERM,
+    FR_POLICY,
+    FR_PROJECT,
+    FR_QUIZ,
+    FR_SYLLABUS,
+]
 
 # ── Concepts fields (5) ──────────────────────────────────────────────────
 
 F_ANNUAL_FERPA = sid("uni/field/annual-ferpa-rights-notification")
+FR_ANNUAL_FERPA = sid("uni/field-resource/annual-ferpa-rights-notification")
 F_CONSENT_DISCLOSURES = sid("uni/field/consent-vs-no-consent-disclosures")
+FR_CONSENT_DISCLOSURES = sid("uni/field-resource/consent-vs-no-consent-disclosures")
 F_EDUCATION_RECORDS = sid("uni/field/education-records-exceptions")
+FR_EDUCATION_RECORDS = sid("uni/field-resource/education-records-exceptions")
 F_RECORD_AMENDMENT = sid("uni/field/record-amendment-process")
+FR_RECORD_AMENDMENT = sid("uni/field-resource/record-amendment-process")
 F_STUDENT_ACCESS = sid("uni/field/student-access-rights")
+FR_STUDENT_ACCESS = sid("uni/field-resource/student-access-rights")
 
 CONCEPTS_FIELDS = [
     F_ANNUAL_FERPA,
@@ -178,14 +344,31 @@ CONCEPTS_FIELDS = [
     F_RECORD_AMENDMENT,
     F_STUDENT_ACCESS,
 ]
+CONCEPTS_FIELD_RESOURCES = [    FR_ANNUAL_FERPA,
+    FR_CONSENT_DISCLOSURES,
+    FR_EDUCATION_RECORDS,
+    FR_RECORD_AMENDMENT,
+    FR_STUDENT_ACCESS,
+]
+CONCEPTS_FIELD_RESOURCES = [
+    FR_ANNUAL_FERPA,
+    FR_CONSENT_DISCLOSURES,
+    FR_EDUCATION_RECORDS,
+    FR_RECORD_AMENDMENT,
+    FR_STUDENT_ACCESS,
+]
 
 # ── Role fields (3) ──────────────────────────────────────────────────────
 
 F_STUDENT = sid("uni/field/student")
+FR_STUDENT = sid("uni/field-resource/student")
 F_PROFESSOR = sid("uni/field/professor")
+FR_PROFESSOR = sid("uni/field-resource/professor")
 F_INSTRUCTIONAL_STAFF = sid("uni/field/instructional-staff")
+FR_INSTRUCTIONAL_STAFF = sid("uni/field-resource/instructional-staff")
 
 ROLE_FIELDS = [F_STUDENT, F_PROFESSOR, F_INSTRUCTIONAL_STAFF]
+ROLE_FIELD_RESOURCES = [FR_STUDENT, FR_PROFESSOR, FR_INSTRUCTIONAL_STAFF]
 
 # ---------------------------------------------------------------------------
 # Field definitions
