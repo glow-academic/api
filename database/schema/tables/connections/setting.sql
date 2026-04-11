@@ -8,7 +8,6 @@
 CREATE TABLE public.setting_drafts_agents_connection (
     draft_id uuid NOT NULL,
     agents_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -24,7 +23,6 @@ CREATE TABLE public.setting_drafts_agents_connection (
 CREATE TABLE public.setting_drafts_auth_item_keys_connection (
     draft_id uuid NOT NULL,
     auth_item_keys_id uuid CONSTRAINT setting_drafts_auth_item_keys_connec_auth_item_keys_id_not_null NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -40,7 +38,6 @@ CREATE TABLE public.setting_drafts_auth_item_keys_connection (
 CREATE TABLE public.setting_drafts_auths_connection (
     draft_id uuid NOT NULL,
     auths_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -56,7 +53,6 @@ CREATE TABLE public.setting_drafts_auths_connection (
 CREATE TABLE public.setting_drafts_colors_connection (
     draft_id uuid NOT NULL,
     colors_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -72,7 +68,6 @@ CREATE TABLE public.setting_drafts_colors_connection (
 CREATE TABLE public.setting_drafts_departments_connection (
     draft_id uuid NOT NULL,
     departments_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -88,7 +83,6 @@ CREATE TABLE public.setting_drafts_departments_connection (
 CREATE TABLE public.setting_drafts_descriptions_connection (
     draft_id uuid NOT NULL,
     descriptions_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -104,7 +98,6 @@ CREATE TABLE public.setting_drafts_descriptions_connection (
 CREATE TABLE public.setting_drafts_flags_connection (
     draft_id uuid NOT NULL,
     flags_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -120,7 +113,6 @@ CREATE TABLE public.setting_drafts_flags_connection (
 CREATE TABLE public.setting_drafts_items_connection (
     draft_id uuid NOT NULL,
     items_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -136,7 +128,6 @@ CREATE TABLE public.setting_drafts_items_connection (
 CREATE TABLE public.setting_drafts_names_connection (
     draft_id uuid NOT NULL,
     names_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -152,7 +143,6 @@ CREATE TABLE public.setting_drafts_names_connection (
 CREATE TABLE public.setting_drafts_profiles_connection (
     draft_id uuid NOT NULL,
     profiles_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -168,7 +158,6 @@ CREATE TABLE public.setting_drafts_profiles_connection (
 CREATE TABLE public.setting_drafts_provider_keys_connection (
     draft_id uuid NOT NULL,
     provider_keys_id uuid CONSTRAINT setting_drafts_provider_keys_connecti_provider_keys_id_not_null NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -184,7 +173,6 @@ CREATE TABLE public.setting_drafts_provider_keys_connection (
 CREATE TABLE public.setting_drafts_thresholds_connection (
     draft_id uuid NOT NULL,
     thresholds_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,

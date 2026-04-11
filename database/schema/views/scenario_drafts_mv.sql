@@ -7,7 +7,6 @@
 
 CREATE MATERIALIZED VIEW public.scenario_drafts_mv AS
  SELECT id,
-    version,
     created_at,
     generated,
     mcp,

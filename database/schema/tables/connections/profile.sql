@@ -8,7 +8,6 @@
 CREATE TABLE public.profile_drafts_departments_connection (
     draft_id uuid NOT NULL,
     departments_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -24,7 +23,6 @@ CREATE TABLE public.profile_drafts_departments_connection (
 CREATE TABLE public.profile_drafts_emails_connection (
     draft_id uuid NOT NULL,
     emails_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -40,7 +38,6 @@ CREATE TABLE public.profile_drafts_emails_connection (
 CREATE TABLE public.profile_drafts_flags_connection (
     draft_id uuid NOT NULL,
     flags_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -56,7 +53,6 @@ CREATE TABLE public.profile_drafts_flags_connection (
 CREATE TABLE public.profile_drafts_names_connection (
     draft_id uuid NOT NULL,
     names_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -72,7 +68,6 @@ CREATE TABLE public.profile_drafts_names_connection (
 CREATE TABLE public.profile_drafts_profiles_connection (
     draft_id uuid NOT NULL,
     profiles_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -88,7 +83,6 @@ CREATE TABLE public.profile_drafts_profiles_connection (
 CREATE TABLE public.profile_drafts_roles_connection (
     draft_id uuid NOT NULL,
     roles_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,

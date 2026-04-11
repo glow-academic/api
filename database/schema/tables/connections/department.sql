@@ -8,7 +8,6 @@
 CREATE TABLE public.department_drafts_descriptions_connection (
     draft_id uuid NOT NULL,
     descriptions_id uuid CONSTRAINT department_drafts_descriptions_connect_descriptions_id_not_null NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -24,7 +23,6 @@ CREATE TABLE public.department_drafts_descriptions_connection (
 CREATE TABLE public.department_drafts_flags_connection (
     draft_id uuid NOT NULL,
     flags_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -40,7 +38,6 @@ CREATE TABLE public.department_drafts_flags_connection (
 CREATE TABLE public.department_drafts_names_connection (
     draft_id uuid NOT NULL,
     names_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -56,7 +53,6 @@ CREATE TABLE public.department_drafts_names_connection (
 CREATE TABLE public.department_drafts_profiles_connection (
     draft_id uuid NOT NULL,
     profiles_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -72,7 +68,6 @@ CREATE TABLE public.department_drafts_profiles_connection (
 CREATE TABLE public.department_drafts_settings_connection (
     draft_id uuid NOT NULL,
     settings_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,

@@ -8,7 +8,6 @@
 CREATE TABLE public.tool_drafts_arg_positions_connection (
     draft_id uuid NOT NULL,
     arg_positions_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -24,7 +23,6 @@ CREATE TABLE public.tool_drafts_arg_positions_connection (
 CREATE TABLE public.tool_drafts_args_connection (
     draft_id uuid NOT NULL,
     args_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -40,7 +38,6 @@ CREATE TABLE public.tool_drafts_args_connection (
 CREATE TABLE public.tool_drafts_args_outputs_connection (
     draft_id uuid NOT NULL,
     args_outputs_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -56,7 +53,6 @@ CREATE TABLE public.tool_drafts_args_outputs_connection (
 CREATE TABLE public.tool_drafts_departments_connection (
     draft_id uuid NOT NULL,
     departments_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -72,7 +68,6 @@ CREATE TABLE public.tool_drafts_departments_connection (
 CREATE TABLE public.tool_drafts_descriptions_connection (
     draft_id uuid NOT NULL,
     descriptions_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -88,7 +83,6 @@ CREATE TABLE public.tool_drafts_descriptions_connection (
 CREATE TABLE public.tool_drafts_flags_connection (
     draft_id uuid NOT NULL,
     flags_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -104,7 +98,6 @@ CREATE TABLE public.tool_drafts_flags_connection (
 CREATE TABLE public.tool_drafts_instructions_connection (
     draft_id uuid NOT NULL,
     instructions_id uuid NOT NULL,
-    version integer NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     active boolean DEFAULT true NOT NULL,
     generated boolean DEFAULT false NOT NULL,
@@ -120,7 +113,6 @@ CREATE TABLE public.tool_drafts_instructions_connection (
 CREATE TABLE public.tool_drafts_names_connection (
     draft_id uuid NOT NULL,
     names_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -151,7 +143,6 @@ CREATE TABLE public.tool_drafts_permissions_connection (
 CREATE TABLE public.tool_drafts_profiles_connection (
     draft_id uuid NOT NULL,
     profiles_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -211,15 +202,6 @@ ALTER TABLE ONLY public.tool_drafts_descriptions_connection
 
 ALTER TABLE ONLY public.tool_drafts_flags_connection
     ADD CONSTRAINT tool_drafts_flags_connection_pkey PRIMARY KEY (draft_id, flags_id);
-
-
---
-
--- Name: tool_drafts_instructions_connection tool_drafts_instructions_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tool_drafts_instructions_connection
-    ADD CONSTRAINT tool_drafts_instructions_connection_pkey PRIMARY KEY (draft_id, instructions_id, version);
 
 
 --

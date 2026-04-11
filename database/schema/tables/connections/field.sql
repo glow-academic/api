@@ -8,7 +8,6 @@
 CREATE TABLE public.field_drafts_conditional_parameters_connection (
     draft_id uuid CONSTRAINT field_drafts_conditional_parameters_connectio_draft_id_not_null NOT NULL,
     conditional_parameters_id uuid CONSTRAINT field_drafts_conditional_par_conditional_parameters_id_not_null NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT field_drafts_conditional_parameters_connect_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT field_drafts_conditional_parameters_connecti_generated_not_null NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -24,7 +23,6 @@ CREATE TABLE public.field_drafts_conditional_parameters_connection (
 CREATE TABLE public.field_drafts_departments_connection (
     draft_id uuid NOT NULL,
     departments_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -40,7 +38,6 @@ CREATE TABLE public.field_drafts_departments_connection (
 CREATE TABLE public.field_drafts_descriptions_connection (
     draft_id uuid NOT NULL,
     descriptions_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -56,7 +53,6 @@ CREATE TABLE public.field_drafts_descriptions_connection (
 CREATE TABLE public.field_drafts_flags_connection (
     draft_id uuid NOT NULL,
     flags_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -72,7 +68,6 @@ CREATE TABLE public.field_drafts_flags_connection (
 CREATE TABLE public.field_drafts_names_connection (
     draft_id uuid NOT NULL,
     names_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -88,7 +83,6 @@ CREATE TABLE public.field_drafts_names_connection (
 CREATE TABLE public.field_drafts_profiles_connection (
     draft_id uuid NOT NULL,
     profiles_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,

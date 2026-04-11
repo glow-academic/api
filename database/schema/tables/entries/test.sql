@@ -74,7 +74,8 @@ CREATE TABLE public.test_feedback_entry (
     active boolean DEFAULT true CONSTRAINT benchmark_feedbacks_entry_active_not_null NOT NULL,
     call_id uuid NOT NULL,
     total_points integer NOT NULL,
-    pass_points integer NOT NULL
+    pass_points integer NOT NULL,
+    tool_call_id uuid NOT NULL
 );
 
 

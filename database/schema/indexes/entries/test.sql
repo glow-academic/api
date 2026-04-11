@@ -122,6 +122,14 @@ CREATE INDEX idx_test_entry_call_id ON public.test_entry USING btree (call_id);
 
 --
 
+-- Name: idx_test_feedback_entry_tool_call_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_test_feedback_entry_tool_call_id ON public.test_feedback_entry USING btree (tool_call_id);
+
+
+--
+
 -- Name: idx_test_grade_entry_call_id; Type: INDEX; Schema: public; Owner: -
 --
 

@@ -56,7 +56,6 @@ CREATE TABLE public.chat_entry (
 
 CREATE TABLE public.chat_drafts_entry (
     id uuid DEFAULT uuidv7() CONSTRAINT training_drafts_entry_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_entry_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_entry_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_entry_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_entry_mcp_not_null NOT NULL,

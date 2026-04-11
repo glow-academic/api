@@ -8,7 +8,6 @@
 CREATE TABLE public.cohort_drafts_departments_connection (
     draft_id uuid NOT NULL,
     departments_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -24,7 +23,6 @@ CREATE TABLE public.cohort_drafts_departments_connection (
 CREATE TABLE public.cohort_drafts_descriptions_connection (
     draft_id uuid NOT NULL,
     descriptions_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -40,7 +38,6 @@ CREATE TABLE public.cohort_drafts_descriptions_connection (
 CREATE TABLE public.cohort_drafts_flags_connection (
     draft_id uuid NOT NULL,
     flags_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -56,7 +53,6 @@ CREATE TABLE public.cohort_drafts_flags_connection (
 CREATE TABLE public.cohort_drafts_names_connection (
     draft_id uuid NOT NULL,
     names_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -72,7 +68,6 @@ CREATE TABLE public.cohort_drafts_names_connection (
 CREATE TABLE public.cohort_drafts_profile_personas_connection (
     draft_id uuid NOT NULL,
     profile_personas_id uuid CONSTRAINT cohort_drafts_profile_personas_con_profile_personas_id_not_null NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -88,7 +83,6 @@ CREATE TABLE public.cohort_drafts_profile_personas_connection (
 CREATE TABLE public.cohort_drafts_profiles_connection (
     draft_id uuid NOT NULL,
     profiles_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -120,7 +114,6 @@ CREATE TABLE public.cohort_drafts_simulation_availability_connection (
 CREATE TABLE public.cohort_drafts_simulation_positions_connection (
     draft_id uuid NOT NULL,
     simulation_positions_id uuid CONSTRAINT cohort_drafts_simulation_posit_simulation_positions_id_not_null NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT cohort_drafts_simulation_positions_connecti_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT cohort_drafts_simulation_positions_connectio_generated_not_null NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -136,7 +129,6 @@ CREATE TABLE public.cohort_drafts_simulation_positions_connection (
 CREATE TABLE public.cohort_drafts_simulations_connection (
     draft_id uuid NOT NULL,
     simulations_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,

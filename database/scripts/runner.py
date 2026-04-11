@@ -685,6 +685,7 @@ async def _run_persona_seeds(
 ) -> list[UUID]:
     """Run persona seed definitions through create_persona_impl."""
     from app.infra.persona.create import CreatePersonaItem, create_persona_impl
+    from app.infra.persona.types import CreatePersonaApiRequest
 
     items = [CreatePersonaItem(**p) for p in persona_defs]
 
@@ -692,7 +693,7 @@ async def _run_persona_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreatePersonaApiRequest(personas=items),
     )
 
     # Check for errors

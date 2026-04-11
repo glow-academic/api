@@ -13,7 +13,9 @@ CREATE TABLE public.systems_resource (
     mcp boolean DEFAULT false NOT NULL,
     name text,
     description text,
-    agent_ids uuid[] DEFAULT ARRAY[]::uuid[]
+    agent_ids uuid[] DEFAULT ARRAY[]::uuid[],
+    resolution_strategy text,
+    resolution_threshold numeric
 );
 
 

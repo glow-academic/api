@@ -8,7 +8,6 @@
 CREATE TABLE public.document_drafts_departments_connection (
     draft_id uuid NOT NULL,
     departments_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -24,7 +23,6 @@ CREATE TABLE public.document_drafts_departments_connection (
 CREATE TABLE public.document_drafts_descriptions_connection (
     draft_id uuid NOT NULL,
     descriptions_id uuid CONSTRAINT document_drafts_descriptions_connectio_descriptions_id_not_null NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -40,7 +38,6 @@ CREATE TABLE public.document_drafts_descriptions_connection (
 CREATE TABLE public.document_drafts_files_connection (
     draft_id uuid CONSTRAINT document_drafts_uploads_connection_draft_id_not_null NOT NULL,
     files_id uuid CONSTRAINT document_drafts_uploads_connection_uploads_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT document_drafts_uploads_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT document_drafts_uploads_connection_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT document_drafts_uploads_connection_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT document_drafts_uploads_connection_mcp_not_null NOT NULL,
@@ -56,7 +53,6 @@ CREATE TABLE public.document_drafts_files_connection (
 CREATE TABLE public.document_drafts_flags_connection (
     draft_id uuid NOT NULL,
     flags_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -72,7 +68,6 @@ CREATE TABLE public.document_drafts_flags_connection (
 CREATE TABLE public.document_drafts_images_connection (
     draft_id uuid NOT NULL,
     images_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -88,7 +83,6 @@ CREATE TABLE public.document_drafts_images_connection (
 CREATE TABLE public.document_drafts_names_connection (
     draft_id uuid NOT NULL,
     names_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -104,7 +98,6 @@ CREATE TABLE public.document_drafts_names_connection (
 CREATE TABLE public.document_drafts_parameter_fields_connection (
     draft_id uuid NOT NULL,
     parameter_fields_id uuid CONSTRAINT document_drafts_parameter_fields_c_parameter_fields_id_not_null NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -120,7 +113,6 @@ CREATE TABLE public.document_drafts_parameter_fields_connection (
 CREATE TABLE public.document_drafts_parameters_connection (
     draft_id uuid NOT NULL,
     parameters_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -136,7 +128,6 @@ CREATE TABLE public.document_drafts_parameters_connection (
 CREATE TABLE public.document_drafts_profiles_connection (
     draft_id uuid NOT NULL,
     profiles_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -152,7 +143,6 @@ CREATE TABLE public.document_drafts_profiles_connection (
 CREATE TABLE public.document_drafts_texts_connection (
     draft_id uuid NOT NULL,
     texts_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,

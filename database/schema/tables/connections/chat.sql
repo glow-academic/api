@@ -83,7 +83,6 @@ CREATE TABLE public.chat_documents_connection (
 CREATE TABLE public.chat_drafts_departments_connection (
     draft_id uuid CONSTRAINT training_drafts_departments_connection_draft_id_not_null NOT NULL,
     departments_id uuid CONSTRAINT training_drafts_departments_connection_departments_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_departments_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_departments_connection_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_departments_connection_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_departments_connection_mcp_not_null NOT NULL,
@@ -99,7 +98,6 @@ CREATE TABLE public.chat_drafts_departments_connection (
 CREATE TABLE public.chat_drafts_descriptions_connection (
     draft_id uuid CONSTRAINT training_drafts_descriptions_connection_draft_id_not_null NOT NULL,
     descriptions_id uuid CONSTRAINT training_drafts_descriptions_connectio_descriptions_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_descriptions_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_descriptions_connection_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_descriptions_connection_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_descriptions_connection_mcp_not_null NOT NULL,
@@ -115,7 +113,6 @@ CREATE TABLE public.chat_drafts_descriptions_connection (
 CREATE TABLE public.chat_drafts_documents_connection (
     draft_id uuid CONSTRAINT training_drafts_documents_connection_draft_id_not_null NOT NULL,
     documents_id uuid CONSTRAINT training_drafts_documents_connection_documents_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_documents_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_documents_connection_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_documents_connection_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_documents_connection_mcp_not_null NOT NULL,
@@ -131,7 +128,6 @@ CREATE TABLE public.chat_drafts_documents_connection (
 CREATE TABLE public.chat_drafts_fields_connection (
     draft_id uuid CONSTRAINT training_drafts_fields_connection_draft_id_not_null NOT NULL,
     fields_id uuid CONSTRAINT training_drafts_fields_connection_fields_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_fields_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_fields_connection_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_fields_connection_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_fields_connection_mcp_not_null NOT NULL,
@@ -147,7 +143,6 @@ CREATE TABLE public.chat_drafts_fields_connection (
 CREATE TABLE public.chat_drafts_flags_connection (
     draft_id uuid CONSTRAINT training_drafts_flags_connection_draft_id_not_null NOT NULL,
     flags_id uuid CONSTRAINT training_drafts_flags_connection_flags_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_flags_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_flags_connection_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_flags_connection_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_flags_connection_mcp_not_null NOT NULL,
@@ -163,7 +158,6 @@ CREATE TABLE public.chat_drafts_flags_connection (
 CREATE TABLE public.chat_drafts_images_connection (
     draft_id uuid CONSTRAINT training_drafts_images_connection_draft_id_not_null NOT NULL,
     images_id uuid CONSTRAINT training_drafts_images_connection_images_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_images_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_images_connection_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_images_connection_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_images_connection_mcp_not_null NOT NULL,
@@ -179,7 +173,6 @@ CREATE TABLE public.chat_drafts_images_connection (
 CREATE TABLE public.chat_drafts_names_connection (
     draft_id uuid CONSTRAINT training_drafts_names_connection_draft_id_not_null NOT NULL,
     names_id uuid CONSTRAINT training_drafts_names_connection_names_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_names_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_names_connection_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_names_connection_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_names_connection_mcp_not_null NOT NULL,
@@ -195,7 +188,6 @@ CREATE TABLE public.chat_drafts_names_connection (
 CREATE TABLE public.chat_drafts_objectives_connection (
     draft_id uuid CONSTRAINT training_drafts_objectives_connection_draft_id_not_null NOT NULL,
     objectives_id uuid CONSTRAINT training_drafts_objectives_connection_objectives_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_objectives_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_objectives_connection_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_objectives_connection_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_objectives_connection_mcp_not_null NOT NULL,
@@ -211,7 +203,6 @@ CREATE TABLE public.chat_drafts_objectives_connection (
 CREATE TABLE public.chat_drafts_options_connection (
     draft_id uuid CONSTRAINT training_drafts_options_connection_draft_id_not_null NOT NULL,
     options_id uuid CONSTRAINT training_drafts_options_connection_options_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_options_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_options_connection_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_options_connection_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_options_connection_mcp_not_null NOT NULL,
@@ -227,7 +218,6 @@ CREATE TABLE public.chat_drafts_options_connection (
 CREATE TABLE public.chat_drafts_parameter_fields_connection (
     draft_id uuid CONSTRAINT training_drafts_parameter_fields_connection_draft_id_not_null NOT NULL,
     parameter_fields_id uuid CONSTRAINT training_drafts_parameter_fields_c_parameter_fields_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_parameter_fields_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_parameter_fields_connection_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_parameter_fields_connection_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_parameter_fields_connection_mcp_not_null NOT NULL,
@@ -243,7 +233,6 @@ CREATE TABLE public.chat_drafts_parameter_fields_connection (
 CREATE TABLE public.chat_drafts_parameters_connection (
     draft_id uuid CONSTRAINT training_drafts_parameters_connection_draft_id_not_null NOT NULL,
     parameters_id uuid CONSTRAINT training_drafts_parameters_connection_parameters_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_parameters_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_parameters_connection_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_parameters_connection_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_parameters_connection_mcp_not_null NOT NULL,
@@ -259,7 +248,6 @@ CREATE TABLE public.chat_drafts_parameters_connection (
 CREATE TABLE public.chat_drafts_personas_connection (
     draft_id uuid CONSTRAINT training_drafts_personas_connection_draft_id_not_null NOT NULL,
     personas_id uuid CONSTRAINT training_drafts_personas_connection_personas_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_personas_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_personas_connection_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_personas_connection_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_personas_connection_mcp_not_null NOT NULL,
@@ -275,7 +263,6 @@ CREATE TABLE public.chat_drafts_personas_connection (
 CREATE TABLE public.chat_drafts_problem_statements_connection (
     draft_id uuid CONSTRAINT training_drafts_problem_statements_connection_draft_id_not_null NOT NULL,
     problem_statements_id uuid CONSTRAINT training_drafts_problem_statemen_problem_statements_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_problem_statements_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_problem_statements_connecti_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_problem_statements_connectio_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_problem_statements_connection_mcp_not_null NOT NULL,
@@ -291,7 +278,6 @@ CREATE TABLE public.chat_drafts_problem_statements_connection (
 CREATE TABLE public.chat_drafts_profiles_connection (
     draft_id uuid NOT NULL,
     profiles_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -307,7 +293,6 @@ CREATE TABLE public.chat_drafts_profiles_connection (
 CREATE TABLE public.chat_drafts_questions_connection (
     draft_id uuid CONSTRAINT training_drafts_questions_connection_draft_id_not_null NOT NULL,
     questions_id uuid CONSTRAINT training_drafts_questions_connection_questions_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_questions_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_questions_connection_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_questions_connection_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_questions_connection_mcp_not_null NOT NULL,
@@ -323,7 +308,6 @@ CREATE TABLE public.chat_drafts_questions_connection (
 CREATE TABLE public.chat_drafts_scenarios_connection (
     draft_id uuid CONSTRAINT training_drafts_scenarios_connection_draft_id_not_null NOT NULL,
     scenarios_id uuid CONSTRAINT training_drafts_scenarios_connection_scenarios_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_scenarios_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_scenarios_connection_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_scenarios_connection_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_scenarios_connection_mcp_not_null NOT NULL,
@@ -339,7 +323,6 @@ CREATE TABLE public.chat_drafts_scenarios_connection (
 CREATE TABLE public.chat_drafts_videos_connection (
     draft_id uuid CONSTRAINT training_drafts_videos_connection_draft_id_not_null NOT NULL,
     videos_id uuid CONSTRAINT training_drafts_videos_connection_videos_id_not_null NOT NULL,
-    version integer DEFAULT 0 CONSTRAINT training_drafts_videos_connection_version_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT training_drafts_videos_connection_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT training_drafts_videos_connection_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_videos_connection_mcp_not_null NOT NULL,

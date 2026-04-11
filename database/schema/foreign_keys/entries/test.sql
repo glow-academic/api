@@ -119,6 +119,15 @@ ALTER TABLE ONLY public.test_entry
 
 --
 
+-- Name: test_feedback_entry test_feedback_entry_tool_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.test_feedback_entry
+    ADD CONSTRAINT test_feedback_entry_tool_call_id_fkey FOREIGN KEY (tool_call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
+
+
+--
+
 -- Name: test_grade_entry test_grade_entry_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 

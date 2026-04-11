@@ -8,7 +8,6 @@
 CREATE TABLE public.persona_drafts_colors_connection (
     draft_id uuid NOT NULL,
     colors_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -24,7 +23,6 @@ CREATE TABLE public.persona_drafts_colors_connection (
 CREATE TABLE public.persona_drafts_departments_connection (
     draft_id uuid NOT NULL,
     departments_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -40,7 +38,6 @@ CREATE TABLE public.persona_drafts_departments_connection (
 CREATE TABLE public.persona_drafts_descriptions_connection (
     draft_id uuid NOT NULL,
     descriptions_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -56,7 +53,6 @@ CREATE TABLE public.persona_drafts_descriptions_connection (
 CREATE TABLE public.persona_drafts_examples_connection (
     draft_id uuid NOT NULL,
     examples_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -72,7 +68,6 @@ CREATE TABLE public.persona_drafts_examples_connection (
 CREATE TABLE public.persona_drafts_flags_connection (
     draft_id uuid NOT NULL,
     flags_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -88,7 +83,6 @@ CREATE TABLE public.persona_drafts_flags_connection (
 CREATE TABLE public.persona_drafts_icons_connection (
     draft_id uuid NOT NULL,
     icons_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -104,7 +98,6 @@ CREATE TABLE public.persona_drafts_icons_connection (
 CREATE TABLE public.persona_drafts_instructions_connection (
     draft_id uuid NOT NULL,
     instructions_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -120,7 +113,6 @@ CREATE TABLE public.persona_drafts_instructions_connection (
 CREATE TABLE public.persona_drafts_names_connection (
     draft_id uuid NOT NULL,
     names_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -136,7 +128,6 @@ CREATE TABLE public.persona_drafts_names_connection (
 CREATE TABLE public.persona_drafts_parameter_fields_connection (
     draft_id uuid NOT NULL,
     parameter_fields_id uuid CONSTRAINT persona_drafts_parameter_fields_co_parameter_fields_id_not_null NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -152,7 +143,6 @@ CREATE TABLE public.persona_drafts_parameter_fields_connection (
 CREATE TABLE public.persona_drafts_profiles_connection (
     draft_id uuid NOT NULL,
     profiles_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -168,7 +158,6 @@ CREATE TABLE public.persona_drafts_profiles_connection (
 CREATE TABLE public.persona_drafts_voices_connection (
     draft_id uuid NOT NULL,
     voices_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,

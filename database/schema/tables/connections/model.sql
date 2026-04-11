@@ -8,7 +8,6 @@
 CREATE TABLE public.model_drafts_departments_connection (
     draft_id uuid NOT NULL,
     departments_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -24,7 +23,6 @@ CREATE TABLE public.model_drafts_departments_connection (
 CREATE TABLE public.model_drafts_descriptions_connection (
     draft_id uuid NOT NULL,
     descriptions_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -40,7 +38,6 @@ CREATE TABLE public.model_drafts_descriptions_connection (
 CREATE TABLE public.model_drafts_flags_connection (
     draft_id uuid NOT NULL,
     flags_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -56,7 +53,6 @@ CREATE TABLE public.model_drafts_flags_connection (
 CREATE TABLE public.model_drafts_modalities_connection (
     draft_id uuid NOT NULL,
     modalities_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -72,7 +68,6 @@ CREATE TABLE public.model_drafts_modalities_connection (
 CREATE TABLE public.model_drafts_names_connection (
     draft_id uuid NOT NULL,
     names_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -88,7 +83,6 @@ CREATE TABLE public.model_drafts_names_connection (
 CREATE TABLE public.model_drafts_pricing_connection (
     draft_id uuid NOT NULL,
     pricing_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -104,7 +98,6 @@ CREATE TABLE public.model_drafts_pricing_connection (
 CREATE TABLE public.model_drafts_profiles_connection (
     draft_id uuid NOT NULL,
     profiles_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -120,7 +113,6 @@ CREATE TABLE public.model_drafts_profiles_connection (
 CREATE TABLE public.model_drafts_providers_connection (
     draft_id uuid NOT NULL,
     providers_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -136,7 +128,6 @@ CREATE TABLE public.model_drafts_providers_connection (
 CREATE TABLE public.model_drafts_qualities_connection (
     draft_id uuid NOT NULL,
     qualities_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -152,7 +143,6 @@ CREATE TABLE public.model_drafts_qualities_connection (
 CREATE TABLE public.model_drafts_reasoning_levels_connection (
     draft_id uuid NOT NULL,
     reasoning_levels_id uuid CONSTRAINT model_drafts_reasoning_levels_conn_reasoning_levels_id_not_null NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -168,7 +158,6 @@ CREATE TABLE public.model_drafts_reasoning_levels_connection (
 CREATE TABLE public.model_drafts_temperature_levels_connection (
     draft_id uuid NOT NULL,
     temperature_levels_id uuid CONSTRAINT model_drafts_temperature_levels__temperature_levels_id_not_null NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -184,7 +173,6 @@ CREATE TABLE public.model_drafts_temperature_levels_connection (
 CREATE TABLE public.model_drafts_values_connection (
     draft_id uuid NOT NULL,
     values_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -200,7 +188,6 @@ CREATE TABLE public.model_drafts_values_connection (
 CREATE TABLE public.model_drafts_voices_connection (
     draft_id uuid NOT NULL,
     voices_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
