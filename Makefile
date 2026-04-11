@@ -245,20 +245,12 @@ run: check-venv
 # Stop all services (for cleanup)
 stop:
 	@echo "🛑 Stopping all GLOW services..."
-	@echo "Stopping Redis on port $(REDIS_PORT)..."
-	@if lsof -ti:$(REDIS_PORT) >/dev/null 2>&1; then \
-		kill -9 $$(lsof -ti:$(REDIS_PORT)) 2>/dev/null && echo "✅ Redis stopped" || echo "⚠️  Redis process not found"; \
-	else \
-		echo "⚠️  No process found on port $(REDIS_PORT)"; \
-	fi
-	@echo "Stopping Server on port $(SERVER_PORT)..."
-	@if lsof -ti:$(SERVER_PORT) >/dev/null 2>&1; then \
-		kill -9 $$(lsof -ti:$(SERVER_PORT)) 2>/dev/null && echo "✅ Server stopped" || echo "⚠️  Server process not found"; \
-	else \
-		echo "⚠️  No process found on port $(SERVER_PORT)"; \
-	fi
+	@echo "Stopping Redis..."
+	@pkill -f "redis-server.*$(REDIS_PORT)" 2>/dev/null && echo "✅ Redis stopped" || echo "⚠️  Redis not running"
+	@echo "Stopping Server..."
+	@pkill -f "uvicorn.*$(SERVER_PORT)" 2>/dev/null && echo "✅ Server stopped" || echo "⚠️  Server not running"
 	@echo "Stopping Database logs..."
-	@pkill -f "stream-logs.js" 2>/dev/null && echo "✅ Database logs stopped" || echo "⚠️  Database logs process not found"
+	@pkill -f "stream-logs.js" 2>/dev/null && echo "✅ Database logs stopped" || echo "⚠️  Database logs not running"
 	@echo "Stopping Keycloak..."
 	@if docker ps -a --filter name=glow-keycloak --format "{{.Names}}" | grep -q "^glow-keycloak$$"; then \
 		docker stop glow-keycloak >/dev/null 2>&1 && echo "✅ Keycloak stopped" || echo "⚠️  Failed to stop Keycloak"; \
