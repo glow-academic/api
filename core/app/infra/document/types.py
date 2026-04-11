@@ -89,7 +89,7 @@ class DocumentDraftEntry(BaseModel):
     """Draft entry for document."""
 
     id: UUID | None = Field(None, description="Unique identifier")
-    version: int | None = Field(None, description="Draft version number")
+
     created_at: datetime | None = Field(None, description="Creation timestamp")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     mcp: bool | None = Field(None, description="Whether created via MCP")
@@ -295,7 +295,7 @@ class CreateDocumentItem(ScopedItem):
         "template_flag_id": "flags",
         "department_ids": "departments",
         "departments": "departments",
-        "field_ids": "fields",
+        "parameter_field_ids": "parameter_fields",
         "upload_ids": "uploads",
         "image_ids": "images",
         "text_ids": "texts",
@@ -320,7 +320,7 @@ class CreateDocumentItem(ScopedItem):
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for resolution")
     # Multi-select — IDs only
-    field_ids: list[UUID] | None = Field(None, description="Parameter field UUIDs")
+    parameter_field_ids: list[UUID] | None = Field(None, description="Parameter field UUIDs")
     upload_ids: list[UUID] | None = Field(None, description="File upload UUIDs")
     image_ids: list[UUID] | None = Field(None, description="Image UUIDs")
     text_ids: list[UUID] | None = Field(None, description="Text resource UUIDs")
@@ -365,7 +365,7 @@ class UpdateDocumentItem(ScopedItem):
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for resolution")
     # Multi-select — IDs only
-    field_ids: list[UUID] | None = Field(None, description="Parameter field UUIDs")
+    parameter_field_ids: list[UUID] | None = Field(None, description="Parameter field UUIDs")
     upload_ids: list[UUID] | None = Field(None, description="File upload UUIDs")
     image_ids: list[UUID] | None = Field(None, description="Image UUIDs")
     text_ids: list[UUID] | None = Field(None, description="Text resource UUIDs")
@@ -463,7 +463,7 @@ class PatchDocumentDraftApiRequest(ScopedItem):
     ID-only for non-creatable resources:
       - flag_ids, department_ids, image_ids, parameter_field_ids, parameter_ids
 
-    Client always sends full state (append-only — each write is a new version snapshot).
+    Client always sends full state (append-only — each write is a new snapshot).
     """
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
@@ -478,7 +478,7 @@ class PatchDocumentDraftApiRequest(ScopedItem):
         "flag_ids": "flags",
         "department_ids": "departments",
         "image_ids": "images",
-        "parameter_field_ids": "fields",
+        "parameter_field_ids": "parameter_fields",
         "parameter_ids": "parameters",
     }
 

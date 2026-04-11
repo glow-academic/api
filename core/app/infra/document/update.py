@@ -28,6 +28,7 @@ from app.tools.artifacts.document.update import (
 from app.tools.artifacts.document.update import (
     update_document as update_document_artifact,
 )
+from app.infra.document.types import UpdateDocumentApiRequest, UpdateDocumentApiResponse
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 
@@ -36,12 +37,12 @@ async def update_document_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdateDocumentApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdateDocumentApiResponse:
     """Document bulk update using composable infra functions.
 
     Flow:
@@ -54,8 +55,9 @@ async def update_document_impl(
     from app.infra.document.permissions import compute_can_edit
     from app.infra.document.types import (
         DocumentResultItem,
-        UpdateDocumentApiResponse,
     )
+
+    items = request.documents
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -134,7 +136,7 @@ async def update_document_impl(
             description_id=item.description_id,
             department_ids=item.department_ids,
             image_ids=item.image_ids,
-            parameter_field_ids=item.field_ids,
+            parameter_field_ids=item.parameter_field_ids,
             template=bool(item.template_flag_id),
         )
 
@@ -155,7 +157,7 @@ async def update_document_impl(
                     flag_ids=flag_ids,
                     file_ids=item.upload_ids,
                     image_ids=item.image_ids,
-                    parameter_field_ids=item.field_ids,
+                    parameter_field_ids=item.parameter_field_ids,
                     text_ids=item.text_ids,
                     document_ids=[documents_resource_id],
                     soft=soft,
