@@ -377,25 +377,31 @@ def build_canonical_context(
     scoped_tools: list[dict[str, Any]],
     profile: Any | None = None,
 ) -> dict[str, Any]:
-    """Build the canonical 4-namespace Jinja context for developer instructions.
+    """Build the canonical 5-namespace Jinja context for developer instructions.
 
-    Four namespaces:
-      - request: what was asked (artifact_type, permissions, resources, artifact_id, draft_id)
+    Five namespaces:
+      - request: route-level identifiers (artifact_type, artifact_id, permissions, resources)
+      - query_params: contextual query parameters the model can pass to tools (draft_id, etc.)
       - agent: who's doing the work (name, model, modalities, voices, qualities)
       - profile: who's asking (name, email, role, department)
       - tools: what's available (scoped tool list with names, descriptions, args)
     """
     from app.infra.artifacts.convert_tools_to_openai_format import sanitize_tool_name
 
+    # Build query_params — contextual values the model can pass to tools
+    query_params: dict[str, Any] = {}
+    if draft_id:
+        query_params["draft_id"] = str(draft_id)
+
     return {
         "request": {
             "artifact_type": artifact_type,
+            "artifact_id": str(artifact_id) if artifact_id else None,
             "permissions": permissions or [],
             "resources": resources or [],
-            "artifact_id": str(artifact_id) if artifact_id else None,
-            "draft_id": str(draft_id) if draft_id else None,
             "modality": modality,
         },
+        "query_params": query_params,
         "agent": {
             "name": getattr(agent, "name", ""),
             "model": llm_config.model,
@@ -423,10 +429,9 @@ def build_canonical_context(
         ],
         # Flat aliases for convenience in templates
         "artifact_type": artifact_type,
+        "artifact_id": str(artifact_id) if artifact_id else None,
         "permissions": permissions or [],
         "resources": resources or [],
-        "artifact_id": str(artifact_id) if artifact_id else None,
-        "draft_id": str(draft_id) if draft_id else None,
         "llm_config": {
             "model": llm_config.model,
             "temperature": llm_config.temperature,
