@@ -8,6 +8,11 @@ These documents can be linked to scenarios via document_ids.
 
 from database.seeds.ids import sid
 from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVERSITY_DEPT_RESOURCE
+from database.seeds.setups.university.parameter_field_ids import (
+    PF_DOC_HOMEWORK, PF_DOC_LAB, PF_DOC_LECTURE, PF_DOC_MIDTERM,
+    PF_DOC_PROJECT, PF_DOC_QUIZ, PF_DOC_SYLLABUS,
+    PF_FERPA_DOC, PF_POLICY_TEMPLATE,
+)
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs — importable by scenarios, etc.
@@ -56,6 +61,7 @@ documents = [
         name="FERPA Policy",
         description="Family Educational Rights and Privacy Act (FERPA) policy document",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_FERPA_DOC,
     ),
     dict(
         id=FERPA_GENERAL,
@@ -63,6 +69,7 @@ documents = [
         name="FERPA",
         description="FERPA compliance and student privacy guidelines",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_FERPA_DOC,
     ),
     # ── Template documents ────────────────────────────────────────────────
     dict(
@@ -71,6 +78,7 @@ documents = [
         name="Syllabus Template",
         description="Template document for syllabus",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_DOC_SYLLABUS,
     ),
     dict(
         id=HOMEWORK_TEMPLATE,
@@ -78,6 +86,7 @@ documents = [
         name="Homework Template",
         description="Template document for homework",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_DOC_HOMEWORK,
     ),
     dict(
         id=LAB_TEMPLATE,
@@ -85,6 +94,7 @@ documents = [
         name="Lab Template",
         description="Template document for lab",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_DOC_LAB,
     ),
     dict(
         id=LECTURE_TEMPLATE,
@@ -92,6 +102,7 @@ documents = [
         name="Lecture Template",
         description="Template document for lecture",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_DOC_LECTURE,
     ),
     dict(
         id=MIDTERM_TEMPLATE,
@@ -99,6 +110,7 @@ documents = [
         name="Midterm Template",
         description="Template document for midterm",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_DOC_MIDTERM,
     ),
     dict(
         id=POLICY_TEMPLATE,
@@ -106,6 +118,7 @@ documents = [
         name="Policy Template",
         description="Template document for policy",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_POLICY_TEMPLATE,
     ),
     dict(
         id=PROJECT_TEMPLATE,
@@ -113,6 +126,7 @@ documents = [
         name="Project Template",
         description="Template document for project",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_DOC_PROJECT,
     ),
     dict(
         id=QUIZ_TEMPLATE,
@@ -120,5 +134,6 @@ documents = [
         name="Quiz Template",
         description="Template document for quiz",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_DOC_QUIZ,
     ),
 ]

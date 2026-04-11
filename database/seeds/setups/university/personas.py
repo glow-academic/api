@@ -10,6 +10,11 @@ Names, descriptions, instructions, and examples are CREATED as new resources.
 
 from database.seeds.ids import sid
 from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVERSITY_DEPT_RESOURCE
+from database.seeds.setups.university.parameter_field_ids import (
+    PF_CONFUSED, PF_HAPPY, PF_PASSIVE,
+    PF_AGGRESSIVE_HIGH, PF_AGGRESSIVE_MEDIUM, PF_AGGRESSIVE_LOW,
+    PF_STUDENT, PF_PROFESSOR, PF_INSTRUCTIONAL_STAFF,
+)
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs — importable by scenarios, simulations, etc.
@@ -64,6 +69,7 @@ personas = [
         ],
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_CONFUSED,
     ),
     # ── Happy ─────────────────────────────────────────────────────────────
     dict(
@@ -89,6 +95,7 @@ personas = [
         ],
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_HAPPY,
     ),
     # ── Passive ───────────────────────────────────────────────────────────
     dict(
@@ -114,6 +121,7 @@ personas = [
         ],
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_PASSIVE,
     ),
     # ── Aggressive (High) ────────────────────────────────────────────────
     dict(
@@ -140,6 +148,7 @@ personas = [
         ],
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_AGGRESSIVE_HIGH,
     ),
     # ── Aggressive (Medium) ──────────────────────────────────────────────
     dict(
@@ -165,6 +174,7 @@ personas = [
         ],
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_AGGRESSIVE_MEDIUM,
     ),
     # ── Aggressive (Low) ─────────────────────────────────────────────────
     dict(
@@ -190,6 +200,7 @@ personas = [
         ],
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_AGGRESSIVE_LOW,
     ),
     # ── Professor ─────────────────────────────────────────────────────────
     dict(
@@ -210,6 +221,7 @@ personas = [
         ],
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_PROFESSOR,
     ),
     # ── Student ───────────────────────────────────────────────────────────
     dict(
@@ -230,6 +242,7 @@ personas = [
         ],
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_STUDENT,
     ),
     # ── Instructional Staff ───────────────────────────────────────────────
     dict(
@@ -250,5 +263,6 @@ personas = [
         ],
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        parameter_field_ids=PF_INSTRUCTIONAL_STAFF,
     ),
 ]
