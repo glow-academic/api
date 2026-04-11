@@ -863,6 +863,8 @@ INFRA_ITEM_TYPES: dict[tuple[str, str], tuple[str, str]] = {
     **_item_types("setting", "Setting"),
     **_item_types("simulation", "Simulation"),
     **_item_types("tool", "Tool"),
+    # Draft item types — PatchXxxDraftApiRequest classes
+    ("persona", "draft"): (f"{_IT}.persona.types", "PatchPersonaDraftApiRequest"),
 }
 
 

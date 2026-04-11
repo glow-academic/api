@@ -281,6 +281,7 @@ async def generate_prepare_impl(
             compute_createable_resources,
             enrich_tools_with_args,
             enrich_tools_with_args_outputs,
+            enrich_tools_with_instruction_templates,
             enrich_tools_with_permissions,
             resolve_agent_config,
             validate_payload,
@@ -403,6 +404,11 @@ async def generate_prepare_impl(
         # Prompts/instructions
         prompts_by_id = {p.id: p for p in ws_ctx.prompts}
         instructions_by_id = {i.id: i for i in ws_ctx.instructions}
+
+        # Enrich tools with instruction templates (Layer 3 — tool response formatting)
+        all_tool_dicts = enrich_tools_with_instruction_templates(
+            all_tool_dicts, config_tools, instructions_by_id
+        )
 
         # --- Step 8: Create run ---
         agent_ids_for_run = [aid for aid in agent_groups if aid]

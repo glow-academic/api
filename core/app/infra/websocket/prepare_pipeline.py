@@ -247,6 +247,43 @@ def enrich_tools_with_permissions(
     return tool_dicts
 
 
+def enrich_tools_with_instruction_templates(
+    tool_dicts: list[dict[str, Any]],
+    resource_tools: list[Any],
+    instructions_by_id: dict[Any, Any],
+) -> list[dict[str, Any]]:
+    """Attach _instruction_template to tools that have an instruction_id.
+
+    Same pattern as enrich_tools_with_args/args_outputs/permissions.
+    The template is a Jinja string rendered with tool execution results.
+    """
+    if not tool_dicts or not resource_tools or not instructions_by_id:
+        return tool_dicts
+
+    tool_instruction_id_by_name: dict[str, Any] = {}
+    for rt in resource_tools:
+        name = getattr(rt, "name", None)
+        iid = getattr(rt, "instruction_id", None)
+        if name and iid:
+            tool_instruction_id_by_name[name] = iid
+
+    if not tool_instruction_id_by_name:
+        return tool_dicts
+
+    for td in tool_dicts:
+        t_name = td.get("name")
+        if t_name and t_name in tool_instruction_id_by_name:
+            iid = tool_instruction_id_by_name[t_name]
+            instruction = instructions_by_id.get(iid)
+            if instruction:
+                template = getattr(instruction, "template", None)
+                if template:
+                    td["_instruction_template"] = template
+                    td["instruction_id"] = str(iid)
+
+    return tool_dicts
+
+
 def compute_createable_resources(config_tools: list[Any]) -> set[str]:
     """Compute the set of resource/entry types that have 'create' tools."""
     createable: set[str] = set()

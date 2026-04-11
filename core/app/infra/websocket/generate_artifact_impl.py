@@ -1059,6 +1059,18 @@ async def generate_artifact_impl(
                             "error_stage": "result_parse",
                         }
 
+                    # Render tool response template (Layer 3) if available
+                    td = tool_def_by_name.get(tool_name)
+                    response_template = td.get("_instruction_template") if td else None
+                    if response_template and isinstance(tool_result, dict):
+                        try:
+                            from jinja2 import Environment
+                            env = Environment()
+                            tmpl = env.from_string(response_template)
+                            tool_result_str = tmpl.render(**tool_result)
+                        except Exception as e:
+                            logger.debug(f"Tool response template rendering failed: {e}")
+
                     # Store for agentic loop - we'll append to appropriate state
                     tool_results.append(
                         {
