@@ -278,9 +278,10 @@ async def patch_persona_draft_impl(
             detail="You don't have permission to create or edit persona drafts.",
         )
 
-    # ── Step 3: Value resolution (creatable only) ──────────────────────
+    # ── Step 3: Value resolution (search → create if not found) ────────
 
-    errors = await _resolve_creatable_values(pool, redis, request)
+    from app.infra.persona.permissions_context import resolve_persona_values
+    errors = await resolve_persona_values(pool, redis, request)
     if errors:
         raise HTTPException(
             status_code=400,

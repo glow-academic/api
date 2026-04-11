@@ -51,6 +51,7 @@ from app.tools.resources.voices.search import search_voices
 if TYPE_CHECKING:
     from app.infra.persona.create import CreatePersonaItem, PersonaFieldError
     from app.infra.persona.types import (
+        PatchPersonaDraftApiRequest,
         UpdatePersonaItem,
     )
 
@@ -119,8 +120,8 @@ async def resolve_persona_permissions_context(
 async def resolve_persona_values(
     pool: asyncpg.Pool,
     redis: Redis,
-    item: CreatePersonaItem | UpdatePersonaItem,
-    is_create: bool,
+    item: CreatePersonaItem | UpdatePersonaItem | PatchPersonaDraftApiRequest,
+    is_create: bool = False,
 ) -> list[PersonaFieldError]:
     """Resolve raw value fields to resource IDs (mutates item in place).
 
@@ -166,14 +167,19 @@ async def resolve_persona_values(
     if item.color is not None and item.color_id is None:
         async with pool.acquire() as conn:
             results = await search_colors(
-                conn, redis, search=item.color, limit_count=20
+                conn, redis, search=item.color, limit_count=1
             )
-        match = next(
-            (r for r in results if r.name and r.name.lower() == item.color.lower()),
-            None,
-        )
-        if match and match.id:
-            item.color_id = match.id
+        if results:
+            item.color_id = results[0].id
+        elif item.color.startswith("#"):
+            # Valid hex code not found — create a new color resource
+            from app.tools.resources.colors.create import create_color
+            async with pool.acquire() as conn:
+                result = await create_color(
+                    conn, name="Custom", description=item.color,
+                    hex_code=item.color, redis=redis,
+                )
+            item.color_id = result.id
         else:
             errors.append(
                 PersonaFieldError(
@@ -183,14 +189,11 @@ async def resolve_persona_values(
 
     if item.icon is not None and item.icon_id is None:
         async with pool.acquire() as conn:
-            results = await search_icons(conn, redis, search=item.icon, limit_count=20)
-        match = next(
-            (r for r in results if r.name and r.name.lower() == item.icon.lower()),
-            None,
-        )
-        if match and match.id:
-            item.icon_id = match.id
+            results = await search_icons(conn, redis, search=item.icon, limit_count=1)
+        if results:
+            item.icon_id = results[0].id
         else:
+            # Icons are match-only — not creatable
             errors.append(
                 PersonaFieldError(field="icon", message=f'Icon "{item.icon}" not found')
             )

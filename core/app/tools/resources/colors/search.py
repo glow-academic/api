@@ -67,6 +67,7 @@ async def search_colors(
         table="colors_resource",
         resource="colors",
         search_column="name",
+        additional_search_columns=["hex_code"],
         search=search,
         limit_count=limit_count,
         offset_count=offset_count,
