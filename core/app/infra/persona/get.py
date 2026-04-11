@@ -33,6 +33,8 @@ async def get_persona_impl(
     instructions_search: str | None = None,
     color_show_selected: bool | None = None,
     icon_show_selected: bool | None = None,
+    parameter_field_search: str | None = None,
+    parameter_field_show_selected: bool | None = None,
     bypass_cache: bool = False,
 ) -> GetPersonaApiResponse:
     """Resolve the canonical persona artifact bundle for any surface."""
@@ -86,6 +88,8 @@ async def get_persona_impl(
         instructions_search=instructions_search,
         color_show_selected=color_show_selected,
         icon_show_selected=icon_show_selected,
+        parameter_field_search=parameter_field_search,
+        parameter_field_show_selected=parameter_field_show_selected,
         bypass_cache=bypass_cache,
     )
 

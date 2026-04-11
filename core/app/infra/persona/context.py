@@ -83,6 +83,8 @@ async def resolve_persona_context(
     # Show-selected toggles
     color_show_selected: bool | None = None,
     icon_show_selected: bool | None = None,
+    parameter_field_search: str | None = None,
+    parameter_field_show_selected: bool | None = None,
     bypass_cache: bool = False,
 ) -> ArtifactContext:
     """Resolve a persona artifact into fully hydrated resources.
