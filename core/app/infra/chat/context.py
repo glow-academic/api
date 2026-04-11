@@ -110,7 +110,6 @@ async def resolve_chat_context(
     else:
         drafts = []
     draft = drafts[0] if drafts else None
-    draft_version = draft.version if draft else None
 
     # Step 2: extract IDs directly from draft (draft-only — no merge)
     name_ids = list(draft.name_ids) if draft and draft.name_ids else []
@@ -463,7 +462,6 @@ async def resolve_chat_context(
         artifact_id=None,
         active=True,
         group_id=group_id,
-        draft_version=draft_version,
         resources={
             "names": ResourcePair(
                 selected=names_selected, suggestions=names_suggestions

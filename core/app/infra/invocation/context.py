@@ -93,7 +93,6 @@ async def resolve_invocation_context(
     async with pool.acquire() as conn:
         drafts = await get_invocation_drafts(conn, [draft_id]) if draft_id else []
     draft = drafts[0] if drafts else None
-    draft_version = draft.version if draft else None
 
     # Step 2: extract IDs from draft (draft-only — no artifact merge)
     name_ids = list(draft.name_ids or []) if draft else []
@@ -390,7 +389,6 @@ async def resolve_invocation_context(
         artifact_id=None,
         active=True,
         group_id=group_id,
-        draft_version=draft_version,
         resources={
             "names": ResourcePair(
                 selected=names_selected, suggestions=names_suggestions

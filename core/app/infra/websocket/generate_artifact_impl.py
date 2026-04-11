@@ -1078,6 +1078,7 @@ async def generate_artifact_impl(
                             "raw_id": raw_id,
                             "responses_call_id": st.get("responses_call_id", raw_id),  # Model's call_id for function_call_output
                             "tool_name": tool_name,
+                            "agent_id": data.agent_id,
                             "arguments": arguments_dict,
                             "arguments_str": arguments_str,
                             "result": tool_result,

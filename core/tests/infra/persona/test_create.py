@@ -7,6 +7,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.infra.persona.create import create_persona_impl
+from app.infra.persona.types import CreatePersonaApiRequest
 
 pytestmark = pytest.mark.asyncio
 
@@ -81,7 +82,8 @@ class TestAuth:
 
         with pytest.raises(HTTPException) as exc_info:
             await create_persona_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID,
+                request=CreatePersonaApiRequest(personas=[]),
             )
         assert exc_info.value.status_code == 401
 
@@ -102,7 +104,8 @@ class TestProfileResolved:
         # but verify profile resolution was actually called
         try:
             await create_persona_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID,
+                request=CreatePersonaApiRequest(personas=[]),
             )
         except Exception:
             pass  # downstream errors expected

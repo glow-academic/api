@@ -355,7 +355,6 @@ class TestCohortRoute:
         response = await cohort_route_client.client.patch(
             "/cohorts/draft",
             json={
-                "expected_version": 0,
                 "name": draft_name,
                 "department_ids": [str(cohort_route_actor.department_id)],
                 "simulation_ids": [created["simulation_id"]],
@@ -367,7 +366,6 @@ class TestCohortRoute:
         assert response.headers["X-Invalidate-Tags"] == "cohorts,drafts"
         payload = response.json()
         assert payload["success"] is True
-        assert payload["new_version"] == 1
         assert payload["draft_id"] is not None
         assert payload["form_state"]["name_id"] is not None
 
@@ -382,7 +380,6 @@ class TestCohortRoute:
 
         assert get_response.status_code == 200, get_response.text
         get_payload = get_response.json()
-        assert get_payload["draft_version"] == 1
         assert get_payload["names"]["resource"]["name"] == draft_name
 
     async def test_cohort_drafts_route_lists_owned_drafts(

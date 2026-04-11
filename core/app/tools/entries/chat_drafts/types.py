@@ -12,7 +12,6 @@ class CreateChatDraftResponse(BaseModel):
 
 class GetChatDraftResponse(BaseModel):
     id: UUID = Field(..., description="UUID of the draft")
-    version: int = Field(..., description="Draft version number")
     created_at: datetime = Field(..., description="Creation timestamp")
     generated: bool = Field(..., description="Whether this was AI-generated")
     mcp: bool = Field(..., description="Whether MCP tooling was used")

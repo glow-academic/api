@@ -18,7 +18,7 @@ async def get_tool_drafts(
     rows = await conn.fetch(
         """
         SELECT
-            d.id, d.version, d.created_at, d.generated, d.mcp, d.active,
+            d.id, d.created_at, d.generated, d.mcp, d.active,
             d.group_id, d.session_id,
             COALESCE(ARRAY_AGG(DISTINCT ap.arg_positions_id) FILTER (WHERE ap.arg_positions_id IS NOT NULL), '{}') AS arg_position_ids,
             COALESCE(ARRAY_AGG(DISTINCT a.args_id) FILTER (WHERE a.args_id IS NOT NULL), '{}') AS arg_ids,
@@ -41,7 +41,7 @@ async def get_tool_drafts(
         LEFT JOIN tool_drafts_profiles_connection p ON p.draft_id = d.id
         WHERE d.id = ANY($1)
           AND d.active = true
-        GROUP BY d.id, d.version, d.created_at, d.generated, d.mcp, d.active,
+        GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
                  d.group_id, d.session_id
         ORDER BY d.created_at DESC
         """,
@@ -51,7 +51,6 @@ async def get_tool_drafts(
     return [
         GetToolDraftResponse(
             id=r["id"],
-            version=r["version"],
             created_at=r["created_at"],
             generated=r["generated"],
             mcp=r["mcp"],

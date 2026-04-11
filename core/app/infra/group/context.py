@@ -139,7 +139,6 @@ async def resolve_group_context(
         artifact_id=None,
         active=True,
         group_id=group_id,
-        draft_version=None,
         entries={
             "runs": runs,
             "messages": messages,
@@ -165,7 +164,6 @@ def _empty_context(
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
-        draft_version=None,
         entries={
             "runs": [],
             "messages": [],

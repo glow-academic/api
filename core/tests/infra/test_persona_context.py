@@ -118,7 +118,6 @@ class TestResolvePersonaContext:
 
         assert result.artifact_id is None
         assert result.group_id == group_id
-        assert result.draft_version is None
         assert result.entries == {}
         for pair in result.resources.values():
             assert isinstance(pair, ResourcePair)
@@ -142,7 +141,6 @@ class TestResolvePersonaContext:
 
         assert result.artifact_id == fixture.persona_id
         assert result.active is True
-        assert result.draft_version is None
         assert [item.id for item in result.resources["names"].selected] == [
             fixture.published_name_id
         ]
@@ -169,8 +167,6 @@ class TestResolvePersonaContext:
             draft_id=fixture.draft_id,
             descriptions_search="no-match-for-draft-check",
         )
-
-        assert result.draft_version == 3
         assert [item.id for item in result.resources["names"].selected] == [
             fixture.draft_name_id
         ]

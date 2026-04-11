@@ -154,7 +154,6 @@ async def resolve_simulation_context(
 
     # Merge IDs: start from published, draft overrides if present
     merged = _merge_junction_ids(artifact, draft)
-    draft_version = draft.version if draft else None
 
     # Effective scenario IDs for sub-resources (filter overrides)
     effective_scenario_ids = filter_scenario_ids or merged.scenario_ids
@@ -400,7 +399,6 @@ async def resolve_simulation_context(
         artifact_id=artifact.id if artifact else None,
         active=artifact.active if artifact else True,
         group_id=group_id,
-        draft_version=draft_version,
         resources={
             "names": ResourcePair(
                 selected=names_selected, suggestions=names_suggestions

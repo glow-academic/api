@@ -350,7 +350,6 @@ async def get_simulation_impl(
         simulation_exists=simulation.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        draft_version=simulation.draft_version,
         group_id=group_id,
         # Step-level AI generation flags
         basic_show_ai_generate=basic_show_ai_generate,

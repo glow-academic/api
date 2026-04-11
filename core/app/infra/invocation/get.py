@@ -159,7 +159,6 @@ async def get_invocation_impl(
     return GetSuiteResponse(
         test_id=test_id,
         profile_has_access=True,
-        draft_version=invocation.draft_version,
         group_id=group_id,
         names=_section("names"),
         descriptions=_section("descriptions"),

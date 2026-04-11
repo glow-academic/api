@@ -26,7 +26,6 @@ PIPE = "|"
 CSV_COLUMNS = [
     "test_id",
     "group_id",
-    "draft_version",
     "name",
     "description",
     "active",
@@ -179,7 +178,6 @@ async def export_invocation_impl(
         [
             str(test_id),
             str(group_id),
-            str(ctx.draft_version or ""),
             name,
             description,
             active,

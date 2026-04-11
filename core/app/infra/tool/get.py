@@ -315,7 +315,6 @@ async def get_tool_impl(
         tool_exists=tool_ctx.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        draft_version=tool_ctx.draft_version,
         group_id=group_id,
         basic_show_ai_generate=basic_show_ai_generate,
         args_show_ai_generate=show_ai_generate_map.get("args", False),

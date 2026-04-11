@@ -301,7 +301,6 @@ async def get_parameter_impl(
         parameter_exists=param_ctx.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        draft_version=param_ctx.draft_version,
         group_id=group_id,
         basic_show_ai_generate=basic_show_ai_generate,
         fields_step_show_ai_generate=fields_step_show_ai_generate,

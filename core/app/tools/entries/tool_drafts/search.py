@@ -23,7 +23,7 @@ async def search_tool_drafts(
     rows = await conn.fetch(
         """
         SELECT
-            d.id, d.version, d.created_at, d.generated, d.mcp, d.active,
+            d.id, d.created_at, d.generated, d.mcp, d.active,
             d.group_id, d.session_id,
             COALESCE(ARRAY_AGG(DISTINCT ap.arg_positions_id) FILTER (WHERE ap.arg_positions_id IS NOT NULL), '{}') AS arg_position_ids,
             COALESCE(ARRAY_AGG(DISTINCT a.args_id) FILTER (WHERE a.args_id IS NOT NULL), '{}') AS arg_ids,
@@ -51,7 +51,7 @@ async def search_tool_drafts(
           AND ($4::timestamptz IS NULL OR d.created_at >= $4)
           AND ($5::timestamptz IS NULL OR d.created_at <= $5)
           AND ($6::boolean IS NULL OR d.mcp = $6)
-        GROUP BY d.id, d.version, d.created_at, d.generated, d.mcp, d.active,
+        GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
                  d.group_id, d.session_id
         ORDER BY d.created_at DESC
         LIMIT $7 OFFSET $8
@@ -69,7 +69,6 @@ async def search_tool_drafts(
     return [
         GetToolDraftResponse(
             id=r["id"],
-            version=r["version"],
             created_at=r["created_at"],
             generated=r["generated"],
             mcp=r["mcp"],

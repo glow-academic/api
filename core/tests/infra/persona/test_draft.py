@@ -7,6 +7,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.infra.persona.draft import patch_persona_draft_impl
+from app.infra.persona.types import PatchPersonaDraftApiRequest
 
 pytestmark = pytest.mark.asyncio
 
@@ -81,7 +82,9 @@ class TestAuth:
 
         with pytest.raises(HTTPException) as exc_info:
             await patch_persona_draft_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID,
+                session_id=_PROFILE_ID,
+                request=PatchPersonaDraftApiRequest(),
             )
         assert exc_info.value.status_code == 401
 
@@ -102,7 +105,9 @@ class TestProfileResolved:
         # but verify profile resolution was actually called
         try:
             await patch_persona_draft_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID,
+                session_id=_PROFILE_ID,
+                request=PatchPersonaDraftApiRequest(),
             )
         except Exception:
             pass  # downstream errors expected

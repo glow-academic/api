@@ -249,7 +249,6 @@ class TestModelRoute:
         response = await model_route_client.client.patch(
             "/models/draft",
             json={
-                "expected_version": 0,
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
                 "department_ids": [str(model_route_actor.department_id)],
@@ -260,7 +259,6 @@ class TestModelRoute:
         assert response.headers["X-Invalidate-Tags"] == "models,drafts"
         payload = response.json()
         assert payload["success"] is True
-        assert payload["new_version"] == 1
 
     async def test_model_drafts_route_lists_owned_drafts(
         self,
@@ -276,7 +274,7 @@ class TestModelRoute:
         )
         draft_response = await model_route_client.client.patch(
             "/models/draft",
-            json={"expected_version": 0, "name_id": str(resources.name_id)},
+            json={"name_id": str(resources.name_id)},
         )
         assert draft_response.status_code == 200, draft_response.text
 

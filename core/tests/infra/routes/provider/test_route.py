@@ -292,7 +292,6 @@ class TestProviderRoute:
         response = await provider_route_client.client.patch(
             "/providers/draft",
             json={
-                "expected_version": 0,
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
                 "department_ids": [str(provider_route_actor.department_id)],
@@ -307,7 +306,6 @@ class TestProviderRoute:
         payload = response.json()
         assert payload["success"] is True
         assert payload["draft_id"] is not None
-        assert payload["new_version"] == 1
         assert payload["form_state"]["name_id"] == str(resources.name_id)
 
     async def test_provider_drafts_route_lists_owned_drafts(
@@ -326,7 +324,6 @@ class TestProviderRoute:
         draft_response = await provider_route_client.client.patch(
             "/providers/draft",
             json={
-                "expected_version": 0,
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
                 "department_ids": [str(provider_route_actor.department_id)],

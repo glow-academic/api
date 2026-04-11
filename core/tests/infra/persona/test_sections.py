@@ -67,7 +67,7 @@ class _FakePerms:
     active_scenario_count: int = 0
 
 
-def _make_persona_context(artifact_id=None, draft_version=None):
+def _make_persona_context(artifact_id=None):
     """Build a minimal ArtifactContext-like object for persona."""
 
     class _Ctx:
@@ -77,7 +77,6 @@ def _make_persona_context(artifact_id=None, draft_version=None):
     ctx.artifact_id = artifact_id
     ctx.active = True
     ctx.group_id = _GROUP_ID
-    ctx.draft_version = draft_version
 
     # Build resources dict with all needed buckets
     resources = {}
@@ -161,23 +160,6 @@ class TestBuildPersonaGetResult:
 
         assert result.can_edit is False
         assert result.disabled_reason is not None
-
-    async def test_draft_version_passed_through(self):
-        """Draft version from persona context should appear in result."""
-        common = _FakeCommonContext()
-        persona = _make_persona_context(draft_version=5)
-        scores = _FakeToolScores()
-        perms = _FakePerms()
-
-        result = build_persona_get_result(
-            common=common,
-            persona=persona,
-            scores=scores,
-            perms=perms,
-            group_id=_GROUP_ID,
-        )
-
-        assert result.draft_version == 5
 
     async def test_show_flags_map_respects_tool_scores(self):
         """When tool scores indicate tools exist, show flags should reflect it."""

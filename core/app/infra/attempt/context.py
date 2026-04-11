@@ -374,7 +374,6 @@ async def resolve_attempt_context(
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
-        draft_version=None,
         entries={
             "attempts": attempts,
             "chats": chats,
@@ -424,7 +423,6 @@ def _empty_context() -> ArtifactContext:
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
-        draft_version=None,
         entries={},
         resources={},
     )

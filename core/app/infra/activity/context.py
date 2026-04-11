@@ -186,7 +186,6 @@ async def resolve_activity_context(
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
-        draft_version=None,
         resources={
             "names": ResourcePair(selected=names_selected, suggestions=[]),
         },
@@ -316,7 +315,6 @@ async def resolve_activity_search_context(
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
-        draft_version=None,
         resources={
             "names": ResourcePair(selected=names_selected, suggestions=[]),
             "pricing": ResourcePair(selected=pricing_selected, suggestions=[]),

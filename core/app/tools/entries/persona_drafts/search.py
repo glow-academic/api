@@ -23,7 +23,7 @@ async def search_persona_drafts(
     rows = await conn.fetch(
         """
         SELECT
-            d.id, d.version, d.created_at, d.generated, d.mcp, d.active,
+            d.id, d.created_at, d.generated, d.mcp, d.active,
             d.group_id, d.session_id,
             COALESCE(ARRAY_AGG(DISTINCT col.colors_id) FILTER (WHERE col.colors_id IS NOT NULL), '{}') AS color_ids,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
@@ -55,7 +55,7 @@ async def search_persona_drafts(
           AND ($4::timestamptz IS NULL OR d.created_at >= $4)
           AND ($5::timestamptz IS NULL OR d.created_at <= $5)
           AND ($6::boolean IS NULL OR d.mcp = $6)
-        GROUP BY d.id, d.version, d.created_at, d.generated, d.mcp, d.active,
+        GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
                  d.group_id, d.session_id
         ORDER BY d.created_at DESC
         LIMIT $7 OFFSET $8
@@ -73,7 +73,6 @@ async def search_persona_drafts(
     return [
         GetPersonaDraftResponse(
             id=r["id"],
-            version=r["version"],
             created_at=r["created_at"],
             generated=r["generated"],
             mcp=r["mcp"],

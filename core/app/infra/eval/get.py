@@ -326,7 +326,6 @@ async def get_eval_impl(
         eval_exists=eval_ctx.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        draft_version=eval_ctx.draft_version,
         group_id=group_id,
         basic_show_ai_generate=basic_show_ai_generate,
         model_show_ai_generate=model_show_ai_generate,

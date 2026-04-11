@@ -118,16 +118,12 @@ async def patch_eval_draft_impl(
 
     # ── Step 4: Create draft entry (append-only snapshot) ──────────────
 
-    # Compute new version
-    new_version = request.expected_version + 1
-
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_eval_draft(
                 conn,
                 group_id=profile.group_id,
                 session_id=session_id,
-                version=new_version,
                 profile_ids=[profile.profiles_id],
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id]
@@ -162,7 +158,6 @@ async def patch_eval_draft_impl(
     return PatchEvalDraftApiResponse(
         success=True,
         draft_id=result.id,
-        new_version=new_version,
         message="Draft created successfully",
         form_state=form_state,
     )

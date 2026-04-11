@@ -18,7 +18,7 @@ async def get_cohort_drafts(
     rows = await conn.fetch(
         """
         SELECT
-            d.id, d.version, d.created_at, d.generated, d.mcp, d.active,
+            d.id, d.created_at, d.generated, d.mcp, d.active,
             d.group_id, d.session_id,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
             COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL), '{}') AS description_ids,
@@ -41,7 +41,7 @@ async def get_cohort_drafts(
         LEFT JOIN cohort_drafts_simulations_connection sim ON sim.draft_id = d.id
         WHERE d.id = ANY($1)
           AND d.active = true
-        GROUP BY d.id, d.version, d.created_at, d.generated, d.mcp, d.active,
+        GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
                  d.group_id, d.session_id
         ORDER BY d.created_at DESC
         """,
@@ -51,7 +51,6 @@ async def get_cohort_drafts(
     return [
         GetCohortDraftResponse(
             id=r["id"],
-            version=r["version"],
             created_at=r["created_at"],
             generated=r["generated"],
             mcp=r["mcp"],

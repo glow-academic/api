@@ -171,7 +171,6 @@ async def resolve_reports_context(
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
-        draft_version=None,
         entries={
             "chat_items": chat_items,
             "thresholds": [thresholds],

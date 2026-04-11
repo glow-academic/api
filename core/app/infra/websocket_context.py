@@ -202,7 +202,17 @@ async def resolve_websocket_context(
     )
     all_rubrics = dedupe_by_id([r for sc in system_contexts for r in sc.rubrics])
 
-    # ── Step 6: Return ───────────────────────────────────────────────────
+    # ── Step 6: Resolution config (first system with a strategy wins) ───
+
+    resolution_strategy: str | None = None
+    resolution_threshold: float | None = None
+    for sc in system_contexts:
+        if sc.resolution_strategy:
+            resolution_strategy = sc.resolution_strategy
+            resolution_threshold = sc.resolution_threshold
+            break
+
+    # ── Step 7: Return ───────────────────────────────────────────────────
 
     return WebsocketContext(
         scores=scores,
@@ -217,4 +227,6 @@ async def resolve_websocket_context(
         instructions=all_instructions,
         rubrics=all_rubrics,
         profile=profile,
+        resolution_strategy=resolution_strategy,
+        resolution_threshold=resolution_threshold,
     )

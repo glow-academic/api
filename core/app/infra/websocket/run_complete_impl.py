@@ -83,9 +83,11 @@ def build_generation_resolution_context(
     group_id: str,
     resource_actions: dict[str, Any],
     entry_actions: dict[str, Any],
+    resolution_strategy: str | None = None,
+    resolution_threshold: float | None = None,
 ) -> dict[str, Any]:
     """Build the minimal stored resolution context for contested runs."""
-    return {
+    ctx: dict[str, Any] = {
         "sid": sid,
         "run_id": run_id,
         "artifact_type": artifact_type,
@@ -93,6 +95,11 @@ def build_generation_resolution_context(
         "resource_actions": resource_actions,
         "entry_actions": entry_actions,
     }
+    if resolution_strategy:
+        ctx["resolution_strategy"] = resolution_strategy
+    if resolution_threshold is not None:
+        ctx["resolution_threshold"] = resolution_threshold
+    return ctx
 
 
 def build_run_complete_payload(
@@ -259,6 +266,8 @@ async def run_complete_impl(
                 group_id=group_id_str,
                 resource_actions=resource_actions,
                 entry_actions=entry_actions,
+                resolution_strategy=metadata.get("resolution_strategy"),
+                resolution_threshold=metadata.get("resolution_threshold"),
             )
             try:
                 await redis.setex(

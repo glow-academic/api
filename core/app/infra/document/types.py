@@ -182,7 +182,6 @@ class GetDocumentApiResponse(BaseModel):
     document_exists: bool | None = Field(None, description="Whether the document exists")
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled")
-    draft_version: int | None = Field(None, description="Current draft version number")
     group_id: UUID | None = Field(None, description="Associated group UUID")
 
     basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for basic step")
@@ -484,7 +483,6 @@ class PatchDocumentDraftApiRequest(ScopedItem):
     }
 
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to patch")
-    expected_version: int = Field(0, description="Expected draft version for concurrency control")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Name value to create a resource")
@@ -525,7 +523,6 @@ class PatchDocumentDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the operation succeeded")
     draft_id: UUID = Field(..., description="Draft UUID")
-    new_version: int = Field(..., description="New draft version number after patch")
     message: str = Field(..., description="Human-readable result message")
     form_state: DocumentDraftFormState | None = Field(None, description="Server-authoritative form state")
 

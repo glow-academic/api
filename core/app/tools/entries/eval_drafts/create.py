@@ -12,7 +12,6 @@ async def create_eval_draft(
     group_id: UUID,
     session_id: UUID,
     id: UUID | None = None,
-    version: int = 0,
     mcp: bool = False,
     soft: bool = False,
     department_ids: list[UUID] | None = None,
@@ -26,13 +25,12 @@ async def create_eval_draft(
     """Create an eval_drafts entry with optional connection table links."""
     draft_id = await conn.fetchval(
         """
-        INSERT INTO eval_drafts_entry (id, group_id, session_id, version, active, mcp, generated)
-        VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, true)
+        INSERT INTO eval_drafts_entry (id, group_id, session_id, active, mcp, generated)
+        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true)
         RETURNING id
         """,
         group_id,
         session_id,
-        version,
         not soft,
         mcp,
         id,

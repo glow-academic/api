@@ -18,7 +18,7 @@ async def get_field_drafts(
     rows = await conn.fetch(
         """
         SELECT
-            d.id, d.version, d.created_at, d.generated, d.mcp, d.active,
+            d.id, d.created_at, d.generated, d.mcp, d.active,
             d.group_id, d.session_id,
             COALESCE(ARRAY_AGG(DISTINCT cp.conditional_parameters_id) FILTER (WHERE cp.conditional_parameters_id IS NOT NULL), '{}') AS conditional_parameter_ids,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
@@ -35,7 +35,7 @@ async def get_field_drafts(
         LEFT JOIN field_drafts_profiles_connection p ON p.draft_id = d.id
         WHERE d.id = ANY($1)
           AND d.active = true
-        GROUP BY d.id, d.version, d.created_at, d.generated, d.mcp, d.active,
+        GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
                  d.group_id, d.session_id
         ORDER BY d.created_at DESC
         """,
@@ -45,7 +45,6 @@ async def get_field_drafts(
     return [
         GetFieldDraftResponse(
             id=r["id"],
-            version=r["version"],
             created_at=r["created_at"],
             generated=r["generated"],
             mcp=r["mcp"],

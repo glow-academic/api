@@ -105,7 +105,6 @@ class GetAgentApiResponse(BaseModel):
     agent_exists: bool | None = Field(None, description="Whether the agent exists")
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason the agent is disabled")
-    draft_version: int | None = Field(None, description="Current draft version number")
     group_id: UUID | None = Field(None, description="UUID of the owning group")
 
     basic_show_ai_generate: bool | None = Field(None, description="Show AI generate for basic step")
@@ -324,7 +323,6 @@ class PatchAgentDraftApiRequest(ScopedItem):
 
     group_id: UUID | None = Field(None, description="UUID of the owning group")
     input_draft_id: UUID | None = Field(None, description="UUID of the input draft")
-    expected_version: int = Field(0, description="Expected draft version for optimistic lock")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Display name value")
@@ -363,7 +361,6 @@ class PatchAgentDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the operation succeeded")
     draft_id: UUID = Field(..., description="UUID of the saved draft")
-    new_version: int = Field(..., description="New draft version number")
     message: str = Field(..., description="Human-readable result message")
     form_state: AgentDraftFormState | None = Field(None, description="Server-authoritative form state")
 

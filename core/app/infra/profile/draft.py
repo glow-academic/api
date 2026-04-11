@@ -127,16 +127,12 @@ async def patch_profile_draft_impl(
 
     # ── Step 4: Create draft entry (append-only snapshot) ──────────────
 
-    # Compute new version
-    new_version = request.expected_version + 1
-
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_profile_draft(
                 conn,
                 group_id=profile.group_id,
                 session_id=session_id,
-                version=new_version,
                 profile_ids=[profile.profiles_id],
                 name_ids=[request.name_id] if request.name_id else None,
                 flag_ids=[request.active_flag_id] if request.active_flag_id else None,
@@ -169,7 +165,6 @@ async def patch_profile_draft_impl(
     return PatchProfileDraftApiResponse(
         success=True,
         draft_id=result.id,
-        new_version=new_version,
         message="Draft created successfully",
         form_state=form_state,
     )

@@ -43,6 +43,8 @@ class SystemContext:
     prompts: list  # GetPromptResponse
     instructions: list  # GetInstructionResponse
     rubrics: list  # GetRubricResponse
+    resolution_strategy: str | None = None
+    resolution_threshold: float | None = None
 
 
 async def resolve_system_context(
@@ -84,6 +86,8 @@ async def resolve_system_context(
             prompts=[],
             instructions=[],
             rubrics=[],
+            resolution_strategy=system.resolution_strategy,
+            resolution_threshold=system.resolution_threshold,
         )
 
     # Step 2: fetch agents
@@ -194,4 +198,6 @@ async def resolve_system_context(
         prompts=prompts_list,
         instructions=instructions_list,
         rubrics=rubrics_list,
+        resolution_strategy=system.resolution_strategy,
+        resolution_threshold=system.resolution_threshold,
     )

@@ -194,7 +194,6 @@ async def resolve_home_context(
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
-        draft_version=None,
         resources={
             "simulations": ResourcePair(selected=simulations_selected, suggestions=[]),
             "cohorts": ResourcePair(selected=cohorts_selected, suggestions=[]),
@@ -345,7 +344,6 @@ async def resolve_home_search_context(
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
-        draft_version=None,
         resources={
             "simulations": ResourcePair(selected=simulations_selected, suggestions=[]),
             "profiles": ResourcePair(selected=profiles_selected, suggestions=[]),

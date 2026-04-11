@@ -304,7 +304,6 @@ class TestToolRoute:
         response = await tool_route_client.client.patch(
             "/tools/draft",
             json={
-                "expected_version": 0,
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
                 "department_ids": [str(tool_route_actor.department_id)],
@@ -315,7 +314,6 @@ class TestToolRoute:
         assert response.headers["X-Invalidate-Tags"] == "tools,drafts"
         payload = response.json()
         assert payload["success"] is True
-        assert payload["new_version"] == 1
         assert payload["form_state"]["name_id"] == str(resources.name_id)
         assert payload["form_state"]["department_ids"] == [
             str(tool_route_actor.department_id)
@@ -336,7 +334,6 @@ class TestToolRoute:
         draft_response = await tool_route_client.client.patch(
             "/tools/draft",
             json={
-                "expected_version": 0,
                 "name_id": str(resources.name_id),
             },
         )

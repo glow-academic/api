@@ -346,7 +346,6 @@ class GetScenarioApiResponse(BaseModel):
     scenario_exists: bool | None = Field(None, description="Whether the scenario exists")
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason the scenario is disabled")
-    draft_version: int | None = Field(None, description="Current draft version number")
     group_id: UUID | None = Field(None, description="UUID of the owning group")
 
     # Step-level AI generation flags
@@ -833,7 +832,6 @@ class PatchScenarioDraftApiRequest(ScopedItem):
     }
 
     input_draft_id: UUID | None = Field(None, description="UUID of the input draft")
-    expected_version: int = Field(0, description="Expected draft version for optimistic lock")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Display name value")
@@ -889,7 +887,6 @@ class PatchScenarioDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the operation succeeded")
     draft_id: UUID = Field(..., description="UUID of the saved draft")
-    new_version: int = Field(..., description="New draft version number")
     message: str = Field(..., description="Human-readable result message")
     form_state: ScenarioDraftFormState = Field(..., description="Server-authoritative form state")
 

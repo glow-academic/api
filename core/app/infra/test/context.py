@@ -253,7 +253,6 @@ async def resolve_test_context(
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
-        draft_version=None,
         entries={
             "tests": tests,
             "invocations": invocations,
@@ -286,7 +285,6 @@ def _empty_context() -> ArtifactContext:
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
-        draft_version=None,
         entries={},
         resources={},
     )

@@ -27,7 +27,6 @@ class ArtifactContext:
     artifact_id: UUID | None
     active: bool
     group_id: UUID
-    draft_version: int | None
     resources: dict[str, ResourcePair]
     entries: dict[str, Any]
 
@@ -59,3 +58,5 @@ class WebsocketContext:
     instructions: list
     rubrics: list
     profile: Any = None  # ProfileIdentityContext — for canonical context
+    resolution_strategy: str | None = None
+    resolution_threshold: float | None = None

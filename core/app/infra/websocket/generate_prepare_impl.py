@@ -97,6 +97,8 @@ def enrich_generation_metadata(
     generation_test_id: str | None,
     generation_invocation_map: dict[uuid.UUID, uuid.UUID] | None,
     agent_group_id: uuid.UUID,
+    resolution_strategy: str | None = None,
+    resolution_threshold: float | None = None,
 ) -> dict[str, Any]:
     """Add generation-test metadata for one agent dispatch when available."""
     enriched_metadata = dict(payload_metadata)
@@ -106,6 +108,10 @@ def enrich_generation_metadata(
             enriched_metadata["test_invocation_id"] = str(
                 generation_invocation_map[agent_group_id]
             )
+    if resolution_strategy:
+        enriched_metadata["resolution_strategy"] = resolution_strategy
+    if resolution_threshold is not None:
+        enriched_metadata["resolution_threshold"] = resolution_threshold
     return enriched_metadata
 
 
@@ -497,12 +503,14 @@ async def generate_prepare_impl(
                 if iid in instructions_by_id and instructions_by_id[iid].template
             ]
 
-            # Inject generation test metadata
+            # Inject generation test metadata + resolution config
             enriched_metadata = enrich_generation_metadata(
                 payload_metadata,
                 generation_test_id=generation_test_id,
                 generation_invocation_map=generation_invocation_map,
                 agent_group_id=agent_group_id,
+                resolution_strategy=ws_ctx.resolution_strategy,
+                resolution_threshold=ws_ctx.resolution_threshold,
             )
 
             dispatch = build_agent_dispatch_fn(

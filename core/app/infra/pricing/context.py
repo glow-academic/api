@@ -99,7 +99,6 @@ async def resolve_pricing_context(
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
-        draft_version=None,
         resources={
             "agents": ResourcePair(selected=agents_selected, suggestions=[]),
             "models": ResourcePair(selected=models_selected, suggestions=[]),
@@ -229,7 +228,6 @@ async def resolve_pricing_search_context(
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
-        draft_version=None,
         resources={
             "agents": ResourcePair(selected=agents_selected, suggestions=[]),
             "models": ResourcePair(selected=models_selected, suggestions=[]),

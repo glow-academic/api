@@ -144,7 +144,6 @@ class GetProfileApiResponse(BaseModel):
     profile_exists: bool | None = Field(None, description="Whether the profile exists")
     can_edit: bool | None = Field(None, description="Whether the actor can edit this profile")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled, if any")
-    draft_version: int | None = Field(None, description="Current draft version number")
     group_id: UUID | None = Field(None, description="Group UUID for draft collaboration")
     profile_id: UUID | None = Field(None, description="UUID of the profile")
 
@@ -329,7 +328,6 @@ class PatchProfileDraftApiRequest(ScopedItem):
     }
 
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
-    expected_version: int = Field(0, description="Expected draft version for optimistic locking")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Name value to resolve or create")
@@ -361,7 +359,6 @@ class PatchProfileDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the draft save succeeded")
     draft_id: UUID = Field(..., description="UUID of the saved draft")
-    new_version: int = Field(..., description="New draft version after save")
     message: str = Field(..., description="Result message")
     form_state: ProfileDraftFormState | None = Field(None, description="Server-authoritative form state")
 

@@ -18,7 +18,7 @@ async def get_setting_drafts(
     rows = await conn.fetch(
         """
         SELECT
-            d.id, d.version, d.created_at, d.generated, d.mcp, d.active,
+            d.id, d.created_at, d.generated, d.mcp, d.active,
             d.group_id, d.session_id,
             COALESCE(ARRAY_AGG(DISTINCT ag.agents_id) FILTER (WHERE ag.agents_id IS NOT NULL), '{}') AS agent_ids,
             COALESCE(ARRAY_AGG(DISTINCT aik.auth_item_keys_id) FILTER (WHERE aik.auth_item_keys_id IS NOT NULL), '{}') AS auth_item_key_ids,
@@ -47,7 +47,7 @@ async def get_setting_drafts(
         LEFT JOIN setting_drafts_thresholds_connection th ON th.draft_id = d.id
         WHERE d.id = ANY($1)
           AND d.active = true
-        GROUP BY d.id, d.version, d.created_at, d.generated, d.mcp, d.active,
+        GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
                  d.group_id, d.session_id
         ORDER BY d.created_at DESC
         """,
@@ -57,7 +57,6 @@ async def get_setting_drafts(
     return [
         GetSettingDraftResponse(
             id=r["id"],
-            version=r["version"],
             created_at=r["created_at"],
             generated=r["generated"],
             mcp=r["mcp"],

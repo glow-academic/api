@@ -68,7 +68,6 @@ async def resolve_health_context(
         artifact_id=None,
         active=True,
         group_id=None,
-        draft_version=None,
         entries={
             "health": health,
             "metrics": metrics,

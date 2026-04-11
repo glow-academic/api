@@ -338,7 +338,6 @@ async def get_document_impl(
         document_exists=document.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        draft_version=document.draft_version,
         group_id=group_id,
         basic_show_ai_generate=basic_show_ai_generate,
         content_show_ai_generate=content_show_ai_generate,

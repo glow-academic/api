@@ -8,7 +8,6 @@
 CREATE TABLE public.agent_drafts_departments_connection (
     draft_id uuid NOT NULL,
     departments_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -24,7 +23,6 @@ CREATE TABLE public.agent_drafts_departments_connection (
 CREATE TABLE public.agent_drafts_descriptions_connection (
     draft_id uuid NOT NULL,
     descriptions_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,

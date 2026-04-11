@@ -61,7 +61,6 @@ async def list_simulation_drafts_impl(
         artifact_id=None,
         active=True,
         group_id=profile.group_id or UUID(int=0),
-        draft_version=None,
         resources={},
         entries={"drafts": drafts},
     )

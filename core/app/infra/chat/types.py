@@ -401,7 +401,6 @@ class GetChatResponse(BaseModel):
     chat_entry_id: UUID = Field(..., description="UUID of the chat entry")
     attempt_id: UUID | None = Field(None, description="UUID of the attempt")
     group_id: UUID = Field(..., description="UUID of the group")
-    draft_version: int | None = Field(None, description="Current draft version number")
 
     # 15 section-first resources
     names: ChatNameSection | None = Field(None, description="Name section data")
@@ -479,7 +478,6 @@ class PatchChatDraftApiRequest(ScopedItem):
     """
 
     input_draft_id: UUID | None = Field(None, description="UUID of the input draft")
-    expected_version: int = Field(0, description="Expected version for optimistic locking")
 
     # Single-select creatables — provide value OR ID
     name: str | None = Field(None, description="Name value to create")
@@ -577,7 +575,6 @@ class PatchChatDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the draft save succeeded")
     draft_id: UUID = Field(..., description="UUID of the saved draft")
-    new_version: int = Field(..., description="New version number after save")
     message: str = Field(..., description="Response message")
     form_state: ChatDraftFormState | None = Field(None, description="Updated form state after save")
 

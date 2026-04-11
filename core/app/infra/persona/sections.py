@@ -281,7 +281,6 @@ def build_persona_get_result(
         persona_exists=persona.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        draft_version=persona.draft_version,
         group_id=group_id,
         basic_show_ai_generate=basic_show_ai_generate,
         content_show_ai_generate=content_show_ai_generate,

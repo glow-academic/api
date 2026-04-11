@@ -270,7 +270,6 @@ async def get_field_impl(
         field_exists=field.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        draft_version=field.draft_version,
         group_id=group_id,
         # Step-level AI generation flags
         basic_show_ai_generate=basic_show_ai_generate,

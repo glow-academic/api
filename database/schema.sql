@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict NaT7G5V9YArtAaUzR6daKcE9T5R6pe3eijC1E0hoHUbN36qt6e2tTepcIGOg5Zp
+\restrict s46j3QUitg6pcqeAdz0IKdiAZBV7uOrKAS3dQ2v2VlZ2LTBRyhMD5epm7VN7z80
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -546,7 +546,6 @@ CREATE TABLE public.agent_descriptions_junction (
 CREATE TABLE public.agent_drafts_departments_connection (
     draft_id uuid NOT NULL,
     departments_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -561,7 +560,6 @@ CREATE TABLE public.agent_drafts_departments_connection (
 CREATE TABLE public.agent_drafts_descriptions_connection (
     draft_id uuid NOT NULL,
     descriptions_id uuid NOT NULL,
-    version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -39682,5 +39680,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict NaT7G5V9YArtAaUzR6daKcE9T5R6pe3eijC1E0hoHUbN36qt6e2tTepcIGOg5Zp
+\unrestrict s46j3QUitg6pcqeAdz0IKdiAZBV7uOrKAS3dQ2v2VlZ2LTBRyhMD5epm7VN7z80
 

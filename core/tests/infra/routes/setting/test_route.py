@@ -260,7 +260,6 @@ class TestSettingRoute:
         response = await setting_route_client.client.patch(
             "/settings/draft",
             json={
-                "expected_version": 0,
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
                 "department_ids": [str(setting_route_actor.department_id)],
@@ -271,7 +270,6 @@ class TestSettingRoute:
         assert response.headers["X-Invalidate-Tags"] == "settings,drafts"
         payload = response.json()
         assert payload["success"] is True
-        assert payload["new_version"] == 1
         assert payload["form_state"]["name_id"] == str(resources.name_id)
 
     async def test_setting_drafts_route_lists_owned_drafts(
@@ -288,7 +286,7 @@ class TestSettingRoute:
         )
         draft_response = await setting_route_client.client.patch(
             "/settings/draft",
-            json={"expected_version": 0, "name_id": str(resources.name_id)},
+            json={"name_id": str(resources.name_id)},
         )
         assert draft_response.status_code == 200, draft_response.text
 

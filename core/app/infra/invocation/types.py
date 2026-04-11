@@ -146,7 +146,6 @@ class GetSuiteResponse(BaseModel):
 
     test_id: UUID = Field(..., description="Test identifier")
     profile_has_access: bool = Field(False, description="Whether profile has access")
-    draft_version: int | None = Field(None, description="Current draft version number")
     group_id: UUID | None = Field(None, description="Associated group ID")
 
     # 13 section-first resources
@@ -184,7 +183,6 @@ class PatchInvocationDraftApiRequest(ScopedItem):
     """
 
     input_draft_id: UUID | None = Field(None, description="Input draft ID to update")
-    expected_version: int = Field(0, description="Expected draft version for optimistic lock")
 
     # Single-select creatables — provide value OR ID
     name: str | None = Field(None, description="Name value to create")
@@ -241,7 +239,6 @@ class PatchInvocationDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the save succeeded")
     draft_id: UUID = Field(..., description="Draft identifier")
-    new_version: int = Field(..., description="New draft version after save")
     message: str = Field(..., description="Status message")
     form_state: InvocationDraftFormState | None = Field(None, description="Authoritative form state after save")
 

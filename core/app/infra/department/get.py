@@ -222,7 +222,6 @@ async def get_department_impl(
         department_exists=dept_ctx.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        draft_version=dept_ctx.draft_version,
         group_id=group_id,
         basic_show_ai_generate=basic_show_ai_generate,
         names=DepartmentNameSection(

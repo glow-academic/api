@@ -93,7 +93,6 @@ async def resolve_leaderboard_context(
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
-        draft_version=None,
         resources={
             "profiles": ResourcePair(selected=profiles_selected, suggestions=[]),
         },
@@ -195,7 +194,6 @@ async def resolve_leaderboard_search_context(
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
-        draft_version=None,
         resources={
             "profiles": ResourcePair(selected=profiles_selected, suggestions=[]),
             "simulations": ResourcePair(selected=simulations_selected, suggestions=[]),

@@ -104,7 +104,6 @@ async def resolve_profile_context(
 
     # Merge IDs: start from published, draft overrides if present
     merged = _merge_junction_ids(artifact, draft)
-    draft_version = draft.version if draft else None
     active = artifact.active if artifact else True
 
     # Step 2: parallel hydrate — selected + suggestions for each resource
@@ -249,7 +248,6 @@ async def resolve_profile_context(
         artifact_id=artifact.id if artifact else None,
         active=active,
         group_id=group_id,
-        draft_version=draft_version,
         resources={
             "names": ResourcePair(
                 selected=names_selected, suggestions=names_suggestions

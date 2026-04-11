@@ -309,7 +309,6 @@ async def get_provider_impl(
         provider_exists=prov_ctx.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        draft_version=prov_ctx.draft_version,
         group_id=group_id,
         basic_show_ai_generate=basic_show_ai_generate,
         integrations_show_ai_generate=integrations_show_ai_generate,

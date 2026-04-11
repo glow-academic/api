@@ -60,7 +60,6 @@ def test_build_cohort_get_result_builds_canonical_response():
         artifact_id=uuid4(),
         active=True,
         group_id=group_id,
-        draft_version=4,
         resources={
             "names": ResourcePair(
                 selected=[
@@ -128,7 +127,6 @@ def test_build_cohort_get_result_builds_canonical_response():
 
     assert result.actor_name == "Operator"
     assert result.cohort_exists is True
-    assert result.draft_version == 4
     assert result.group_id == group_id
     assert result.names.resource is not None
     assert result.names.resource.name == "Fall Cohort"

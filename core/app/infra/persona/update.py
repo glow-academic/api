@@ -22,6 +22,10 @@ from app.infra.persona.permissions_context import (
     resolve_persona_values,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.persona.types import (
+    UpdatePersonaApiRequest,
+    UpdatePersonaApiResponse,
+)
 from app.tools.artifacts.persona.update import (
     _UNSET,
 )
@@ -36,12 +40,12 @@ async def update_persona_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdatePersonaApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdatePersonaApiResponse:
     """Persona bulk update using composable infra functions.
 
     Flow:
@@ -54,8 +58,9 @@ async def update_persona_impl(
     from app.infra.persona.permissions import compute_can_edit
     from app.infra.persona.types import (
         PersonaResultItem,
-        UpdatePersonaApiResponse,
     )
+
+    items = request.personas
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

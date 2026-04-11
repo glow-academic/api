@@ -28,10 +28,11 @@ from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 from app.infra.persona.types import (
+    CreatePersonaApiRequest,
+    CreatePersonaApiResponse,
     CreatePersonaItem,
     PersonaFieldError,
     PersonaResultItem,
-    CreatePersonaApiResponse,
 )
 
 
@@ -52,13 +53,13 @@ async def create_persona_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: CreatePersonaApiRequest,
     resources: list[str] | None = None,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> CreatePersonaApiResponse:
     """Persona bulk create using composable infra functions.
 
     Flow:
@@ -70,6 +71,8 @@ async def create_persona_impl(
       6. invalidate_tags
     """
     from app.infra.persona.permissions import compute_can_create
+
+    items = request.personas
 
     # ── Step 0: Scope fields by resources ─────────────────────────────
 

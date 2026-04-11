@@ -326,7 +326,6 @@ async def get_profile_impl(
         profile_exists=profile_ctx.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        draft_version=profile_ctx.draft_version,
         group_id=group_id,
         profile_id=target_profile_id,
         role=selected_role,

@@ -479,7 +479,6 @@ def build_scenario_get_result(
         scenario_exists=scenario.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        draft_version=scenario.draft_version,
         group_id=group_id,
         basic_show_ai_generate=basic_show_ai_generate,
         content_show_ai_generate=content_show_ai_generate,

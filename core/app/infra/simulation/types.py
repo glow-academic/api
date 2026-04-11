@@ -197,13 +197,11 @@ class GetSimulationAccessSqlRow(BaseModel):
 
     actor_name: str | None = Field(None, description="Display name of the current actor")
     simulation_exists: bool | None = Field(None, description="Whether the simulation exists")
-    draft_version: int | None = Field(None, description="Current draft version number")
     group_id: UUID | None = Field(None, description="UUID of the owning group")
     user_role: str | None = Field(None, description="Role of the current user")
     user_department_ids: list[UUID] | None = Field(None, description="Department UUIDs of the user")
     simulation_department_ids: list[UUID] | None = Field(None, description="Department UUIDs of the simulation")
     cohort_usage_count: int | None = Field(None, description="Number of cohorts using this simulation")
-    effective_draft_version: int | None = Field(None, description="Effective draft version after resolution")
 
 
 # =============================================================================
@@ -431,7 +429,6 @@ class GetSimulationApiResponse(BaseModel):
     simulation_exists: bool | None = Field(None, description="Whether the simulation exists")
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason the simulation is disabled")
-    draft_version: int | None = Field(None, description="Current draft version number")
     group_id: UUID | None = Field(None, description="UUID of the owning group")
 
     basic_show_ai_generate: bool | None = Field(None, description="Show AI generate for basic step")
@@ -792,7 +789,6 @@ class PatchSimulationDraftApiRequest(ScopedItem):
     }
 
     input_draft_id: UUID | None = Field(None, description="UUID of the input draft")
-    expected_version: int = Field(0, description="Expected draft version for optimistic lock")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Display name value")
@@ -838,7 +834,6 @@ class PatchSimulationDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the operation succeeded")
     draft_id: UUID = Field(..., description="UUID of the saved draft")
-    new_version: int = Field(..., description="New draft version number")
     message: str = Field(..., description="Human-readable result message")
     form_state: SimulationDraftFormState | None = Field(None, description="Server-authoritative form state")
 

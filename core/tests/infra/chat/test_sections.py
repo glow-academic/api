@@ -20,7 +20,6 @@ def _make_context(resources=None, entries=None, group_id=None):
         artifact_id=uuid4(),
         active=True,
         group_id=group_id or uuid4(),
-        draft_version=None,
         resources=resources or {},
         entries=entries or {},
     )

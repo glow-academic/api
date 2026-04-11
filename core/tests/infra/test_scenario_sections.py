@@ -43,7 +43,6 @@ def test_build_scenario_get_result_builds_canonical_response():
         artifact_id=uuid4(),
         active=True,
         group_id=group_id,
-        draft_version=3,
         resources={
             "names": ResourcePair(
                 selected=[SimpleNamespace(id=uuid4(), name="Triage", generated=False)],
@@ -117,7 +116,6 @@ def test_build_scenario_get_result_builds_canonical_response():
 
     assert result.actor_name == "Operator"
     assert result.scenario_exists is True
-    assert result.draft_version == 3
     assert result.group_id == group_id
     assert result.names.resource is not None
     assert result.names.resource.name == "Triage"

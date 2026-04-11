@@ -71,7 +71,6 @@ class GetToolApiResponse(BaseModel):
     tool_exists: bool | None = Field(None, description="Whether the tool exists")
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled")
-    draft_version: int | None = Field(None, description="Current draft version number")
     group_id: UUID | None = Field(None, description="Group identifier for the tool")
 
     basic_show_ai_generate: bool | None = Field(None, description="Show AI generate for basic step")
@@ -276,7 +275,6 @@ class PatchToolDraftApiRequest(ScopedItem):
     """
 
     input_draft_id: UUID | None = Field(None, description="Existing draft ID to update")
-    expected_version: int = Field(0, description="Expected draft version for concurrency")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Display name value")
@@ -324,7 +322,6 @@ class PatchToolDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the draft save succeeded")
     draft_id: UUID = Field(..., description="Draft unique identifier")
-    new_version: int = Field(..., description="New draft version after save")
     message: str = Field(..., description="Result message")
     form_state: ToolDraftFormState | None = Field(None, description="Server-authoritative form state")
 

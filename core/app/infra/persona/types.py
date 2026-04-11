@@ -279,7 +279,6 @@ class GetPersonaApiResponse(BaseModel):
     persona_exists: bool | None = Field(None, description="Whether the requested persona exists")
     can_edit: bool | None = Field(None, description="Whether the current user has edit permission")
     disabled_reason: str | None = Field(None, description="Human-readable reason if editing is disabled")
-    draft_version: int | None = Field(None, description="Current draft version number for optimistic concurrency")
     group_id: UUID | None = Field(None, description="Generation group UUID for AI operations")
 
     # Step-level AI generation flags
@@ -346,7 +345,6 @@ class PersonaInternalData:
     persona_exists: bool | None
     can_edit: bool
     disabled_reason: str | None
-    draft_version: int | None
     group_id: UUID | None
 
     # Agent mappings (resource_type -> agent_id)
@@ -639,7 +637,6 @@ class PatchPersonaDraftApiRequest(ScopedItem):
     """
 
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to patch (omit to create a new draft)")
-    expected_version: int = Field(0, description="Expected draft version for optimistic concurrency control")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Display name text (creates new name resource)")
@@ -702,7 +699,6 @@ class PatchPersonaDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the draft operation succeeded")
     draft_id: UUID = Field(..., description="UUID of the created or updated draft")
-    new_version: int = Field(..., description="New draft version number after this patch")
     message: str = Field(..., description="Human-readable result message")
     form_state: DraftFormState = Field(..., description="Complete form state after patch — client should replace local state")
 

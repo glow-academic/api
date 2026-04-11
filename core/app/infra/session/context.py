@@ -139,7 +139,6 @@ async def resolve_session_context(
         artifact_id=None,
         active=session.active,
         group_id=None,
-        draft_version=None,
         entries={
             "session": session,
             "groups": groups,
@@ -163,7 +162,6 @@ def _empty_context(actor_name_items: list) -> ArtifactContext:
         artifact_id=None,
         active=False,
         group_id=None,
-        draft_version=None,
         entries={
             "session": None,
             "groups": [],

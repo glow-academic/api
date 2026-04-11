@@ -316,7 +316,6 @@ async def get_setting_impl(
         setting_exists=setting.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        draft_version=setting.draft_version,
         group_id=group_id,
         # Per-resource sections
         names=SettingNameSection(

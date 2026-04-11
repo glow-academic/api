@@ -26,7 +26,6 @@ PIPE = "|"
 CSV_COLUMNS = [
     "chat_entry_id",
     "group_id",
-    "draft_version",
     "name",
     "description",
     "active",
@@ -193,7 +192,6 @@ async def export_chat_impl(
         [
             str(chat_entry_id),
             str(group_id),
-            str(ctx.draft_version or ""),
             name,
             description,
             active,

@@ -60,7 +60,6 @@ def test_build_agent_get_result_builds_canonical_response():
         artifact_id=uuid4(),
         active=True,
         group_id=group_id,
-        draft_version=2,
         resources={
             "names": ResourcePair(
                 selected=[SimpleNamespace(id=uuid4(), name="Tutor", generated=False)],
@@ -123,7 +122,6 @@ def test_build_agent_get_result_builds_canonical_response():
 
     assert result.actor_name == "Operator"
     assert result.agent_exists is True
-    assert result.draft_version == 2
     assert result.group_id == group_id
     assert result.names.resource is not None
     assert result.names.resource.name == "Tutor"

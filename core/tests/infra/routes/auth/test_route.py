@@ -274,7 +274,6 @@ class TestAuthRoute:
         response = await auth_route_client.client.patch(
             "/auths/draft",
             json={
-                "expected_version": 0,
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
                 "department_ids": [str(auth_route_actor.department_id)],
@@ -289,7 +288,6 @@ class TestAuthRoute:
         payload = response.json()
         assert payload["success"] is True
         assert payload["draft_id"] is not None
-        assert payload["new_version"] == 1
         assert payload["form_state"]["name_id"] == str(resources.name_id)
 
     async def test_auth_drafts_route_lists_owned_drafts(
@@ -308,7 +306,6 @@ class TestAuthRoute:
         draft_response = await auth_route_client.client.patch(
             "/auths/draft",
             json={
-                "expected_version": 0,
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
                 "department_ids": [str(auth_route_actor.department_id)],

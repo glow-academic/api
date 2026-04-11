@@ -171,7 +171,6 @@ async def resolve_benchmark_context(
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
-        draft_version=None,
         entries={
             "benchmarks": benchmarks,
             "invocations": invocations,
@@ -259,7 +258,6 @@ async def resolve_benchmark_search_context(
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
-        draft_version=None,
         entries={
             "tests": tests,
             "test_invocations": test_invocations,
