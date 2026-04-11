@@ -334,11 +334,11 @@ async def execute_infra_operation(
                 kwargs = {k: v for k, v in rendered.items() if v != ""}
                 fields_used = list(kwargs.keys())
 
-                # Context fields — only pass if not already in kwargs
+                # Context fields — system-provided, model doesn't know about these
+                # draft_id is NOT here — it's a task-level arg the model passes explicitly
                 ctx_defaults = {
                     "profile_id": ctx.profile_id,
                     "session_id": ctx.session_id,
-                    "draft_id": ctx.draft_id,
                     "group_id": ctx.group_id,
                 }
                 ctx_kwargs = {k: v for k, v in ctx_defaults.items() if k not in kwargs}

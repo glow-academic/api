@@ -2,7 +2,7 @@
 
 You are generating **{{ artifact_type }}** content.
 {% if resources %}Requested resources: **{{ resources | join(', ') }}**.{% endif %}
-{% if draft_id %}Draft ID: `{{ draft_id }}` — this is an existing draft, fetch its current state with Persona_Get before making changes.{% endif %}
+{% if draft_id %}Draft ID: `{{ draft_id }}` — pass this as `draft_id` to Persona_Get to see the current draft state and available resources.{% endif %}
 
 ## Model Configuration
 
