@@ -714,6 +714,19 @@ SHARED_ARGS_OUTPUTS = {
         name="artifact",
         template="group",
     ),
+    # --- Payload: resource ID fields ---
+    "id": dict(
+        id=sid("args_output/id"),
+        args_id=sid("arg/id"),
+        name="id",
+        template="{{ id }}",
+    ),
+    "ids": dict(
+        id=sid("args_output/ids"),
+        args_id=sid("arg/ids"),
+        name="ids",
+        template="{{ ids }}",
+    ),
     # --- Payload: auto-generated pass-through outputs ---
     "active": dict(
         id=sid("args_output/active"),

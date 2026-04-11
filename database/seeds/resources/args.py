@@ -74,6 +74,8 @@ SHARED_ARGS = {
     "flag_search": dict(id=sid("arg/flag_search"), name="flag_search", field_type="string"),
     "grade": dict(id=sid("arg/grade"), name="grade", field_type="boolean"),
     "group_id": dict(id=sid("arg/group_id"), name="group_id", field_type="uuid", required=True),
+    "id": dict(id=sid("arg/id"), name="id", field_type="uuid", description="Resource UUID"),
+    "ids": dict(id=sid("arg/ids"), name="ids", field_type="uuid[]", description="Resource UUIDs"),
     "highlights": dict(id=sid("arg/highlights"), name="highlights", field_type="object[]"),
     "hints": dict(id=sid("arg/hints"), name="hints", field_type="object[]"),
     "history_archived": dict(id=sid("arg/history_archived"), name="history_archived", field_type="boolean"),

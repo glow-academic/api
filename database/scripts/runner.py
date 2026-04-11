@@ -455,6 +455,7 @@ async def _run_provider_module_seeds(
 ) -> None:
     """Module 02 — Create providers via _impl."""
     from app.infra.provider.create import CreateProviderItem, create_provider_impl
+    from app.infra.provider.types import CreateProviderApiRequest
     from database.seeds.providers import providers
 
     items = [CreateProviderItem(**d) for d in providers]
@@ -462,7 +463,7 @@ async def _run_provider_module_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreateProviderApiRequest(providers=items),
     )
     print(f"  OK: {len(providers)} providers created")
 
@@ -473,6 +474,7 @@ async def _run_model_module_seeds(
 ) -> None:
     """Module 03 — Create models via _impl."""
     from app.infra.model.create import CreateModelItem, create_model_impl
+    from app.infra.model.types import CreateModelApiRequest
     from database.seeds.models import models
 
     items = [CreateModelItem(**d) for d in models]
@@ -480,7 +482,7 @@ async def _run_model_module_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreateModelApiRequest(models=items),
     )
     print(f"  OK: {len(models)} models created")
 
@@ -520,6 +522,7 @@ async def _run_agent_module_seeds(
 ) -> None:
     """Module 04 — Create agents via _impl."""
     from app.infra.agent.create import CreateAgentItem, create_agent_impl
+    from app.infra.agent.types import CreateAgentApiRequest
     from database.seeds.agents import agents
 
     items = [CreateAgentItem(**d) for d in agents]
@@ -527,7 +530,7 @@ async def _run_agent_module_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreateAgentApiRequest(agents=items),
     )
     print(f"  OK: {len(agents)} agents created")
 
@@ -538,6 +541,7 @@ async def _run_auth_module_seeds(
 ) -> None:
     """Module 06 — Create auths via _impl."""
     from app.infra.auth.create import CreateAuthItem, create_auth_impl
+    from app.infra.auth.types import CreateAuthApiRequest
     from database.seeds.auths import auths
 
     items = [CreateAuthItem(**d) for d in auths]
@@ -545,7 +549,7 @@ async def _run_auth_module_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreateAuthApiRequest(auths=items),
     )
     print(f"  OK: {len(auths)} auths created")
 
@@ -556,6 +560,7 @@ async def _run_eval_module_seeds(
 ) -> None:
     """Module 08 — Create evals via _impl."""
     from app.infra.eval.create import CreateEvalItem, create_eval_impl
+    from app.infra.eval.types import CreateEvalApiRequest
     from database.seeds.evals import evals
 
     items = [CreateEvalItem(**d) for d in evals]
@@ -563,7 +568,7 @@ async def _run_eval_module_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreateEvalApiRequest(evals=items),
     )
     print(f"  OK: {len(evals)} evals created")
 
@@ -589,6 +594,7 @@ async def _run_rubric_module_seeds(
 ) -> None:
     """Module 07 — Create rubrics via _impl."""
     from app.infra.rubric.create import CreateRubricItem, create_rubric_impl
+    from app.infra.rubric.types import CreateRubricApiRequest
     from database.seeds.rubrics import rubrics
 
     items = [CreateRubricItem(**d) for d in rubrics]
@@ -596,7 +602,7 @@ async def _run_rubric_module_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreateRubricApiRequest(rubrics=items),
     )
     ok = sum(1 for r in result.results if r.success)
     errors = sum(1 for r in result.results if not r.success)
@@ -618,6 +624,7 @@ async def _run_document_seeds(
 ) -> list[UUID]:
     """Run document seed definitions through create_document_impl."""
     from app.infra.document.create import CreateDocumentItem, create_document_impl
+    from app.infra.document.types import CreateDocumentApiRequest
 
     items = [CreateDocumentItem(**d) for d in document_defs]
 
@@ -625,7 +632,7 @@ async def _run_document_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreateDocumentApiRequest(documents=items),
     )
 
     created_ids: list[UUID] = []
@@ -660,7 +667,7 @@ async def _run_department_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreateDepartmentApiRequest(departments=items),
     )
 
     created_ids: list[UUID] = []
@@ -705,8 +712,8 @@ async def _run_persona_seeds(
                 for e in r.errors:
                     print(f"    - {e.field}: {e.message}")
         else:
-            if hasattr(r, "persona_id") and r.persona_id:
-                created_ids.append(r.persona_id)
+            if hasattr(r, "id") and r.id:
+                created_ids.append(r.id)
             print(f"  OK: {r.message}")
 
     return created_ids
@@ -719,6 +726,7 @@ async def _run_scenario_seeds(
 ) -> list[UUID]:
     """Run scenario seed definitions through create_scenario_impl."""
     from app.infra.scenario.create import CreateScenarioItem, create_scenario_impl
+    from app.infra.scenario.types import CreateScenarioApiRequest
 
     items = [CreateScenarioItem(**s) for s in scenario_defs]
 
@@ -726,7 +734,7 @@ async def _run_scenario_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreateScenarioApiRequest(scenarios=items),
     )
 
     created_ids: list[UUID] = []
@@ -761,7 +769,7 @@ async def _run_simulation_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreateSimulationApiRequest(simulations=items),
     )
 
     created_ids: list[UUID] = []
@@ -812,6 +820,7 @@ async def _run_field_seeds(
 ) -> list[UUID]:
     """Run field seed definitions through create_field_impl."""
     from app.infra.field.create import CreateFieldItem, create_field_impl
+    from app.infra.field.types import CreateFieldApiRequest
 
     items = [CreateFieldItem(**f) for f in field_defs]
 
@@ -819,7 +828,7 @@ async def _run_field_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreateFieldApiRequest(fields=items),
     )
 
     created_ids: list[UUID] = []
@@ -834,6 +843,29 @@ async def _run_field_seeds(
                 created_ids.append(r.field_id)
             print(f"  OK: {r.message}")
 
+    return created_ids
+
+
+async def _run_parameter_field_seeds(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    parameter_field_defs: list[dict],
+) -> list[UUID]:
+    """Create parameter_fields_resource entries linking parameters to fields."""
+    from app.tools.resources.parameter_fields.create import create_parameter_field
+
+    created_ids: list[UUID] = []
+    async with pool.acquire() as conn:
+        for pf in parameter_field_defs:
+            result = await create_parameter_field(
+                conn,
+                field_id=pf["field_id"],
+                parameter_id=pf["parameter_id"],
+                redis=redis,
+                id=pf["id"],
+            )
+            created_ids.append(result.id)
+    print(f"  OK: {len(created_ids)} parameter fields created")
     return created_ids
 
 
@@ -854,7 +886,7 @@ async def _run_parameter_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreateParameterApiRequest(parameters=items),
     )
 
     created_ids: list[UUID] = []
@@ -951,6 +983,7 @@ async def _run_rubric_seeds(
 ) -> list[UUID]:
     """Run rubric seed definitions through create_rubric_impl."""
     from app.infra.rubric.create import CreateRubricItem, create_rubric_impl
+    from app.infra.rubric.types import CreateRubricApiRequest
 
     items = [CreateRubricItem(**r) for r in rubric_defs]
 
@@ -958,7 +991,7 @@ async def _run_rubric_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreateRubricApiRequest(rubrics=items),
     )
 
     created_ids: list[UUID] = []
@@ -983,6 +1016,7 @@ async def _run_profile_seeds(
 ) -> list[UUID]:
     """Run profile seed definitions through create_profile_impl."""
     from app.infra.profile.create import CreateProfileItem, create_profile_impl
+    from app.infra.profile.types import CreateProfileApiRequest
     from app.tools.resources.emails.create import create_email
 
     # Resolve email string → email_ids before creation
@@ -999,7 +1033,7 @@ async def _run_profile_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreateProfileApiRequest(profiles=items),
     )
 
     created_ids: list[UUID] = []
@@ -1059,6 +1093,7 @@ async def _run_setting_seeds(
 ) -> list[UUID]:
     """Run setting seed definitions through create_setting_impl."""
     from app.infra.setting.create import CreateSettingItem, create_setting_impl
+    from app.infra.setting.types import CreateSettingApiRequest
 
     items = [CreateSettingItem(**s) for s in setting_defs]
 
@@ -1066,7 +1101,7 @@ async def _run_setting_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreateSettingApiRequest(settings=items),
     )
 
     created_ids: list[UUID] = []
@@ -1305,6 +1340,7 @@ async def _run_cohort_seeds(
 ) -> list[UUID]:
     """Run cohort seed definitions through create_cohort_impl."""
     from app.infra.cohort.create import CreateCohortItem, create_cohort_impl
+    from app.infra.cohort.types import CreateCohortApiRequest
 
     items = [CreateCohortItem(**c) for c in cohort_defs]
 
@@ -1312,7 +1348,7 @@ async def _run_cohort_seeds(
         pool,
         redis,
         profile_id=SEED_PROFILE_ID,
-        items=items,
+        request=CreateCohortApiRequest(cohorts=items),
     )
 
     created_ids: list[UUID] = []
@@ -1387,6 +1423,7 @@ async def _run_tool_module_seeds(
 ) -> None:
     """Create tools from static definitions in tools_data.py."""
     from app.infra.tool.create import CreateToolItem, create_tool_impl
+    from app.infra.tool.types import CreateToolApiRequest
     from database.seeds.resources.args import SHARED_ARGS
     from database.seeds.resources.args_outputs import SHARED_ARGS_OUTPUTS
     from database.seeds.tools import tools
@@ -1430,7 +1467,7 @@ async def _run_tool_module_seeds(
                 pool,
                 redis,
                 profile_id=SEED_PROFILE_ID,
-                items=[item],
+                request=CreateToolApiRequest(tools=[item]),
             )
             for r in result.results:
                 if r.success:
@@ -1849,6 +1886,8 @@ async def main_setup(setup: str = "university") -> None:
                 await _run_field_seeds(pool, redis_client, mod.fields)
             elif module_name == "parameters":
                 await _run_parameter_seeds(pool, redis_client, mod.parameters)
+            elif module_name == "parameter_fields":
+                await _run_parameter_field_seeds(pool, redis_client, mod.parameter_fields)
             elif module_name == "scenario_rubrics":
                 await _run_scenario_rubric_seeds(
                     pool, redis_client, mod.scenario_rubrics
