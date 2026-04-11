@@ -1,32 +1,30 @@
-## Generation Request
+## Context
 
-You are generating **{{ artifact_type }}** content.
+{% if request.artifact_id %}
+**Existing persona** (ID: `{{ request.artifact_id }}`).
+Use `Persona_Get(id: "{{ request.artifact_id }}")` to see current state.
+{% else %}
+**New persona** — no artifact exists yet.
+{% endif %}
 {% if resources %}Requested resources: **{{ resources | join(', ') }}**.{% endif %}
-{% if request.artifact_id %}Persona ID: `{{ request.artifact_id }}` — this is an existing persona.{% endif %}
 
 ## Parameters
 
-Pass these to your tools as needed:
+{% if params %}
+Pass these to your tools:
 {% for key, value in params.items() %}
 - `{{ key }}`: `{{ value }}`
 {% endfor %}
-{% if not params %}- (none){% endif %}
+{% endif %}
 
-## Model Configuration
-
-- Model: {{ llm_config.model }}
-- Modality: {{ llm_config.modality }}
-{% if llm_config.reasoning %}- Reasoning: {{ llm_config.reasoning }}{% endif %}
-{% if llm_config.temperature is not none %}- Temperature: {{ llm_config.temperature }}{% endif %}
-
-## Available Tools
+## Tools
 
 {% for tool in tools %}
 - **{{ tool.name }}**({{ tool.args | join(', ') }}){% if tool.description %} — {{ tool.description }}{% endif %}
 
 {% endfor %}
 
-## Instructions
+## What To Do
 
 {% if 'colors' in resources %}
 Generate color values as hex codes. Create visually distinct, professional colors suitable for UI display.
@@ -41,7 +39,7 @@ Write detailed descriptions explaining the persona's background, role, and commu
 Write behavioral instruction templates that define how the persona acts during training simulations. Include tone, knowledge boundaries, and response patterns.
 {% endif %}
 {% if 'icons' in resources %}
-Select appropriate icon identifiers that visually represent the persona's role.
+Select an appropriate icon identifier that visually represents the persona's role.
 {% endif %}
 
-Use the appropriate tool for the requested operation. Only generate what was asked for.
+Only generate what was asked for. Only pass fields you need.
