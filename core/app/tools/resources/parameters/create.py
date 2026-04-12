@@ -20,12 +20,17 @@ async def create_parameter(
     soft: bool = False,
     department_ids: list[UUID] | None = None,
     field_ids: list[UUID] | None = None,
+    persona_parameter: bool = False,
+    document_parameter: bool = False,
+    scenario_parameter: bool = False,
+    video_parameter: bool = False,
 ) -> GetParameterResponse:
     """Create a parameter resource (plain INSERT — no unique constraint)."""
     parameter_id = await conn.fetchval(
         """
-        INSERT INTO parameters_resource (id, name, description, active, mcp, generated, department_ids, field_ids)
-        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, $4, $6, $7)
+        INSERT INTO parameters_resource (id, name, description, active, mcp, generated, department_ids, field_ids,
+                                         persona_parameter, document_parameter, scenario_parameter, video_parameter)
+        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, $4, $6, $7, $8, $9, $10, $11)
         RETURNING id
     """,
         name,
@@ -35,6 +40,10 @@ async def create_parameter(
         id,
         department_ids or [],
         field_ids or [],
+        persona_parameter,
+        document_parameter,
+        scenario_parameter,
+        video_parameter,
     )
 
     await invalidate_tags(["resources", "parameters"], redis=redis)

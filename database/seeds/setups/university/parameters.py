@@ -71,6 +71,7 @@ parameters = [
         description="Categorizes personas by their type (Emotion or Neutral)",
         field_ids=PERSONA_TYPE_FIELD_RESOURCES,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        persona_parameter=True,
     ),
     dict(
         id=P_INTENSITY,
@@ -87,6 +88,7 @@ parameters = [
         description="How many students are present in the room",
         field_ids=CROWDEDNESS_FIELD_RESOURCES,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        scenario_parameter=True,
     ),
     dict(
         id=P_DEADLINE,
@@ -95,6 +97,7 @@ parameters = [
         description="How close it is to an assignment or project deadline",
         field_ids=DEADLINE_FIELD_RESOURCES,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        scenario_parameter=True,
     ),
     dict(
         id=P_TIME,
@@ -103,6 +106,7 @@ parameters = [
         description="When the scenario occurs",
         field_ids=TIME_FIELD_RESOURCES,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        scenario_parameter=True,
     ),
     dict(
         id=P_LOCATION,
@@ -111,6 +115,7 @@ parameters = [
         description="Where the interaction is taking place",
         field_ids=LOCATION_FIELD_RESOURCES,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        scenario_parameter=True,
     ),
     dict(
         id=P_CLASS,
@@ -119,6 +124,7 @@ parameters = [
         description="Which course or subject the scenario is about",
         field_ids=CLASS_FIELD_RESOURCES,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        scenario_parameter=True,
     ),
     dict(
         id=P_DOCUMENT_TYPE,
@@ -127,6 +133,7 @@ parameters = [
         description="Categorizes documents by their type (homework, project, quiz, etc.)",
         field_ids=DOCUMENT_TYPE_FIELD_RESOURCES,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        document_parameter=True,
     ),
     dict(
         id=P_CONCEPTS,

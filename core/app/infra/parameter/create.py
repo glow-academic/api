@@ -28,6 +28,7 @@ from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 from app.infra.parameter.types import (
+    CreateParameterApiRequest,
     CreateParameterItem,
     ParameterFieldError,
     ParameterResultItem,
@@ -40,12 +41,12 @@ async def create_parameter_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: CreateParameterApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> CreateParameterApiResponse:
     """Parameter bulk create using composable infra functions.
 
     Flow:
@@ -56,6 +57,8 @@ async def create_parameter_impl(
       5. invalidate_tags
     """
     from app.infra.parameter.permissions import compute_can_create
+
+    items = request.parameters
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -128,6 +131,10 @@ async def create_parameter_impl(
             description_id=item.description_id,
             department_ids=item.department_ids,
             field_ids=item.field_ids,
+            persona_parameter=item.persona_parameter or False,
+            document_parameter=item.document_parameter or False,
+            scenario_parameter=item.scenario_parameter or False,
+            video_parameter=item.video_parameter or False,
         )
 
         # Artifact create inside transaction

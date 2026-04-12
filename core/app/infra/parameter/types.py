@@ -56,7 +56,7 @@ class ParameterDraftEntry(BaseModel):
     """Draft entry for parameter."""
 
     id: UUID | None = Field(None, description="Draft entry identifier")
-    version: int | None = Field(None, description="Draft version number")
+
     created_at: datetime | None = Field(None, description="Timestamp when draft was created")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     mcp: bool | None = Field(None, description="Whether this is an MCP draft")
@@ -218,6 +218,10 @@ class CreateParameterItem(ScopedItem):
     departments: list[str] | None = Field(None, description="Department names to match")
     flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
     field_ids: list[UUID] | None = Field(None, description="Field identifiers")
+    persona_parameter: bool | None = Field(None, description="Show on persona edit page")
+    document_parameter: bool | None = Field(None, description="Show on document edit page")
+    scenario_parameter: bool | None = Field(None, description="Show on scenario edit page")
+    video_parameter: bool | None = Field(None, description="Show on video edit page")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name_id": "names",
@@ -294,7 +298,7 @@ class PatchParameterDraftApiRequest(ScopedItem):
     ID-only for non-creatable resources:
       - flag_ids, department_ids, field_ids
 
-    Client always sends full state (append-only — each write is a new version snapshot).
+    Client always sends full state (append-only — each write is a new snapshot).
     """
 
     input_draft_id: UUID | None = Field(None, description="Existing draft ID to update")
