@@ -60,7 +60,7 @@ async def get_test_impl(
         ctx = await resolve_test_context(
             pool,
             effective_redis,
-            test_id=effective_test_id,
+            test_id=test_id,
             bypass_cache=bypass_cache,
         )
 

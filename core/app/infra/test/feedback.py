@@ -71,7 +71,7 @@ async def create_feedback_impl(
             conn, bypass_mv=True
         )
         for g in grades:
-            if g.grade_id == grade_id:
+            if g.id == grade_id:
                 run_id = g.run_id
                 break
 

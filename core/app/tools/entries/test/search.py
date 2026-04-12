@@ -35,7 +35,7 @@ async def search_tests(
 
     rows = await conn.fetch(
         f"""
-        SELECT test_id, eval_id, profile_id, department_ids,
+        SELECT test_id, call_id, eval_id, profile_id, department_ids,
                test_name, test_description,
                num_invocations, infinite_mode, is_dynamic, archived, test_created_at,
                COUNT(*) OVER() AS total_count
