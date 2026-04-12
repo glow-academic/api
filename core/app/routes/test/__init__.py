@@ -6,6 +6,7 @@ from app.routes.test.archive import router as archive_router
 from app.routes.test.docs import router as docs_router
 from app.routes.test.end import router as end_router
 from app.routes.test.export import router as export_router
+from app.routes.test.call import router as call_router
 from app.routes.test.feedback import router as feedback_router
 from app.routes.test.get import router as get_router
 from app.routes.test.grade import router as grade_router
@@ -17,6 +18,7 @@ from app.routes.test.run import router as run_router
 from app.routes.test.search import router as search_router
 from app.routes.test.start import router as start_router
 from app.routes.test.stop import router as stop_router
+from app.routes.test.text import router as text_router
 
 router = APIRouter(prefix="/test", tags=["test"])
 
@@ -36,3 +38,6 @@ router.include_router(stop_router)
 router.include_router(search_router)
 router.include_router(grade_router)
 router.include_router(feedback_router)
+# Media operations
+router.include_router(text_router)
+router.include_router(call_router)

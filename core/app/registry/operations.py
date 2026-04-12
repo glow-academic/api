@@ -779,7 +779,8 @@ INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     **_infra("pricing", get=True, export=True, refresh=True, docs=True),
     **_infra("reports", get=True, export=True, refresh=True, docs=True),
     **_infra("session", get=True, export=True, refresh=True, docs=True),
-    **_infra("test", get=True, search=True, export=True, refresh=True, docs=True),
+    **_infra("test", get=True, search=True, export=True, refresh=True, docs=True,
+             text_download=True, call_download=True),
     # --- Attempt state-machine + media operations ---
     ("attempt", "get"): (f"{_I}.attempt.get", "get_attempt_impl"),
     ("attempt", "search"): (f"{_I}.attempt.search", "search_attempt_impl"),

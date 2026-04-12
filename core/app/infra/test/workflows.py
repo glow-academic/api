@@ -1035,6 +1035,8 @@ async def test_run_impl(
                             {"artifact": "test", "operation": "get"},
                             {"artifact": "test", "operation": "grade"},
                             {"artifact": "test", "operation": "feedback"},
+                            {"artifact": "test", "operation": "text_download"},
+                            {"artifact": "test", "operation": "call_download"},
                         ],
                         "resources": [],
                         "user_instructions": [],
