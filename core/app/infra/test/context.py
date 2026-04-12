@@ -152,6 +152,8 @@ async def resolve_test_context(
         if not run_ids:
             return []
         async with pool.acquire() as c:
+            from app.tools.entries.messages.refresh import refresh_messages_internal
+            await refresh_messages_internal(conn=c)
             msgs, _ = await search_messages(c, run_ids=run_ids, limit=100000)
             return msgs
 

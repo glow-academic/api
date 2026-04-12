@@ -15,7 +15,7 @@ from redis.asyncio import Redis
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.test_feedback.create import create_test_feedback
 from app.tools.entries.test_feedback.refresh import refresh_test_feedback
-from app.tools.entries.test_grade.search import search_test_grades
+from app.tools.entries.test_grade.get import get_test_grades
 from app.tools.resources.standard_groups.get import get_standard_groups
 from app.utils.cache.invalidate_tags import invalidate_tags
 
@@ -65,15 +65,11 @@ async def create_feedback_impl(
             total_points = sgs[0].points
             pass_points = sgs[0].pass_points
 
-        # Step 2: Derive run_id from grade's run_id field
+        # Step 2: Derive run_id from grade
         run_id: UUID | None = None
-        grades = await search_test_grades(
-            conn, bypass_mv=True
-        )
-        for g in grades:
-            if g.id == grade_id:
-                run_id = g.run_id
-                break
+        grades = await get_test_grades(conn, ids=[grade_id])
+        if grades:
+            run_id = grades[0].run_id
 
         # Step 3: Create call for audit linkage
         call = await create_call(
