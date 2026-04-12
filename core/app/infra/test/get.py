@@ -44,16 +44,17 @@ async def get_test_impl(
     id: UUID | None = None,
     bypass_cache: bool = False,
     **_kwargs: Any,
-) -> TestInternalData:
+) -> GetTestArtifactResponse:
     """Core test artifact detail fetcher.
 
     Canonical signature: (pool, redis, *, profile_id, session_id, ...).
+    Returns Pydantic model (canonical for executor serialization).
     Tools send `id`, internal code uses `test_id`.
     """
     effective_redis = redis or get_redis_client()
     test_id = id  # alias: tools send 'id'
     if not test_id:
-        return TestInternalData()
+        return GetTestArtifactResponse()
 
     try:
         # === RESOLVE CONTEXT ===
@@ -207,20 +208,26 @@ async def get_test_impl(
         has_runs_or_groups = len(runs) > 0 or len(groups) > 0
         show_controls = bool(invocations)
 
-        return TestInternalData(
+        # Get first rubric name from map for backward compat
+        rubric_name: str | None = None
+        if rubric_name_map:
+            rubric_name = next(iter(rubric_name_map.values()), None)
+
+        return GetTestArtifactResponse(
             test=test,
             invocations=invocations,
+            status=status,
             eval_name=eval_name,
             eval_description=eval_description,
-            rubric_name_map=rubric_name_map,
+            rubric_name=rubric_name,
+            infinite_mode=test.infinite_mode,
             runs=run_items,
-            status=status,
             status_summary=status_summary,
             show_controls=show_controls,
             current_invocation_id=current_invocation_id,
             has_runs_or_groups=has_runs_or_groups,
-            entries_payload=entries_payload,
-            resources_payload=resources_payload,
+            entries=entries_payload,
+            resources=resources_payload,
         )
 
     except HTTPException:
@@ -256,36 +263,14 @@ async def get_test_impl_cached(
         if cached:
             return GetTestArtifactResponse.model_validate(cached["data"]), True
 
-    data = await get_test_impl(
+    api_response = await get_test_impl(
         pool,
         id=test_id,
         bypass_cache=bypass_cache,
     )
 
-    if not data.test:
+    if not api_response.test:
         raise HTTPException(status_code=404, detail="Benchmark test not found")
-
-    # Get first rubric name from map for backward compat
-    rubric_name: str | None = None
-    if data.rubric_name_map:
-        rubric_name = next(iter(data.rubric_name_map.values()), None)
-
-    api_response = GetTestArtifactResponse(
-        test=data.test,
-        invocations=data.invocations,
-        status=data.status,
-        eval_name=data.eval_name,
-        eval_description=data.eval_description,
-        rubric_name=rubric_name,
-        infinite_mode=data.test.infinite_mode,
-        runs=data.runs,
-        status_summary=data.status_summary,
-        show_controls=data.show_controls,
-        current_invocation_id=data.current_invocation_id,
-        has_runs_or_groups=data.has_runs_or_groups,
-        entries=data.entries_payload,
-        resources=data.resources_payload,
-    )
 
     await set_cached(
         cache_key_val,
