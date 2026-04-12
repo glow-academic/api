@@ -59,6 +59,11 @@ ATTEMPT_SCORING_RESOURCES: set[str] = {
     "highlights",
     "replacements",
 }
+# Test grading — the grading agent scores agent output against a rubric.
+TEST_SCORING_RESOURCES: set[str] = {
+    "feedbacks",
+    "grades",
+}
 # TODO: SCENARIO_SCORING_RESOURCES, SIMULATION_SCORING_RESOURCES, etc.
 
 
@@ -93,6 +98,17 @@ async def _resolve_attempt_context_for_websocket(
     )
 
 
+async def _resolve_test_context_for_websocket(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    bypass_cache: bool = False,
+    **_ignored: Any,
+) -> ArtifactContext:
+    """Test grading has no artifact-specific context — just tool scoring."""
+    return ArtifactContext(resources={}, entries={})
+
+
 ARTIFACT_RESOLVERS: dict[str, ArtifactResolverConfig] = {
     "attempt": ArtifactResolverConfig(
         resolver=_resolve_attempt_context_for_websocket,
@@ -103,6 +119,11 @@ ARTIFACT_RESOLVERS: dict[str, ArtifactResolverConfig] = {
         resolver=resolve_persona_context,
         scoring_resources=PERSONA_SCORING_RESOURCES,
         id_kwarg="persona_id",
+    ),
+    "test": ArtifactResolverConfig(
+        resolver=_resolve_test_context_for_websocket,
+        scoring_resources=TEST_SCORING_RESOURCES,
+        id_kwarg="test_id",
     ),
     # TODO: "scenario", "simulation", "cohort"
 }

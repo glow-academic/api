@@ -731,6 +731,8 @@ async def test_proceed_impl(
                 limit=1000,
                 bypass_mv=True,
             )
+            from app.tools.entries.test.refresh import refresh_test
+            await refresh_test(conn)
             tests = await get_tests(conn, ids=[test_id])
 
         is_dynamic = tests[0].is_dynamic if tests else True
@@ -817,6 +819,48 @@ async def test_proceed_impl(
             ]
         )
 
+        # Auto-trigger grading for non-dynamic tests (generation eval).
+        # The agent is already done — output is persisted. Grade it now
+        # without waiting for a client-side test_run event.
+        if not is_dynamic:
+            # Derive original run_id from test → call → run
+            from app.tools.entries.calls.get import get_calls
+
+            original_run_id: uuid.UUID | None = None
+            original_group_id: uuid.UUID | None = None
+            if tests and tests[0].call_id:
+                async with pool.acquire() as conn:
+                    from app.tools.entries.calls.refresh import refresh_calls_internal
+                    await refresh_calls_internal(conn)
+                    calls = await get_calls(conn, [tests[0].call_id])
+                if calls:
+                    original_run_id = calls[0].run_id
+                    # Derive group_id from the original run
+                    from app.tools.entries.runs.get import get_run
+                    async with pool.acquire() as conn:
+                        run = await get_run(conn, original_run_id)
+                    if run:
+                        original_group_id = run.group_id
+
+            if original_run_id:
+                await emit(
+                    [
+                        internal_event(
+                            "test_run",
+                            {
+                                "sid": sid,
+                                "test_id": str(test_id),
+                                "test_invocation_id": str(test_invocation_id),
+                                "run_id": str(original_run_id),
+                                "group_id": str(original_group_id) if original_group_id else None,
+                                "profile_id": data.get("profile_id"),
+                                "session_id": data.get("session_id"),
+                                "profiles_id": data.get("profiles_id"),
+                            },
+                        )
+                    ]
+                )
+
     except Exception as e:
         logger.exception(f"Error in test_proceed: {e}")
         await emit(
@@ -887,6 +931,25 @@ async def test_run_impl(
                 return
 
             group_id = invocations[0].group_id
+            # Fallback: use group_id from event data (generation eval path)
+            if not group_id:
+                group_id_str = data.get("group_id")
+                group_id = uuid.UUID(group_id_str) if group_id_str else None
+            if not group_id:
+                await emit(
+                    [
+                        internal_event(
+                            "test_error",
+                            TestErrorData(
+                                sid=sid,
+                                invocation_id=str(test_invocation_id),
+                                message="No group_id found for test run",
+                                error_type="run",
+                            ).model_dump(mode="json"),
+                        )
+                    ]
+                )
+                return
             session_id_str = data.get("session_id")
             session_id = (
                 uuid.UUID(session_id_str) if session_id_str else uuid.UUID(int=0)
@@ -956,21 +1019,25 @@ async def test_run_impl(
             ]
         )
 
+        # Emit generate_prepare (not generate_artifact) so the prepare pipeline
+        # resolves the grading agent, model, and tools from system config.
         await emit(
             [
                 internal_event(
-                    "generate_artifact",
+                    "generate_prepare",
                     {
                         "sid": sid,
-                        "artifact_type": "test",
-                        "resource_type": "test",
+                        "profile_id": profile_id_str,
+                        "profiles_id": data.get("profiles_id"),
+                        "session_id": data.get("session_id"),
+                        "group_id": str(group_id),
+                        "permissions": [
+                            {"artifact": "test", "operation": "grade"},
+                        ],
+                        "resources": [],
+                        "user_instructions": [],
                         "modality": "text",
                         "run_id": str(new_run_id),
-                        "group_id": str(group_id),
-                        "chat_id": str(test_invocation_id),
-                        "messages": [],
-                        "llm_config": {},
-                        "tools": [],
                         "metadata": {
                             "test_id": str(test_id),
                             "test_invocation_id": str(test_invocation_id),

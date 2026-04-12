@@ -810,6 +810,8 @@ INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("test", "start"): (f"{_I}.test.start", "test_start_internal_impl"),
     ("test", "end"): (f"{_I}.test.end", "test_end_internal_impl"),
     ("test", "next"): (f"{_I}.test.next", "test_next_internal_impl"),
+    ("test", "grade"): ("app.infra.test.grade", "create_grade_impl"),
+    ("test", "feedback"): ("app.infra.test.feedback", "create_feedback_impl"),
 }
 
 # ---------------------------------------------------------------------------

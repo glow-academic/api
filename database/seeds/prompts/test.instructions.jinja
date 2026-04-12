@@ -1,26 +1,32 @@
 ## Context
 
-{% set draft = views.draft_test if views and views.draft_test else None %}
+{% if request.group_id %}Group ID: `{{ request.group_id }}`.{% endif %}
 
-{% if draft %}
-### Current State
-{{ draft | tojson }}
-{% endif %}
+{% if params %}
+## Parameters
 
-{% if standard_groups and standard_groups|length > 0 %}
-### Rubric Standard Groups
-{% for sg in standard_groups %}
-- id: {{ sg.id }} | name: {{ sg.name }}{% if sg.description is defined %} | {{ sg.description[:50] }}{% endif %}
+Pass these to your tools:
+{% for key, value in params.items() %}
+- `{{ key }}`: `{{ value }}`
 {% endfor %}
 {% endif %}
 
-{% if standards and standards|length > 0 %}
-### Rubric Standards
-{% for s in standards %}
-- id: {{ s.id }} | description: {{ s.description[:80] if s.description is defined else s.id }}
+## Tools
+
+{% for tool in tools %}
+- **{{ tool.name }}**({{ tool.args | join(', ') }}){% if tool.description %} — {{ tool.description }}{% endif %}
+
 {% endfor %}
-{% endif %}
 
-## Tool Usage
+## What To Do
 
-Use **create_feedback** for each standard group. Score 1-5 with specific evidence from the model output.
+1. Call **Test_Get** to see the rubric standard groups and the original agent's output.
+2. Review the output against each standard group's criteria.
+3. Call **Test_Grade** with `invocation_id`, `passed` (true/false), and `score` (sum of all standard group scores). This returns a `grade_id`.
+4. For each standard group, call **Test_Feedback** with:
+   - `grade_id` from step 3
+   - `tool_call_id` — the specific tool call from the original output being evaluated
+   - `score` — 1 to 5
+   - `feedback` — specific evidence from the output
+
+Always use tool calls. Do not output plain text.

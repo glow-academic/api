@@ -198,7 +198,7 @@ async def run_complete_impl(
         )
 
         # Check if eval has been graded by looking for grade records
-        invocations = await search_test_invocation_entries_internal(
+        invocations, _total = await search_test_invocation_entries_internal(
             conn,
             test_ids=[uuid.UUID(generation_test_id)],
             limit=10,
@@ -227,6 +227,9 @@ async def run_complete_impl(
                             "sid": sid,
                             "test_id": generation_test_id,
                             "force_proceed": True,
+                            "profile_id": profile_id_str,
+                            "profiles_id": profiles_id_str,
+                            "session_id": session_id_str,
                         },
                     )
                 ]
