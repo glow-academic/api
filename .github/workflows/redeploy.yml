@@ -32,8 +32,8 @@ on:
         required: false
         default: ''
         type: string
-      provision_token:
-        description: 'One-time token to claim DEPLOYMENT_TOKEN from LearnLoop'
+      deployment_token:
+        description: 'Deployment token for authenticating with LearnLoop API'
         required: true
       learnloop_api_url:
         description: 'LearnLoop API URL for license validation'
@@ -109,73 +109,39 @@ jobs:
       - name: Stage release
         run: make stage-release DEST=${{ env.DEPLOY_DIR }} SHA=${{ github.sha }}
 
-      - name: Claim DEPLOYMENT_TOKEN from LearnLoop
+      - name: Load deployment token
         run: |
-          API_URL="${{ inputs.learnloop_api_url }}"
-          HOST=$(echo "$API_URL" | sed 's|https\?://||' | sed 's|/.*||')
-          LOCAL_URL="https://localhost/provision/claim"
-          # Write to file to avoid shell expansion of ${...} in YAML config
-          CLAIM_FILE=$(mktemp)
-          curl -sfk -X POST "$LOCAL_URL" \
-            -H "Host: $HOST" \
-            -H "Content-Type: application/json" \
-            -d '{"token": "${{ inputs.provision_token }}"}' \
-            -o "$CLAIM_FILE"
-          DEPLOYMENT_TOKEN=$(jq -r '.deployment_token' < "$CLAIM_FILE")
-          if [ -z "$DEPLOYMENT_TOKEN" ] || [ "$DEPLOYMENT_TOKEN" = "null" ]; then
-            echo "::error::Failed to claim deployment token from LearnLoop"
-            echo "::error::Response: $(cat "$CLAIM_FILE")"
-            rm -f "$CLAIM_FILE"
+          DEPLOYMENT_TOKEN="${{ inputs.deployment_token }}"
+          if [ -z "$DEPLOYMENT_TOKEN" ]; then
+            echo "::error::deployment_token input is required for redeploy"
             exit 1
           fi
-          SECRET_KEY=$(jq -r '.secret_key // empty' < "$CLAIM_FILE")
-          AI_API_KEY=$(jq -r '.ai_config.api_key // empty' < "$CLAIM_FILE")
           echo "DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN}" >> $GITHUB_ENV
           echo "LEARNLOOP_API_URL=${{ inputs.learnloop_api_url }}" >> $GITHUB_ENV
-          if [ -n "$SECRET_KEY" ]; then
-            echo "SECRET_KEY=${SECRET_KEY}" >> $GITHUB_ENV
-            echo "SECRET_KEY received"
-          fi
-          if [ -n "$AI_API_KEY" ]; then
-            echo "AI_API_KEY=${AI_API_KEY}" >> $GITHUB_ENV
-            echo "AI_PROVIDER=learnloop" >> $GITHUB_ENV
-            echo "AI API key received — using LearnLoop AI Gateway"
-          fi
 
-          # Extract auth config (Login with LearnLoop)
-          LEARNLOOP_CLIENT_ID=$(jq -r '.auth_config.oauth_client_id // empty' < "$CLAIM_FILE")
-          LEARNLOOP_CLIENT_SECRET=$(jq -r '.auth_config.oauth_client_secret // empty' < "$CLAIM_FILE")
-          AUTH_ISSUER=$(jq -r '.auth_config.issuer // empty' < "$CLAIM_FILE")
-          AUTH_ISSUER_INTERNAL=$(jq -r '.auth_config.issuer_internal // empty' < "$CLAIM_FILE")
-          SEED_SETUP_CLAIMED=$(jq -r '.seed_setup // empty' < "$CLAIM_FILE")
-
-          if [ -n "$LEARNLOOP_CLIENT_ID" ]; then
-            echo "AUTH_PROVIDER=learnloop" >> $GITHUB_ENV
-            echo "LEARNLOOP_CLIENT_ID=${LEARNLOOP_CLIENT_ID}" >> $GITHUB_ENV
-            echo "LEARNLOOP_CLIENT_SECRET=${LEARNLOOP_CLIENT_SECRET}" >> $GITHUB_ENV
-            echo "AUTH_ISSUER=${AUTH_ISSUER}" >> $GITHUB_ENV
-            echo "AUTH_ISSUER_INTERNAL=${AUTH_ISSUER_INTERNAL}" >> $GITHUB_ENV
-            echo "LearnLoop OAuth credentials received"
+          # Read existing secrets from .env if present (light redeploy preserves config)
+          ENV_FILE="${DEPLOY_DIR}/.env"
+          if [ -f "$ENV_FILE" ]; then
+            echo "Loading existing config from .env"
+            while IFS='=' read -r key value; do
+              case "$key" in
+                SECRET_KEY|AI_API_KEY|AI_PROVIDER|AUTH_PROVIDER|AUTH_CLIENT_SECRET|LEARNLOOP_CLIENT_ID|LEARNLOOP_CLIENT_SECRET|AUTH_ISSUER|AUTH_ISSUER_INTERNAL|GRACE_PERIOD_MINUTES)
+                  if [ -n "$value" ]; then
+                    echo "${key}=${value}" >> $GITHUB_ENV
+                  fi
+                  ;;
+              esac
+            done < "$ENV_FILE"
           fi
 
-          if [ -n "$SEED_SETUP_CLAIMED" ]; then
-            echo "SEED_SETUP=${SEED_SETUP_CLAIMED}" >> $GITHUB_ENV
-            echo "Seed setup from claim: $SEED_SETUP_CLAIMED"
-          fi
-
-          # Base64-encode deploy config directly from file to avoid shell expansion
-          DEPLOY_CONFIG_B64=$(jq -r '.deploy_config_yaml // empty' < "$CLAIM_FILE" | base64 -w0)
-          if [ -n "$DEPLOY_CONFIG_B64" ] && [ "$DEPLOY_CONFIG_B64" != "" ]; then
+          # Read existing deploy config if present
+          DEPLOY_YAML="${DEPLOY_DIR}/glow-deploy.yaml"
+          if [ -f "$DEPLOY_YAML" ]; then
+            DEPLOY_CONFIG_B64=$(base64 -w0 < "$DEPLOY_YAML")
             echo "DEPLOY_CONFIG_B64=$DEPLOY_CONFIG_B64" >> $GITHUB_ENV
-            echo "Deploy config received from claim"
+            echo "Preserved existing glow-deploy.yaml"
           fi
-
-          # grace_period_minutes = simulation idle timeout
-          GRACE_PERIOD=$(jq -r '.deploy_config_yaml // empty' < "$CLAIM_FILE" | python3 -c "import sys,yaml; d=yaml.safe_load(sys.stdin); print(d.get('grace_period_minutes', 60) if d else 60)" 2>/dev/null || echo "60")
-          echo "GRACE_PERIOD_MINUTES=${GRACE_PERIOD}" >> $GITHUB_ENV
-
-          rm -f "$CLAIM_FILE"
-          echo "Deployment token claimed successfully"
+          echo "Deployment token loaded successfully"
 
       - name: Derive auth client secret
         if: env.SECRET_KEY != ''
