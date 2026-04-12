@@ -4,11 +4,11 @@ Draft saved. ID: `{{ r.draft_id }}`.
 {% if r.form_state %}
 {% set fs = r.form_state %}
 ### Form State
-- **Name:** {% if fs.name_id %}`{{ fs.name_id }}` — {{ fs.name }}{% else %}not set{% endif %}
-- **Description:** {% if fs.description_id %}`{{ fs.description_id }}` — {{ fs.description[:100] }}{% else %}not set{% endif %}
-- **Color:** {% if fs.color_id %}`{{ fs.color_id }}` — {{ fs.color }}{% else %}not set{% endif %}
-- **Icon:** {% if fs.icon_id %}`{{ fs.icon_id }}` — {{ fs.icon }}{% else %}not set{% endif %}
-- **Instructions:** {% if fs.instructions_id %}`{{ fs.instructions_id }}` — {{ fs.instructions[:100] }}{% else %}not set{% endif %}
+- **Name:** {% if fs.name_id %}`{{ fs.name_id }}`{% if fs.name %} — {{ fs.name }}{% endif %}{% else %}not set{% endif %}
+- **Description:** {% if fs.description_id %}`{{ fs.description_id }}`{% if fs.description %} — {{ fs.description[:100] }}{% endif %}{% else %}not set{% endif %}
+- **Color:** {% if fs.color_id %}`{{ fs.color_id }}`{% if fs.color %} — {{ fs.color }}{% endif %}{% else %}not set{% endif %}
+- **Icon:** {% if fs.icon_id %}`{{ fs.icon_id }}`{% if fs.icon %} — {{ fs.icon }}{% endif %}{% else %}not set{% endif %}
+- **Instructions:** {% if fs.instructions_id %}`{{ fs.instructions_id }}`{% if fs.instructions %} — {{ fs.instructions[:100] }}{% endif %}{% else %}not set{% endif %}
 - **Active:** {% if fs.active_flag_id %}`{{ fs.active_flag_id }}`{% else %}not set{% endif %}
 - **Departments:** {{ fs.department_ids | length if fs.department_ids else 0 }}
 - **Examples:** {{ fs.example_ids | length if fs.example_ids else 0 }}

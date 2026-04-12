@@ -150,7 +150,7 @@ class InfraOperationError(Exception):
 # ---------------------------------------------------------------------------
 
 _jinja_env = Environment(
-    autoescape=True,
+    autoescape=False,  # Internal tool arg rendering, not HTML — no escaping needed
     trim_blocks=True,
     lstrip_blocks=True,
 )
@@ -299,8 +299,10 @@ async def execute_infra_operation(
             accepted = get_accepted_fields(target.artifact, target.operation)
 
             if accepted is not None:
-                # Write path: filter → build item → wrap in request → execute
+                # Write path: filter → sanitize → build item → wrap in request → execute
                 filtered = filter_to_accepted(rendered, target.artifact, target.operation)
+                from app.infra.tools.sanitize import sanitize_model_kwargs
+                filtered = sanitize_model_kwargs(filtered)
                 fields_used = list(filtered.keys())
                 item = build_item(filtered, target.artifact, target.operation)
 

@@ -10,6 +10,7 @@ from . import (  # noqa: F401
     generate,
     get,
     image_download,
+    name,
     refresh,
     text_download,
     video_download,

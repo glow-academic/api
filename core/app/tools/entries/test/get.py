@@ -20,7 +20,7 @@ async def get_tests(
     rows = await conn.fetch(
         f"""
         SELECT
-            test_id, eval_id, profile_id, department_ids,
+            test_id, call_id, eval_id, profile_id, department_ids,
             test_name, test_description,
             num_invocations, infinite_mode, is_dynamic, archived, test_created_at
         FROM {MV_NAME}
@@ -32,6 +32,7 @@ async def get_tests(
     return [
         GetTestResponse(
             test_id=r["test_id"],
+            call_id=r["call_id"],
             eval_id=r["eval_id"],
             profile_id=r["profile_id"],
             department_ids=r["department_ids"],

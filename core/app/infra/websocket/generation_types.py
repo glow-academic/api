@@ -42,7 +42,8 @@ class GenerationCompleteData(BaseModel):
     success: bool
     message: str
     artifact_id: str | None = None
-    resource_actions: dict[str, Any] | None = None
+    tool_results: list[dict[str, Any]] | None = None
+    metadata: dict[str, Any] | None = None
 
 
 class GenerationErrorData(BaseModel):

@@ -13,6 +13,7 @@ configures for its own field types.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 
@@ -59,6 +60,27 @@ def sanitize_model_kwargs(
         for key in drop_false_bools:
             if result.get(key) is False:
                 result.pop(key, None)
+
+    # Auto-detect stringified lists (Jinja renders ["a","b"] as "['a', 'b']")
+    for key, val in list(result.items()):
+        if isinstance(val, str) and val.startswith("[") and val.endswith("]"):
+            try:
+                # Try JSON first (["a", "b"])
+                parsed = json.loads(val)
+                if isinstance(parsed, list):
+                    result[key] = parsed
+                    continue
+            except (json.JSONDecodeError, ValueError):
+                pass
+            try:
+                # Try Python repr format (['a', 'b'])
+                import ast
+                parsed = ast.literal_eval(val)
+                if isinstance(parsed, list):
+                    result[key] = parsed
+                    continue
+            except (ValueError, SyntaxError):
+                pass
 
     # Coerce single strings to lists
     if list_fields:

@@ -107,6 +107,7 @@ from . import (  # noqa: F401
     # Generation channel (aggregated, client-facing)
     generation_started,
     generation_channel_progress,
+    generation_channel_chat,
     generation_channel_complete,
     generation_channel_error,
     generation_channel_saved,

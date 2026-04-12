@@ -6,12 +6,10 @@ importable without triggering the socket tree.
 
 Flow:
   1. Save assistant message + token counts
-  2. record_agent_done — wait for all agents
-  3. Triage: get all units, separate contested vs uncontested
-  4. Uncontested targets (1 soft unit) → promote_unit() immediately
-  5. Contested targets (>1 soft units) → emit test_proceed for grading
-  6. If no contested → emit generation_complete directly
-  7. If contested → return, wait for generation_ended (test_ended handler)
+  2. resolve_run_completion (DB-based) — check if all agents done
+  3. If generation_test_id → route to eval (rubric quality gate)
+  4. If no eval → results already persisted, emit generation_complete
+  5. Chat special case → attempt grade completion
 """
 
 from __future__ import annotations
@@ -23,24 +21,11 @@ from typing import Any
 
 import asyncpg
 
-from app.infra.activate.activate import activate_rows
-from app.infra.websocket.attempt_types import AttemptChatStartedData
 from app.infra.websocket.generation_types import GenerationCompleteData
 from app.infra.websocket.persist_run_message import persist_run_message
-from app.infra.websocket.pipeline_helpers import aggregate_tool_results
-from app.infra.websocket.run_tracker import (
-    cleanup_run,
-    find_contested_targets,
-    find_uncontested_targets,
-    get_all_units,
-    promote_unit,
-    record_agent_done,
-)
+from app.infra.websocket.resolve_run_completion import resolve_run_completion
 from app.infra.websocket.socket_event import EmitFn, internal_event
-from app.tools.entries.attempt.refresh import refresh_attempt
-from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
 from app.tools.entries.tokens.create import create_token
-from app.utils.cache.invalidate_tags import invalidate_tags
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -75,32 +60,6 @@ def build_audio_continue_payload(
     }
 
 
-def build_generation_resolution_context(
-    *,
-    sid: str,
-    run_id: str,
-    artifact_type: str,
-    group_id: str,
-    resource_actions: dict[str, Any],
-    entry_actions: dict[str, Any],
-    resolution_strategy: str | None = None,
-    resolution_threshold: float | None = None,
-) -> dict[str, Any]:
-    """Build the minimal stored resolution context for contested runs."""
-    ctx: dict[str, Any] = {
-        "sid": sid,
-        "run_id": run_id,
-        "artifact_type": artifact_type,
-        "group_id": group_id,
-        "resource_actions": resource_actions,
-        "entry_actions": entry_actions,
-    }
-    if resolution_strategy:
-        ctx["resolution_strategy"] = resolution_strategy
-    if resolution_threshold is not None:
-        ctx["resolution_threshold"] = resolution_threshold
-    return ctx
-
 
 def build_run_complete_payload(
     *,
@@ -108,7 +67,8 @@ def build_run_complete_payload(
     artifact_type: str,
     group_id: str,
     run_id: str,
-    resource_actions: dict[str, Any],
+    tool_results: list[dict[str, Any]] | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the final generation completion payload for run completion."""
     return GenerationCompleteData(
@@ -118,7 +78,8 @@ def build_run_complete_payload(
         run_id=run_id,
         success=True,
         message=f"{artifact_type.capitalize()} generation completed",
-        resource_actions=resource_actions,
+        tool_results=tool_results,
+        metadata=metadata,
     ).model_dump(mode="json")
 
 
@@ -206,79 +167,58 @@ async def run_complete_impl(
     except Exception as e:
         logger.exception(f"Failed to save run_complete for {artifact_type}: {e}")
 
-    # Step 2: Multi-agent coordination (new tracker)
-    tool_results = data.get("tool_results") or []
-    is_complete, all_tool_results = await record_agent_done(
-        redis,
-        run_id=run_id,
-        tool_results=tool_results,
+    # Step 2: Check if all agents are done (DB-based, no Redis)
+    group_id_uuid = uuid.UUID(group_id_str) if group_id_str else None
+    if not group_id_uuid:
+        logger.warning(f"No group_id in run_complete for {run_id}, skipping coordination")
+        return
+
+    completion = await resolve_run_completion(
+        conn,
+        run_id=run_uuid,
+        group_id=group_id_uuid,
     )
 
-    if not is_complete:
+    if not completion.all_done:
         return  # More agents pending
 
-    # Step 3: All agents finished — triage contested vs uncontested
-    resource_actions, entry_actions = aggregate_tool_results(all_tool_results)
-    units = await get_all_units(redis, run_id=run_id)
-    uncontested = find_uncontested_targets(units)
-    contested = find_contested_targets(units)
+    # Step 3: All agents finished
+    tool_results = data.get("tool_results") or []
+    metadata = data.get("metadata") or {}
+    generation_test_id = metadata.get("generation_test_id")
 
-    # Step 4: Auto-promote uncontested targets (single agent per target)
-    for (target_type, target_name), (agent_id, unit_state) in uncontested.items():
-        try:
-            await promote_unit(
-                redis,
-                run_id=run_id,
-                agent_id=agent_id,
-                target_type=target_type,
-                target_name=target_name,
+    # Step 4: Eval gate (idempotent — handles first pass and re-entry)
+    # If a rubric eval was set up (generation_test_id exists):
+    #   - First pass: eval not graded yet → route to test_proceed, return
+    #   - Second pass (re-triggered by generation_ended): eval graded → fall through
+    if generation_test_id:
+        from app.tools.entries.test_grade.search import search_test_grades
+        from app.tools.entries.test_invocation.search import (
+            search_test_invocation_entries_internal,
+        )
+
+        # Check if eval has been graded by looking for grade records
+        invocations = await search_test_invocation_entries_internal(
+            conn,
+            test_ids=[uuid.UUID(generation_test_id)],
+            limit=10,
+        )
+        invocation_ids = [inv.id for inv in invocations]
+
+        grades = []
+        if invocation_ids:
+            grades = await search_test_grades(
+                conn,
+                invocation_ids=invocation_ids,
+                bypass_mv=True,
             )
-            # Activate the dormant DB record
-            if unit_state.result_id:
-                table = _table_name(target_type, target_name)
-                await activate_rows(
-                    conn, table=table, ids=[uuid.UUID(unit_state.result_id)]
-                )
-        except Exception as e:
-            logger.exception(
-                f"Failed to promote uncontested unit "
-                f"{agent_id}:{target_type}:{target_name}: {e}"
-            )
 
-    # Step 5: Handle contested targets — trigger test grading or auto-promote
-    if contested:
-        metadata = data.get("metadata") or {}
-        generation_test_id = metadata.get("generation_test_id")
-
-        if generation_test_id:
+        if not grades:
+            # First pass — eval not graded yet, route to eval
             logger.info(
-                f"Run {run_id} has {len(contested)} contested targets, "
-                f"emitting test_proceed for grading (test_id={generation_test_id})"
+                f"Run {run_id}: eval {generation_test_id} not graded yet, "
+                f"routing to test_proceed"
             )
-
-            # Store minimal resolution context in Redis so generation_ended
-            # can emit generation_complete with the right fields.
-            # Keyed by test_id (which test_ended carries), not run_id.
-            resolution_ctx = build_generation_resolution_context(
-                sid=sid,
-                run_id=run_id,
-                artifact_type=artifact_type,
-                group_id=group_id_str,
-                resource_actions=resource_actions,
-                entry_actions=entry_actions,
-                resolution_strategy=metadata.get("resolution_strategy"),
-                resolution_threshold=metadata.get("resolution_threshold"),
-            )
-            try:
-                await redis.setex(
-                    f"generation_resolution:{generation_test_id}",
-                    3600,
-                    json.dumps(resolution_ctx),
-                )
-            except Exception as e:
-                logger.warning(f"Failed to store resolution context: {e}")
-
-            # Test already created in generate_prepare — just trigger grading
             await emit(
                 [
                     internal_event(
@@ -291,42 +231,16 @@ async def run_complete_impl(
                     )
                 ]
             )
-            # Don't cleanup run — generation_ended will do it after resolution.
             return
-        else:
-            # No generation test — fall back to auto-promoting first agent
-            logger.warning(
-                f"Run {run_id} has contested targets but no generation_test_id. "
-                f"Auto-promoting first agent per target."
-            )
-            for (target_type, target_name), agents in contested.items():
-                agent_id, unit_state = agents[0]
-                try:
-                    await promote_unit(
-                        redis,
-                        run_id=run_id,
-                        agent_id=agent_id,
-                        target_type=target_type,
-                        target_name=target_name,
-                    )
-                    if unit_state.result_id:
-                        table = _table_name(target_type, target_name)
-                        await activate_rows(
-                            conn,
-                            table=table,
-                            ids=[uuid.UUID(unit_state.result_id)],
-                        )
-                except Exception:
-                    pass
 
-    # Step 6: No contested (or fallback) — emit generation_complete
-    # Chat special case: inject _attempt_chat_id
-    metadata = data.get("metadata") or {}
-    if artifact_type == "chat":
-        attempt_chat_id_meta = metadata.get("attempt_chat_id")
-        if attempt_chat_id_meta:
-            resource_actions["_attempt_chat_id"] = attempt_chat_id_meta
+        # Second pass — eval graded, fall through to emit completion
+        logger.info(
+            f"Run {run_id}: eval {generation_test_id} graded "
+            f"({len(grades)} grades), proceeding to completion"
+        )
 
+    # Step 6: Emit generation_complete (metadata flows through for
+    # downstream handlers like generation_channel_chat to pick up)
     await emit(
         [
             internal_event(
@@ -336,66 +250,11 @@ async def run_complete_impl(
                     artifact_type=artifact_type,
                     group_id=group_id_str,
                     run_id=run_id,
-                    resource_actions=resource_actions,
+                    tool_results=tool_results,
+                    metadata=metadata,
                 ),
             )
         ]
     )
 
-    # Chat special case: MV refresh + cache invalidation
-    if artifact_type == "chat":
-        attempt_id_data = metadata.get("attempt_id")
-        attempt_chat_id_data = metadata.get("attempt_chat_id")
-        if (
-            attempt_id_data
-            and attempt_chat_id_data
-            and not metadata.get("chat_started_emitted")
-        ):
-            try:
-                await refresh_attempt(conn)
-                await refresh_attempt_chat(conn)
-                await invalidate_tags(["attempt", "attempts"], redis=redis)
-
-                await emit(
-                    [
-                        internal_event(
-                            "attempt_chat_started",
-                            AttemptChatStartedData(
-                                sid=sid,
-                                attempt_id=attempt_id_data,
-                                chat_id=attempt_chat_id_data,
-                            ).model_dump(mode="json"),
-                        )
-                    ]
-                )
-            except Exception as e:
-                logger.exception(f"Failed chat post-save: {e}")
-
-    if artifact_type in ("attempt", "chat"):
-        grade_id_data = metadata.get("grade_id")
-        chat_id_data = metadata.get("chat_id")
-        if (
-            grade_id_data
-            and chat_id_data
-            and not metadata.get("grade_complete_emitted")
-        ):
-            try:
-                from app.infra.websocket.attempt_types import AttemptGradeCompleteData
-
-                await emit(
-                    [
-                        internal_event(
-                            "attempt_grade_complete",
-                            AttemptGradeCompleteData(
-                                sid=sid,
-                                chat_id=chat_id_data,
-                                grade_id=grade_id_data,
-                            ).model_dump(mode="json"),
-                        )
-                    ]
-                )
-            except Exception as e:
-                logger.exception(f"Failed attempt grade completion emit: {e}")
-
-    # Step 7: Cleanup trackers
-    await cleanup_run(redis, run_id=run_id)
+    # Step 7: No Redis cleanup needed — state is in DB

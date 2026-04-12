@@ -12,6 +12,7 @@ class CreateTestResponse(BaseModel):
 
 class GetTestResponse(BaseModel):
     test_id: UUID
+    call_id: UUID | None
     eval_id: UUID | None
     profile_id: UUID | None
     department_ids: list[UUID]

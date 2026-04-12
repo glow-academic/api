@@ -660,7 +660,7 @@ async def generate_artifact_impl(
         # We maintain two parallel conversation states:
         # - responses_input: For Responses API (items with type=function_call, function_call_output)
         # - chat_messages: For Chat Completions API (messages with role/content/tool_calls)
-        max_iterations = 10
+        max_iterations = 15
         iteration = 0
         total_input_tokens = 0
         total_output_tokens = 0

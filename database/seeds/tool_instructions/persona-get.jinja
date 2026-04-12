@@ -22,9 +22,19 @@
 {% for i in r.icons.resources %}- `{{ i.id }}` — {{ i.name }} ({{ i.value }})
 {% endfor %}
 {% endif %}
+{% if r.flags and r.flags.resources %}
+### Flags
+{% for f in r.flags.resources %}- `{{ f.flag_option_id }}` — {{ f.label }}{% if f.description %}: {{ f.description }}{% endif %}
+{% endfor %}
+{% endif %}
 {% if r.departments and r.departments.resources %}
 ### Departments
 {% for d in r.departments.resources %}- `{{ d.department_id }}` — {{ d.name }}
+{% endfor %}
+{% endif %}
+{% if r.examples and r.examples.resources %}
+### Examples
+{% for e in r.examples.resources %}- `{{ e.id }}` — {{ e.example[:80] }}
 {% endfor %}
 {% endif %}
 {% if r.voices and r.voices.resources %}
@@ -32,9 +42,15 @@
 {% for v in r.voices.resources %}- `{{ v.id }}` — {{ v.voice }}
 {% endfor %}
 {% endif %}
+{% if r.parameters and r.parameters.resources %}
+### Parameter Groups
+To explore parameter fields, call `Persona_Get` with `parameter_ids` set to the group IDs below.
+{% for p in r.parameters.resources %}- `{{ p.parameter_id }}` — {{ p.name }}{% if p.description %}: {{ p.description[:60] }}{% endif %}
+{% endfor %}
+{% endif %}
 {% if r.parameter_fields and r.parameter_fields.resources %}
 ### Parameter Fields
-{% for pf in r.parameter_fields.resources %}- `{{ pf.id }}` — {{ pf.name }}
+{% for pf in r.parameter_fields.resources %}- `{{ pf.id }}` — {{ pf.name }}{% if pf.description %}: {{ pf.description[:60] }}{% endif %}
 {% endfor %}
 {% endif %}
 {% elif results and results[0] and results[0].error %}

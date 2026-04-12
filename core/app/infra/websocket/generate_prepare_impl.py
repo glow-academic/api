@@ -462,7 +462,7 @@ async def generate_prepare_impl(
                 conn,
                 agents=agents_with_rubrics,
                 run_id=run_id,
-                profile_id=profile_id,
+                profile_id=profiles_id,
             )
             generation_test_id = str(gen_test.test_id)
             generation_invocation_map = gen_test.invocations
@@ -529,6 +529,7 @@ async def generate_prepare_impl(
                 permissions=[{"artifact": p.artifact, "operation": p.operation} for p in payload.permissions] if payload.permissions else None,
                 artifact_type=artifact_type,
                 artifact_id=payload.artifact_id,
+                group_id=group_id_str,
                 resources=resource_types,
                 modality=payload.modality or "call",
                 profile=ws_ctx.profile,

@@ -9,6 +9,7 @@ from . import (  # noqa: F401
     file_preview,
     get,
     image_download,
+    name,
     refresh,
     text_download,
     video_download,
