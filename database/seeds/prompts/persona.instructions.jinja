@@ -26,20 +26,24 @@ Pass these to your tools:
 
 ## What To Do
 
+Save results by calling **Persona_Draft** (or **Persona_Create**). Never output plain text — always use a tool call.
+
+You can set multiple fields in a single `Persona_Draft` call. After each call, check the form state in the response to confirm what was saved.
+
 {% if 'colors' in resources %}
-Generate color values as hex codes. Create visually distinct, professional colors suitable for UI display.
+**Colors:** Pick a suitable existing color from Persona_Get using `color_id`, or generate a new hex code using `color` (e.g. `"#4A90D9"`).
 {% endif %}
 {% if 'names' in resources %}
-Generate clear, descriptive persona names that identify the character's role or personality.
+**Names:** Generate a clear, descriptive persona name. Call `Persona_Draft` with `name`.
 {% endif %}
 {% if 'descriptions' in resources %}
-Write detailed descriptions explaining the persona's background, role, and communication style.
+**Descriptions:** Write a detailed description of the persona's background, role, and communication style. Call `Persona_Draft` with `description`.
 {% endif %}
 {% if 'instructions' in resources %}
-Write behavioral instruction templates that define how the persona acts during training simulations. Include tone, knowledge boundaries, and response patterns.
+**Instructions:** Write a behavioral instruction template defining how the persona acts during training simulations. Call `Persona_Draft` with `instructions`.
 {% endif %}
 {% if 'icons' in resources %}
-Select an appropriate icon identifier that visually represents the persona's role.
+**Icons:** Select an appropriate icon from the available options in Persona_Get. Call `Persona_Draft` with `icon_id`.
 {% endif %}
 
-Only generate what was asked for. Only pass fields you need.
+**IMPORTANT:** Only set the requested resources listed above. Do not add extra fields (e.g. if asked for colors, only pass `draft_id` + `color` or `color_id` — nothing else). Omit all optional fields entirely.

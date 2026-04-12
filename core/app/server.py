@@ -68,8 +68,14 @@ class _StreamingEventFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         msg = record.getMessage()
 
-        # Suppress engineio packet logs for delta events
-        if "Sending packet" in msg and any(e in msg for e in self._DELTA_EVENTS):
+        # Suppress engineio packet logs for generate + artifact events (payload too large)
+        if "Sending packet" in msg and any(
+            e in msg for e in (*self._DELTA_EVENTS, *self._BOUNDARY_EVENTS)
+        ):
+            return False
+        if "Sending packet" in msg and any(
+            e in msg for e in (".draft.", ".create.", ".update.")
+        ):
             return False
 
         # Count and suppress delta event emits

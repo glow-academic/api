@@ -772,6 +772,7 @@ INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
              text_download=True,
              file_download=True, file_preview=True,
              audio_download=True, call_download=True),
+    ("group", "name"): ("app.infra.group.name", "name_group_impl"),
     **_infra("health", get=True, export=True, refresh=True, docs=True),
     **_infra("invocation", get=True, draft=True, drafts=True, export=True, refresh=True, docs=True),
     **_infra("leaderboard", export=True, refresh=True, docs=True),

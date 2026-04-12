@@ -249,10 +249,25 @@ async def patch_persona_draft_impl(
     """
     # Build request from kwargs if not provided directly
     if request is None:
-        # Filter out empty strings and None — only pass actual values
-        filtered = {k: v for k, v in kwargs.items() if v not in ("", None)}
+        from app.infra.tools.sanitize import sanitize_model_kwargs
+
+        filtered = sanitize_model_kwargs(
+            kwargs,
+            list_fields={
+                "examples", "example_ids", "department_ids", "departments",
+                "parameter_field_ids", "parameter_fields", "voice_ids", "voices",
+            },
+            bool_fields={"active_flag"},
+            drop_false_bools={"active_flag"},
+            value_id_pairs=[
+                ("name", "name_id"), ("description", "description_id"),
+                ("color", "color_id"), ("icon", "icon_id"),
+                ("instructions", "instructions_id"),
+            ],
+        )
         if draft_id:
             filtered["draft_id"] = draft_id
+
         request = PatchPersonaDraftApiRequest(**filtered)
 
     # ── Step 1: Profile context ────────────────────────────────────────
@@ -316,10 +331,15 @@ async def patch_persona_draft_impl(
 
     form_state = DraftFormState(
         name_id=request.name_id,
+        name=request.name,
         description_id=request.description_id,
+        description=request.description,
         instructions_id=request.instructions_id,
+        instructions=request.instructions,
         color_id=request.color_id,
+        color=request.color,
         icon_id=request.icon_id,
+        icon=request.icon,
         active_flag_id=request.active_flag_id,
         department_ids=request.department_ids or [],
         example_ids=request.example_ids or [],

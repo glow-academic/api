@@ -330,8 +330,9 @@ async def execute_infra_operation(
                     )
             else:
                 # Read path: pass rendered args as kwargs directly
-                # Strip empty strings — the function uses None defaults
-                kwargs = {k: v for k, v in rendered.items() if v != ""}
+                # Sanitize: strip empty strings, coerce string booleans
+                from app.infra.tools.sanitize import sanitize_model_kwargs
+                kwargs = sanitize_model_kwargs(rendered)
                 fields_used = list(kwargs.keys())
 
                 # Context fields — system-provided, model doesn't know about these

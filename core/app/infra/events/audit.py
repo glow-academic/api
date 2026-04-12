@@ -168,6 +168,7 @@ async def run_artifact_operation_with_audit(
         "sid": sid,
         "rooms": effective_rooms,
         "call_id": str(call_upload_id) if call_upload_id else None,
+        "group_id": str(effective_group_id) if effective_group_id else None,
         **arguments,
     })
 
@@ -177,6 +178,7 @@ async def run_artifact_operation_with_audit(
             "sid": sid,
             "rooms": effective_rooms,
             "call_id": str(call_upload_id) if call_upload_id else None,
+            "group_id": str(effective_group_id) if effective_group_id else None,
             "message": str(tool_error),
             "error_type": type(tool_error).__name__,
         })
@@ -195,6 +197,7 @@ async def run_artifact_operation_with_audit(
         "sid": sid,
         "rooms": effective_rooms,
         "call_id": str(call_upload_id) if call_upload_id else None,
+        "group_id": str(effective_group_id) if effective_group_id else None,
         **output,
     })
 

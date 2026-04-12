@@ -116,7 +116,7 @@ async def resolve_group(
             return result
 
     # Priority 4: fresh group
-    return await _create_fresh_group(conn, profiles_id, session_id)
+    return await _create_fresh_group(conn, profiles_id, session_id, artifact_type)
 
 
 # ---------------------------------------------------------------------------
@@ -287,8 +287,9 @@ async def _create_fresh_group(
     conn: asyncpg.Connection,
     profiles_id: UUID | None,
     session_id: UUID | None,
+    artifact_type: str | None = None,
 ) -> ResolveGroupApiResponse:
-    """Create a fresh group via canonical black boxes.
+    """Create a fresh group + initial name entry via canonical black boxes.
 
     Requires the caller's session. Session ownership stays at the boundary
     layer instead of silently creating a second session.
@@ -299,4 +300,11 @@ async def _create_fresh_group(
         raise ValueError("session_id is required to create a fresh group")
 
     group = await create_group(conn, session_id=session_id)
+
+    # Create initial name entry
+    name = f"{artifact_type.title()} Generation" if artifact_type else ""
+    if name:
+        from app.tools.entries.group_names.create import create_group_name
+        await create_group_name(conn, group_id=group.id, name=name, session_id=session_id)
+
     return ResolveGroupApiResponse(group_id=str(group.id))

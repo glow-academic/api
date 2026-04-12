@@ -1,22 +1,40 @@
 {% if success and results and results[0] and results[0].result %}
 {% set r = results[0].result %}
-## Persona: {{ r.names.selected[0].name if r.names and r.names.selected else '(unnamed)' }}
+### Form State
+- **Name:** {% if r.names and r.names.resource %}`{{ r.names.resource.id }}` — {{ r.names.resource.name }}{% else %}not set{% endif %}
+- **Description:** {% if r.descriptions and r.descriptions.resource %}`{{ r.descriptions.resource.id }}` — {{ r.descriptions.resource.description[:100] }}{% else %}not set{% endif %}
+- **Color:** {% if r.colors and r.colors.resource %}`{{ r.colors.resource.id }}` — {{ r.colors.resource.name }} ({{ r.colors.resource.hex_code }}){% else %}not set{% endif %}
+- **Icon:** {% if r.icons and r.icons.resource %}`{{ r.icons.resource.id }}` — {{ r.icons.resource.name }} ({{ r.icons.resource.value }}){% else %}not set{% endif %}
+- **Instructions:** {% if r.instructions and r.instructions.resource %}`{{ r.instructions.resource.id }}` — {{ r.instructions.resource.template[:100] }}{% else %}not set{% endif %}
+- **Departments:** {% if r.departments and r.departments.current %}{% for d in r.departments.current %}`{{ d.department_id }}` — {{ d.name }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}0{% endif %}
+- **Examples:** {% if r.examples and r.examples.current %}{{ r.examples.current | length }}{% else %}0{% endif %}
+- **Voices:** {% if r.voices and r.voices.current %}{% for v in r.voices.current %}`{{ v.id }}` — {{ v.voice }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}0{% endif %}
+- **Parameter Fields:** {% if r.parameter_fields and r.parameter_fields.current %}{{ r.parameter_fields.current | length }}{% else %}0{% endif %}
 
-{% if r.descriptions and r.descriptions.selected %}{{ r.descriptions.selected[0].description }}{% endif %}
-
-{% if r.colors and r.colors.selected %}**Color:** {{ r.colors.selected[0].name }} ({{ r.colors.selected[0].hex_code }}){% endif %}
-{% if r.icons and r.icons.selected %}**Icon:** {{ r.icons.selected[0].name }} ({{ r.icons.selected[0].value }}){% endif %}
-{% if r.instructions and r.instructions.selected %}**Instructions:** {{ r.instructions.selected[0].template[:200] }}{% endif %}
-
-{% if r.colors and r.colors.suggestions %}
-### Available Colors
-{% for c in r.colors.suggestions %}- `{{ c.id }}` — {{ c.name }} ({{ c.hex_code }})
+## Available Options
+{% if r.colors and r.colors.resources %}
+### Colors
+{% for c in r.colors.resources %}- `{{ c.id }}` — {{ c.name }} ({{ c.hex_code }})
 {% endfor %}
 {% endif %}
-
-{% if r.icons and r.icons.suggestions %}
-### Available Icons
-{% for i in r.icons.suggestions %}- `{{ i.id }}` — {{ i.name }} ({{ i.value }})
+{% if r.icons and r.icons.resources %}
+### Icons
+{% for i in r.icons.resources %}- `{{ i.id }}` — {{ i.name }} ({{ i.value }})
+{% endfor %}
+{% endif %}
+{% if r.departments and r.departments.resources %}
+### Departments
+{% for d in r.departments.resources %}- `{{ d.department_id }}` — {{ d.name }}
+{% endfor %}
+{% endif %}
+{% if r.voices and r.voices.resources %}
+### Voices
+{% for v in r.voices.resources %}- `{{ v.id }}` — {{ v.voice }}
+{% endfor %}
+{% endif %}
+{% if r.parameter_fields and r.parameter_fields.resources %}
+### Parameter Fields
+{% for pf in r.parameter_fields.resources %}- `{{ pf.id }}` — {{ pf.name }}
 {% endfor %}
 {% endif %}
 {% elif results and results[0] and results[0].error %}

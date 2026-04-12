@@ -49,10 +49,10 @@ def validate_payload(
     requires_draft: bool,
     draft_id: UUID | None,
 ) -> str | None:
-    """Validate generation payload. Returns error string or None if valid."""
-    if not resource_types_raw:
-        return "resource_types must be provided"
+    """Validate generation payload. Returns error string or None if valid.
 
+    Empty resource_types_raw is allowed — caller should default to all valid types.
+    """
     all_valid = set(valid_resource_types) | set(entry_types)
     invalid = [rt for rt in resource_types_raw if rt not in all_valid]
     if invalid:

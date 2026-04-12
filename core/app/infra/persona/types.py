@@ -153,7 +153,7 @@ class PersonaDraftEntry(BaseModel):
     draft_id: UUID | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
-    version: int | None = None
+
     generated: bool | None = None
     mcp: bool | None = None
     active: bool | None = None
@@ -450,7 +450,7 @@ class PersonaResultItem(BaseModel):
     """Per-item result within a bulk create/update response."""
 
     success: bool = Field(..., description="Whether the operation succeeded for this item")
-    persona_id: UUID | None = Field(None, description="UUID of the affected persona")
+    id: UUID | None = Field(None, description="UUID of the affected persona")
     message: str = Field(..., description="Human-readable result message")
     errors: list[PersonaFieldError] | None = Field(None, description="Per-field validation errors, if any")
 
@@ -531,12 +531,12 @@ class CreatePersonaApiResponse(BaseModel):
 
 
 class UpdatePersonaItem(ScopedItem):
-    """Single persona item for update — persona_id required, all fields optional.
+    """Single persona item for update — id required, all fields optional.
 
     Only provided fields are updated (partial update).
     """
 
-    persona_id: UUID = Field(..., description="UUID of the persona to update (required)")
+    id: UUID = Field(..., description="UUID of the persona to update (required)")
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of an existing name resource to select")
     name: str | None = Field(None, description="Display name text (creates new resource if name_id not provided)")
@@ -588,14 +588,14 @@ class SavePersonaFieldError(BaseModel):
 class DeletePersonaApiRequest(BaseModel):
     """Request model for bulk delete persona endpoint."""
 
-    persona_ids: list[UUID] = Field(..., description="List of persona UUIDs to delete")
+    ids: list[UUID] = Field(..., description="List of persona UUIDs to delete")
 
 
 class DeletePersonaResult(BaseModel):
     """Per-item result within a bulk delete response."""
 
     success: bool = Field(..., description="Whether the deletion succeeded")
-    persona_id: UUID = Field(..., description="UUID of the deleted persona")
+    id: UUID = Field(..., description="UUID of the deleted persona")
     message: str = Field(..., description="Human-readable result message")
 
 
@@ -611,14 +611,14 @@ class DeletePersonaApiResponse(BaseModel):
 class DuplicatePersonaApiRequest(BaseModel):
     """Request model for duplicate persona endpoint."""
 
-    persona_id: UUID = Field(..., description="UUID of the persona to duplicate")
+    id: UUID = Field(..., description="UUID of the persona to duplicate")
 
 
 class DuplicatePersonaApiResponse(BaseModel):
     """Response model for duplicate persona endpoint."""
 
     success: bool = Field(..., description="Whether the duplication succeeded")
-    persona_id: UUID = Field(..., description="UUID of the newly created duplicate persona")
+    id: UUID = Field(..., description="UUID of the newly created duplicate persona")
     message: str = Field(..., description="Human-readable result message")
 
 
@@ -626,52 +626,58 @@ class DuplicatePersonaApiResponse(BaseModel):
 
 
 class PatchPersonaDraftApiRequest(ScopedItem):
-    """Request model for new-style persona draft endpoint.
+    """Request model for persona draft endpoint.
 
-    Dual-mode for creatable resources only:
-      - name/name_id, description/description_id, instructions/instructions_id, examples/example_ids
-    ID-only for non-creatable resources:
-      - color_id, icon_id, flag_id, department_ids, parameter_field_ids, voice_ids
-
-    Client always sends full state (append-only — each write is a new version snapshot).
+    All resources accept value or ID, matching create/update.
+    Client always sends full state (append-only — each write is a new snapshot).
     """
 
-    input_draft_id: UUID | None = Field(None, description="Existing draft UUID to patch (omit to create a new draft)")
+    draft_id: UUID | None = Field(None, description="Existing draft UUID to patch (omit to create a new draft)")
 
-    # Creatable single-select — provide value or ID
+    # Single-select — provide value or ID
     name: str | None = Field(None, description="Display name text (creates new name resource)")
     name_id: UUID | None = Field(None, description="UUID of an existing name resource to select")
     description: str | None = Field(None, description="Description text (creates new description resource)")
     description_id: UUID | None = Field(None, description="UUID of an existing description resource to select")
+    color: str | None = Field(None, description="Hex color code (creates new resource if color_id not provided)")
+    color_id: UUID | None = Field(None, description="UUID of a color resource to select")
+    icon: str | None = Field(None, description="Icon identifier value (creates new resource if icon_id not provided)")
+    icon_id: UUID | None = Field(None, description="UUID of an icon resource to select")
     instructions: str | None = Field(None, description="Instruction template text (creates new instruction resource)")
     instructions_id: UUID | None = Field(None, description="UUID of an existing instruction resource to select")
+    active_flag_id: UUID | None = Field(None, description="UUID of the flag option to set active status")
+    active_flag: bool | None = Field(None, description="Whether the persona is active (resolved to flag_id)")
 
-    # Creatable multi-select — provide values or IDs
+    # Multi-select — provide values or IDs
     examples: list[str] | None = Field(None, description="Example texts (creates new example resources)")
     example_ids: list[UUID] | None = Field(None, description="Existing example resource UUIDs to select")
-
-    # Non-creatable — ID-only
-    color_id: UUID | None = Field(None, description="UUID of a color resource to select")
-    icon_id: UUID | None = Field(None, description="UUID of an icon resource to select")
-    flag_id: UUID | None = Field(None, description="UUID of a flag option to set")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to associate")
+    departments: list[str] | None = Field(None, description="Department names (resolved to UUIDs server-side)")
     parameter_field_ids: list[UUID] | None = Field(None, description="Parameter field UUIDs to associate")
+    parameter_fields: list[str] | None = Field(None, description="Parameter field names (resolved to UUIDs server-side)")
     voice_ids: list[UUID] | None = Field(None, description="Voice resource UUIDs to associate")
+    voices: list[str] | None = Field(None, description="Voice values (resolved to UUIDs server-side)")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
+        "color": "colors",
+        "color_id": "colors",
+        "icon": "icons",
+        "icon_id": "icons",
         "instructions": "instructions",
         "instructions_id": "instructions",
+        "active_flag": "flags",
+        "active_flag_id": "flags",
         "examples": "examples",
         "example_ids": "examples",
-        "color_id": "colors",
-        "icon_id": "icons",
-        "flag_id": "flags",
+        "departments": "departments",
         "department_ids": "departments",
+        "parameter_fields": "parameter_fields",
         "parameter_field_ids": "parameter_fields",
+        "voices": "voices",
         "voice_ids": "voices",
     }
 
@@ -680,13 +686,19 @@ class DraftFormState(BaseModel):
     """Full form state after draft patch — server is source of truth.
 
     Client replaces its local form state with this after every successful patch.
+    Includes both resolved IDs and echoed values for AI model feedback.
     """
 
     name_id: UUID | None = Field(None, description="Currently selected name resource UUID")
+    name: str | None = Field(None, description="Name value that was saved")
     description_id: UUID | None = Field(None, description="Currently selected description resource UUID")
+    description: str | None = Field(None, description="Description value that was saved")
     instructions_id: UUID | None = Field(None, description="Currently selected instruction resource UUID")
+    instructions: str | None = Field(None, description="Instructions value that was saved")
     color_id: UUID | None = Field(None, description="Currently selected color resource UUID")
+    color: str | None = Field(None, description="Color value that was saved (hex code)")
     icon_id: UUID | None = Field(None, description="Currently selected icon resource UUID")
+    icon: str | None = Field(None, description="Icon value that was saved")
     active_flag_id: UUID | None = Field(None, description="Currently selected flag option UUID")
     department_ids: list[UUID] = Field(default_factory=list, description="Currently associated department UUIDs")
     example_ids: list[UUID] = Field(default_factory=list, description="Currently associated example resource UUIDs")

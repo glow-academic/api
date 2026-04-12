@@ -312,12 +312,13 @@ async def generate_prepare_impl(
         # --- Step 1: Validate (pure) ---
         # New format: resources is a plain list of strings
         # Legacy format: resource_types is a list of ResourceTypeItem
+        # Empty = all valid resource types for this artifact
         if payload.resources:
             resource_types = payload.resources
         elif payload.resource_types:
             resource_types = [rt.name for rt in payload.resource_types if rt]
         else:
-            resource_types = []
+            resource_types = list(artifact_config.valid_resource_types)
         error = validate_payload_fn(
             resource_types_raw=resource_types,
             artifact_type=artifact_type,
@@ -551,7 +552,7 @@ async def generate_prepare_impl(
                 for em in payload.extra_messages:
                     all_messages.append(em)
 
-            # User instructions (persisted)
+            # User instructions (persisted + emitted)
             if payload.user_instructions:
                 for instruction in payload.user_instructions:
                     all_messages.append({"role": "user", "content": instruction})
@@ -562,6 +563,18 @@ async def generate_prepare_impl(
                         role="user",
                         content=instruction,
                     )
+                    # Emit so the generation panel can show the user message live
+                    await emit([internal_event(
+                        "generate_text_complete",
+                        {
+                            "sid": sid,
+                            "group_id": str(group_id),
+                            "role": "user",
+                            "text": instruction,
+                            "run_id": str(run_id),
+                            "artifact_type": artifact_type,
+                        },
+                    )])
 
             # Build dispatch event
             events.append(

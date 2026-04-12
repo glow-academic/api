@@ -11,19 +11,20 @@ async def create_group(
     conn: asyncpg.Connection,
     session_id: UUID,
     id: UUID | None = None,
-    name: str = "",
     mcp: bool = False,
     soft: bool = False,
 ) -> CreateGroupResponse:
-    """Create a groups entry."""
+    """Create a groups entry.
+
+    Group naming is handled separately via group_names_entry.
+    """
     group_id = await conn.fetchval(
         """
-        INSERT INTO groups_entry (id, session_id, name, active, mcp, generated)
-        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true)
+        INSERT INTO groups_entry (id, session_id, active, mcp, generated)
+        VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
         RETURNING id
     """,
         session_id,
-        name,
         not soft,
         mcp,
         id,

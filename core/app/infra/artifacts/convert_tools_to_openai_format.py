@@ -137,12 +137,15 @@ def convert_tools_to_responses_format(
         arguments = _get_tool_attr(tool, "arguments") or {}
         argument_descriptions = _get_tool_attr(tool, "argument_descriptions") or {}
 
+        all_field_names: list[str] = []
+
         if isinstance(arguments, dict):
             for field_name, field_spec in arguments.items():
                 if not isinstance(field_spec, dict):
                     continue
 
                 field_type = field_spec.get("type", "string")
+                field_required = bool(field_spec.get("required", False))
                 field_description = argument_descriptions.get(field_name, "")
 
                 if field_type == "array":
@@ -163,7 +166,6 @@ def convert_tools_to_responses_format(
                         "description": field_description,
                     }
                 else:
-                    # map primitives
                     json_type = (
                         field_type
                         if field_type in ("string", "integer", "number", "boolean")
@@ -174,25 +176,28 @@ def convert_tools_to_responses_format(
                         "description": field_description,
                     }
 
-                # When strict=True, ALL properties must be in the required array
-                # OpenAI enforces this: "required is required to be supplied and to be
-                # an array including every key in properties"
-                required_fields.append(field_name)
+                all_field_names.append(field_name)
+                if field_required:
+                    required_fields.append(field_name)
 
-        # Responses API format: FunctionToolParam (flat structure, not nested)
-        # When strict=True, additionalProperties must be explicitly set to false
+        # Use strict mode only when ALL fields are required (clean schemas).
+        # Otherwise use non-strict with proper required/optional distinction.
+        use_strict = len(required_fields) == len(all_field_names) and len(all_field_names) > 0
+
+        tool_params: dict[str, Any] = {
+            "type": "object",
+            "properties": parameters,
+            "required": all_field_names if use_strict else required_fields,
+            "additionalProperties": False,
+        }
+
         responses_tools.append(
             {
                 "type": "function",
                 "name": sanitize_tool_name(name),
                 "description": _get_tool_attr(tool, "description") or "",
-                "parameters": {
-                    "type": "object",
-                    "properties": parameters,
-                    "required": required_fields,
-                    "additionalProperties": False,  # Required when strict=True
-                },
-                "strict": True,  # Default to strict validation
+                "parameters": tool_params,
+                "strict": use_strict,
             }
         )
 

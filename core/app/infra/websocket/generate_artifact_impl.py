@@ -493,23 +493,8 @@ async def generate_artifact_impl(
                     tool_createable_by_name[safe_name] = t_operation == "create"
 
         tool_choice = model_config.tool_choice or "auto"
-        await _emit_modality_event(
-            emit,
-            data.modality,
-            "start",
-            {
-                "modality": data.modality,
-                "sid": sid,
-                "artifact_type": data.artifact_type,
-                "resource_type": resource_type,
-                "resource_id": data.resource_id,
-                "run_id": data.run_id,
-                "group_id": data.group_id,
-                "type": "start",
-                "message": "Starting generation",
-                "metadata": data.metadata,
-            },
-        )
+        # NOTE: generation_started is emitted by generate_prepare_impl.
+        # No duplicate call_start here — that event name is for actual tool calls.
 
         if data.modality in ("image", "video"):
             if data.file_path:
@@ -843,6 +828,7 @@ async def generate_artifact_impl(
                     # responses_call_id is the model's call_id needed for function_call_output.
                     internal_call_id = str(uuid.uuid7()) if hasattr(uuid, "uuid7") else str(uuid.uuid4())
                     responses_call_id = event.get("responses_call_id") or raw_id
+                    event_tool_name = event.get("tool_name")
                     tool_call_states.setdefault(
                         tool_call_id,
                         {
@@ -850,7 +836,7 @@ async def generate_artifact_impl(
                             "raw_id": raw_id,
                             "responses_call_id": responses_call_id,  # For function_call_output
                             "tool_call_id": tool_call_id,
-                            "tool_name": None,
+                            "tool_name": event_tool_name,
                             "arguments": "",
                         },
                     )
@@ -868,6 +854,7 @@ async def generate_artifact_impl(
                             "type": "start",
                             "event_type": "tool_call_start",
                             "tool_call_id": tool_call_id,
+                            "tool_name": event_tool_name,
                             "metadata": data.metadata,
                         },
                     )
@@ -1062,7 +1049,7 @@ async def generate_artifact_impl(
                     # Render tool response template (Layer 3) if available
                     td = tool_def_by_name.get(tool_name)
                     response_template = td.get("_instruction_template") if td else None
-                    logger.info(f"[Layer3] tool_name={tool_name}, td_found={td is not None}, has_template={response_template is not None}, keys={list(td.keys()) if td else []}")
+
                     if response_template and isinstance(tool_result, dict):
                         try:
                             from jinja2 import Environment, Undefined
