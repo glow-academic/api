@@ -66,9 +66,10 @@ async def resolve_profile_identity_context(
     profile_id: UUID,
     redis: Redis,
     bypass_cache: bool = False,
-    # Server-resolved session (from require_auth middleware)
+    # Server-resolved context (from require_auth middleware)
     session_id: UUID | None = None,
-    # Group resolution hints (from request body — only needed for mutations)
+    group_id: UUID | None = None,
+    # Legacy hints — routes can still override group_id via these
     draft_id: UUID | None = None,
     attempt_id: UUID | None = None,
     test_id: UUID | None = None,
@@ -82,7 +83,7 @@ async def resolve_profile_identity_context(
       1. get_profile_artifacts — fetches junction IDs
       2. asyncio.gather — hydrates all resources in parallel
       3. Pure Python assembly
-      4. (Optional) resolve group_id from hints or create a fresh one
+      4. group_id: from middleware (default) or route-specific override
     """
     # Step 1: fetch profile artifact with all needed junctions
     async with pool.acquire() as conn:
@@ -211,9 +212,11 @@ async def resolve_profile_identity_context(
     # The artifact's active field reflects this
     is_active = artifact.active
 
-    # Step 4: resolve group_id when mutation/generation context requires it
-    resolved_group_id: UUID | None = None
-    if draft_id or attempt_id or test_id or session_id:
+    # Step 4: group_id — use passed value (from middleware or caller).
+    # Routes that need a specific group (draft, attempt, test pages)
+    # can override by passing group_id directly or resolving via hints.
+    resolved_group_id = group_id
+    if not resolved_group_id and (draft_id or attempt_id or test_id):
         resolved_group_id = await _resolve_group_id(
             pool,
             profiles_id=profiles_id,

@@ -7,6 +7,7 @@ Two-layer BFF pattern:
 Uses composable context resolver with black-box tools.
 """
 
+from typing import Any
 from uuid import UUID
 
 import asyncpg
@@ -35,21 +36,31 @@ from app.utils.cache.set_cached import set_cached
 
 async def get_test_impl(
     pool: asyncpg.Pool,
-    test_id: UUID,
-    bypass_cache: bool = False,
+    redis: Any | None = None,
+    *,
     profile_id: UUID | None = None,
+    session_id: UUID | None = None,
+    group_id: UUID | None = None,
+    id: UUID | None = None,
+    bypass_cache: bool = False,
+    **_kwargs: Any,
 ) -> TestInternalData:
     """Core test artifact detail fetcher.
 
-    Fetches all data via context resolver, computes business logic,
-    and returns TestInternalData. No caching.
+    Canonical signature: (pool, redis, *, profile_id, session_id, ...).
+    Tools send `id`, internal code uses `test_id`.
     """
+    effective_redis = redis or get_redis_client()
+    test_id = id  # alias: tools send 'id'
+    if not test_id:
+        return TestInternalData()
+
     try:
         # === RESOLVE CONTEXT ===
         ctx = await resolve_test_context(
             pool,
-            get_redis_client(),
-            test_id=test_id,
+            effective_redis,
+            test_id=effective_test_id,
             bypass_cache=bypass_cache,
         )
 
@@ -246,8 +257,8 @@ async def get_test_impl_cached(
             return GetTestArtifactResponse.model_validate(cached["data"]), True
 
     data = await get_test_impl(
-        pool=pool,
-        test_id=test_id,
+        pool,
+        id=test_id,
         bypass_cache=bypass_cache,
     )
 

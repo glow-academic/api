@@ -21,9 +21,7 @@ router = APIRouter()
 class CreateGradeApiRequest(BaseModel):
     invocation_id: UUID = Field(..., description="Test invocation to grade")
     run_id: UUID | None = Field(None, description="Run ID for audit linkage")
-    passed: bool = Field(False, description="Whether the test passed")
-    score: int = Field(0, description="Total score")
-    time_taken: int = Field(0, description="Time taken in ms")
+    score: int = Field(0, description="Overall score")
 
 
 @router.post("/grade")
@@ -51,9 +49,7 @@ async def create_grade(
                 session_id=session_id,
                 invocation_id=request.invocation_id,
                 run_id=request.run_id,
-                passed=request.passed,
                 score=request.score,
-                time_taken=request.time_taken,
             )
 
         result = await run_artifact_operation_with_audit(

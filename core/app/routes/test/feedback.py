@@ -21,10 +21,9 @@ router = APIRouter()
 class CreateFeedbackApiRequest(BaseModel):
     grade_id: UUID = Field(..., description="Grade entry to attach feedback to")
     tool_call_id: UUID = Field(..., description="Tool call being graded")
+    standard_group_id: UUID = Field(..., description="Rubric standard group being scored")
     score: int = Field(0, description="Score for this criterion (1-5)")
     feedback: str = Field("", description="Feedback text")
-    total_points: int = Field(0, description="Total possible points")
-    pass_points: int = Field(0, description="Points needed to pass")
     run_id: UUID | None = Field(None, description="Run ID for audit linkage")
 
 
@@ -53,10 +52,9 @@ async def create_feedback(
                 session_id=session_id,
                 grade_id=request.grade_id,
                 tool_call_id=request.tool_call_id,
+                standard_group_id=request.standard_group_id,
                 score=request.score,
                 feedback=request.feedback,
-                total_points=request.total_points,
-                pass_points=request.pass_points,
                 run_id=request.run_id,
             )
 

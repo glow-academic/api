@@ -74,6 +74,7 @@ class InfraContext(BaseModel):
     profile_id: UUID = Field(description="Authenticated user's profile ID")
     session_id: UUID | None = Field(default=None, description="Session context")
     group_id: UUID | None = Field(default=None, description="Group context")
+    run_id: UUID | None = Field(default=None, description="Run context")
     draft_id: UUID | None = Field(default=None, description="Draft context")
     sid: str = Field(default="", description="Socket ID for event emission")
     soft: bool = Field(default=False, description="Create dormant records (active=False) for generation pipeline")
@@ -343,6 +344,7 @@ async def execute_infra_operation(
                     "profile_id": ctx.profile_id,
                     "session_id": ctx.session_id,
                     "group_id": ctx.group_id,
+                    "run_id": ctx.run_id,
                 }
                 ctx_kwargs = {k: v for k, v in ctx_defaults.items() if k not in kwargs}
 

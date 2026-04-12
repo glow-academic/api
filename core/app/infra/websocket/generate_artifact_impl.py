@@ -1009,12 +1009,18 @@ async def generate_artifact_impl(
                             )
                             try:
                                 spec = resolve_tool_spec(td, arguments_dict)
+                                _run_id = (
+                                    uuid.UUID(data.run_id)
+                                    if data.run_id
+                                    else None
+                                )
                                 ctx = InfraContext(
                                     pool=get_pool(),
                                     redis=get_redis_client(),
                                     profile_id=_profile_id,
                                     session_id=_session_id,
                                     group_id=_group_id,
+                                    run_id=_run_id,
                                     sid=sid,
                                     soft=True,
                                 )

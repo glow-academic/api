@@ -1032,12 +1032,19 @@ async def test_run_impl(
                         "session_id": data.get("session_id"),
                         "group_id": str(group_id),
                         "permissions": [
+                            {"artifact": "test", "operation": "get"},
                             {"artifact": "test", "operation": "grade"},
+                            {"artifact": "test", "operation": "feedback"},
                         ],
                         "resources": [],
                         "user_instructions": [],
                         "modality": "text",
                         "run_id": str(new_run_id),
+                        "params": {
+                            "test_id": str(test_id),
+                            "invocation_id": str(test_invocation_id),
+                            "run_id": str(original_run_id),
+                        },
                         "metadata": {
                             "test_id": str(test_id),
                             "test_invocation_id": str(test_invocation_id),
