@@ -6,9 +6,9 @@
 - **Invocations:** {{ r.invocations | length }}
 {% endif %}
 
-{% if r.resources_payload and r.resources_payload.rubrics %}
+{% if r.resources and r.resources.rubrics %}
 ## Rubric
-{% for rid, rubric in r.resources_payload.rubrics.items() %}
+{% for rid, rubric in r.resources.rubrics.items() %}
 **{{ rubric.name }}**: {{ rubric.description[:200] if rubric.description else '' }}
 - Total Points: {{ rubric.total_points }} | Pass Points: {{ rubric.pass_points }}
 {% if rubric.standard_group_ids %}
@@ -28,25 +28,25 @@
 {% endfor %}
 {% endif %}
 
-{% if r.entries_payload and r.entries_payload.messages %}
+{% if r.entries and r.entries.messages %}
 ## Messages (Original Agent Output)
-{% for msg in r.entries_payload.messages %}
+{% for msg in r.entries.messages %}
 ### {{ msg.role | upper }}
 {% if msg.text_ids %}- Text IDs: {{ msg.text_ids | join(', ') }}{% endif %}
 {% if msg.call_ids %}- Tool Call IDs: {{ msg.call_ids | join(', ') }}{% endif %}
 {% endfor %}
 {% endif %}
 
-{% if r.entries_payload and r.entries_payload.grades %}
+{% if r.entries and r.entries.grades %}
 ## Grades
-{% for g in r.entries_payload.grades %}
+{% for g in r.entries.grades %}
 - Grade `{{ g.id }}` | Score: {{ g.score }} | Passed: {{ g.passed }}
 {% endfor %}
 {% endif %}
 
-{% if r.entries_payload and r.entries_payload.feedback %}
+{% if r.entries and r.entries.feedback %}
 ## Feedback
-{% for fb in r.entries_payload.feedback %}
+{% for fb in r.entries.feedback %}
 - Score: {{ fb.total }}/{{ fb.total_points }} | {{ fb.feedback[:100] }}
 {% endfor %}
 {% endif %}
