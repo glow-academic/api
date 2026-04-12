@@ -127,6 +127,19 @@ async def resolve_test_context(
     grade_ids = [g.id for g in grades]
     run_ids = [r.id for r in runs]
 
+    # Also include the original run's messages (the agent output being graded).
+    # Derivation: test_entry.call_id → calls_entry.run_id
+    test = tests[0]
+    original_run_id: UUID | None = None
+    if test.call_id:
+        async with pool.acquire() as c:
+            from app.tools.entries.calls.get import get_calls
+            calls = await get_calls(c, [test.call_id])
+            if calls:
+                original_run_id = calls[0].run_id
+    if original_run_id and original_run_id not in run_ids:
+        run_ids.append(original_run_id)
+
     async def _fetch_feedback() -> list:
         if not grade_ids:
             return []

@@ -1,1 +1,57 @@
-{# Test Get response template #}
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+{% if r.test %}
+## Test: {{ r.test.test_name }}
+- **Status:** {{ r.status }}
+- **Invocations:** {{ r.invocations | length }}
+{% endif %}
+
+{% if r.resources_payload and r.resources_payload.rubrics %}
+## Rubric
+{% for rid, rubric in r.resources_payload.rubrics.items() %}
+**{{ rubric.name }}**: {{ rubric.description[:200] if rubric.description else '' }}
+- Total Points: {{ rubric.total_points }} | Pass Points: {{ rubric.pass_points }}
+{% if rubric.standard_group_ids %}
+### Standard Groups
+{% for sgid in rubric.standard_group_ids %}- `{{ sgid }}`
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if r.invocations %}
+## Invocations
+{% for inv in r.invocations %}
+- **ID:** `{{ inv.invocation_id }}`{% if inv.rubric_id %} | Rubric: `{{ inv.rubric_id }}`{% endif %}{% if inv.agent_ids %} | Agent: {{ inv.agent_ids | join(', ') }}{% endif %}
+  Status: {% if inv.invocation_completed %}completed{% else %}pending{% endif %}{% if inv.grade_score is not none %} | Score: {{ inv.grade_score }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if r.entries_payload and r.entries_payload.messages %}
+## Messages (Original Agent Output)
+{% for msg in r.entries_payload.messages %}
+### {{ msg.role | upper }}
+{% if msg.text_ids %}- Text IDs: {{ msg.text_ids | join(', ') }}{% endif %}
+{% if msg.call_ids %}- Tool Call IDs: {{ msg.call_ids | join(', ') }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if r.entries_payload and r.entries_payload.grades %}
+## Grades
+{% for g in r.entries_payload.grades %}
+- Grade `{{ g.id }}` | Score: {{ g.score }} | Passed: {{ g.passed }}
+{% endfor %}
+{% endif %}
+
+{% if r.entries_payload and r.entries_payload.feedback %}
+## Feedback
+{% for fb in r.entries_payload.feedback %}
+- Score: {{ fb.total }}/{{ fb.total_points }} | {{ fb.feedback[:100] }}
+{% endfor %}
+{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error: {{ results[0].error }}
+{% else %}
+No test data returned.
+{% endif %}
