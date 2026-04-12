@@ -15,6 +15,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.types import ArtifactContext, ResourcePair
+from app.tools.entries.calls.search import search_calls
 from app.tools.entries.messages.search import search_messages
 from app.tools.entries.test.search import search_tests
 from app.tools.entries.test_feedback.search import (
@@ -157,9 +158,19 @@ async def resolve_test_context(
             msgs, _ = await search_messages(c, run_ids=run_ids, limit=100000)
             return msgs
 
-    feedback, messages = await asyncio.gather(
+    async def _fetch_original_calls() -> list:
+        """Fetch tool calls from the original run (the agent output being graded)."""
+        if not original_run_id:
+            return []
+        async with pool.acquire() as c:
+            from app.tools.entries.calls.refresh import refresh_calls_internal
+            await refresh_calls_internal(c)
+            return await search_calls(c, run_ids=[original_run_id], limit=1000)
+
+    feedback, messages, original_calls = await asyncio.gather(
         _fetch_feedback(),
         _fetch_messages(),
+        _fetch_original_calls(),
     )
 
     # ── Phase 4: Collect resource IDs ─────────────────────────────────
@@ -276,6 +287,7 @@ async def resolve_test_context(
             "grades": grades,
             "feedback": feedback,
             "messages": messages,
+            "calls": original_calls,
         },
         resources={
             "evals": ResourcePair(selected=evals_res, suggestions=[]),

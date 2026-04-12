@@ -68,6 +68,7 @@ class TestEntries(BaseModel):
     grades: list[GetTestGradeResponse] | None = Field(None, description="Grade entry payloads")
     feedback: list[GetTestFeedbackResponse] | None = Field(None, description="Feedback entry payloads")
     messages: list[SearchMessageResponse] | None = Field(None, description="Message entry payloads")
+    calls: list | None = Field(None, description="Tool call entries from original run")
 
 
 class TestResources(BaseModel):

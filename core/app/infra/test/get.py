@@ -191,6 +191,7 @@ async def get_test_impl(
         )
 
         # === BUILD ENTRIES PAYLOAD ===
+        calls = ctx.entries.get("calls", [])
         entries_payload = TestEntries(
             tests=[test],
             invocations=invocations,
@@ -199,6 +200,7 @@ async def get_test_impl(
             grades=grades if grades else None,
             feedback=feedback if feedback else None,
             messages=messages if messages else None,
+            calls=calls if calls else None,
         )
 
         # Inline controls data (replaces auth/group resolution)

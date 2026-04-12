@@ -28,12 +28,20 @@
 {% endfor %}
 {% endif %}
 
+{% if r.entries and r.entries.calls %}
+## Original Agent Tool Calls
+Use these `call_id` values for `tool_call_id` in Test_Feedback.
+{% for call in r.entries.calls %}
+- **Call ID:** `{{ call.id }}` | Tool: `{{ call.tool_id }}`{% if call.file_path %} | [{{ call.file_path }}]{% endif %}
+
+{% endfor %}
+{% endif %}
+
 {% if r.entries and r.entries.messages %}
-## Messages (Original Agent Output)
+## Messages
 {% for msg in r.entries.messages %}
-### {{ msg.role | upper }}
-{% if msg.text_ids %}- Text IDs: {{ msg.text_ids | join(', ') }}{% endif %}
-{% if msg.call_ids %}- Tool Call IDs: {{ msg.call_ids | join(', ') }}{% endif %}
+- **{{ msg.role | upper }}**{% if msg.text_ids %} | Text: {{ msg.text_ids | join(', ') }}{% endif %}{% if msg.call_ids %} | Calls: {{ msg.call_ids | join(', ') }}{% endif %}
+
 {% endfor %}
 {% endif %}
 
