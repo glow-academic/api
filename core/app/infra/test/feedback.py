@@ -1,11 +1,7 @@
 """Test feedback — infra function for AI grading agent.
 
 Creates a test_feedback entry for a specific tool call against a rubric standard group.
-Derives total_points/pass_points from the standard group via black box.
-
-Flow:
-  1. get_standard_groups → points, pass_points for this criterion
-  2. create_test_feedback with derived values
+Derives run_id from grade, and total_points/pass_points from standard group.
 """
 
 from __future__ import annotations
@@ -19,6 +15,7 @@ from redis.asyncio import Redis
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.test_feedback.create import create_test_feedback
 from app.tools.entries.test_feedback.refresh import refresh_test_feedback
+from app.tools.entries.test_grade.search import search_test_grades
 from app.tools.resources.standard_groups.get import get_standard_groups
 from app.utils.cache.invalidate_tags import invalidate_tags
 
@@ -34,14 +31,12 @@ async def create_feedback_impl(
     standard_group_id: UUID | None = None,
     score: int = 0,
     feedback: str = "",
-    run_id: UUID | None = None,
-    group_id: UUID | None = None,
     **kwargs: Any,
 ) -> dict:
     """Create a test feedback entry for one rubric criterion.
 
     Model passes: grade_id, tool_call_id, standard_group_id, score, feedback.
-    Infra derives: total_points, pass_points from standard group.
+    Infra derives: total_points/pass_points from standard group, run_id from grade.
     """
     if grade_id is None and "grade_id" in kwargs:
         grade_id = UUID(kwargs["grade_id"])
@@ -70,14 +65,24 @@ async def create_feedback_impl(
             total_points = sgs[0].points
             pass_points = sgs[0].pass_points
 
-        # Step 2: Create call for audit linkage
+        # Step 2: Derive run_id from grade's run_id field
+        run_id: UUID | None = None
+        grades = await search_test_grades(
+            conn, bypass_mv=True
+        )
+        for g in grades:
+            if g.grade_id == grade_id:
+                run_id = g.run_id
+                break
+
+        # Step 3: Create call for audit linkage
         call = await create_call(
             conn,
             run_id=run_id or UUID(int=0),
             session_id=session_id,
         )
 
-        # Step 3: Create feedback
+        # Step 4: Create feedback
         result = await create_test_feedback(
             conn,
             grade_id=grade_id,

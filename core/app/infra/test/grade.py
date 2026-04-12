@@ -1,19 +1,15 @@
 """Test grade — infra function for AI grading agent.
 
 Creates a test_grade entry for a test invocation.
-Derives passed/time_taken from DB via black boxes.
-
-Flow:
-  1. get_test_invocations → rubric_id, created_at
-  2. get_rubrics → pass_points threshold
-  3. passed = score >= pass_points
-  4. time_taken = now - invocation_created_at
-  5. create_test_grade
+Derives everything from invocation_id via black boxes:
+  - group_id from invocation
+  - run_id from test → call chain
+  - passed from rubric threshold
+  - time_taken from timestamps
 """
 
 from __future__ import annotations
 
-import time as _time
 from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
@@ -22,6 +18,8 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.tools.entries.calls.create import create_call
+from app.tools.entries.calls.get import get_calls
+from app.tools.entries.test.get import get_tests
 from app.tools.entries.test_grade.create import create_test_grade
 from app.tools.entries.test_grade.refresh import refresh_test_grade
 from app.tools.entries.test_invocation.get import get_test_invocations
@@ -37,15 +35,16 @@ async def create_grade_impl(
     session_id: UUID,
     invocation_id: UUID | None = None,
     score: int = 0,
-    run_id: UUID | None = None,
-    group_id: UUID | None = None,
     **kwargs: Any,
 ) -> dict:
     """Create a test grade entry.
 
     Model passes: invocation_id, score.
-    Infra derives: passed, time_taken from black boxes.
-    run_id comes from context (the generation run being graded).
+    Infra derives everything else from invocation_id:
+      - group_id (invocation.group_id)
+      - run_id (test → call → run chain)
+      - passed (score vs rubric threshold)
+      - time_taken (now - invocation created_at)
     """
     if invocation_id is None and "invocation_id" in kwargs:
         invocation_id = UUID(kwargs["invocation_id"])
@@ -56,7 +55,7 @@ async def create_grade_impl(
         raise ValueError("invocation_id is required")
 
     async with pool.acquire() as conn:
-        # Step 1: Get invocation → rubric_id, created_at
+        # Step 1: Get invocation → rubric_id, group_id, test_id, created_at
         invocations = await get_test_invocations(
             conn, ids=[invocation_id], bypass_mv=True
         )
@@ -65,28 +64,38 @@ async def create_grade_impl(
 
         inv = invocations[0]
         rubric_id = inv.rubric_id
+        group_id = inv.group_id
 
-        # Step 2: Get rubric → pass_points threshold
+        # Step 2: Derive run_id from test → call → run
+        run_id: UUID | None = None
+        if inv.test_id:
+            tests = await get_tests(conn, ids=[inv.test_id])
+            if tests and tests[0].call_id:
+                calls = await get_calls(conn, [tests[0].call_id])
+                if calls:
+                    run_id = calls[0].run_id
+
+        # Step 3: Get rubric → pass_points threshold
         pass_points = 0
         if rubric_id:
             rubrics = await get_rubrics(conn, [rubric_id], redis)
             if rubrics:
                 pass_points = rubrics[0].pass_points
 
-        # Step 3: Derive passed and time_taken
+        # Step 4: Derive passed and time_taken
         passed = score >= pass_points if pass_points > 0 else score > 0
         time_taken_ms = int(
             (datetime.now(timezone.utc) - inv.invocation_created_at).total_seconds() * 1000
         )
 
-        # Step 4: Create call for audit linkage
+        # Step 5: Create call for audit linkage
         call = await create_call(
             conn,
             run_id=run_id or UUID(int=0),
             session_id=session_id,
         )
 
-        # Step 5: Create grade
+        # Step 6: Create grade
         result = await create_test_grade(
             conn,
             invocation_id=invocation_id,
