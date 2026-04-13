@@ -215,8 +215,8 @@ class SectionFilter(BaseModel):
 
     search: str | None = Field(None, description="Filter options by search text")
     limit: int | None = Field(None, description="Max options to return")
-    selected_only: bool | None = Field(None, description="Only return selected items")
-    suggested_only: bool | None = Field(None, description="Only return suggested items")
+    selected: bool | None = Field(None, description="Only return selected items")
+    suggested: bool | None = Field(None, description="Only return suggested items")
     include: bool | None = Field(None, description="Include this section in response (default true)")
 
 

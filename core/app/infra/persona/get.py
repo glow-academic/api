@@ -110,23 +110,23 @@ async def get_persona_impl(
         examples_limit=_sf(f, "examples", "limit"),
         parameter_fields_limit=_sf(f, "parameter_fields", "limit"),
         voices_limit=_sf(f, "voices", "limit"),
-        names_selected_only=_sf(f, "names", "selected_only"),
-        descriptions_selected_only=_sf(f, "descriptions", "selected_only"),
-        colors_selected_only=_sf(f, "colors", "selected_only"),
-        icons_selected_only=_sf(f, "icons", "selected_only"),
-        instructions_selected_only=_sf(f, "instructions", "selected_only"),
-        departments_selected_only=_sf(f, "departments", "selected_only"),
-        examples_selected_only=_sf(f, "examples", "selected_only"),
-        parameter_fields_selected_only=_sf(f, "parameter_fields", "selected_only"),
-        voices_selected_only=_sf(f, "voices", "selected_only"),
+        names_selected_only=_sf(f, "names", "selected"),
+        descriptions_selected_only=_sf(f, "descriptions", "selected"),
+        colors_selected_only=_sf(f, "colors", "selected"),
+        icons_selected_only=_sf(f, "icons", "selected"),
+        instructions_selected_only=_sf(f, "instructions", "selected"),
+        departments_selected_only=_sf(f, "departments", "selected"),
+        examples_selected_only=_sf(f, "examples", "selected"),
+        parameter_fields_selected_only=_sf(f, "parameter_fields", "selected"),
+        voices_selected_only=_sf(f, "voices", "selected"),
         bypass_cache=bypass_cache,
     )
 
     scores = score_tools(common.tool_graph, PERSONA_RESOURCES)
 
     include = {s: _sf(f, s, "include") is not False for s in SECTIONS}
-    selected_only = {s: _sf(f, s, "selected_only") or False for s in SECTIONS}
-    suggested_only = {s: _sf(f, s, "suggested_only") or False for s in SECTIONS}
+    selected_only = {s: _sf(f, s, "selected") or False for s in SECTIONS}
+    suggested_only = {s: _sf(f, s, "suggested") or False for s in SECTIONS}
 
     return build_persona_get_result(
         common=common,
