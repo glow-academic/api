@@ -254,6 +254,7 @@ def build_persona_get_result(
                 flag_option_id=flag.id,
                 generated=flag.generated,
                 selected=flag.id in selected_flag_ids,
+                pending=flag.id in pending_ids,
             )
             flags_flat.append(fc)
 
