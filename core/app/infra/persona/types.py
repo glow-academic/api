@@ -27,6 +27,7 @@ class PersonaNameResource(BaseModel):
     id: UUID | None = None
     name: str | None = None
     generated: bool | None = None
+    suggested: bool = False
 
 
 class PersonaDescriptionResource(BaseModel):
@@ -35,6 +36,7 @@ class PersonaDescriptionResource(BaseModel):
     id: UUID | None = None
     description: str | None = None
     generated: bool | None = None
+    suggested: bool = False
 
 
 class PersonaColorResource(BaseModel):
@@ -45,6 +47,7 @@ class PersonaColorResource(BaseModel):
     description: str | None = None
     hex_code: str | None = None
     generated: bool | None = None
+    suggested: bool = False
 
 
 class PersonaIconResource(BaseModel):
@@ -55,6 +58,7 @@ class PersonaIconResource(BaseModel):
     description: str | None = None
     value: str | None = None
     generated: bool | None = None
+    suggested: bool = False
 
 
 class PersonaInstructionResource(BaseModel):
@@ -63,6 +67,7 @@ class PersonaInstructionResource(BaseModel):
     id: UUID | None = None
     template: str | None = None
     generated: bool | None = None
+    suggested: bool = False
 
 
 class PersonaDepartmentResource(BaseModel):
@@ -72,6 +77,7 @@ class PersonaDepartmentResource(BaseModel):
     name: str | None = None
     description: str | None = None
     generated: bool | None = None
+    suggested: bool = False
 
 
 class PersonaParameterFieldResource(BaseModel):
@@ -84,6 +90,7 @@ class PersonaParameterFieldResource(BaseModel):
     description: str | None = None
     conditional_parameter_id: str | None = None
     generated: bool | None = None
+    suggested: bool = False
 
 
 class PersonaExampleResource(BaseModel):
@@ -92,6 +99,7 @@ class PersonaExampleResource(BaseModel):
     id: UUID | None = None
     example: str | None = None
     generated: bool | None = None
+    suggested: bool = False
 
 
 class PersonaVoiceResource(BaseModel):
@@ -100,6 +108,7 @@ class PersonaVoiceResource(BaseModel):
     id: UUID | None = None
     voice: str | None = None
     generated: bool | None = None
+    suggested: bool = False
 
 
 class PersonaAgentResource(BaseModel):

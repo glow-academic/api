@@ -213,30 +213,29 @@ def build_persona_get_result(
         }
     )
 
-    suggestions_map = {
-        "names": [item.id for item in persona.resources["names"].suggestions],
-        "descriptions": [
+    suggestions_sets = {
+        "names": {item.id for item in persona.resources["names"].suggestions},
+        "descriptions": {
             item.id for item in persona.resources["descriptions"].suggestions
-        ],
-        "colors": [item.id for item in persona.resources["colors"].suggestions],
-        "icons": [item.id for item in persona.resources["icons"].suggestions],
-        "instructions": [
+        },
+        "colors": {item.id for item in persona.resources["colors"].suggestions},
+        "icons": {item.id for item in persona.resources["icons"].suggestions},
+        "instructions": {
             item.id for item in persona.resources["instructions"].suggestions
-        ],
-        "departments": [
+        },
+        "departments": {
             item.id for item in persona.resources["departments"].suggestions
-        ],
-        "parameter_fields": [],
-        "examples": [item.id for item in persona.resources["examples"].suggestions],
-        "parameters": [item.parameter_id for item in persona.resources["parameters"].suggestions],
-        "voices": [item.id for item in persona.resources["voices"].suggestions],
+        },
+        "parameter_fields": set(),
+        "examples": {item.id for item in persona.resources["examples"].suggestions},
+        "parameters": {item.parameter_id for item in persona.resources["parameters"].suggestions},
+        "voices": {item.id for item in persona.resources["voices"].suggestions},
     }
 
     def _section(resource_key: str) -> dict:
         return {
             "show": show_flags_map.get(resource_key, False),
             "required": required_flags_map.get(resource_key, False),
-            "suggestions": suggestions_map.get(resource_key),
         }
 
     def _model(item, model_cls):
@@ -244,6 +243,21 @@ def build_persona_get_result(
 
     def _model_many(items, model_cls):
         return [_model(item, model_cls) for item in items]
+
+    def _model_many_with_suggested(items, model_cls, suggested_ids: set, id_attr: str = "id"):
+        result = []
+        for item in items:
+            m = model_cls.model_validate(item.model_dump())
+            item_id = getattr(item, id_attr, None)
+            if item_id and item_id in suggested_ids:
+                m.suggested = True
+            result.append(m)
+        return result
+
+    def _set_suggested(model, item_id, suggested_ids: set):
+        if item_id and item_id in suggested_ids:
+            model.suggested = True
+        return model
 
     def _department_model(item) -> PersonaDepartmentResource:
         payload = item.model_dump()
@@ -287,7 +301,7 @@ def build_persona_get_result(
             resource=_model(persona.resources["names"].selected[0], PersonaNameResource)
             if persona.resources["names"].selected
             else None,
-            resources=_model_many(all_names, PersonaNameResource),
+            resources=_model_many_with_suggested(all_names, PersonaNameResource, suggestions_sets.get("names", set())),
         ),
         descriptions=PersonaDescriptionSection(
             **_section("descriptions"),
@@ -297,7 +311,7 @@ def build_persona_get_result(
             )
             if persona.resources["descriptions"].selected
             else None,
-            resources=_model_many(all_descriptions, PersonaDescriptionResource),
+            resources=_model_many_with_suggested(all_descriptions, PersonaDescriptionResource, suggestions_sets.get("descriptions", set())),
         ),
         colors=PersonaColorSection(
             **_section("colors"),
@@ -306,14 +320,14 @@ def build_persona_get_result(
             )
             if persona.resources["colors"].selected
             else None,
-            resources=_model_many(all_colors, PersonaColorResource),
+            resources=_model_many_with_suggested(all_colors, PersonaColorResource, suggestions_sets.get("colors", set())),
         ),
         icons=PersonaIconSection(
             **_section("icons"),
             resource=_model(persona.resources["icons"].selected[0], PersonaIconResource)
             if persona.resources["icons"].selected
             else None,
-            resources=_model_many(all_icons, PersonaIconResource),
+            resources=_model_many_with_suggested(all_icons, PersonaIconResource, suggestions_sets.get("icons", set())),
         ),
         instructions=PersonaInstructionSection(
             **_section("instructions"),
@@ -323,7 +337,7 @@ def build_persona_get_result(
             )
             if persona.resources["instructions"].selected
             else None,
-            resources=_model_many(all_instructions, PersonaInstructionResource),
+            resources=_model_many_with_suggested(all_instructions, PersonaInstructionResource, suggestions_sets.get("instructions", set())),
         ),
         flags=PersonaFlagSection(
             **_section("flags"),
@@ -336,7 +350,10 @@ def build_persona_get_result(
                 _department_model(item)
                 for item in persona.resources["departments"].selected
             ],
-            resources=[_department_model(item) for item in all_departments],
+            resources=[
+                _set_suggested(_department_model(item), item.id, suggestions_sets.get("departments", set()))
+                for item in all_departments
+            ],
         ),
         parameter_fields=PersonaParameterFieldSection(
             **_section("parameter_fields"),
@@ -345,7 +362,7 @@ def build_persona_get_result(
                 for item in persona.resources["parameter_fields"].selected
             ],
             resources=[
-                _parameter_field_model(item)
+                _set_suggested(_parameter_field_model(item), item.parameter_id, suggestions_sets.get("parameter_fields", set()))
                 for item in persona.resources["parameter_fields"].suggestions
             ],
         ),
@@ -354,7 +371,7 @@ def build_persona_get_result(
             current=_model_many(
                 persona.resources["examples"].selected, PersonaExampleResource
             ),
-            resources=_model_many(all_examples, PersonaExampleResource),
+            resources=_model_many_with_suggested(all_examples, PersonaExampleResource, suggestions_sets.get("examples", set())),
         ),
         parameters=PersonaParameterSection(
             **_section("parameters"),
@@ -366,7 +383,7 @@ def build_persona_get_result(
             current=_model_many(
                 persona.resources["voices"].selected, PersonaVoiceResource
             ),
-            resources=_model_many(all_voices, PersonaVoiceResource),
+            resources=_model_many_with_suggested(all_voices, PersonaVoiceResource, suggestions_sets.get("voices", set())),
         ),
         fields=persona.resources["fields"].suggestions,
         resolved_parameter_ids=resolved_parameter_ids or None,

@@ -30,7 +30,6 @@ class BaseResourceSection(BaseModel):
 
     show: bool = Field(False, description="Whether this section is visible in the UI")
     required: bool = Field(False, description="Whether this section requires a selection")
-    suggestions: list[UUID] | None = Field(None, description="Suggested resource UUIDs for this section")
 
 
 class ListFilterOption(BaseModel):
