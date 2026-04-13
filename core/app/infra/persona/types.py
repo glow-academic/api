@@ -223,7 +223,7 @@ class SectionFilter(BaseModel):
 class GetPersonaApiRequest(BaseModel):
     """Request model for get persona endpoint."""
 
-    persona_id: UUID | None = Field(None, description="UUID of the persona to retrieve")
+    id: UUID | None = Field(None, description="UUID of the persona to retrieve")
     draft_id: UUID | None = Field(None, description="UUID of the draft to load instead of published state")
     parameter_ids: list[str] | None = Field(None, description="Parameter group IDs to expand in the response")
     # Per-section filters
