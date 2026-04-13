@@ -25,7 +25,7 @@ async def search_attempt_conversations(
 
     rows = await conn.fetch(
         f"""
-        SELECT id, created_at, generated, mcp, active, chat_id, run_id, call_id
+        SELECT id, created_at, generated, mcp, active, chat_id, call_id
         FROM {source}
         WHERE ($1::uuid[] IS NULL OR chat_id = ANY($1))
           AND ($2::boolean IS NULL OR mcp = $2)

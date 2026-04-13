@@ -33,7 +33,7 @@ pytestmark = pytest.mark.asyncio
 
 async def _create_generation_run(conn, profile_id):
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, group_id=group.id, session_id=session.id)
     return run.id, session.id, group.id
 
@@ -76,7 +76,6 @@ async def _create_generation_resolution(
         conn,
         invocation_id=winner_invocation_id,
         call_id=winner_grade_call.id,
-        run_id=run_id,
         time_taken=100,
         passed=True,
         score=95,
@@ -85,7 +84,6 @@ async def _create_generation_resolution(
         conn,
         invocation_id=loser_invocation_id,
         call_id=loser_grade_call.id,
-        run_id=run_id,
         time_taken=100,
         passed=True,
         score=70,

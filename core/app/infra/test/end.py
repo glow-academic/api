@@ -85,12 +85,11 @@ async def test_end_internal_impl(
             profiles_id = identity.profiles_id if identity else None
 
             async with get_pool().acquire() as conn:
-                group = await create_group(conn, session_id=UUID(str(session_id)))
+                group = await create_group(conn, session_id=UUID(str(session_id)), artifact_type="test")  # TODO: fix logic
                 run = await create_run(
                     conn,
                     group_id=group.id,
                     session_id=UUID(str(session_id)),
-                    profiles_id=profiles_id,
                 )
                 call = await create_call(
                     conn,
@@ -101,7 +100,6 @@ async def test_end_internal_impl(
                     conn,
                     invocation_id=payload.test_invocation_id,
                     call_id=call.id,
-                    run_id=run.id,
                     time_taken=0,
                     passed=False,
                     score=0,

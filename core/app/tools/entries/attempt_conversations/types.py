@@ -17,5 +17,4 @@ class GetAttemptConversationsResponse(BaseModel):
     mcp: bool
     active: bool
     chat_id: UUID
-    run_id: UUID
     call_id: UUID

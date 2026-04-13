@@ -11,7 +11,6 @@ async def create_attempt_grade(
     conn: asyncpg.Connection,
     chat_id: UUID,
     call_id: UUID,
-    run_id: UUID,
     time_taken: int,
     passed: bool,
     score: int,
@@ -24,13 +23,12 @@ async def create_attempt_grade(
     entry_id = await conn.fetchval(
         """
         INSERT INTO attempt_grade_entry
-            (id, chat_id, call_id, run_id, time_taken, passed, score, active, mcp, generated)
-        VALUES (COALESCE($9, uuidv7()), $1, $2, $3, $4, $5, $6, $7, $8, true)
+            (id, chat_id, call_id, time_taken, passed, score, active, mcp, generated)
+        VALUES (COALESCE($8, uuidv7()), $1, $2, $3, $4, $5, $6, $7, true)
         RETURNING id
         """,
         chat_id,
         call_id,
-        run_id,
         time_taken,
         passed,
         score,

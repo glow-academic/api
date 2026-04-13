@@ -12,7 +12,6 @@ CREATE MATERIALIZED VIEW public.attempt_conversations_mv AS
     mcp,
     active,
     chat_id,
-    run_id,
     call_id
    FROM public.attempt_conversations_entry
   WHERE (active = true)

@@ -230,7 +230,7 @@ async def attempt_chat_factory(pool, redis_client):
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
             session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id)
+            group = await create_group(conn, session_id=session.id, artifact_type="persona")
             run = await create_run(conn, group_id=group.id, session_id=session.id)
             call = await create_call(conn, run_id=run.id, session_id=session.id)
             persona = await create_persona(conn, session_id=session.id)
@@ -839,7 +839,7 @@ class TestNextImpl:
     async def _setup_test(self, conn, redis_client):
         profile = await create_profile(conn, redis_client, name="test-next-profile")
         session = await create_session(conn, profile_id=profile.id)
-        group = await create_group(conn, session_id=session.id)
+        group = await create_group(conn, session_id=session.id, artifact_type="persona")
         run = await create_run(conn, group_id=group.id, session_id=session.id)
         test_call = await create_call(conn, run_id=run.id, session_id=session.id)
         test = await create_test(conn, call_id=test_call.id, profiles_id=profile.id)
@@ -925,7 +925,6 @@ class TestNextImpl:
                 conn,
                 invocation_id=first_invocation.id,
                 call_id=complete_first_call.id,
-                run_id=run.id,
                 time_taken=10,
                 passed=True,
                 score=90,
@@ -937,7 +936,6 @@ class TestNextImpl:
                 conn,
                 invocation_id=second_invocation.id,
                 call_id=complete_second_call.id,
-                run_id=run.id,
                 time_taken=10,
                 passed=True,
                 score=85,
@@ -1032,7 +1030,7 @@ class TestGradeCompleteImpl:
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
             session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id)
+            group = await create_group(conn, session_id=session.id, artifact_type="persona")
             run = await create_run(
                 conn,
                 group_id=group.id,
@@ -1172,7 +1170,7 @@ class TestGroupImpl:
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
             session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id)
+            group = await create_group(conn, session_id=session.id, artifact_type="persona")
             first_run = await create_run(conn, group_id=group.id, session_id=session.id)
             await create_run(conn, group_id=group.id, session_id=session.id)
 
@@ -1196,7 +1194,7 @@ class TestGroupImpl:
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
             session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id)
+            group = await create_group(conn, session_id=session.id, artifact_type="persona")
             await create_run(conn, group_id=group.id, session_id=session.id)
             last_run = await create_run(conn, group_id=group.id, session_id=session.id)
 
@@ -1322,7 +1320,7 @@ class TestProceedImpl:
     async def _setup_test(self, conn, redis_client, *, is_dynamic=True):
         profile = await create_profile(conn, redis_client, name="test-proceed-profile")
         session = await create_session(conn, profile_id=profile.id)
-        group = await create_group(conn, session_id=session.id)
+        group = await create_group(conn, session_id=session.id, artifact_type="persona")
         run = await create_run(conn, group_id=group.id, session_id=session.id)
         test_call = await create_call(conn, run_id=run.id, session_id=session.id)
         test = await create_test(
@@ -1416,7 +1414,6 @@ class TestProceedImpl:
                 conn,
                 invocation_id=invocation.id,
                 call_id=grade_call.id,
-                run_id=graph.run.id,
                 time_taken=10,
                 passed=True,
                 score=90,
@@ -1550,7 +1547,7 @@ class TestRunImpl:
     async def _setup_graph(self, conn, redis_client):
         profile = await create_profile(conn, redis_client, name="test-run-profile")
         session = await create_session(conn, profile_id=profile.id)
-        group = await create_group(conn, session_id=session.id)
+        group = await create_group(conn, session_id=session.id, artifact_type="persona")
         run = await create_run(
             conn,
             group_id=group.id,
@@ -1958,7 +1955,7 @@ class TestAttemptMessageImpl:
 
         async with pool.acquire() as conn:
             session = await create_session(conn, profile_id=fixture.profile_resource_id)
-            group = await create_group(conn, session_id=session.id)
+            group = await create_group(conn, session_id=session.id, artifact_type="persona")
             base_run = await create_run(
                 conn,
                 group_id=group.id,
@@ -2273,7 +2270,7 @@ class TestAttemptStartImpl:
 
         async with pool.acquire() as conn:
             session = await create_session(conn, profile_id=fixture.profile_resource_id)
-            group = await create_group(conn, session_id=session.id)
+            group = await create_group(conn, session_id=session.id, artifact_type="persona")
             persona_resource = await create_persona_resource(
                 conn,
                 redis_client,
@@ -2363,7 +2360,7 @@ class TestAttemptStartImpl:
 
         async with pool.acquire() as conn:
             session = await create_session(conn, profile_id=fixture.profile_resource_id)
-            group = await create_group(conn, session_id=session.id)
+            group = await create_group(conn, session_id=session.id, artifact_type="persona")
             persona_resource = await create_persona_resource(
                 conn,
                 redis_client,
@@ -2449,7 +2446,7 @@ class TestAttemptStartImpl:
         fixture = await profile_identity_factory()
         async with pool.acquire() as conn:
             session = await create_session(conn, profile_id=fixture.profile_resource_id)
-            group = await create_group(conn, session_id=session.id)
+            group = await create_group(conn, session_id=session.id, artifact_type="persona")
 
         emit, events = recording_emit()
         await _attempt_start_impl(
@@ -2481,7 +2478,7 @@ class TestEmitChatGenerateImpl:
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
             session = await create_session(conn, profile_id=profile.id)
-            source_group = await create_group(conn, session_id=session.id)
+            source_group = await create_group(conn, session_id=session.id, artifact_type="persona")
             source_run = await create_run(
                 conn,
                 group_id=source_group.id,
@@ -2666,7 +2663,7 @@ class TestAttemptProceedImpl:
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
             session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id)
+            group = await create_group(conn, session_id=session.id, artifact_type="persona")
             run = await create_run(
                 conn,
                 group_id=group.id,
@@ -2758,7 +2755,7 @@ class TestAttemptProceedImpl:
     ):
         profile = await create_profile(conn, redis_client)
         session = await create_session(conn, profile_id=profile.id)
-        group = await create_group(conn, session_id=session.id)
+        group = await create_group(conn, session_id=session.id, artifact_type="persona")
         run = await create_run(
             conn,
             group_id=group.id,
@@ -2929,7 +2926,7 @@ class TestAttemptProceedImpl:
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
             session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id)
+            group = await create_group(conn, session_id=session.id, artifact_type="persona")
 
         emit, events = recording_emit()
         await _attempt_proceed_impl(
@@ -2992,7 +2989,7 @@ class TestAttemptProceedImpl:
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
             session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id)
+            group = await create_group(conn, session_id=session.id, artifact_type="persona")
             run = await create_run(
                 conn,
                 group_id=group.id,
@@ -3036,7 +3033,7 @@ class TestAttemptProceedImpl:
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
             session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id)
+            group = await create_group(conn, session_id=session.id, artifact_type="persona")
             run = await create_run(
                 conn,
                 group_id=group.id,
@@ -3106,7 +3103,7 @@ class TestAttemptProceedImpl:
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
             session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id)
+            group = await create_group(conn, session_id=session.id, artifact_type="persona")
             run = await create_run(
                 conn,
                 group_id=group.id,
@@ -3180,7 +3177,7 @@ class TestAttemptProceedImpl:
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
             session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id)
+            group = await create_group(conn, session_id=session.id, artifact_type="persona")
             run = await create_run(
                 conn,
                 group_id=group.id,

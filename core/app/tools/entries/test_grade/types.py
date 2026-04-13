@@ -13,7 +13,6 @@ class CreateTestGradeResponse(BaseModel):
 class GetTestGradeResponse(BaseModel):
     id: UUID
     invocation_id: UUID
-    run_id: UUID | None
     created_at: datetime
     updated_at: datetime
     passed: bool

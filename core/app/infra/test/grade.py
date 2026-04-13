@@ -100,7 +100,6 @@ async def create_grade_impl(
             conn,
             invocation_id=invocation_id,
             call_id=call.id,
-            run_id=run_id or UUID(int=0),
             time_taken=time_taken_ms,
             passed=passed,
             score=score,

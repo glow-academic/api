@@ -111,12 +111,11 @@ async def attempt_grade_internal_impl(
         profiles_id = identity.profiles_id if identity else None
 
         async with get_pool().acquire() as conn:
-            group_result = await create_group(conn, session_id=UUID(str(session_id)))
+            group_result = await create_group(conn, session_id=UUID(str(session_id)), artifact_type="attempt")  # TODO: fix logic
             run_result = await create_run(
                 conn,
                 session_id=UUID(str(session_id)),
                 group_id=group_result.id,
-                profiles_id=profiles_id,
             )
             call_result = await create_call(
                 conn,
@@ -127,7 +126,6 @@ async def attempt_grade_internal_impl(
                 conn,
                 chat_id=chat_id,
                 call_id=call_result.id,
-                run_id=run_result.id,
                 time_taken=0,
                 passed=passed or False,
                 score=score or 0,

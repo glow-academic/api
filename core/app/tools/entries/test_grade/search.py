@@ -13,7 +13,6 @@ MV_NAME = "test_grade_mv"
 async def search_test_grades(
     conn: asyncpg.Connection,
     invocation_ids: list[UUID] | None = None,
-    run_ids: list[UUID] | None = None,
     limit: int = 20,
     offset: int = 0,
     bypass_mv: bool = False,
@@ -23,16 +22,14 @@ async def search_test_grades(
 
     rows = await conn.fetch(
         f"""
-        SELECT id, invocation_id, run_id, created_at, updated_at,
+        SELECT id, invocation_id, created_at, updated_at,
                passed, score, time_taken, generated, mcp, active, call_id
         FROM {source}
         WHERE ($1::uuid[] IS NULL OR invocation_id = ANY($1))
-          AND ($2::uuid[] IS NULL OR run_id = ANY($2))
         ORDER BY created_at DESC
-        LIMIT $3 OFFSET $4
+        LIMIT $2 OFFSET $3
         """,
         invocation_ids,
-        run_ids,
         limit,
         offset,
     )

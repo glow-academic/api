@@ -607,7 +607,6 @@ async def attempt_message_impl(
                 conn,
                 group_id=group_id,
                 session_id=session_id_uuid,
-                profiles_id=profiles_id,
             )
         run_id = str(run.id)
 
@@ -973,7 +972,6 @@ async def attempt_start_impl(
                     conn,
                     session_id=session_id_uuid,
                     group_id=group_id,
-                    profiles_id=profiles_resource_id,
                 )
                 run_id = run_result.id
 
@@ -1078,14 +1076,13 @@ async def emit_chat_generate_impl(
     ]
 
     async with pool.acquire() as conn:
-        group_result = await create_group(conn, session_id=session_id)
+        group_result = await create_group(conn, session_id=session_id, artifact_type="attempt")  # TODO: fix logic
         group_id = group_result.id
 
         run_result = await create_run(
             conn,
             session_id=session_id,
             group_id=group_id,
-            profiles_id=profiles_id,
         )
         run_id = run_result.id
 
@@ -1182,7 +1179,6 @@ async def attempt_proceed_impl(
                 conn,
                 group_id=uuid.UUID(payload.group_id),
                 session_id=session_id_uuid,
-                profiles_id=profiles_id,
             )
             run_id = run_result.id
 

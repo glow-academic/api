@@ -22,7 +22,7 @@ pytestmark = pytest.mark.asyncio
 
 async def _create_generation_test(conn, profile_id):
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, group_id=group.id, session_id=session.id)
     call = await create_call(conn, run_id=run.id, session_id=session.id)
     test = await create_test(conn, call_id=call.id, profiles_id=profile_id)
@@ -50,7 +50,6 @@ async def _create_invocation_with_grade(
         conn,
         invocation_id=invocation.id,
         call_id=call.id,
-        run_id=run_id,
         time_taken=120,
         passed=passed,
         score=score,

@@ -8,7 +8,6 @@
 CREATE MATERIALIZED VIEW public.test_grade_mv AS
  SELECT id,
     invocation_id,
-    run_id,
     created_at,
     updated_at,
     passed,

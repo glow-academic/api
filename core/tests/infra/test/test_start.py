@@ -190,16 +190,16 @@ async def test_attempt_grade_internal_impl_emits_grade_complete(monkeypatch) -> 
         del conn, session_id
         return SimpleNamespace(id=uuid4())
 
-    async def _create_run(conn, *, session_id, group_id, profiles_id):
-        del conn, session_id, group_id, profiles_id
+    async def _create_run(conn, *, session_id, group_id):
+        del conn, session_id, group_id
         return SimpleNamespace(id=uuid4())
 
     async def _create_call(conn, *, run_id, session_id):
         del conn, run_id, session_id
         return SimpleNamespace(id=uuid4())
 
-    async def _create_attempt_grade(conn, *, chat_id, call_id, run_id, time_taken, passed, score):
-        del conn, chat_id, call_id, run_id, time_taken, passed, score
+    async def _create_attempt_grade(conn, *, chat_id, call_id, time_taken, passed, score):
+        del conn, chat_id, call_id, time_taken, passed, score
         return SimpleNamespace(id=uuid4())
 
     monkeypatch.setattr(

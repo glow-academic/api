@@ -13,6 +13,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.tools.entries.calls.create import create_call
+from app.tools.entries.calls.get import get_calls
 from app.tools.entries.test_feedback.create import create_test_feedback
 from app.tools.entries.test_feedback.refresh import refresh_test_feedback
 from app.tools.entries.test_grade.get import get_test_grades
@@ -65,11 +66,13 @@ async def create_feedback_impl(
             total_points = sgs[0].points
             pass_points = sgs[0].pass_points
 
-        # Step 2: Derive run_id from grade
+        # Step 2: Derive run_id from grade's call
         run_id: UUID | None = None
         grades = await get_test_grades(conn, ids=[grade_id])
-        if grades:
-            run_id = grades[0].run_id
+        if grades and grades[0].call_id:
+            calls = await get_calls(conn, [grades[0].call_id])
+            if calls:
+                run_id = calls[0].run_id
 
         # Step 3: Create call for audit linkage
         call = await create_call(

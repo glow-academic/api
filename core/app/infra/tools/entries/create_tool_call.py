@@ -51,7 +51,6 @@ async def create_tool_call(
             conn,
             group_id=group_id,
             session_id=session_id,
-            profiles_id=profile_id,
             mcp=mcp,
         )
         effective_run_id = run.id

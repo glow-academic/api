@@ -28,7 +28,7 @@ pytestmark = pytest.mark.asyncio
 async def _attempt_mutes(conn, profile_id, **overrides):
     """Create full chain: session → ... → attempt → chat → conversations → mutes."""
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, group_id=group.id, session_id=session.id)
     call = await create_call(conn, run_id=run.id, session_id=session.id)
     persona = await create_persona(conn)
@@ -50,7 +50,7 @@ async def _attempt_mutes(conn, profile_id, **overrides):
         session_id=session.id,
     )
     conversation = await create_attempt_conversations(
-        conn, chat_id=attempt_chat.id, call_id=call2.id, run_id=run.id
+        conn, chat_id=attempt_chat.id, call_id=call2.id
     )
     defaults = dict(
         conversation_id=conversation.id,

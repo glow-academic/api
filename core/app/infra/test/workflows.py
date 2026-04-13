@@ -510,13 +510,12 @@ async def test_start_impl(
                 if session_id_str
                 else (await create_session(conn, profile_id=profiles_id)).id
             )
-            group_id = (await create_group(conn, session_id=session_id)).id
+            group_id = (await create_group(conn, session_id=session_id, artifact_type="test")).id  # TODO: fix logic
             run_id = (
                 await create_run(
                     conn,
                     group_id=group_id,
                     session_id=session_id,
-                    profiles_id=profiles_id,
                 )
             ).id
             call_id = (await create_call(conn, run_id=run_id, session_id=session_id)).id
@@ -634,7 +633,7 @@ async def test_proceed_impl(
 
         if session_id is None:
             session = await create_session(conn)
-            group = await create_group(conn, session_id=session.id)
+            group = await create_group(conn, session_id=session.id, artifact_type="test")  # TODO: fix logic
             run = await create_run(conn, group_id=group.id, session_id=session.id)
             call = await create_call(conn, run_id=run.id, session_id=session.id)
             return call.id
@@ -972,7 +971,6 @@ async def test_run_impl(
                 conn,
                 group_id=group_id,
                 session_id=session_id,
-                profiles_id=profiles_id,
             )
             new_run_id = run_result.id
 

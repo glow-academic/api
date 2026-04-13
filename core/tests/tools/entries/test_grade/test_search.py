@@ -18,7 +18,7 @@ pytestmark = pytest.mark.asyncio
 
 async def _setup(conn, profile_id):
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, group_id=group.id, session_id=session.id)
     call = await create_call(conn, run_id=run.id, session_id=session.id)
     test = await create_test(conn, call_id=call.id, profiles_id=profile_id)
@@ -30,16 +30,15 @@ async def _setup(conn, profile_id):
         conn,
         invocation_id=test_invocation.id,
         call_id=call2.id,
-        run_id=run.id,
         time_taken=120,
         passed=True,
         score=85,
     )
-    return result, test_invocation, run
+    return result, test_invocation
 
 
 async def test_finds_created_entry(conn, profile_id):
-    result, test_invocation, run = await _setup(conn, profile_id)
+    result, test_invocation = await _setup(conn, profile_id)
     await refresh_test_grade(conn)
 
     items = await search_test_grades(conn, invocation_ids=[test_invocation.id])
@@ -57,18 +56,8 @@ async def test_filters_by_invocation_id(conn, profile_id):
     assert items == []
 
 
-async def test_filters_by_run_id(conn, profile_id):
-    result, _, run = await _setup(conn, profile_id)
-    await refresh_test_grade(conn)
-
-    items = await search_test_grades(conn, run_ids=[run.id])
-
-    ids = [item.id for item in items]
-    assert result.id in ids
-
-
 async def test_pagination_limit(conn, profile_id):
-    result, test_invocation, _ = await _setup(conn, profile_id)
+    result, test_invocation = await _setup(conn, profile_id)
     await refresh_test_grade(conn)
 
     items = await search_test_grades(conn, invocation_ids=[test_invocation.id], limit=1)
@@ -86,7 +75,7 @@ async def test_returns_all_without_filter(conn, profile_id):
 
 
 async def test_bypass_mv_finds_without_refresh(conn, profile_id):
-    result, test_invocation, _ = await _setup(conn, profile_id)
+    result, test_invocation = await _setup(conn, profile_id)
 
     items = await search_test_grades(
         conn, invocation_ids=[test_invocation.id], bypass_mv=True
