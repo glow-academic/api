@@ -38,7 +38,7 @@ async def _setup(conn, profile_id):
     chat = await create_chat(conn, session_id=session.id)
     call2 = await create_call(conn, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
-        conn, call_id=call2.id, group_id=group.id, chat_id=chat.id
+        conn, call_id=call2.id, chat_id=chat.id
     )
     await create_attempt_chat_bridge(
         conn,

@@ -61,7 +61,7 @@ async def _create_session_route_graph(pool, actor):
             call_id=call.id,
             type="bug",
             message="Session route problem",
-            profile_id=actor.profiles_id,
+            profile_id=actor.profiles_id,, artifact_type="activity"
         )
         await create_chat(
             conn,

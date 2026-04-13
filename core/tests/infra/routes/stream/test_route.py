@@ -390,7 +390,7 @@ class TestEventsRoutes:
                     "results": [
                         {
                             "success": True,
-                            "persona_id": "019ce726-fa14-7f2a-aebb-0067bca4b029",
+                            "id": "019ce726-fa14-7f2a-aebb-0067bca4b029",
                             "message": "ok",
                         }
                     ],

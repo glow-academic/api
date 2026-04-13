@@ -245,7 +245,6 @@ async def attempt_chat_factory(pool, redis_client):
             attempt_chat = await create_attempt_chat(
                 conn,
                 call_id=call2.id,
-                group_id=group.id,
                 chat_id=chat.id,
             )
             await create_attempt_chat_bridge(
@@ -885,7 +884,6 @@ class TestNextImpl:
                 conn,
                 test_id=test.id,
                 call_id=invocation_call.id,
-                group_id=group.id,
             )
             await refresh_test(conn)
             await refresh_test_invocation(conn)
@@ -910,7 +908,6 @@ class TestNextImpl:
                 conn,
                 test_id=test.id,
                 call_id=first_call.id,
-                group_id=group.id,
             )
             second_call = await create_call(conn, run_id=run.id, session_id=session.id)
             second_invocation = await create_test_invocation(
@@ -1355,7 +1352,6 @@ class TestProceedImpl:
             conn,
             test_id=graph.test.id,
             call_id=invocation_call.id,
-            group_id=group_id,
             use_custom=use_custom,
         )
         return invocation, invocation_call
@@ -1617,7 +1613,6 @@ class TestRunImpl:
                 conn,
                 test_id=graph.test.id,
                 call_id=invocation_call.id,
-                group_id=graph.group.id,
             )
         emit, events = recording_emit()
         await _test_run_impl(
@@ -1656,7 +1651,6 @@ class TestRunImpl:
                 conn,
                 test_id=graph.test.id,
                 call_id=invocation_call.id,
-                group_id=graph.group.id,
             )
         emit, events = recording_emit()
         await _test_run_impl(
@@ -1993,7 +1987,6 @@ class TestAttemptMessageImpl:
             attempt_chat = await create_attempt_chat(
                 conn,
                 call_id=attempt_chat_call.id,
-                group_id=group.id,
                 chat_id=chat.id,
                 departments_ids=[department.id] if department else None,
             )
@@ -2710,7 +2703,6 @@ class TestAttemptProceedImpl:
             attempt_chat = await create_attempt_chat(
                 conn,
                 call_id=attempt_chat_call.id,
-                group_id=group.id,
                 chat_id=chat.id,
             )
             await create_attempt_chat_bridge(

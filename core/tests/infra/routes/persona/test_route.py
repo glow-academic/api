@@ -135,7 +135,7 @@ class TestPersonaRoute:
         payload = response.json()
         assert payload["results"][0]["success"] is True
         assert payload["results"][0]["message"] == "Persona created successfully"
-        assert payload["results"][0]["persona_id"] is not None
+        assert payload["results"][0]["id"] is not None
 
     async def test_get_persona_route_returns_canonical_bundle(
         self,
@@ -277,7 +277,7 @@ class TestPersonaRoute:
             json={
                 "personas": [
                     {
-                        "persona_id": created["persona_id"],
+                        "id": created["persona_id"],
                         "name_id": str(updated.name_id),
                         "description_id": str(updated.description_id),
                         "color_id": str(updated.color_id),
@@ -293,7 +293,7 @@ class TestPersonaRoute:
         assert response.headers["X-Invalidate-Tags"] == "personas"
         payload = response.json()
         assert payload["results"][0]["success"] is True
-        assert payload["results"][0]["persona_id"] == created["persona_id"]
+        assert payload["results"][0]["id"] == created["persona_id"]
 
         get_response = await persona_route_client.client.post(
             "/personas/get",
@@ -331,14 +331,14 @@ class TestPersonaRoute:
 
         response = await persona_route_client.client.post(
             "/personas/duplicate",
-            json={"persona_id": created["persona_id"]},
+            json={"id": created["persona_id"]},
         )
 
         assert response.status_code == 200, response.text
         assert response.headers["X-Invalidate-Tags"] == "personas"
         payload = response.json()
         assert payload["success"] is True
-        assert payload["persona_id"] != created["persona_id"]
+        assert payload["id"] != created["persona_id"]
         assert "duplicated successfully" in payload["message"]
 
     async def test_delete_persona_route_hides_deleted_persona_from_search(
@@ -357,14 +357,14 @@ class TestPersonaRoute:
 
         response = await persona_route_client.client.post(
             "/personas/delete",
-            json={"persona_ids": [created["persona_id"]]},
+            json={"ids": [created["persona_id"]]},
         )
 
         assert response.status_code == 200, response.text
         assert response.headers["X-Invalidate-Tags"] == "personas"
         payload = response.json()
         assert payload["results"][0]["success"] is True
-        assert payload["results"][0]["persona_id"] == created["persona_id"]
+        assert payload["results"][0]["id"] == created["persona_id"]
 
         search_response = await persona_route_client.client.post(
             "/personas/search",
@@ -438,7 +438,7 @@ class TestPersonaRoute:
         )
 
         async with pool.acquire() as conn:
-            group = await create_group(conn, session_id=persona_route_actor.session_id)
+            group = await create_group(conn, session_id=persona_route_actor.session_id, artifact_type="persona")
             draft = await create_persona_draft(
                 conn,
                 group_id=group.id,
@@ -568,7 +568,7 @@ class TestPersonaRoute:
         assert response.status_code == 200
         payload = response.json()
         return {
-            "persona_id": payload["results"][0]["persona_id"],
+            "persona_id": payload["results"][0]["id"],
             "name": resources.name,
             "description": resources.description,
             "color_name": resources.color_name,

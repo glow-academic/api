@@ -170,7 +170,6 @@ class TestTestWorkflowRoutes:
                 conn,
                 test_id=test.id,
                 call_id=invocation_call.id,
-                group_id=source_group.id,
                 use_custom=False,
             )
             await refresh_test(conn)

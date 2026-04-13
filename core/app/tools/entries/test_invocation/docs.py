@@ -37,7 +37,7 @@ async def get_test_invocation_docs(conn: asyncpg.Connection) -> DocsResponse:
                 create_test_invocation,
                 description=(
                     "Creates a test_invocation entry with test_id, title, position, "
-                    "group_id, use_custom flag, and optional config_signature."
+                    "use_custom flag, and optional config_signature."
                 ),
             ),
             get_operation_info(

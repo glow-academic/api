@@ -392,7 +392,7 @@ class TestCohortRoute:
         from app.tools.entries.groups.create import create_group
 
         async with pool.acquire() as conn:
-            group = await create_group(conn, session_id=cohort_route_actor.session_id)
+            group = await create_group(conn, session_id=cohort_route_actor.session_id, artifact_type="persona")
             draft = await create_cohort_draft(
                 conn,
                 group_id=group.id,

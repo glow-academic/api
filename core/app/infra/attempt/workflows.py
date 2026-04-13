@@ -1457,7 +1457,6 @@ async def attempt_proceed_impl(
                 chat_result = await create_attempt_chat(
                     conn,
                     call_id=call.id,
-                    group_id=group_id,
                     chat_id=chat_entry_id,
                     title=request_dict.get("title", ""),
                     position=request_dict.get("position", 0),

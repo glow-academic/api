@@ -63,7 +63,7 @@ CREATE MATERIALIZED VIEW public.test_invocation_mv AS
         )
  SELECT i.id AS invocation_id,
     i.test_id,
-    i.group_id,
+    r_grp.group_id,
     i.created_at AS invocation_created_at,
     i.title AS invocation_title,
     i.use_custom,
@@ -83,7 +83,9 @@ CREATE MATERIALIZED VIEW public.test_invocation_mv AS
     bs.temperature_level_id,
     bs.reasoning_level_id,
     COALESCE(bs.modality_ids, ARRAY[]::uuid[]) AS modality_ids
-   FROM ((((((public.test_invocation_entry i
+   FROM ((((((((public.test_invocation_entry i
+     LEFT JOIN public.calls_entry cl_grp ON ((cl_grp.id = i.call_id))
+     LEFT JOIN public.runs_entry r_grp ON ((r_grp.id = cl_grp.run_id))
      LEFT JOIN groups_agents_links gal ON ((gal.test_invocation_id = i.id)))
      LEFT JOIN runs_agents_links ral ON ((ral.test_invocation_id = i.id)))
      LEFT JOIN department_links dl ON ((dl.test_invocation_id = i.id)))

@@ -68,7 +68,6 @@ async def _create_attempt_route_graph(pool, actor, redis_client=None):
         attempt_chat = await create_attempt_chat(
             conn,
             call_id=chat_call.id,
-            group_id=group.id,
             chat_id=chat.id,
             title="Route Chat",
             position=0,

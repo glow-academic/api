@@ -22,7 +22,7 @@ pytestmark = pytest.mark.asyncio
 async def _attempt_chat(conn, profile_id, **overrides):
     """Create full chain: session → group → run → call → persona → attempt → chat → attempt_chat → bridge."""
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, group_id=group.id, session_id=session.id)
     call = await create_call(conn, run_id=run.id, session_id=session.id)
     persona = await create_persona(conn)
@@ -34,7 +34,7 @@ async def _attempt_chat(conn, profile_id, **overrides):
     )
     chat = await create_chat(conn, session_id=session.id)
     call2 = await create_call(conn, run_id=run.id, session_id=session.id)
-    defaults = dict(call_id=call2.id, group_id=group.id, chat_id=chat.id)
+    defaults = dict(call_id=call2.id, chat_id=chat.id)
     defaults.update(overrides)
     result = await create_attempt_chat(conn, **defaults)
     # Bridge is required for MV visibility

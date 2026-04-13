@@ -27,7 +27,7 @@ pytestmark = pytest.mark.asyncio
 async def _test_invocation_runs(conn, profile_id, **overrides):
     """Create full chain: session → group → run → call → test → invocation → invocation_runs."""
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, group_id=group.id, session_id=session.id)
     call = await create_call(conn, run_id=run.id, session_id=session.id)
     test = await create_test(conn, call_id=call.id, profiles_id=profile_id)

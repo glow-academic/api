@@ -51,7 +51,6 @@ async def test_create_operation_has_params(conn):
     assert "test_id" in param_names
     assert "call_id" in param_names
     assert "title" in param_names
-    assert "group_id" in param_names
     assert "use_custom" in param_names
     assert "position" in param_names
     assert "config_signature" in param_names

@@ -28,7 +28,7 @@ pytestmark = pytest.mark.asyncio
 async def _attempt_responses(conn, profile_id, **overrides):
     """Create full chain: session -> group -> run -> call -> attempt -> call2 -> attempt_chat -> attempt_responses."""
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, group_id=group.id, session_id=session.id)
     call = await create_call(conn, run_id=run.id, session_id=session.id)
     persona = await create_persona(conn)
@@ -41,7 +41,7 @@ async def _attempt_responses(conn, profile_id, **overrides):
     chat = await create_chat(conn, session_id=session.id)
     call2 = await create_call(conn, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
-        conn, call_id=call2.id, group_id=group.id, chat_id=chat.id
+        conn, call_id=call2.id, chat_id=chat.id
     )
     await create_attempt_chat_bridge(
         conn,

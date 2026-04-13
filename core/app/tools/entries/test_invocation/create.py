@@ -16,7 +16,6 @@ async def create_test_invocation(
     test_id: UUID | None = None,
     call_id: UUID | None = None,
     title: str = "",
-    group_id: UUID | None = None,
     use_custom: bool = False,
     position: int = 0,
     config_signature: str | None = None,
@@ -35,16 +34,15 @@ async def create_test_invocation(
     entry_id = await conn.fetchval(
         """
         INSERT INTO test_invocation_entry (
-            id, test_id, call_id, title, group_id,
+            id, test_id, call_id, title,
             use_custom, "position", config_signature, active, mcp, generated
         )
-        VALUES (COALESCE($10, uuidv7()), $1, $2, $3, $4, $5, $6, $7, $8, $9, true)
+        VALUES (COALESCE($9, uuidv7()), $1, $2, $3, $4, $5, $6, $7, $8, true)
         RETURNING id
         """,
         test_id,
         call_id,
         title,
-        group_id,
         use_custom,
         position,
         config_signature,
