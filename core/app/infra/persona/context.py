@@ -51,6 +51,7 @@ from app.tools.resources.parameter_fields.search import (
 )
 from app.tools.resources.parameters.get import get_parameters
 from app.tools.resources.parameters.search import search_parameters
+from app.tools.resources.conditional_parameters.get import get_conditional_parameters
 from app.tools.resources.voices.get import get_voices
 from app.tools.resources.voices.search import search_voices
 
@@ -75,16 +76,36 @@ async def resolve_persona_context(
     draft_id: UUID | None = None,
     user_department_ids: list[UUID] | None = None,
     parameter_ids: list[UUID] | None = None,
-    # Search filters
-    color_search: str | None = None,
-    icon_search: str | None = None,
+    # Per-section search (text filter)
+    names_search: str | None = None,
     descriptions_search: str | None = None,
+    colors_search: str | None = None,
+    icons_search: str | None = None,
     instructions_search: str | None = None,
-    # Show-selected toggles
-    color_show_selected: bool | None = None,
-    icon_show_selected: bool | None = None,
-    parameter_field_search: str | None = None,
-    parameter_field_show_selected: bool | None = None,
+    departments_search: str | None = None,
+    examples_search: str | None = None,
+    parameter_fields_search: str | None = None,
+    voices_search: str | None = None,
+    # Per-section limit
+    names_limit: int | None = None,
+    descriptions_limit: int | None = None,
+    colors_limit: int | None = None,
+    icons_limit: int | None = None,
+    instructions_limit: int | None = None,
+    departments_limit: int | None = None,
+    examples_limit: int | None = None,
+    parameter_fields_limit: int | None = None,
+    voices_limit: int | None = None,
+    # Per-section selected_only
+    names_selected_only: bool | None = None,
+    descriptions_selected_only: bool | None = None,
+    colors_selected_only: bool | None = None,
+    icons_selected_only: bool | None = None,
+    instructions_selected_only: bool | None = None,
+    departments_selected_only: bool | None = None,
+    examples_selected_only: bool | None = None,
+    parameter_fields_selected_only: bool | None = None,
+    voices_selected_only: bool | None = None,
     bypass_cache: bool = False,
 ) -> ArtifactContext:
     """Resolve a persona artifact into fully hydrated resources.
@@ -148,7 +169,10 @@ async def resolve_persona_context(
             return await search_names(
                 conn,
                 redis,
+                search=names_search,
+                limit_count=names_limit or 20,
                 draft_id=group_id,
+                suggest_source="selected" if names_selected_only else "all",
                 exclude_ids=merged.name_ids,
                 bypass_cache=bypass_cache,
                 persona=True,
@@ -166,8 +190,9 @@ async def resolve_persona_context(
                 conn,
                 redis,
                 search=descriptions_search,
+                limit_count=descriptions_limit or 20,
                 draft_id=group_id,
-                suggest_source="all",
+                suggest_source="selected" if descriptions_selected_only else "all",
                 exclude_ids=merged.description_ids,
                 bypass_cache=bypass_cache,
                 persona=True,
@@ -182,11 +207,11 @@ async def resolve_persona_context(
             return await search_colors(
                 conn,
                 redis,
-                search=color_search,
-                limit_count=20,
+                search=colors_search,
+                limit_count=colors_limit or 20,
                 offset_count=0,
                 draft_id=group_id,
-                suggest_source="selected" if color_show_selected else "all",
+                suggest_source="selected" if colors_selected_only else "all",
                 exclude_ids=merged.color_ids,
                 bypass_cache=bypass_cache,
                 persona=True,
@@ -201,11 +226,11 @@ async def resolve_persona_context(
             return await search_icons(
                 conn,
                 redis,
-                search=icon_search,
-                limit_count=20,
+                search=icons_search,
+                limit_count=icons_limit or 20,
                 offset_count=0,
                 draft_id=group_id,
-                suggest_source="selected" if icon_show_selected else "all",
+                suggest_source="selected" if icons_selected_only else "all",
                 exclude_ids=merged.icon_ids,
                 bypass_cache=bypass_cache,
                 persona=True,
@@ -223,10 +248,10 @@ async def resolve_persona_context(
                 conn,
                 redis,
                 search=instructions_search,
-                limit_count=20,
+                limit_count=instructions_limit or 20,
                 offset_count=0,
                 draft_id=group_id,
-                suggest_source="all",
+                suggest_source="selected" if instructions_selected_only else "all",
                 exclude_ids=merged.instruction_ids,
                 bypass_cache=bypass_cache,
                 persona=True,
@@ -260,11 +285,11 @@ async def resolve_persona_context(
             return await search_departments(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
+                search=departments_search,
+                limit_count=departments_limit or 20,
                 offset_count=0,
                 department_ids=user_dept_ids,
-                suggest_source="all",
+                suggest_source="selected" if departments_selected_only else "all",
                 exclude_ids=merged.department_ids,
                 bypass_cache=bypass_cache,
             )
@@ -295,13 +320,13 @@ async def resolve_persona_context(
             return await search_examples(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
+                search=examples_search,
+                limit_count=examples_limit or 20,
                 offset_count=0,
                 persona_id=persona_id,
                 department_ids=user_dept_ids,
                 draft_id=group_id,
-                suggest_source="all",
+                suggest_source="selected" if examples_selected_only else "all",
                 exclude_ids=merged.example_ids,
                 bypass_cache=bypass_cache,
                 persona=True,
@@ -316,8 +341,8 @@ async def resolve_persona_context(
             return await search_voices(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
+                search=voices_search,
+                limit_count=voices_limit or 20,
                 offset_count=0,
                 exclude_ids=merged.voice_ids,
                 bypass_cache=bypass_cache,
@@ -414,6 +439,19 @@ async def resolve_persona_context(
         f for f in flags_suggestions if getattr(f, "type", None) in PERSONA_FLAG_TYPES
     ]
 
+    # Fetch conditional_parameters for field→parameter nesting
+    all_cond_ids: list[UUID] = []
+    for f in fields_catalog:
+        all_cond_ids.extend(getattr(f, "conditional_parameter_ids", None) or [])
+    cond_ids_unique = list(set(all_cond_ids))
+    if cond_ids_unique:
+        async with pool.acquire() as conn:
+            conditional_params = await get_conditional_parameters(
+                conn, cond_ids_unique, redis, bypass_cache
+            )
+    else:
+        conditional_params = []
+
     return ArtifactContext(
         artifact_id=persona_id,
         active=active,
@@ -454,6 +492,7 @@ async def resolve_persona_context(
                 selected=parameters_selected, suggestions=parameters_suggestions
             ),
             "fields": ResourcePair(selected=[], suggestions=fields_catalog),
+            "conditional_parameters": ResourcePair(selected=[], suggestions=conditional_params),
         },
         entries={},
     )

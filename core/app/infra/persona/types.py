@@ -215,19 +215,37 @@ class GetPersonaApiRequest(BaseModel):
 
     persona_id: UUID | None = Field(None, description="UUID of the persona to retrieve")
     draft_id: UUID | None = Field(None, description="UUID of the draft to load instead of published state")
-    # Search filters for resources
-    color_search: str | None = Field(None, description="Filter color options by search text")
-    icon_search: str | None = Field(None, description="Filter icon options by search text")
+    parameter_ids: list[str] | None = Field(None, description="Parameter group IDs to expand in the response")
+    # Per-section search
+    names_search: str | None = Field(None, description="Filter name options by search text")
     descriptions_search: str | None = Field(None, description="Filter description options by search text")
+    colors_search: str | None = Field(None, description="Filter color options by search text")
+    icons_search: str | None = Field(None, description="Filter icon options by search text")
     instructions_search: str | None = Field(None, description="Filter instruction options by search text")
-    parameter_field_search: str | None = Field(None, description="Filter parameter field options by search text")
-    parameter_ids: list[str] | None = Field(
-        None, description="Parameter group IDs to expand in the response"
-    )
-    # Show selected filters
-    color_show_selected: bool | None = Field(None, description="When true, only return currently selected colors")
-    icon_show_selected: bool | None = Field(None, description="When true, only return currently selected icons")
-    parameter_field_show_selected: bool | None = Field(None, description="When true, only return currently selected parameter fields")
+    departments_search: str | None = Field(None, description="Filter department options by search text")
+    examples_search: str | None = Field(None, description="Filter example options by search text")
+    parameter_fields_search: str | None = Field(None, description="Filter parameter field options by search text")
+    voices_search: str | None = Field(None, description="Filter voice options by search text")
+    # Per-section limit
+    names_limit: int | None = Field(None, description="Max name options to return")
+    descriptions_limit: int | None = Field(None, description="Max description options to return")
+    colors_limit: int | None = Field(None, description="Max color options to return")
+    icons_limit: int | None = Field(None, description="Max icon options to return")
+    instructions_limit: int | None = Field(None, description="Max instruction options to return")
+    departments_limit: int | None = Field(None, description="Max department options to return")
+    examples_limit: int | None = Field(None, description="Max example options to return")
+    parameter_fields_limit: int | None = Field(None, description="Max parameter field options to return")
+    voices_limit: int | None = Field(None, description="Max voice options to return")
+    # Per-section selected_only
+    names_selected_only: bool | None = Field(None, description="Only return selected names")
+    descriptions_selected_only: bool | None = Field(None, description="Only return selected descriptions")
+    colors_selected_only: bool | None = Field(None, description="Only return selected colors")
+    icons_selected_only: bool | None = Field(None, description="Only return selected icons")
+    instructions_selected_only: bool | None = Field(None, description="Only return selected instructions")
+    departments_selected_only: bool | None = Field(None, description="Only return selected departments")
+    examples_selected_only: bool | None = Field(None, description="Only return selected examples")
+    parameter_fields_selected_only: bool | None = Field(None, description="Only return selected parameter fields")
+    voices_selected_only: bool | None = Field(None, description="Only return selected voices")
 
 
 class GetPersonaApiResponse(BaseModel):
