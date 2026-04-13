@@ -122,14 +122,6 @@ CREATE INDEX idx_attempt_chat_entry_created_at ON public.attempt_chat_entry USIN
 
 --
 
--- Name: idx_attempt_chat_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_attempt_chat_entry_group_id ON public.attempt_chat_entry USING btree (group_id);
-
-
---
-
 -- Name: idx_attempt_completion_entry_attempt_id; Type: INDEX; Schema: public; Owner: -
 --
 

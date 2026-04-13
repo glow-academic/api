@@ -147,7 +147,6 @@ CREATE TABLE public.test_invocation_entry (
     generated boolean DEFAULT false CONSTRAINT benchmark_chats_entry_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT benchmark_chats_entry_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT benchmark_chats_entry_active_not_null NOT NULL,
-    group_id uuid,
     config_signature text,
     test_id uuid,
     call_id uuid NOT NULL,

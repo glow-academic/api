@@ -11,15 +11,6 @@ ALTER TABLE ONLY public.test_archive_entry
 
 --
 
--- Name: test_invocation_entry benchmark_chats_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_entry
-    ADD CONSTRAINT benchmark_chats_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
-
-
---
-
 -- Name: test_invocation_completion_entry benchmark_completions_entry_invocation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 

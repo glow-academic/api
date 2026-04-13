@@ -66,14 +66,6 @@ CREATE INDEX idx_benchmark_invocations_created_at ON public.test_invocation_entr
 
 --
 
--- Name: idx_benchmark_invocations_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_benchmark_invocations_entry_group_id ON public.test_invocation_entry USING btree (group_id);
-
-
---
-
 -- Name: idx_benchmark_tests_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -214,14 +206,6 @@ CREATE INDEX idx_test_invocation_runs_completion_entry_runs_id ON public.test_in
 --
 
 CREATE INDEX idx_test_invocation_runs_entry_test_invocation_id ON public.test_invocation_runs_entry USING btree (test_invocation_id);
-
-
---
-
--- Name: ux_benchmark_invocations_active_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX ux_benchmark_invocations_active_group_id ON public.test_invocation_entry USING btree (group_id) WHERE ((active = true) AND (group_id IS NOT NULL));
 
 
 --

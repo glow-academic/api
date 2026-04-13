@@ -14,7 +14,8 @@ CREATE MATERIALIZED VIEW public.problems_mv AS
     pe.created_at,
     pe.active,
     pe.mcp,
-    pe.generated
+    pe.generated,
+    pe.artifact_type
    FROM ((public.problems_entry pe
      LEFT JOIN public.profiles_problems_connection ppc ON ((ppc.problem_id = pe.id)))
      LEFT JOIN LATERAL ( SELECT resolves_entry.resolved

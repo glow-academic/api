@@ -83,7 +83,6 @@ CREATE TABLE public.attempt_chat_entry (
     generated boolean DEFAULT false CONSTRAINT chat_resolved_entry_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT chat_resolved_entry_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT chat_resolved_entry_active_not_null NOT NULL,
-    group_id uuid NOT NULL,
     chat_id uuid CONSTRAINT chat_resolved_entry_chat_id_not_null NOT NULL,
     "position" integer DEFAULT 0 NOT NULL,
     time_limit integer,

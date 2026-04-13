@@ -84,8 +84,8 @@ CREATE MATERIALIZED VIEW public.test_invocation_mv AS
     bs.reasoning_level_id,
     COALESCE(bs.modality_ids, ARRAY[]::uuid[]) AS modality_ids
    FROM ((((((((public.test_invocation_entry i
-     LEFT JOIN public.calls_entry cl_grp ON ((cl_grp.id = i.call_id))
-     LEFT JOIN public.runs_entry r_grp ON ((r_grp.id = cl_grp.run_id))
+     LEFT JOIN public.calls_entry cl_grp ON ((cl_grp.id = i.call_id)))
+     LEFT JOIN public.runs_entry r_grp ON ((r_grp.id = cl_grp.run_id)))
      LEFT JOIN groups_agents_links gal ON ((gal.test_invocation_id = i.id)))
      LEFT JOIN runs_agents_links ral ON ((ral.test_invocation_id = i.id)))
      LEFT JOIN department_links dl ON ((dl.test_invocation_id = i.id)))

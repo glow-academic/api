@@ -74,15 +74,6 @@ ALTER TABLE ONLY public.attempt_chat_entry
 
 --
 
--- Name: attempt_chat_entry attempt_chat_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.attempt_chat_entry
-    ADD CONSTRAINT attempt_chat_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
-
-
---
-
 -- Name: attempt_chat_completion_entry attempt_completion_entry_attempt_chat_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
