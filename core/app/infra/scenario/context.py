@@ -42,6 +42,7 @@ from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.documents.get import get_documents
 from app.tools.resources.documents.search import search_documents
+from app.tools.resources.conditional_parameters.get import get_conditional_parameters
 from app.tools.resources.fields.search import search_fields
 from app.tools.resources.flags.get import get_flags
 from app.tools.resources.flags.search import search_flags
@@ -306,7 +307,7 @@ async def resolve_scenario_context(
 
     async def _search_parameters() -> list:
         async with pool.acquire() as conn:
-            return await search_parameters(
+            scenario_params = await search_parameters(
                 conn,
                 redis,
                 search=parameter_search,
@@ -320,6 +321,18 @@ async def resolve_scenario_context(
                 exclude_ids=param_ids,
                 bypass_cache=bypass_cache,
             )
+            # Also fetch video-only parameters (not scenario_parameter)
+            scenario_ids = [p.parameter_id for p in scenario_params]
+            video_params = await search_parameters(
+                conn,
+                redis,
+                limit_count=20,
+                offset_count=0,
+                video_parameter=True,
+                exclude_ids=(param_ids or []) + scenario_ids,
+                bypass_cache=bypass_cache,
+            )
+            return scenario_params + video_params
 
     async def _get_parameter_fields() -> list:
         async with pool.acquire() as conn:
@@ -487,6 +500,34 @@ async def resolve_scenario_context(
         f for f in flags_suggestions if getattr(f, "type", None) in SCENARIO_FLAG_TYPES
     ]
 
+    # Fetch conditional_parameters for field→parameter nesting
+    all_cond_ids: list[UUID] = []
+    for f in fields_catalog:
+        all_cond_ids.extend(getattr(f, "conditional_parameter_ids", None) or [])
+    cond_ids_unique = list(set(all_cond_ids))
+    if cond_ids_unique:
+        async with pool.acquire() as conn:
+            conditional_params = await get_conditional_parameters(
+                conn, cond_ids_unique, redis, bypass_cache
+            )
+    else:
+        conditional_params = []
+
+    # Fetch parameter_fields referenced by personas/documents for video tagging
+    all_persona_pf_ids: list[UUID] = []
+    for p in personas_selected + personas_suggestions:
+        all_persona_pf_ids.extend(getattr(p, "parameter_field_ids", None) or [])
+    for d in documents_selected + documents_suggestions:
+        all_persona_pf_ids.extend(getattr(d, "parameter_field_ids", None) or [])
+    persona_pf_ids_unique = list(set(all_persona_pf_ids))
+    if persona_pf_ids_unique:
+        async with pool.acquire() as conn:
+            persona_parameter_fields = await get_parameter_fields(
+                conn, persona_pf_ids_unique, redis, bypass_cache
+            )
+    else:
+        persona_parameter_fields = []
+
     # Step 3: Entry MV fetches (files, images, videos — for file_path/mime_type)
     all_doc_file_ids = [
         d.file_id for d in documents_selected + documents_suggestions if d.file_id
@@ -568,11 +609,14 @@ async def resolve_scenario_context(
                 selected=options_selected, suggestions=options_suggestions
             ),
             "fields": ResourcePair(selected=[], suggestions=fields_catalog),
+            "conditional_parameters": ResourcePair(selected=[], suggestions=conditional_params),
+            "persona_parameter_fields": ResourcePair(selected=[], suggestions=persona_parameter_fields),
         },
         entries={
             "files": file_entries,
             "images": image_entries,
             "videos": video_entries,
+            "pending_ids": merged.pending_ids,
         },
     )
 
@@ -599,6 +643,8 @@ class _MergedIds:
     video_ids: list[UUID]
     question_ids: list[UUID]
     option_ids: list[UUID]
+    # IDs from soft draft connections (pending acceptance)
+    pending_ids: set[UUID]
 
 
 def _merge_junction_ids(artifact, draft) -> _MergedIds:
@@ -651,6 +697,21 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
         if draft.option_ids:
             option_ids = list(draft.option_ids)
 
+    # Collect pending IDs from draft connections with active=false
+    pending: set[UUID] = set()
+    if draft:
+        for attr in [
+            "pending_name_ids", "pending_description_ids",
+            "pending_problem_statement_ids", "pending_department_ids",
+            "pending_persona_ids", "pending_document_ids",
+            "pending_objective_ids", "pending_image_ids",
+            "pending_video_ids", "pending_question_ids",
+            "pending_option_ids", "pending_flag_ids",
+            "pending_parameter_field_ids",
+        ]:
+            for pid in getattr(draft, attr, []) or []:
+                pending.add(pid)
+
     return _MergedIds(
         name_ids=name_ids,
         description_ids=description_ids,
@@ -665,4 +726,5 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
         video_ids=video_ids,
         question_ids=question_ids,
         option_ids=option_ids,
+        pending_ids=pending,
     )

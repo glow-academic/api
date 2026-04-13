@@ -72,6 +72,9 @@ def build_scenario_get_result(
         role_level=profile.role_level, role_permissions=profile.role_permissions,
     )
 
+    # Pending IDs from soft draft connections
+    pending_ids: set[UUID] = scenario.entries.get("pending_ids", set())
+
     agent_ids: dict[str, UUID | None] = {
         resource: (
             scores.best[resource].agent_id if scores.best.get(resource) else None
@@ -385,6 +388,7 @@ def build_scenario_get_result(
                 generated=flag.generated,
                 video_flag=flag.type == "questions_enabled",
                 selected=flag.id in selected_flag_ids,
+                pending=flag.id in pending_ids,
             )
             flags_flat.append(fc)
     flags_flat.sort(key=lambda flag: flag.video_flag or False)
@@ -455,6 +459,8 @@ def build_scenario_get_result(
                 item.suggested = True
             if item_id and item_id in selected_ids:
                 item.selected = True
+            if item_id and item_id in pending_ids:
+                item.pending = True
         return items
 
     # Mark selected/suggested on all converted lists

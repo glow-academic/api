@@ -31,8 +31,13 @@ async def create_scenario_draft(
     profile_ids: list[UUID] | None = None,
     question_ids: list[UUID] | None = None,
     video_ids: list[UUID] | None = None,
+    pending_ids: set[UUID] | None = None,
 ) -> CreateScenarioDraftResponse:
-    """Create a scenario_drafts entry with optional connection table links."""
+    """Create a scenario_drafts entry with optional connection table links.
+
+    pending_ids: resource IDs that should be created with active=false (pending acceptance).
+    soft: when True, ALL connections are active=false (overrides pending_ids).
+    """
     draft_id = await conn.fetchval(
         """
         INSERT INTO scenario_drafts_entry (id, group_id, session_id, active, mcp, generated)
@@ -82,12 +87,16 @@ async def create_scenario_draft(
         ("scenario_drafts_videos_connection", "videos_id", video_ids or []),
     ]
 
+    _pending = pending_ids or set()
     for table, col, ids in connections:
         for rid in ids:
+            # soft=True → all inactive; otherwise check pending_ids per resource
+            is_active = False if soft else (rid not in _pending)
             await conn.execute(
-                f"INSERT INTO {table} (draft_id, {col}) VALUES ($1, $2)",
+                f"INSERT INTO {table} (draft_id, {col}, active) VALUES ($1, $2, $3)",
                 draft_id,
                 rid,
+                is_active,
             )
 
     return CreateScenarioDraftResponse(id=draft_id)

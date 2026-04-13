@@ -29,6 +29,7 @@ class ScenarioNameResource(BaseModel):
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     selected: bool = False
     suggested: bool = False
+    pending: bool = False
 
 
 class ScenarioDescriptionResource(BaseModel):
@@ -39,6 +40,7 @@ class ScenarioDescriptionResource(BaseModel):
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     selected: bool = False
     suggested: bool = False
+    pending: bool = False
 
 
 class ScenarioFlagResource(BaseModel):
@@ -64,6 +66,7 @@ class ScenarioFlagConfig(BaseModel):
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     selected: bool = False
     suggested: bool = False
+    pending: bool = False
     video_flag: bool | None = Field(
         None, description="Whether this flag only shows when video is enabled"
     )
@@ -78,6 +81,7 @@ class ScenarioDepartment(BaseModel):
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     selected: bool = False
     suggested: bool = False
+    pending: bool = False
 
 
 class ScenarioPersona(BaseModel):
@@ -99,6 +103,7 @@ class ScenarioPersona(BaseModel):
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     selected: bool = False
     suggested: bool = False
+    pending: bool = False
 
 
 class ScenarioObjective(BaseModel):
@@ -109,6 +114,7 @@ class ScenarioObjective(BaseModel):
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     selected: bool = False
     suggested: bool = False
+    pending: bool = False
 
 
 class ScenarioDocument(BaseModel):
@@ -131,6 +137,7 @@ class ScenarioDocument(BaseModel):
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     selected: bool = False
     suggested: bool = False
+    pending: bool = False
 
 
 class ScenarioParameter(BaseModel):
@@ -150,6 +157,7 @@ class ScenarioParameter(BaseModel):
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     selected: bool = False
     suggested: bool = False
+    pending: bool = False
 
 
 class ScenarioField(BaseModel):
@@ -164,6 +172,7 @@ class ScenarioField(BaseModel):
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     selected: bool = False
     suggested: bool = False
+    pending: bool = False
 
 
 class ScenarioImage(BaseModel):
@@ -177,6 +186,7 @@ class ScenarioImage(BaseModel):
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     selected: bool = False
     suggested: bool = False
+    pending: bool = False
 
 
 class ScenarioVideo(BaseModel):
@@ -190,6 +200,7 @@ class ScenarioVideo(BaseModel):
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     selected: bool = False
     suggested: bool = False
+    pending: bool = False
 
 
 class ScenarioQuestion(BaseModel):
@@ -201,6 +212,7 @@ class ScenarioQuestion(BaseModel):
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     selected: bool = False
     suggested: bool = False
+    pending: bool = False
 
 
 class ScenarioOption(BaseModel):
@@ -213,6 +225,7 @@ class ScenarioOption(BaseModel):
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     selected: bool = False
     suggested: bool = False
+    pending: bool = False
 
 
 class ScenarioProblemStatement(BaseModel):
@@ -224,6 +237,7 @@ class ScenarioProblemStatement(BaseModel):
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     selected: bool = False
     suggested: bool = False
+    pending: bool = False
 
 
 class ScenarioFieldParamFilter(BaseModel):
@@ -811,6 +825,9 @@ class PatchScenarioDraftApiRequest(ScopedItem):
     persona_ids: list[UUID] | None = Field(None, description="Associated persona UUIDs")
     document_ids: list[UUID] | None = Field(None, description="Associated document UUIDs")
     parameter_field_ids: list[UUID] | None = Field(None, description="Associated parameter field UUIDs")
+
+    # Pending state — resource IDs to keep as pending (active=false on connection)
+    pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep as pending (active=false on connection)")
 
 
 class ScenarioDraftFormState(BaseModel):

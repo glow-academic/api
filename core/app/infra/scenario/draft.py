@@ -210,6 +210,7 @@ async def patch_scenario_draft_impl(
                 video_ids=request.video_ids,
                 question_ids=request.question_ids,
                 option_ids=request.option_ids,
+                pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
     # ── Step 5: Build form state (server is source of truth) ──────────
