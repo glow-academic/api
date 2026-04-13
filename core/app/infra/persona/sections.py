@@ -41,8 +41,10 @@ def build_persona_get_result(
     scores: ArtifactToolScores,
     perms: PersonaPermissionsContext | None,
     group_id: UUID | None,
+    include: dict[str, bool] | None = None,
 ) -> GetPersonaApiResponse:
     """Build the canonical persona response bundle from resolved contexts."""
+    inc = include or {}
     profile = common.profile
 
     perms_department_ids = perms.department_ids if perms else []
@@ -245,17 +247,17 @@ def build_persona_get_result(
         disabled_reason=disabled_reason,
         group_id=group_id,
         show_ai_generate=show_ai_generate,
-        names=_model_many_with_flags(all_names, PersonaNameResource, suggestions_sets.get("names", set()), selected_sets.get("names", set())),
-        descriptions=_model_many_with_flags(all_descriptions, PersonaDescriptionResource, suggestions_sets.get("descriptions", set()), selected_sets.get("descriptions", set())),
-        colors=_model_many_with_flags(all_colors, PersonaColorResource, suggestions_sets.get("colors", set()), selected_sets.get("colors", set())),
-        icons=_model_many_with_flags(all_icons, PersonaIconResource, suggestions_sets.get("icons", set()), selected_sets.get("icons", set())),
-        instructions=_model_many_with_flags(all_instructions, PersonaInstructionResource, suggestions_sets.get("instructions", set()), selected_sets.get("instructions", set())),
-        flags=flags_flat,
-        departments=_department_many_with_flags(all_departments, suggestions_sets.get("departments", set()), selected_sets.get("departments", set())),
-        parameter_fields=_parameter_field_many_with_flags(all_parameter_fields, suggestions_sets.get("parameter_fields", set()), selected_sets.get("parameter_fields", set())),
-        examples=_model_many_with_flags(all_examples, PersonaExampleResource, suggestions_sets.get("examples", set()), selected_sets.get("examples", set())),
-        parameters=list(all_parameters),
-        voices=_model_many_with_flags(all_voices, PersonaVoiceResource, suggestions_sets.get("voices", set()), selected_sets.get("voices", set())),
+        names=_model_many_with_flags(all_names, PersonaNameResource, suggestions_sets.get("names", set()), selected_sets.get("names", set())) if inc.get("names", True) else None,
+        descriptions=_model_many_with_flags(all_descriptions, PersonaDescriptionResource, suggestions_sets.get("descriptions", set()), selected_sets.get("descriptions", set())) if inc.get("descriptions", True) else None,
+        colors=_model_many_with_flags(all_colors, PersonaColorResource, suggestions_sets.get("colors", set()), selected_sets.get("colors", set())) if inc.get("colors", True) else None,
+        icons=_model_many_with_flags(all_icons, PersonaIconResource, suggestions_sets.get("icons", set()), selected_sets.get("icons", set())) if inc.get("icons", True) else None,
+        instructions=_model_many_with_flags(all_instructions, PersonaInstructionResource, suggestions_sets.get("instructions", set()), selected_sets.get("instructions", set())) if inc.get("instructions", True) else None,
+        flags=flags_flat if inc.get("flags", True) else None,
+        departments=_department_many_with_flags(all_departments, suggestions_sets.get("departments", set()), selected_sets.get("departments", set())) if inc.get("departments", True) else None,
+        parameter_fields=_parameter_field_many_with_flags(all_parameter_fields, suggestions_sets.get("parameter_fields", set()), selected_sets.get("parameter_fields", set())) if inc.get("parameter_fields", True) else None,
+        examples=_model_many_with_flags(all_examples, PersonaExampleResource, suggestions_sets.get("examples", set()), selected_sets.get("examples", set())) if inc.get("examples", True) else None,
+        parameters=list(all_parameters) if inc.get("parameters", True) else None,
+        voices=_model_many_with_flags(all_voices, PersonaVoiceResource, suggestions_sets.get("voices", set()), selected_sets.get("voices", set())) if inc.get("voices", True) else None,
         fields=persona.resources["fields"].suggestions,
         resolved_parameter_ids=resolved_parameter_ids or None,
     )

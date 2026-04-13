@@ -78,6 +78,15 @@ async def get_persona(
                 examples_selected_only=request.examples_selected_only,
                 parameter_fields_selected_only=request.parameter_fields_selected_only,
                 voices_selected_only=request.voices_selected_only,
+                names_include=request.names_include,
+                descriptions_include=request.descriptions_include,
+                colors_include=request.colors_include,
+                icons_include=request.icons_include,
+                instructions_include=request.instructions_include,
+                departments_include=request.departments_include,
+                examples_include=request.examples_include,
+                parameter_fields_include=request.parameter_fields_include,
+                voices_include=request.voices_include,
                 bypass_cache=bypass_cache,
             )
 

@@ -57,6 +57,16 @@ async def get_persona_impl(
     examples_selected_only: bool | None = None,
     parameter_fields_selected_only: bool | None = None,
     voices_selected_only: bool | None = None,
+    # Per-section include
+    names_include: bool | None = None,
+    descriptions_include: bool | None = None,
+    colors_include: bool | None = None,
+    icons_include: bool | None = None,
+    instructions_include: bool | None = None,
+    departments_include: bool | None = None,
+    examples_include: bool | None = None,
+    parameter_fields_include: bool | None = None,
+    voices_include: bool | None = None,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> GetPersonaApiResponse:
@@ -138,10 +148,23 @@ async def get_persona_impl(
 
     scores = score_tools(common.tool_graph, PERSONA_RESOURCES)
 
+    include = {
+        "names": names_include is not False,
+        "descriptions": descriptions_include is not False,
+        "colors": colors_include is not False,
+        "icons": icons_include is not False,
+        "instructions": instructions_include is not False,
+        "departments": departments_include is not False,
+        "examples": examples_include is not False,
+        "parameter_fields": parameter_fields_include is not False,
+        "voices": voices_include is not False,
+    }
+
     return build_persona_get_result(
         common=common,
         persona=persona,
         scores=scores,
         perms=perms,
         group_id=effective_group_id,
+        include=include,
     )

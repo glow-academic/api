@@ -246,6 +246,16 @@ class GetPersonaApiRequest(BaseModel):
     examples_selected_only: bool | None = Field(None, description="Only return selected examples")
     parameter_fields_selected_only: bool | None = Field(None, description="Only return selected parameter fields")
     voices_selected_only: bool | None = Field(None, description="Only return selected voices")
+    # Per-section include (omit section from response when False)
+    names_include: bool | None = Field(None, description="Include names section in response")
+    descriptions_include: bool | None = Field(None, description="Include descriptions section in response")
+    colors_include: bool | None = Field(None, description="Include colors section in response")
+    icons_include: bool | None = Field(None, description="Include icons section in response")
+    instructions_include: bool | None = Field(None, description="Include instructions section in response")
+    departments_include: bool | None = Field(None, description="Include departments section in response")
+    examples_include: bool | None = Field(None, description="Include examples section in response")
+    parameter_fields_include: bool | None = Field(None, description="Include parameter fields section in response")
+    voices_include: bool | None = Field(None, description="Include voices section in response")
 
 
 class GetPersonaApiResponse(BaseModel):
