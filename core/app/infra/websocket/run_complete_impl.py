@@ -203,7 +203,7 @@ async def run_complete_impl(
             test_ids=[uuid.UUID(generation_test_id)],
             limit=10,
         )
-        invocation_ids = [inv.id for inv in invocations]
+        invocation_ids = [inv.invocation_id for inv in invocations]
 
         grades = []
         if invocation_ids:

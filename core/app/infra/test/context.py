@@ -40,6 +40,7 @@ from app.tools.resources.prompts.get import get_prompts
 from app.tools.resources.qualities.get import get_qualities
 from app.tools.resources.reasoning_levels.get import get_reasoning_levels
 from app.tools.resources.rubrics.get import get_rubrics
+from app.tools.resources.standard_groups.get import get_standard_groups
 from app.tools.resources.temperature_levels.get import get_temperature_levels
 from app.tools.resources.tools.get import get_tools
 from app.tools.resources.voices.get import get_voices
@@ -77,7 +78,7 @@ async def resolve_test_context(
     async def _fetch_invocations() -> list:
         async with pool.acquire() as c:
             items, _total_count = await search_test_invocation_entries_internal(
-                c, test_ids=[test_id], limit=100000
+                c, test_ids=[test_id], limit=100000, bypass_mv=True,
             )
             return items
 
@@ -266,15 +267,29 @@ async def resolve_test_context(
         _get(get_qualities, quality_ids_set),
     )
 
-    # Phase 5b: Collect model_ids from agents → fetch models
+    # Phase 5b: Collect model_ids from agents, standard_group_ids from rubrics
     model_ids_set: set[UUID] = set()
     for agent in agents_res:
         if agent.model_id:
             model_ids_set.add(agent.model_id)
 
-    models_res = await _get(get_models, model_ids_set)
+    sg_ids_set: set[UUID] = set()
+    for rubric in rubrics_res:
+        for sg_id in rubric.standard_group_ids or []:
+            sg_ids_set.add(sg_id)
 
-    # ── Phase 6: Return ArtifactContext ───────────────────────────────
+    models_res, standard_groups_res = await asyncio.gather(
+        _get(get_models, model_ids_set),
+        _get(get_standard_groups, sg_ids_set),
+    )
+
+    # ── Phase 6: Sort messages by role priority then created_at ────────
+    _ROLE_ORDER = {"system": 0, "developer": 1, "user": 2, "assistant": 3}
+    messages.sort(
+        key=lambda m: (_ROLE_ORDER.get(m.role, 99), m.message_created_at),
+    )
+
+    # ── Phase 7: Return ArtifactContext ───────────────────────────────
     return ArtifactContext(
         artifact_id=None,
         active=True,
@@ -302,6 +317,7 @@ async def resolve_test_context(
             "instructions": ResourcePair(selected=instructions_res, suggestions=[]),
             "tools": ResourcePair(selected=tools_res, suggestions=[]),
             "qualities": ResourcePair(selected=qualities_res, suggestions=[]),
+            "standard_groups": ResourcePair(selected=standard_groups_res, suggestions=[]),
         },
     )
 

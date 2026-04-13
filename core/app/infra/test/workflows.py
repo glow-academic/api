@@ -789,19 +789,30 @@ async def test_proceed_impl(
             )
             return
 
-        async with pool.acquire() as conn:
-            invocation_call_id = await _create_run_call(
-                conn,
-                group_id=next_invocation.group_id,
-            )
-            inv_result = await create_test_invocation(
-                conn,
-                test_id=test_id,
-                call_id=invocation_call_id,
-                group_id=next_invocation.group_id,
-            )
-            test_invocation_id = inv_result.id
-            await refresh_test_invocation(conn)
+        if is_dynamic:
+            # Dynamic tests: create a new invocation for each proceed
+            async with pool.acquire() as conn:
+                invocation_call_id = await _create_run_call(
+                    conn,
+                    group_id=next_invocation.group_id,
+                )
+                inv_result = await create_test_invocation(
+                    conn,
+                    test_id=test_id,
+                    call_id=invocation_call_id,
+                    group_id=next_invocation.group_id,
+                )
+                test_invocation_id = inv_result.id
+                await refresh_test_invocation(conn)
+                if redis:
+                    await invalidate_tags(["test", "tests", "benchmark"], redis=redis)
+        else:
+            # Non-dynamic (generation eval): invocations already created
+            # by setup_generation_test — use the existing one
+            test_invocation_id = next_invocation.invocation_id
+            # Still refresh MV so Test_Get can find them
+            async with pool.acquire() as conn:
+                await refresh_test_invocation(conn)
             if redis:
                 await invalidate_tags(["test", "tests", "benchmark"], redis=redis)
 

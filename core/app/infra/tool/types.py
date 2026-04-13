@@ -149,6 +149,7 @@ class CreateToolItem(ScopedItem):
     args_outputs_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
     instruction_id: UUID | None = Field(None, description="Response template instruction resource UUID")
+    agent_id: UUID | None = Field(None, description="Delegate agent for tool execution")
     tool_ids: list[UUID] | None = Field(None, description="Related tool identifiers")
     # Value-based fields for CSV import (match-by-name resolution)
     active_flag: bool | None = Field(None, description="Whether this tool is active")
@@ -166,6 +167,7 @@ class CreateToolItem(ScopedItem):
         "args_outputs_ids": "args_outputs",
         "permission_ids": "permissions",
         "tool_ids": "tools",
+        "agent_id": "agents",
         "active_flag": "flags",
         "active_flag_id": "flags",
     }
@@ -271,7 +273,7 @@ class PatchToolDraftApiRequest(ScopedItem):
     ID-only for non-creatable resources:
       - flag_ids, department_ids, arg_ids, arg_position_ids, args_output_ids
 
-    Client always sends full state (append-only — each write is a new version snapshot).
+    Client always sends full state (append-only — each write is a new snapshot).
     """
 
     input_draft_id: UUID | None = Field(None, description="Existing draft ID to update")
@@ -289,6 +291,7 @@ class PatchToolDraftApiRequest(ScopedItem):
     arg_position_ids: list[UUID] | None = Field(None, description="Argument position identifiers")
     args_output_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
+    agent_id: UUID | None = Field(None, description="Delegate agent for tool execution")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
@@ -301,6 +304,7 @@ class PatchToolDraftApiRequest(ScopedItem):
         "arg_position_ids": "arg_positions",
         "args_output_ids": "args_outputs",
         "permission_ids": "permissions",
+        "agent_id": "agents",
     }
 
 
@@ -315,6 +319,7 @@ class ToolDraftFormState(BaseModel):
     arg_position_ids: list[UUID] = Field(..., description="Argument position identifiers")
     args_output_ids: list[UUID] = Field(..., description="Argument output identifiers")
     permission_ids: list[UUID] = Field(..., description="Permission identifiers")
+    agent_id: UUID | None = Field(None, description="Delegate agent identifier")
 
 
 class PatchToolDraftApiResponse(BaseModel):

@@ -135,6 +135,7 @@ async def patch_tool_draft_impl(
                 args_output_ids=request.args_output_ids,
                 permission_ids=request.permission_ids,
                 profile_ids=[profile.profiles_id],
+                agent_ids=[request.agent_id] if request.agent_id else None,
             )
 
     # ── Step 5: Build form state (server is source of truth) ────────────
@@ -148,6 +149,7 @@ async def patch_tool_draft_impl(
         arg_position_ids=request.arg_position_ids or [],
         args_output_ids=request.args_output_ids or [],
         permission_ids=request.permission_ids or [],
+        agent_id=request.agent_id,
     )
 
     # ── Step 6: Refresh MV ─────────────────────────────────────────────

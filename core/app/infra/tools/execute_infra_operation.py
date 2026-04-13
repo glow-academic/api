@@ -365,6 +365,7 @@ async def execute_infra_operation(
                 session_id=ctx.session_id,
                 group_id=ctx.group_id,
                 draft_id=ctx.draft_id,
+                run_id=ctx.run_id,
                 sid=ctx.sid,
                 rooms=[ctx.sid] if ctx.sid else [],
                 runner=_runner,

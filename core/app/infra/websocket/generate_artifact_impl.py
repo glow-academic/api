@@ -177,32 +177,6 @@ def _build_refetch_kwargs(
     return kwargs
 
 
-async def _execute_artifact_tool_inline(
-    artifact_type: str,
-    arguments: dict[str, Any],
-    profile_id: uuid.UUID | None,
-    artifact_id: uuid.UUID | None,
-    draft_id: uuid.UUID | None,
-    developer_instruction_templates: list[str] | None,
-) -> tuple[str, list[str]]:
-    """Execute artifact tool: re-fetch context, re-render developer messages.
-
-    Returns:
-        (tool_result_json, developer_messages) — result for LLM + messages to inject
-    """
-    # Legacy websocket fetcher path removed — context is now resolved
-    # via resolve_websocket_context in generate_prepare.
-    return (
-        json.dumps(
-            {
-                "success": False,
-                "message": f"Artifact tool refetch not supported for: {artifact_type}",
-            }
-        ),
-        [],
-    )
-
-
 # ---------------------------------------------------------------------------
 # Emit helpers (emit: EmitFn pattern)
 # ---------------------------------------------------------------------------
@@ -453,7 +427,6 @@ async def generate_artifact_impl(
         tool_id_by_name: dict[str, uuid.UUID] = {}
         tool_resource_type_by_name: dict[str, str] = {}
         tool_entry_type_by_name: dict[str, str] = {}
-        tool_artifact_type_by_name: dict[str, str] = {}
         tool_createable_by_name: dict[str, bool] = {}
         tool_def_by_name: dict[str, dict[str, Any]] = {}
         if data.tools:
@@ -487,8 +460,6 @@ async def generate_artifact_impl(
                     tool_resource_type_by_name[safe_name] = t_resources[0]
                 if t_entries:
                     tool_entry_type_by_name[safe_name] = t_entries[0]
-                if t_artifacts:
-                    tool_artifact_type_by_name[safe_name] = t_artifacts[0]
                 if t_operation is not None:
                     tool_createable_by_name[safe_name] = t_operation == "create"
 
@@ -960,87 +931,66 @@ async def generate_artifact_impl(
                     # Execute tool inline using the agentic pattern
                     # Tool result (including errors) will be visible to model for retries
                     artifact_dev_msgs: list[str] = []
-                    if tool_name in tool_artifact_type_by_name:
-                        # Artifact tool — re-fetch context and re-render developer messages
-                        art_type = tool_artifact_type_by_name[tool_name]
-                        (
-                            tool_result_str,
-                            artifact_dev_msgs,
-                        ) = await _execute_artifact_tool_inline(
-                            artifact_type=art_type,
-                            arguments=arguments_dict,
-                            profile_id=uuid.UUID(data.profile_id)
-                            if data.profile_id
-                            else None,
-                            artifact_id=uuid.UUID(data.artifact_id)
-                            if data.artifact_id
-                            else None,
-                            draft_id=uuid.UUID(data.draft_id)
-                            if data.draft_id
-                            else None,
-                            developer_instruction_templates=data.developer_instruction_templates,
+                    # All tools go through the infra path (audit + uploads).
+                    td = tool_def_by_name.get(tool_name)
+                    if not td:
+                        tool_result_str = json.dumps(
+                            {
+                                "success": False,
+                                "message": f"Tool not found: {tool_name}",
+                                "error_stage": "tool_resolve",
+                            }
                         )
                     else:
-                        # Infra tool path — resolve spec + execute
-                        td = tool_def_by_name.get(tool_name)
-                        if not td:
+                        _group_id = (
+                            uuid.UUID(data.group_id)
+                            if data.group_id
+                            else uuid.UUID(int=0)
+                        )
+                        _session_id = (
+                            uuid.UUID(data.session_id)
+                            if data.session_id
+                            else uuid.UUID(int=0)
+                        )
+                        _profile_id = (
+                            uuid.UUID(data.profile_id)
+                            if data.profile_id
+                            else uuid.UUID(int=0)
+                        )
+                        try:
+                            spec = resolve_tool_spec(td, arguments_dict)
+                            _run_id = (
+                                uuid.UUID(data.run_id)
+                                if data.run_id
+                                else None
+                            )
+                            ctx = InfraContext(
+                                pool=get_pool(),
+                                redis=get_redis_client(),
+                                profile_id=_profile_id,
+                                session_id=_session_id,
+                                group_id=_group_id,
+                                run_id=_run_id,
+                                sid=sid,
+                                soft=True,
+                            )
+                            results = await execute_infra_operation(ctx, spec)
+                            tool_result_str = json.dumps(
+                                {
+                                    "success": all(r.success for r in results),
+                                    "results": [
+                                        r.model_dump(mode="json") for r in results
+                                    ],
+                                }
+                            )
+                        except Exception as e:
                             tool_result_str = json.dumps(
                                 {
                                     "success": False,
-                                    "message": f"Tool not found: {tool_name}",
-                                    "error_stage": "tool_resolve",
+                                    "message": str(e),
+                                    "error_stage": "infra_execute",
                                 }
                             )
-                        else:
-                            _group_id = (
-                                uuid.UUID(data.group_id)
-                                if data.group_id
-                                else uuid.UUID(int=0)
-                            )
-                            _session_id = (
-                                uuid.UUID(data.session_id)
-                                if data.session_id
-                                else uuid.UUID(int=0)
-                            )
-                            _profile_id = (
-                                uuid.UUID(data.profile_id)
-                                if data.profile_id
-                                else uuid.UUID(int=0)
-                            )
-                            try:
-                                spec = resolve_tool_spec(td, arguments_dict)
-                                _run_id = (
-                                    uuid.UUID(data.run_id)
-                                    if data.run_id
-                                    else None
-                                )
-                                ctx = InfraContext(
-                                    pool=get_pool(),
-                                    redis=get_redis_client(),
-                                    profile_id=_profile_id,
-                                    session_id=_session_id,
-                                    group_id=_group_id,
-                                    run_id=_run_id,
-                                    sid=sid,
-                                    soft=True,
-                                )
-                                results = await execute_infra_operation(ctx, spec)
-                                tool_result_str = json.dumps(
-                                    {
-                                        "success": all(r.success for r in results),
-                                        "results": [
-                                            r.model_dump(mode="json") for r in results
-                                        ],
-                                    }
-                                )
-                            except Exception as e:
-                                tool_result_str = json.dumps(
-                                    {
-                                        "success": False,
-                                        "message": str(e),
-                                        "error_stage": "infra_execute",
-                                    }
-                                )
 
                     # Parse result for internal tracking
                     try:

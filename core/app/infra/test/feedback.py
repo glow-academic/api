@@ -101,6 +101,7 @@ async def create_feedback_impl(
         "tool_call_id": str(tool_call_id),
         "standard_group_id": str(standard_group_id),
         "score": score,
+        "feedback": feedback,
         "total_points": total_points,
         "pass_points": pass_points,
     }

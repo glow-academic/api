@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+import logging
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any, TypeVar
@@ -16,6 +17,7 @@ from app.infra.globals import UPLOAD_FOLDER, get_internal_sio
 from app.infra.tool_graph import SettingsToolGraph
 from app.infra.tools.entries.create_tool_call import create_tool_call
 
+logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 internal_sio = get_internal_sio()
@@ -56,6 +58,7 @@ async def run_artifact_operation_with_audit(
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    run_id: UUID | None = None,
     attempt_id: UUID | None = None,
     test_id: UUID | None = None,
     entity_id: UUID | None = None,
@@ -109,6 +112,8 @@ async def run_artifact_operation_with_audit(
         effective_group_id,
         effective_profiles_id,
     ])
+    if run_id is not None:
+        logger.info("AUDIT_GEN: %s.%s run_id=%s", artifact, operation, run_id)
 
     # --- Execute ---
     call_upload_id: UUID | None = None
@@ -141,6 +146,7 @@ async def run_artifact_operation_with_audit(
                 tool_fn=_tool_fn,
                 arguments=arguments,
                 tool_id=tool_id,
+                run_id=run_id,
                 role=role,
                 mcp=mcp,
                 raise_on_error=False,

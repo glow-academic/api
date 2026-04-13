@@ -27,3 +27,4 @@ class GetToolDraftResponse(BaseModel):
     name_ids: list[UUID] = Field(..., description="Associated name UUIDs")
     permission_ids: list[UUID] = Field(..., description="Associated permission UUIDs")
     profile_ids: list[UUID] = Field(..., description="Associated profile UUIDs")
+    agent_ids: list[UUID] = Field(default_factory=list, description="Associated agent UUIDs")

@@ -16,6 +16,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.globals import UPLOAD_FOLDER
+from app.infra.test.clean_content import clean_for_grading
 from app.infra.test.media_types import TextDownloadTestApiResult
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -64,10 +65,19 @@ async def text_download_test_impl(
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Text file not found on disk.")
 
+    # Read and clean text content for AI executor consumption
+    content = ""
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = clean_for_grading(f.read())
+    except Exception:
+        content = "(unable to read file content)"
+
     return TextDownloadTestApiResult(
         upload_id=upload.id,
         file_path=file_path,
         content_type=upload.mime_type,
         filename=os.path.basename(upload.file_path),
         size=upload.size,
+        content=content,
     )

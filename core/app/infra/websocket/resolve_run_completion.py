@@ -99,7 +99,7 @@ async def resolve_run_completion(
     # Count unique agents from messages (if agent_ids populated)
     completed_agent_ids: set[UUID] = set()
     for msg in messages:
-        for aid in (msg.agent_ids or []):
+        for aid in (getattr(msg, "agent_ids", None) or []):
             if aid in expected_agent_ids:
                 completed_agent_ids.add(aid)
 

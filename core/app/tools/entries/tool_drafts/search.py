@@ -33,7 +33,8 @@ async def search_tool_drafts(
             COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL), '{}') AS flag_ids,
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL), '{}') AS name_ids,
             COALESCE(ARRAY_AGG(DISTINCT perm.permissions_id) FILTER (WHERE perm.permissions_id IS NOT NULL), '{}') AS permission_ids,
-            COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL), '{}') AS profile_ids
+            COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL), '{}') AS profile_ids,
+            COALESCE(ARRAY_AGG(DISTINCT ag.agents_id) FILTER (WHERE ag.agents_id IS NOT NULL), '{}') AS agent_ids
         FROM tool_drafts_entry d
         LEFT JOIN tool_drafts_arg_positions_connection ap ON ap.draft_id = d.id
         LEFT JOIN tool_drafts_args_connection a ON a.draft_id = d.id
@@ -44,6 +45,7 @@ async def search_tool_drafts(
         LEFT JOIN tool_drafts_names_connection n ON n.draft_id = d.id
         LEFT JOIN tool_drafts_permissions_connection perm ON perm.draft_id = d.id
         LEFT JOIN tool_drafts_profiles_connection p ON p.draft_id = d.id
+        LEFT JOIN tool_drafts_agents_connection ag ON ag.draft_id = d.id
         WHERE d.active = true
           AND ($1::uuid[] IS NULL OR d.group_id = ANY($1))
           AND ($2::uuid[] IS NULL OR d.session_id = ANY($2))
@@ -84,6 +86,7 @@ async def search_tool_drafts(
             name_ids=r["name_ids"],
             permission_ids=r["permission_ids"],
             profile_ids=r["profile_ids"],
+            agent_ids=r["agent_ids"],
         )
         for r in rows
     ]

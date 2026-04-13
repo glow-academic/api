@@ -86,6 +86,7 @@ class TestResources(BaseModel):
     instructions: dict[str, dict] | None = Field(None, description="Instruction resources keyed by ID")
     tools: dict[str, dict] | None = Field(None, description="Tool resources keyed by ID")
     qualities: dict[str, dict] | None = Field(None, description="Quality resources keyed by ID")
+    standard_groups: dict[str, dict] | None = Field(None, description="Standard group resources keyed by ID")
 
 
 class GetTestArtifactResponse(BaseModel):

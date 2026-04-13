@@ -188,6 +188,7 @@ async def get_test_impl(
             instructions=_to_dict_map(_res("instructions")),
             tools=_to_dict_map(_res("tools")),
             qualities=_to_dict_map(_res("qualities")),
+            standard_groups=_to_dict_map(_res("standard_groups")),
         )
 
         # === BUILD ENTRIES PAYLOAD ===

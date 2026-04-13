@@ -36,6 +36,7 @@ async def get_persona_impl(
     parameter_field_search: str | None = None,
     parameter_field_show_selected: bool | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetPersonaApiResponse:
     """Resolve the canonical persona artifact bundle for any surface."""
     persona_id = id  # alias: tools send 'id', internal code uses 'persona_id'

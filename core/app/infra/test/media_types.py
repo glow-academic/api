@@ -21,6 +21,7 @@ class TextDownloadTestApiResult(BaseModel):
     content_type: str = Field(..., description="MIME type of the file")
     filename: str = Field(..., description="Original filename for Content-Disposition")
     size: int = Field(..., description="File size in bytes")
+    content: str = Field("", description="Actual text content of the file")
 
 
 class CallDownloadTestApiRequest(BaseModel):
@@ -33,3 +34,4 @@ class CallDownloadTestApiResult(BaseModel):
     content_type: str = Field(..., description="MIME type of the file")
     filename: str = Field(..., description="Original filename for Content-Disposition")
     size: int = Field(..., description="File size in bytes")
+    content: str = Field("", description="Actual file content (text for text files, JSON string for structured data)")

@@ -28,6 +28,7 @@ from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 from app.infra.tool.types import (
+    CreateToolApiRequest,
     CreateToolItem,
     ToolFieldError,
     ToolResultItem,
@@ -40,12 +41,12 @@ async def create_tool_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: CreateToolApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> CreateToolApiResponse:
     """Tool bulk create using composable infra functions.
 
     Flow:
@@ -56,6 +57,8 @@ async def create_tool_impl(
       5. invalidate_tags
     """
     from app.infra.tool.permissions import compute_can_create
+
+    items = request.tools
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -121,6 +124,7 @@ async def create_tool_impl(
             args_output_ids=item.args_outputs_ids,
             permission_ids=item.permission_ids,
             instruction_id=item.instruction_id,
+            agent_id=item.agent_id,
         )
 
         # Combine active_flag_id with any other flag_ids

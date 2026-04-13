@@ -151,6 +151,7 @@ async def create_denormalized_snapshot(
     args_output_ids: list[UUID] | None = None,
     permission_ids: list[UUID] | None = None,
     instruction_id: UUID | None = None,
+    agent_id: UUID | None = None,
 ) -> UUID:
     """Create a tools_resource snapshot by hydrating IDs to values.
 
@@ -187,6 +188,7 @@ async def create_denormalized_snapshot(
             args_output_ids=args_output_ids,
             permission_ids=permission_ids,
             instruction_id=instruction_id,
+            agent_id=agent_id,
             redis=redis,
         )
     return result.id

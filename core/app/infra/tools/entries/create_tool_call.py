@@ -29,6 +29,7 @@ async def create_tool_call(
     tool_fn: Callable[..., Any],
     arguments: dict[str, Any],
     tool_id: UUID | None = None,
+    run_id: UUID | None = None,
     role: str = "assistant",
     mcp: bool = False,
     raise_on_error: bool = False,
@@ -40,20 +41,25 @@ async def create_tool_call(
     3. Writes .txt (always) and .json receipt (when tool_id is provided).
     4. Creates upload DB rows + junctions.
     """
-    # 1. Create run + call upfront (call_id available before execution)
-    run = await create_run(
-        conn,
-        group_id=group_id,
-        session_id=session_id,
-        profiles_id=profile_id,
-        mcp=mcp,
-    )
+    # 1. Create or reuse run, create call upfront (call_id available before execution)
+    if run_id is not None:
+        # Reuse existing run (e.g. main generation run)
+        effective_run_id = run_id
+    else:
+        run = await create_run(
+            conn,
+            group_id=group_id,
+            session_id=session_id,
+            profiles_id=profile_id,
+            mcp=mcp,
+        )
+        effective_run_id = run.id
 
     call_id: UUID | None = None
     if tool_id is not None:
         call_result = await create_call(
             conn,
-            run_id=run.id,
+            run_id=effective_run_id,
             session_id=session_id,
             tool_id=tool_id,
             mcp=mcp,
@@ -127,7 +133,7 @@ async def create_tool_call(
     # 6. Text message path (always)
     msg = await create_run_message(
         conn,
-        run_id=run.id,
+        run_id=effective_run_id,
         session_id=session_id,
         role=role,
         upload_id=text_upload.id,
@@ -160,7 +166,7 @@ async def create_tool_call(
     response = CreateToolSetupResponse(
         result_id=result_id,
         result=raw_result,
-        run_id=run.id,
+        run_id=effective_run_id,
         call_id=call_id,
         call_upload_id=call_upload_id,
         message_id=msg.message_id,

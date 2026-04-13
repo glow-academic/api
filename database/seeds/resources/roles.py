@@ -10,7 +10,7 @@ from database.seeds.ids import sid
 from database.seeds.resources.permissions import PERMISSION_IDS
 
 _READ_OPS = ["get", "search", "docs", "refresh", "export"]
-_WRITE_OPS = ["create", "update", "delete", "duplicate", "draft", "drafts"]
+_WRITE_OPS = ["create", "update", "delete", "duplicate", "draft", "drafts", "generate", "name", "grade", "feedback"]
 _ALL_CRUD = _READ_OPS + _WRITE_OPS
 _MEDIA_OPS = [
     "image_upload", "image_download",
@@ -18,6 +18,7 @@ _MEDIA_OPS = [
     "text_upload", "text_download",
     "file_upload", "file_download", "file_preview",
     "audio_upload", "audio_download",
+    "call_download",
     "audio_start", "audio_frame", "audio_stop", "audio_mute",
 ]
 
@@ -58,7 +59,7 @@ roles = [
                 "provider", "tool", "health", "setting", "department",
                 "rubric", "eval", "auth",
             ], _ALL_CRUD)
-            + _pids(["scenario", "document", "attempt", "group"], _MEDIA_OPS)
+            + _pids(["scenario", "document", "attempt", "group", "test"], _MEDIA_OPS)
         ),
     ),
     # ── Admin (level 1): CRUD on most, read on system artifacts ──
@@ -83,7 +84,7 @@ roles = [
                 "pricing", "group", "benchmark", "invocation", "test",
                 "health",
             ])
-            + _pids(["scenario", "document", "attempt", "group"], _MEDIA_OPS)
+            + _pids(["scenario", "document", "attempt", "group", "test"], _MEDIA_OPS)
         ),
     ),
     # ── Instructional (level 2): CRUD on training, read on analytics ──
@@ -106,7 +107,7 @@ roles = [
                 "dashboard", "reports", "record", "activity", "session",
                 "pricing", "group", "benchmark", "invocation", "test",
             ])
-            + _pids(["scenario", "document", "attempt", "group"], _MEDIA_OPS)
+            + _pids(["scenario", "document", "attempt", "group", "test"], _MEDIA_OPS)
         ),
     ),
     # ── GTA (level 3): read + practice ──
