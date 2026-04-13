@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict DXoEtU2L97BEy7ldwY1W5emqsHyZWpA2577mTMLpafjUSgl7tp19dYNrXcF5u54
+\restrict JRdUgF85W7SOyKTh4LqRLQCgddEaxbhYWe8YM8vixvdfSajpQ8meGUgdE6cZy9c
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -300,7 +300,8 @@ CREATE TYPE public.operation_type AS ENUM (
     'context',
     'decrypt',
     'name',
-    'feedback'
+    'feedback',
+    'generations'
 );
 
 
@@ -39696,5 +39697,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict DXoEtU2L97BEy7ldwY1W5emqsHyZWpA2577mTMLpafjUSgl7tp19dYNrXcF5u54
+\unrestrict JRdUgF85W7SOyKTh4LqRLQCgddEaxbhYWe8YM8vixvdfSajpQ8meGUgdE6cZy9c
 
