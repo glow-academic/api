@@ -87,7 +87,6 @@ CREATE TABLE public.test_feedback_entry (
 CREATE TABLE public.test_grade_entry (
     id uuid DEFAULT uuidv7() CONSTRAINT benchmark_grades_entry_id_not_null NOT NULL,
     invocation_id uuid CONSTRAINT benchmark_grades_entry_chat_id_not_null NOT NULL,
-    run_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT benchmark_grades_entry_created_at_not_null NOT NULL,
     updated_at timestamp with time zone DEFAULT now() CONSTRAINT benchmark_grades_entry_updated_at_not_null NOT NULL,
     passed boolean CONSTRAINT benchmark_grades_entry_passed_not_null NOT NULL,

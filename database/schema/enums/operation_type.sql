@@ -51,7 +51,9 @@ CREATE TYPE public.operation_type AS ENUM (
     'emulate',
     'unemulate',
     'context',
-    'decrypt'
+    'decrypt',
+    'name',
+    'feedback'
 );
 
 

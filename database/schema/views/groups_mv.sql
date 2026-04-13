@@ -6,15 +6,17 @@
 --
 
 CREATE MATERIALIZED VIEW public.groups_mv AS
- SELECT id AS group_id,
-    session_id,
-    created_at,
-    name,
-    active,
-    mcp,
-    generated
-   FROM public.groups_entry
-  WHERE (active = true)
+ SELECT g.id AS group_id,
+    g.session_id,
+    g.created_at,
+    COALESCE(gn.name, ''::text) AS name,
+    g.active,
+    g.mcp,
+    g.generated,
+    g.artifact_type
+   FROM (public.groups_entry g
+     LEFT JOIN public.group_names_mv gn ON ((gn.group_id = g.id)))
+  WHERE (g.active = true)
   WITH NO DATA;
 
 

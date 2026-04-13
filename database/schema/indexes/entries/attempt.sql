@@ -186,14 +186,6 @@ CREATE INDEX idx_attempt_conversations_entry_call_id ON public.attempt_conversat
 
 --
 
--- Name: idx_attempt_conversations_entry_run_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_attempt_conversations_entry_run_id ON public.attempt_conversations_entry USING btree (run_id);
-
-
---
-
 -- Name: idx_attempt_entry_call_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -382,14 +374,6 @@ CREATE INDEX idx_simulation_grades_chat_id ON public.attempt_grade_entry USING b
 --
 
 CREATE INDEX idx_simulation_grades_created_at ON public.attempt_grade_entry USING btree (created_at);
-
-
---
-
--- Name: idx_simulation_grades_run_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_simulation_grades_run_id ON public.attempt_grade_entry USING btree (run_id);
 
 
 --

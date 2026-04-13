@@ -26,6 +26,7 @@ CREATE MATERIALIZED VIEW public.test_mv AS
           GROUP BY c.attempt_id
         )
  SELECT t.id AS test_id,
+    t.call_id,
     el.eval_id,
     pl.profile_id,
     COALESCE(dl.department_ids, ARRAY[]::uuid[]) AS department_ids,

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict s46j3QUitg6pcqeAdz0IKdiAZBV7uOrKAS3dQ2v2VlZ2LTBRyhMD5epm7VN7z80
+\restrict gNhmfWDyGLeJjvet4NrcXBWB7cXEeHn5rI4bWxu9xL8e7FJamRGvaCPMvTAcva6
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -253,6 +253,62 @@ CREATE TYPE public.modality_type AS ENUM (
 --
 
 CREATE TYPE public.operation_type AS ENUM (
+    'get',
+    'search',
+    'create',
+    'update',
+    'delete',
+    'duplicate',
+    'draft',
+    'drafts',
+    'export',
+    'refresh',
+    'docs',
+    'csv',
+    'start',
+    'next',
+    'end',
+    'end_all',
+    'message',
+    'grade',
+    'stop',
+    'response',
+    'previous',
+    'archive',
+    'image_upload',
+    'image_download',
+    'video_upload',
+    'video_download',
+    'text_upload',
+    'text_download',
+    'file_upload',
+    'file_download',
+    'file_preview',
+    'audio_start',
+    'audio_frame',
+    'audio_stop',
+    'audio_mute',
+    'audio_upload',
+    'audio_download',
+    'call_download',
+    'run',
+    'generate',
+    'problem',
+    'resolve',
+    'emulate',
+    'unemulate',
+    'context',
+    'decrypt',
+    'name',
+    'feedback'
+);
+
+
+--
+-- Name: operation_type_new; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.operation_type_new AS ENUM (
     'get',
     'search',
     'create',
@@ -1322,7 +1378,6 @@ CREATE TABLE public.attempt_entry (
 CREATE TABLE public.attempt_grade_entry (
     id uuid DEFAULT uuidv7() CONSTRAINT simulation_grades_entry_id_not_null NOT NULL,
     chat_id uuid CONSTRAINT simulation_grades_entry_chat_id_not_null NOT NULL,
-    run_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT simulation_grades_entry_created_at_not_null NOT NULL,
     updated_at timestamp with time zone DEFAULT now() CONSTRAINT simulation_grades_entry_updated_at_not_null NOT NULL,
     passed boolean CONSTRAINT simulation_grades_entry_passed_not_null NOT NULL,
@@ -1992,7 +2047,6 @@ CREATE TABLE public.attempt_conversations_entry (
     mcp boolean DEFAULT false CONSTRAINT conversations_entry_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT conversations_entry_active_not_null NOT NULL,
     chat_id uuid CONSTRAINT conversations_entry_chat_id_not_null NOT NULL,
-    run_id uuid NOT NULL,
     call_id uuid NOT NULL
 );
 
@@ -2008,7 +2062,6 @@ CREATE MATERIALIZED VIEW public.attempt_conversations_mv AS
     mcp,
     active,
     chat_id,
-    run_id,
     call_id
    FROM public.attempt_conversations_entry
   WHERE (active = true)
@@ -6139,6 +6192,39 @@ CREATE MATERIALIZED VIEW public.grants_mv AS
 
 
 --
+-- Name: group_names_entry; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_names_entry (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    group_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL,
+    session_id uuid NOT NULL
+);
+
+
+--
+-- Name: group_names_mv; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.group_names_mv AS
+ SELECT DISTINCT ON (group_id) id,
+    group_id,
+    name,
+    created_at,
+    generated,
+    mcp
+   FROM public.group_names_entry gn
+  WHERE (active = true)
+  ORDER BY group_id, created_at DESC
+  WITH NO DATA;
+
+
+--
 -- Name: groups_entry; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -6149,7 +6235,7 @@ CREATE TABLE public.groups_entry (
     mcp boolean DEFAULT false CONSTRAINT groups_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT groups_active_not_null NOT NULL,
     session_id uuid NOT NULL,
-    name text DEFAULT ''::text NOT NULL
+    artifact_type public.artifact_type DEFAULT 'persona'::public.artifact_type NOT NULL
 );
 
 
@@ -6158,15 +6244,17 @@ CREATE TABLE public.groups_entry (
 --
 
 CREATE MATERIALIZED VIEW public.groups_mv AS
- SELECT id AS group_id,
-    session_id,
-    created_at,
-    name,
-    active,
-    mcp,
-    generated
-   FROM public.groups_entry
-  WHERE (active = true)
+ SELECT g.id AS group_id,
+    g.session_id,
+    g.created_at,
+    COALESCE(gn.name, ''::text) AS name,
+    g.active,
+    g.mcp,
+    g.generated,
+    g.artifact_type
+   FROM (public.groups_entry g
+     LEFT JOIN public.group_names_mv gn ON ((gn.group_id = g.id)))
+  WHERE (g.active = true)
   WITH NO DATA;
 
 
@@ -7295,12 +7383,12 @@ CREATE TABLE public.video_uploads_entry (
 CREATE MATERIALIZED VIEW public.messages_mv AS
  WITH uploads_agg AS (
          SELECT mue.message_id,
-            COALESCE(array_agg(DISTINCT u.id) FILTER (WHERE (tu.id IS NOT NULL)), ARRAY[]::uuid[]) AS text_upload_ids,
-            COALESCE(array_agg(DISTINCT u.id) FILTER (WHERE (au.id IS NOT NULL)), ARRAY[]::uuid[]) AS audio_upload_ids,
-            COALESCE(array_agg(DISTINCT u.id) FILTER (WHERE (iu.id IS NOT NULL)), ARRAY[]::uuid[]) AS image_upload_ids,
-            COALESCE(array_agg(DISTINCT u.id) FILTER (WHERE (vu.id IS NOT NULL)), ARRAY[]::uuid[]) AS video_upload_ids,
-            COALESCE(array_agg(DISTINCT u.id) FILTER (WHERE (fu.id IS NOT NULL)), ARRAY[]::uuid[]) AS file_upload_ids,
-            COALESCE(array_agg(DISTINCT u.id) FILTER (WHERE (cu.id IS NOT NULL)), ARRAY[]::uuid[]) AS call_upload_ids
+            COALESCE(array_agg(DISTINCT tu.text_id) FILTER (WHERE (tu.id IS NOT NULL)), ARRAY[]::uuid[]) AS text_ids,
+            COALESCE(array_agg(DISTINCT au.audio_id) FILTER (WHERE (au.id IS NOT NULL)), ARRAY[]::uuid[]) AS audio_ids,
+            COALESCE(array_agg(DISTINCT iu.image_id) FILTER (WHERE (iu.id IS NOT NULL)), ARRAY[]::uuid[]) AS image_ids,
+            COALESCE(array_agg(DISTINCT vu.video_id) FILTER (WHERE (vu.id IS NOT NULL)), ARRAY[]::uuid[]) AS video_ids,
+            COALESCE(array_agg(DISTINCT fu.file_id) FILTER (WHERE (fu.id IS NOT NULL)), ARRAY[]::uuid[]) AS file_ids,
+            COALESCE(array_agg(DISTINCT cu.call_id) FILTER (WHERE (cu.id IS NOT NULL)), ARRAY[]::uuid[]) AS call_ids
            FROM (((((((public.message_uploads_entry mue
              JOIN public.uploads_entry u ON (((u.id = mue.upload_id) AND (u.active = true))))
              LEFT JOIN public.text_uploads_entry tu ON (((tu.upload_id = u.id) AND (tu.active = true))))
@@ -7316,12 +7404,12 @@ CREATE MATERIALIZED VIEW public.messages_mv AS
     m.run_id,
     (m.role)::text AS role,
     m.created_at AS message_created_at,
-    COALESCE(ua.text_upload_ids, ARRAY[]::uuid[]) AS text_upload_ids,
-    COALESCE(ua.audio_upload_ids, ARRAY[]::uuid[]) AS audio_upload_ids,
-    COALESCE(ua.image_upload_ids, ARRAY[]::uuid[]) AS image_upload_ids,
-    COALESCE(ua.video_upload_ids, ARRAY[]::uuid[]) AS video_upload_ids,
-    COALESCE(ua.file_upload_ids, ARRAY[]::uuid[]) AS file_upload_ids,
-    COALESCE(ua.call_upload_ids, ARRAY[]::uuid[]) AS call_upload_ids
+    COALESCE(ua.text_ids, ARRAY[]::uuid[]) AS text_ids,
+    COALESCE(ua.audio_ids, ARRAY[]::uuid[]) AS audio_ids,
+    COALESCE(ua.image_ids, ARRAY[]::uuid[]) AS image_ids,
+    COALESCE(ua.video_ids, ARRAY[]::uuid[]) AS video_ids,
+    COALESCE(ua.file_ids, ARRAY[]::uuid[]) AS file_ids,
+    COALESCE(ua.call_ids, ARRAY[]::uuid[]) AS call_ids
    FROM (public.messages_entry m
      LEFT JOIN uploads_agg ua ON ((ua.message_id = m.id)))
   WHERE ((m.active = true) AND (m.run_id IS NOT NULL))
@@ -8273,7 +8361,7 @@ CREATE TABLE public.parameters_resource (
 CREATE TABLE public.permissions_resource (
     id uuid DEFAULT uuidv7() NOT NULL,
     artifact public.artifact_type NOT NULL,
-    operation public.operation_type NOT NULL,
+    operation text NOT NULL,
     name text DEFAULT ''::text NOT NULL,
     description text DEFAULT ''::text NOT NULL,
     active boolean DEFAULT true NOT NULL,
@@ -9295,20 +9383,6 @@ CREATE TABLE public.profiles_resource (
 
 
 --
--- Name: profiles_runs_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.profiles_runs_connection (
-    profiles_id uuid NOT NULL,
-    run_id uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    generated boolean DEFAULT false NOT NULL,
-    mcp boolean DEFAULT false NOT NULL,
-    active boolean DEFAULT true NOT NULL
-);
-
-
---
 -- Name: profiles_sessions_connection; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10319,7 +10393,7 @@ CREATE MATERIALIZED VIEW public.runs_mv AS
     po.pricing_id AS output_pricing_pricing_id,
     pc.pricing_count AS cached_pricing_count,
     pc.pricing_id AS cached_pricing_pricing_id,
-    prc.profiles_id
+    psc.profiles_id
    FROM ((((((public.runs_entry r
      LEFT JOIN LATERAL ( SELECT tokens_entry.input_tokens,
             tokens_entry.output_tokens,
@@ -10332,7 +10406,7 @@ CREATE MATERIALIZED VIEW public.runs_mv AS
      LEFT JOIN pricing_input pi ON ((pi.run_id = r.id)))
      LEFT JOIN pricing_output po ON ((po.run_id = r.id)))
      LEFT JOIN pricing_cached pc ON ((pc.run_id = r.id)))
-     LEFT JOIN public.profiles_runs_connection prc ON (((prc.run_id = r.id) AND (prc.active = true))))
+     LEFT JOIN public.profiles_sessions_connection psc ON (((psc.session_id = r.session_id) AND (psc.active = true))))
   WHERE (r.group_id IS NOT NULL)
   WITH NO DATA;
 
@@ -12076,7 +12150,6 @@ CREATE MATERIALIZED VIEW public.test_feedback_mv AS
 CREATE TABLE public.test_grade_entry (
     id uuid DEFAULT uuidv7() CONSTRAINT benchmark_grades_entry_id_not_null NOT NULL,
     invocation_id uuid CONSTRAINT benchmark_grades_entry_chat_id_not_null NOT NULL,
-    run_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT benchmark_grades_entry_created_at_not_null NOT NULL,
     updated_at timestamp with time zone DEFAULT now() CONSTRAINT benchmark_grades_entry_updated_at_not_null NOT NULL,
     passed boolean CONSTRAINT benchmark_grades_entry_passed_not_null NOT NULL,
@@ -12096,7 +12169,6 @@ CREATE TABLE public.test_grade_entry (
 CREATE MATERIALIZED VIEW public.test_grade_mv AS
  SELECT id,
     invocation_id,
-    run_id,
     created_at,
     updated_at,
     passed,
@@ -12876,6 +12948,7 @@ CREATE MATERIALIZED VIEW public.test_mv AS
           GROUP BY c.attempt_id
         )
  SELECT t.id AS test_id,
+    t.call_id,
     el.eval_id,
     pl.profile_id,
     COALESCE(dl.department_ids, ARRAY[]::uuid[]) AS department_ids,
@@ -13091,6 +13164,20 @@ CREATE MATERIALIZED VIEW public.tokens_mv AS
 
 
 --
+-- Name: tool_agents_junction; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tool_agents_junction (
+    tool_id uuid NOT NULL,
+    agents_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
 -- Name: tool_arg_positions_junction; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -13171,6 +13258,20 @@ CREATE TABLE public.tool_descriptions_junction (
     generated boolean DEFAULT false CONSTRAINT tool_descriptions_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT tool_descriptions_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT tool_descriptions_active_not_null NOT NULL
+);
+
+
+--
+-- Name: tool_drafts_agents_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tool_drafts_agents_connection (
+    draft_id uuid NOT NULL,
+    agents_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
 );
 
 
@@ -13432,7 +13533,8 @@ CREATE TABLE public.tools_resource (
     args_ids uuid[] DEFAULT ARRAY[]::uuid[],
     args_output_ids uuid[] DEFAULT ARRAY[]::uuid[],
     permission_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
-    instruction_id uuid
+    instruction_id uuid,
+    agent_id uuid
 );
 
 
@@ -15720,6 +15822,14 @@ ALTER TABLE ONLY public.grants_entry
 
 
 --
+-- Name: group_names_entry group_names_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_names_entry
+    ADD CONSTRAINT group_names_entry_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: groups_entry groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -17157,14 +17267,6 @@ ALTER TABLE ONLY public.profiles_problems_connection
 
 ALTER TABLE ONLY public.profiles_resource
     ADD CONSTRAINT profiles_resource_pkey PRIMARY KEY (id);
-
-
---
--- Name: profiles_runs_connection profiles_runs_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profiles_runs_connection
-    ADD CONSTRAINT profiles_runs_connection_pkey PRIMARY KEY (profiles_id, run_id);
 
 
 --
@@ -19056,6 +19158,14 @@ ALTER TABLE ONLY public.tokens_entry
 
 
 --
+-- Name: tool_agents_junction tool_agents_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tool_agents_junction
+    ADD CONSTRAINT tool_agents_junction_pkey PRIMARY KEY (tool_id, agents_id);
+
+
+--
 -- Name: tool_arg_positions_junction tool_arg_positions_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19093,6 +19203,14 @@ ALTER TABLE ONLY public.tool_departments_junction
 
 ALTER TABLE ONLY public.tool_descriptions_junction
     ADD CONSTRAINT tool_descriptions_pkey PRIMARY KEY (tool_id, descriptions_id);
+
+
+--
+-- Name: tool_drafts_agents_connection tool_drafts_agents_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tool_drafts_agents_connection
+    ADD CONSTRAINT tool_drafts_agents_connection_pkey PRIMARY KEY (draft_id, agents_id);
 
 
 --
@@ -21069,6 +21187,20 @@ CREATE INDEX grants_mv_session_id_idx ON public.grants_mv USING btree (session_i
 
 
 --
+-- Name: group_names_mv_group_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX group_names_mv_group_id_idx ON public.group_names_mv USING btree (group_id);
+
+
+--
+-- Name: group_names_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX group_names_mv_id_idx ON public.group_names_mv USING btree (id);
+
+
+--
 -- Name: groups_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -21514,20 +21646,6 @@ CREATE UNIQUE INDEX idx_attempt_conversation_completion_mv_id ON public.attempt_
 --
 
 CREATE INDEX idx_attempt_conversations_entry_call_id ON public.attempt_conversations_entry USING btree (call_id);
-
-
---
--- Name: idx_attempt_conversations_entry_run_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_attempt_conversations_entry_run_id ON public.attempt_conversations_entry USING btree (run_id);
-
-
---
--- Name: idx_attempt_conversations_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_attempt_conversations_mv_id ON public.attempt_conversations_mv USING btree (id);
 
 
 --
@@ -22151,13 +22269,6 @@ CREATE INDEX idx_benchmark_grades_chat_id ON public.test_grade_entry USING btree
 --
 
 CREATE INDEX idx_benchmark_grades_created_at ON public.test_grade_entry USING btree (created_at);
-
-
---
--- Name: idx_benchmark_grades_run_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_benchmark_grades_run_id ON public.test_grade_entry USING btree (run_id);
 
 
 --
@@ -23306,6 +23417,20 @@ CREATE INDEX idx_grant_consumptions_entry_grant_id ON public.grant_consumptions_
 --
 
 CREATE UNIQUE INDEX idx_grant_consumptions_mv_id ON public.grant_consumptions_mv USING btree (id);
+
+
+--
+-- Name: idx_group_names_entry_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_group_names_entry_created_at ON public.group_names_entry USING btree (created_at);
+
+
+--
+-- Name: idx_group_names_entry_group_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_group_names_entry_group_id ON public.group_names_entry USING btree (group_id);
 
 
 --
@@ -26165,13 +26290,6 @@ CREATE INDEX idx_simulation_grades_created_at ON public.attempt_grade_entry USIN
 
 
 --
--- Name: idx_simulation_grades_run_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_simulation_grades_run_id ON public.attempt_grade_entry USING btree (run_id);
-
-
---
 -- Name: idx_simulation_highlights_strength_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -26459,13 +26577,6 @@ CREATE INDEX idx_test_grade_entry_call_id ON public.test_grade_entry USING btree
 
 
 --
--- Name: idx_test_grade_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_test_grade_mv_id ON public.test_grade_mv USING btree (id);
-
-
---
 -- Name: idx_test_invocation_bridge_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -26624,13 +26735,6 @@ CREATE INDEX idx_test_invocation_runs_entry_test_invocation_id ON public.test_in
 --
 
 CREATE UNIQUE INDEX idx_test_invocation_runs_mv_id ON public.test_invocation_runs_mv USING btree (id);
-
-
---
--- Name: idx_test_mv_test_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_test_mv_test_id ON public.test_mv USING btree (test_id);
 
 
 --
@@ -27366,6 +27470,13 @@ CREATE UNIQUE INDEX logins_mv_login_id_idx ON public.logins_mv USING btree (logi
 --
 
 CREATE UNIQUE INDEX messages_mv_message_id_idx ON public.messages_mv USING btree (message_id);
+
+
+--
+-- Name: messages_mv_run_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX messages_mv_run_id_idx ON public.messages_mv USING btree (run_id);
 
 
 --
@@ -28692,20 +28803,6 @@ CREATE INDEX runs_keys_connection_runs_id_idx ON public.runs_keys_connection USI
 
 
 --
--- Name: runs_mv_profiles_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX runs_mv_profiles_id_idx ON public.runs_mv USING btree (profiles_id);
-
-
---
--- Name: runs_mv_run_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX runs_mv_run_id_idx ON public.runs_mv USING btree (run_id);
-
-
---
 -- Name: scenario_departments_department_id_v7_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29571,6 +29668,13 @@ CREATE INDEX temperature_levels_calls_connection_call_id_idx ON public.temperatu
 --
 
 CREATE INDEX temperature_levels_calls_connection_id_idx ON public.temperature_levels_calls_connection USING btree (temperature_levels_id);
+
+
+--
+-- Name: test_mv_test_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX test_mv_test_id_idx ON public.test_mv USING btree (test_id);
 
 
 --
@@ -30685,14 +30789,6 @@ ALTER TABLE ONLY public.attempt_conversations_entry
 
 
 --
--- Name: attempt_conversations_entry attempt_conversations_entry_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.attempt_conversations_entry
-    ADD CONSTRAINT attempt_conversations_entry_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.runs_entry(id);
-
-
---
 -- Name: attempt_entry attempt_entry_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30738,14 +30834,6 @@ ALTER TABLE ONLY public.attempt_grade_entry
 
 ALTER TABLE ONLY public.attempt_grade_entry
     ADD CONSTRAINT attempt_grade_entry_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id);
-
-
---
--- Name: attempt_grade_entry attempt_grade_entry_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.attempt_grade_entry
-    ADD CONSTRAINT attempt_grade_entry_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.runs_entry(id);
 
 
 --
@@ -31658,14 +31746,6 @@ ALTER TABLE ONLY public.test_feedback_entry
 
 ALTER TABLE ONLY public.test_grade_entry
     ADD CONSTRAINT benchmark_grades_entry_invocation_id_fkey FOREIGN KEY (invocation_id) REFERENCES public.test_invocation_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: test_grade_entry benchmark_grades_entry_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_grade_entry
-    ADD CONSTRAINT benchmark_grades_entry_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.runs_entry(id);
 
 
 --
@@ -33506,6 +33586,14 @@ ALTER TABLE ONLY public.grant_consumptions_entry
 
 ALTER TABLE ONLY public.grants_entry
     ADD CONSTRAINT grants_entry_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions_entry(id) ON DELETE CASCADE;
+
+
+--
+-- Name: group_names_entry group_names_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_names_entry
+    ADD CONSTRAINT group_names_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id) ON DELETE CASCADE;
 
 
 --
@@ -35738,22 +35826,6 @@ ALTER TABLE ONLY public.profiles_problems_connection
 
 ALTER TABLE ONLY public.profiles_resource
     ADD CONSTRAINT profiles_resource_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.roles_resource(id);
-
-
---
--- Name: profiles_runs_connection profiles_runs_connection_profiles_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profiles_runs_connection
-    ADD CONSTRAINT profiles_runs_connection_profiles_id_fkey FOREIGN KEY (profiles_id) REFERENCES public.profiles_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: profiles_runs_connection profiles_runs_connection_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profiles_runs_connection
-    ADD CONSTRAINT profiles_runs_connection_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.runs_entry(id) ON DELETE CASCADE;
 
 
 --
@@ -38773,6 +38845,22 @@ ALTER TABLE ONLY public.tokens_entry
 
 
 --
+-- Name: tool_agents_junction tool_agents_agents_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tool_agents_junction
+    ADD CONSTRAINT tool_agents_agents_id_fkey FOREIGN KEY (agents_id) REFERENCES public.agents_resource(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tool_agents_junction tool_agents_tool_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tool_agents_junction
+    ADD CONSTRAINT tool_agents_tool_id_fkey FOREIGN KEY (tool_id) REFERENCES public.tool_artifact(id) ON DELETE CASCADE;
+
+
+--
 -- Name: tool_arg_positions_junction tool_arg_positions_junction_arg_positions_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -38842,6 +38930,22 @@ ALTER TABLE ONLY public.tool_descriptions_junction
 
 ALTER TABLE ONLY public.tool_descriptions_junction
     ADD CONSTRAINT tool_descriptions_tool_id_fkey FOREIGN KEY (tool_id) REFERENCES public.tool_artifact(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tool_drafts_agents_connection tool_drafts_agents_agents_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tool_drafts_agents_connection
+    ADD CONSTRAINT tool_drafts_agents_agents_id_fkey FOREIGN KEY (agents_id) REFERENCES public.agents_resource(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tool_drafts_agents_connection tool_drafts_agents_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tool_drafts_agents_connection
+    ADD CONSTRAINT tool_drafts_agents_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.tool_drafts_entry(id) ON DELETE CASCADE;
 
 
 --
@@ -39090,6 +39194,14 @@ ALTER TABLE ONLY public.tools_calls_connection
 
 ALTER TABLE ONLY public.tools_calls_connection
     ADD CONSTRAINT tools_calls_connection_id_fkey FOREIGN KEY (tools_id) REFERENCES public.tools_resource(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tools_resource tools_resource_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tools_resource
+    ADD CONSTRAINT tools_resource_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.agents_resource(id) ON DELETE SET NULL;
 
 
 --
@@ -39680,5 +39792,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict s46j3QUitg6pcqeAdz0IKdiAZBV7uOrKAS3dQ2v2VlZ2LTBRyhMD5epm7VN7z80
+\unrestrict gNhmfWDyGLeJjvet4NrcXBWB7cXEeHn5rI4bWxu9xL8e7FJamRGvaCPMvTAcva6
 

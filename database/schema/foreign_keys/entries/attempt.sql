@@ -182,15 +182,6 @@ ALTER TABLE ONLY public.attempt_conversations_entry
 
 --
 
--- Name: attempt_conversations_entry attempt_conversations_entry_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.attempt_conversations_entry
-    ADD CONSTRAINT attempt_conversations_entry_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.runs_entry(id);
-
-
---
-
 -- Name: attempt_entry attempt_entry_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -241,15 +232,6 @@ ALTER TABLE ONLY public.attempt_grade_entry
 
 ALTER TABLE ONLY public.attempt_grade_entry
     ADD CONSTRAINT attempt_grade_entry_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id);
-
-
---
-
--- Name: attempt_grade_entry attempt_grade_entry_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.attempt_grade_entry
-    ADD CONSTRAINT attempt_grade_entry_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.runs_entry(id);
 
 
 --

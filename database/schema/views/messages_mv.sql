@@ -8,12 +8,12 @@
 CREATE MATERIALIZED VIEW public.messages_mv AS
  WITH uploads_agg AS (
          SELECT mue.message_id,
-            COALESCE(array_agg(DISTINCT u.id) FILTER (WHERE (tu.id IS NOT NULL)), ARRAY[]::uuid[]) AS text_upload_ids,
-            COALESCE(array_agg(DISTINCT u.id) FILTER (WHERE (au.id IS NOT NULL)), ARRAY[]::uuid[]) AS audio_upload_ids,
-            COALESCE(array_agg(DISTINCT u.id) FILTER (WHERE (iu.id IS NOT NULL)), ARRAY[]::uuid[]) AS image_upload_ids,
-            COALESCE(array_agg(DISTINCT u.id) FILTER (WHERE (vu.id IS NOT NULL)), ARRAY[]::uuid[]) AS video_upload_ids,
-            COALESCE(array_agg(DISTINCT u.id) FILTER (WHERE (fu.id IS NOT NULL)), ARRAY[]::uuid[]) AS file_upload_ids,
-            COALESCE(array_agg(DISTINCT u.id) FILTER (WHERE (cu.id IS NOT NULL)), ARRAY[]::uuid[]) AS call_upload_ids
+            COALESCE(array_agg(DISTINCT tu.text_id) FILTER (WHERE (tu.id IS NOT NULL)), ARRAY[]::uuid[]) AS text_ids,
+            COALESCE(array_agg(DISTINCT au.audio_id) FILTER (WHERE (au.id IS NOT NULL)), ARRAY[]::uuid[]) AS audio_ids,
+            COALESCE(array_agg(DISTINCT iu.image_id) FILTER (WHERE (iu.id IS NOT NULL)), ARRAY[]::uuid[]) AS image_ids,
+            COALESCE(array_agg(DISTINCT vu.video_id) FILTER (WHERE (vu.id IS NOT NULL)), ARRAY[]::uuid[]) AS video_ids,
+            COALESCE(array_agg(DISTINCT fu.file_id) FILTER (WHERE (fu.id IS NOT NULL)), ARRAY[]::uuid[]) AS file_ids,
+            COALESCE(array_agg(DISTINCT cu.call_id) FILTER (WHERE (cu.id IS NOT NULL)), ARRAY[]::uuid[]) AS call_ids
            FROM (((((((public.message_uploads_entry mue
              JOIN public.uploads_entry u ON (((u.id = mue.upload_id) AND (u.active = true))))
              LEFT JOIN public.text_uploads_entry tu ON (((tu.upload_id = u.id) AND (tu.active = true))))
@@ -29,12 +29,12 @@ CREATE MATERIALIZED VIEW public.messages_mv AS
     m.run_id,
     (m.role)::text AS role,
     m.created_at AS message_created_at,
-    COALESCE(ua.text_upload_ids, ARRAY[]::uuid[]) AS text_upload_ids,
-    COALESCE(ua.audio_upload_ids, ARRAY[]::uuid[]) AS audio_upload_ids,
-    COALESCE(ua.image_upload_ids, ARRAY[]::uuid[]) AS image_upload_ids,
-    COALESCE(ua.video_upload_ids, ARRAY[]::uuid[]) AS video_upload_ids,
-    COALESCE(ua.file_upload_ids, ARRAY[]::uuid[]) AS file_upload_ids,
-    COALESCE(ua.call_upload_ids, ARRAY[]::uuid[]) AS call_upload_ids
+    COALESCE(ua.text_ids, ARRAY[]::uuid[]) AS text_ids,
+    COALESCE(ua.audio_ids, ARRAY[]::uuid[]) AS audio_ids,
+    COALESCE(ua.image_ids, ARRAY[]::uuid[]) AS image_ids,
+    COALESCE(ua.video_ids, ARRAY[]::uuid[]) AS video_ids,
+    COALESCE(ua.file_ids, ARRAY[]::uuid[]) AS file_ids,
+    COALESCE(ua.call_ids, ARRAY[]::uuid[]) AS call_ids
    FROM (public.messages_entry m
      LEFT JOIN uploads_agg ua ON ((ua.message_id = m.id)))
   WHERE ((m.active = true) AND (m.run_id IS NOT NULL))

@@ -58,14 +58,6 @@ CREATE INDEX idx_benchmark_grades_created_at ON public.test_grade_entry USING bt
 
 --
 
--- Name: idx_benchmark_grades_run_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_benchmark_grades_run_id ON public.test_grade_entry USING btree (run_id);
-
-
---
-
 -- Name: idx_benchmark_invocations_created_at; Type: INDEX; Schema: public; Owner: -
 --
 

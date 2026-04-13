@@ -141,7 +141,6 @@ CREATE TABLE public.attempt_entry (
 CREATE TABLE public.attempt_grade_entry (
     id uuid DEFAULT uuidv7() CONSTRAINT simulation_grades_entry_id_not_null NOT NULL,
     chat_id uuid CONSTRAINT simulation_grades_entry_chat_id_not_null NOT NULL,
-    run_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT simulation_grades_entry_created_at_not_null NOT NULL,
     updated_at timestamp with time zone DEFAULT now() CONSTRAINT simulation_grades_entry_updated_at_not_null NOT NULL,
     passed boolean CONSTRAINT simulation_grades_entry_passed_not_null NOT NULL,
@@ -272,7 +271,6 @@ CREATE TABLE public.attempt_conversations_entry (
     mcp boolean DEFAULT false CONSTRAINT conversations_entry_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT conversations_entry_active_not_null NOT NULL,
     chat_id uuid CONSTRAINT conversations_entry_chat_id_not_null NOT NULL,
-    run_id uuid NOT NULL,
     call_id uuid NOT NULL
 );
 

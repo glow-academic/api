@@ -101,24 +101,6 @@ ALTER TABLE ONLY public.profiles_problems_connection
 
 --
 
--- Name: profiles_runs_connection profiles_runs_connection_profiles_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profiles_runs_connection
-    ADD CONSTRAINT profiles_runs_connection_profiles_id_fkey FOREIGN KEY (profiles_id) REFERENCES public.profiles_resource(id) ON DELETE CASCADE;
-
-
---
-
--- Name: profiles_runs_connection profiles_runs_connection_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profiles_runs_connection
-    ADD CONSTRAINT profiles_runs_connection_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.runs_entry(id) ON DELETE CASCADE;
-
-
---
-
 -- Name: profiles_sessions_connection profiles_sessions_connection_profiles_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 

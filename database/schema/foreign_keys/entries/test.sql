@@ -56,15 +56,6 @@ ALTER TABLE ONLY public.test_grade_entry
 
 --
 
--- Name: test_grade_entry benchmark_grades_entry_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_grade_entry
-    ADD CONSTRAINT benchmark_grades_entry_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.runs_entry(id);
-
-
---
-
 -- Name: test_invocation_entry invocation_resolved_entry_test_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 

@@ -17,7 +17,8 @@ CREATE TABLE public.tools_resource (
     args_ids uuid[] DEFAULT ARRAY[]::uuid[],
     args_output_ids uuid[] DEFAULT ARRAY[]::uuid[],
     permission_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
-    instruction_id uuid
+    instruction_id uuid,
+    agent_id uuid
 );
 
 

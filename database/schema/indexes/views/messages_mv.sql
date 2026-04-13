@@ -9,3 +9,11 @@ CREATE UNIQUE INDEX messages_mv_message_id_idx ON public.messages_mv USING btree
 
 
 --
+
+-- Name: messages_mv_run_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX messages_mv_run_id_idx ON public.messages_mv USING btree (run_id);
+
+
+--
