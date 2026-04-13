@@ -39,7 +39,6 @@ async def get_persona_impl(
     id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
-    parameter_ids: list[UUID] | None = None,
     # Per-section filters (nested SectionFilter objects)
     filters: dict[str, SectionFilter | None] | None = None,
     bypass_cache: bool = False,
@@ -48,6 +47,10 @@ async def get_persona_impl(
     """Resolve the canonical persona artifact bundle for any surface."""
     f = filters or {}
     persona_id = id  # alias: tools send 'id', internal code uses 'persona_id'
+    # Extract parameter_ids from parameter_fields filter
+    pf_filter = f.get("parameter_fields")
+    raw_param_ids = pf_filter.parameter_ids if pf_filter and pf_filter.parameter_ids else None
+    parameter_ids = [UUID(pid) if isinstance(pid, str) else pid for pid in raw_param_ids] if raw_param_ids else None
     common = await resolve_common_context(
         pool,
         redis,

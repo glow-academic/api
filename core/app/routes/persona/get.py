@@ -58,9 +58,6 @@ async def get_persona(
                 session_id=session_id,
                 id=request.id,
                 draft_id=request.draft_id,
-                parameter_ids=[UUID(pid) for pid in request.parameter_ids]
-                if request.parameter_ids
-                else None,
                 filters=filters,
                 bypass_cache=bypass_cache,
             )

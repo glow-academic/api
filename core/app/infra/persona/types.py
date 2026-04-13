@@ -218,6 +218,7 @@ class SectionFilter(BaseModel):
     selected: bool | None = Field(None, description="Only return selected items")
     suggested: bool | None = Field(None, description="Only return suggested items")
     include: bool | None = Field(None, description="Include this section in response (default true)")
+    parameter_ids: list[str] | None = Field(None, description="Parameter group IDs to filter by (parameter_fields section only)")
 
 
 class GetPersonaApiRequest(BaseModel):
@@ -225,7 +226,6 @@ class GetPersonaApiRequest(BaseModel):
 
     id: UUID | None = Field(None, description="UUID of the persona to retrieve")
     draft_id: UUID | None = Field(None, description="UUID of the draft to load instead of published state")
-    parameter_ids: list[str] | None = Field(None, description="Parameter group IDs to expand in the response")
     # Per-section filters
     names: SectionFilter | None = Field(None, description="Filter options for names section")
     descriptions: SectionFilter | None = Field(None, description="Filter options for descriptions section")
