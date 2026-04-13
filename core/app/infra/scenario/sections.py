@@ -7,38 +7,10 @@ from uuid import UUID
 from app.infra.common_context import CommonContext
 from app.infra.helpers import dedupe_by_id
 from app.infra.scenario.permissions import (
-    SCENARIO_BASIC_RESOURCES,
-    SCENARIO_CONTENT_RESOURCES,
     SCENARIO_RESOURCES,
     compute_can_draft,
     compute_can_edit,
-    compute_departments_required,
-    compute_description_required,
     compute_disabled_reason,
-    compute_documents_required,
-    compute_fields_required,
-    compute_flag_required,
-    compute_images_required,
-    compute_name_required,
-    compute_objectives_required,
-    compute_parameters_required,
-    compute_personas_required,
-    compute_problem_statement_required,
-    compute_questions_required,
-    compute_show_departments,
-    compute_show_description,
-    compute_show_documents,
-    compute_show_fields,
-    compute_show_flag,
-    compute_show_images,
-    compute_show_name,
-    compute_show_objectives,
-    compute_show_parameters,
-    compute_show_personas,
-    compute_show_problem_statement,
-    compute_show_questions,
-    compute_show_videos,
-    compute_videos_required,
 )
 from app.infra.scenario.permissions_context import ScenarioPermissionsContext
 from app.infra.tool_graph import ArtifactToolScores
@@ -46,33 +18,19 @@ from app.infra.types import ArtifactContext, ResourcePair
 from app.infra.scenario.types import (
     GetScenarioApiResponse,
     ScenarioDepartment,
-    ScenarioDepartmentSection,
     ScenarioDescriptionResource,
-    ScenarioDescriptionSection,
     ScenarioDocument,
-    ScenarioDocumentSection,
     ScenarioField,
     ScenarioFlagConfig,
-    ScenarioFlagSection,
     ScenarioImage,
-    ScenarioImageSection,
     ScenarioNameResource,
-    ScenarioNameSection,
     ScenarioObjective,
-    ScenarioObjectiveSection,
     ScenarioOption,
-    ScenarioOptionSection,
     ScenarioParameter,
-    ScenarioParameterFieldSection,
-    ScenarioParameterSection,
     ScenarioPersona,
-    ScenarioPersonaSection,
     ScenarioProblemStatement,
-    ScenarioProblemStatementSection,
     ScenarioQuestion,
-    ScenarioQuestionSection,
     ScenarioVideo,
-    ScenarioVideoSection,
 )
 
 
@@ -88,8 +46,25 @@ def build_scenario_get_result(
     objectives_enabled: bool | None = None,
     questions_enabled: bool | None = None,
     problem_statement_enabled: bool | None = None,
+    include: dict[str, bool] | None = None,
+    selected_only: dict[str, bool] | None = None,
+    suggested_only: dict[str, bool] | None = None,
 ) -> GetScenarioApiResponse:
     """Build the canonical scenario response bundle from resolved contexts."""
+    inc = include or {}
+    sel_only = selected_only or {}
+    sug_only = suggested_only or {}
+
+    def _filter_section(items: list | None, section: str) -> list | None:
+        """Apply selected_only and suggested_only filters to a section's items."""
+        if items is None:
+            return None
+        if sel_only.get(section):
+            items = [i for i in items if getattr(i, "selected", False)]
+        if sug_only.get(section):
+            items = [i for i in items if getattr(i, "suggested", False)]
+        return items
+
     profile = common.profile
 
     # AI generate: simple permission check — can the user draft?
@@ -172,65 +147,44 @@ def build_scenario_get_result(
             if not p.video_parameter or p.scenario_parameter
         ]
 
-    show_flags_map = {
-        "names": compute_show_name(),
-        "descriptions": compute_show_description(),
-        "problem_statements": compute_show_problem_statement() if problem_statement_enabled is not False else False,
-        "flags": compute_show_flag(),
-        "departments": compute_show_departments(len(all_departments)),
-        "personas": compute_show_personas(len(all_personas)),
-        "documents": compute_show_documents(len(all_documents)),
-        "parameters": compute_show_parameters(len(all_parameters)),
-        "fields": compute_show_fields(len(all_parameter_fields)),
-        "objectives": compute_show_objectives(len(all_objectives)) if objectives_enabled is not False else False,
-        "images": compute_show_images(len(all_images)) if images_enabled is not False else False,
-        "videos": compute_show_videos(len(all_videos)) if video_enabled is not False else False,
-        "questions": compute_show_questions(len(all_questions)) if questions_enabled is not False else False,
-        "options": len(all_options) > 0 if questions_enabled is not False else False,
-    }
-
-    required_flags_map = {
-        "names": compute_name_required(),
-        "descriptions": compute_description_required(),
-        "problem_statements": compute_problem_statement_required(),
-        "flags": compute_flag_required(),
-        "departments": compute_departments_required(),
-        "personas": compute_personas_required(),
-        "documents": compute_documents_required(),
-        "parameters": compute_parameters_required(),
-        "fields": compute_fields_required(),
-        "objectives": compute_objectives_required(),
-        "images": compute_images_required(),
-        "videos": compute_videos_required(),
-        "questions": compute_questions_required(),
-        "options": False,
-    }
-
     show_ai_generate = can_ai_generate
 
-    suggestions_map: dict[str, list[UUID]] = {
-        "names": [n.id for n in scenario.resources["names"].suggestions],
-        "descriptions": [d.id for d in scenario.resources["descriptions"].suggestions],
-        "problem_statements": [
+    # Build selected/suggested sets for marking
+    suggestions_sets: dict[str, set] = {
+        "names": {n.id for n in scenario.resources["names"].suggestions},
+        "descriptions": {d.id for d in scenario.resources["descriptions"].suggestions},
+        "problem_statements": {
             ps.id for ps in scenario.resources["problem_statements"].suggestions
-        ],
-        "departments": [d.id for d in scenario.resources["departments"].suggestions],
-        "personas": [p.id for p in scenario.resources["personas"].suggestions],
-        "documents": [d.id for d in scenario.resources["documents"].suggestions],
-        "parameters": [p.parameter_id for p in scenario.resources["parameters"].suggestions],
-        "objectives": [],
-        "images": [i.id for i in scenario.resources["images"].suggestions],
-        "videos": [v.id for v in scenario.resources["videos"].suggestions],
-        "questions": [q.id for q in scenario.resources["questions"].suggestions],
-        "options": [o.id for o in scenario.resources["options"].suggestions],
+        },
+        "departments": {d.id for d in scenario.resources["departments"].suggestions},
+        "personas": {p.id for p in scenario.resources["personas"].suggestions},
+        "documents": {d.id for d in scenario.resources["documents"].suggestions},
+        "parameters": {p.parameter_id for p in scenario.resources["parameters"].suggestions},
+        "objectives": set(),
+        "parameter_fields": set(),
+        "images": {i.id for i in scenario.resources["images"].suggestions},
+        "videos": {v.id for v in scenario.resources["videos"].suggestions},
+        "questions": {q.id for q in scenario.resources["questions"].suggestions},
+        "options": {o.id for o in scenario.resources["options"].suggestions},
     }
 
-    def _section(resource_key: str) -> dict:
-        return {
-            "show": show_flags_map.get(resource_key, False),
-            "required": required_flags_map.get(resource_key, False),
-            "suggestions": suggestions_map.get(resource_key),
-        }
+    selected_sets: dict[str, set] = {
+        "names": {n.id for n in scenario.resources["names"].selected},
+        "descriptions": {d.id for d in scenario.resources["descriptions"].selected},
+        "problem_statements": {
+            ps.id for ps in scenario.resources["problem_statements"].selected
+        },
+        "departments": {d.id for d in scenario.resources["departments"].selected},
+        "personas": {p.id for p in scenario.resources["personas"].selected},
+        "documents": {d.id for d in scenario.resources["documents"].selected},
+        "parameters": {p.parameter_id for p in scenario.resources["parameters"].selected},
+        "objectives": {o.id for o in scenario.resources["objectives"].selected},
+        "parameter_fields": {pf.id for pf in scenario.resources["parameter_fields"].selected},
+        "images": {i.id for i in scenario.resources["images"].selected},
+        "videos": {v.id for v in scenario.resources["videos"].selected},
+        "questions": {q.id for q in scenario.resources["questions"].selected},
+        "options": {o.id for o in scenario.resources["options"].selected},
+    }
 
     # Build field lookup from fields catalog for name/description hydration
     field_lookup = {f.id: f for f in scenario.resources["fields"].suggestions}
@@ -414,27 +368,29 @@ def build_scenario_get_result(
             generated=option.generated,
         )
 
+    # Build flat flag list with selected marked
     all_flags = dedupe_by_id(
         scenario.resources["flags"].selected + scenario.resources["flags"].suggestions
     )
-    scenario_flags = [
-        ScenarioFlagConfig(
-            key=flag.type,
-            label=flag.name,
-            description=flag.description,
-            icon_id=flag.icon,
-            flag_option_id=flag.id,
-            generated=flag.generated,
-            video_flag=flag.type == "questions_enabled",
-        )
-        for flag in all_flags
-        if flag.id and flag.type and flag.type != "scenario_parameter"
-    ]
-    scenario_flags.sort(key=lambda flag: flag.video_flag or False)
+    selected_flag_ids = {flag.id for flag in scenario.resources["flags"].selected}
+    flags_flat = []
+    for flag in all_flags:
+        if flag.id and flag.type and flag.type != "scenario_parameter":
+            fc = ScenarioFlagConfig(
+                key=flag.type,
+                label=flag.name,
+                description=flag.description,
+                icon_id=flag.icon,
+                flag_option_id=flag.id,
+                generated=flag.generated,
+                video_flag=flag.type == "questions_enabled",
+                selected=flag.id in selected_flag_ids,
+            )
+            flags_flat.append(fc)
+    flags_flat.sort(key=lambda flag: flag.video_flag or False)
 
-    current_flag_ids = {flag.id for flag in scenario.resources["flags"].selected}
-
-    all_names = [
+    # Convert all resources using _to_* converters
+    all_names_conv = [
         _to_name(name)
         for name in dedupe_by_id(
             scenario.resources["names"].selected
@@ -448,7 +404,7 @@ def build_scenario_get_result(
             + scenario.resources["descriptions"].suggestions
         )
     ]
-    all_problem_statements = [
+    all_problem_statements_conv = [
         _to_problem_statement(problem_statement)
         for problem_statement in dedupe_by_id(
             scenario.resources["problem_statements"].selected
@@ -482,40 +438,6 @@ def build_scenario_get_result(
     all_questions_conv = [_to_question(question) for question in all_questions]
     all_options_conv = [_to_option(option) for option in all_options]
 
-    current_departments = [
-        _to_department(department)
-        for department in scenario.resources["departments"].selected
-    ]
-    current_personas = [
-        _to_persona(persona) for persona in scenario.resources["personas"].selected
-    ]
-    current_documents = [
-        _to_document(document) for document in scenario.resources["documents"].selected
-    ]
-    current_parameters = [
-        _to_parameter(parameter)
-        for parameter in scenario.resources["parameters"].selected
-    ]
-    current_fields = [
-        _to_field(field) for field in scenario.resources["parameter_fields"].selected
-    ]
-    current_objectives = [
-        _to_objective(objective)
-        for objective in scenario.resources["objectives"].selected
-    ]
-    current_images = [
-        _to_image(image) for image in scenario.resources["images"].selected
-    ]
-    current_videos = [
-        _to_video(video) for video in scenario.resources["videos"].selected
-    ]
-    current_questions = [
-        _to_question(question) for question in scenario.resources["questions"].selected
-    ]
-    current_options = [
-        _to_option(option) for option in scenario.resources["options"].selected
-    ]
-
     resolved_parameter_ids = list(
         {
             str(parameter_field.parameter_id)
@@ -523,6 +445,35 @@ def build_scenario_get_result(
             if parameter_field.parameter_id
         }
     )
+
+    # Helper to apply _model_many_with_flags for sections with custom model builders
+    # (the _to_* converters already produce the right model, so we just mark flags)
+    def _mark_flags(items, suggested_ids: set, selected_ids: set, id_attr: str = "id"):
+        for item in items:
+            item_id = getattr(item, id_attr, None)
+            if item_id and item_id in suggested_ids:
+                item.suggested = True
+            if item_id and item_id in selected_ids:
+                item.selected = True
+        return items
+
+    # Mark selected/suggested on all converted lists
+    sug = suggestions_sets
+    sel = selected_sets
+
+    _mark_flags(all_names_conv, sug["names"], sel["names"])
+    _mark_flags(all_descriptions_conv, sug["descriptions"], sel["descriptions"])
+    _mark_flags(all_problem_statements_conv, sug["problem_statements"], sel["problem_statements"], id_attr="problem_statement_id")
+    _mark_flags(all_departments_conv, sug["departments"], sel["departments"], id_attr="department_id")
+    _mark_flags(all_personas_conv, sug["personas"], sel["personas"], id_attr="persona_id")
+    _mark_flags(all_documents_conv, sug["documents"], sel["documents"], id_attr="document_id")
+    _mark_flags(all_parameters_conv, sug["parameters"], sel["parameters"], id_attr="parameter_id")
+    _mark_flags(all_fields_conv, sug["parameter_fields"], sel["parameter_fields"], id_attr="field_id")
+    _mark_flags(all_objectives_conv, sug["objectives"], sel["objectives"])
+    _mark_flags(all_images_conv, sug["images"], sel["images"], id_attr="image_id")
+    _mark_flags(all_videos_conv, sug["videos"], sel["videos"], id_attr="video_id")
+    _mark_flags(all_questions_conv, sug["questions"], sel["questions"], id_attr="question_id")
+    _mark_flags(all_options_conv, sug["options"], sel["options"], id_attr="option_id")
 
     return GetScenarioApiResponse(
         actor_name=profile.name,
@@ -532,86 +483,18 @@ def build_scenario_get_result(
         group_id=group_id,
         show_ai_generate=show_ai_generate,
         resolved_parameter_ids=resolved_parameter_ids or None,
-        names=ScenarioNameSection(
-            **_section("names"),
-            resource=_to_name(scenario.resources["names"].selected[0])
-            if scenario.resources["names"].selected
-            else None,
-            resources=all_names,
-        ),
-        descriptions=ScenarioDescriptionSection(
-            **_section("descriptions"),
-            resource=_to_description(scenario.resources["descriptions"].selected[0])
-            if scenario.resources["descriptions"].selected
-            else None,
-            resources=all_descriptions_conv,
-        ),
-        problem_statements=ScenarioProblemStatementSection(
-            **_section("problem_statements"),
-            resource=_to_problem_statement(
-                scenario.resources["problem_statements"].selected[0]
-            )
-            if scenario.resources["problem_statements"].selected
-            else None,
-            resources=all_problem_statements,
-        ),
-        flags=ScenarioFlagSection(
-            **_section("flags"),
-            current=[
-                flag
-                for flag in scenario_flags
-                if flag.flag_option_id in current_flag_ids
-            ],
-            resources=scenario_flags,
-        ),
-        departments=ScenarioDepartmentSection(
-            **_section("departments"),
-            current=current_departments,
-            resources=all_departments_conv,
-        ),
-        personas=ScenarioPersonaSection(
-            **_section("personas"),
-            current=current_personas,
-            resources=all_personas_conv,
-        ),
-        documents=ScenarioDocumentSection(
-            **_section("documents"),
-            current=current_documents,
-            resources=all_documents_conv,
-        ),
-        parameters=ScenarioParameterSection(
-            **_section("parameters"),
-            current=current_parameters,
-            resources=all_parameters_conv,
-        ),
-        parameter_fields=ScenarioParameterFieldSection(
-            **_section("fields"),
-            current=current_fields,
-            resources=all_fields_conv,
-        ),
-        objectives=ScenarioObjectiveSection(
-            **_section("objectives"),
-            current=current_objectives,
-            resources=all_objectives_conv,
-        ),
-        images=ScenarioImageSection(
-            **_section("images"),
-            current=current_images,
-            resources=all_images_conv,
-        ),
-        videos=ScenarioVideoSection(
-            **_section("videos"),
-            current=current_videos,
-            resources=all_videos_conv,
-        ),
-        questions=ScenarioQuestionSection(
-            **_section("questions"),
-            current=current_questions,
-            resources=all_questions_conv,
-        ),
-        options=ScenarioOptionSection(
-            **_section("options"),
-            current=current_options,
-            resources=all_options_conv,
-        ),
+        names=_filter_section(all_names_conv, "names") if inc.get("names", True) else None,
+        descriptions=_filter_section(all_descriptions_conv, "descriptions") if inc.get("descriptions", True) else None,
+        problem_statements=_filter_section(all_problem_statements_conv, "problem_statements") if inc.get("problem_statements", True) else None,
+        flags=_filter_section(flags_flat, "flags") if inc.get("flags", True) else None,
+        departments=_filter_section(all_departments_conv, "departments") if inc.get("departments", True) else None,
+        personas=_filter_section(all_personas_conv, "personas") if inc.get("personas", True) else None,
+        documents=_filter_section(all_documents_conv, "documents") if inc.get("documents", True) else None,
+        parameters=_filter_section(all_parameters_conv, "parameters") if inc.get("parameters", True) else None,
+        parameter_fields=_filter_section(all_fields_conv, "parameter_fields") if inc.get("parameter_fields", True) else None,
+        objectives=_filter_section(all_objectives_conv, "objectives") if inc.get("objectives", True) else None,
+        images=_filter_section(all_images_conv, "images") if inc.get("images", True) else None,
+        videos=_filter_section(all_videos_conv, "videos") if inc.get("videos", True) else None,
+        questions=_filter_section(all_questions_conv, "questions") if inc.get("questions", True) else None,
+        options=_filter_section(all_options_conv, "options") if inc.get("options", True) else None,
     )

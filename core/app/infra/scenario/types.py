@@ -12,7 +12,8 @@ from pydantic import BaseModel, Field
 
 from app.infra.resource_type_filter import ScopedItem
 
-from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import ListFilterSection
+from app.infra.persona.types import SectionFilter
 from app.tools.entries.scenario_drafts.types import GetScenarioDraftResponse
 
 # =============================================================================
@@ -26,6 +27,8 @@ class ScenarioNameResource(BaseModel):
     id: UUID | None = Field(None, description="UUID of the name resource")
     name: str | None = Field(None, description="Display name")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    selected: bool = False
+    suggested: bool = False
 
 
 class ScenarioDescriptionResource(BaseModel):
@@ -34,6 +37,8 @@ class ScenarioDescriptionResource(BaseModel):
     id: UUID | None = Field(None, description="UUID of the description resource")
     description: str | None = Field(None, description="Description text")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    selected: bool = False
+    suggested: bool = False
 
 
 class ScenarioFlagResource(BaseModel):
@@ -57,6 +62,8 @@ class ScenarioFlagConfig(BaseModel):
     show: bool = Field(True, description="Whether to show this flag in the UI")
     required: bool = Field(False, description="Whether this flag is required")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    selected: bool = False
+    suggested: bool = False
     video_flag: bool | None = Field(
         None, description="Whether this flag only shows when video is enabled"
     )
@@ -69,6 +76,8 @@ class ScenarioDepartment(BaseModel):
     name: str | None = Field(None, description="Department name")
     description: str | None = Field(None, description="Department description text")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    selected: bool = False
+    suggested: bool = False
 
 
 class ScenarioPersona(BaseModel):
@@ -87,6 +96,9 @@ class ScenarioPersona(BaseModel):
     non_video_persona: bool | None = Field(
         None, description="Has linked parameter with video disabled"
     )
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    selected: bool = False
+    suggested: bool = False
 
 
 class ScenarioObjective(BaseModel):
@@ -95,6 +107,8 @@ class ScenarioObjective(BaseModel):
     id: UUID | None = Field(None, description="UUID of the objective")
     objective: str | None = Field(None, description="Objective text")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    selected: bool = False
+    suggested: bool = False
 
 
 class ScenarioDocument(BaseModel):
@@ -114,6 +128,9 @@ class ScenarioDocument(BaseModel):
     non_video_document: bool | None = Field(
         None, description="Has linked parameter with video disabled"
     )
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    selected: bool = False
+    suggested: bool = False
 
 
 class ScenarioParameter(BaseModel):
@@ -130,6 +147,9 @@ class ScenarioParameter(BaseModel):
         None, description="Inverse of video_parameter for frontend filtering"
     )
     conditional: bool | None = Field(None, description="Whether this parameter is conditional")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    selected: bool = False
+    suggested: bool = False
 
 
 class ScenarioField(BaseModel):
@@ -142,6 +162,8 @@ class ScenarioField(BaseModel):
     parameter_name: str | None = Field(None, description="Name of the linked parameter")
     conditional_parameter_ids: list[UUID] | None = Field(None, description="Conditional parameter UUIDs")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    selected: bool = False
+    suggested: bool = False
 
 
 class ScenarioImage(BaseModel):
@@ -153,6 +175,8 @@ class ScenarioImage(BaseModel):
     mime_type: str | None = Field(None, description="MIME type of the image")
     upload_id: UUID | None = Field(None, description="UUID of the associated upload")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    selected: bool = False
+    suggested: bool = False
 
 
 class ScenarioVideo(BaseModel):
@@ -164,6 +188,8 @@ class ScenarioVideo(BaseModel):
     mime_type: str | None = Field(None, description="MIME type of the video")
     upload_id: UUID | None = Field(None, description="UUID of the associated upload")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    selected: bool = False
+    suggested: bool = False
 
 
 class ScenarioQuestion(BaseModel):
@@ -173,6 +199,8 @@ class ScenarioQuestion(BaseModel):
     question_text: str | None = Field(None, description="Question text content")
     allow_multiple: bool | None = Field(None, description="Whether multiple answers are allowed")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    selected: bool = False
+    suggested: bool = False
 
 
 class ScenarioOption(BaseModel):
@@ -183,6 +211,8 @@ class ScenarioOption(BaseModel):
     is_correct: bool | None = Field(None, description="Whether this is the correct option")
     question_id: UUID | None = Field(None, description="UUID of the parent question")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    selected: bool = False
+    suggested: bool = False
 
 
 class ScenarioProblemStatement(BaseModel):
@@ -192,6 +222,8 @@ class ScenarioProblemStatement(BaseModel):
     name: str | None = Field(None, description="Problem statement name")
     problem_statement: str | None = Field(None, description="Problem statement text")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    selected: bool = False
+    suggested: bool = False
 
 
 class ScenarioFieldParamFilter(BaseModel):
@@ -240,108 +272,23 @@ class ScenarioResources(BaseModel):
 class GetScenarioApiRequest(BaseModel):
     """Request for getting a single scenario."""
 
-    scenario_id: UUID | None = Field(None, description="UUID of the scenario to retrieve")
-    document_ids: list[UUID] | None = Field(None, description="Filter by document UUIDs")
-    problem_statement_ids: list[UUID] | None = Field(None, description="Filter by problem statement UUIDs")
-    filter_department_ids: list[UUID] | None = Field(None, description="Filter by department UUIDs")
-    filter_persona_ids: list[UUID] | None = Field(None, description="Filter by persona UUIDs")
-    filter_document_ids: list[UUID] | None = Field(None, description="Filter by document UUIDs")
-    filter_parameter_ids: list[UUID] | None = Field(None, description="Filter by parameter UUIDs")
-    filter_field_ids: list[UUID] | None = Field(None, description="Filter by field UUIDs")
-    persona_search: str | None = Field(None, description="Search text to filter personas")
-    document_search: str | None = Field(None, description="Search text to filter documents")
-    parameter_search: str | None = Field(None, description="Search text to filter parameters")
-    description_search: str | None = Field(None, description="Search text to filter descriptions")
-    problem_statement_search: str | None = Field(None, description="Search text to filter problem statements")
-    image_search: str | None = Field(None, description="Search text to filter images")
-    video_search: str | None = Field(None, description="Search text to filter videos")
-    question_search: str | None = Field(None, description="Search text to filter questions")
-    option_search: str | None = Field(None, description="Search text to filter options")
-    persona_show_selected: bool | None = Field(None, description="Show only selected personas")
-    document_show_selected: bool | None = Field(None, description="Show only selected documents")
-    parameter_show_selected: bool | None = Field(None, description="Show only selected parameters")
-    field_show_selected_by_param: list[ScenarioFieldParamFilter] | None = Field(
-        default_factory=list, description="Field-level show_selected filters by parameter"
-    )
-    draft_id: UUID | None = Field(None, description="UUID of the draft to retrieve")
-    mcp: bool | None = Field(False, description="Whether this is an MCP request")
-    parameter_ids: list[UUID] | None = Field(None, description="Filter by parameter UUIDs")
-    # UI visibility toggles (None = show all, False = hide section)
-    video_enabled: bool | None = Field(None, description="Show video section and video parameters")
-    images_enabled: bool | None = Field(None, description="Show images section")
-    objectives_enabled: bool | None = Field(None, description="Show objectives section")
-    questions_enabled: bool | None = Field(None, description="Show questions section")
-    problem_statement_enabled: bool | None = Field(None, description="Show problem statement section")
-
-
-class ScenarioNameSection(BaseResourceSection):
-    resource: ScenarioNameResource | None = Field(None, description="Currently selected name resource")
-    resources: list[ScenarioNameResource] | None = Field(None, description="Available name resources")
-
-
-class ScenarioDescriptionSection(BaseResourceSection):
-    resource: ScenarioDescriptionResource | None = Field(None, description="Currently selected description resource")
-    resources: list[ScenarioDescriptionResource] | None = Field(None, description="Available description resources")
-
-
-class ScenarioProblemStatementSection(BaseResourceSection):
-    resource: ScenarioProblemStatement | None = Field(None, description="Currently selected problem statement")
-    resources: list[ScenarioProblemStatement] | None = Field(None, description="Available problem statements")
-
-
-class ScenarioFlagSection(BaseResourceSection):
-    current: list[ScenarioFlagConfig] | None = Field(None, description="Currently selected flags")
-    resources: list[ScenarioFlagConfig] | None = Field(None, description="Available flag configs")
-
-
-class ScenarioDepartmentSection(BaseResourceSection):
-    current: list[ScenarioDepartment] | None = Field(None, description="Currently selected departments")
-    resources: list[ScenarioDepartment] | None = Field(None, description="Available departments")
-
-
-class ScenarioPersonaSection(BaseResourceSection):
-    current: list[ScenarioPersona] | None = Field(None, description="Currently selected personas")
-    resources: list[ScenarioPersona] | None = Field(None, description="Available personas")
-
-
-class ScenarioDocumentSection(BaseResourceSection):
-    current: list[ScenarioDocument] | None = Field(None, description="Currently selected documents")
-    resources: list[ScenarioDocument] | None = Field(None, description="Available documents")
-
-
-class ScenarioParameterSection(BaseResourceSection):
-    current: list[ScenarioParameter] | None = Field(None, description="Currently selected parameters")
-    resources: list[ScenarioParameter] | None = Field(None, description="Available parameters")
-
-
-class ScenarioParameterFieldSection(BaseResourceSection):
-    current: list[ScenarioField] | None = Field(None, description="Currently selected parameter fields")
-    resources: list[ScenarioField] | None = Field(None, description="Available parameter fields")
-
-
-class ScenarioObjectiveSection(BaseResourceSection):
-    current: list[ScenarioObjective] | None = Field(None, description="Currently selected objectives")
-    resources: list[ScenarioObjective] | None = Field(None, description="Available objectives")
-
-
-class ScenarioImageSection(BaseResourceSection):
-    current: list[ScenarioImage] | None = Field(None, description="Currently selected images")
-    resources: list[ScenarioImage] | None = Field(None, description="Available images")
-
-
-class ScenarioVideoSection(BaseResourceSection):
-    current: list[ScenarioVideo] | None = Field(None, description="Currently selected videos")
-    resources: list[ScenarioVideo] | None = Field(None, description="Available videos")
-
-
-class ScenarioQuestionSection(BaseResourceSection):
-    current: list[ScenarioQuestion] | None = Field(None, description="Currently selected questions")
-    resources: list[ScenarioQuestion] | None = Field(None, description="Available questions")
-
-
-class ScenarioOptionSection(BaseResourceSection):
-    current: list[ScenarioOption] | None = Field(None, description="Currently selected options")
-    resources: list[ScenarioOption] | None = Field(None, description="Available options")
+    id: UUID | None = Field(None, description="UUID of the scenario to retrieve")
+    draft_id: UUID | None = Field(None, description="UUID of the draft")
+    # Per-section filters
+    names: SectionFilter | None = None
+    descriptions: SectionFilter | None = None
+    problem_statements: SectionFilter | None = None
+    flags: SectionFilter | None = None
+    departments: SectionFilter | None = None
+    personas: SectionFilter | None = None
+    documents: SectionFilter | None = None
+    parameters: SectionFilter | None = None
+    parameter_fields: SectionFilter | None = None
+    objectives: SectionFilter | None = None
+    images: SectionFilter | None = None
+    videos: SectionFilter | None = None
+    questions: SectionFilter | None = None
+    options: SectionFilter | None = None
 
 
 class GetScenarioApiResponse(BaseModel):
@@ -360,21 +307,21 @@ class GetScenarioApiResponse(BaseModel):
     # Resolved parameter IDs (derived from saved parameter_fields)
     resolved_parameter_ids: list[str] | None = Field(None, description="Resolved parameter IDs from saved fields")
 
-    # Per-resource sections
-    names: ScenarioNameSection | None = Field(None, description="Name section data")
-    descriptions: ScenarioDescriptionSection | None = Field(None, description="Description section data")
-    problem_statements: ScenarioProblemStatementSection | None = Field(None, description="Problem statement section data")
-    flags: ScenarioFlagSection | None = Field(None, description="Flag section data")
-    departments: ScenarioDepartmentSection | None = Field(None, description="Department section data")
-    personas: ScenarioPersonaSection | None = Field(None, description="Persona section data")
-    documents: ScenarioDocumentSection | None = Field(None, description="Document section data")
-    parameters: ScenarioParameterSection | None = Field(None, description="Parameter section data")
-    parameter_fields: ScenarioParameterFieldSection | None = Field(None, description="Parameter field section data")
-    objectives: ScenarioObjectiveSection | None = Field(None, description="Objective section data")
-    images: ScenarioImageSection | None = Field(None, description="Image section data")
-    videos: ScenarioVideoSection | None = Field(None, description="Video section data")
-    questions: ScenarioQuestionSection | None = Field(None, description="Question section data")
-    options: ScenarioOptionSection | None = Field(None, description="Option section data")
+    # Per-resource lists
+    names: list[ScenarioNameResource] | None = Field(None, description="Name resources")
+    descriptions: list[ScenarioDescriptionResource] | None = Field(None, description="Description resources")
+    problem_statements: list[ScenarioProblemStatement] | None = Field(None, description="Problem statement resources")
+    flags: list[ScenarioFlagConfig] | None = Field(None, description="Flag configs")
+    departments: list[ScenarioDepartment] | None = Field(None, description="Department resources")
+    personas: list[ScenarioPersona] | None = Field(None, description="Persona resources")
+    documents: list[ScenarioDocument] | None = Field(None, description="Document resources")
+    parameters: list | None = Field(None, description="Parameter resources")
+    parameter_fields: list[ScenarioField] | None = Field(None, description="Parameter field resources")
+    objectives: list[ScenarioObjective] | None = Field(None, description="Objective resources")
+    images: list[ScenarioImage] | None = Field(None, description="Image resources")
+    videos: list[ScenarioVideo] | None = Field(None, description="Video resources")
+    questions: list[ScenarioQuestion] | None = Field(None, description="Question resources")
+    options: list[ScenarioOption] | None = Field(None, description="Option resources")
 
 
 # =============================================================================
