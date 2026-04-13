@@ -112,10 +112,6 @@ async def get_department_impl(
         )
         for resource in DEPARTMENT_RESOURCES
     }
-    tool_ids_map: dict[str, UUID | None] = {
-        resource: (scores.best[resource].tool_id if scores.best.get(resource) else None)
-        for resource in DEPARTMENT_RESOURCES
-    }
 
     usage_count = perms.usage_count if perms else 0
     can_edit = compute_can_edit(role_level=profile.role_level, role_permissions=profile.role_permissions, usage_count=usage_count)
@@ -215,7 +211,6 @@ async def get_department_impl(
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key, []),
             "show_ai_generate": show_ai_generate_map.get(resource_key, False),
-            "tool_id": tool_ids_map.get(resource_key),
         }
 
     return GetDepartmentApiResponse(

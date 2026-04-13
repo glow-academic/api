@@ -103,10 +103,7 @@ def build_scenario_get_result(
         )
         for resource in SCENARIO_RESOURCES
     }
-    tool_ids_map: dict[str, UUID | None] = {
-        resource: (scores.best[resource].tool_id if scores.best.get(resource) else None)
-        for resource in SCENARIO_RESOURCES
-    }
+
 
     scenario_department_ids = [d.id for d in scenario.resources["departments"].selected]
     active_simulation_count = perms.active_simulation_count if perms else 0
@@ -238,7 +235,6 @@ def build_scenario_get_result(
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key),
             "show_ai_generate": show_ai_generate_map.get(resource_key, False),
-            "tool_id": tool_ids_map.get(resource_key),
         }
 
     # Build field lookup from fields catalog for name/description hydration

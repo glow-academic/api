@@ -66,10 +66,6 @@ def build_cohort_get_result(
 ) -> GetCohortApiResponse:
     """Build the canonical cohort response bundle from resolved contexts."""
     profile = common.profile
-    tool_ids_map: dict[str, UUID | None] = {
-        resource: (scores.best[resource].tool_id if scores.best.get(resource) else None)
-        for resource in COHORT_RESOURCES
-    }
 
     cohort_department_ids = [
         department.id
@@ -174,7 +170,6 @@ def build_cohort_get_result(
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key),
             "show_ai_generate": show_ai_generate_map.get(resource_key, False),
-            "tool_id": tool_ids_map.get(resource_key),
         }
 
     def _to_department(item) -> CohortDepartment:

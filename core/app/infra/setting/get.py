@@ -168,10 +168,6 @@ async def get_setting_impl(
         for r in SETTING_RESOURCES
     }
 
-    tool_ids_map: dict[str, UUID | None] = {
-        r: (scores.best[r].tool_id if scores.best.get(r) else None)
-        for r in SETTING_RESOURCES
-    }
 
     # -- Step 5: Permissions --------------------------------------------------
 
@@ -282,7 +278,6 @@ async def get_setting_impl(
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key),
             "show_ai_generate": show_ai_generate_map.get(resource_key, False),
-            "tool_id": tool_ids_map.get(resource_key),
         }
 
     all_names = dedupe_by_id(

@@ -107,10 +107,6 @@ async def get_auth_impl(
         )
         for resource in AUTH_RESOURCES
     }
-    tool_ids_map: dict[str, UUID | None] = {
-        resource: (scores.best[resource].tool_id if scores.best.get(resource) else None)
-        for resource in AUTH_RESOURCES
-    }
 
     can_edit = compute_can_edit(role_level=profile.role_level, role_permissions=profile.role_permissions)
     disabled_reason = compute_disabled_reason(role_level=profile.role_level, role_permissions=profile.role_permissions)
@@ -206,7 +202,6 @@ async def get_auth_impl(
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key, []),
             "show_ai_generate": show_ai_generate_map.get(resource_key, False),
-            "tool_id": tool_ids_map.get(resource_key),
         }
 
     items_as_resources = [

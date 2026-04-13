@@ -89,10 +89,6 @@ def build_agent_get_result(
         )
         for resource in AGENT_RESOURCES
     }
-    tool_ids_map: dict[str, UUID | None] = {
-        resource: (scores.best[resource].tool_id if scores.best.get(resource) else None)
-        for resource in AGENT_RESOURCES
-    }
 
     names_has_tools = scores.has_any.get("names", False)
     descriptions_has_tools = scores.has_any.get("descriptions", False)
@@ -284,7 +280,6 @@ def build_agent_get_result(
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key, []),
             "show_ai_generate": show_ai_generate_map.get(resource_key, False),
-            "tool_id": tool_ids_map.get(resource_key),
         }
 
     return GetAgentApiResponse(

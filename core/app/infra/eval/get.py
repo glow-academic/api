@@ -151,10 +151,6 @@ async def get_eval_impl(
 
     scores = score_tools(common.tool_graph, EVAL_RESOURCES)
 
-    tool_ids_map: dict[str, UUID | None] = {
-        r: (scores.best[r].tool_id if scores.best.get(r) else None)
-        for r in EVAL_RESOURCES
-    }
 
     # -- Step 5: Permissions --
 
@@ -319,7 +315,6 @@ async def get_eval_impl(
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key),
             "show_ai_generate": show_ai_generate_map.get(resource_key, False),
-            "tool_id": tool_ids_map.get(resource_key),
         }
 
     return GetEvalApiResponse(
@@ -353,7 +348,6 @@ async def get_eval_impl(
             show=True,
             required=False,
             show_ai_generate=show_ai_generate_map.get("flags", False),
-            tool_id=tool_ids_map.get("flags"),
             resource=dynamic_flag,
             resources=eval_flags,
         ),
@@ -361,7 +355,6 @@ async def get_eval_impl(
             show=True,
             required=False,
             show_ai_generate=show_ai_generate_map.get("flags", False),
-            tool_id=tool_ids_map.get("flags"),
             resource=groups_flag,
             resources=eval_flags,
         ),

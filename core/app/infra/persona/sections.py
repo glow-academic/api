@@ -107,11 +107,6 @@ def build_persona_get_result(
         )
         for resource in PERSONA_RESOURCES
     }
-    tool_ids_map: dict[str, UUID | None] = {
-        resource: (scores.best[resource].tool_id if scores.best.get(resource) else None)
-        for resource in PERSONA_RESOURCES
-    }
-
     names_has_tools = scores.has_any.get("names", False)
     colors_has_tools = scores.has_any.get("colors", False)
     icons_has_tools = scores.has_any.get("icons", False)
@@ -250,7 +245,6 @@ def build_persona_get_result(
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key),
             "show_ai_generate": show_ai_generate_map.get(resource_key, False),
-            "tool_id": tool_ids_map.get(resource_key),
         }
 
     def _model(item, model_cls):

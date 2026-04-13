@@ -82,6 +82,7 @@ class PersonaParameterFieldResource(BaseModel):
     parameter_id: UUID | None = None
     name: str | None = None
     description: str | None = None
+    conditional_parameter_id: str | None = None
     generated: bool | None = None
 
 
@@ -365,9 +366,6 @@ class PersonaInternalData:
 
     # Resources payload
     resources_payload: PersonaResources
-
-    # Per-resource tool IDs (from selected agents)
-    tool_ids_map: dict[str, UUID | None]
 
     # Resolved parameter IDs (derived from saved parameter_fields)
     resolved_parameter_ids: list[str]
