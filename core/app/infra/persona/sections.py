@@ -22,26 +22,15 @@ from app.infra.types import ArtifactContext, ResourcePair
 from app.infra.persona.types import (
     GetPersonaApiResponse,
     PersonaColorResource,
-    PersonaColorSection,
     PersonaDepartmentResource,
-    PersonaDepartmentSection,
     PersonaDescriptionResource,
-    PersonaDescriptionSection,
     PersonaExampleResource,
-    PersonaExampleSection,
     PersonaFlagConfig,
-    PersonaFlagSection,
     PersonaIconResource,
-    PersonaIconSection,
     PersonaInstructionResource,
-    PersonaInstructionSection,
     PersonaNameResource,
-    PersonaNameSection,
     PersonaParameterFieldResource,
-    PersonaParameterFieldSection,
-    PersonaParameterSection,
     PersonaVoiceResource,
-    PersonaVoiceSection,
 )
 
 
@@ -123,30 +112,6 @@ def build_persona_get_result(
     all_flags = dedupe_by_id(
         persona.resources["flags"].selected + persona.resources["flags"].suggestions
     )
-    persona_flags = [
-        PersonaFlagConfig(
-            key=flag.name,
-            label=flag.name,
-            description=flag.description,
-            icon_id=flag.icon,
-            flag_option_id=flag.id,
-            generated=flag.generated,
-        )
-        for flag in all_flags
-        if flag.id
-    ]
-
-    current_flag = None
-    if persona.resources["flags"].selected:
-        flag = persona.resources["flags"].selected[0]
-        current_flag = PersonaFlagConfig(
-            key=flag.name,
-            label=flag.name,
-            description=flag.description,
-            icon_id=flag.icon,
-            flag_option_id=flag.id,
-            generated=flag.generated,
-        )
 
     resolved_parameter_ids = list(
         {
@@ -175,37 +140,51 @@ def build_persona_get_result(
         "voices": {item.id for item in persona.resources["voices"].suggestions},
     }
 
-    def _model(item, model_cls):
-        return model_cls.model_validate(item.model_dump())
+    selected_sets = {
+        "names": {item.id for item in persona.resources["names"].selected},
+        "descriptions": {item.id for item in persona.resources["descriptions"].selected},
+        "colors": {item.id for item in persona.resources["colors"].selected},
+        "icons": {item.id for item in persona.resources["icons"].selected},
+        "instructions": {item.id for item in persona.resources["instructions"].selected},
+        "departments": {item.id for item in persona.resources["departments"].selected},
+        "parameter_fields": {item.id for item in persona.resources["parameter_fields"].selected},
+        "examples": {item.id for item in persona.resources["examples"].selected},
+        "voices": {item.id for item in persona.resources["voices"].selected},
+    }
 
-    def _model_many(items, model_cls):
-        return [_model(item, model_cls) for item in items]
-
-    def _model_many_with_suggested(items, model_cls, suggested_ids: set, id_attr: str = "id"):
+    def _model_many_with_flags(items, model_cls, suggested_ids: set, selected_ids: set, id_attr: str = "id"):
         result = []
         for item in items:
             m = model_cls.model_validate(item.model_dump())
             item_id = getattr(item, id_attr, None)
             if item_id and item_id in suggested_ids:
                 m.suggested = True
+            if item_id and item_id in selected_ids:
+                m.selected = True
             result.append(m)
         return result
-
-    def _set_suggested(model, item_id, suggested_ids: set):
-        if item_id and item_id in suggested_ids:
-            model.suggested = True
-        return model
 
     def _department_model(item) -> PersonaDepartmentResource:
         payload = item.model_dump()
         payload["department_id"] = payload.pop("id", None)
         return PersonaDepartmentResource.model_validate(payload)
 
+    def _department_many_with_flags(items, suggested_ids: set, selected_ids: set):
+        result = []
+        for item in items:
+            m = _department_model(item)
+            if item.id and item.id in suggested_ids:
+                m.suggested = True
+            if item.id and item.id in selected_ids:
+                m.selected = True
+            result.append(m)
+        return result
+
     # Build field lookup from already-fetched fields catalog to hydrate
     # parameter_field items with name/description from fields_resource.
     field_lookup = {f.id: f for f in persona.resources["fields"].suggestions}
 
-    # Build conditional_parameter_id → parameter_id mapping for nesting.
+    # Build conditional_parameter_id -> parameter_id mapping for nesting.
     cond_param_to_param = {
         cp.id: cp.parameter_id
         for cp in persona.resources.get("conditional_parameters", ResourcePair([], [])).suggestions
@@ -217,7 +196,7 @@ def build_persona_get_result(
         if field:
             payload["name"] = field.name
             payload["description"] = field.description
-            # Resolve conditional_parameter_ids → parameter_id for nesting
+            # Resolve conditional_parameter_ids -> parameter_id for nesting
             cond_ids = getattr(field, "conditional_parameter_ids", None) or []
             for cid in cond_ids:
                 param_id = cond_param_to_param.get(cid)
@@ -226,6 +205,39 @@ def build_persona_get_result(
                     break
         return PersonaParameterFieldResource.model_validate(payload)
 
+    def _parameter_field_many_with_flags(items, suggested_ids: set, selected_ids: set):
+        result = []
+        for item in items:
+            m = _parameter_field_model(item)
+            if item.id and item.id in suggested_ids:
+                m.suggested = True
+            if item.id and item.id in selected_ids:
+                m.selected = True
+            result.append(m)
+        return result
+
+    # Build flat flag list with selected marked
+    selected_flag_ids = {flag.id for flag in persona.resources["flags"].selected}
+    flags_flat = []
+    for flag in all_flags:
+        if flag.id:
+            fc = PersonaFlagConfig(
+                key=flag.name,
+                label=flag.name,
+                description=flag.description,
+                icon_id=flag.icon,
+                flag_option_id=flag.id,
+                generated=flag.generated,
+                selected=flag.id in selected_flag_ids,
+            )
+            flags_flat.append(fc)
+
+    # Dedupe parameter_fields: combine selected + suggestions
+    all_parameter_fields = dedupe_by_id(
+        persona.resources["parameter_fields"].selected
+        + persona.resources["parameter_fields"].suggestions
+    )
+
     return GetPersonaApiResponse(
         actor_name=profile.name,
         persona_exists=persona.artifact_id is not None,
@@ -233,84 +245,17 @@ def build_persona_get_result(
         disabled_reason=disabled_reason,
         group_id=group_id,
         show_ai_generate=show_ai_generate,
-        names=PersonaNameSection(
-            resource=_model(persona.resources["names"].selected[0], PersonaNameResource)
-            if persona.resources["names"].selected
-            else None,
-            resources=_model_many_with_suggested(all_names, PersonaNameResource, suggestions_sets.get("names", set())),
-        ),
-        descriptions=PersonaDescriptionSection(
-            resource=_model(
-                persona.resources["descriptions"].selected[0],
-                PersonaDescriptionResource,
-            )
-            if persona.resources["descriptions"].selected
-            else None,
-            resources=_model_many_with_suggested(all_descriptions, PersonaDescriptionResource, suggestions_sets.get("descriptions", set())),
-        ),
-        colors=PersonaColorSection(
-            resource=_model(
-                persona.resources["colors"].selected[0], PersonaColorResource
-            )
-            if persona.resources["colors"].selected
-            else None,
-            resources=_model_many_with_suggested(all_colors, PersonaColorResource, suggestions_sets.get("colors", set())),
-        ),
-        icons=PersonaIconSection(
-            resource=_model(persona.resources["icons"].selected[0], PersonaIconResource)
-            if persona.resources["icons"].selected
-            else None,
-            resources=_model_many_with_suggested(all_icons, PersonaIconResource, suggestions_sets.get("icons", set())),
-        ),
-        instructions=PersonaInstructionSection(
-            resource=_model(
-                persona.resources["instructions"].selected[0],
-                PersonaInstructionResource,
-            )
-            if persona.resources["instructions"].selected
-            else None,
-            resources=_model_many_with_suggested(all_instructions, PersonaInstructionResource, suggestions_sets.get("instructions", set())),
-        ),
-        flags=PersonaFlagSection(
-            current=current_flag,
-            resources=persona_flags,
-        ),
-        departments=PersonaDepartmentSection(
-            current=[
-                _department_model(item)
-                for item in persona.resources["departments"].selected
-            ],
-            resources=[
-                _set_suggested(_department_model(item), item.id, suggestions_sets.get("departments", set()))
-                for item in all_departments
-            ],
-        ),
-        parameter_fields=PersonaParameterFieldSection(
-            current=[
-                _parameter_field_model(item)
-                for item in persona.resources["parameter_fields"].selected
-            ],
-            resources=[
-                _set_suggested(_parameter_field_model(item), item.parameter_id, suggestions_sets.get("parameter_fields", set()))
-                for item in persona.resources["parameter_fields"].suggestions
-            ],
-        ),
-        examples=PersonaExampleSection(
-            current=_model_many(
-                persona.resources["examples"].selected, PersonaExampleResource
-            ),
-            resources=_model_many_with_suggested(all_examples, PersonaExampleResource, suggestions_sets.get("examples", set())),
-        ),
-        parameters=PersonaParameterSection(
-            current=[item for item in persona.resources["parameters"].selected],
-            resources=all_parameters,
-        ),
-        voices=PersonaVoiceSection(
-            current=_model_many(
-                persona.resources["voices"].selected, PersonaVoiceResource
-            ),
-            resources=_model_many_with_suggested(all_voices, PersonaVoiceResource, suggestions_sets.get("voices", set())),
-        ),
+        names=_model_many_with_flags(all_names, PersonaNameResource, suggestions_sets.get("names", set()), selected_sets.get("names", set())),
+        descriptions=_model_many_with_flags(all_descriptions, PersonaDescriptionResource, suggestions_sets.get("descriptions", set()), selected_sets.get("descriptions", set())),
+        colors=_model_many_with_flags(all_colors, PersonaColorResource, suggestions_sets.get("colors", set()), selected_sets.get("colors", set())),
+        icons=_model_many_with_flags(all_icons, PersonaIconResource, suggestions_sets.get("icons", set()), selected_sets.get("icons", set())),
+        instructions=_model_many_with_flags(all_instructions, PersonaInstructionResource, suggestions_sets.get("instructions", set()), selected_sets.get("instructions", set())),
+        flags=flags_flat,
+        departments=_department_many_with_flags(all_departments, suggestions_sets.get("departments", set()), selected_sets.get("departments", set())),
+        parameter_fields=_parameter_field_many_with_flags(all_parameter_fields, suggestions_sets.get("parameter_fields", set()), selected_sets.get("parameter_fields", set())),
+        examples=_model_many_with_flags(all_examples, PersonaExampleResource, suggestions_sets.get("examples", set()), selected_sets.get("examples", set())),
+        parameters=list(all_parameters),
+        voices=_model_many_with_flags(all_voices, PersonaVoiceResource, suggestions_sets.get("voices", set()), selected_sets.get("voices", set())),
         fields=persona.resources["fields"].suggestions,
         resolved_parameter_ids=resolved_parameter_ids or None,
     )

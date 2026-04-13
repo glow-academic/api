@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 from app.infra.resource_type_filter import ScopedItem
 
-from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import ListFilterSection
 from app.tools.entries.persona_drafts.types import GetPersonaDraftResponse
 from app.tools.resources.fields.types import GetFieldResponse
 from app.tools.resources.parameters.types import GetParameterResponse
@@ -28,6 +28,7 @@ class PersonaNameResource(BaseModel):
     name: str | None = None
     generated: bool | None = None
     suggested: bool = False
+    selected: bool = False
 
 
 class PersonaDescriptionResource(BaseModel):
@@ -37,6 +38,7 @@ class PersonaDescriptionResource(BaseModel):
     description: str | None = None
     generated: bool | None = None
     suggested: bool = False
+    selected: bool = False
 
 
 class PersonaColorResource(BaseModel):
@@ -48,6 +50,7 @@ class PersonaColorResource(BaseModel):
     hex_code: str | None = None
     generated: bool | None = None
     suggested: bool = False
+    selected: bool = False
 
 
 class PersonaIconResource(BaseModel):
@@ -59,6 +62,7 @@ class PersonaIconResource(BaseModel):
     value: str | None = None
     generated: bool | None = None
     suggested: bool = False
+    selected: bool = False
 
 
 class PersonaInstructionResource(BaseModel):
@@ -68,6 +72,7 @@ class PersonaInstructionResource(BaseModel):
     template: str | None = None
     generated: bool | None = None
     suggested: bool = False
+    selected: bool = False
 
 
 class PersonaDepartmentResource(BaseModel):
@@ -78,6 +83,7 @@ class PersonaDepartmentResource(BaseModel):
     description: str | None = None
     generated: bool | None = None
     suggested: bool = False
+    selected: bool = False
 
 
 class PersonaParameterFieldResource(BaseModel):
@@ -91,6 +97,7 @@ class PersonaParameterFieldResource(BaseModel):
     conditional_parameter_id: str | None = None
     generated: bool | None = None
     suggested: bool = False
+    selected: bool = False
 
 
 class PersonaExampleResource(BaseModel):
@@ -100,6 +107,7 @@ class PersonaExampleResource(BaseModel):
     example: str | None = None
     generated: bool | None = None
     suggested: bool = False
+    selected: bool = False
 
 
 class PersonaVoiceResource(BaseModel):
@@ -109,6 +117,7 @@ class PersonaVoiceResource(BaseModel):
     voice: str | None = None
     generated: bool | None = None
     suggested: bool = False
+    selected: bool = False
 
 
 class PersonaAgentResource(BaseModel):
@@ -198,67 +207,7 @@ class PersonaFlagConfig(BaseModel):
     show: bool = True
     required: bool = False
     generated: bool | None = None
-
-
-# ========== Per-Resource Section Types ==========
-
-
-# Single-select sections (resource = singular current, resources = all options)
-class PersonaNameSection(BaseResourceSection):
-    resource: PersonaNameResource | None = None
-    resources: list[PersonaNameResource] | None = None
-
-
-class PersonaDescriptionSection(BaseResourceSection):
-    resource: PersonaDescriptionResource | None = None
-    resources: list[PersonaDescriptionResource] | None = None
-
-
-class PersonaColorSection(BaseResourceSection):
-    resource: PersonaColorResource | None = None
-    resources: list[PersonaColorResource] | None = None
-
-
-class PersonaIconSection(BaseResourceSection):
-    resource: PersonaIconResource | None = None
-    resources: list[PersonaIconResource] | None = None
-
-
-class PersonaInstructionSection(BaseResourceSection):
-    resource: PersonaInstructionResource | None = None
-    resources: list[PersonaInstructionResource] | None = None
-
-
-# Flag section (uses PersonaFlagConfig)
-class PersonaFlagSection(BaseResourceSection):
-    current: PersonaFlagConfig | None = None
-    resources: list[PersonaFlagConfig] | None = None
-
-
-# Multi-select sections (current = list, resources = all options)
-class PersonaDepartmentSection(BaseResourceSection):
-    current: list[PersonaDepartmentResource] | None = None
-    resources: list[PersonaDepartmentResource] | None = None
-
-
-class PersonaParameterFieldSection(BaseResourceSection):
-    current: list[PersonaParameterFieldResource] | None = None
-    resources: list[PersonaParameterFieldResource] | None = None
-
-
-class PersonaExampleSection(BaseResourceSection):
-    current: list[PersonaExampleResource] | None = None
-    resources: list[PersonaExampleResource] | None = None
-
-
-class PersonaParameterSection(BaseResourceSection):
-    current: list[GetParameterResponse] | None = None
-    resources: list[GetParameterResponse] | None = None
-
-
-class PersonaVoiceSection(BaseResourceSection):
-    current: list[PersonaVoiceResource] | None = None
-    resources: list[PersonaVoiceResource] | None = None
+    selected: bool = False
 
 
 class GetPersonaApiRequest(BaseModel):
@@ -294,18 +243,18 @@ class GetPersonaApiResponse(BaseModel):
     # AI generation flag (user has draft permission)
     show_ai_generate: bool | None = Field(None, description="Whether AI generation is available")
 
-    # Per-resource sections
-    names: PersonaNameSection | None = Field(None, description="Name resource section with current selection and options")
-    descriptions: PersonaDescriptionSection | None = Field(None, description="Description resource section with current selection and options")
-    colors: PersonaColorSection | None = Field(None, description="Color resource section with current selection and options")
-    icons: PersonaIconSection | None = Field(None, description="Icon resource section with current selection and options")
-    instructions: PersonaInstructionSection | None = Field(None, description="Instruction resource section with current selection and options")
-    flags: PersonaFlagSection | None = Field(None, description="Boolean flag configuration section (e.g. active status)")
-    departments: PersonaDepartmentSection | None = Field(None, description="Department association section with current selections and options")
-    parameter_fields: PersonaParameterFieldSection | None = Field(None, description="Parameter field section with current selections and options")
-    examples: PersonaExampleSection | None = Field(None, description="Example resource section with current selections and options")
-    parameters: PersonaParameterSection | None = Field(None, description="Parameter section with current selections and options")
-    voices: PersonaVoiceSection | None = Field(None, description="Voice resource section with current selections and options")
+    # Per-resource lists (flat arrays with selected/suggested flags)
+    names: list[PersonaNameResource] | None = Field(None, description="Name resources with selected/suggested flags")
+    descriptions: list[PersonaDescriptionResource] | None = Field(None, description="Description resources with selected/suggested flags")
+    colors: list[PersonaColorResource] | None = Field(None, description="Color resources with selected/suggested flags")
+    icons: list[PersonaIconResource] | None = Field(None, description="Icon resources with selected/suggested flags")
+    instructions: list[PersonaInstructionResource] | None = Field(None, description="Instruction resources with selected/suggested flags")
+    flags: list[PersonaFlagConfig] | None = Field(None, description="Boolean flag configs with selected flag (e.g. active status)")
+    departments: list[PersonaDepartmentResource] | None = Field(None, description="Department resources with selected/suggested flags")
+    parameter_fields: list[PersonaParameterFieldResource] | None = Field(None, description="Parameter field resources with selected/suggested flags")
+    examples: list[PersonaExampleResource] | None = Field(None, description="Example resources with selected/suggested flags")
+    parameters: list | None = Field(None, description="Parameter resources")
+    voices: list[PersonaVoiceResource] | None = Field(None, description="Voice resources with selected/suggested flags")
     # Fields catalog (not a section — computed resource, never saved)
     fields: list[GetFieldResponse] | None = Field(None, description="All available field definitions (computed, never saved)")
     # Resolved parameter IDs (derived from saved parameter_fields)
