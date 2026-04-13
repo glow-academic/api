@@ -425,7 +425,6 @@ async def generate_prepare_impl(
             conn,
             group_id=group_id,
             session_id=session_id,
-            profiles_id=profiles_id,
             agent_ids=agent_ids_for_run,
         )
         run_id = run.id
