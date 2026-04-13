@@ -14,29 +14,7 @@ from app.infra.persona.permissions import (
     PERSONA_RESOURCES,
     compute_can_draft,
     compute_can_edit,
-    compute_color_required,
-    compute_departments_required,
-    compute_description_required,
     compute_disabled_reason,
-    compute_examples_required,
-    compute_flag_required,
-    compute_icon_required,
-    compute_instructions_required,
-    compute_name_required,
-    compute_parameter_fields_required,
-    compute_parameters_required,
-    compute_show_color,
-    compute_show_departments,
-    compute_show_description,
-    compute_show_examples,
-    compute_show_flag,
-    compute_show_icon,
-    compute_show_instructions,
-    compute_show_name,
-    compute_show_parameter_fields,
-    compute_show_parameters,
-    compute_show_voices,
-    compute_voices_required,
 )
 from app.infra.persona.permissions_context import PersonaPermissionsContext
 from app.infra.tool_graph import ArtifactToolScores
@@ -106,11 +84,6 @@ def build_persona_get_result(
         )
         for resource in PERSONA_RESOURCES
     }
-    names_has_tools = scores.has_any.get("names", False)
-    colors_has_tools = scores.has_any.get("colors", False)
-    icons_has_tools = scores.has_any.get("icons", False)
-    instructions_has_tools = scores.has_any.get("instructions", False)
-
     all_names = dedupe_by_id(
         persona.resources["names"].selected + persona.resources["names"].suggestions
     )
@@ -144,36 +117,6 @@ def build_persona_get_result(
     all_voices = dedupe_by_id(
         persona.resources["voices"].selected + persona.resources["voices"].suggestions
     )
-
-    show_flags_map = {
-        "names": compute_show_name(names_has_tools),
-        "descriptions": compute_show_description(),
-        "colors": compute_show_color(colors_has_tools, len(all_colors)),
-        "icons": compute_show_icon(icons_has_tools, len(all_icons)),
-        "instructions": compute_show_instructions(instructions_has_tools),
-        "flags": compute_show_flag(),
-        "departments": compute_show_departments(len(all_departments)),
-        "parameter_fields": compute_show_parameter_fields(
-            len(persona.resources["fields"].suggestions)
-        ),
-        "examples": compute_show_examples(len(all_examples)),
-        "parameters": compute_show_parameters(len(all_parameters)),
-        "voices": compute_show_voices(len(all_voices)),
-    }
-
-    required_flags_map = {
-        "names": compute_name_required(),
-        "descriptions": compute_description_required(),
-        "colors": compute_color_required(),
-        "icons": compute_icon_required(),
-        "instructions": compute_instructions_required(),
-        "flags": compute_flag_required(),
-        "departments": compute_departments_required(),
-        "parameter_fields": compute_parameter_fields_required(),
-        "examples": compute_examples_required(),
-        "parameters": compute_parameters_required(),
-        "voices": compute_voices_required(),
-    }
 
     show_ai_generate = can_ai_generate
 
@@ -231,12 +174,6 @@ def build_persona_get_result(
         "parameters": {item.parameter_id for item in persona.resources["parameters"].suggestions},
         "voices": {item.id for item in persona.resources["voices"].suggestions},
     }
-
-    def _section(resource_key: str) -> dict:
-        return {
-            "show": show_flags_map.get(resource_key, False),
-            "required": required_flags_map.get(resource_key, False),
-        }
 
     def _model(item, model_cls):
         return model_cls.model_validate(item.model_dump())
@@ -297,14 +234,12 @@ def build_persona_get_result(
         group_id=group_id,
         show_ai_generate=show_ai_generate,
         names=PersonaNameSection(
-            **_section("names"),
             resource=_model(persona.resources["names"].selected[0], PersonaNameResource)
             if persona.resources["names"].selected
             else None,
             resources=_model_many_with_suggested(all_names, PersonaNameResource, suggestions_sets.get("names", set())),
         ),
         descriptions=PersonaDescriptionSection(
-            **_section("descriptions"),
             resource=_model(
                 persona.resources["descriptions"].selected[0],
                 PersonaDescriptionResource,
@@ -314,7 +249,6 @@ def build_persona_get_result(
             resources=_model_many_with_suggested(all_descriptions, PersonaDescriptionResource, suggestions_sets.get("descriptions", set())),
         ),
         colors=PersonaColorSection(
-            **_section("colors"),
             resource=_model(
                 persona.resources["colors"].selected[0], PersonaColorResource
             )
@@ -323,14 +257,12 @@ def build_persona_get_result(
             resources=_model_many_with_suggested(all_colors, PersonaColorResource, suggestions_sets.get("colors", set())),
         ),
         icons=PersonaIconSection(
-            **_section("icons"),
             resource=_model(persona.resources["icons"].selected[0], PersonaIconResource)
             if persona.resources["icons"].selected
             else None,
             resources=_model_many_with_suggested(all_icons, PersonaIconResource, suggestions_sets.get("icons", set())),
         ),
         instructions=PersonaInstructionSection(
-            **_section("instructions"),
             resource=_model(
                 persona.resources["instructions"].selected[0],
                 PersonaInstructionResource,
@@ -340,12 +272,10 @@ def build_persona_get_result(
             resources=_model_many_with_suggested(all_instructions, PersonaInstructionResource, suggestions_sets.get("instructions", set())),
         ),
         flags=PersonaFlagSection(
-            **_section("flags"),
             current=current_flag,
             resources=persona_flags,
         ),
         departments=PersonaDepartmentSection(
-            **_section("departments"),
             current=[
                 _department_model(item)
                 for item in persona.resources["departments"].selected
@@ -356,7 +286,6 @@ def build_persona_get_result(
             ],
         ),
         parameter_fields=PersonaParameterFieldSection(
-            **_section("parameter_fields"),
             current=[
                 _parameter_field_model(item)
                 for item in persona.resources["parameter_fields"].selected
@@ -367,19 +296,16 @@ def build_persona_get_result(
             ],
         ),
         examples=PersonaExampleSection(
-            **_section("examples"),
             current=_model_many(
                 persona.resources["examples"].selected, PersonaExampleResource
             ),
             resources=_model_many_with_suggested(all_examples, PersonaExampleResource, suggestions_sets.get("examples", set())),
         ),
         parameters=PersonaParameterSection(
-            **_section("parameters"),
             current=[item for item in persona.resources["parameters"].selected],
             resources=all_parameters,
         ),
         voices=PersonaVoiceSection(
-            **_section("voices"),
             current=_model_many(
                 persona.resources["voices"].selected, PersonaVoiceResource
             ),

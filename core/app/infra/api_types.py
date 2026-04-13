@@ -23,13 +23,11 @@ from app.infra.shared_types import (
 
 
 class BaseResourceSection(BaseModel):
-    """Common metadata fields for all resource sections.
+    """Common fields for all resource sections.
 
     Shared across persona, scenario, simulation, cohort, and other artifacts.
+    Sections only contain data — display logic (show/required) belongs on the client.
     """
-
-    show: bool = Field(False, description="Whether this section is visible in the UI")
-    required: bool = Field(False, description="Whether this section requires a selection")
 
 
 class ListFilterOption(BaseModel):
