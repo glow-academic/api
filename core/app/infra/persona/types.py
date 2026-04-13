@@ -210,62 +210,32 @@ class PersonaFlagConfig(BaseModel):
     selected: bool = False
 
 
+class SectionFilter(BaseModel):
+    """Per-section filter options for GET requests."""
+
+    search: str | None = Field(None, description="Filter options by search text")
+    limit: int | None = Field(None, description="Max options to return")
+    selected_only: bool | None = Field(None, description="Only return selected items")
+    suggested_only: bool | None = Field(None, description="Only return suggested items")
+    include: bool | None = Field(None, description="Include this section in response (default true)")
+
+
 class GetPersonaApiRequest(BaseModel):
     """Request model for get persona endpoint."""
 
     persona_id: UUID | None = Field(None, description="UUID of the persona to retrieve")
     draft_id: UUID | None = Field(None, description="UUID of the draft to load instead of published state")
     parameter_ids: list[str] | None = Field(None, description="Parameter group IDs to expand in the response")
-    # Per-section search
-    names_search: str | None = Field(None, description="Filter name options by search text")
-    descriptions_search: str | None = Field(None, description="Filter description options by search text")
-    colors_search: str | None = Field(None, description="Filter color options by search text")
-    icons_search: str | None = Field(None, description="Filter icon options by search text")
-    instructions_search: str | None = Field(None, description="Filter instruction options by search text")
-    departments_search: str | None = Field(None, description="Filter department options by search text")
-    examples_search: str | None = Field(None, description="Filter example options by search text")
-    parameter_fields_search: str | None = Field(None, description="Filter parameter field options by search text")
-    voices_search: str | None = Field(None, description="Filter voice options by search text")
-    # Per-section limit
-    names_limit: int | None = Field(None, description="Max name options to return")
-    descriptions_limit: int | None = Field(None, description="Max description options to return")
-    colors_limit: int | None = Field(None, description="Max color options to return")
-    icons_limit: int | None = Field(None, description="Max icon options to return")
-    instructions_limit: int | None = Field(None, description="Max instruction options to return")
-    departments_limit: int | None = Field(None, description="Max department options to return")
-    examples_limit: int | None = Field(None, description="Max example options to return")
-    parameter_fields_limit: int | None = Field(None, description="Max parameter field options to return")
-    voices_limit: int | None = Field(None, description="Max voice options to return")
-    # Per-section selected_only
-    names_selected_only: bool | None = Field(None, description="Only return selected names")
-    descriptions_selected_only: bool | None = Field(None, description="Only return selected descriptions")
-    colors_selected_only: bool | None = Field(None, description="Only return selected colors")
-    icons_selected_only: bool | None = Field(None, description="Only return selected icons")
-    instructions_selected_only: bool | None = Field(None, description="Only return selected instructions")
-    departments_selected_only: bool | None = Field(None, description="Only return selected departments")
-    examples_selected_only: bool | None = Field(None, description="Only return selected examples")
-    parameter_fields_selected_only: bool | None = Field(None, description="Only return selected parameter fields")
-    voices_selected_only: bool | None = Field(None, description="Only return selected voices")
-    # Per-section suggested_only
-    names_suggested_only: bool | None = Field(None, description="Only return suggested names")
-    descriptions_suggested_only: bool | None = Field(None, description="Only return suggested descriptions")
-    colors_suggested_only: bool | None = Field(None, description="Only return suggested colors")
-    icons_suggested_only: bool | None = Field(None, description="Only return suggested icons")
-    instructions_suggested_only: bool | None = Field(None, description="Only return suggested instructions")
-    departments_suggested_only: bool | None = Field(None, description="Only return suggested departments")
-    examples_suggested_only: bool | None = Field(None, description="Only return suggested examples")
-    parameter_fields_suggested_only: bool | None = Field(None, description="Only return suggested parameter fields")
-    voices_suggested_only: bool | None = Field(None, description="Only return suggested voices")
-    # Per-section include (omit section from response when False)
-    names_include: bool | None = Field(None, description="Include names section in response")
-    descriptions_include: bool | None = Field(None, description="Include descriptions section in response")
-    colors_include: bool | None = Field(None, description="Include colors section in response")
-    icons_include: bool | None = Field(None, description="Include icons section in response")
-    instructions_include: bool | None = Field(None, description="Include instructions section in response")
-    departments_include: bool | None = Field(None, description="Include departments section in response")
-    examples_include: bool | None = Field(None, description="Include examples section in response")
-    parameter_fields_include: bool | None = Field(None, description="Include parameter fields section in response")
-    voices_include: bool | None = Field(None, description="Include voices section in response")
+    # Per-section filters
+    names: SectionFilter | None = Field(None, description="Filter options for names section")
+    descriptions: SectionFilter | None = Field(None, description="Filter options for descriptions section")
+    colors: SectionFilter | None = Field(None, description="Filter options for colors section")
+    icons: SectionFilter | None = Field(None, description="Filter options for icons section")
+    instructions: SectionFilter | None = Field(None, description="Filter options for instructions section")
+    departments: SectionFilter | None = Field(None, description="Filter options for departments section")
+    examples: SectionFilter | None = Field(None, description="Filter options for examples section")
+    parameter_fields: SectionFilter | None = Field(None, description="Filter options for parameter fields section")
+    voices: SectionFilter | None = Field(None, description="Filter options for voices section")
 
 
 class GetPersonaApiResponse(BaseModel):

@@ -14,7 +14,20 @@ from app.infra.persona.permissions import PERSONA_RESOURCES, has_access
 from app.infra.persona.permissions_context import resolve_persona_permissions_context
 from app.infra.persona.sections import build_persona_get_result
 from app.infra.tool_graph import score_tools
-from app.infra.persona.types import GetPersonaApiResponse
+from app.infra.persona.types import GetPersonaApiResponse, SectionFilter
+
+SECTIONS = [
+    "names", "descriptions", "colors", "icons", "instructions",
+    "departments", "examples", "parameter_fields", "voices",
+]
+
+
+def _sf(filters: dict[str, SectionFilter | None], section: str, attr: str, default=None):
+    """Get a SectionFilter attribute for a section, with default."""
+    sf = filters.get(section)
+    if sf is None:
+        return default
+    return getattr(sf, attr, default)
 
 
 async def get_persona_impl(
@@ -27,60 +40,13 @@ async def get_persona_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     parameter_ids: list[UUID] | None = None,
-    # Per-section search (text filter)
-    names_search: str | None = None,
-    descriptions_search: str | None = None,
-    colors_search: str | None = None,
-    icons_search: str | None = None,
-    instructions_search: str | None = None,
-    departments_search: str | None = None,
-    examples_search: str | None = None,
-    parameter_fields_search: str | None = None,
-    voices_search: str | None = None,
-    # Per-section limit
-    names_limit: int | None = None,
-    descriptions_limit: int | None = None,
-    colors_limit: int | None = None,
-    icons_limit: int | None = None,
-    instructions_limit: int | None = None,
-    departments_limit: int | None = None,
-    examples_limit: int | None = None,
-    parameter_fields_limit: int | None = None,
-    voices_limit: int | None = None,
-    # Per-section selected_only
-    names_selected_only: bool | None = None,
-    descriptions_selected_only: bool | None = None,
-    colors_selected_only: bool | None = None,
-    icons_selected_only: bool | None = None,
-    instructions_selected_only: bool | None = None,
-    departments_selected_only: bool | None = None,
-    examples_selected_only: bool | None = None,
-    parameter_fields_selected_only: bool | None = None,
-    voices_selected_only: bool | None = None,
-    # Per-section suggested_only
-    names_suggested_only: bool | None = None,
-    descriptions_suggested_only: bool | None = None,
-    colors_suggested_only: bool | None = None,
-    icons_suggested_only: bool | None = None,
-    instructions_suggested_only: bool | None = None,
-    departments_suggested_only: bool | None = None,
-    examples_suggested_only: bool | None = None,
-    parameter_fields_suggested_only: bool | None = None,
-    voices_suggested_only: bool | None = None,
-    # Per-section include
-    names_include: bool | None = None,
-    descriptions_include: bool | None = None,
-    colors_include: bool | None = None,
-    icons_include: bool | None = None,
-    instructions_include: bool | None = None,
-    departments_include: bool | None = None,
-    examples_include: bool | None = None,
-    parameter_fields_include: bool | None = None,
-    voices_include: bool | None = None,
+    # Per-section filters (nested SectionFilter objects)
+    filters: dict[str, SectionFilter | None] | None = None,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> GetPersonaApiResponse:
     """Resolve the canonical persona artifact bundle for any surface."""
+    f = filters or {}
     persona_id = id  # alias: tools send 'id', internal code uses 'persona_id'
     common = await resolve_common_context(
         pool,
@@ -126,73 +92,41 @@ async def get_persona_impl(
         draft_id=draft_id,
         user_department_ids=common.profile.department_ids,
         parameter_ids=parameter_ids,
-        names_search=names_search,
-        descriptions_search=descriptions_search,
-        colors_search=colors_search,
-        icons_search=icons_search,
-        instructions_search=instructions_search,
-        departments_search=departments_search,
-        examples_search=examples_search,
-        parameter_fields_search=parameter_fields_search,
-        voices_search=voices_search,
-        names_limit=names_limit,
-        descriptions_limit=descriptions_limit,
-        colors_limit=colors_limit,
-        icons_limit=icons_limit,
-        instructions_limit=instructions_limit,
-        departments_limit=departments_limit,
-        examples_limit=examples_limit,
-        parameter_fields_limit=parameter_fields_limit,
-        voices_limit=voices_limit,
-        names_selected_only=names_selected_only,
-        descriptions_selected_only=descriptions_selected_only,
-        colors_selected_only=colors_selected_only,
-        icons_selected_only=icons_selected_only,
-        instructions_selected_only=instructions_selected_only,
-        departments_selected_only=departments_selected_only,
-        examples_selected_only=examples_selected_only,
-        parameter_fields_selected_only=parameter_fields_selected_only,
-        voices_selected_only=voices_selected_only,
+        names_search=_sf(f, "names", "search"),
+        descriptions_search=_sf(f, "descriptions", "search"),
+        colors_search=_sf(f, "colors", "search"),
+        icons_search=_sf(f, "icons", "search"),
+        instructions_search=_sf(f, "instructions", "search"),
+        departments_search=_sf(f, "departments", "search"),
+        examples_search=_sf(f, "examples", "search"),
+        parameter_fields_search=_sf(f, "parameter_fields", "search"),
+        voices_search=_sf(f, "voices", "search"),
+        names_limit=_sf(f, "names", "limit"),
+        descriptions_limit=_sf(f, "descriptions", "limit"),
+        colors_limit=_sf(f, "colors", "limit"),
+        icons_limit=_sf(f, "icons", "limit"),
+        instructions_limit=_sf(f, "instructions", "limit"),
+        departments_limit=_sf(f, "departments", "limit"),
+        examples_limit=_sf(f, "examples", "limit"),
+        parameter_fields_limit=_sf(f, "parameter_fields", "limit"),
+        voices_limit=_sf(f, "voices", "limit"),
+        names_selected_only=_sf(f, "names", "selected_only"),
+        descriptions_selected_only=_sf(f, "descriptions", "selected_only"),
+        colors_selected_only=_sf(f, "colors", "selected_only"),
+        icons_selected_only=_sf(f, "icons", "selected_only"),
+        instructions_selected_only=_sf(f, "instructions", "selected_only"),
+        departments_selected_only=_sf(f, "departments", "selected_only"),
+        examples_selected_only=_sf(f, "examples", "selected_only"),
+        parameter_fields_selected_only=_sf(f, "parameter_fields", "selected_only"),
+        voices_selected_only=_sf(f, "voices", "selected_only"),
         bypass_cache=bypass_cache,
     )
 
     scores = score_tools(common.tool_graph, PERSONA_RESOURCES)
 
-    include = {
-        "names": names_include is not False,
-        "descriptions": descriptions_include is not False,
-        "colors": colors_include is not False,
-        "icons": icons_include is not False,
-        "instructions": instructions_include is not False,
-        "departments": departments_include is not False,
-        "examples": examples_include is not False,
-        "parameter_fields": parameter_fields_include is not False,
-        "voices": voices_include is not False,
-    }
-
-    selected_only = {
-        "names": names_selected_only or False,
-        "descriptions": descriptions_selected_only or False,
-        "colors": colors_selected_only or False,
-        "icons": icons_selected_only or False,
-        "instructions": instructions_selected_only or False,
-        "departments": departments_selected_only or False,
-        "examples": examples_selected_only or False,
-        "parameter_fields": parameter_fields_selected_only or False,
-        "voices": voices_selected_only or False,
-    }
-
-    suggested_only = {
-        "names": names_suggested_only or False,
-        "descriptions": descriptions_suggested_only or False,
-        "colors": colors_suggested_only or False,
-        "icons": icons_suggested_only or False,
-        "instructions": instructions_suggested_only or False,
-        "departments": departments_suggested_only or False,
-        "examples": examples_suggested_only or False,
-        "parameter_fields": parameter_fields_suggested_only or False,
-        "voices": voices_suggested_only or False,
-    }
+    include = {s: _sf(f, s, "include") is not False for s in SECTIONS}
+    selected_only = {s: _sf(f, s, "selected_only") or False for s in SECTIONS}
+    suggested_only = {s: _sf(f, s, "suggested_only") or False for s in SECTIONS}
 
     return build_persona_get_result(
         common=common,

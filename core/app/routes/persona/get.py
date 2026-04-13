@@ -40,6 +40,16 @@ async def get_persona(
         redis = get_redis_client()
         request_payload = request.model_dump(mode="json")
 
+        # Build filters dict from nested SectionFilter objects
+        filters = {
+            s: getattr(request, s)
+            for s in [
+                "names", "descriptions", "colors", "icons", "instructions",
+                "departments", "examples", "parameter_fields", "voices",
+            ]
+            if getattr(request, s) is not None
+        }
+
         async def _runner() -> GetPersonaApiResponse:
             return await get_persona_impl(
                 pool,
@@ -51,51 +61,7 @@ async def get_persona(
                 parameter_ids=[UUID(pid) for pid in request.parameter_ids]
                 if request.parameter_ids
                 else None,
-                names_search=request.names_search,
-                descriptions_search=request.descriptions_search,
-                colors_search=request.colors_search,
-                icons_search=request.icons_search,
-                instructions_search=request.instructions_search,
-                departments_search=request.departments_search,
-                examples_search=request.examples_search,
-                parameter_fields_search=request.parameter_fields_search,
-                voices_search=request.voices_search,
-                names_limit=request.names_limit,
-                descriptions_limit=request.descriptions_limit,
-                colors_limit=request.colors_limit,
-                icons_limit=request.icons_limit,
-                instructions_limit=request.instructions_limit,
-                departments_limit=request.departments_limit,
-                examples_limit=request.examples_limit,
-                parameter_fields_limit=request.parameter_fields_limit,
-                voices_limit=request.voices_limit,
-                names_selected_only=request.names_selected_only,
-                descriptions_selected_only=request.descriptions_selected_only,
-                colors_selected_only=request.colors_selected_only,
-                icons_selected_only=request.icons_selected_only,
-                instructions_selected_only=request.instructions_selected_only,
-                departments_selected_only=request.departments_selected_only,
-                examples_selected_only=request.examples_selected_only,
-                parameter_fields_selected_only=request.parameter_fields_selected_only,
-                voices_selected_only=request.voices_selected_only,
-                names_suggested_only=request.names_suggested_only,
-                descriptions_suggested_only=request.descriptions_suggested_only,
-                colors_suggested_only=request.colors_suggested_only,
-                icons_suggested_only=request.icons_suggested_only,
-                instructions_suggested_only=request.instructions_suggested_only,
-                departments_suggested_only=request.departments_suggested_only,
-                examples_suggested_only=request.examples_suggested_only,
-                parameter_fields_suggested_only=request.parameter_fields_suggested_only,
-                voices_suggested_only=request.voices_suggested_only,
-                names_include=request.names_include,
-                descriptions_include=request.descriptions_include,
-                colors_include=request.colors_include,
-                icons_include=request.icons_include,
-                instructions_include=request.instructions_include,
-                departments_include=request.departments_include,
-                examples_include=request.examples_include,
-                parameter_fields_include=request.parameter_fields_include,
-                voices_include=request.voices_include,
+                filters=filters,
                 bypass_cache=bypass_cache,
             )
 
