@@ -32,7 +32,6 @@ from app.infra.setting.permissions import (
     compute_name_required,
     compute_profiles_required,
     compute_provider_keys_required,
-    compute_show_ai_generate,
     compute_show_auth_item_keys,
     compute_show_auths,
     compute_show_colors,
@@ -221,10 +220,6 @@ async def get_setting_impl(
         "systems": compute_systems_required(),
     }
 
-    show_ai_generate_map = {
-        r: compute_show_ai_generate(agent_ids, r) for r in SETTING_RESOURCES
-    }
-
     # -- Step 7: Response assembly --------------------------------------------
 
     # Build flags with enriched config
@@ -277,7 +272,6 @@ async def get_setting_impl(
             "show": show_flags_map.get(resource_key, False),
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key),
-            "show_ai_generate": show_ai_generate_map.get(resource_key, False),
         }
 
     all_names = dedupe_by_id(

@@ -230,28 +230,6 @@ async def get_document_impl(
         "texts": False,
     }
 
-    def compute_show_ai_generate(resource: str) -> bool:
-        return agent_ids.get(resource) is not None
-
-    show_ai_generate_map = {r: compute_show_ai_generate(r) for r in DOCUMENT_RESOURCES}
-
-    basic_show_ai_generate = any(
-        [
-            show_ai_generate_map.get("names", False),
-            show_ai_generate_map.get("descriptions", False),
-            show_ai_generate_map.get("flags", False),
-            show_ai_generate_map.get("departments", False),
-        ]
-    )
-    content_show_ai_generate = any(
-        [
-            show_ai_generate_map.get("fields", False),
-            show_ai_generate_map.get("uploads", False),
-            show_ai_generate_map.get("images", False),
-            show_ai_generate_map.get("texts", False),
-        ]
-    )
-
     # ── Step 7: Response assembly ────────────────────────────────────────
 
     # Flags — enriched format
@@ -321,7 +299,6 @@ async def get_document_impl(
             "show": show_flags_map.get(resource_key, False),
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key, []),
-            "show_ai_generate": show_ai_generate_map.get(resource_key, False),
         }
 
     # Validation: new mode must have departments
@@ -336,8 +313,6 @@ async def get_document_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=group_id,
-        basic_show_ai_generate=basic_show_ai_generate,
-        content_show_ai_generate=content_show_ai_generate,
         names=DocumentNameSection(
             **_section("names"),
             resource=_serialize_model(document.resources["names"].selected[0])

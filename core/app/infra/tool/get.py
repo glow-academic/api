@@ -209,15 +209,6 @@ async def get_tool_impl(
         "permissions": compute_permissions_required(),
     }
 
-    def compute_show_ai_generate(resource: str) -> bool:
-        return agent_ids.get(resource) is not None
-
-    show_ai_generate_map = {r: compute_show_ai_generate(r) for r in TOOL_RESOURCES}
-
-    basic_show_ai_generate = any(
-        show_ai_generate_map.get(r, False) for r in ("names", "descriptions", "flags")
-    )
-
     # ── Step 7: Response assembly ────────────────────────────────────────
 
     # Flags — enriched format
@@ -303,7 +294,6 @@ async def get_tool_impl(
             "show": show_flags_map.get(resource_key, False),
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key, []),
-            "show_ai_generate": show_ai_generate_map.get(resource_key, False),
         }
 
     return GetToolApiResponse(
@@ -312,10 +302,6 @@ async def get_tool_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=group_id,
-        basic_show_ai_generate=basic_show_ai_generate,
-        args_show_ai_generate=show_ai_generate_map.get("args", False),
-        arg_positions_show_ai_generate=show_ai_generate_map.get("arg_positions", False),
-        args_outputs_show_ai_generate=show_ai_generate_map.get("args_outputs", False),
         names=ToolNameSection(
             **_section("names"),
             resource=tool_ctx.resources["names"].selected[0]

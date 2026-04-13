@@ -252,15 +252,6 @@ async def get_simulation_impl(
         "scenario_time_limits": compute_scenario_time_limits_required(),
     }
 
-    show_ai_generate_map = {
-        r: scores.best.get(r) is not None for r in SIMULATION_RESOURCES
-    }
-
-    basic_show_ai_generate = any(
-        show_ai_generate_map.get(r, False)
-        for r in ("names", "descriptions", "flags", "departments", "scenarios")
-    )
-
     suggestions_map: dict[str, list[UUID]] = {
         "names": [n.id for n in simulation.resources["names"].suggestions],
         "descriptions": [
@@ -275,7 +266,6 @@ async def get_simulation_impl(
             "show": show_flags_map.get(resource_key, False),
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key),
-            "show_ai_generate": show_ai_generate_map.get(resource_key, False),
         }
 
     # ── Step 7: Resource conversion + response assembly ───────────────────
@@ -347,8 +337,6 @@ async def get_simulation_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=group_id,
-        # Step-level AI generation flags
-        basic_show_ai_generate=basic_show_ai_generate,
         # Per-resource sections
         names=SimulationNameSection(
             **_section("names"),

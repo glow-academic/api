@@ -205,20 +205,6 @@ async def get_provider_impl(
         "keys": compute_key_required(),
     }
 
-    def compute_show_ai_generate(resource: str) -> bool:
-        return agent_ids.get(resource) is not None
-
-    show_ai_generate_map = {r: compute_show_ai_generate(r) for r in PROVIDER_RESOURCES}
-    # Keys never show AI generate
-    show_ai_generate_map["keys"] = False
-
-    basic_show_ai_generate = any(
-        show_ai_generate_map.get(r, False) for r in PROVIDER_BASIC_RESOURCES
-    )
-    integrations_show_ai_generate = any(
-        show_ai_generate_map.get(r, False) for r in PROVIDER_INTEGRATIONS_RESOURCES
-    )
-
     # ── Step 7: Validation ───────────────────────────────────────────────
 
     if provider_id is None:
@@ -297,7 +283,6 @@ async def get_provider_impl(
             "show": show_flags_map.get(resource_key, False),
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key, []),
-            "show_ai_generate": show_ai_generate_map.get(resource_key, False),
         }
 
     return GetProviderApiResponse(
@@ -306,8 +291,6 @@ async def get_provider_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=group_id,
-        basic_show_ai_generate=basic_show_ai_generate,
-        integrations_show_ai_generate=integrations_show_ai_generate,
         names=ProviderNameSection(
             **_section("names"),
             resource=prov_ctx.resources["names"].selected[0]

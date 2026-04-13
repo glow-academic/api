@@ -139,13 +139,6 @@ async def get_auth_impl(
         "slugs": compute_slugs_required(show_flags_map["slugs"]),
         "items": False,
     }
-    show_ai_generate_map = {
-        resource: (agent_ids.get(resource) is not None) for resource in AUTH_RESOURCES
-    }
-    basic_show_ai_generate = any(
-        show_ai_generate_map.get(resource, False) for resource in AUTH_BASIC_RESOURCES
-    )
-
     all_flags = dedupe_by_id(
         auth_ctx.resources["flags"].selected + auth_ctx.resources["flags"].suggestions
     )
@@ -201,7 +194,6 @@ async def get_auth_impl(
             "show": show_flags_map.get(resource_key, False),
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key, []),
-            "show_ai_generate": show_ai_generate_map.get(resource_key, False),
         }
 
     items_as_resources = [
@@ -225,7 +217,6 @@ async def get_auth_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=group_id,
-        basic_show_ai_generate=basic_show_ai_generate,
         names=AuthNameSection(
             resource=auth_ctx.resources["names"].selected[0]
             if auth_ctx.resources["names"].selected

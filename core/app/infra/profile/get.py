@@ -216,29 +216,6 @@ async def get_profile_impl(
         "roles": compute_roles_required(),
     }
 
-    def compute_show_ai_generate(resource: str) -> bool:
-        return agent_ids.get(resource) is not None
-
-    show_ai_generate_map = {r: compute_show_ai_generate(r) for r in PROFILE_RESOURCES}
-
-    basic_show_ai_generate = any(
-        [
-            show_ai_generate_map.get("names", False),
-            show_ai_generate_map.get("emails", False),
-            show_ai_generate_map.get("flags", False),
-            show_ai_generate_map.get("request_limits", False),
-        ]
-    )
-    general_show_ai_generate = any(
-        [
-            show_ai_generate_map.get("names", False),
-            show_ai_generate_map.get("emails", False),
-            show_ai_generate_map.get("request_limits", False),
-            show_ai_generate_map.get("flags", False),
-            show_ai_generate_map.get("departments", False),
-        ]
-    )
-
     # ── Step 7: Role options (computed in Python from hierarchy) ─────────
 
     role_options = compute_role_options(role_level=profile.role_level)
@@ -314,7 +291,6 @@ async def get_profile_impl(
             "show": show_flags_map.get(resource_key, False),
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key, []),
-            "show_ai_generate": show_ai_generate_map.get(resource_key, False),
         }
 
     return GetProfileApiResponse(
@@ -326,8 +302,6 @@ async def get_profile_impl(
         profile_id=target_profile_id,
         role=selected_role,
         role_options=role_options,
-        basic_show_ai_generate=basic_show_ai_generate,
-        general_show_ai_generate=general_show_ai_generate,
         names=ProfileNameSection(
             **_section("names"),
             resource=_serialize_model(profile_ctx.resources["names"].selected[0])

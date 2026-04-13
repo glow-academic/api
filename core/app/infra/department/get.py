@@ -139,15 +139,6 @@ async def get_department_impl(
         "flags": compute_flag_required(),
         "settings": compute_settings_required(),
     }
-    show_ai_generate_map = {
-        resource: (agent_ids.get(resource) is not None)
-        for resource in DEPARTMENT_RESOURCES
-    }
-    basic_show_ai_generate = any(
-        show_ai_generate_map.get(resource, False)
-        for resource in DEPARTMENT_BASIC_RESOURCES
-    )
-
     all_flags = dedupe_by_id(
         dept_ctx.resources["flags"].selected + dept_ctx.resources["flags"].suggestions
     )
@@ -210,7 +201,6 @@ async def get_department_impl(
             "show": show_flags_map.get(resource_key, False),
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key, []),
-            "show_ai_generate": show_ai_generate_map.get(resource_key, False),
         }
 
     return GetDepartmentApiResponse(
@@ -219,7 +209,6 @@ async def get_department_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=group_id,
-        basic_show_ai_generate=basic_show_ai_generate,
         names=DepartmentNameSection(
             resource=dept_ctx.resources["names"].selected[0]
             if dept_ctx.resources["names"].selected

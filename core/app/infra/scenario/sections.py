@@ -206,11 +206,7 @@ def build_scenario_get_result(
         "options": False,
     }
 
-    show_ai_generate_map = {
-        resource: can_ai_generate for resource in SCENARIO_RESOURCES
-    }
-    basic_show_ai_generate = can_ai_generate
-    content_show_ai_generate = can_ai_generate
+    show_ai_generate = can_ai_generate
 
     suggestions_map: dict[str, list[UUID]] = {
         "names": [n.id for n in scenario.resources["names"].suggestions],
@@ -234,7 +230,6 @@ def build_scenario_get_result(
             "show": show_flags_map.get(resource_key, False),
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key),
-            "show_ai_generate": show_ai_generate_map.get(resource_key, False),
         }
 
     # Build field lookup from fields catalog for name/description hydration
@@ -535,8 +530,7 @@ def build_scenario_get_result(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=group_id,
-        basic_show_ai_generate=basic_show_ai_generate,
-        content_show_ai_generate=content_show_ai_generate,
+        show_ai_generate=show_ai_generate,
         resolved_parameter_ids=resolved_parameter_ids or None,
         names=ScenarioNameSection(
             **_section("names"),

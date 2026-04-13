@@ -282,10 +282,8 @@ class GetPersonaApiResponse(BaseModel):
     disabled_reason: str | None = Field(None, description="Human-readable reason if editing is disabled")
     group_id: UUID | None = Field(None, description="Generation group UUID for AI operations")
 
-    # Step-level AI generation flags
-    basic_show_ai_generate: bool | None = Field(None, description="Whether AI generation is available for basic fields (name, color, icon)")
-    content_show_ai_generate: bool | None = Field(None, description="Whether AI generation is available for content fields (description, instructions, examples)")
-    parameters_step_show_ai_generate: bool | None = Field(None, description="Whether AI generation is available for parameter fields")
+    # AI generation flag (user has draft permission)
+    show_ai_generate: bool | None = Field(None, description="Whether AI generation is available")
 
     # Per-resource sections
     names: PersonaNameSection | None = Field(None, description="Name resource section with current selection and options")
@@ -358,11 +356,8 @@ class PersonaInternalData:
     # Suggestions (resource -> list of suggestion IDs)
     suggestions_map: dict[str, list[UUID]]
 
-    # Show AI generate flags (computed: agent exists for resource)
-    show_ai_generate_map: dict[str, bool]
-    basic_show_ai_generate: bool
-    content_show_ai_generate: bool
-    parameters_step_show_ai_generate: bool
+    # AI generation flag
+    show_ai_generate: bool
 
     # Resources payload
     resources_payload: PersonaResources

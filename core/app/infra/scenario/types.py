@@ -266,6 +266,12 @@ class GetScenarioApiRequest(BaseModel):
     draft_id: UUID | None = Field(None, description="UUID of the draft to retrieve")
     mcp: bool | None = Field(False, description="Whether this is an MCP request")
     parameter_ids: list[UUID] | None = Field(None, description="Filter by parameter UUIDs")
+    # UI visibility toggles (None = show all, False = hide section)
+    video_enabled: bool | None = Field(None, description="Show video section and video parameters")
+    images_enabled: bool | None = Field(None, description="Show images section")
+    objectives_enabled: bool | None = Field(None, description="Show objectives section")
+    questions_enabled: bool | None = Field(None, description="Show questions section")
+    problem_statement_enabled: bool | None = Field(None, description="Show problem statement section")
 
 
 class ScenarioNameSection(BaseResourceSection):
@@ -348,9 +354,8 @@ class GetScenarioApiResponse(BaseModel):
     disabled_reason: str | None = Field(None, description="Reason the scenario is disabled")
     group_id: UUID | None = Field(None, description="UUID of the owning group")
 
-    # Step-level AI generation flags
-    basic_show_ai_generate: bool | None = Field(None, description="Show AI generate for basic step")
-    content_show_ai_generate: bool | None = Field(None, description="Show AI generate for content step")
+    # AI generation flag (user has draft permission)
+    show_ai_generate: bool | None = Field(None, description="Whether AI generation is available")
 
     # Resolved parameter IDs (derived from saved parameter_fields)
     resolved_parameter_ids: list[str] | None = Field(None, description="Resolved parameter IDs from saved fields")
@@ -804,7 +809,7 @@ class PatchScenarioDraftApiRequest(ScopedItem):
     ID-only for non-creatable resources:
       - flag_ids, department_ids, persona_ids, document_ids, parameter_field_ids
 
-    Client always sends full state (append-only — each write is a new version snapshot).
+    Client always sends full state (append-only — each write is a new snapshot).
     """
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {

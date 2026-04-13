@@ -201,15 +201,6 @@ async def get_eval_impl(
         "model_positions": compute_model_positions_required(),
     }
 
-    show_ai_generate_map = {r: scores.best.get(r) is not None for r in EVAL_RESOURCES}
-
-    basic_show_ai_generate = any(
-        show_ai_generate_map.get(r, False) for r in EVAL_BASIC_RESOURCES
-    )
-    model_show_ai_generate = any(
-        show_ai_generate_map.get(r, False) for r in EVAL_MODEL_RESOURCES
-    )
-
     # -- Step 7: Validation --
 
     if eval_id is None:
@@ -314,7 +305,6 @@ async def get_eval_impl(
             "show": show_flags_map.get(resource_key, False),
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key),
-            "show_ai_generate": show_ai_generate_map.get(resource_key, False),
         }
 
     return GetEvalApiResponse(
@@ -323,8 +313,6 @@ async def get_eval_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=group_id,
-        basic_show_ai_generate=basic_show_ai_generate,
-        model_show_ai_generate=model_show_ai_generate,
         names=EvalNameSection(
             **_section("names"),
             resource=eval_ctx.resources["names"].selected[0]
@@ -347,14 +335,12 @@ async def get_eval_impl(
         dynamic_flags=EvalFlagSection(
             show=True,
             required=False,
-            show_ai_generate=show_ai_generate_map.get("flags", False),
             resource=dynamic_flag,
             resources=eval_flags,
         ),
         groups_flags=EvalFlagSection(
             show=True,
             required=False,
-            show_ai_generate=show_ai_generate_map.get("flags", False),
             resource=groups_flag,
             resources=eval_flags,
         ),

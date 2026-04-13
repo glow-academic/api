@@ -204,18 +204,6 @@ async def get_rubric_impl(
         "standards": compute_standards_required(),
     }
 
-    def compute_show_ai_generate(resource: str) -> bool:
-        return agent_ids.get(resource) is not None
-
-    show_ai_generate_map = {r: compute_show_ai_generate(r) for r in RUBRIC_RESOURCES}
-
-    basic_show_ai_generate = any(
-        show_ai_generate_map.get(r, False) for r in RUBRIC_BASIC_RESOURCES
-    )
-    content_show_ai_generate = any(
-        show_ai_generate_map.get(r, False) for r in RUBRIC_CONTENT_RESOURCES
-    )
-
     # -- Step 7: Validation ---------------------------------------------------
 
     if rubric_id is None:
@@ -294,7 +282,6 @@ async def get_rubric_impl(
             "show": show_flags_map.get(resource_key, False),
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key, []),
-            "show_ai_generate": show_ai_generate_map.get(resource_key, False),
         }
 
     return GetRubricApiResponse(
@@ -303,8 +290,6 @@ async def get_rubric_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=group_id,
-        basic_show_ai_generate=basic_show_ai_generate,
-        content_show_ai_generate=content_show_ai_generate,
         names=RubricNameSection(
             **_section("names"),
             resource=rubric_ctx.resources["names"].selected[0]

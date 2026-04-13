@@ -220,21 +220,6 @@ async def get_model_impl(
         "voices": compute_voices_required(),
     }
 
-    def compute_show_ai_generate(resource: str) -> bool:
-        return agent_ids.get(resource) is not None
-
-    show_ai_generate_map = {r: compute_show_ai_generate(r) for r in MODEL_RESOURCES}
-
-    basic_show_ai_generate = any(
-        show_ai_generate_map.get(r, False) for r in MODEL_BASIC_RESOURCES
-    )
-    provider_show_ai_generate = any(
-        show_ai_generate_map.get(r, False) for r in MODEL_PROVIDER_RESOURCES
-    )
-    features_show_ai_generate = any(
-        show_ai_generate_map.get(r, False) for r in MODEL_FEATURES_RESOURCES
-    )
-
     # ── Step 7: Validation ────────────────────────────────────────────────
 
     if model_id is None:
@@ -343,7 +328,6 @@ async def get_model_impl(
             "show": show_flags_map.get(resource_key, False),
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key, []),
-            "show_ai_generate": show_ai_generate_map.get(resource_key, False),
         }
 
     return GetModelApiResponse(
@@ -352,9 +336,6 @@ async def get_model_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=group_id,
-        basic_show_ai_generate=basic_show_ai_generate,
-        provider_show_ai_generate=provider_show_ai_generate,
-        features_show_ai_generate=features_show_ai_generate,
         names=ModelNameSection(
             **_section("names"),
             resource=model_ctx.resources["names"].selected[0]

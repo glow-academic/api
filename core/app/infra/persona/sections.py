@@ -25,7 +25,6 @@ from app.infra.persona.permissions import (
     compute_name_required,
     compute_parameter_fields_required,
     compute_parameters_required,
-    compute_show_ai_generate,
     compute_show_color,
     compute_show_departments,
     compute_show_description,
@@ -176,13 +175,7 @@ def build_persona_get_result(
         "voices": compute_voices_required(),
     }
 
-    show_ai_generate_map = {
-        resource: can_ai_generate for resource in PERSONA_RESOURCES
-    }
-
-    basic_show_ai_generate = can_ai_generate
-    content_show_ai_generate = can_ai_generate
-    parameters_step_show_ai_generate = can_ai_generate
+    show_ai_generate = can_ai_generate
 
     all_flags = dedupe_by_id(
         persona.resources["flags"].selected + persona.resources["flags"].suggestions
@@ -244,7 +237,6 @@ def build_persona_get_result(
             "show": show_flags_map.get(resource_key, False),
             "required": required_flags_map.get(resource_key, False),
             "suggestions": suggestions_map.get(resource_key),
-            "show_ai_generate": show_ai_generate_map.get(resource_key, False),
         }
 
     def _model(item, model_cls):
@@ -289,9 +281,7 @@ def build_persona_get_result(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=group_id,
-        basic_show_ai_generate=basic_show_ai_generate,
-        content_show_ai_generate=content_show_ai_generate,
-        parameters_step_show_ai_generate=parameters_step_show_ai_generate,
+        show_ai_generate=show_ai_generate,
         names=PersonaNameSection(
             **_section("names"),
             resource=_model(persona.resources["names"].selected[0], PersonaNameResource)
