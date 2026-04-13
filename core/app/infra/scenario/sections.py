@@ -10,6 +10,7 @@ from app.infra.scenario.permissions import (
     SCENARIO_BASIC_RESOURCES,
     SCENARIO_CONTENT_RESOURCES,
     SCENARIO_RESOURCES,
+    compute_can_draft,
     compute_can_edit,
     compute_departments_required,
     compute_description_required,
@@ -41,7 +42,7 @@ from app.infra.scenario.permissions import (
 )
 from app.infra.scenario.permissions_context import ScenarioPermissionsContext
 from app.infra.tool_graph import ArtifactToolScores
-from app.infra.types import ArtifactContext
+from app.infra.types import ArtifactContext, ResourcePair
 from app.infra.scenario.types import (
     GetScenarioApiResponse,
     ScenarioDepartment,
@@ -82,9 +83,19 @@ def build_scenario_get_result(
     scores: ArtifactToolScores,
     perms: ScenarioPermissionsContext | None,
     group_id: UUID | None,
+    video_enabled: bool | None = None,
+    images_enabled: bool | None = None,
+    objectives_enabled: bool | None = None,
+    questions_enabled: bool | None = None,
+    problem_statement_enabled: bool | None = None,
 ) -> GetScenarioApiResponse:
     """Build the canonical scenario response bundle from resolved contexts."""
     profile = common.profile
+
+    # AI generate: simple permission check — can the user draft?
+    can_ai_generate = compute_can_draft(
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
+    )
 
     agent_ids: dict[str, UUID | None] = {
         resource: (
@@ -127,7 +138,8 @@ def build_scenario_get_result(
     )
     all_parameters = dedupe_by_id(
         scenario.resources["parameters"].selected
-        + scenario.resources["parameters"].suggestions
+        + scenario.resources["parameters"].suggestions,
+        id_attr="parameter_id",
     )
     all_parameter_fields = dedupe_by_id(
         scenario.resources["parameter_fields"].selected
@@ -149,21 +161,35 @@ def build_scenario_get_result(
         + scenario.resources["options"].suggestions
     )
 
+    # Compute video_param_ids BEFORE filtering (needed for persona/document tagging)
+    video_param_ids = {
+        parameter.parameter_id for parameter in all_parameters if parameter.video_parameter
+    }
+
+    # Filter parameters by video_enabled toggle
+    # Only exclude video-ONLY parameters (video=true, scenario=false)
+    # Keep dual-flagged params like Location/Time that are both scenario + video
+    if video_enabled is False:
+        all_parameters = [
+            p for p in all_parameters
+            if not p.video_parameter or p.scenario_parameter
+        ]
+
     show_flags_map = {
         "names": compute_show_name(),
         "descriptions": compute_show_description(),
-        "problem_statements": compute_show_problem_statement(),
+        "problem_statements": compute_show_problem_statement() if problem_statement_enabled is not False else False,
         "flags": compute_show_flag(),
         "departments": compute_show_departments(len(all_departments)),
         "personas": compute_show_personas(len(all_personas)),
         "documents": compute_show_documents(len(all_documents)),
         "parameters": compute_show_parameters(len(all_parameters)),
         "fields": compute_show_fields(len(all_parameter_fields)),
-        "objectives": compute_show_objectives(len(all_objectives)),
-        "images": compute_show_images(len(all_images)),
-        "videos": compute_show_videos(len(all_videos)),
-        "questions": compute_show_questions(len(all_questions)),
-        "options": len(all_options) > 0,
+        "objectives": compute_show_objectives(len(all_objectives)) if objectives_enabled is not False else False,
+        "images": compute_show_images(len(all_images)) if images_enabled is not False else False,
+        "videos": compute_show_videos(len(all_videos)) if video_enabled is not False else False,
+        "questions": compute_show_questions(len(all_questions)) if questions_enabled is not False else False,
+        "options": len(all_options) > 0 if questions_enabled is not False else False,
     }
 
     required_flags_map = {
@@ -184,16 +210,10 @@ def build_scenario_get_result(
     }
 
     show_ai_generate_map = {
-        resource: agent_ids.get(resource) is not None for resource in SCENARIO_RESOURCES
+        resource: can_ai_generate for resource in SCENARIO_RESOURCES
     }
-    basic_show_ai_generate = any(
-        show_ai_generate_map.get(resource, False)
-        for resource in SCENARIO_BASIC_RESOURCES
-    )
-    content_show_ai_generate = any(
-        show_ai_generate_map.get(resource, False)
-        for resource in SCENARIO_CONTENT_RESOURCES
-    )
+    basic_show_ai_generate = can_ai_generate
+    content_show_ai_generate = can_ai_generate
 
     suggestions_map: dict[str, list[UUID]] = {
         "names": [n.id for n in scenario.resources["names"].suggestions],
@@ -204,7 +224,7 @@ def build_scenario_get_result(
         "departments": [d.id for d in scenario.resources["departments"].suggestions],
         "personas": [p.id for p in scenario.resources["personas"].suggestions],
         "documents": [d.id for d in scenario.resources["documents"].suggestions],
-        "parameters": [p.id for p in scenario.resources["parameters"].suggestions],
+        "parameters": [p.parameter_id for p in scenario.resources["parameters"].suggestions],
         "objectives": [],
         "images": [i.id for i in scenario.resources["images"].suggestions],
         "videos": [v.id for v in scenario.resources["videos"].suggestions],
@@ -221,13 +241,25 @@ def build_scenario_get_result(
             "tool_id": tool_ids_map.get(resource_key),
         }
 
-    video_param_ids = {
-        parameter.id for parameter in all_parameters if parameter.video_parameter
+    # Build field lookup from fields catalog for name/description hydration
+    field_lookup = {f.id: f for f in scenario.resources["fields"].suggestions}
+
+    # Build conditional_parameter_id → parameter_id mapping for nesting
+    cond_param_to_param = {
+        cp.id: cp.parameter_id
+        for cp in scenario.resources.get("conditional_parameters", ResourcePair([], [])).suggestions
     }
+
+    # Build parameter_id → name lookup for parameter_name hydration
+    param_name_lookup = {p.parameter_id: p.name for p in all_parameters}
+
+    # Build field_to_param from both scenario parameter_fields AND persona/document parameter_fields
+    persona_pf_pair = scenario.resources.get("persona_parameter_fields")
+    persona_pf = persona_pf_pair.suggestions if persona_pf_pair else []
     field_to_param = {
-        parameter_field.id: parameter_field.parameter_id
-        for parameter_field in all_parameter_fields
-        if parameter_field.parameter_id
+        pf.id: pf.parameter_id
+        for pf in list(all_parameter_fields) + list(persona_pf)
+        if pf.parameter_id
     }
 
     def _video_flags_for_field_ids(
@@ -313,7 +345,7 @@ def build_scenario_get_result(
 
     def _to_parameter(parameter) -> ScenarioParameter:
         return ScenarioParameter(
-            parameter_id=parameter.id,
+            parameter_id=parameter.parameter_id,
             name=parameter.name,
             description=parameter.description,
             document_parameter=parameter.document_parameter,
@@ -326,9 +358,22 @@ def build_scenario_get_result(
         )
 
     def _to_field(field) -> ScenarioField:
+        field_id = getattr(field, "field_id", None) or field.id
+        catalog_field = field_lookup.get(field_id)
+        # Resolve conditional_parameter_ids → parameter_ids for nesting
+        resolved_cond_param_ids = None
+        if catalog_field:
+            cond_ids = getattr(catalog_field, "conditional_parameter_ids", None) or []
+            resolved = [cond_param_to_param[cid] for cid in cond_ids if cid in cond_param_to_param]
+            if resolved:
+                resolved_cond_param_ids = resolved
         return ScenarioField(
-            field_id=getattr(field, "field_id", None) or field.id,
+            field_id=field_id,
+            name=catalog_field.name if catalog_field else None,
+            description=catalog_field.description if catalog_field else None,
             parameter_id=field.parameter_id,
+            parameter_name=param_name_lookup.get(field.parameter_id) if field.parameter_id else None,
+            conditional_parameter_ids=resolved_cond_param_ids,
             generated=field.generated,
         )
 
@@ -426,6 +471,20 @@ def build_scenario_get_result(
     all_documents_conv = [_to_document(document) for document in all_documents]
     all_parameters_conv = [_to_parameter(parameter) for parameter in all_parameters]
     all_fields_conv = [_to_field(field) for field in all_parameter_fields]
+
+    # Filter by video_enabled mode switch
+    if video_enabled is True:
+        # Video mode: only video-capable entities
+        all_personas_conv = [p for p in all_personas_conv if p.video_persona]
+        all_documents_conv = [d for d in all_documents_conv if d.video_document]
+    elif video_enabled is False:
+        # Non-video mode: only non-video entities, exclude video-only fields
+        all_personas_conv = [p for p in all_personas_conv if p.non_video_persona]
+        all_documents_conv = [d for d in all_documents_conv if d.non_video_document]
+        all_fields_conv = [
+            f for f in all_fields_conv
+            if not f.parameter_id or f.parameter_id not in video_param_ids
+        ]
     all_objectives_conv = [_to_objective(objective) for objective in all_objectives]
     all_images_conv = [_to_image(image) for image in all_images]
     all_videos_conv = [_to_video(video) for video in all_videos]

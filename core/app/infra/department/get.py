@@ -59,6 +59,7 @@ async def get_department_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetDepartmentApiResponse:
     """Resolve the canonical department response for any surface."""
     common = await resolve_common_context(

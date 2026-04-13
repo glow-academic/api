@@ -40,6 +40,7 @@ async def get_group_internal(
     bypass_cache: bool = False,
     message_limit: int | None = None,
     message_offset: int | None = None,
+    **_kwargs,
 ) -> GroupInternalData:
     """Resolve raw group detail data before HTTP shaping."""
 
@@ -269,12 +270,12 @@ async def get_group_impl(
                 GroupDetailMessageItem(
                     id=message.message_id,
                     role=message.role,
-                    text_upload_ids=list(message.text_upload_ids or []),
-                    audio_upload_ids=list(message.audio_upload_ids or []),
-                    image_upload_ids=list(message.image_upload_ids or []),
-                    video_upload_ids=list(message.video_upload_ids or []),
-                    file_upload_ids=list(message.file_upload_ids or []),
-                    call_upload_ids=list(message.call_upload_ids or []),
+                    text_ids=list(message.text_ids or []),
+                    audio_ids=list(message.audio_ids or []),
+                    image_ids=list(message.image_ids or []),
+                    video_ids=list(message.video_ids or []),
+                    file_ids=list(message.file_ids or []),
+                    call_ids=list(message.call_ids or []),
                 )
             )
 
@@ -283,12 +284,12 @@ async def get_group_impl(
             for call in run_calls:
                 messages[-1].calls.append(
                     GroupDetailCallItem(
-                        id=call.call_id,
+                        id=call.id,
                         template_name=data.tool_name_map.get(call.tool_id)
                         if call.tool_id
                         else None,
                         file_path=call.file_path,
-                        created_at=call.call_created_at,
+                        created_at=call.created_at,
                     )
                 )
 

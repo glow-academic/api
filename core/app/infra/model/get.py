@@ -87,6 +87,7 @@ async def get_model_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetModelApiResponse:
     """Model GET using composable infra functions.
 

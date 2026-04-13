@@ -90,6 +90,7 @@ async def get_invocation_impl(
     group_id: UUID | None = None,
     descriptions_search: str | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetSuiteResponse:
     """HTTP-facing bundle response using composable infra functions.
 

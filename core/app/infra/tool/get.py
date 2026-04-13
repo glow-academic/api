@@ -79,6 +79,7 @@ async def get_tool_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetToolApiResponse:
     """Tool GET using composable infra functions.
 

@@ -33,6 +33,7 @@ async def create_tool_call(
     role: str = "assistant",
     mcp: bool = False,
     raise_on_error: bool = False,
+    instruction_template: str | None = None,
 ) -> CreateToolSetupResponse:
     """Execute a tool and persist the full entry chain + files.
 
@@ -75,9 +76,9 @@ async def create_tool_call(
         raw_result = {"success": False, "message": str(exc)}
 
     if isinstance(raw_result, str):
-        output = raw_result
+        output_raw = raw_result
     else:
-        output = json.dumps(raw_result, default=str)
+        output_raw = json.dumps(raw_result, default=str)
 
     # Extract canonical ID from the tool function result
     result_id: UUID | None = None
@@ -87,9 +88,42 @@ async def create_tool_call(
         rid = raw_result["id"]
         result_id = rid if isinstance(rid, UUID) else UUID(str(rid))
 
-    # 3. Write .txt (always)
+    # 2b. Render instruction template (Layer 3) if available
+    rendered_output: str | None = None
+    if instruction_template:
+        try:
+            from jinja2 import Environment, Undefined
+            env = Environment(undefined=Undefined, autoescape=False)
+            tmpl = env.from_string(instruction_template)
+            # Match the rendering context from generate_artifact_impl:
+            # wrap in {success, results} structure that templates expect
+            result_dict = (
+                json.loads(output_raw) if isinstance(output_raw, str)
+                else output_raw
+            )
+            template_ctx = {
+                "success": True,
+                "results": [{"result": result_dict}],
+            }
+            rendered = tmpl.render(**template_ctx).strip()
+            if rendered:
+                rendered_output = rendered
+        except Exception:
+            pass  # Fall back to raw output
+
+    # 3. Write .txt — rendered template with INPUT/OUTPUT if available
     text_upload_id = uuid4()
-    text_rel_path = save_text_upload(output, text_upload_id, upload_folder)
+    if rendered_output:
+        # Format arguments concisely
+        args_lines = []
+        for k, v in arguments.items():
+            if v is not None:
+                args_lines.append(f"  {k}: {v}")
+        args_section = "\n".join(args_lines) if args_lines else "  (none)"
+        text_content = f"INPUT:\n{args_section}\n\nOUTPUT:\n{rendered_output}"
+    else:
+        text_content = output_raw
+    text_rel_path = save_text_upload(text_content, text_upload_id, upload_folder)
     text_full_path = upload_folder / text_rel_path
     text_size = text_full_path.stat().st_size
 
@@ -98,12 +132,19 @@ async def create_tool_call(
     call_upload_db_id: UUID | None = None
     if tool_id is not None:
         call_upload_id = call_id
-        output_dict = json.loads(output) if isinstance(output, str) else output
+        # Use rendered output string if available, raw dict otherwise
+        if rendered_output:
+            output_for_json = rendered_output
+        else:
+            output_for_json = (
+                json.loads(output_raw) if isinstance(output_raw, str)
+                else output_raw
+            )
         payload = build_call_payload(
             call_id=call_upload_id,
             tool_id=tool_id,
             arguments=arguments,
-            output=output_dict,
+            output=output_for_json,
         )
         call_rel_path = save_call_upload(payload, call_upload_id, upload_folder)
         call_full_path = upload_folder / call_rel_path

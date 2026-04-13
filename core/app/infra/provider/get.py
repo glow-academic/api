@@ -83,6 +83,7 @@ async def get_provider_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetProviderApiResponse:
     """Provider GET using composable infra functions.
 

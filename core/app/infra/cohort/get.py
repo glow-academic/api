@@ -32,6 +32,7 @@ async def get_cohort_impl(
     profile_search: str | None = None,
     profile_show_selected: bool | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetCohortApiResponse:
     """Resolve the canonical cohort artifact bundle for any surface."""
     common = await resolve_common_context(

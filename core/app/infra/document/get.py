@@ -92,6 +92,7 @@ async def get_document_impl(
     # Search filters
     descriptions_search: str | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetDocumentApiResponse:
     """Document GET using composable infra functions.
 
@@ -205,7 +206,8 @@ async def get_document_impl(
     )
     all_parameters = dedupe_by_id(
         document.resources["parameters"].selected
-        + document.resources["parameters"].suggestions
+        + document.resources["parameters"].suggestions,
+        id_attr="parameter_id",
     )
 
     show_flags_map = {
@@ -312,7 +314,7 @@ async def get_document_impl(
         "descriptions": [d.id for d in document.resources["descriptions"].suggestions],
         "departments": [d.id for d in document.resources["departments"].suggestions],
         "fields": [f.id for f in document.resources["parameter_fields"].suggestions],
-        "parameters": [p.id for p in document.resources["parameters"].suggestions],
+        "parameters": [p.parameter_id for p in document.resources["parameters"].suggestions],
         "uploads": [f.id for f in document.resources["files"].suggestions],
         "images": [i.id for i in document.resources["images"].suggestions],
         "texts": [t.id for t in document.resources["texts"].suggestions],

@@ -49,6 +49,7 @@ async def get_session_impl(
     profile_id: UUID,
     session_id: UUID,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> SessionInternalData:
     """Core session detail fetcher.
 
@@ -215,6 +216,7 @@ async def get_session_detail_impl(
     profile_id: UUID,
     session_id: UUID,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetSessionDetailResponse:
     """Build the client-facing session detail response."""
     data = await get_session_impl(

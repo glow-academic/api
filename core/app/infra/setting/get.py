@@ -93,6 +93,7 @@ async def get_setting_impl(
     # Search filters (threaded from client)
     color_search: str | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetSettingApiResponse:
     """Setting GET using composable infra functions.
 

@@ -54,6 +54,7 @@ async def get_health_internal(
     page_limit: int = 168,
     page_offset: int = 0,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> HealthInternalData:
     """Resolve raw health artifact data before HTTP shaping."""
 
@@ -195,6 +196,7 @@ async def get_health_impl(
     page_limit: int = 168,
     page_offset: int = 0,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> HealthResponse:
     """Resolve the canonical health response for any surface."""
     common = await resolve_common_context(

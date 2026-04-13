@@ -87,6 +87,7 @@ async def get_profile_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetProfileApiResponse:
     """Profile GET using composable infra functions.
 

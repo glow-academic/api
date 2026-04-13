@@ -105,6 +105,7 @@ async def get_attempt_internal(
     profile_id: UUID,
     attempt_id: UUID,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> AttemptInternalData:
     """Core attempt detail fetcher with no HTTP concerns."""
     requester = await resolve_profile_identity_context(

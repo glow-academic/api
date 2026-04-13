@@ -56,6 +56,7 @@ async def get_benchmark_impl(
     profile_id: UUID,
     request: BenchmarkRequest,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> BenchmarkResponse:
     """Resolve the canonical benchmark response for any surface."""
     department_uuids = (

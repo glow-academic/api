@@ -64,6 +64,7 @@ async def get_pricing_impl(
     profile_id: UUID,
     request: PricingRequest,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> PricingResponse:
     """Resolve the canonical pricing top-chart response for any surface."""
     common = await resolve_common_context(

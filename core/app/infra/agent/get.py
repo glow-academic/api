@@ -27,6 +27,7 @@ async def get_agent_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetAgentApiResponse:
     """Resolve the canonical agent artifact bundle for any surface."""
     common = await resolve_common_context(

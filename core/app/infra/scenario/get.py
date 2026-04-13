@@ -39,7 +39,13 @@ async def get_scenario_impl(
     persona_show_selected: bool | None = None,
     document_show_selected: bool | None = None,
     parameter_show_selected: bool | None = None,
+    video_enabled: bool | None = None,
+    images_enabled: bool | None = None,
+    objectives_enabled: bool | None = None,
+    questions_enabled: bool | None = None,
+    problem_statement_enabled: bool | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetScenarioApiResponse:
     """Resolve the canonical scenario artifact bundle for any surface."""
     common = await resolve_common_context(
@@ -110,4 +116,9 @@ async def get_scenario_impl(
         scores=scores,
         perms=perms,
         group_id=effective_group_id,
+        video_enabled=video_enabled,
+        images_enabled=images_enabled,
+        objectives_enabled=objectives_enabled,
+        questions_enabled=questions_enabled,
+        problem_statement_enabled=problem_statement_enabled,
     )

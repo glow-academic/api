@@ -87,6 +87,7 @@ async def get_parameter_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetParameterApiResponse:
     """Parameter GET using composable infra functions.
 

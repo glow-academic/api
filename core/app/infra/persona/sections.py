@@ -12,6 +12,7 @@ from app.infra.common_context import CommonContext
 from app.infra.helpers import dedupe_by_id
 from app.infra.persona.permissions import (
     PERSONA_RESOURCES,
+    compute_can_draft,
     compute_can_edit,
     compute_color_required,
     compute_departments_required,
@@ -40,7 +41,7 @@ from app.infra.persona.permissions import (
 )
 from app.infra.persona.permissions_context import PersonaPermissionsContext
 from app.infra.tool_graph import ArtifactToolScores
-from app.infra.types import ArtifactContext
+from app.infra.types import ArtifactContext, ResourcePair
 from app.infra.persona.types import (
     GetPersonaApiResponse,
     PersonaColorResource,
@@ -95,6 +96,11 @@ def build_persona_get_result(
         user_department_ids=profile.department_ids,
     )
 
+    # AI generate: simple permission check — can the user draft?
+    can_ai_generate = compute_can_draft(
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
+    )
+
     agent_ids: dict[str, UUID | None] = {
         resource: (
             scores.best[resource].agent_id if scores.best.get(resource) else None
@@ -138,7 +144,8 @@ def build_persona_get_result(
     )
     all_parameters = dedupe_by_id(
         persona.resources["parameters"].selected
-        + persona.resources["parameters"].suggestions
+        + persona.resources["parameters"].suggestions,
+        id_attr="parameter_id",
     )
     all_voices = dedupe_by_id(
         persona.resources["voices"].selected + persona.resources["voices"].suggestions
@@ -175,31 +182,12 @@ def build_persona_get_result(
     }
 
     show_ai_generate_map = {
-        resource: compute_show_ai_generate(agent_ids, resource)
-        for resource in PERSONA_RESOURCES
+        resource: can_ai_generate for resource in PERSONA_RESOURCES
     }
 
-    basic_show_ai_generate = any(
-        [
-            show_ai_generate_map.get("names", False),
-            show_ai_generate_map.get("descriptions", False),
-            show_ai_generate_map.get("flags", False),
-            show_ai_generate_map.get("departments", False),
-        ]
-    )
-    content_show_ai_generate = any(
-        [
-            show_ai_generate_map.get("instructions", False),
-            show_ai_generate_map.get("examples", False),
-            show_ai_generate_map.get("voices", False),
-        ]
-    )
-    parameters_step_show_ai_generate = any(
-        [
-            show_ai_generate_map.get("parameters", False),
-            show_ai_generate_map.get("parameter_fields", False),
-        ]
-    )
+    basic_show_ai_generate = can_ai_generate
+    content_show_ai_generate = can_ai_generate
+    parameters_step_show_ai_generate = can_ai_generate
 
     all_flags = dedupe_by_id(
         persona.resources["flags"].selected + persona.resources["flags"].suggestions
@@ -252,7 +240,7 @@ def build_persona_get_result(
         ],
         "parameter_fields": [],
         "examples": [item.id for item in persona.resources["examples"].suggestions],
-        "parameters": [item.id for item in persona.resources["parameters"].suggestions],
+        "parameters": [item.parameter_id for item in persona.resources["parameters"].suggestions],
         "voices": [item.id for item in persona.resources["voices"].suggestions],
     }
 
@@ -275,6 +263,31 @@ def build_persona_get_result(
         payload = item.model_dump()
         payload["department_id"] = payload.pop("id", None)
         return PersonaDepartmentResource.model_validate(payload)
+
+    # Build field lookup from already-fetched fields catalog to hydrate
+    # parameter_field items with name/description from fields_resource.
+    field_lookup = {f.id: f for f in persona.resources["fields"].suggestions}
+
+    # Build conditional_parameter_id → parameter_id mapping for nesting.
+    cond_param_to_param = {
+        cp.id: cp.parameter_id
+        for cp in persona.resources.get("conditional_parameters", ResourcePair([], [])).suggestions
+    }
+
+    def _parameter_field_model(item) -> PersonaParameterFieldResource:
+        payload = item.model_dump()
+        field = field_lookup.get(item.field_id)
+        if field:
+            payload["name"] = field.name
+            payload["description"] = field.description
+            # Resolve conditional_parameter_ids → parameter_id for nesting
+            cond_ids = getattr(field, "conditional_parameter_ids", None) or []
+            for cid in cond_ids:
+                param_id = cond_param_to_param.get(cid)
+                if param_id:
+                    payload["conditional_parameter_id"] = str(param_id)
+                    break
+        return PersonaParameterFieldResource.model_validate(payload)
 
     return GetPersonaApiResponse(
         actor_name=profile.name,
@@ -343,14 +356,14 @@ def build_persona_get_result(
         ),
         parameter_fields=PersonaParameterFieldSection(
             **_section("parameter_fields"),
-            current=_model_many(
-                persona.resources["parameter_fields"].selected,
-                PersonaParameterFieldResource,
-            ),
-            resources=_model_many(
-                persona.resources["parameter_fields"].suggestions,
-                PersonaParameterFieldResource,
-            ),
+            current=[
+                _parameter_field_model(item)
+                for item in persona.resources["parameter_fields"].selected
+            ],
+            resources=[
+                _parameter_field_model(item)
+                for item in persona.resources["parameter_fields"].suggestions
+            ],
         ),
         examples=PersonaExampleSection(
             **_section("examples"),

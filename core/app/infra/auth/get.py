@@ -63,6 +63,7 @@ async def get_auth_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetAuthApiResponse:
     """Resolve the canonical auth response for any surface."""
     common = await resolve_common_context(

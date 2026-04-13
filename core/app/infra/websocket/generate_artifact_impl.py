@@ -973,6 +973,7 @@ async def generate_artifact_impl(
                                 run_id=_run_id,
                                 sid=sid,
                                 soft=True,
+                                instruction_template=td.get("_instruction_template"),
                             )
                             results = await execute_infra_operation(ctx, spec)
                             tool_result_str = json.dumps(

@@ -24,6 +24,7 @@ async def get_chat_impl(
     session_id: UUID | None = None,
     request: GetChatRequest,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetChatResponse:
     """Resolve the canonical chat bundle response for any surface."""
     common = await resolve_common_context(

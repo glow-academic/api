@@ -73,6 +73,7 @@ async def get_field_impl(
     conditional_parameter_search: str | None = None,
     conditional_parameter_show_selected: bool | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetFieldApiResponse:
     """Field GET using composable infra functions.
 
@@ -176,7 +177,8 @@ async def get_field_impl(
     )
     all_conditional_parameters = dedupe_by_id(
         field.resources["conditional_parameters"].selected
-        + field.resources["conditional_parameters"].suggestions
+        + field.resources["conditional_parameters"].suggestions,
+        id_attr="parameter_id",
     )
 
     # Validate new mode
@@ -216,7 +218,7 @@ async def get_field_impl(
         "descriptions": [d.id for d in field.resources["descriptions"].suggestions],
         "departments": [d.id for d in field.resources["departments"].suggestions],
         "conditional_parameters": [
-            p.id for p in field.resources["conditional_parameters"].suggestions if p.id
+            p.parameter_id for p in field.resources["conditional_parameters"].suggestions if p.parameter_id
         ],
     }
 

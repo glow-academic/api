@@ -22,6 +22,7 @@ async def get_session_impl(
     *,
     redis: Redis | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> UUID | None:
     """Fetch the most recent active session for a profile.
 

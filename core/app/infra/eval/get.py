@@ -82,6 +82,7 @@ async def get_eval_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetEvalApiResponse:
     """Eval GET using composable infra functions.
 

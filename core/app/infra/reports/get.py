@@ -50,6 +50,7 @@ async def get_reports_impl(
     profile_id,
     request: ReportsRequest,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> ReportsResponse:
     """Resolve the canonical reports response for any surface."""
     common = await resolve_common_context(

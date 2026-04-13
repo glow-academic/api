@@ -93,6 +93,7 @@ async def get_simulation_impl(
     scenario_search: str | None = None,
     filter_scenario_ids: list[UUID] | None = None,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> GetSimulationApiResponse:
     """Simulation GET using composable infra functions.
 

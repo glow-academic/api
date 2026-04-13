@@ -78,6 +78,7 @@ class InfraContext(BaseModel):
     draft_id: UUID | None = Field(default=None, description="Draft context")
     sid: str = Field(default="", description="Socket ID for event emission")
     soft: bool = Field(default=False, description="Create dormant records (active=False) for generation pipeline")
+    instruction_template: str | None = Field(default=None, description="Tool response template (Layer 3) for rendered saves")
 
 
 # ---------------------------------------------------------------------------
@@ -370,6 +371,7 @@ async def execute_infra_operation(
                 rooms=[ctx.sid] if ctx.sid else [],
                 runner=_runner,
                 arguments=kwargs if accepted is None else filtered,
+                instruction_template=ctx.instruction_template,
             )
 
             results.append(InfraOperationResult(
