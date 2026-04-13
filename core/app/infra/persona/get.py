@@ -57,6 +57,16 @@ async def get_persona_impl(
     examples_selected_only: bool | None = None,
     parameter_fields_selected_only: bool | None = None,
     voices_selected_only: bool | None = None,
+    # Per-section suggested_only
+    names_suggested_only: bool | None = None,
+    descriptions_suggested_only: bool | None = None,
+    colors_suggested_only: bool | None = None,
+    icons_suggested_only: bool | None = None,
+    instructions_suggested_only: bool | None = None,
+    departments_suggested_only: bool | None = None,
+    examples_suggested_only: bool | None = None,
+    parameter_fields_suggested_only: bool | None = None,
+    voices_suggested_only: bool | None = None,
     # Per-section include
     names_include: bool | None = None,
     descriptions_include: bool | None = None,
@@ -160,6 +170,30 @@ async def get_persona_impl(
         "voices": voices_include is not False,
     }
 
+    selected_only = {
+        "names": names_selected_only or False,
+        "descriptions": descriptions_selected_only or False,
+        "colors": colors_selected_only or False,
+        "icons": icons_selected_only or False,
+        "instructions": instructions_selected_only or False,
+        "departments": departments_selected_only or False,
+        "examples": examples_selected_only or False,
+        "parameter_fields": parameter_fields_selected_only or False,
+        "voices": voices_selected_only or False,
+    }
+
+    suggested_only = {
+        "names": names_suggested_only or False,
+        "descriptions": descriptions_suggested_only or False,
+        "colors": colors_suggested_only or False,
+        "icons": icons_suggested_only or False,
+        "instructions": instructions_suggested_only or False,
+        "departments": departments_suggested_only or False,
+        "examples": examples_suggested_only or False,
+        "parameter_fields": parameter_fields_suggested_only or False,
+        "voices": voices_suggested_only or False,
+    }
+
     return build_persona_get_result(
         common=common,
         persona=persona,
@@ -167,4 +201,6 @@ async def get_persona_impl(
         perms=perms,
         group_id=effective_group_id,
         include=include,
+        selected_only=selected_only,
+        suggested_only=suggested_only,
     )

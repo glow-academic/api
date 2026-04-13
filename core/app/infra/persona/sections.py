@@ -42,9 +42,23 @@ def build_persona_get_result(
     perms: PersonaPermissionsContext | None,
     group_id: UUID | None,
     include: dict[str, bool] | None = None,
+    selected_only: dict[str, bool] | None = None,
+    suggested_only: dict[str, bool] | None = None,
 ) -> GetPersonaApiResponse:
     """Build the canonical persona response bundle from resolved contexts."""
     inc = include or {}
+    sel_only = selected_only or {}
+    sug_only = suggested_only or {}
+
+    def _filter_section(items: list | None, section: str) -> list | None:
+        """Apply selected_only and suggested_only filters to a section's items."""
+        if items is None:
+            return None
+        if sel_only.get(section):
+            items = [i for i in items if getattr(i, "selected", False)]
+        if sug_only.get(section):
+            items = [i for i in items if getattr(i, "suggested", False)]
+        return items
     profile = common.profile
 
     perms_department_ids = perms.department_ids if perms else []
@@ -247,17 +261,17 @@ def build_persona_get_result(
         disabled_reason=disabled_reason,
         group_id=group_id,
         show_ai_generate=show_ai_generate,
-        names=_model_many_with_flags(all_names, PersonaNameResource, suggestions_sets.get("names", set()), selected_sets.get("names", set())) if inc.get("names", True) else None,
-        descriptions=_model_many_with_flags(all_descriptions, PersonaDescriptionResource, suggestions_sets.get("descriptions", set()), selected_sets.get("descriptions", set())) if inc.get("descriptions", True) else None,
-        colors=_model_many_with_flags(all_colors, PersonaColorResource, suggestions_sets.get("colors", set()), selected_sets.get("colors", set())) if inc.get("colors", True) else None,
-        icons=_model_many_with_flags(all_icons, PersonaIconResource, suggestions_sets.get("icons", set()), selected_sets.get("icons", set())) if inc.get("icons", True) else None,
-        instructions=_model_many_with_flags(all_instructions, PersonaInstructionResource, suggestions_sets.get("instructions", set()), selected_sets.get("instructions", set())) if inc.get("instructions", True) else None,
-        flags=flags_flat if inc.get("flags", True) else None,
-        departments=_department_many_with_flags(all_departments, suggestions_sets.get("departments", set()), selected_sets.get("departments", set())) if inc.get("departments", True) else None,
-        parameter_fields=_parameter_field_many_with_flags(all_parameter_fields, suggestions_sets.get("parameter_fields", set()), selected_sets.get("parameter_fields", set())) if inc.get("parameter_fields", True) else None,
-        examples=_model_many_with_flags(all_examples, PersonaExampleResource, suggestions_sets.get("examples", set()), selected_sets.get("examples", set())) if inc.get("examples", True) else None,
+        names=_filter_section(_model_many_with_flags(all_names, PersonaNameResource, suggestions_sets.get("names", set()), selected_sets.get("names", set())), "names") if inc.get("names", True) else None,
+        descriptions=_filter_section(_model_many_with_flags(all_descriptions, PersonaDescriptionResource, suggestions_sets.get("descriptions", set()), selected_sets.get("descriptions", set())), "descriptions") if inc.get("descriptions", True) else None,
+        colors=_filter_section(_model_many_with_flags(all_colors, PersonaColorResource, suggestions_sets.get("colors", set()), selected_sets.get("colors", set())), "colors") if inc.get("colors", True) else None,
+        icons=_filter_section(_model_many_with_flags(all_icons, PersonaIconResource, suggestions_sets.get("icons", set()), selected_sets.get("icons", set())), "icons") if inc.get("icons", True) else None,
+        instructions=_filter_section(_model_many_with_flags(all_instructions, PersonaInstructionResource, suggestions_sets.get("instructions", set()), selected_sets.get("instructions", set())), "instructions") if inc.get("instructions", True) else None,
+        flags=_filter_section(flags_flat, "flags") if inc.get("flags", True) else None,
+        departments=_filter_section(_department_many_with_flags(all_departments, suggestions_sets.get("departments", set()), selected_sets.get("departments", set())), "departments") if inc.get("departments", True) else None,
+        parameter_fields=_filter_section(_parameter_field_many_with_flags(all_parameter_fields, suggestions_sets.get("parameter_fields", set()), selected_sets.get("parameter_fields", set())), "parameter_fields") if inc.get("parameter_fields", True) else None,
+        examples=_filter_section(_model_many_with_flags(all_examples, PersonaExampleResource, suggestions_sets.get("examples", set()), selected_sets.get("examples", set())), "examples") if inc.get("examples", True) else None,
         parameters=list(all_parameters) if inc.get("parameters", True) else None,
-        voices=_model_many_with_flags(all_voices, PersonaVoiceResource, suggestions_sets.get("voices", set()), selected_sets.get("voices", set())) if inc.get("voices", True) else None,
+        voices=_filter_section(_model_many_with_flags(all_voices, PersonaVoiceResource, suggestions_sets.get("voices", set()), selected_sets.get("voices", set())), "voices") if inc.get("voices", True) else None,
         fields=persona.resources["fields"].suggestions,
         resolved_parameter_ids=resolved_parameter_ids or None,
     )
