@@ -494,7 +494,7 @@ async def resolve_persona_context(
             "fields": ResourcePair(selected=[], suggestions=fields_catalog),
             "conditional_parameters": ResourcePair(selected=[], suggestions=conditional_params),
         },
-        entries={},
+        entries={"pending_ids": merged.pending_ids},
     )
 
 
@@ -517,6 +517,8 @@ class _MergedIds:
     parameter_field_ids: list[UUID]
     example_ids: list[UUID]
     voice_ids: list[UUID]
+    # IDs from soft draft connections (pending acceptance)
+    pending_ids: set[UUID]
 
 
 def _merge_junction_ids(artifact, draft) -> _MergedIds:
@@ -562,6 +564,18 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
         if draft.voice_ids:
             voice_ids = list(draft.voice_ids)
 
+    # Collect pending IDs from draft connections with active=false
+    pending: set[UUID] = set()
+    if draft:
+        for attr in [
+            "pending_name_ids", "pending_description_ids", "pending_color_ids",
+            "pending_icon_ids", "pending_instruction_ids", "pending_flag_ids",
+            "pending_department_ids", "pending_parameter_field_ids",
+            "pending_example_ids", "pending_voice_ids",
+        ]:
+            for pid in getattr(draft, attr, []) or []:
+                pending.add(pid)
+
     return _MergedIds(
         name_ids=name_ids,
         description_ids=description_ids,
@@ -573,4 +587,5 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
         parameter_field_ids=parameter_field_ids,
         example_ids=example_ids,
         voice_ids=voice_ids,
+        pending_ids=pending,
     )

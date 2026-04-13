@@ -83,6 +83,9 @@ def build_persona_get_result(
         role_level=profile.role_level, role_permissions=profile.role_permissions,
     )
 
+    # Pending IDs from soft draft connections
+    pending_ids: set[UUID] = persona.entries.get("pending_ids", set())
+
     agent_ids: dict[str, UUID | None] = {
         resource: (
             scores.best[resource].agent_id if scores.best.get(resource) else None
@@ -177,6 +180,8 @@ def build_persona_get_result(
                 m.suggested = True
             if item_id and item_id in selected_ids:
                 m.selected = True
+            if item_id and item_id in pending_ids:
+                m.pending = True
             result.append(m)
         return result
 
@@ -193,6 +198,8 @@ def build_persona_get_result(
                 m.suggested = True
             if item.id and item.id in selected_ids:
                 m.selected = True
+            if item.id and item.id in pending_ids:
+                m.pending = True
             result.append(m)
         return result
 
@@ -229,6 +236,8 @@ def build_persona_get_result(
                 m.suggested = True
             if item.id and item.id in selected_ids:
                 m.selected = True
+            if item.id and item.id in pending_ids:
+                m.pending = True
             result.append(m)
         return result
 

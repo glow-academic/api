@@ -35,7 +35,18 @@ async def search_persona_drafts(
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL), '{}') AS name_ids,
             COALESCE(ARRAY_AGG(DISTINCT pf.parameter_fields_id) FILTER (WHERE pf.parameter_fields_id IS NOT NULL), '{}') AS parameter_field_ids,
             COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL), '{}') AS profile_ids,
-            COALESCE(ARRAY_AGG(DISTINCT v.voices_id) FILTER (WHERE v.voices_id IS NOT NULL), '{}') AS voice_ids
+            COALESCE(ARRAY_AGG(DISTINCT v.voices_id) FILTER (WHERE v.voices_id IS NOT NULL), '{}') AS voice_ids,
+            -- Pending IDs (connections with active=false)
+            COALESCE(ARRAY_AGG(DISTINCT col.colors_id) FILTER (WHERE col.colors_id IS NOT NULL AND col.active = false), '{}') AS pending_color_ids,
+            COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL AND dep.active = false), '{}') AS pending_department_ids,
+            COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL AND desc_c.active = false), '{}') AS pending_description_ids,
+            COALESCE(ARRAY_AGG(DISTINCT ex.examples_id) FILTER (WHERE ex.examples_id IS NOT NULL AND ex.active = false), '{}') AS pending_example_ids,
+            COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL AND f.active = false), '{}') AS pending_flag_ids,
+            COALESCE(ARRAY_AGG(DISTINCT ic.icons_id) FILTER (WHERE ic.icons_id IS NOT NULL AND ic.active = false), '{}') AS pending_icon_ids,
+            COALESCE(ARRAY_AGG(DISTINCT ins.instructions_id) FILTER (WHERE ins.instructions_id IS NOT NULL AND ins.active = false), '{}') AS pending_instruction_ids,
+            COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = false), '{}') AS pending_name_ids,
+            COALESCE(ARRAY_AGG(DISTINCT pf.parameter_fields_id) FILTER (WHERE pf.parameter_fields_id IS NOT NULL AND pf.active = false), '{}') AS pending_parameter_field_ids,
+            COALESCE(ARRAY_AGG(DISTINCT v.voices_id) FILTER (WHERE v.voices_id IS NOT NULL AND v.active = false), '{}') AS pending_voice_ids
         FROM persona_drafts_entry d
         LEFT JOIN persona_drafts_colors_connection col ON col.draft_id = d.id
         LEFT JOIN persona_drafts_departments_connection dep ON dep.draft_id = d.id
@@ -90,6 +101,16 @@ async def search_persona_drafts(
             parameter_field_ids=r["parameter_field_ids"],
             profile_ids=r["profile_ids"],
             voice_ids=r["voice_ids"],
+            pending_color_ids=r["pending_color_ids"],
+            pending_department_ids=r["pending_department_ids"],
+            pending_description_ids=r["pending_description_ids"],
+            pending_example_ids=r["pending_example_ids"],
+            pending_flag_ids=r["pending_flag_ids"],
+            pending_icon_ids=r["pending_icon_ids"],
+            pending_instruction_ids=r["pending_instruction_ids"],
+            pending_name_ids=r["pending_name_ids"],
+            pending_parameter_field_ids=r["pending_parameter_field_ids"],
+            pending_voice_ids=r["pending_voice_ids"],
         )
         for r in rows
     ]

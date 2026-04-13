@@ -73,12 +73,14 @@ async def create_persona_draft(
         ("persona_drafts_voices_connection", "voices_id", voice_ids or []),
     ]
 
+    conn_active = not soft
     for table, col, ids in connections:
         for rid in ids:
             await conn.execute(
-                f"INSERT INTO {table} (draft_id, {col}) VALUES ($1, $2)",
+                f"INSERT INTO {table} (draft_id, {col}, active) VALUES ($1, $2, $3)",
                 draft_id,
                 rid,
+                conn_active,
             )
 
     return CreatePersonaDraftResponse(id=draft_id)

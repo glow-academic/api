@@ -29,6 +29,7 @@ class PersonaNameResource(BaseModel):
     generated: bool | None = None
     suggested: bool = False
     selected: bool = False
+    pending: bool = False
 
 
 class PersonaDescriptionResource(BaseModel):
@@ -39,6 +40,7 @@ class PersonaDescriptionResource(BaseModel):
     generated: bool | None = None
     suggested: bool = False
     selected: bool = False
+    pending: bool = False
 
 
 class PersonaColorResource(BaseModel):
@@ -51,6 +53,7 @@ class PersonaColorResource(BaseModel):
     generated: bool | None = None
     suggested: bool = False
     selected: bool = False
+    pending: bool = False
 
 
 class PersonaIconResource(BaseModel):
@@ -63,6 +66,7 @@ class PersonaIconResource(BaseModel):
     generated: bool | None = None
     suggested: bool = False
     selected: bool = False
+    pending: bool = False
 
 
 class PersonaInstructionResource(BaseModel):
@@ -73,6 +77,7 @@ class PersonaInstructionResource(BaseModel):
     generated: bool | None = None
     suggested: bool = False
     selected: bool = False
+    pending: bool = False
 
 
 class PersonaDepartmentResource(BaseModel):
@@ -84,6 +89,7 @@ class PersonaDepartmentResource(BaseModel):
     generated: bool | None = None
     suggested: bool = False
     selected: bool = False
+    pending: bool = False
 
 
 class PersonaParameterFieldResource(BaseModel):
@@ -98,6 +104,7 @@ class PersonaParameterFieldResource(BaseModel):
     generated: bool | None = None
     suggested: bool = False
     selected: bool = False
+    pending: bool = False
 
 
 class PersonaExampleResource(BaseModel):
@@ -108,6 +115,7 @@ class PersonaExampleResource(BaseModel):
     generated: bool | None = None
     suggested: bool = False
     selected: bool = False
+    pending: bool = False
 
 
 class PersonaVoiceResource(BaseModel):
@@ -118,6 +126,7 @@ class PersonaVoiceResource(BaseModel):
     generated: bool | None = None
     suggested: bool = False
     selected: bool = False
+    pending: bool = False
 
 
 class PersonaAgentResource(BaseModel):
@@ -208,6 +217,7 @@ class PersonaFlagConfig(BaseModel):
     required: bool = False
     generated: bool | None = None
     selected: bool = False
+    pending: bool = False
 
 
 class SectionFilter(BaseModel):
