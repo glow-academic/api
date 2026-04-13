@@ -325,6 +325,7 @@ async def patch_persona_draft_impl(
                 parameter_field_ids=request.parameter_field_ids,
                 example_ids=request.example_ids,
                 voice_ids=request.voice_ids,
+                pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
     # ── Step 5: Build form state (server is source of truth) ──────────

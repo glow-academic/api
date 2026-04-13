@@ -25,8 +25,13 @@ async def create_persona_draft(
     parameter_field_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
     voice_ids: list[UUID] | None = None,
+    pending_ids: set[UUID] | None = None,
 ) -> CreatePersonaDraftResponse:
-    """Create a persona_drafts entry with optional connection table links."""
+    """Create a persona_drafts entry with optional connection table links.
+
+    pending_ids: resource IDs that should be created with active=false (pending acceptance).
+    soft: when True, ALL connections are active=false (overrides pending_ids).
+    """
     draft_id = await conn.fetchval(
         """
         INSERT INTO persona_drafts_entry (id, group_id, session_id, active, mcp, generated)
@@ -73,14 +78,16 @@ async def create_persona_draft(
         ("persona_drafts_voices_connection", "voices_id", voice_ids or []),
     ]
 
-    conn_active = not soft
+    _pending = pending_ids or set()
     for table, col, ids in connections:
         for rid in ids:
+            # soft=True → all inactive; otherwise check pending_ids per resource
+            is_active = False if soft else (rid not in _pending)
             await conn.execute(
                 f"INSERT INTO {table} (draft_id, {col}, active) VALUES ($1, $2, $3)",
                 draft_id,
                 rid,
-                conn_active,
+                is_active,
             )
 
     return CreatePersonaDraftResponse(id=draft_id)

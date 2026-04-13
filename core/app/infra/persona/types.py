@@ -627,6 +627,9 @@ class PatchPersonaDraftApiRequest(ScopedItem):
     voice_ids: list[UUID] | None = Field(None, description="Voice resource UUIDs to associate")
     voices: list[str] | None = Field(None, description="Voice values (resolved to UUIDs server-side)")
 
+    # Pending state
+    pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep as pending (active=false on connection)")
+
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
         "name_id": "names",
