@@ -79,6 +79,7 @@ class InfraContext(BaseModel):
     draft_id: UUID | None = Field(default=None, description="Draft context")
     sid: str = Field(default="", description="Socket ID for event emission")
     soft: bool = Field(default=False, description="Create dormant records (active=False) for generation pipeline")
+    operation_key: UUID | None = Field(default=None, description="Universal key for call dedup — idempotency_key for writes, snapshot_key for reads")
     instruction_template: str | None = Field(default=None, description="Tool response template (Layer 3) for rendered saves")
 
 
@@ -336,6 +337,7 @@ async def execute_infra_operation(
                         draft_id=ctx.draft_id,
                         group_id=ctx.group_id,
                         soft=soft,
+                        idempotency_key=ctx.operation_key,
                     )
             else:
                 # Kwargs path: pass rendered args as kwargs directly
@@ -377,6 +379,7 @@ async def execute_infra_operation(
                 runner=_runner,
                 arguments=kwargs if accepted is None else filtered,
                 instruction_template=ctx.instruction_template,
+                operation_key=ctx.operation_key,
             )
 
             results.append(InfraOperationResult(

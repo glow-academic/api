@@ -35,6 +35,7 @@ async def create_persona_draft(
         """
         INSERT INTO persona_drafts_entry (id, session_id, active, mcp, generated)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
+        ON CONFLICT (id) DO UPDATE SET active = true
         RETURNING id
         """,
         session_id,
@@ -82,7 +83,8 @@ async def create_persona_draft(
             # soft=True → all inactive; otherwise check pending_ids per resource
             is_active = False if soft else (rid not in _pending)
             await conn.execute(
-                f"INSERT INTO {table} (draft_id, {col}, active) VALUES ($1, $2, $3)",
+                f"INSERT INTO {table} (draft_id, {col}, active) VALUES ($1, $2, $3) "
+                f"ON CONFLICT (draft_id, {col}) DO UPDATE SET active = EXCLUDED.active",
                 draft_id,
                 rid,
                 is_active,

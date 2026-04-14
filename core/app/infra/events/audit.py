@@ -68,6 +68,7 @@ async def run_artifact_operation_with_audit(
     mcp: bool = False,
     upload_folder: Path | None = None,
     instruction_template: str | None = None,
+    operation_key: UUID | None = None,
 ) -> T:
     """Execute an artifact operation with lifecycle emission and optional audit.
 
@@ -148,6 +149,7 @@ async def run_artifact_operation_with_audit(
                 arguments=arguments,
                 tool_id=tool_id,
                 run_id=run_id,
+                operation_key=operation_key,
                 role=role,
                 mcp=mcp,
                 instruction_template=instruction_template,

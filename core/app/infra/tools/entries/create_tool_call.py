@@ -30,6 +30,7 @@ async def create_tool_call(
     arguments: dict[str, Any],
     tool_id: UUID | None = None,
     run_id: UUID | None = None,
+    operation_key: UUID | None = None,
     role: str = "assistant",
     mcp: bool = False,
     raise_on_error: bool = False,
@@ -62,6 +63,7 @@ async def create_tool_call(
             run_id=effective_run_id,
             session_id=session_id,
             tool_id=tool_id,
+            operation_key=operation_key,
             mcp=mcp,
         )
         call_id = call_result.id
@@ -139,11 +141,17 @@ async def create_tool_call(
                 json.loads(output_raw) if isinstance(output_raw, str)
                 else output_raw
             )
+        # raw_output: full API response for idempotent playback
+        raw_output_dict = (
+            json.loads(output_raw) if isinstance(output_raw, str)
+            else output_raw
+        )
         payload = build_call_payload(
             call_id=call_upload_id,
             tool_id=tool_id,
             arguments=arguments,
             output=output_for_json,
+            raw_output=raw_output_dict,
         )
         call_rel_path = save_call_upload(payload, call_upload_id, upload_folder)
         call_full_path = upload_folder / call_rel_path

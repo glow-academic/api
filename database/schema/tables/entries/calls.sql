@@ -13,7 +13,8 @@ CREATE TABLE public.calls_entry (
     session_id uuid NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     generated boolean DEFAULT false NOT NULL,
-    active boolean DEFAULT true NOT NULL
+    active boolean DEFAULT true NOT NULL,
+    operation_key uuid NOT NULL
 );
 
 

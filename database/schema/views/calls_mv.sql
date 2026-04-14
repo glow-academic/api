@@ -9,6 +9,7 @@ CREATE MATERIALIZED VIEW public.calls_mv AS
  SELECT c.id AS call_id,
     c.run_id,
     c.created_at AS call_created_at,
+    c.operation_key,
     ue.id AS upload_id,
     ue.file_path,
     ue.mime_type,

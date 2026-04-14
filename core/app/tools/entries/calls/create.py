@@ -14,14 +14,15 @@ async def create_call(
     id: UUID | None = None,
     external_call_id: str = "",
     tool_id: UUID | None = None,
+    operation_key: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
 ) -> CreateCallResponse:
     """Create a calls entry with optional tool link."""
     call_id = await conn.fetchval(
         """
-        INSERT INTO calls_entry (id, run_id, session_id, external_call_id, active, mcp, generated)
-        VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, true)
+        INSERT INTO calls_entry (id, run_id, session_id, external_call_id, active, mcp, generated, operation_key)
+        VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, true, COALESCE($7, uuidv7()))
         RETURNING id
     """,
         run_id,
@@ -30,6 +31,7 @@ async def create_call(
         not soft,
         mcp,
         id,
+        operation_key,
     )
 
     if call_id is None:

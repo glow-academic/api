@@ -683,6 +683,7 @@ class PatchPersonaDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the draft operation succeeded")
     draft_id: UUID = Field(..., description="UUID of the created or updated draft")
+    idempotency_key: UUID = Field(..., description="Idempotency key for this draft operation (same as draft entry ID)")
     message: str = Field(..., description="Human-readable result message")
     form_state: DraftFormState = Field(..., description="Complete form state after patch — client should replace local state")
 

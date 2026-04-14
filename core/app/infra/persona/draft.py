@@ -232,6 +232,7 @@ async def patch_persona_draft_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
+    idempotency_key: UUID | None = None,
     **kwargs: Any,
 ) -> PatchPersonaDraftApiResponse:
     """Persona draft using composable infra functions.
@@ -239,13 +240,19 @@ async def patch_persona_draft_impl(
     Accepts either a PatchPersonaDraftApiRequest object (from HTTP routes)
     or kwargs directly (from AI generation read path).
 
+    Idempotent via idempotency_key (passed as the draft entry ID):
+      - soft=True + idempotency_key: creates dormant draft (connections active=false)
+      - soft=False + idempotency_key: promotes dormant draft (ON CONFLICT → active=true)
+      - soft=False + no key: normal create (current behavior)
+
     Flow:
       1. resolve_profile_identity_context → role
       2. compute_can_draft → permission check
       3. Value resolution (creatable resources only)
-      4. create_persona_draft entry tool (append-only snapshot)
-      5. refresh_persona_drafts MV
-      6. invalidate_tags
+      4. create_persona_draft entry tool (idempotent upsert)
+      5. Build form state (server is source of truth)
+      6. refresh_persona_drafts MV (skipped when soft=True)
+      7. invalidate_tags (skipped when soft=True)
     """
     # Build request from kwargs if not provided directly
     if request is None:
@@ -303,13 +310,15 @@ async def patch_persona_draft_impl(
             detail=[e.model_dump() for e in errors],
         )
 
-    # ── Step 4: Create draft entry (append-only snapshot) ──────────────
+    # ── Step 4: Create draft entry (idempotent upsert) ──────────────────
 
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_persona_draft(
                 conn,
                 session_id=session_id,
+                id=idempotency_key,
+                soft=soft,
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id]
                 if request.description_id
@@ -347,18 +356,21 @@ async def patch_persona_draft_impl(
         voice_ids=request.voice_ids or [],
     )
 
-    # ── Step 6: Refresh MV ─────────────────────────────────────────────
+    # ── Step 6: Refresh MV (skip when soft — dormant draft) ───────────
 
-    async with pool.acquire() as conn:
-        await refresh_persona_drafts(conn)
+    if not soft:
+        async with pool.acquire() as conn:
+            await refresh_persona_drafts(conn)
 
-    # ── Step 7: Invalidate cache ───────────────────────────────────────
+    # ── Step 7: Invalidate cache (skip when soft) ─────────────────────
 
-    await invalidate_tags(["personas", "drafts"], redis=redis)
+    if not soft:
+        await invalidate_tags(["personas", "drafts"], redis=redis)
 
     return PatchPersonaDraftApiResponse(
         success=True,
         draft_id=result.id,
-        message="Draft created successfully",
+        idempotency_key=result.id,
+        message="Draft created (pending acceptance)" if soft else "Draft created successfully",
         form_state=form_state,
     )

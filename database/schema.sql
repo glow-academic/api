@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 07kMHOj79xypIHyfYWA8fbteOoJe21AB49y19DrmvlGykfKvOiNh3vEi4PIqO7z
+\restrict ZH6ibboNksVaEHRaNNfnkXtaBINEgOmTMAskBhl0UyoEGeZW7AWRVjZb1a2Zc7G
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -1445,7 +1445,8 @@ CREATE TABLE public.calls_entry (
     session_id uuid NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     generated boolean DEFAULT false NOT NULL,
-    active boolean DEFAULT true NOT NULL
+    active boolean DEFAULT true NOT NULL,
+    operation_key uuid NOT NULL
 );
 
 
@@ -3491,6 +3492,7 @@ CREATE MATERIALIZED VIEW public.calls_mv AS
  SELECT c.id AS call_id,
     c.run_id,
     c.created_at AS call_created_at,
+    c.operation_key,
     ue.id AS upload_id,
     ue.file_path,
     ue.mime_type,
@@ -39242,5 +39244,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 07kMHOj79xypIHyfYWA8fbteOoJe21AB49y19DrmvlGykfKvOiNh3vEi4PIqO7z
+\unrestrict ZH6ibboNksVaEHRaNNfnkXtaBINEgOmTMAskBhl0UyoEGeZW7AWRVjZb1a2Zc7G
 
