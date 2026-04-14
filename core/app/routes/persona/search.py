@@ -23,6 +23,7 @@ router = APIRouter()
 class SearchPersonaApiRequest(BaseModel):
     """Request model for persona search endpoint."""
 
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
     # Main filters
     search: str | None = Field(None, description="Full-text search query for personas")
     scenario_ids: list[UUID] | None = Field(None, description="Filter by scenario UUIDs")

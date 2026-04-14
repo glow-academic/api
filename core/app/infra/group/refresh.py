@@ -16,13 +16,14 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.refresh.types import RefreshResponse
 
 # Black-box entry refresh tools
+from app.tools.entries.group_names.refresh import refresh_group_names
 from app.tools.entries.groups.refresh import refresh_groups
 
 # Tags to invalidate — artifact cache + resource caches
-_TAGS = ["group", "artifacts"]
+_TAGS = ["groups", "artifacts"]
 
 # Views refreshed by this endpoint
-_VIEWS = ["groups_mv"]
+_VIEWS = ["groups_mv", "group_names_mv"]
 
 
 async def refresh_group_impl(
@@ -30,6 +31,11 @@ async def refresh_group_impl(
     redis: Redis | None,
     *,
     profile_id: UUID,
+    session_id: UUID | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    **_kwargs,
 ) -> RefreshResponse:
     """Group refresh using composable infra functions.
 
@@ -56,8 +62,13 @@ async def refresh_group_impl(
         async with pool.acquire() as conn:
             await refresh_groups(conn)
 
+    async def _refresh_group_names() -> None:
+        async with pool.acquire() as conn:
+            await refresh_group_names(conn)
+
     await asyncio.gather(
         _refresh_groups(),
+        _refresh_group_names(),
     )
 
     # -- Step 3: Invalidate cache tags -------------------------------------

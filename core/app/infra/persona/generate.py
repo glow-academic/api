@@ -66,9 +66,7 @@ async def generate_persona_impl(
     resolved_sid = sid or f"http-{uuid.uuid4()}"
 
     # ── Merge ack fields from request (HTTP) or params (generation pipeline)
-    idempotency_key = idempotency_key or (
-        uuid.UUID(request.idempotency_key) if request.idempotency_key else None
-    )
+    idempotency_key = idempotency_key or request.idempotency_key
     if idempotency_key and accept is None:
         accept = request.accept
 

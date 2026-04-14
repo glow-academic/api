@@ -112,6 +112,7 @@ async def parse_persona_csv_impl(
     file_bytes: bytes,
     file_name: str,
     content_type: str,
+    **_kwargs,
 ) -> ParsePersonaCsvApiResponse:
     """Parse a CSV file and return mapped persona items for preview.
 

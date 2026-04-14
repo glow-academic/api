@@ -529,7 +529,9 @@ agents = [
         model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/persona/create"),
+            sid("tool-resource/persona/csv"),
             sid("tool-resource/persona/delete"),
+            sid("tool-resource/persona/docs"),
             sid("tool-resource/persona/draft"),
             sid("tool-resource/persona/drafts"),
             sid("tool-resource/persona/duplicate"),
@@ -556,7 +558,9 @@ agents = [
         model_id=sid("model-resource/gemini-2.5-flash"),
         tool_ids=[
             sid("tool-resource/persona/create"),
+            sid("tool-resource/persona/csv"),
             sid("tool-resource/persona/delete"),
+            sid("tool-resource/persona/docs"),
             sid("tool-resource/persona/draft"),
             sid("tool-resource/persona/drafts"),
             sid("tool-resource/persona/duplicate"),

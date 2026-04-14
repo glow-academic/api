@@ -236,6 +236,7 @@ class GetPersonaApiRequest(BaseModel):
 
     id: UUID | None = Field(None, description="UUID of the persona to retrieve")
     draft_id: UUID | None = Field(None, description="UUID of the draft to load instead of published state")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
     # Per-section filters
     names: SectionFilter | None = Field(None, description="Filter options for names section")
     descriptions: SectionFilter | None = Field(None, description="Filter options for descriptions section")
@@ -719,6 +720,7 @@ class ExportPersonaApiRequest(BaseModel):
     """Request model for export persona endpoint."""
 
     persona_id: UUID | None = Field(None, description="UUID of a specific persona to export (omit for bulk export)")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
     # Same filters as list endpoint
     search: str | None = Field(None, description="Filter personas by search text")
@@ -744,6 +746,7 @@ class ExportPersonaApiResponse(BaseModel):
 class GenerationsPersonaApiRequest(BaseModel):
     """Request model for persona generations endpoint."""
 
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
     search: str | None = Field(None, description="Name search (ILIKE)")
     date_from: datetime | None = Field(None, description="Start date filter")
     date_to: datetime | None = Field(None, description="End date filter")

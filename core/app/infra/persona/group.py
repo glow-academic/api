@@ -20,12 +20,10 @@ from fastapi import HTTPException
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
+from app.infra.group.refresh import refresh_group_impl
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.group_names.create import create_group_name
-from app.tools.entries.group_names.refresh import refresh_group_names
 from app.tools.entries.groups.create import create_group
-from app.tools.entries.groups.refresh import refresh_groups
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 ARTIFACT_TYPE = "persona"
 DEFAULT_WINDOW_SECONDS = 60
@@ -123,7 +121,7 @@ async def group_persona_impl(
                     artifact_type=ARTIFACT_TYPE,
                     id=idempotency_key, soft=False,
                 )
-            await invalidate_tags(["groups"], redis=redis)
+            await refresh_group_impl(pool, redis, profile_id=profile_id, session_id=session_id)
         # accept=False: no-op
         return GroupPersonaApiResponse(
             group_id=idempotency_key,
@@ -182,15 +180,10 @@ async def group_persona_impl(
             )
             group_name_id = name_result.id
 
-        # Refresh MVs
-        async with pool.acquire() as conn:
-            await refresh_group_names(conn)
-            await refresh_groups(conn)
-
-    # ── Step 4: Invalidate cache (only if we wrote something) ─────────
+    # ── Step 4: Canonical refresh (only if we wrote something) ────────
 
     if created_new or group_name_id:
-        await invalidate_tags(["groups"], redis=redis)
+        await refresh_group_impl(pool, redis, profile_id=profile_id, session_id=session_id)
 
     return GroupPersonaApiResponse(
         group_id=resolved_group_id,

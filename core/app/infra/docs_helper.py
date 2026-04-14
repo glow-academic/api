@@ -26,6 +26,7 @@ class PageMetaItem(BaseModel):
 
 class DocsApiRequest(BaseModel):
     entity_id: UUID | None = None
+    snapshot_key: str | None = None
 
 
 class DocsApiResponse(BaseModel):

@@ -8,6 +8,7 @@ before sending via internal_sio.emit(..., model.model_dump(mode="json")).
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 from pydantic import BaseModel
 
@@ -264,7 +265,7 @@ class ArtifactGenerateRequest(BaseModel):
     metadata: dict[str, Any] | None = None
 
     # Ack
-    idempotency_key: str | None = None
+    idempotency_key: UUID | None = None
     accept: bool = True
 
     def to_generate_payload(self, artifact_type: str) -> GeneratePayload:
@@ -289,7 +290,7 @@ class ArtifactGenerateResponse(BaseModel):
     """Response from a per-artifact generate endpoint."""
 
     group_id: str
-    idempotency_key: str | None = None
+    idempotency_key: UUID | None = None
 
 
 # ═══════════════════════════════════════════════════════════════════════════
