@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.field.draft import patch_field_draft_impl
+from app.infra.field.group import group_field_impl
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.field.types import (
     PatchFieldDraftApiRequest,
@@ -49,6 +50,14 @@ async def patch_field_draft(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_field_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> PatchFieldDraftApiResponse:
             return await patch_field_draft_impl(
                 pool,
@@ -64,6 +73,7 @@ async def patch_field_draft(
             artifact="field",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             draft_id=request.input_draft_id,
             operation="draft",
             arguments=request.model_dump(mode="json"),

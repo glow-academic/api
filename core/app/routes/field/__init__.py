@@ -11,6 +11,7 @@ from app.routes.field.duplicate import router as duplicate_router
 from app.routes.field.csv import router as csv_router
 from app.routes.field.export import router as export_router
 from app.routes.field.get import router as get_router
+from app.routes.field.group import router as group_router
 from app.routes.field.refresh import router as refresh_router
 from app.routes.field.search import router as search_router
 from app.routes.field.update import router as update_router
@@ -29,4 +30,5 @@ router.include_router(drafts_router)
 router.include_router(docs_router)
 router.include_router(export_router)
 router.include_router(csv_router)
+router.include_router(group_router)
 router.include_router(refresh_router)

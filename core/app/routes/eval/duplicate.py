@@ -8,6 +8,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.eval.duplicate import duplicate_eval_impl
+from app.infra.eval.group import group_eval_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.eval.types import (
@@ -43,6 +44,14 @@ async def duplicate_eval(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_eval_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> DuplicateEvalApiResponse:
             return await duplicate_eval_impl(
                 pool,
@@ -58,6 +67,7 @@ async def duplicate_eval(
             artifact="eval",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="duplicate",
             arguments=request.model_dump(mode="json"),
             response_model=DuplicateEvalApiResponse,

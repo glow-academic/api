@@ -3,6 +3,7 @@
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.cohort.get import get_cohort_impl
+from app.infra.cohort.group import group_cohort_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.cohort.types import (
@@ -35,6 +36,14 @@ async def get_cohort(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_cohort_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> GetCohortApiResponse:
             return await get_cohort_impl(
                 pool,
@@ -57,6 +66,7 @@ async def get_cohort(
             artifact="cohort",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             draft_id=request.draft_id,
             operation="get",
             arguments=request.model_dump(mode="json"),

@@ -9,6 +9,7 @@ from . import (  # noqa: F401
     duplicate,
     export,
     get,
+    group,
     refresh,
     search,
     update,

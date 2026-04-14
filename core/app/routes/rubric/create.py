@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.rubric.create import create_rubric_impl
+from app.infra.rubric.group import group_rubric_impl
 from app.infra.rubric.types import (
     CreateRubricApiRequest,
     CreateRubricApiResponse,
@@ -38,6 +39,14 @@ async def create_rubric(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_rubric_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> CreateRubricApiResponse:
             return await create_rubric_impl(
                 pool,
@@ -53,6 +62,7 @@ async def create_rubric(
             artifact="rubric",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="create",
             arguments={
                 "rubrics": [item.model_dump(mode="json") for item in request.rubrics]

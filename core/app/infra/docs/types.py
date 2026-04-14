@@ -1,6 +1,7 @@
 """Shared Pydantic models for entry/resource/artifact documentation."""
 
 from typing import Any
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -63,3 +64,53 @@ class ComposedDocsResponse(BaseModel):
     permissions: list[OperationInfo] = Field(..., description="Permission function documentation")
     api_operations: list[OperationInfo] = Field(..., description="API operation documentation")
     page_metadata: DocsApiResponse | None = Field(None, description="Page-level metadata from docs API")
+
+
+# =============================================================================
+# Context types — superset of docs + profile identity + evaluated permissions
+# =============================================================================
+
+
+class ProfileSummary(BaseModel):
+    """Caller identity derived from JWT — who you are on this page."""
+
+    name: str = Field(..., description="Display name of the authenticated user")
+    role: str = Field(..., description="Role name (e.g. 'Super Administrator')")
+    role_level: int = Field(..., description="Role hierarchy level (0 = highest privilege)")
+    department_ids: list[UUID] = Field(..., description="Departments the user belongs to")
+    artifact_access: list[str] = Field(..., description="Artifact types this role can access (sidebar visibility)")
+    is_active: bool = Field(..., description="Whether the user's profile is active")
+
+
+class CallerPermissions(BaseModel):
+    """Evaluated permissions for the current caller on this artifact type."""
+
+    can_create: bool = Field(..., description="Whether the caller can create new artifacts")
+    can_draft: bool = Field(..., description="Whether the caller can create/update drafts")
+    can_duplicate: bool = Field(..., description="Whether the caller can duplicate artifacts")
+    # Entity-specific — only populated when entity_id is provided
+    has_access: bool | None = Field(None, description="Whether the caller can view this entity")
+    can_edit: bool | None = Field(None, description="Whether the caller can edit this entity")
+    can_delete: bool | None = Field(None, description="Whether the caller can delete this entity")
+    disabled_reason: str | None = Field(None, description="Human-readable reason if editing is disabled")
+
+
+class ComposedContextResponse(BaseModel):
+    """Page bootstrap response — docs + profile identity + evaluated permissions.
+
+    Superset of ComposedDocsResponse. A single call gives the client everything
+    it needs to render the page: who you are, what you can do, and the schema.
+    """
+
+    name: str = Field(..., description="Artifact name")
+    type: str = Field(..., description="Artifact type identifier")
+    description: str = Field(..., description="Human-readable description")
+    artifact: DocsResponse | None = Field(None, description="Artifact tool documentation")
+    entries: list[DocsResponse] = Field(..., description="Entry documentation list")
+    resources: list[DocsResponse] = Field(..., description="Resource documentation list")
+    permission_docs: list[OperationInfo] = Field(..., description="Permission function signatures (for MCP/dev tooling)")
+    api_operations: list[OperationInfo] = Field(..., description="API operation documentation")
+    page_metadata: DocsApiResponse | None = Field(None, description="Page-level metadata")
+    # Identity + evaluated permissions
+    profile: ProfileSummary = Field(..., description="Caller identity from JWT")
+    caller_permissions: CallerPermissions = Field(..., description="Evaluated permissions for this caller")

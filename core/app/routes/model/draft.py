@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.model.draft import patch_model_draft_impl
+from app.infra.model.group import group_model_impl
 from app.infra.model.types import (
     PatchModelDraftApiRequest,
     PatchModelDraftApiResponse,
@@ -49,6 +50,14 @@ async def patch_model_draft(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_model_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> PatchModelDraftApiResponse:
             return await patch_model_draft_impl(
                 pool,
@@ -65,6 +74,7 @@ async def patch_model_draft(
             profile_id=profile_id,
             session_id=session_id,
             draft_id=request.input_draft_id,
+            group_id=group_id,
             operation="draft",
             arguments=request.model_dump(mode="json"),
             response_model=PatchModelDraftApiResponse,

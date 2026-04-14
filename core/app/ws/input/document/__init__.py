@@ -12,6 +12,7 @@ from . import (  # noqa: F401
     file_preview,
     file_upload,
     get,
+    group,
     refresh,
     search,
     text_download,

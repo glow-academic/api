@@ -1,23 +1,73 @@
-"""Input: test_group — run all runs in a group sequentially.
+"""Input: test.group (time-windowed artifact grouping) + test_group (orchestration).
 
-Dual-triggered: client sends this, AND test_next/test_proceed emit it internally.
-Emits to internal bus so there's one handler path.
+test.group — resolve or create a time-windowed group for the test artifact.
+test_group — run all runs in a group sequentially (orchestration pipeline).
 """
 
 from typing import Any
 from uuid import UUID
 
+from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
+from app.infra.identity.socket import resolve_socket_identity
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.test.client_types import TestGroupPayload
+from app.infra.test.group import (
+    GroupTestApiRequest,
+    group_test_impl,
+)
 from app.infra.websocket.find_profile_by_socket import find_profile_by_socket
 from app.infra.websocket.find_session_by_socket import find_session_by_socket
-from app.infra.test.client_types import TestGroupPayload
 from app.infra.websocket.test_types import TestErrorData
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
 
 internal_sio = get_internal_sio()
+
+
+# ---------------------------------------------------------------------------
+# Time-windowed artifact grouping (test.group)
+# ---------------------------------------------------------------------------
+
+
+@sio.on("test.group")  # type: ignore
+async def test_group_artifact(sid: str, data: dict[str, Any]) -> None:
+    identity = await resolve_socket_identity(sid)
+    if not identity:
+        return
+
+    try:
+        payload = GroupTestApiRequest(**data)
+    except Exception:
+        return
+
+    pool = get_pool()
+    redis = get_redis_client()
+
+    await run_artifact_operation_with_audit(
+        pool,
+        redis,
+        artifact="test",
+        operation="group",
+        profile_id=identity.profile_id,
+        session_id=identity.session_id,
+        sid=sid,
+        rooms=[sid],
+        runner=lambda: group_test_impl(
+            pool,
+            redis,
+            profile_id=identity.profile_id,
+            session_id=identity.session_id,
+            request=payload,
+        ),
+        arguments=payload.model_dump(mode="json"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Orchestration pipeline (test_group — sequential runs)
+# ---------------------------------------------------------------------------
 
 
 @sio.event  # type: ignore

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.pricing.group import group_pricing_impl
 from app.infra.pricing.refresh import refresh_pricing_impl
 from app.infra.refresh.types import RefreshResponse
 
@@ -19,6 +20,15 @@ async def pricing_refresh(
     pool = get_pool()
     redis = get_redis_client()
     profile_id = http_request.state.profile_id
+    session_id = http_request.state.session_id
+
+    # Resolve time-windowed group for audit linking
+    group_id = None
+    if session_id:
+        group_result = await group_pricing_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+        )
+        group_id = group_result.group_id
 
     async def _runner() -> RefreshResponse:
         return await refresh_pricing_impl(
@@ -32,7 +42,8 @@ async def pricing_refresh(
         redis,
         artifact="pricing",
         profile_id=profile_id,
-        session_id=http_request.state.session_id,
+        session_id=session_id,
+        group_id=group_id,
         operation="refresh",
         arguments={},
         response_model=RefreshResponse,

@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.setting.decrypt import decrypt_setting_impl
+from app.infra.setting.group import group_setting_impl
 from app.infra.setting.types import (
     DecryptSettingKeyApiRequest,
     DecryptSettingKeyApiResponse,
@@ -39,6 +40,14 @@ async def decrypt_setting_key(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_setting_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> DecryptSettingKeyApiResponse:
             return await decrypt_setting_impl(
                 pool,
@@ -56,6 +65,7 @@ async def decrypt_setting_key(
             operation="decrypt",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             arguments=request.model_dump(mode="json"),
             runner=_runner,
             upload_folder=get_upload_folder(),

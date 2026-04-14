@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.group.group import group_group_impl
 from app.infra.group.image_download import image_download_group_impl
 from app.infra.group.media_types import (
     ImageDownloadGroupApiRequest,
@@ -41,6 +42,14 @@ async def download_image(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_group_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> ImageDownloadGroupApiResult:
             return await image_download_group_impl(
                 pool,
@@ -56,6 +65,7 @@ async def download_image(
             artifact="group",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="image_download",
             arguments={"image_id": str(request.image_id)},
             response_model=ImageDownloadGroupApiResult,

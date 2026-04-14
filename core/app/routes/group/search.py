@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.group.group import group_group_impl
 from app.infra.group.search import search_group_impl
 from app.infra.group.types import GetGroupListRequest, GetGroupListResponse
 from app.utils.error.handle_route_error import handle_route_error
@@ -37,6 +38,14 @@ async def search_groups(
         redis = get_redis_client()
         session_id = getattr(http_request.state, "session_id", None)
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_group_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> GetGroupListResponse:
             return await search_group_impl(
                 pool,
@@ -55,6 +64,7 @@ async def search_groups(
             redis,
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             artifact="group",
             operation="search",
             arguments=request.model_dump(mode="json"),

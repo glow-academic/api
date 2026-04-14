@@ -33,3 +33,4 @@ from . import (  # noqa: F401
     # Grade bridge (generate_call_complete → test grade)
     generate_grade,
 )
+from app.ws.output.test import group as _group  # noqa: F401, E402

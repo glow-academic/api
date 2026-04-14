@@ -11,6 +11,7 @@ from . import (  # noqa: F401
     emulate,
     export,
     get,
+    group,
     refresh,
     search,
     unemulate,

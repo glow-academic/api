@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Request, Response
 
 from app.infra.cohort.docs import docs_cohort_impl
+from app.infra.cohort.group import group_cohort_impl
 from app.infra.docs.types import ComposedDocsResponse
 from app.infra.docs_helper import DocsApiRequest
 from app.infra.events.audit import run_artifact_operation_with_audit
@@ -19,8 +20,17 @@ async def get_cohort_docs_endpoint(
 ) -> ComposedDocsResponse:
     """Get composed documentation for the cohort artifact."""
     profile_id = http_request.state.profile_id
+    session_id = http_request.state.session_id
     pool = get_pool()
     redis = get_redis_client()
+
+    # Resolve time-windowed group for audit linking
+    group_id = None
+    if session_id:
+        group_result = await group_cohort_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+        )
+        group_id = group_result.group_id
 
     async def _runner() -> ComposedDocsResponse:
         return await docs_cohort_impl(
@@ -35,7 +45,8 @@ async def get_cohort_docs_endpoint(
         redis,
         artifact="cohort",
         profile_id=profile_id,
-        session_id=http_request.state.session_id,
+        session_id=session_id,
+        group_id=group_id,
         operation="docs",
         arguments=body.model_dump(mode="json"),
         response_model=ComposedDocsResponse,

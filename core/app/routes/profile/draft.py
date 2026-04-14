@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.profile.draft import patch_profile_draft_impl
+from app.infra.profile.group import group_profile_impl
 from app.infra.profile.types import (
     PatchProfileDraftApiRequest,
     PatchProfileDraftApiResponse,
@@ -49,6 +50,14 @@ async def patch_profile_draft(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_profile_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> PatchProfileDraftApiResponse:
             return await patch_profile_draft_impl(
                 pool,
@@ -64,6 +73,7 @@ async def patch_profile_draft(
             artifact="profile",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             draft_id=request.input_draft_id,
             operation="draft",
             arguments=request.model_dump(mode="json"),

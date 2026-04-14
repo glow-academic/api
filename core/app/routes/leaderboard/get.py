@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.leaderboard.get import get_leaderboard_impl_cached
+from app.infra.leaderboard.group import group_leaderboard_impl
 from app.infra.leaderboard.types import (
     LeaderboardRequest,
     LeaderboardResponse,
@@ -34,6 +35,14 @@ async def get_leaderboard(
         redis = get_redis_client()
         bypass_cache = http_request.headers.get("X-Bypass-Cache") == "1"
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_leaderboard_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> LeaderboardResponse:
             response_data, cache_hit = await get_leaderboard_impl_cached(
                 pool,
@@ -51,6 +60,7 @@ async def get_leaderboard(
             artifact="leaderboard",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="get",
             arguments=request.model_dump(mode="json"),
             bypass_cache=bypass_cache,

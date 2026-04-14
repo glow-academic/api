@@ -8,6 +8,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.department.delete import delete_department_impl
+from app.infra.department.group import group_department_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.department.types import (
@@ -40,6 +41,14 @@ async def delete_department(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_department_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> DeleteDepartmentApiResponse:
             return await delete_department_impl(
                 pool,
@@ -55,6 +64,7 @@ async def delete_department(
             artifact="department",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="delete",
             arguments=request.model_dump(mode="json"),
             response_model=DeleteDepartmentApiResponse,

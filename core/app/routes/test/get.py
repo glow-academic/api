@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.test.get import get_test_impl_cached
+from app.infra.test.group import group_test_impl
 from app.infra.test.types import (
     GetTestArtifactRequest,
     GetTestArtifactResponse,
@@ -26,7 +27,17 @@ async def get_test_artifact(
     try:
         pool = get_pool()
         redis = get_redis_client()
+        profile_id = http_request.state.profile_id
+        session_id = http_request.state.session_id
         bypass_cache = http_request.headers.get("X-Bypass-Cache") == "1"
+
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_test_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
 
         cache_hit_holder = {"value": False}
 
@@ -44,8 +55,9 @@ async def get_test_artifact(
             pool,
             redis,
             artifact="test",
-            profile_id=http_request.state.profile_id,
-            session_id=http_request.state.session_id,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
             test_id=request.test_id,
             operation="get",
             arguments=request.model_dump(mode="json"),

@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.setting.get import get_setting_impl
+from app.infra.setting.group import group_setting_impl
 from app.infra.setting.types import (
     GetSettingApiRequest,
     GetSettingApiResponse,
@@ -37,6 +38,14 @@ async def get_setting(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_setting_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> GetSettingApiResponse:
             return await get_setting_impl(
                 pool,
@@ -55,6 +64,7 @@ async def get_setting(
             artifact="setting",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             draft_id=request.draft_id,
             operation="get",
             arguments=request.model_dump(mode="json"),

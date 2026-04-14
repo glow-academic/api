@@ -8,6 +8,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.agent.duplicate import duplicate_agent_impl
+from app.infra.agent.group import group_agent_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.agent.types import (
@@ -43,6 +44,14 @@ async def duplicate_agent(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_agent_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> DuplicateAgentApiResponse:
             return await duplicate_agent_impl(
                 pool,
@@ -57,6 +66,7 @@ async def duplicate_agent(
             artifact="agent",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="duplicate",
             arguments=request.model_dump(mode="json"),
             response_model=DuplicateAgentApiResponse,

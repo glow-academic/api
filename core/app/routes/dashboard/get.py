@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.dashboard.get import get_dashboard_impl_cached
+from app.infra.dashboard.group import group_dashboard_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.dashboard.types import (
@@ -34,6 +35,14 @@ async def get_dashboard(
         redis = get_redis_client()
         bypass_cache = http_request.headers.get("X-Bypass-Cache") == "1"
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_dashboard_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> DashboardBundleResponse:
             response_data, cache_hit = await get_dashboard_impl_cached(
                 pool,
@@ -51,6 +60,7 @@ async def get_dashboard(
             artifact="dashboard",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="get",
             arguments=request.model_dump(mode="json"),
             bypass_cache=bypass_cache,

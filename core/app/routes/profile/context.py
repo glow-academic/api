@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.profile.context import context_profile_impl
+from app.infra.profile.group import group_profile_impl
 from app.infra.profile.types import ProfileContextApiResponse
 from app.infra.shared_types import GetProfileContextApiRequest
 from app.utils.error.handle_route_error import handle_route_error
@@ -38,6 +39,14 @@ async def get_profile_context(
         redis = get_redis_client()
         session_id = getattr(http_request.state, "session_id", None)
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_profile_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         req_identity = getattr(http_request.state, "identity", None)
         is_emulation = (
             getattr(req_identity, "is_emulation", False) if req_identity else False
@@ -52,6 +61,7 @@ async def get_profile_context(
             artifact="profile",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="context",
             arguments={"profile_id": str(profile_id)},
             bypass_cache=bypass_cache,

@@ -9,6 +9,7 @@ from app.routes.test.export import router as export_router
 from app.routes.test.call import router as call_router
 from app.routes.test.feedback import router as feedback_router
 from app.routes.test.get import router as get_router
+from app.routes.test.group import router as group_router
 from app.routes.test.grade import router as grade_router
 from app.routes.test.join import router as join_router
 from app.routes.test.leave import router as leave_router
@@ -38,6 +39,7 @@ router.include_router(stop_router)
 router.include_router(search_router)
 router.include_router(grade_router)
 router.include_router(feedback_router)
+router.include_router(group_router)
 # Media operations
 router.include_router(text_router)
 router.include_router(call_router)

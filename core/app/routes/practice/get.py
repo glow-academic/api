@@ -33,6 +33,7 @@ from app.infra.chat.permissions import (
 from app.infra.common_context import resolve_common_context
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.practice.group import group_practice_impl
 from app.infra.practice_context import resolve_practice_context
 from app.infra.auth.types import AnalyticsFilterFields
 from app.infra.chat.types import (
@@ -488,6 +489,7 @@ async def practice_get(
 
     try:
         profile_id = http_request.state.profile_id
+        session_id = http_request.state.session_id
         if not profile_id:
             raise HTTPException(
                 status_code=401,
@@ -495,8 +497,17 @@ async def practice_get(
             )
 
         pool = get_pool()
+        redis = get_redis_client()
         if not pool:
             raise RuntimeError("Database pool not initialized")
+
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_practice_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
 
         async def _runner() -> GetPracticeResponse:
             api_response = await get_practice_internal(
@@ -511,7 +522,7 @@ async def practice_get(
                 {"data": api_response.model_dump(mode="json")},
                 ttl=300,
                 tags=profile_specific_tags,
-                redis=get_redis_client(),
+                redis=redis,
             )
             response.headers["X-Cache-Tags"] = ",".join(tags)
             response.headers["X-Cache-Hit"] = "0"
@@ -519,10 +530,11 @@ async def practice_get(
 
         return await run_artifact_operation_with_audit(
             pool,
-            get_redis_client(),
+            redis,
             artifact="practice",
             profile_id=profile_id,
-            session_id=http_request.state.session_id,
+            session_id=session_id,
+            group_id=group_id,
             operation="get",
             arguments=request.model_dump(mode="json"),
             bypass_cache=bypass_cache,

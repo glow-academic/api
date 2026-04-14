@@ -11,6 +11,7 @@ from app.routes.simulation.drafts import router as drafts_router
 from app.routes.simulation.duplicate import router as duplicate_router
 from app.routes.simulation.export import router as export_router
 from app.routes.simulation.get import router as get_router
+from app.routes.simulation.group import router as group_router
 from app.routes.simulation.refresh import router as refresh_router
 from app.routes.simulation.search import router as search_router
 from app.routes.simulation.update import router as update_router
@@ -30,3 +31,4 @@ router.include_router(drafts_router)
 router.include_router(export_router)
 router.include_router(docs_router)
 router.include_router(refresh_router)
+router.include_router(group_router)

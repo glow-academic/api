@@ -9,6 +9,7 @@ from . import (  # noqa: F401
     file_preview,
     generate,
     get,
+    group,
     image_download,
     name,
     refresh,

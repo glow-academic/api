@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.simulation.group import group_simulation_impl
 from app.infra.simulation.update import update_simulation_impl
 from app.infra.simulation.types import (
     UpdateSimulationApiRequest,
@@ -38,6 +39,14 @@ async def update_simulation(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_simulation_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> UpdateSimulationApiResponse:
             return await update_simulation_impl(
                 pool,
@@ -53,6 +62,7 @@ async def update_simulation(
             artifact="simulation",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="update",
             arguments={
                 "simulations": [

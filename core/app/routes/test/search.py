@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.test.group import group_test_impl
 from app.infra.test.search import search_test_impl
 from app.infra.test.types import SearchTestApiResponse
 from app.utils.error.handle_route_error import handle_route_error
@@ -55,6 +56,15 @@ async def search_test(
 
         pool = get_pool()
         redis = get_redis_client()
+        session_id = http_request.state.session_id
+
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_test_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
 
         async def _runner() -> SearchTestApiResponse:
             return await search_test_impl(
@@ -76,7 +86,8 @@ async def search_test(
             pool,
             redis,
             profile_id=profile_id,
-            session_id=http_request.state.session_id,
+            session_id=session_id,
+            group_id=group_id,
             artifact="test",
             operation="search",
             arguments=request.model_dump(mode="json"),

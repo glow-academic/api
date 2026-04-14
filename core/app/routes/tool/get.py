@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.tool.get import get_tool_impl
+from app.infra.tool.group import group_tool_impl
 from app.infra.tool.types import GetToolApiRequest, GetToolApiResponse
 from app.utils.error.handle_route_error import handle_route_error
 
@@ -34,6 +35,14 @@ async def get_tool(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_tool_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> GetToolApiResponse:
             return await get_tool_impl(
                 pool,
@@ -51,6 +60,7 @@ async def get_tool(
             artifact="tool",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             draft_id=request.draft_id,
             operation="get",
             arguments=request.model_dump(mode="json"),

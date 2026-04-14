@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
+from app.infra.document.group import group_document_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.document.file_download import file_download_document_impl
@@ -39,6 +40,14 @@ async def download_file(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_document_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> FileDownloadDocumentApiResult:
             return await file_download_document_impl(
                 pool,
@@ -54,6 +63,7 @@ async def download_file(
             artifact="document",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="file_download",
             arguments={"file_id": str(request.file_id)},
             response_model=FileDownloadDocumentApiResult,

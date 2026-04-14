@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.parameter.group import group_parameter_impl
 from app.infra.parameter.update import update_parameter_impl
 from app.infra.parameter.types import (
     UpdateParameterApiRequest,
@@ -38,6 +39,14 @@ async def update_parameter(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_parameter_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> UpdateParameterApiResponse:
             return await update_parameter_impl(
                 pool,
@@ -53,6 +62,7 @@ async def update_parameter(
             artifact="parameter",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="update",
             arguments={
                 "parameters": [

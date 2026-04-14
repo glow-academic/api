@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.profile.drafts import list_profile_drafts_impl
+from app.infra.profile.group import group_profile_impl
 from app.infra.profile.types import GetProfileDraftsApiResponse
 from app.utils.error.handle_route_error import handle_route_error
 
@@ -35,6 +36,15 @@ async def get_profile_drafts(
         pool = get_pool()
         redis = get_redis_client()
         bypass_cache = http_request.headers.get("X-Bypass-Cache") == "1"
+        session_id = http_request.state.session_id
+
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_profile_impl(
+                pool, redis, profile_id=UUID(profile_id), session_id=session_id,
+            )
+            group_id = group_result.group_id
 
         async def _runner() -> GetProfileDraftsApiResponse:
             context = await list_profile_drafts_impl(
@@ -50,7 +60,8 @@ async def get_profile_drafts(
             redis,
             artifact="profile",
             profile_id=UUID(profile_id),
-            session_id=http_request.state.session_id,
+            session_id=session_id,
+            group_id=group_id,
             operation="drafts",
             arguments={},
             bypass_cache=bypass_cache,

@@ -12,6 +12,7 @@ from app.routes.provider.drafts import router as drafts_router
 from app.routes.provider.duplicate import router as duplicate_router
 from app.routes.provider.export import router as export_router
 from app.routes.provider.get import router as get_router
+from app.routes.provider.group import router as group_router
 from app.routes.provider.refresh import router as refresh_router
 from app.routes.provider.search import router as search_router
 from app.routes.provider.update import router as update_router
@@ -32,3 +33,4 @@ router.include_router(export_router)
 router.include_router(csv_router)
 router.include_router(refresh_router)
 router.include_router(decrypt_router)
+router.include_router(group_router)

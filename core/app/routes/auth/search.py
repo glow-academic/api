@@ -10,6 +10,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
+from app.infra.auth.group import group_auth_impl
 from app.infra.auth.search import search_auth_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
@@ -43,6 +44,7 @@ async def search_auth(
 
     try:
         profile_id = http_request.state.profile_id
+        session_id = http_request.state.session_id
         if not profile_id:
             raise HTTPException(
                 status_code=401,
@@ -51,6 +53,14 @@ async def search_auth(
 
         pool = get_pool()
         redis = get_redis_client()
+
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_auth_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
 
         async def _runner() -> ListAuthApiResponse:
             return await search_auth_impl(
@@ -69,7 +79,8 @@ async def search_auth(
             redis,
             artifact="auth",
             profile_id=profile_id,
-            session_id=http_request.state.session_id,
+            session_id=session_id,
+            group_id=group_id,
             operation="search",
             arguments=request.model_dump(mode="json"),
             response_model=ListAuthApiResponse,

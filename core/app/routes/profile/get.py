@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.profile.get import get_profile_impl
+from app.infra.profile.group import group_profile_impl
 from app.infra.profile.types import (
     GetProfileApiRequest,
     GetProfileApiResponse,
@@ -37,6 +38,14 @@ async def get_profile(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_profile_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> GetProfileApiResponse:
             return await get_profile_impl(
                 pool,
@@ -54,6 +63,7 @@ async def get_profile(
             artifact="profile",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             draft_id=request.draft_id,
             operation="get",
             arguments=request.model_dump(mode="json"),

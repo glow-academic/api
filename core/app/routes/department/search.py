@@ -8,6 +8,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
+from app.infra.department.group import group_department_impl
 from app.infra.department.search import search_department_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
@@ -44,8 +45,18 @@ async def search_department(
                 detail="Profile ID is required. Please sign in again.",
             )
 
+        session_id = http_request.state.session_id
+
         pool = get_pool()
         redis = get_redis_client()
+
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_department_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
 
         async def _runner() -> ListDepartmentApiResponse:
             return await search_department_impl(
@@ -62,7 +73,8 @@ async def search_department(
             redis,
             artifact="department",
             profile_id=profile_id,
-            session_id=http_request.state.session_id,
+            session_id=session_id,
+            group_id=group_id,
             operation="search",
             arguments=request.model_dump(mode="json"),
             response_model=ListDepartmentApiResponse,

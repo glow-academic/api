@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.group.file_preview import file_preview_group_impl
+from app.infra.group.group import group_group_impl
 from app.infra.group.media_types import (
     FilePreviewGroupApiRequest,
     FilePreviewGroupApiResult,
@@ -38,6 +39,14 @@ async def preview_file(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_group_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> FilePreviewGroupApiResult:
             return await file_preview_group_impl(
                 pool,
@@ -53,6 +62,7 @@ async def preview_file(
             artifact="group",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="file_preview",
             arguments={"file_id": str(request.file_id)},
             response_model=FilePreviewGroupApiResult,

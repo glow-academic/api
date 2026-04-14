@@ -12,6 +12,7 @@ from app.routes.document.duplicate import router as duplicate_router
 from app.routes.document.export import router as export_router
 from app.routes.document.file import router as file_router
 from app.routes.document.get import router as get_router
+from app.routes.document.group import router as group_router
 from app.routes.document.refresh import router as refresh_router
 from app.routes.document.search import router as search_router
 from app.routes.document.text import router as text_router
@@ -29,6 +30,7 @@ router.include_router(delete_router)
 router.include_router(draft_router)
 router.include_router(drafts_router)
 router.include_router(docs_router)
+router.include_router(group_router)
 router.include_router(refresh_router)
 router.include_router(export_router)
 router.include_router(csv_router)

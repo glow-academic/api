@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.health.get import get_health_impl
+from app.infra.health.group import group_health_impl
 from app.infra.health.types import HealthRequest, HealthResponse
 from app.utils.error.handle_route_error import handle_route_error
 
@@ -33,6 +34,14 @@ async def get_health(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_health_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> HealthResponse:
             return await get_health_impl(
                 pool,
@@ -52,6 +61,7 @@ async def get_health(
             artifact="health",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="get",
             arguments=request.model_dump(mode="json"),
             bypass_cache=bypass_cache,

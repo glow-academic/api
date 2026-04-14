@@ -10,6 +10,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.document.drafts import list_document_drafts_impl
+from app.infra.document.group import group_document_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.document.types import GetDocumentDraftsApiResponse
@@ -35,6 +36,15 @@ async def get_document_drafts(
         pool = get_pool()
         redis = get_redis_client()
         bypass_cache = http_request.headers.get("X-Bypass-Cache") == "1"
+        session_id = http_request.state.session_id
+
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_document_impl(
+                pool, redis, profile_id=UUID(profile_id), session_id=session_id,
+            )
+            group_id = group_result.group_id
 
         async def _runner() -> GetDocumentDraftsApiResponse:
             context = await list_document_drafts_impl(
@@ -50,7 +60,8 @@ async def get_document_drafts(
             redis,
             artifact="document",
             profile_id=UUID(profile_id),
-            session_id=http_request.state.session_id,
+            session_id=session_id,
+            group_id=group_id,
             operation="drafts",
             arguments={},
             bypass_cache=bypass_cache,

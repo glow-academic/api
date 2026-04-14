@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Request
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.invocation.get import get_invocation_impl
+from app.infra.invocation.group import group_invocation_impl
 from app.infra.invocation.types import GetSuiteRequest, GetSuiteResponse
 from app.utils.error.handle_route_error import handle_route_error
 
@@ -32,6 +33,14 @@ async def invocation_get(
         redis = get_redis_client()
         bypass_cache = http_request.headers.get("X-Bypass-Cache") == "1"
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_invocation_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> GetSuiteResponse:
             return await get_invocation_impl(
                 pool,
@@ -50,6 +59,7 @@ async def invocation_get(
             artifact="invocation",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             draft_id=request.draft_id,
             test_id=request.test_id,
             operation="get",

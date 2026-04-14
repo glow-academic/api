@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.test.grade import create_grade_impl
+from app.infra.test.group import group_test_impl
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -42,6 +43,14 @@ async def create_grade(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_test_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> dict:
             return await create_grade_impl(
                 pool, redis,
@@ -58,6 +67,7 @@ async def create_grade(
             operation="grade",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             arguments=request.model_dump(mode="json"),
             runner=_runner,
             upload_folder=get_upload_folder(),

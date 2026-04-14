@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
+from app.infra.activity.group import group_activity_impl
 from app.infra.activity.resolve import resolve_activity_impl
 from app.infra.activity.types import ResolveProblemApiRequest, ResolveProblemApiResponse
 from app.infra.events.audit import run_artifact_operation_with_audit
@@ -32,6 +33,14 @@ async def resolve_problem(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_activity_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> ResolveProblemApiResponse:
             return await resolve_activity_impl(
                 pool,
@@ -49,6 +58,7 @@ async def resolve_problem(
             operation="resolve",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             arguments=request.model_dump(mode="json"),
             response_model=ResolveProblemApiResponse,
             runner=_runner,

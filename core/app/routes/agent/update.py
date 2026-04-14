@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
+from app.infra.agent.group import group_agent_impl
 from app.infra.agent.update import update_agent_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
@@ -28,6 +29,7 @@ async def update_agent(
     """Update agents using composable infra architecture."""
     try:
         profile_id = http_request.state.profile_id
+        session_id = http_request.state.session_id
         if not profile_id:
             raise HTTPException(
                 status_code=401,
@@ -36,6 +38,14 @@ async def update_agent(
 
         pool = get_pool()
         redis = get_redis_client()
+
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_agent_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
 
         async def _runner() -> UpdateAgentApiResponse:
             return await update_agent_impl(
@@ -50,7 +60,8 @@ async def update_agent(
             redis,
             artifact="agent",
             profile_id=profile_id,
-            session_id=http_request.state.session_id,
+            session_id=session_id,
+            group_id=group_id,
             operation="update",
             arguments={
                 "agents": [item.model_dump(mode="json") for item in request.agents]

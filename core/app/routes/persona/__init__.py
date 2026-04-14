@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from app.routes.persona.context import router as context_router
 from app.routes.persona.create import router as create_router
 from app.routes.persona.csv import router as csv_router
 from app.routes.persona.delete import router as delete_router
@@ -31,6 +32,7 @@ router.include_router(duplicate_router)
 router.include_router(delete_router)
 router.include_router(draft_router)
 router.include_router(drafts_router)
+router.include_router(context_router)
 router.include_router(docs_router)
 router.include_router(export_router)
 router.include_router(generate_router)

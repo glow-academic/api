@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.session.get import get_session_detail_impl_cached
+from app.infra.session.group import group_session_impl
 from app.infra.session.types import (
     GetSessionDetailRequest,
     GetSessionDetailResponse,
@@ -36,6 +37,15 @@ async def get_session(
         redis = get_redis_client()
         bypass_cache = http_request.headers.get("X-Bypass-Cache") == "1"
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        session_id = actor_session_id or request.session_id
+        if session_id:
+            group_result = await group_session_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> GetSessionDetailResponse:
             response_data, cache_hit = await get_session_detail_impl_cached(
                 pool,
@@ -53,6 +63,7 @@ async def get_session(
             artifact="session",
             profile_id=profile_id,
             session_id=actor_session_id,
+            group_id=group_id,
             operation="get",
             arguments=request.model_dump(mode="json"),
             bypass_cache=bypass_cache,

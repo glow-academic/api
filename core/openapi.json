@@ -436,6 +436,56 @@
         ]
       }
     },
+    "/personas/context": {
+      "post": {
+        "tags": [
+          "personas"
+        ],
+        "summary": "Get Persona Context",
+        "description": "Get page context for the persona artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
+        "operationId": "get_persona_context_personas_context_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposedContextResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "personas"
+        ]
+      }
+    },
     "/personas/docs": {
       "post": {
         "tags": [
@@ -41760,6 +41810,81 @@
         ],
         "title": "CallDownloadTestApiRequest"
       },
+      "CallerPermissions": {
+        "properties": {
+          "can_create": {
+            "type": "boolean",
+            "title": "Can Create",
+            "description": "Whether the caller can create new artifacts"
+          },
+          "can_draft": {
+            "type": "boolean",
+            "title": "Can Draft",
+            "description": "Whether the caller can create/update drafts"
+          },
+          "can_duplicate": {
+            "type": "boolean",
+            "title": "Can Duplicate",
+            "description": "Whether the caller can duplicate artifacts"
+          },
+          "has_access": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Access",
+            "description": "Whether the caller can view this entity"
+          },
+          "can_edit": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Can Edit",
+            "description": "Whether the caller can edit this entity"
+          },
+          "can_delete": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Can Delete",
+            "description": "Whether the caller can delete this entity"
+          },
+          "disabled_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disabled Reason",
+            "description": "Human-readable reason if editing is disabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "can_create",
+          "can_draft",
+          "can_duplicate"
+        ],
+        "title": "CallerPermissions",
+        "description": "Evaluated permissions for the current caller on this artifact type."
+      },
       "ChatData-Input": {
         "properties": {
           "id": {
@@ -45064,6 +45189,101 @@
           "nullable"
         ],
         "title": "ColumnInfo"
+      },
+      "ComposedContextResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Artifact name"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Artifact type identifier"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Human-readable description"
+          },
+          "artifact": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DocsResponse-Output"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Artifact tool documentation"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/DocsResponse-Output"
+            },
+            "type": "array",
+            "title": "Entries",
+            "description": "Entry documentation list"
+          },
+          "resources": {
+            "items": {
+              "$ref": "#/components/schemas/DocsResponse-Output"
+            },
+            "type": "array",
+            "title": "Resources",
+            "description": "Resource documentation list"
+          },
+          "permission_docs": {
+            "items": {
+              "$ref": "#/components/schemas/OperationInfo"
+            },
+            "type": "array",
+            "title": "Permission Docs",
+            "description": "Permission function signatures (for MCP/dev tooling)"
+          },
+          "api_operations": {
+            "items": {
+              "$ref": "#/components/schemas/OperationInfo"
+            },
+            "type": "array",
+            "title": "Api Operations",
+            "description": "API operation documentation"
+          },
+          "page_metadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DocsApiResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Page-level metadata"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/ProfileSummary",
+            "description": "Caller identity from JWT"
+          },
+          "caller_permissions": {
+            "$ref": "#/components/schemas/CallerPermissions",
+            "description": "Evaluated permissions for this caller"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "type",
+          "description",
+          "entries",
+          "resources",
+          "permission_docs",
+          "api_operations",
+          "profile",
+          "caller_permissions"
+        ],
+        "title": "ComposedContextResponse",
+        "description": "Page bootstrap response \u2014 docs + profile identity + evaluated permissions.\n\nSuperset of ComposedDocsResponse. A single call gives the client everything\nit needs to render the page: who you are, what you can do, and the schema."
       },
       "ComposedDocsResponse-Input": {
         "properties": {
@@ -94710,6 +94930,58 @@
         },
         "type": "object",
         "title": "ProfileRoleSection"
+      },
+      "ProfileSummary": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Display name of the authenticated user"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "Role name (e.g. 'Super Administrator')"
+          },
+          "role_level": {
+            "type": "integer",
+            "title": "Role Level",
+            "description": "Role hierarchy level (0 = highest privilege)"
+          },
+          "department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Department Ids",
+            "description": "Departments the user belongs to"
+          },
+          "artifact_access": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artifact Access",
+            "description": "Artifact types this role can access (sidebar visibility)"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "Whether the user's profile is active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "role",
+          "role_level",
+          "department_ids",
+          "artifact_access",
+          "is_active"
+        ],
+        "title": "ProfileSummary",
+        "description": "Caller identity derived from JWT \u2014 who you are on this page."
       },
       "ProfileSummaryItem": {
         "properties": {

@@ -10,6 +10,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.auth.drafts import list_auth_drafts_impl
+from app.infra.auth.group import group_auth_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.auth.types import GetAuthDraftsApiResponse
@@ -26,6 +27,7 @@ async def get_auth_drafts(
     """List auth drafts owned by the current profile."""
     try:
         profile_id = http_request.state.profile_id
+        session_id = http_request.state.session_id
         if not profile_id:
             raise HTTPException(
                 status_code=401,
@@ -35,6 +37,14 @@ async def get_auth_drafts(
         pool = get_pool()
         redis = get_redis_client()
         bypass_cache = http_request.headers.get("X-Bypass-Cache") == "1"
+
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_auth_impl(
+                pool, redis, profile_id=UUID(profile_id), session_id=session_id,
+            )
+            group_id = group_result.group_id
 
         async def _runner() -> GetAuthDraftsApiResponse:
             context = await list_auth_drafts_impl(
@@ -50,7 +60,8 @@ async def get_auth_drafts(
             redis,
             artifact="auth",
             profile_id=UUID(profile_id),
-            session_id=http_request.state.session_id,
+            session_id=session_id,
+            group_id=group_id,
             operation="drafts",
             arguments={},
             bypass_cache=bypass_cache,

@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.profile.group import group_profile_impl
 from app.infra.profile.types import (
     UnemulateProfileApiRequest,
     UnemulateProfileApiResponse,
@@ -44,12 +45,21 @@ async def unemulate_profile(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_profile_impl(
+                pool, redis, profile_id=UUID(profile_id), session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         result = await run_artifact_operation_with_audit(
             pool,
             redis,
             artifact="profile",
             profile_id=UUID(profile_id),
             session_id=session_id,
+            group_id=group_id,
             operation="unemulate",
             arguments={
                 "profile_id": str(profile_id),

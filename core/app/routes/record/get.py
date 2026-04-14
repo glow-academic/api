@@ -26,6 +26,7 @@ from app.infra.dashboard.permissions import (
 )
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.record.group import group_record_impl
 from app.infra.dashboard.types import DashboardBundleResponse
 from app.infra.record.types import RecordRequest
 from app.infra.api_types import FilterOption
@@ -77,6 +78,15 @@ async def get_record(
             )
 
         redis = get_redis_client()
+        session_id = http_request.state.session_id
+
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_record_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
 
         async def _runner() -> DashboardBundleResponse:
             # --- Phase 0: Resolve common context (profile identity) ---
@@ -433,7 +443,8 @@ async def get_record(
             redis,
             artifact="record",
             profile_id=profile_id,
-            session_id=http_request.state.session_id,
+            session_id=session_id,
+            group_id=group_id,
             operation="get",
             arguments=request.model_dump(mode="json"),
             bypass_cache=bypass_cache,
