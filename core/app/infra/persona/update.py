@@ -45,6 +45,8 @@ async def update_persona_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> UpdatePersonaApiResponse:
     """Persona bulk update using composable infra functions.
 
@@ -127,19 +129,21 @@ async def update_persona_impl(
     async with pool.acquire() as conn:
         async with conn.transaction():
             for item in items:
-                # Create denormalized snapshot
-                personas_resource_id = await create_denormalized_snapshot(
-                    pool,
-                    redis,
-                    name_id=item.name_id,
-                    description_id=item.description_id,
-                    color_id=item.color_id,
-                    icon_id=item.icon_id,
-                    instructions_id=item.instructions_id,
-                    department_ids=item.department_ids,
-                    example_ids=item.example_ids,
-                    parameter_field_ids=item.parameter_field_ids,
-                )
+                # Denormalized snapshot (skip when soft — dormant update)
+                personas_resource_id = None
+                if not soft:
+                    personas_resource_id = await create_denormalized_snapshot(
+                        pool,
+                        redis,
+                        name_id=item.name_id,
+                        description_id=item.description_id,
+                        color_id=item.color_id,
+                        icon_id=item.icon_id,
+                        instructions_id=item.instructions_id,
+                        department_ids=item.department_ids,
+                        example_ids=item.example_ids,
+                        parameter_field_ids=item.parameter_field_ids,
+                    )
 
                 await update_persona_artifact(
                     conn,
@@ -157,7 +161,7 @@ async def update_persona_impl(
                     example_ids=item.example_ids,
                     flag_ids=[item.active_flag_id] if item.active_flag_id else None,
                     parameter_field_ids=item.parameter_field_ids,
-                    persona_ids=[personas_resource_id],
+                    persona_ids=[personas_resource_id] if personas_resource_id else None,
                     voice_ids=item.voice_ids,
                     soft=soft,
                 )
@@ -166,12 +170,13 @@ async def update_persona_impl(
                     PersonaResultItem(
                         success=True,
                         id=item.id,
-                        message="Persona updated successfully",
+                        message="Persona updated (pending acceptance)" if soft else "Persona updated successfully",
                     )
                 )
 
-    # ── Step 5: Invalidate cache ───────────────────────────────────────
+    # ── Step 5: Invalidate cache (skip when soft) ─────────────────────
 
-    await invalidate_tags(["personas"], redis=redis)
+    if not soft:
+        await invalidate_tags(["personas"], redis=redis)
 
     return UpdatePersonaApiResponse(results=results)

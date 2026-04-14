@@ -37,6 +37,8 @@ async def delete_persona_impl(
     persona_ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> DeletePersonaApiResponse:
     """Persona bulk delete using composable infra functions.
 
@@ -99,14 +101,16 @@ async def delete_persona_impl(
             name_map[artifact.id] = name
 
     # ── Step 5: Single transaction — bulk delete ──────────────────────
+    # soft=True: deactivate (recoverable). accept=False later restores.
 
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_personas(conn, persona_ids, soft=soft)
 
-    # ── Step 6: Invalidate cache ──────────────────────────────────────
+    # ── Step 6: Invalidate cache (skip when soft) ─────────────────────
 
-    await invalidate_tags(["personas"], redis=redis)
+    if not soft:
+        await invalidate_tags(["personas"], redis=redis)
 
     results = [
         DeletePersonaResult(

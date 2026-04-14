@@ -232,6 +232,7 @@ async def patch_persona_draft_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
     idempotency_key: UUID | None = None,
     **kwargs: Any,
 ) -> PatchPersonaDraftApiResponse:
@@ -240,10 +241,11 @@ async def patch_persona_draft_impl(
     Accepts either a PatchPersonaDraftApiRequest object (from HTTP routes)
     or kwargs directly (from AI generation read path).
 
-    Idempotent via idempotency_key (passed as the draft entry ID):
-      - soft=True + idempotency_key: creates dormant draft (connections active=false)
-      - soft=False + idempotency_key: promotes dormant draft (ON CONFLICT → active=true)
-      - soft=False + no key: normal create (current behavior)
+    Lifecycle via soft + accept:
+      - soft=True: creates dormant draft (connections active=false), skips refresh
+      - accept=True: promotes dormant draft (ON CONFLICT upsert → active=true)
+      - accept=False: no-op (dormant connections stay for reference)
+      - neither: normal create (current behavior)
 
     Flow:
       1. resolve_profile_identity_context → role

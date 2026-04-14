@@ -79,6 +79,7 @@ class InfraContext(BaseModel):
     draft_id: UUID | None = Field(default=None, description="Draft context")
     sid: str = Field(default="", description="Socket ID for event emission")
     soft: bool = Field(default=False, description="Create dormant records (active=False) for generation pipeline")
+    accept: bool | None = Field(default=None, description="Ack phase: True=promote dormant state, False=reject (no-op or restore for delete)")
     operation_key: UUID | None = Field(default=None, description="Universal key for call dedup — idempotency_key for writes, snapshot_key for reads")
     instruction_template: str | None = Field(default=None, description="Tool response template (Layer 3) for rendered saves")
 
@@ -298,9 +299,11 @@ async def execute_infra_operation(
                 ))
                 continue
 
-            # Determine soft behavior from registry — only write operations
+            # Determine soft/accept behavior from registry — only write operations
             # can be soft (pending ack). Read operations always execute immediately.
-            soft = ctx.soft and is_write_operation(target.operation)
+            is_write = is_write_operation(target.operation)
+            soft = ctx.soft and is_write
+            accept = ctx.accept if is_write else None
 
             # Check if this operation has a Pydantic item type (structured input)
             # or should pass args as kwargs directly (read operations like get/search)
@@ -337,6 +340,7 @@ async def execute_infra_operation(
                         draft_id=ctx.draft_id,
                         group_id=ctx.group_id,
                         soft=soft,
+                        accept=accept,
                         idempotency_key=ctx.operation_key,
                     )
             else:

@@ -59,6 +59,8 @@ async def create_persona_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> CreatePersonaApiResponse:
     """Persona bulk create using composable infra functions.
 
@@ -128,24 +130,25 @@ async def create_persona_impl(
     if has_errors:
         return CreatePersonaApiResponse(results=error_results)
 
-    # ── Step 4: Denormalized snapshots (read-only, outside transaction) ─
+    # ── Step 4: Denormalized snapshots (skip when soft — dormant artifact) ─
 
     snapshot_ids: list[UUID] = []
-    for item in items:
-        personas_resource_id = await create_denormalized_snapshot(
-            pool,
-            redis,
-            id=item.resource_id,
-            name_id=item.name_id,
-            description_id=item.description_id,
-            color_id=item.color_id,
-            icon_id=item.icon_id,
-            instructions_id=item.instructions_id,
-            department_ids=item.department_ids,
-            example_ids=item.example_ids,
-            parameter_field_ids=item.parameter_field_ids,
-        )
-        snapshot_ids.append(personas_resource_id)
+    if not soft:
+        for item in items:
+            personas_resource_id = await create_denormalized_snapshot(
+                pool,
+                redis,
+                id=item.resource_id,
+                name_id=item.name_id,
+                description_id=item.description_id,
+                color_id=item.color_id,
+                icon_id=item.icon_id,
+                instructions_id=item.instructions_id,
+                department_ids=item.department_ids,
+                example_ids=item.example_ids,
+                parameter_field_ids=item.parameter_field_ids,
+            )
+            snapshot_ids.append(personas_resource_id)
 
     # ── Step 5: Single transaction — artifact writes ───────────────────
 
@@ -153,7 +156,7 @@ async def create_persona_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            for item, personas_resource_id in zip(items, snapshot_ids, strict=True):
+            for idx, item in enumerate(items):
                 result = await create_persona_artifact(
                     conn,
                     id=item.id,
@@ -166,7 +169,7 @@ async def create_persona_impl(
                     example_ids=item.example_ids,
                     flag_ids=[item.active_flag_id] if item.active_flag_id else None,
                     parameter_field_ids=item.parameter_field_ids,
-                    persona_ids=[personas_resource_id],
+                    persona_ids=[snapshot_ids[idx]] if snapshot_ids else None,
                     voice_ids=item.voice_ids,
                     soft=soft,
                 )
@@ -175,12 +178,13 @@ async def create_persona_impl(
                     PersonaResultItem(
                         success=True,
                         id=result.id,
-                        message="Persona created successfully",
+                        message="Persona created (pending acceptance)" if soft else "Persona created successfully",
                     )
                 )
 
-    # ── Step 6: Invalidate cache ───────────────────────────────────────
+    # ── Step 6: Invalidate cache (skip when soft) ─────────────────────
 
-    await invalidate_tags(["personas"], redis=redis)
+    if not soft:
+        await invalidate_tags(["personas"], redis=redis)
 
     return CreatePersonaApiResponse(results=results)
