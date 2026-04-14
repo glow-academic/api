@@ -23,6 +23,7 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.persona.types import (
     DuplicatePersonaApiResponse,
 )
+from app.infra.persona.refresh import refresh_persona_impl
 from app.tools.artifacts.persona.create import (
     create_persona as create_persona_artifact,
 )
@@ -30,7 +31,6 @@ from app.tools.artifacts.persona.get import get_personas
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def duplicate_persona_impl(
@@ -41,6 +41,9 @@ async def duplicate_persona_impl(
     id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    **_kwargs,
 ) -> DuplicatePersonaApiResponse:
     """Persona duplicate using composable infra functions.
 
@@ -54,6 +57,24 @@ async def duplicate_persona_impl(
       7. invalidate_tags
     """
     persona_id = id  # alias: tools send 'id', internal code uses 'persona_id'
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            # Promote: re-call create with soft=False → ON CONFLICT activates
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_persona_artifact(conn, id=idempotency_key, soft=False)
+            await refresh_persona_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+                targets=["personas_mv"], operation_key=idempotency_key,
+            )
+        # accept=False: no-op
+        return DuplicatePersonaApiResponse(
+            success=True,
+            id=idempotency_key,
+            message="Duplicate accepted" if accept else "Duplicate rejected",
+        )
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -155,12 +176,16 @@ async def duplicate_persona_impl(
                 soft=soft,
             )
 
-    # ── Step 7: Invalidate cache ───────────────────────────────────────
+    # ── Step 7: Refresh + invalidate (via canonical refresh) ────────────
 
-    await invalidate_tags(["personas"], redis=redis)
+    await refresh_persona_impl(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        targets=["personas_mv"], soft=soft,
+        operation_key=idempotency_key or result.id,
+    )
 
     return DuplicatePersonaApiResponse(
         success=True,
         id=result.id,
-        message=f"Persona '{original_name}' duplicated successfully",
+        message="Persona duplicated (pending acceptance)" if soft else f"Persona '{original_name}' duplicated successfully",
     )
