@@ -52,6 +52,10 @@ async def generate_persona(
             )
             group_id = group_result.group_id
 
+        # Use route-resolved group if client didn't provide one
+        if not request.group_id and group_id:
+            request = request.model_copy(update={"group_id": str(group_id)})
+
         async def _runner() -> ArtifactGenerateResponse:
             return await generate_persona_impl(
                 pool,
