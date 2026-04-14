@@ -25,11 +25,3 @@ CREATE INDEX idx_invocation_entry_session_id ON public.invocation_entry USING bt
 
 
 --
-
--- Name: idx_suite_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_suite_drafts_entry_group_id ON public.invocation_drafts_entry USING btree (group_id);
-
-
---

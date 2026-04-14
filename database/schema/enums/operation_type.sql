@@ -54,7 +54,8 @@ CREATE TYPE public.operation_type AS ENUM (
     'decrypt',
     'name',
     'feedback',
-    'generations'
+    'generations',
+    'group'
 );
 
 

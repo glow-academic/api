@@ -10,12 +10,3 @@ ALTER TABLE ONLY public.invocation_entry
 
 
 --
-
--- Name: invocation_drafts_entry suite_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.invocation_drafts_entry
-    ADD CONSTRAINT suite_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
-
-
---

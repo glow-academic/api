@@ -17,11 +17,3 @@ CREATE INDEX idx_chat_entry_session_id ON public.chat_entry USING btree (session
 
 
 --
-
--- Name: idx_training_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_training_drafts_entry_group_id ON public.chat_drafts_entry USING btree (group_id);
-
-
---

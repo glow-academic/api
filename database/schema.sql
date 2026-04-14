@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict JRdUgF85W7SOyKTh4LqRLQCgddEaxbhYWe8YM8vixvdfSajpQ8meGUgdE6cZy9c
+\restrict 07kMHOj79xypIHyfYWA8fbteOoJe21AB49y19DrmvlGykfKvOiNh3vEi4PIqO7z
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -301,7 +301,8 @@ CREATE TYPE public.operation_type AS ENUM (
     'decrypt',
     'name',
     'feedback',
-    'generations'
+    'generations',
+    'group'
 );
 
 
@@ -634,7 +635,6 @@ CREATE TABLE public.agent_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -677,7 +677,6 @@ CREATE MATERIALIZED VIEW public.agent_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.agent_drafts_entry
   WHERE (active = true)
@@ -3029,7 +3028,6 @@ CREATE TABLE public.auth_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -3072,7 +3070,6 @@ CREATE MATERIALIZED VIEW public.auth_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.auth_drafts_entry
   WHERE (active = true)
@@ -3600,7 +3597,6 @@ CREATE TABLE public.chat_drafts_entry (
     generated boolean DEFAULT false CONSTRAINT training_drafts_entry_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_entry_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT training_drafts_entry_active_not_null NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -3657,7 +3653,6 @@ CREATE MATERIALIZED VIEW public.chat_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.chat_drafts_entry
   WHERE (active = true)
@@ -4390,7 +4385,6 @@ CREATE TABLE public.cohort_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -4419,7 +4413,6 @@ CREATE MATERIALIZED VIEW public.cohort_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.cohort_drafts_entry
   WHERE (active = true)
@@ -4767,7 +4760,6 @@ CREATE TABLE public.department_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -4796,7 +4788,6 @@ CREATE MATERIALIZED VIEW public.department_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.department_drafts_entry
   WHERE (active = true)
@@ -5039,7 +5030,6 @@ CREATE TABLE public.document_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -5096,7 +5086,6 @@ CREATE MATERIALIZED VIEW public.document_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.document_drafts_entry
   WHERE (active = true)
@@ -5475,7 +5464,6 @@ CREATE TABLE public.eval_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -5518,7 +5506,6 @@ CREATE MATERIALIZED VIEW public.eval_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.eval_drafts_entry
   WHERE (active = true)
@@ -5833,7 +5820,6 @@ CREATE TABLE public.field_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -5862,7 +5848,6 @@ CREATE MATERIALIZED VIEW public.field_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.field_drafts_entry
   WHERE (active = true)
@@ -6772,7 +6757,6 @@ CREATE TABLE public.invocation_drafts_entry (
     generated boolean DEFAULT false CONSTRAINT suite_drafts_entry_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT suite_drafts_entry_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT suite_drafts_entry_active_not_null NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -6857,7 +6841,6 @@ CREATE MATERIALIZED VIEW public.invocation_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.invocation_drafts_entry
   WHERE (active = true)
@@ -7599,7 +7582,6 @@ CREATE TABLE public.model_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -7642,7 +7624,6 @@ CREATE MATERIALIZED VIEW public.model_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.model_drafts_entry
   WHERE (active = true)
@@ -8173,7 +8154,6 @@ CREATE TABLE public.parameter_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -8216,7 +8196,6 @@ CREATE MATERIALIZED VIEW public.parameter_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.parameter_drafts_entry
   WHERE (active = true)
@@ -8496,7 +8475,6 @@ CREATE TABLE public.persona_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -8567,7 +8545,6 @@ CREATE MATERIALIZED VIEW public.persona_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.persona_drafts_entry
   WHERE (active = true)
@@ -9190,7 +9167,6 @@ CREATE TABLE public.profile_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -9219,7 +9195,6 @@ CREATE MATERIALIZED VIEW public.profile_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.profile_drafts_entry
   WHERE (active = true)
@@ -9565,7 +9540,6 @@ CREATE TABLE public.provider_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -9608,7 +9582,6 @@ CREATE MATERIALIZED VIEW public.provider_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.provider_drafts_entry
   WHERE (active = true)
@@ -10047,7 +10020,6 @@ CREATE TABLE public.rubric_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -10076,7 +10048,6 @@ CREATE MATERIALIZED VIEW public.rubric_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.rubric_drafts_entry
   WHERE (active = true)
@@ -10537,7 +10508,6 @@ CREATE TABLE public.scenario_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -10580,7 +10550,6 @@ CREATE MATERIALIZED VIEW public.scenario_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.scenario_drafts_entry
   WHERE (active = true)
@@ -11199,7 +11168,6 @@ CREATE TABLE public.setting_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -11242,7 +11210,6 @@ CREATE MATERIALIZED VIEW public.setting_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.setting_drafts_entry
   WHERE (active = true)
@@ -11545,7 +11512,6 @@ CREATE TABLE public.simulation_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -11574,7 +11540,6 @@ CREATE MATERIALIZED VIEW public.simulation_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.simulation_drafts_entry
   WHERE (active = true)
@@ -13360,7 +13325,6 @@ CREATE TABLE public.tool_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
@@ -13403,7 +13367,6 @@ CREATE MATERIALIZED VIEW public.tool_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.tool_drafts_entry
   WHERE (active = true)
@@ -21255,13 +21218,6 @@ CREATE INDEX idx_agent_drafts_descriptions_resource_id ON public.agent_drafts_de
 
 
 --
--- Name: idx_agent_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_agent_drafts_entry_group_id ON public.agent_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_agent_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -21280,13 +21236,6 @@ CREATE INDEX idx_agent_drafts_flags_resource_id ON public.agent_drafts_flags_con
 --
 
 CREATE INDEX idx_agent_drafts_models_resource_id ON public.agent_drafts_models_connection USING btree (models_id);
-
-
---
--- Name: idx_agent_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_agent_drafts_mv_id ON public.agent_drafts_mv USING btree (id);
 
 
 --
@@ -21913,13 +21862,6 @@ CREATE INDEX idx_auth_drafts_descriptions_resource_id ON public.auth_drafts_desc
 
 
 --
--- Name: idx_auth_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_auth_drafts_entry_group_id ON public.auth_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_auth_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -21938,13 +21880,6 @@ CREATE INDEX idx_auth_drafts_flags_resource_id ON public.auth_drafts_flags_conne
 --
 
 CREATE INDEX idx_auth_drafts_items_resource_id ON public.auth_drafts_items_connection USING btree (items_id);
-
-
---
--- Name: idx_auth_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_auth_drafts_mv_id ON public.auth_drafts_mv USING btree (id);
 
 
 --
@@ -22319,13 +22254,6 @@ CREATE INDEX idx_chat_drafts_entry_session_id ON public.chat_drafts_entry USING 
 
 
 --
--- Name: idx_chat_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_chat_drafts_mv_id ON public.chat_drafts_mv USING btree (id);
-
-
---
 -- Name: idx_chat_drafts_profiles_resource_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -22396,13 +22324,6 @@ CREATE INDEX idx_cohort_drafts_descriptions_resource_id ON public.cohort_drafts_
 
 
 --
--- Name: idx_cohort_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_cohort_drafts_entry_group_id ON public.cohort_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_cohort_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -22414,13 +22335,6 @@ CREATE INDEX idx_cohort_drafts_entry_session_id ON public.cohort_drafts_entry US
 --
 
 CREATE INDEX idx_cohort_drafts_flags_resource_id ON public.cohort_drafts_flags_connection USING btree (flags_id);
-
-
---
--- Name: idx_cohort_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_cohort_drafts_mv_id ON public.cohort_drafts_mv USING btree (id);
 
 
 --
@@ -22592,13 +22506,6 @@ CREATE INDEX idx_department_drafts_descriptions_resource_id ON public.department
 
 
 --
--- Name: idx_department_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_department_drafts_entry_group_id ON public.department_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_department_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -22610,13 +22517,6 @@ CREATE INDEX idx_department_drafts_entry_session_id ON public.department_drafts_
 --
 
 CREATE INDEX idx_department_drafts_flags_resource_id ON public.department_drafts_flags_connection USING btree (flags_id);
-
-
---
--- Name: idx_department_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_department_drafts_mv_id ON public.department_drafts_mv USING btree (id);
 
 
 --
@@ -22739,13 +22639,6 @@ CREATE INDEX idx_document_drafts_descriptions_resource_id ON public.document_dra
 
 
 --
--- Name: idx_document_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_document_drafts_entry_group_id ON public.document_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_document_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -22771,13 +22664,6 @@ CREATE INDEX idx_document_drafts_flags_resource_id ON public.document_drafts_fla
 --
 
 CREATE INDEX idx_document_drafts_images_resource_id ON public.document_drafts_images_connection USING btree (images_id);
-
-
---
--- Name: idx_document_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_document_drafts_mv_id ON public.document_drafts_mv USING btree (id);
 
 
 --
@@ -22977,13 +22863,6 @@ CREATE INDEX idx_eval_drafts_descriptions_resource_id ON public.eval_drafts_desc
 
 
 --
--- Name: idx_eval_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_eval_drafts_entry_group_id ON public.eval_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_eval_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -23002,13 +22881,6 @@ CREATE INDEX idx_eval_drafts_flags_resource_id ON public.eval_drafts_flags_conne
 --
 
 CREATE INDEX idx_eval_drafts_models_resource_id ON public.eval_drafts_models_connection USING btree (models_id);
-
-
---
--- Name: idx_eval_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_eval_drafts_mv_id ON public.eval_drafts_mv USING btree (id);
 
 
 --
@@ -23173,13 +23045,6 @@ CREATE INDEX idx_field_drafts_descriptions_resource_id ON public.field_drafts_de
 
 
 --
--- Name: idx_field_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_field_drafts_entry_group_id ON public.field_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_field_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -23191,13 +23056,6 @@ CREATE INDEX idx_field_drafts_entry_session_id ON public.field_drafts_entry USIN
 --
 
 CREATE INDEX idx_field_drafts_flags_resource_id ON public.field_drafts_flags_connection USING btree (flags_id);
-
-
---
--- Name: idx_field_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_field_drafts_mv_id ON public.field_drafts_mv USING btree (id);
 
 
 --
@@ -23572,13 +23430,6 @@ CREATE INDEX idx_invocation_drafts_entry_session_id ON public.invocation_drafts_
 
 
 --
--- Name: idx_invocation_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_invocation_drafts_mv_id ON public.invocation_drafts_mv USING btree (id);
-
-
---
 -- Name: idx_invocation_drafts_profiles_resource_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -23810,13 +23661,6 @@ CREATE INDEX idx_model_drafts_descriptions_resource_id ON public.model_drafts_de
 
 
 --
--- Name: idx_model_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_model_drafts_entry_group_id ON public.model_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_model_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -23835,13 +23679,6 @@ CREATE INDEX idx_model_drafts_flags_resource_id ON public.model_drafts_flags_con
 --
 
 CREATE INDEX idx_model_drafts_modalities_resource_id ON public.model_drafts_modalities_connection USING btree (modalities_id);
-
-
---
--- Name: idx_model_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_model_drafts_mv_id ON public.model_drafts_mv USING btree (id);
 
 
 --
@@ -24153,13 +23990,6 @@ CREATE INDEX idx_parameter_drafts_descriptions_resource_id ON public.parameter_d
 
 
 --
--- Name: idx_parameter_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_parameter_drafts_entry_group_id ON public.parameter_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_parameter_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -24178,13 +24008,6 @@ CREATE INDEX idx_parameter_drafts_fields_resource_id ON public.parameter_drafts_
 --
 
 CREATE INDEX idx_parameter_drafts_flags_resource_id ON public.parameter_drafts_flags_connection USING btree (flags_id);
-
-
---
--- Name: idx_parameter_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_parameter_drafts_mv_id ON public.parameter_drafts_mv USING btree (id);
 
 
 --
@@ -24377,13 +24200,6 @@ CREATE INDEX idx_persona_drafts_descriptions_resource_id ON public.persona_draft
 
 
 --
--- Name: idx_persona_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_persona_drafts_entry_group_id ON public.persona_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_persona_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -24416,13 +24232,6 @@ CREATE INDEX idx_persona_drafts_icons_resource_id ON public.persona_drafts_icons
 --
 
 CREATE INDEX idx_persona_drafts_instructions_resource_id ON public.persona_drafts_instructions_connection USING btree (instructions_id);
-
-
---
--- Name: idx_persona_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_persona_drafts_mv_id ON public.persona_drafts_mv USING btree (id);
 
 
 --
@@ -24755,13 +24564,6 @@ CREATE INDEX idx_profile_drafts_emails_resource_id ON public.profile_drafts_emai
 
 
 --
--- Name: idx_profile_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_profile_drafts_entry_group_id ON public.profile_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_profile_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -24773,13 +24575,6 @@ CREATE INDEX idx_profile_drafts_entry_session_id ON public.profile_drafts_entry 
 --
 
 CREATE INDEX idx_profile_drafts_flags_resource_id ON public.profile_drafts_flags_connection USING btree (flags_id);
-
-
---
--- Name: idx_profile_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_profile_drafts_mv_id ON public.profile_drafts_mv USING btree (id);
 
 
 --
@@ -24923,13 +24718,6 @@ CREATE INDEX idx_provider_drafts_endpoints_resource_id ON public.provider_drafts
 
 
 --
--- Name: idx_provider_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_provider_drafts_entry_group_id ON public.provider_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_provider_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -24948,13 +24736,6 @@ CREATE INDEX idx_provider_drafts_flags_resource_id ON public.provider_drafts_fla
 --
 
 CREATE INDEX idx_provider_drafts_keys_resource_id ON public.provider_drafts_keys_connection USING btree (keys_id);
-
-
---
--- Name: idx_provider_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_provider_drafts_mv_id ON public.provider_drafts_mv USING btree (id);
 
 
 --
@@ -25168,13 +24949,6 @@ CREATE INDEX idx_rubric_drafts_descriptions_resource_id ON public.rubric_drafts_
 
 
 --
--- Name: idx_rubric_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_rubric_drafts_entry_group_id ON public.rubric_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_rubric_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -25186,13 +24960,6 @@ CREATE INDEX idx_rubric_drafts_entry_session_id ON public.rubric_drafts_entry US
 --
 
 CREATE INDEX idx_rubric_drafts_flags_resource_id ON public.rubric_drafts_flags_connection USING btree (flags_id);
-
-
---
--- Name: idx_rubric_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_rubric_drafts_mv_id ON public.rubric_drafts_mv USING btree (id);
 
 
 --
@@ -25462,13 +25229,6 @@ CREATE INDEX idx_scenario_drafts_documents_resource_id ON public.scenario_drafts
 
 
 --
--- Name: idx_scenario_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_scenario_drafts_entry_group_id ON public.scenario_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_scenario_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -25487,13 +25247,6 @@ CREATE INDEX idx_scenario_drafts_flags_resource_id ON public.scenario_drafts_fla
 --
 
 CREATE INDEX idx_scenario_drafts_images_resource_id ON public.scenario_drafts_images_connection USING btree (images_id);
-
-
---
--- Name: idx_scenario_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_scenario_drafts_mv_id ON public.scenario_drafts_mv USING btree (id);
 
 
 --
@@ -25896,13 +25649,6 @@ CREATE INDEX idx_setting_drafts_descriptions_resource_id ON public.setting_draft
 
 
 --
--- Name: idx_setting_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_setting_drafts_entry_group_id ON public.setting_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_setting_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -25921,13 +25667,6 @@ CREATE INDEX idx_setting_drafts_flags_resource_id ON public.setting_drafts_flags
 --
 
 CREATE INDEX idx_setting_drafts_items_resource_id ON public.setting_drafts_items_connection USING btree (items_id);
-
-
---
--- Name: idx_setting_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_setting_drafts_mv_id ON public.setting_drafts_mv USING btree (id);
 
 
 --
@@ -26113,13 +25852,6 @@ CREATE INDEX idx_simulation_drafts_descriptions_resource_id ON public.simulation
 
 
 --
--- Name: idx_simulation_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_simulation_drafts_entry_group_id ON public.simulation_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_simulation_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -26131,13 +25863,6 @@ CREATE INDEX idx_simulation_drafts_entry_session_id ON public.simulation_drafts_
 --
 
 CREATE INDEX idx_simulation_drafts_flags_resource_id ON public.simulation_drafts_flags_connection USING btree (flags_id);
-
-
---
--- Name: idx_simulation_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_simulation_drafts_mv_id ON public.simulation_drafts_mv USING btree (id);
 
 
 --
@@ -26369,13 +26094,6 @@ CREATE INDEX idx_suite_drafts_departments_resource_id ON public.invocation_draft
 --
 
 CREATE INDEX idx_suite_drafts_descriptions_resource_id ON public.invocation_drafts_descriptions_connection USING btree (descriptions_id);
-
-
---
--- Name: idx_suite_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_suite_drafts_entry_group_id ON public.invocation_drafts_entry USING btree (group_id);
 
 
 --
@@ -26834,13 +26552,6 @@ CREATE INDEX idx_tool_drafts_descriptions_resource_id ON public.tool_drafts_desc
 
 
 --
--- Name: idx_tool_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_tool_drafts_entry_group_id ON public.tool_drafts_entry USING btree (group_id);
-
-
---
 -- Name: idx_tool_drafts_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -26852,13 +26563,6 @@ CREATE INDEX idx_tool_drafts_entry_session_id ON public.tool_drafts_entry USING 
 --
 
 CREATE INDEX idx_tool_drafts_flags_resource_id ON public.tool_drafts_flags_connection USING btree (flags_id);
-
-
---
--- Name: idx_tool_drafts_mv_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_tool_drafts_mv_id ON public.tool_drafts_mv USING btree (id);
 
 
 --
@@ -26992,13 +26696,6 @@ CREATE INDEX idx_training_drafts_descriptions_resource_id ON public.chat_drafts_
 --
 
 CREATE INDEX idx_training_drafts_documents_resource_id ON public.chat_drafts_documents_connection USING btree (documents_id);
-
-
---
--- Name: idx_training_drafts_entry_group_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_training_drafts_entry_group_id ON public.chat_drafts_entry USING btree (group_id);
 
 
 --
@@ -30030,14 +29727,6 @@ ALTER TABLE ONLY public.agent_drafts_descriptions_connection
 
 
 --
--- Name: agent_drafts_entry agent_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.agent_drafts_entry
-    ADD CONSTRAINT agent_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
-
-
---
 -- Name: agent_drafts_flags_connection agent_drafts_flags_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31134,14 +30823,6 @@ ALTER TABLE ONLY public.auth_drafts_descriptions_connection
 
 
 --
--- Name: auth_drafts_entry auth_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.auth_drafts_entry
-    ADD CONSTRAINT auth_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
-
-
---
 -- Name: auth_drafts_flags_connection auth_drafts_flags_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -32006,14 +31687,6 @@ ALTER TABLE ONLY public.cohort_drafts_descriptions_connection
 
 
 --
--- Name: cohort_drafts_entry cohort_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.cohort_drafts_entry
-    ADD CONSTRAINT cohort_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
-
-
---
 -- Name: cohort_drafts_flags_connection cohort_drafts_flags_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -32334,14 +32007,6 @@ ALTER TABLE ONLY public.department_drafts_descriptions_connection
 
 
 --
--- Name: department_drafts_entry department_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.department_drafts_entry
-    ADD CONSTRAINT department_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
-
-
---
 -- Name: department_drafts_flags_connection department_drafts_flags_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -32563,14 +32228,6 @@ ALTER TABLE ONLY public.document_drafts_descriptions_connection
 
 ALTER TABLE ONLY public.document_drafts_descriptions_connection
     ADD CONSTRAINT document_drafts_descriptions_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.document_drafts_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: document_drafts_entry document_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.document_drafts_entry
-    ADD CONSTRAINT document_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
 
 
 --
@@ -32942,14 +32599,6 @@ ALTER TABLE ONLY public.eval_drafts_descriptions_connection
 
 
 --
--- Name: eval_drafts_entry eval_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.eval_drafts_entry
-    ADD CONSTRAINT eval_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
-
-
---
 -- Name: eval_drafts_flags_connection eval_drafts_flags_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -33275,14 +32924,6 @@ ALTER TABLE ONLY public.field_drafts_descriptions_connection
 
 ALTER TABLE ONLY public.field_drafts_descriptions_connection
     ADD CONSTRAINT field_drafts_descriptions_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.field_drafts_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: field_drafts_entry field_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.field_drafts_entry
-    ADD CONSTRAINT field_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
 
 
 --
@@ -34118,14 +33759,6 @@ ALTER TABLE ONLY public.model_drafts_descriptions_connection
 
 
 --
--- Name: model_drafts_entry model_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.model_drafts_entry
-    ADD CONSTRAINT model_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
-
-
---
 -- Name: model_drafts_flags_connection model_drafts_flags_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -34646,14 +34279,6 @@ ALTER TABLE ONLY public.parameter_drafts_descriptions_connection
 
 
 --
--- Name: parameter_drafts_entry parameter_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.parameter_drafts_entry
-    ADD CONSTRAINT parameter_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
-
-
---
 -- Name: parameter_drafts_fields_connection parameter_drafts_fields_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -34923,14 +34548,6 @@ ALTER TABLE ONLY public.persona_drafts_descriptions_connection
 
 ALTER TABLE ONLY public.persona_drafts_descriptions_connection
     ADD CONSTRAINT persona_drafts_descriptions_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.persona_drafts_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: persona_drafts_entry persona_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.persona_drafts_entry
-    ADD CONSTRAINT persona_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
 
 
 --
@@ -35454,14 +35071,6 @@ ALTER TABLE ONLY public.profile_drafts_emails_connection
 
 
 --
--- Name: profile_drafts_entry profile_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_drafts_entry
-    ADD CONSTRAINT profile_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
-
-
---
 -- Name: profile_drafts_flags_connection profile_drafts_flags_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -35862,14 +35471,6 @@ ALTER TABLE ONLY public.provider_drafts_endpoints_connection
 
 
 --
--- Name: provider_drafts_entry provider_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.provider_drafts_entry
-    ADD CONSTRAINT provider_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
-
-
---
 -- Name: provider_drafts_flags_connection provider_drafts_flags_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -36262,14 +35863,6 @@ ALTER TABLE ONLY public.rubric_drafts_descriptions_connection
 
 
 --
--- Name: rubric_drafts_entry rubric_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.rubric_drafts_entry
-    ADD CONSTRAINT rubric_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
-
-
---
 -- Name: rubric_drafts_flags_connection rubric_drafts_flags_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -36651,14 +36244,6 @@ ALTER TABLE ONLY public.scenario_drafts_documents_connection
 
 ALTER TABLE ONLY public.scenario_drafts_documents_connection
     ADD CONSTRAINT scenario_drafts_documents_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.scenario_drafts_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: scenario_drafts_entry scenario_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scenario_drafts_entry
-    ADD CONSTRAINT scenario_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
 
 
 --
@@ -37334,14 +36919,6 @@ ALTER TABLE ONLY public.setting_drafts_descriptions_connection
 
 
 --
--- Name: setting_drafts_entry setting_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.setting_drafts_entry
-    ADD CONSTRAINT setting_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
-
-
---
 -- Name: setting_drafts_flags_connection setting_drafts_flags_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -37651,14 +37228,6 @@ ALTER TABLE ONLY public.simulation_drafts_descriptions_connection
 
 ALTER TABLE ONLY public.simulation_drafts_descriptions_connection
     ADD CONSTRAINT simulation_drafts_descriptions_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.simulation_drafts_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: simulation_drafts_entry simulation_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.simulation_drafts_entry
-    ADD CONSTRAINT simulation_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
 
 
 --
@@ -38043,14 +37612,6 @@ ALTER TABLE ONLY public.invocation_drafts_descriptions_connection
 
 ALTER TABLE ONLY public.invocation_drafts_descriptions_connection
     ADD CONSTRAINT suite_drafts_descriptions_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.invocation_drafts_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: invocation_drafts_entry suite_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.invocation_drafts_entry
-    ADD CONSTRAINT suite_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
 
 
 --
@@ -38934,14 +38495,6 @@ ALTER TABLE ONLY public.tool_drafts_descriptions_connection
 
 
 --
--- Name: tool_drafts_entry tool_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tool_drafts_entry
-    ADD CONSTRAINT tool_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
-
-
---
 -- Name: tool_drafts_flags_connection tool_drafts_flags_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -39374,14 +38927,6 @@ ALTER TABLE ONLY public.chat_drafts_documents_connection
 
 
 --
--- Name: chat_drafts_entry training_drafts_entry_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.chat_drafts_entry
-    ADD CONSTRAINT training_drafts_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id);
-
-
---
 -- Name: chat_drafts_fields_connection training_drafts_fields_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -39697,5 +39242,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict JRdUgF85W7SOyKTh4LqRLQCgddEaxbhYWe8YM8vixvdfSajpQ8meGUgdE6cZy9c
+\unrestrict 07kMHOj79xypIHyfYWA8fbteOoJe21AB49y19DrmvlGykfKvOiNh3vEi4PIqO7z
 

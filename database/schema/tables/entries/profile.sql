@@ -11,7 +11,6 @@ CREATE TABLE public.profile_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 

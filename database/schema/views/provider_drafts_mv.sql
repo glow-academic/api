@@ -11,7 +11,6 @@ CREATE MATERIALIZED VIEW public.provider_drafts_mv AS
     generated,
     mcp,
     active,
-    group_id,
     session_id
    FROM public.provider_drafts_entry
   WHERE (active = true)

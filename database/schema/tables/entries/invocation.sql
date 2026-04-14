@@ -29,7 +29,6 @@ CREATE TABLE public.invocation_drafts_entry (
     generated boolean DEFAULT false CONSTRAINT suite_drafts_entry_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT suite_drafts_entry_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT suite_drafts_entry_active_not_null NOT NULL,
-    group_id uuid NOT NULL,
     session_id uuid NOT NULL
 );
 
