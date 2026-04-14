@@ -263,6 +263,7 @@ class ArtifactGenerateRequest(BaseModel):
     modality: str = "call"
     extra_messages: list[dict[str, str]] | None = None
     metadata: dict[str, Any] | None = None
+    sid: str | None = None  # Client socket ID for event delivery
 
     # Mode
     dangerous: bool = False  # True = execute immediately (bypass review), False = review first (default)

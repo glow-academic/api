@@ -1,0 +1,18 @@
+INPUT:
+  color: #3A7CA5
+
+OUTPUT:
+Draft saved. ID: `019d8d16-8cb5-725f-8f99-d33af9c8304a`.
+
+
+### Form State
+- **Name:** not set
+- **Description:** not set
+- **Color:** `019d8d16-8cb1-7cd0-8376-211238f26d6b` — #3A7CA5
+- **Icon:** not set
+- **Instructions:** not set
+- **Active:** not set
+- **Departments:** 0
+- **Examples:** 0
+- **Voices:** 0
+- **Parameter Fields:** 0

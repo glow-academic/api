@@ -65,7 +65,7 @@ async def generate_persona_impl(
     use soft=True (dormant, pending acceptance) or soft=False (immediate).
     """
     internal_sio = get_internal_sio()
-    resolved_sid = sid or f"http-{uuid.uuid4()}"
+    resolved_sid = sid or request.sid or f"http-{uuid.uuid4()}"
 
     # dangerous=False → tool calls are soft (pending). dangerous=True → immediate.
     tool_soft = not request.dangerous

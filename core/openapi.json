@@ -37902,6 +37902,17 @@
             ],
             "title": "Metadata"
           },
+          "sid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sid"
+          },
           "dangerous": {
             "type": "boolean",
             "title": "Dangerous",
