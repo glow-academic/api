@@ -81,19 +81,33 @@ async def _call_responses_api(
     """Call litellm Responses API."""
     # The openai/ prefix tells litellm SDK to use OpenAI-compatible protocol.
     effective_model = f"openai/{model}" if base_url and "/" not in model else model
+
+    # Register model for native streaming support — without this, litellm
+    # falls back to MockResponsesAPIStreamingIterator which buffers events.
+    if effective_model not in litellm.model_cost:
+        litellm.model_cost[effective_model] = {
+            "supports_native_streaming": True,
+            "max_tokens": 128000,
+            "input_cost_per_token": 0,
+            "output_cost_per_token": 0,
+        }
+
     kwargs: dict[str, Any] = {
         "model": effective_model,
         "input": responses_input,
         "stream": True,
         "temperature": temperature,
+        "api_key": api_key,
+        "timeout": 120.0,
     }
     if tools:
-        kwargs["tools"] = tools
+        # Validate tools for Responses API format
+        from app.infra.websocket.generate_artifact_impl import _validate_responses_tools
+        kwargs["tools"] = _validate_responses_tools(tools)
         kwargs["tool_choice"] = tool_choice
-    if api_key:
-        kwargs["api_key"] = api_key
     if base_url:
-        kwargs["base_url"] = base_url
+        # aresponses() uses api_base, not base_url
+        kwargs["api_base"] = base_url
     if extra_body:
         kwargs["extra_body"] = extra_body
     return await litellm.aresponses(**kwargs)
@@ -219,6 +233,7 @@ async def _execute_agent_dispatch(
     api_mode = "chat_completions"
     if LITELLM_AVAILABLE and hasattr(litellm, "aresponses"):
         api_mode = "responses"
+    logger.info(f"EXECUTE_GEN: api_mode={api_mode}, model={llm_config['model']}, tools={len(dispatch.tools or [])}")
 
     # Agentic loop state
     chat_messages = list(messages)
@@ -265,6 +280,7 @@ async def _execute_agent_dispatch(
                 )
         except Exception as e:
             if api_mode == "responses":
+                logger.warning(f"Responses API failed, falling back to Chat Completions: {e}")
                 api_mode = "chat_completions"
                 stream = await _call_chat_completions_api(
                     model=llm_config["model"],
