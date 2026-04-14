@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict V0ysNMyseUYJWGc521ufTyx6YrW7aPKlizqeF9dnQXejE6IasgRnQdjPBdQIarZ
+\restrict J3Fy76mdB16HoiW5K77k65cQOjGL8CCGKx4OqLc61Zc4zBCOp7pFCIV81NoIxUR
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -9877,6 +9877,25 @@ CREATE TABLE public.refresh_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL
 );
+
+
+--
+-- Name: refresh_mv; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.refresh_mv AS
+ SELECT id,
+    operation_key,
+    artifact_type,
+    target,
+    session_id,
+    created_at,
+    active,
+    generated,
+    mcp
+   FROM public.refresh_entry r
+  WHERE (active = true)
+  WITH NO DATA;
 
 
 --
@@ -28196,6 +28215,13 @@ CREATE INDEX reasoning_levels_calls_connection_id_idx ON public.reasoning_levels
 
 
 --
+-- Name: refresh_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX refresh_mv_id_idx ON public.refresh_mv USING btree (id);
+
+
+--
 -- Name: request_limits_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -39283,5 +39309,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict V0ysNMyseUYJWGc521ufTyx6YrW7aPKlizqeF9dnQXejE6IasgRnQdjPBdQIarZ
+\unrestrict J3Fy76mdB16HoiW5K77k65cQOjGL8CCGKx4OqLc61Zc4zBCOp7pFCIV81NoIxUR
 
