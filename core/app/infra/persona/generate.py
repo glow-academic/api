@@ -146,6 +146,25 @@ async def generate_persona_impl(
             f"resource_types={prepared.resource_types}"
         )
 
+        # Emit text.complete for each persisted message (system, developer, user)
+        for dispatch in prepared.dispatches:
+            for msg in dispatch.messages:
+                role = msg.get("role", "")
+                content = msg.get("content", "")
+                if role and content:
+                    await internal_sio.emit(
+                        f"{ARTIFACT_TYPE}.generate.text.complete",
+                        {
+                            "sid": resolved_sid,
+                            "rooms": [resolved_sid] if resolved_sid else [],
+                            "artifact_type": ARTIFACT_TYPE,
+                            "run_id": str(prepared.run_id),
+                            "group_id": str(group_id),
+                            "role": role,
+                            "text": content,
+                        },
+                    )
+
         result = await execute_generation(
             pool, redis,
             prepared=prepared,

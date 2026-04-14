@@ -318,6 +318,7 @@ async def _execute_agent_dispatch(
                         "artifact_type": artifact_type,
                         "run_id": str(run_id),
                         "group_id": str(group_id),
+                        "role": "assistant",
                         "text": assistant_output,
                     },
                 )
