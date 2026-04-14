@@ -65,7 +65,10 @@ async def generate_persona_impl(
     internal_sio = get_internal_sio()
     resolved_sid = sid or f"http-{uuid.uuid4()}"
 
-    # ── Merge ack fields from request (HTTP) or params (generation pipeline)
+    # ── Merge fields from request (HTTP) or params (generation pipeline)
+    # dangerous=True on API → soft=False internally
+    if not soft:
+        soft = not request.dangerous
     idempotency_key = idempotency_key or request.idempotency_key
     if idempotency_key and accept is None:
         accept = request.accept

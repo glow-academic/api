@@ -264,6 +264,9 @@ class ArtifactGenerateRequest(BaseModel):
     extra_messages: list[dict[str, str]] | None = None
     metadata: dict[str, Any] | None = None
 
+    # Mode
+    dangerous: bool = False  # True = execute immediately (bypass review), False = review first (default)
+
     # Ack
     idempotency_key: UUID | None = None
     accept: bool = True
