@@ -256,6 +256,12 @@ async def patch_persona_draft_impl(
       6. refresh_persona_drafts MV (skipped when soft=True)
       7. invalidate_tags (skipped when soft=True)
     """
+    # ── Merge ack fields from request (HTTP) or params (generation pipeline)
+    if request is not None:
+        idempotency_key = idempotency_key or request.idempotency_key
+        if idempotency_key and accept is None:
+            accept = request.accept
+
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
         if accept:

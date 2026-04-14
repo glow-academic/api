@@ -62,6 +62,11 @@ async def update_persona_impl(
         PersonaResultItem,
     )
 
+    # ── Merge ack fields from request (HTTP) or params (generation pipeline)
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key and accept is None:
+        accept = request.accept
+
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
         if accept:

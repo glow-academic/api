@@ -56,6 +56,8 @@ async def delete_persona(
                 profile_id=profile_id,
                 persona_ids=request.ids,
                 session_id=session_id,
+                idempotency_key=request.idempotency_key,
+                accept=request.accept if request.idempotency_key else None,
             )
 
         result = await run_persona_operation_with_audit(

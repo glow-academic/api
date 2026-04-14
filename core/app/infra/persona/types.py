@@ -489,6 +489,10 @@ class CreatePersonaApiRequest(BaseModel):
 
     personas: list[CreatePersonaItem] = Field(..., description="List of persona items to create")
 
+    # Ack
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+
 
 class CreatePersonaApiResponse(BaseModel):
     """Response model for bulk create persona endpoint."""
@@ -537,6 +541,10 @@ class UpdatePersonaApiRequest(BaseModel):
 
     personas: list[UpdatePersonaItem] = Field(..., description="List of persona items to update")
 
+    # Ack
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+
 
 class UpdatePersonaApiResponse(BaseModel):
     """Response model for bulk update persona endpoint."""
@@ -558,6 +566,10 @@ class DeletePersonaApiRequest(BaseModel):
     """Request model for bulk delete persona endpoint."""
 
     ids: list[UUID] = Field(..., description="List of persona UUIDs to delete")
+
+    # Ack
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    accept: bool = Field(True, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
 
 
 class DeletePersonaResult(BaseModel):
@@ -629,6 +641,10 @@ class PatchPersonaDraftApiRequest(ScopedItem):
 
     # Pending state
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep as pending (active=false on connection)")
+
+    # Ack
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant draft")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
