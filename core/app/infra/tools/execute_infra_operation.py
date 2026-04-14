@@ -357,6 +357,9 @@ async def execute_infra_operation(
                     "session_id": ctx.session_id,
                     "group_id": ctx.group_id,
                     "run_id": ctx.run_id,
+                    "soft": soft,
+                    "accept": accept,
+                    "idempotency_key": ctx.operation_key,
                 }
                 ctx_kwargs = {k: v for k, v in ctx_defaults.items() if k not in kwargs}
 
