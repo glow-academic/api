@@ -1,1 +1,9 @@
-{# Scenario Drafts response template #}
+{% if drafts and drafts|length > 0 %}
+## Scenario Drafts ({{ drafts|length }})
+
+{% for d in drafts %}
+- `{{ d.id }}` — {{ d.name or '(unnamed)' }}{% if d.created_at %} | {{ d.created_at }}{% endif %}
+{% endfor %}
+{% else %}
+No scenario drafts found.
+{% endif %}

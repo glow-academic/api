@@ -11,7 +11,6 @@ from app.tools.entries.simulation_drafts.types import (
 
 async def create_simulation_draft(
     conn: asyncpg.Connection,
-    group_id: UUID,
     session_id: UUID,
     *,
     id: UUID | None = None,
@@ -31,11 +30,10 @@ async def create_simulation_draft(
     """Create a simulation_drafts entry with optional connection table links."""
     draft_id = await conn.fetchval(
         """
-        INSERT INTO simulation_drafts_entry (id, group_id, session_id, active, mcp, generated)
-        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true)
+        INSERT INTO simulation_drafts_entry (id, session_id, active, mcp, generated)
+        VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
         RETURNING id
         """,
-        group_id,
         session_id,
         not soft,
         mcp,

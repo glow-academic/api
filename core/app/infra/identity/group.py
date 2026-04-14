@@ -3,13 +3,11 @@
 Priority order:
   1. attempt_id → active attempt chat → group_id + controls
   2. test_id → latest test invocation → group_id + controls
-  3. draft_id → draft entry → group_id
-  4. fallback → create fresh session + group
+  3. fallback → create fresh session + group
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Coroutine
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -17,33 +15,13 @@ import asyncpg
 
 from app.infra.auth.types import ResolveGroupApiResponse
 
-# Canonical entry black boxes — drafts
-from app.tools.entries.agent_drafts.get import get_agent_drafts
-
 # Canonical entry black boxes — attempts
 from app.tools.entries.attempt.get import get_attempts
 from app.tools.entries.attempt_chat.search import search_attempt_chats
 from app.tools.entries.attempt_message.search import search_attempt_messages
-from app.tools.entries.auth_drafts.get import get_auth_drafts
-from app.tools.entries.chat_drafts.get import get_chat_drafts
-from app.tools.entries.cohort_drafts.get import get_cohort_drafts
-from app.tools.entries.department_drafts.get import get_department_drafts
-from app.tools.entries.document_drafts.get import get_document_drafts
-from app.tools.entries.eval_drafts.get import get_eval_drafts
-from app.tools.entries.field_drafts.get import get_field_drafts
 
 # Canonical entry black boxes — groups
 from app.tools.entries.groups.create import create_group
-from app.tools.entries.invocation_drafts.get import get_invocation_drafts
-from app.tools.entries.model_drafts.get import get_model_drafts
-from app.tools.entries.parameter_drafts.get import get_parameter_drafts
-from app.tools.entries.persona_drafts.get import get_persona_drafts
-from app.tools.entries.profile_drafts.get import get_profile_drafts
-from app.tools.entries.provider_drafts.get import get_provider_drafts
-from app.tools.entries.rubric_drafts.get import get_rubric_drafts
-from app.tools.entries.scenario_drafts.get import get_scenario_drafts
-from app.tools.entries.setting_drafts.get import get_setting_drafts
-from app.tools.entries.simulation_drafts.get import get_simulation_drafts
 
 # Canonical entry black boxes — tests
 from app.tools.entries.test_invocation.search import (
@@ -55,33 +33,6 @@ from app.tools.entries.test_invocation_groups.search import (
 from app.tools.entries.test_invocation_runs.search import (
     search_test_invocation_runs,
 )
-from app.tools.entries.tool_drafts.get import get_tool_drafts
-
-# Draft function dispatch map: artifact_type → get_X_drafts(conn, ids)
-_DRAFT_FN_MAP: dict[
-    str,
-    Callable[[asyncpg.Connection, list[UUID]], Coroutine],
-] = {
-    "agent": get_agent_drafts,
-    "auth": get_auth_drafts,
-    "chat": get_chat_drafts,
-    "cohort": get_cohort_drafts,
-    "department": get_department_drafts,
-    "document": get_document_drafts,
-    "eval": get_eval_drafts,
-    "field": get_field_drafts,
-    "invocation": get_invocation_drafts,
-    "model": get_model_drafts,
-    "parameter": get_parameter_drafts,
-    "persona": get_persona_drafts,
-    "profile": get_profile_drafts,
-    "provider": get_provider_drafts,
-    "rubric": get_rubric_drafts,
-    "scenario": get_scenario_drafts,
-    "setting": get_setting_drafts,
-    "simulation": get_simulation_drafts,
-    "tool": get_tool_drafts,
-}
 
 
 async def resolve_group(
@@ -90,10 +41,9 @@ async def resolve_group(
     session_id: UUID | None = None,
     attempt_id: UUID | None = None,
     test_id: UUID | None = None,
-    draft_id: UUID | None = None,
     artifact_type: str | None = None,
 ) -> ResolveGroupApiResponse:
-    """Resolve a group_id from attempt, test, draft, or create fresh.
+    """Resolve a group_id from attempt, test, or create fresh.
 
     Composes canonical entry black boxes — no inline SQL.
     """
@@ -109,13 +59,7 @@ async def resolve_group(
         if result is not None:
             return result
 
-    # Priority 3: draft_id
-    if draft_id is not None:
-        result = await _resolve_from_draft(conn, draft_id, artifact_type)
-        if result is not None:
-            return result
-
-    # Priority 4: fresh group
+    # Priority 3: fresh group
     return await _create_fresh_group(conn, profiles_id, session_id, artifact_type)
 
 
@@ -252,34 +196,7 @@ async def _resolve_from_test(
 
 
 # ---------------------------------------------------------------------------
-# Priority 3: Draft resolution
-# ---------------------------------------------------------------------------
-
-
-async def _resolve_from_draft(
-    conn: asyncpg.Connection,
-    draft_id: UUID,
-    artifact_type: str | None,
-) -> ResolveGroupApiResponse | None:
-    """Draft → look up group_id via the canonical draft get function."""
-    if artifact_type and artifact_type in _DRAFT_FN_MAP:
-        # Known type — dispatch directly
-        draft_fn = _DRAFT_FN_MAP[artifact_type]
-        drafts = await draft_fn(conn, [draft_id])
-        if drafts:
-            return ResolveGroupApiResponse(group_id=str(drafts[0].group_id))
-    else:
-        # Unknown type — try all draft functions until we find a match
-        for draft_fn in _DRAFT_FN_MAP.values():
-            drafts = await draft_fn(conn, [draft_id])
-            if drafts:
-                return ResolveGroupApiResponse(group_id=str(drafts[0].group_id))
-
-    return None
-
-
-# ---------------------------------------------------------------------------
-# Priority 4: Fresh group creation
+# Priority 3: Fresh group creation
 # ---------------------------------------------------------------------------
 
 
@@ -299,7 +216,9 @@ async def _create_fresh_group(
             raise ValueError("Cannot create fresh group without a profile")
         raise ValueError("session_id is required to create a fresh group")
 
-    group = await create_group(conn, session_id=session_id)
+    # TODO: fix logic — artifact_type should always be provided by caller
+    effective_artifact_type = artifact_type or "persona"
+    group = await create_group(conn, session_id=session_id, artifact_type=effective_artifact_type)
 
     # Create initial name entry
     name = f"{artifact_type.title()} Generation" if artifact_type else ""

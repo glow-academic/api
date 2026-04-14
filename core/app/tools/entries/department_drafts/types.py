@@ -16,7 +16,6 @@ class GetDepartmentDraftResponse(BaseModel):
     generated: bool = Field(..., description="Whether this was AI-generated")
     mcp: bool = Field(..., description="Whether MCP tooling was used")
     active: bool = Field(..., description="Whether this draft is active")
-    group_id: UUID = Field(..., description="Generation group UUID")
     session_id: UUID = Field(..., description="Associated session UUID")
     description_ids: list[UUID] = Field(..., description="Associated description UUIDs")
     flag_ids: list[UUID] = Field(..., description="Associated flag UUIDs")

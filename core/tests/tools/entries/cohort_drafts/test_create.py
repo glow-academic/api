@@ -12,13 +12,13 @@ pytestmark = pytest.mark.asyncio
 
 async def _setup(conn, profile_id):
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     return session, group
 
 
 async def test_create_returns_id(conn, profile_id):
     session, group = await _setup(conn, profile_id)
-    result = await create_cohort_draft(conn, group_id=group.id, session_id=session.id)
+    result = await create_cohort_draft(conn, session_id=session.id)
 
     assert result.id is not None
 
@@ -26,14 +26,13 @@ async def test_create_returns_id(conn, profile_id):
 async def test_roundtrip_base_fields(conn, profile_id):
     session, group = await _setup(conn, profile_id)
     result = await create_cohort_draft(
-        conn, group_id=group.id, session_id=session.id, version=2
+        conn, session_id=session.id, version=2
     )
 
     items = await get_cohort_drafts(conn, [result.id])
 
     assert len(items) == 1
     assert items[0].id == result.id
-    assert items[0].group_id == group.id
     assert items[0].session_id == session.id
     assert items[0].version == 2
     assert items[0].active is True
@@ -43,7 +42,7 @@ async def test_roundtrip_base_fields(conn, profile_id):
 
 async def test_create_without_connections_returns_empty_lists(conn, profile_id):
     session, group = await _setup(conn, profile_id)
-    result = await create_cohort_draft(conn, group_id=group.id, session_id=session.id)
+    result = await create_cohort_draft(conn, session_id=session.id)
 
     items = await get_cohort_drafts(conn, [result.id])
 
@@ -68,7 +67,6 @@ async def test_create_with_connections(conn, profile_id):
 
     result = await create_cohort_draft(
         conn,
-        group_id=group.id,
         session_id=session.id,
         name_ids=[name_id],
         description_ids=[desc_id],
@@ -93,7 +91,6 @@ async def test_create_with_multiple_connections(conn, profile_id):
 
     result = await create_cohort_draft(
         conn,
-        group_id=group.id,
         session_id=session.id,
         name_ids=name_ids,
     )

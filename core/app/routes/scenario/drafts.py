@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.scenario.drafts import list_scenario_drafts_impl
+from app.infra.scenario.group import group_scenario_impl
 from app.infra.scenario.types import GetScenarioDraftsApiResponse
 from app.utils.error.handle_route_error import handle_route_error
 
@@ -32,9 +33,19 @@ async def get_scenario_drafts(
                 detail="Profile ID is required. Please sign in again.",
             )
 
+        session_id = http_request.state.session_id
+
         pool = get_pool()
         redis = get_redis_client()
         bypass_cache = http_request.headers.get("X-Bypass-Cache") == "1"
+
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_scenario_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
 
         async def _runner() -> GetScenarioDraftsApiResponse:
             context = await list_scenario_drafts_impl(
@@ -52,7 +63,8 @@ async def get_scenario_drafts(
             redis,
             artifact="scenario",
             profile_id=UUID(profile_id),
-            session_id=http_request.state.session_id,
+            session_id=session_id,
+            group_id=group_id,
             operation="drafts",
             arguments={},
             bypass_cache=bypass_cache,

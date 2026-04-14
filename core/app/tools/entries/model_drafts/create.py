@@ -9,7 +9,6 @@ from app.tools.entries.model_drafts.types import CreateModelDraftResponse
 
 async def create_model_draft(
     conn: asyncpg.Connection,
-    group_id: UUID,
     session_id: UUID,
     id: UUID | None = None,
     mcp: bool = False,
@@ -31,11 +30,10 @@ async def create_model_draft(
     """Create a model_drafts entry with optional connection table links."""
     draft_id = await conn.fetchval(
         """
-        INSERT INTO model_drafts_entry (id, group_id, session_id, active, mcp, generated)
-        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true)
+        INSERT INTO model_drafts_entry (id, session_id, active, mcp, generated)
+        VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
         RETURNING id
         """,
-        group_id,
         session_id,
         not soft,
         mcp,

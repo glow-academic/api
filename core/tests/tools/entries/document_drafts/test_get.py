@@ -12,7 +12,7 @@ pytestmark = pytest.mark.asyncio
 
 async def _setup(conn, profile_id):
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     return session, group
 
 
@@ -22,7 +22,7 @@ def _created(result):
 
 async def test_gets_created_document_drafts(conn, profile_id):
     session, group = await _setup(conn, profile_id)
-    created = _created(await create_document_draft(conn, group_id=group.id, session_id=session.id))
+    created = _created(await create_document_draft(conn, session_id=session.id))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
     items = await get_document_drafts(conn, ids=[lookup_id])
 

@@ -16,7 +16,6 @@ class GetToolDraftResponse(BaseModel):
     generated: bool = Field(..., description="Whether this was AI-generated")
     mcp: bool = Field(..., description="Whether MCP tooling was used")
     active: bool = Field(..., description="Whether this draft is active")
-    group_id: UUID = Field(..., description="Generation group UUID")
     session_id: UUID = Field(..., description="Associated session UUID")
     arg_position_ids: list[UUID] = Field(..., description="Associated arg position UUIDs")
     arg_ids: list[UUID] = Field(..., description="Associated arg UUIDs")

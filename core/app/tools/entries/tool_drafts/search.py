@@ -10,7 +10,6 @@ from app.tools.entries.tool_drafts.types import GetToolDraftResponse
 
 async def search_tool_drafts(
     conn: asyncpg.Connection,
-    group_ids: list[UUID] | None = None,
     session_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
     date_from: datetime | None = None,
@@ -24,7 +23,7 @@ async def search_tool_drafts(
         """
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
-            d.group_id, d.session_id,
+            d.session_id,
             COALESCE(ARRAY_AGG(DISTINCT ap.arg_positions_id) FILTER (WHERE ap.arg_positions_id IS NOT NULL), '{}') AS arg_position_ids,
             COALESCE(ARRAY_AGG(DISTINCT a.args_id) FILTER (WHERE a.args_id IS NOT NULL), '{}') AS arg_ids,
             COALESCE(ARRAY_AGG(DISTINCT ao.args_outputs_id) FILTER (WHERE ao.args_outputs_id IS NOT NULL), '{}') AS args_output_ids,
@@ -47,18 +46,16 @@ async def search_tool_drafts(
         LEFT JOIN tool_drafts_profiles_connection p ON p.draft_id = d.id
         LEFT JOIN tool_drafts_agents_connection ag ON ag.draft_id = d.id
         WHERE d.active = true
-          AND ($1::uuid[] IS NULL OR d.group_id = ANY($1))
-          AND ($2::uuid[] IS NULL OR d.session_id = ANY($2))
-          AND ($3::uuid[] IS NULL OR p.profiles_id = ANY($3))
-          AND ($4::timestamptz IS NULL OR d.created_at >= $4)
-          AND ($5::timestamptz IS NULL OR d.created_at <= $5)
-          AND ($6::boolean IS NULL OR d.mcp = $6)
+          AND ($1::uuid[] IS NULL OR d.session_id = ANY($1))
+          AND ($2::uuid[] IS NULL OR p.profiles_id = ANY($2))
+          AND ($3::timestamptz IS NULL OR d.created_at >= $3)
+          AND ($4::timestamptz IS NULL OR d.created_at <= $4)
+          AND ($5::boolean IS NULL OR d.mcp = $5)
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.group_id, d.session_id
+                 d.session_id
         ORDER BY d.created_at DESC
-        LIMIT $7 OFFSET $8
+        LIMIT $6 OFFSET $7
         """,
-        group_ids,
         session_ids,
         profile_ids,
         date_from,
@@ -75,7 +72,6 @@ async def search_tool_drafts(
             generated=r["generated"],
             mcp=r["mcp"],
             active=r["active"],
-            group_id=r["group_id"],
             session_id=r["session_id"],
             arg_position_ids=r["arg_position_ids"],
             arg_ids=r["arg_ids"],
