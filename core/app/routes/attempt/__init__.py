@@ -9,6 +9,8 @@ from app.routes.attempt.end import router as end_router
 from app.routes.attempt.expire import router as expire_router
 from app.routes.attempt.export import router as export_router
 from app.routes.attempt.file import router as file_router
+from app.routes.attempt.generate import router as generate_router
+from app.routes.attempt.generations import router as generations_router
 from app.routes.attempt.get import router as get_router
 from app.routes.attempt.grade import router as grade_router
 from app.routes.attempt.group import router as group_router
@@ -18,6 +20,7 @@ from app.routes.attempt.leave import router as leave_router
 from app.routes.attempt.message import router as message_router
 from app.routes.attempt.next import router as next_router
 from app.routes.attempt.previous import router as previous_router
+from app.routes.attempt.problem import router as problem_router
 from app.routes.attempt.refresh import router as refresh_router
 from app.routes.attempt.response import router as response_router
 from app.routes.attempt.search import router as search_router
@@ -35,7 +38,10 @@ router.include_router(archive_router)
 router.include_router(refresh_router)
 router.include_router(docs_router)
 router.include_router(export_router)
+router.include_router(generate_router)
+router.include_router(generations_router)
 router.include_router(group_router)
+router.include_router(problem_router)
 
 # State machine operations
 router.include_router(start_router)

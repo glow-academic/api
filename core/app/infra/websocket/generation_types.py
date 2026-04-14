@@ -263,6 +263,10 @@ class ArtifactGenerateRequest(BaseModel):
     extra_messages: list[dict[str, str]] | None = None
     metadata: dict[str, Any] | None = None
 
+    # Ack
+    idempotency_key: str | None = None
+    accept: bool = True
+
     def to_generate_payload(self, artifact_type: str) -> GeneratePayload:
         """Convert to the canonical GeneratePayload for the internal bus."""
         return GeneratePayload(
@@ -285,6 +289,7 @@ class ArtifactGenerateResponse(BaseModel):
     """Response from a per-artifact generate endpoint."""
 
     group_id: str
+    idempotency_key: str | None = None
 
 
 # ═══════════════════════════════════════════════════════════════════════════
