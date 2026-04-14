@@ -235,13 +235,17 @@ async def group_persona_impl(
                 call_items = await search_calls(conn, run_ids=run_ids, limit=100000)
 
             # Build call lookup: call_id → tool_name
+            from app.tools.resources.tools.get import get_tools
+            tool_ids = list({c.tool_id for c in call_items if hasattr(c, "tool_id") and c.tool_id})
+            tool_name_map: dict[UUID, str] = {}
+            if tool_ids:
+                async with pool.acquire() as conn:
+                    tool_resources = await get_tools(conn, tool_ids, redis)
+                    tool_name_map = {t.id: t.name for t in tool_resources if t.id and t.name}
+
             call_tool_map: dict[UUID, str | None] = {}
             for c in call_items:
-                tool_name = None
-                if hasattr(c, "tool_id") and c.tool_id:
-                    # Tool name comes from the tools_resource name
-                    # For now, use the tool_id as a placeholder
-                    tool_name = None
+                tool_name = tool_name_map.get(c.tool_id) if hasattr(c, "tool_id") and c.tool_id else None
                 call_tool_map[c.id] = tool_name
 
             # Group messages by run
