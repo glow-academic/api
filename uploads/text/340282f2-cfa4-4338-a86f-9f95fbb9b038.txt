@@ -1,0 +1,9 @@
+INPUT:
+  group_id: 019d8cfa-5360-712c-ad12-561eb64d62cf
+  name: Blue Color Selection
+
+OUTPUT:
+### Group Resolved
+- **Group ID:** `019d8cfa-5360-712c-ad12-561eb64d62cf`
+- **Group Name ID:** `019d8cfa-8ae3-7fc3-89dc-a35b4dda3750`
+- **Name:** Blue Color Selection

@@ -4,12 +4,18 @@ Calls prepare_generation → execute_generation directly.
 No generic websocket events. Tool calls emit through audit path.
 Text streaming emits persona.generate.progress.
 
+The `dangerous` flag controls tool call behavior inside the generation:
+  - dangerous=False (default): tool calls use soft=True (dormant, pending acceptance)
+  - dangerous=True: tool calls execute fully (immediate)
+
+Generation itself always runs — prepare + execute.
+
 Flow:
   1. resolve_profile_identity_context → role, permissions
   2. Permission check — persona:generate
   3. Validate resources against registry
   4. prepare_generation — create run, resolve context, build dispatches
-  5. execute_generation — agentic LLM loop
+  5. execute_generation — agentic LLM loop (tool calls soft based on dangerous)
   6. Emit persona.generate.completed
 """
 
@@ -30,7 +36,6 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.websocket.generation_types import (
     ArtifactGenerateRequest,
     ArtifactGenerateResponse,
-    GeneratePayload,
 )
 from app.registry.generate import REGISTRY
 from app.utils.logging.db_logger import get_logger
@@ -55,20 +60,17 @@ async def generate_persona_impl(
 ) -> ArtifactGenerateResponse:
     """Persona generation using deterministic infra functions.
 
-    Lifecycle via soft + accept:
-      - soft=True: prepare only (run with active=false, context resolved,
-        messages persisted). LLM doesn't run, no cost.
-      - accept=True: prepare + execute (full generation).
-      - accept=False: no-op.
-      - neither (normal): prepare + execute immediately.
+    Generation always runs (prepare + execute). The `dangerous` flag
+    on the request controls whether tool calls inside the generation
+    use soft=True (dormant, pending acceptance) or soft=False (immediate).
     """
     internal_sio = get_internal_sio()
     resolved_sid = sid or f"http-{uuid.uuid4()}"
 
-    # ── Merge fields from request (HTTP) or params (generation pipeline)
-    # dangerous=True on API → soft=False internally
-    if not soft:
-        soft = not request.dangerous
+    # dangerous=False → tool calls are soft (pending). dangerous=True → immediate.
+    tool_soft = not request.dangerous
+
+    # ── Merge ack fields from request (HTTP) or params (generation pipeline)
     idempotency_key = idempotency_key or request.idempotency_key
     if idempotency_key and accept is None:
         accept = request.accept
@@ -114,92 +116,10 @@ async def generate_persona_impl(
                 detail=f"Invalid resources for {ARTIFACT_TYPE}: {sorted(invalid)}",
             )
 
-    # ── Short-circuit: ack path ───────────────────────────────────────
-    if accept is not None and idempotency_key is not None:
-        if accept:
-            # Accept: prepare + execute
-            payload = request.to_generate_payload(ARTIFACT_TYPE)
-
-            await internal_sio.emit(f"{ARTIFACT_TYPE}.generate.started", {
-                "sid": resolved_sid,
-                "rooms": [resolved_sid] if resolved_sid else [],
-                "artifact_type": ARTIFACT_TYPE,
-                "group_id": str(group_id),
-            })
-
-            try:
-                prepared = await prepare_generation(
-                    pool, redis,
-                    profile_id=profile_id,
-                    profiles_id=profile.profiles_id,
-                    session_id=session_id,
-                    group_id=uuid.UUID(str(group_id)),
-                    artifact_type=ARTIFACT_TYPE,
-                    artifact_config=config,
-                    payload=payload,
-                )
-
-                result = await execute_generation(
-                    pool, redis,
-                    prepared=prepared,
-                    sid=resolved_sid,
-                )
-
-                await internal_sio.emit(f"{ARTIFACT_TYPE}.generate.completed", {
-                    "sid": resolved_sid,
-                    "rooms": [resolved_sid] if resolved_sid else [],
-                    "artifact_type": ARTIFACT_TYPE,
-                    "group_id": str(group_id),
-                    "run_id": str(prepared.run_id),
-                    "success": True,
-                    "input_tokens": result.total_input_tokens,
-                    "output_tokens": result.total_output_tokens,
-                })
-            except Exception as e:
-                logger.exception(f"Persona generation failed: {e}")
-                await internal_sio.emit(f"{ARTIFACT_TYPE}.generate.failed", {
-                    "sid": resolved_sid,
-                    "rooms": [resolved_sid] if resolved_sid else [],
-                    "artifact_type": ARTIFACT_TYPE,
-                    "group_id": str(group_id),
-                    "message": str(e),
-                })
-
-        # accept=False: no-op
-        return ArtifactGenerateResponse(
-            group_id=str(group_id),
-            idempotency_key=str(idempotency_key),
-        )
-
-    # ── Step 4: Build payload ─────────────────────────────────────────
+    # ── Step 4: Prepare + Execute ─────────────────────────────────────
 
     generated_key = idempotency_key or uuid.uuid4()
     payload = request.to_generate_payload(ARTIFACT_TYPE)
-
-    # ── Step 5: Soft — prepare only, don't execute ────────────────────
-
-    if soft:
-        try:
-            prepared = await prepare_generation(
-                pool, redis,
-                profile_id=profile_id,
-                profiles_id=profile.profiles_id,
-                session_id=session_id,
-                group_id=uuid.UUID(str(group_id)),
-                artifact_type=ARTIFACT_TYPE,
-                artifact_config=config,
-                payload=payload,
-                soft=True,
-            )
-            return ArtifactGenerateResponse(
-                group_id=str(group_id),
-                idempotency_key=str(prepared.run_id),
-            )
-        except Exception as e:
-            logger.exception(f"Persona generation prepare failed: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
-
-    # ── Step 6: Normal — prepare + execute immediately ────────────────
 
     await internal_sio.emit(f"{ARTIFACT_TYPE}.generate.started", {
         "sid": resolved_sid,
@@ -224,6 +144,7 @@ async def generate_persona_impl(
             pool, redis,
             prepared=prepared,
             sid=resolved_sid,
+            tool_soft=tool_soft,
         )
 
         await internal_sio.emit(f"{ARTIFACT_TYPE}.generate.completed", {

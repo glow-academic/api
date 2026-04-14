@@ -134,6 +134,7 @@ async def execute_generation(
     *,
     prepared: PrepareGenerationResult,
     sid: str,
+    tool_soft: bool = True,
     max_iterations: int = 15,
 ) -> ExecuteGenerationResult:
     """Execute the agentic LLM loop for all dispatches in the prepared result.
@@ -158,6 +159,7 @@ async def execute_generation(
             dispatch=dispatch,
             prepared=prepared,
             sid=sid,
+            tool_soft=tool_soft,
             max_iterations=max_iterations,
             internal_sio=internal_sio,
         )
@@ -177,6 +179,7 @@ async def _execute_agent_dispatch(
     dispatch: AgentDispatch,
     prepared: PrepareGenerationResult,
     sid: str,
+    tool_soft: bool = True,
     max_iterations: int,
     internal_sio: Any,
 ) -> ExecuteGenerationResult:
@@ -365,7 +368,7 @@ async def _execute_agent_dispatch(
                             group_id=group_id,
                             run_id=run_id,
                             sid=sid,
-                            soft=True,
+                            soft=tool_soft,
                             operation_key=uuid.uuid4(),
                             instruction_template=td.get("_instruction_template"),
                         )
