@@ -8,6 +8,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.attempt.file_preview import file_preview_attempt_impl
+from app.infra.attempt.group import group_attempt_impl
 from app.infra.attempt.media_types import FilePreviewAttemptApiRequest
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
@@ -34,6 +35,14 @@ async def preview_file(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_attempt_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> bytes:
             return await file_preview_attempt_impl(
                 pool,
@@ -49,6 +58,7 @@ async def preview_file(
             artifact="attempt",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="file_preview",
             arguments={"file_id": str(request.file_id)},
             response_model=bytes,

@@ -10,6 +10,7 @@ import urllib.parse
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.attempt.audio_download import audio_download_attempt_impl
+from app.infra.attempt.group import group_attempt_impl
 from app.infra.attempt.media_types import (
     AudioDownloadAttemptApiRequest,
     AudioDownloadAttemptApiResult,
@@ -41,6 +42,14 @@ async def download_audio(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_attempt_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> AudioDownloadAttemptApiResult:
             return await audio_download_attempt_impl(
                 pool,
@@ -56,6 +65,7 @@ async def download_audio(
             artifact="attempt",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="audio_download",
             arguments={"audio_id": str(request.audio_id)},
             response_model=AudioDownloadAttemptApiResult,

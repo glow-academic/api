@@ -11,6 +11,7 @@ from app.routes.attempt.export import router as export_router
 from app.routes.attempt.file import router as file_router
 from app.routes.attempt.get import router as get_router
 from app.routes.attempt.grade import router as grade_router
+from app.routes.attempt.group import router as group_router
 from app.routes.attempt.image import router as image_router
 from app.routes.attempt.join import router as join_router
 from app.routes.attempt.leave import router as leave_router
@@ -34,6 +35,7 @@ router.include_router(archive_router)
 router.include_router(refresh_router)
 router.include_router(docs_router)
 router.include_router(export_router)
+router.include_router(group_router)
 
 # State machine operations
 router.include_router(start_router)

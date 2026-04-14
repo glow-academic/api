@@ -14,6 +14,7 @@ from . import (  # noqa: F401
     file_download,
     file_preview,
     get,
+    group,
     image_download,
     join,
     leave,

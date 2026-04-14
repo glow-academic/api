@@ -26,6 +26,8 @@ from app.infra.persona.types import (
     UpdatePersonaApiRequest,
     UpdatePersonaApiResponse,
 )
+from app.infra.persona.refresh import refresh_persona_impl
+from app.tools.artifacts.persona.get import get_personas
 from app.tools.artifacts.persona.update import (
     _UNSET,
 )
@@ -76,7 +78,33 @@ async def update_persona_impl(
                     await update_persona_artifact(
                         conn, idempotency_key, soft=False,
                     )
-            await invalidate_tags(["personas"], redis=redis)
+
+            # Read back junction IDs to create denormalized snapshot
+            async with pool.acquire() as conn:
+                artifacts = await get_personas(
+                    conn, [idempotency_key],
+                    names=True, descriptions=True, colors=True, icons=True,
+                    instructions=True, departments=True, examples=True,
+                    parameter_fields=True,
+                )
+            if artifacts:
+                a = artifacts[0]
+                await create_denormalized_snapshot(
+                    pool, redis,
+                    name_id=a.name_ids[0] if a.name_ids else None,
+                    description_id=a.description_ids[0] if a.description_ids else None,
+                    color_id=a.color_ids[0] if a.color_ids else None,
+                    icon_id=a.icon_ids[0] if a.icon_ids else None,
+                    instructions_id=a.instruction_ids[0] if a.instruction_ids else None,
+                    department_ids=a.department_ids or None,
+                    example_ids=a.example_ids or None,
+                    parameter_field_ids=a.parameter_field_ids or None,
+                )
+
+            await refresh_persona_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+                targets=["personas_mv"], operation_key=idempotency_key,
+            )
         # accept=False: no-op (pending junction changes stay)
         return UpdatePersonaApiResponse(results=[
             PersonaResultItem(
@@ -198,9 +226,13 @@ async def update_persona_impl(
                     )
                 )
 
-    # ── Step 5: Invalidate cache (skip when soft) ─────────────────────
+    # ── Step 5: Refresh + invalidate (via canonical refresh) ────────────
 
-    if not soft:
-        await invalidate_tags(["personas"], redis=redis)
+    first_id = results[0].id if results else None
+    await refresh_persona_impl(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        targets=["personas_mv"], soft=soft,
+        operation_key=idempotency_key or first_id,
+    )
 
     return UpdatePersonaApiResponse(results=results)

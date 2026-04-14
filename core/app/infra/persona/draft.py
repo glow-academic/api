@@ -27,7 +27,7 @@ from app.infra.persona.types import (
     SavePersonaFieldError,
 )
 from app.tools.entries.persona_drafts.create import create_persona_draft
-from app.tools.entries.persona_drafts.refresh import refresh_persona_drafts
+from app.infra.persona.refresh import refresh_persona_impl
 from app.tools.resources.colors.search import search_colors
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
@@ -39,7 +39,6 @@ from app.tools.resources.instructions.create import create_instruction
 from app.tools.resources.names.create import create_name
 from app.tools.resources.parameter_fields.search import search_parameter_fields
 from app.tools.resources.voices.search import search_voices
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 # ---------------------------------------------------------------------------
 # Value resolution — creatable resources only
@@ -271,9 +270,10 @@ async def patch_persona_draft_impl(
                     result = await create_persona_draft(
                         conn, session_id=session_id, id=idempotency_key, soft=False,
                     )
-            async with pool.acquire() as conn:
-                await refresh_persona_drafts(conn)
-            await invalidate_tags(["personas", "drafts"], redis=redis)
+            await refresh_persona_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+                targets=["persona_drafts_mv"], operation_key=idempotency_key,
+            )
         # accept=False: no-op (dormant connections stay for reference)
         return PatchPersonaDraftApiResponse(
             success=True,
@@ -385,16 +385,13 @@ async def patch_persona_draft_impl(
         voice_ids=request.voice_ids or [],
     )
 
-    # ── Step 6: Refresh MV (skip when soft — dormant draft) ───────────
+    # ── Step 6+7: Refresh MV + invalidate cache (via canonical refresh) ─
 
-    if not soft:
-        async with pool.acquire() as conn:
-            await refresh_persona_drafts(conn)
-
-    # ── Step 7: Invalidate cache (skip when soft) ─────────────────────
-
-    if not soft:
-        await invalidate_tags(["personas", "drafts"], redis=redis)
+    await refresh_persona_impl(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        targets=["persona_drafts_mv"], soft=soft,
+        operation_key=idempotency_key or result.id,
+    )
 
     return PatchPersonaDraftApiResponse(
         success=True,

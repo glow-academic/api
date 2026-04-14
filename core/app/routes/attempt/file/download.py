@@ -10,6 +10,7 @@ import urllib.parse
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.attempt.file_download import file_download_attempt_impl
+from app.infra.attempt.group import group_attempt_impl
 from app.infra.attempt.media_types import (
     FileDownloadAttemptApiRequest,
     FileDownloadAttemptApiResult,
@@ -41,6 +42,14 @@ async def download_file(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_attempt_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> FileDownloadAttemptApiResult:
             return await file_download_attempt_impl(
                 pool,
@@ -56,6 +65,7 @@ async def download_file(
             artifact="attempt",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="file_download",
             arguments={"file_id": str(request.file_id)},
             response_model=FileDownloadAttemptApiResult,

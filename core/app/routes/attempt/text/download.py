@@ -10,6 +10,7 @@ import urllib.parse
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 
+from app.infra.attempt.group import group_attempt_impl
 from app.infra.attempt.media_types import (
     TextDownloadAttemptApiRequest,
     TextDownloadAttemptApiResult,
@@ -41,6 +42,14 @@ async def download_text(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_attempt_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> TextDownloadAttemptApiResult:
             return await text_download_attempt_impl(
                 pool,
@@ -56,6 +65,7 @@ async def download_text(
             artifact="attempt",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="text_download",
             arguments={"text_id": str(request.text_id)},
             response_model=TextDownloadAttemptApiResult,

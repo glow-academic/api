@@ -17,6 +17,7 @@ from . import (  # noqa: F401
     file_preview,
     grade_complete,
     grade_progress,
+    group,
     grade_start,
     image_download,
     joined,

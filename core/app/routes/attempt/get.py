@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.attempt.get import get_attempt_impl
+from app.infra.attempt.group import group_attempt_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.attempt.types import (
@@ -37,7 +38,16 @@ async def attempt_get(
         pool = get_pool()
         redis = get_redis_client()
         profile_id = UUID(profile_id_str)
+        session_id = http_request.state.session_id
         cache_hit_holder = {"value": False}
+
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_attempt_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
 
         async def _runner() -> GetAttemptDetailResponse:
             response_data, cache_hit = await get_attempt_impl(
@@ -56,7 +66,8 @@ async def attempt_get(
             redis,
             artifact="attempt",
             profile_id=profile_id,
-            session_id=http_request.state.session_id,
+            session_id=session_id,
+            group_id=group_id,
             attempt_id=request.attempt_id,
             operation="get",
             arguments=request.model_dump(mode="json"),

@@ -1,7 +1,15 @@
 """Persona refresh logic — composable infra architecture.
 
-Composes black-box entry refresh tools to refresh dependent MVs,
-then invalidates cache tags for the artifact and its resources.
+Canonical refresh function for persona MVs. Composes black-box entry tools:
+  1. resolve_profile_identity_context — profile (role)
+  2. refresh entry MVs (granular by target)
+  3. create_refresh — record in refreshes_entry
+  4. invalidate_tags — cache invalidation
+
+Supports soft/accept lifecycle:
+  - soft=True: record intent only, don't execute refresh
+  - accept=True: execute the pending refresh
+  - accept=False: no-op
 """
 
 from __future__ import annotations
@@ -10,6 +18,8 @@ import asyncio
 from uuid import UUID
 
 import asyncpg
+from fastapi import HTTPException
+from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -18,12 +28,42 @@ from app.infra.refresh.types import RefreshResponse
 # Black-box entry refresh tools
 from app.tools.entries.persona.refresh import refresh_persona_internal
 from app.tools.entries.persona_drafts.refresh import refresh_persona_drafts
+from app.tools.entries.refreshes.create import create_refresh
 
-# Tags to invalidate — artifact cache + resource caches
+# All persona MV targets
+ALL_TARGETS = ["personas_mv", "persona_drafts_mv"]
+
+# Target → refresh function mapping
+_REFRESH_FNS = {
+    "personas_mv": refresh_persona_internal,
+    "persona_drafts_mv": refresh_persona_drafts,
+}
+
+# Tags to invalidate
 _TAGS = ["personas", "artifacts"]
 
-# Views refreshed by this endpoint
-_VIEWS = ["personas_mv", "persona_drafts_mv"]
+
+# ---------------------------------------------------------------------------
+# Types
+# ---------------------------------------------------------------------------
+
+
+class RefreshPersonaApiRequest(BaseModel):
+    """Request model for persona refresh endpoint."""
+
+    targets: list[str] | None = Field(
+        None,
+        description="MV targets to refresh (omit for all). Options: personas_mv, persona_drafts_mv",
+    )
+
+    # Ack
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack")
+    accept: bool = Field(True, description="Accept or reject. Only meaningful with idempotency_key")
+
+
+# ---------------------------------------------------------------------------
+# Impl
+# ---------------------------------------------------------------------------
 
 
 async def refresh_persona_impl(
@@ -31,15 +71,35 @@ async def refresh_persona_impl(
     redis: Redis | None,
     *,
     profile_id: UUID,
+    session_id: UUID | None = None,
+    request: RefreshPersonaApiRequest | None = None,
+    targets: list[str] | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    operation_key: UUID | None = None,
+    **_kwargs,
 ) -> RefreshResponse:
     """Persona refresh using composable infra functions.
 
+    Accepts either a RefreshPersonaApiRequest (HTTP/WS) or kwargs (internal).
+
     Flow:
       1. resolve_profile_identity_context — permission check
-      2. Parallel refresh of dependent entry MVs
-      3. Invalidate cache tags
+      2. Determine targets
+      3. Soft: record intent only. Accept: execute. Reject: no-op.
+      4. Execute refresh + record in refreshes_entry
+      5. Invalidate cache tags
     """
-    from fastapi import HTTPException
+    # Unpack request if provided
+    if request is not None:
+        targets = targets or request.targets
+        idempotency_key = idempotency_key or request.idempotency_key
+        if idempotency_key and accept is None:
+            accept = request.accept
+
+    effective_targets = targets or ALL_TARGETS
+    effective_operation_key = operation_key or idempotency_key
 
     # ── Step 1: Permission check ─────────────────────────────────────────
 
@@ -51,30 +111,85 @@ async def refresh_persona_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    # ── Step 2: Parallel refresh of dependent entry MVs ──────────────────
+    # ── Short-circuit: ack path ──────────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            # Execute the pending refresh
+            await _execute_refreshes(pool, effective_targets)
+            # Record
+            if session_id and effective_operation_key:
+                async with pool.acquire() as conn:
+                    for target in effective_targets:
+                        await create_refresh(
+                            conn, operation_key=effective_operation_key,
+                            artifact_type="persona", target=target,
+                            session_id=session_id,
+                        )
+            if redis is not None:
+                from app.utils.cache.invalidate_tags import invalidate_tags
+                await invalidate_tags(_TAGS, redis=redis)
+        # accept=False: no-op
+        return RefreshResponse(
+            success=True,
+            refreshed_views=effective_targets if accept else [],
+            invalidated_tags=_TAGS if accept else [],
+        )
 
-    async def _refresh_persona() -> None:
+    # ── Step 2: Soft — record intent only ────────────────────────────────
+
+    if soft:
+        if session_id and effective_operation_key:
+            async with pool.acquire() as conn:
+                for target in effective_targets:
+                    await create_refresh(
+                        conn, operation_key=effective_operation_key,
+                        artifact_type="persona", target=target,
+                        session_id=session_id,
+                    )
+        return RefreshResponse(
+            success=True,
+            refreshed_views=[],
+            invalidated_tags=[],
+        )
+
+    # ── Step 3: Execute refresh + record ─────────────────────────────────
+
+    await _execute_refreshes(pool, effective_targets)
+
+    # Record in refreshes_entry
+    if session_id and effective_operation_key:
         async with pool.acquire() as conn:
-            await refresh_persona_internal(conn)
+            for target in effective_targets:
+                await create_refresh(
+                    conn, operation_key=effective_operation_key,
+                    artifact_type="persona", target=target,
+                    session_id=session_id,
+                )
 
-    async def _refresh_drafts() -> None:
-        async with pool.acquire() as conn:
-            await refresh_persona_drafts(conn)
-
-    await asyncio.gather(
-        _refresh_persona(),
-        _refresh_drafts(),
-    )
-
-    # ── Step 3: Invalidate cache tags ────────────────────────────────────
+    # ── Step 4: Invalidate cache tags ────────────────────────────────────
 
     if redis is not None:
         from app.utils.cache.invalidate_tags import invalidate_tags
-
         await invalidate_tags(_TAGS, redis=redis)
 
     return RefreshResponse(
         success=True,
-        refreshed_views=_VIEWS,
+        refreshed_views=effective_targets,
         invalidated_tags=_TAGS,
     )
+
+
+# ---------------------------------------------------------------------------
+# Internal
+# ---------------------------------------------------------------------------
+
+
+async def _execute_refreshes(pool: asyncpg.Pool, targets: list[str]) -> None:
+    """Execute MV refreshes in parallel for the given targets."""
+    async def _refresh(target: str) -> None:
+        fn = _REFRESH_FNS.get(target)
+        if fn:
+            async with pool.acquire() as conn:
+                await fn(conn)
+
+    await asyncio.gather(*[_refresh(t) for t in targets])

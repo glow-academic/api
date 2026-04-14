@@ -24,6 +24,7 @@ from app.infra.persona.types import (
     DeletePersonaResult,
 )
 from app.infra.delete.delete_artifact import restore_artifacts
+from app.infra.persona.refresh import refresh_persona_impl
 from app.tools.artifacts.persona.delete import delete_personas
 from app.tools.artifacts.persona.get import get_personas
 from app.tools.resources.names.get import get_names
@@ -64,7 +65,10 @@ async def delete_persona_impl(
                     await restore_artifacts(
                         conn, table="persona_artifact", ids=[idempotency_key],
                     )
-        await invalidate_tags(["personas"], redis=redis)
+        await refresh_persona_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["personas_mv"], operation_key=idempotency_key,
+        )
         return DeletePersonaApiResponse(results=[
             DeletePersonaResult(
                 success=True,
@@ -128,9 +132,13 @@ async def delete_persona_impl(
         async with conn.transaction():
             result = await delete_personas(conn, persona_ids, soft=soft)
 
-    # Invalidate cache (skip when soft — dormant delete)
-    if not soft:
-        await invalidate_tags(["personas"], redis=redis)
+    # Refresh + invalidate (via canonical refresh)
+    first_id = result.deleted_ids[0] if result.deleted_ids else None
+    await refresh_persona_impl(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        targets=["personas_mv"], soft=soft,
+        operation_key=idempotency_key or first_id,
+    )
 
     results = [
         DeletePersonaResult(
