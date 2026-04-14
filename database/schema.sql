@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict dObx6iUxR5ph5bkeKDfdmPJwLyBlgCukoaMcivsuVg6OdFOYDwbibaz6aq7fY3e
+\restrict qaZpofw55f8VptptJHHDsOhHJASzG7vztlq5IMrVS6MmsgHugiqhlhb8xvrG1hH
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -9863,6 +9863,42 @@ CREATE TABLE public.reasoning_levels_resource (
 
 
 --
+-- Name: refresh_entry; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.refresh_entry (
+    id uuid DEFAULT uuidv7() CONSTRAINT refresh_entry_id_not_null1 NOT NULL,
+    operation_key uuid CONSTRAINT refresh_entry_operation_key_not_null1 NOT NULL,
+    artifact_type public.artifact_type CONSTRAINT refresh_entry_artifact_type_not_null1 NOT NULL,
+    target text CONSTRAINT refresh_entry_target_not_null1 NOT NULL,
+    session_id uuid CONSTRAINT refresh_entry_session_id_not_null1 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT refresh_entry_created_at_not_null1 NOT NULL,
+    active boolean DEFAULT true CONSTRAINT refresh_entry_active_not_null1 NOT NULL,
+    generated boolean DEFAULT false CONSTRAINT refresh_entry_generated_not_null1 NOT NULL,
+    mcp boolean DEFAULT false CONSTRAINT refresh_entry_mcp_not_null1 NOT NULL
+);
+
+
+--
+-- Name: refresh_mv; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.refresh_mv AS
+ SELECT id,
+    operation_key,
+    artifact_type,
+    target,
+    session_id,
+    created_at,
+    active,
+    generated,
+    mcp
+   FROM public.refresh_entry r
+  WHERE (active = true)
+  WITH NO DATA;
+
+
+--
 -- Name: refreshes_entry; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -17548,6 +17584,14 @@ ALTER TABLE ONLY public.reasoning_levels_resource
 
 
 --
+-- Name: refresh_entry refresh_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_entry
+    ADD CONSTRAINT refresh_entry_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: refreshes_entry refreshes_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19787,6 +19831,13 @@ CREATE INDEX agent_descriptions_description_id_idx ON public.agent_descriptions_
 
 
 --
+-- Name: agent_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX agent_drafts_mv_id_idx ON public.agent_drafts_mv USING btree (id);
+
+
+--
 -- Name: agent_flags_agent_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -20186,6 +20237,13 @@ CREATE INDEX auth_descriptions_description_id_idx ON public.auth_descriptions_ju
 
 
 --
+-- Name: auth_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX auth_drafts_mv_id_idx ON public.auth_drafts_mv USING btree (id);
+
+
+--
 -- Name: auth_flags_auth_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -20333,6 +20391,13 @@ CREATE UNIQUE INDEX calls_mv_call_id_idx ON public.calls_mv USING btree (call_id
 
 
 --
+-- Name: chat_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX chat_drafts_mv_id_idx ON public.chat_drafts_mv USING btree (id);
+
+
+--
 -- Name: cohort_cohorts_cohort_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -20372,6 +20437,13 @@ CREATE INDEX cohort_descriptions_cohort_id_idx ON public.cohort_descriptions_jun
 --
 
 CREATE INDEX cohort_descriptions_description_id_idx ON public.cohort_descriptions_junction USING btree (descriptions_id);
+
+
+--
+-- Name: cohort_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX cohort_drafts_mv_id_idx ON public.cohort_drafts_mv USING btree (id);
 
 
 --
@@ -20564,6 +20636,13 @@ CREATE INDEX department_descriptions_description_id_idx ON public.department_des
 
 
 --
+-- Name: department_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX department_drafts_mv_id_idx ON public.department_drafts_mv USING btree (id);
+
+
+--
 -- Name: department_flags_department_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -20680,6 +20759,13 @@ CREATE INDEX document_documents_document_id_idx ON public.document_documents_jun
 --
 
 CREATE INDEX document_documents_documents_id_idx ON public.document_documents_junction USING btree (documents_id);
+
+
+--
+-- Name: document_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX document_drafts_mv_id_idx ON public.document_drafts_mv USING btree (id);
 
 
 --
@@ -20851,6 +20937,13 @@ CREATE INDEX eval_descriptions_eval_id_idx ON public.eval_descriptions_junction 
 
 
 --
+-- Name: eval_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX eval_drafts_mv_id_idx ON public.eval_drafts_mv USING btree (id);
+
+
+--
 -- Name: eval_evals_eval_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -20981,6 +21074,13 @@ CREATE INDEX field_descriptions_description_id_idx ON public.field_descriptions_
 --
 
 CREATE INDEX field_descriptions_field_id_idx ON public.field_descriptions_junction USING btree (field_id);
+
+
+--
+-- Name: field_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX field_drafts_mv_id_idx ON public.field_drafts_mv USING btree (id);
 
 
 --
@@ -24932,6 +25032,20 @@ CREATE INDEX idx_reasoning_levels_mcp ON public.reasoning_levels_resource USING 
 
 
 --
+-- Name: idx_refresh_entry_operation_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_refresh_entry_operation_key ON public.refresh_entry USING btree (operation_key);
+
+
+--
+-- Name: idx_refresh_entry_target_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_refresh_entry_target_created ON public.refresh_entry USING btree (target, created_at DESC);
+
+
+--
 -- Name: idx_refreshes_entry_operation_key; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27081,6 +27195,13 @@ CREATE INDEX instructions_calls_connection_id_idx ON public.instructions_calls_c
 
 
 --
+-- Name: invocation_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX invocation_drafts_mv_id_idx ON public.invocation_drafts_mv USING btree (id);
+
+
+--
 -- Name: items_active_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27232,6 +27353,13 @@ CREATE INDEX model_descriptions_description_id_idx ON public.model_descriptions_
 --
 
 CREATE INDEX model_descriptions_model_id_idx ON public.model_descriptions_junction USING btree (model_id);
+
+
+--
+-- Name: model_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX model_drafts_mv_id_idx ON public.model_drafts_mv USING btree (id);
 
 
 --
@@ -27515,6 +27643,13 @@ CREATE INDEX parameter_descriptions_parameter_id_idx ON public.parameter_descrip
 
 
 --
+-- Name: parameter_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX parameter_drafts_mv_id_idx ON public.parameter_drafts_mv USING btree (id);
+
+
+--
 -- Name: parameter_fields_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27645,6 +27780,13 @@ CREATE INDEX persona_descriptions_description_id_idx ON public.persona_descripti
 --
 
 CREATE INDEX persona_descriptions_persona_id_idx ON public.persona_descriptions_junction USING btree (persona_id);
+
+
+--
+-- Name: persona_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX persona_drafts_mv_id_idx ON public.persona_drafts_mv USING btree (id);
 
 
 --
@@ -27858,6 +28000,13 @@ CREATE INDEX profile_departments_profile_id_v7_idx ON public.profile_departments
 
 
 --
+-- Name: profile_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX profile_drafts_mv_id_idx ON public.profile_drafts_mv USING btree (id);
+
+
+--
 -- Name: profile_emails_email_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28061,6 +28210,13 @@ CREATE INDEX provider_descriptions_provider_id_idx ON public.provider_descriptio
 
 
 --
+-- Name: provider_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX provider_drafts_mv_id_idx ON public.provider_drafts_mv USING btree (id);
+
+
+--
 -- Name: provider_flags_flag_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28215,6 +28371,13 @@ CREATE INDEX reasoning_levels_calls_connection_id_idx ON public.reasoning_levels
 
 
 --
+-- Name: refresh_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX refresh_mv_id_idx ON public.refresh_mv USING btree (id);
+
+
+--
 -- Name: refreshes_mv_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28324,6 +28487,13 @@ CREATE INDEX rubric_descriptions_description_id_idx ON public.rubric_description
 --
 
 CREATE INDEX rubric_descriptions_rubric_id_idx ON public.rubric_descriptions_junction USING btree (rubric_id);
+
+
+--
+-- Name: rubric_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX rubric_drafts_mv_id_idx ON public.rubric_drafts_mv USING btree (id);
 
 
 --
@@ -28534,6 +28704,13 @@ CREATE INDEX scenario_documents_document_id_v7_idx ON public.scenario_documents_
 --
 
 CREATE INDEX scenario_documents_scenario_id_v7_idx ON public.scenario_documents_junction USING btree (scenario_id);
+
+
+--
+-- Name: scenario_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX scenario_drafts_mv_id_idx ON public.scenario_drafts_mv USING btree (id);
 
 
 --
@@ -28901,6 +29078,13 @@ CREATE INDEX setting_descriptions_setting_id_idx ON public.setting_descriptions_
 
 
 --
+-- Name: setting_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX setting_drafts_mv_id_idx ON public.setting_drafts_mv USING btree (id);
+
+
+--
 -- Name: setting_flags_flag_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29101,6 +29285,13 @@ CREATE INDEX simulation_descriptions_description_id_idx ON public.simulation_des
 --
 
 CREATE INDEX simulation_descriptions_simulation_id_idx ON public.simulation_descriptions_junction USING btree (simulation_id);
+
+
+--
+-- Name: simulation_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX simulation_drafts_mv_id_idx ON public.simulation_drafts_mv USING btree (id);
 
 
 --
@@ -29528,6 +29719,13 @@ CREATE INDEX tool_descriptions_description_id_idx ON public.tool_descriptions_ju
 --
 
 CREATE INDEX tool_descriptions_tool_id_idx ON public.tool_descriptions_junction USING btree (tool_id);
+
+
+--
+-- Name: tool_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX tool_drafts_mv_id_idx ON public.tool_drafts_mv USING btree (id);
 
 
 --
@@ -38674,14 +38872,6 @@ ALTER TABLE ONLY public.tool_names_junction
 
 
 --
--- Name: tool_permissions_junction tool_permissions_junction_permissions_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tool_permissions_junction
-    ADD CONSTRAINT tool_permissions_junction_permissions_id_fkey FOREIGN KEY (permissions_id) REFERENCES public.permissions_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: tool_permissions_junction tool_permissions_junction_tool_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -39309,5 +39499,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict dObx6iUxR5ph5bkeKDfdmPJwLyBlgCukoaMcivsuVg6OdFOYDwbibaz6aq7fY3e
+\unrestrict qaZpofw55f8VptptJHHDsOhHJASzG7vztlq5IMrVS6MmsgHugiqhlhb8xvrG1hH
 

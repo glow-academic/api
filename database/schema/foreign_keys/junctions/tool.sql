@@ -155,15 +155,6 @@ ALTER TABLE ONLY public.tool_names_junction
 
 --
 
--- Name: tool_permissions_junction tool_permissions_junction_permissions_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tool_permissions_junction
-    ADD CONSTRAINT tool_permissions_junction_permissions_id_fkey FOREIGN KEY (permissions_id) REFERENCES public.permissions_resource(id) ON DELETE CASCADE;
-
-
---
-
 -- Name: tool_permissions_junction tool_permissions_junction_tool_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
