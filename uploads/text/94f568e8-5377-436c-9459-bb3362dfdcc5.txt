@@ -1,0 +1,18 @@
+INPUT:
+  id: 019d8cd7-ff4e-781e-bdb4-c1a405ca99f9
+
+OUTPUT:
+### Call Content
+{
+  "call_id": "019d8cd7-ff4e-781e-bdb4-c1a405ca99f9",
+  "arguments": {
+    "group_id": "019d8cd7-2fc3-7820-8e3f-a575201120dc",
+    "name": "Blue Color Selection"
+  },
+  "output": "### Group Name Updated\n- **Success:** True\n- **Group Name ID:** `019d8cd7-ff5b-7099-95bd-b72b1ff75712`\n- **Name:** Blue Color Selection",
+  "raw_output": {
+    "success": true,
+    "group_name_id": "019d8cd7-ff5b-7099-95bd-b72b1ff75712",
+    "name": "Blue Color Selection"
+  }
+}

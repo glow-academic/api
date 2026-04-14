@@ -1,0 +1,14 @@
+INPUT:
+  grade_id: 019d8ce1-7dc5-766d-b3ce-b94075d55c43
+  tool_call_id: 019d8ce1-5ea4-72ee-9d5c-1f322fd04596
+  standard_group_id: 9b1e9200-6b67-5ac7-9457-7306208faaac
+  score: 1
+  feedback: No parameter fields are set. The persona draft does not specify temperament, intensity, role, or type, so there is no alignment with any intended character.
+
+OUTPUT:
+### Feedback Created
+- **Feedback ID:** ``
+- **Grade ID:** ``
+- **Score:** /
+
+- **Feedback:**

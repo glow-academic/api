@@ -1,0 +1,3 @@
+The agent's output did not populate any of the required persona fields except for the color. All critical fields (name, description, instructions, parameters) are left empty or at defaults. The overall score is 1/25, and the submission does not pass any rubric criteria. 
+
+If you need a detailed breakdown or further action, please let me know!

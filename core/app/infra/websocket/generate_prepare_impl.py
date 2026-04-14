@@ -419,15 +419,19 @@ async def generate_prepare_impl(
             all_tool_dicts, config_tools, tool_instructions_by_id
         )
 
-        # --- Step 8: Create run ---
+        # --- Step 8: Create or reuse run ---
         agent_ids_for_run = [aid for aid in agent_groups if aid]
-        run = await create_run_fn(
-            conn,
-            group_id=group_id,
-            session_id=session_id,
-            agent_ids=agent_ids_for_run,
-        )
-        run_id = run.id
+        if payload.run_id:
+            # Reuse existing run (e.g., grading pipeline passes its own run_id)
+            run_id = uuid.UUID(payload.run_id) if isinstance(payload.run_id, str) else payload.run_id
+        else:
+            run = await create_run_fn(
+                conn,
+                group_id=group_id,
+                session_id=session_id,
+                agent_ids=agent_ids_for_run,
+            )
+            run_id = run.id
 
         # --- Step 9: Init trackers ---
         units = build_generation_work_units(agent_groups, createable_resources)

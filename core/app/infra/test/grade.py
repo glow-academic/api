@@ -66,9 +66,11 @@ async def create_grade_impl(
         rubric_id = inv.rubric_id
         group_id = inv.group_id
 
-        # Step 2: Derive run_id from test → call → run
+        # Step 2: Derive run_id — prefer context (kwargs), fall back to test chain
         run_id: UUID | None = None
-        if inv.test_id:
+        if "run_id" in kwargs and kwargs["run_id"]:
+            run_id = kwargs["run_id"] if isinstance(kwargs["run_id"], UUID) else UUID(str(kwargs["run_id"]))
+        elif inv.test_id:
             tests = await get_tests(conn, ids=[inv.test_id])
             if tests and tests[0].call_id:
                 calls = await get_calls(conn, [tests[0].call_id])
@@ -89,9 +91,12 @@ async def create_grade_impl(
         )
 
         # Step 5: Create call for audit linkage
+        if not run_id:
+            raise ValueError("Cannot determine run_id for grade — not in context and not derivable from test chain")
+
         call = await create_call(
             conn,
-            run_id=run_id or UUID(int=0),
+            run_id=run_id,
             session_id=session_id,
         )
 

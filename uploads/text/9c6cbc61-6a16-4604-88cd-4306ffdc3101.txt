@@ -1,0 +1,69 @@
+INPUT:
+  id: 019d8cd7-e92a-7fb8-9cf4-a11934a699d8
+  archived: False
+
+OUTPUT:
+## Test: generation_resolution
+- **Status:** running
+- **Invocations:** 1
+
+
+
+## Rubric
+
+**Persona Rubric**: Evaluates the quality of persona resources produced by an agent — identity, behavioral instructions, parameter alignment, consistency, and completeness.
+- Total Points: 25 | Pass Points: 20
+
+### Standard Groups
+- **Creates a distinct, believable persona identity**: Name and description capture a specific, differentiated character with clear personality traits. | Points: 5 | Pass: 4 | ID: `bfe3dcdb-2e2f-53ed-9248-fe60589ccd10`
+- **Produces actionable behavioral instructions**: Instructions are specific and actionable, driving consistent persona behavior including tone, boundaries, and response patterns. | Points: 5 | Pass: 4 | ID: `9ced1ac3-9965-589f-b145-e18866bc9a7c`
+- **Selects appropriate parameter fields**: Selected parameter fields (temperament, intensity, role, type) accurately reflect the persona's intended character. | Points: 5 | Pass: 4 | ID: `9b1e9200-6b67-5ac7-9457-7306208faaac`
+- **Maintains coherence across all resources**: All resources are coherent — name matches description, description matches instructions, parameters match the overall persona identity. | Points: 5 | Pass: 4 | ID: `8b06e90d-478e-5d51-8234-948d05ff3f0f`
+- **Populates all relevant persona resources**: All relevant resources are populated with meaningful values — nothing critical is left empty or at defaults when it should be specified. | Points: 5 | Pass: 4 | ID: `53fdbef0-a432-5455-9328-03874c14bbf2`
+
+
+
+
+
+
+## Invocations
+
+- **ID:** `019d8cd7-e931-7a8b-8a2a-cc1acd3af117` | Rubric: `d71947c7-ff00-506c-8546-f3cdc78ebf38` | Agent: 42f475db-ffd8-53e7-a1f3-5a9fbbe453ca
+  Status: pending
+
+
+
+
+
+## Conversation
+
+
+
+### SYSTEM
+- Text IDs: `019d8cd7-e98a-7842-8e29-86c7712f3655`
+
+
+### DEVELOPER
+- Text IDs: `019d8cd7-e990-738a-be6c-a139adc83a3a`
+
+
+### USER
+- Text IDs: `019d8cd7-e994-7bd7-8b66-c193031467c9`
+
+
+### ASSISTANT
+- Text IDs: `019d8cd7-f08b-70b4-83fa-5918edfa1025`
+
+- **Tool Calls** (use these as `tool_call_id` in Test_Feedback):
+  - Call `019d8cd7-f025-7c42-90e0-7854ecf2c09b` | Tool: `ecd62cf2-89f0-57a6-9ed8-69ce8ee6bb95`
+
+
+### ASSISTANT
+- Text IDs: `019d8cd7-ff94-7b76-8cd0-246d05791de9`
+
+- **Tool Calls** (use these as `tool_call_id` in Test_Feedback):
+  - Call `019d8cd7-ff4e-781e-bdb4-c1a405ca99f9` | Tool: `301a19f3-f606-5bd9-99e6-68d7e2bd21a0`
+
+
+### ASSISTANT
+- Text IDs: `019d8cd8-0480-73d7-9a7a-0a34d95f4614`

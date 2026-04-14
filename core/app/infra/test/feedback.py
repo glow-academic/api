@@ -66,18 +66,24 @@ async def create_feedback_impl(
             total_points = sgs[0].points
             pass_points = sgs[0].pass_points
 
-        # Step 2: Derive run_id from grade's call
+        # Step 2: Derive run_id — prefer context (kwargs), fall back to grade's call
         run_id: UUID | None = None
-        grades = await get_test_grades(conn, ids=[grade_id])
-        if grades and grades[0].call_id:
-            calls = await get_calls(conn, [grades[0].call_id])
-            if calls:
-                run_id = calls[0].run_id
+        if "run_id" in kwargs and kwargs["run_id"]:
+            run_id = kwargs["run_id"] if isinstance(kwargs["run_id"], UUID) else UUID(str(kwargs["run_id"]))
+        else:
+            grades = await get_test_grades(conn, ids=[grade_id])
+            if grades and grades[0].call_id:
+                calls = await get_calls(conn, [grades[0].call_id])
+                if calls:
+                    run_id = calls[0].run_id
+
+        if not run_id:
+            raise ValueError("Cannot determine run_id for feedback — not in context and not derivable from grade")
 
         # Step 3: Create call for audit linkage
         call = await create_call(
             conn,
-            run_id=run_id or UUID(int=0),
+            run_id=run_id,
             session_id=session_id,
         )
 

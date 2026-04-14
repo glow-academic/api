@@ -1,0 +1,14 @@
+INPUT:
+  grade_id: 019d8ce1-7dc5-766d-b3ce-b94075d55c43
+  tool_call_id: 019d8ce1-5ea4-72ee-9d5c-1f322fd04596
+  standard_group_id: 8b06e90d-478e-5d51-8234-948d05ff3f0f
+  score: 1
+  feedback: There is no coherence across resources because none of the key persona fields (name, description, instructions, parameters) are populated. Only the color is set.
+
+OUTPUT:
+### Feedback Created
+- **Feedback ID:** ``
+- **Grade ID:** ``
+- **Score:** /
+
+- **Feedback:**

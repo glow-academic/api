@@ -180,18 +180,22 @@ async def prepare_generation(
         all_tool_dicts, config_tools, tool_instructions_by_id
     )
 
-    # --- Step 6: Create run ---
+    # --- Step 6: Create or reuse run ---
     agent_ids_for_run = [aid for aid in agent_groups if aid]
 
-    async with pool.acquire() as conn:
-        run = await create_run(
-            conn,
-            group_id=group_id,
-            session_id=session_id,
-            agent_ids=agent_ids_for_run,
-            soft=soft,
-        )
-    run_id = run.id
+    if payload.run_id:
+        # Reuse existing run (e.g., grading pipeline passes its own run_id)
+        run_id = uuid.UUID(payload.run_id) if isinstance(payload.run_id, str) else payload.run_id
+    else:
+        async with pool.acquire() as conn:
+            run = await create_run(
+                conn,
+                group_id=group_id,
+                session_id=session_id,
+                agent_ids=agent_ids_for_run,
+                soft=soft,
+            )
+        run_id = run.id
 
     # --- Step 7: Init trackers ---
     units = _build_work_units(agent_groups, createable_resources)

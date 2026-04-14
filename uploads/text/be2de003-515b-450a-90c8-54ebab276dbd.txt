@@ -1,0 +1,19 @@
+INPUT:
+  draft_id: 019d8ce1-55d9-7f10-b782-835f4e706cf0
+  color: #4A90D9
+
+OUTPUT:
+Draft saved. ID: `019d8ce1-5ec7-7d85-8c27-f09c783d0d04`.
+
+
+### Form State
+- **Name:** not set
+- **Description:** not set
+- **Color:** `019d8ce1-5ec0-7c85-af40-bb888258d7ef` — #4A90D9
+- **Icon:** not set
+- **Instructions:** not set
+- **Active:** not set
+- **Departments:** 0
+- **Examples:** 0
+- **Voices:** 0
+- **Parameter Fields:** 0
