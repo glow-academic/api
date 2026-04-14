@@ -74,6 +74,24 @@ async def create_persona_impl(
     """
     from app.infra.persona.permissions import compute_can_create
 
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            # Promote: re-call create with soft=False → ON CONFLICT activates
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_persona_artifact(conn, id=idempotency_key, soft=False)
+            # Create snapshot + invalidate now that it's active
+            await invalidate_tags(["personas"], redis=redis)
+        # accept=False: no-op (dormant artifact stays for reference)
+        return CreatePersonaApiResponse(results=[
+            PersonaResultItem(
+                success=True,
+                id=idempotency_key,
+                message="Persona accepted" if accept else "Persona rejected",
+            )
+        ])
+
     items = request.personas
 
     # ── Step 0: Scope fields by resources ─────────────────────────────

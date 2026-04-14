@@ -23,6 +23,7 @@ from app.infra.persona.types import (
     DeletePersonaApiResponse,
     DeletePersonaResult,
 )
+from app.infra.delete.delete_artifact import restore_artifacts
 from app.tools.artifacts.persona.delete import delete_personas
 from app.tools.artifacts.persona.get import get_personas
 from app.tools.resources.names.get import get_names
@@ -50,6 +51,27 @@ async def delete_persona_impl(
       5. Single transaction: delete_personas → bulk delete
       6. invalidate_tags
     """
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            # Confirm deletion: no-op (already deactivated by soft delete)
+            pass
+        else:
+            # Reject: restore soft-deleted artifact
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await restore_artifacts(
+                        conn, table="persona_artifact", ids=[idempotency_key],
+                    )
+        await invalidate_tags(["personas"], redis=redis)
+        return DeletePersonaApiResponse(results=[
+            DeletePersonaResult(
+                success=True,
+                id=idempotency_key,
+                message="Delete confirmed" if accept else "Delete rejected — persona restored",
+            )
+        ])
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -101,14 +123,12 @@ async def delete_persona_impl(
             name_map[artifact.id] = name
 
     # ── Step 5: Single transaction — bulk delete ──────────────────────
-    # soft=True: deactivate (recoverable). accept=False later restores.
 
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_personas(conn, persona_ids, soft=soft)
 
-    # ── Step 6: Invalidate cache (skip when soft) ─────────────────────
-
+    # Invalidate cache (skip when soft — dormant delete)
     if not soft:
         await invalidate_tags(["personas"], redis=redis)
 
@@ -116,7 +136,8 @@ async def delete_persona_impl(
         DeletePersonaResult(
             success=True,
             id=pid,
-            message=f"Persona '{name_map.get(pid, 'Unknown')}' deleted successfully",
+            message=f"Persona '{name_map.get(pid, 'Unknown')}' deleted (pending confirmation)" if soft
+            else f"Persona '{name_map.get(pid, 'Unknown')}' deleted successfully",
         )
         for pid in result.deleted_ids
     ]

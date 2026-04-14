@@ -62,6 +62,25 @@ async def update_persona_impl(
         PersonaResultItem,
     )
 
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            # Promote: re-call update with soft=False → activates artifact + junctions
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await update_persona_artifact(
+                        conn, idempotency_key, soft=False,
+                    )
+            await invalidate_tags(["personas"], redis=redis)
+        # accept=False: no-op (pending junction changes stay)
+        return UpdatePersonaApiResponse(results=[
+            PersonaResultItem(
+                success=True,
+                id=idempotency_key,
+                message="Update accepted" if accept else "Update rejected",
+            )
+        ])
+
     items = request.personas
 
     # ── Step 1: Profile context ────────────────────────────────────────

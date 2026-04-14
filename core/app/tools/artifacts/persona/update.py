@@ -96,6 +96,7 @@ async def update_persona(
                 resource_id=val,
                 constraint=constraint,
                 mcp=mcp,
+                soft=soft,
             )
 
     # 3. Multi-select junctions (simple)
@@ -116,6 +117,7 @@ async def update_persona(
                 resource_ids=vals,
                 constraint=constraint,
                 mcp=mcp,
+                soft=soft,
             )
 
     # 4. Examples with idx
@@ -129,6 +131,7 @@ async def update_persona(
             resource_ids=example_ids,
             constraint="persona_examples_pkey",
             mcp=mcp,
+            soft=soft,
         )
 
     # 5. Flags with value
@@ -142,6 +145,7 @@ async def update_persona(
             resource_ids=flag_ids,
             constraint="persona_flags_pkey",
             mcp=mcp,
+            soft=soft,
         )
 
     return UpdatePersonaResponse(id=persona_id)

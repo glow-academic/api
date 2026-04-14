@@ -256,6 +256,27 @@ async def patch_persona_draft_impl(
       6. refresh_persona_drafts MV (skipped when soft=True)
       7. invalidate_tags (skipped when soft=True)
     """
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            # Promote: re-call create with soft=False → ON CONFLICT activates
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    result = await create_persona_draft(
+                        conn, session_id=session_id, id=idempotency_key, soft=False,
+                    )
+            async with pool.acquire() as conn:
+                await refresh_persona_drafts(conn)
+            await invalidate_tags(["personas", "drafts"], redis=redis)
+        # accept=False: no-op (dormant connections stay for reference)
+        return PatchPersonaDraftApiResponse(
+            success=True,
+            draft_id=idempotency_key,
+            idempotency_key=idempotency_key,
+            message="Draft accepted" if accept else "Draft rejected",
+            form_state=DraftFormState(),
+        )
+
     # Build request from kwargs if not provided directly
     if request is None:
         from app.infra.tools.sanitize import sanitize_model_kwargs

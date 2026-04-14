@@ -21,24 +21,31 @@ async def upsert_single(
     resource_id: UUID,
     constraint: str,
     mcp: bool = False,
+    soft: bool = False,
 ) -> None:
     """Upsert a single-select junction row.
 
-    Deactivates any existing active row with a different resource ID,
-    then inserts or reactivates the target row.
+    Normal (soft=False): deactivates any existing active row with a different
+    resource ID, then inserts or reactivates the target row.
+
+    Soft (soft=True): inserts the new row as inactive without deactivating
+    existing rows. Old values stay active until promoted.
     """
+    if not soft:
+        await conn.execute(
+            f"UPDATE {table} SET active = false "
+            f"WHERE {owner_col} = $1 AND active = true AND {resource_col} != $2",
+            owner_id,
+            resource_id,
+        )
+    is_active = not soft
     await conn.execute(
-        f"UPDATE {table} SET active = false "
-        f"WHERE {owner_col} = $1 AND active = true AND {resource_col} != $2",
-        owner_id,
-        resource_id,
-    )
-    await conn.execute(
-        f"INSERT INTO {table} ({owner_col}, {resource_col}, mcp) VALUES ($1, $2, $3) "
+        f"INSERT INTO {table} ({owner_col}, {resource_col}, active, mcp) VALUES ($1, $2, $3, $4) "
         f"ON CONFLICT ON CONSTRAINT {constraint} "
-        f"DO UPDATE SET {resource_col} = $2, active = true, mcp = $3",
+        f"DO UPDATE SET active = EXCLUDED.active, mcp = EXCLUDED.mcp",
         owner_id,
         resource_id,
+        is_active,
         mcp,
     )
 
@@ -53,34 +60,42 @@ async def upsert_multi(
     resource_ids: list[UUID],
     constraint: str,
     mcp: bool = False,
+    soft: bool = False,
 ) -> None:
     """Upsert multi-select junction rows.
 
-    Deactivates rows whose resource ID is not in the new list,
-    then inserts or reactivates rows for each ID in the list.
+    Normal (soft=False): deactivates rows whose resource ID is not in the new
+    list, then inserts or reactivates rows for each ID in the list.
     Pass an empty list to deactivate all.
+
+    Soft (soft=True): inserts new rows as inactive without deactivating
+    existing rows. Old values stay active until promoted.
     """
     if not resource_ids:
-        await conn.execute(
-            f"UPDATE {table} SET active = false "
-            f"WHERE {owner_col} = $1 AND active = true",
-            owner_id,
-        )
+        if not soft:
+            await conn.execute(
+                f"UPDATE {table} SET active = false "
+                f"WHERE {owner_col} = $1 AND active = true",
+                owner_id,
+            )
         return
 
+    if not soft:
+        await conn.execute(
+            f"UPDATE {table} SET active = false "
+            f"WHERE {owner_col} = $1 AND active = true AND {resource_col} != ALL($2::uuid[])",
+            owner_id,
+            resource_ids,
+        )
+    is_active = not soft
     await conn.execute(
-        f"UPDATE {table} SET active = false "
-        f"WHERE {owner_col} = $1 AND active = true AND {resource_col} != ALL($2::uuid[])",
-        owner_id,
-        resource_ids,
-    )
-    await conn.execute(
-        f"INSERT INTO {table} ({owner_col}, {resource_col}, mcp) "
-        f"SELECT $1, unnest($2::uuid[]), $3 "
+        f"INSERT INTO {table} ({owner_col}, {resource_col}, active, mcp) "
+        f"SELECT $1, unnest($2::uuid[]), $3, $4 "
         f"ON CONFLICT ON CONSTRAINT {constraint} "
-        f"DO UPDATE SET active = true, mcp = $3",
+        f"DO UPDATE SET active = EXCLUDED.active, mcp = EXCLUDED.mcp",
         owner_id,
         resource_ids,
+        is_active,
         mcp,
     )
 
