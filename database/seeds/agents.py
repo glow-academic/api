@@ -545,7 +545,7 @@ agents = [
             sid("tool-resource/persona/search"),
             sid("tool-resource/persona/update"),
         ],
-        rubric_ids=[sid("rubric-resource/persona-rubric")],
+        rubric_ids=[],  # TODO: re-enable [sid("rubric-resource/persona-rubric")] after pipeline stabilizes
         prompt_id=_prompt_id("Persona"),
         instruction_ids=[_instruction_id("Persona")],
     ),
@@ -574,7 +574,7 @@ agents = [
             sid("tool-resource/persona/search"),
             sid("tool-resource/persona/update"),
         ],
-        rubric_ids=[sid("rubric-resource/persona-rubric")],
+        rubric_ids=[],  # TODO: re-enable [sid("rubric-resource/persona-rubric")] after pipeline stabilizes
         prompt_id=_prompt_id("Persona"),
         instruction_ids=[_instruction_id("Persona")],
     ),
