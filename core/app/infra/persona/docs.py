@@ -80,6 +80,7 @@ async def docs_persona_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    **_kwargs,
 ) -> ComposedDocsResponse:
     """Persona docs using composable infra functions.
 

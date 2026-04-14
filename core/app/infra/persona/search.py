@@ -146,6 +146,7 @@ async def search_persona_impl(
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
+    **_kwargs,
 ) -> ListPersonaApiResponse:
     """Persona search using composable infra functions.
 

@@ -23,6 +23,7 @@ async def list_persona_drafts_impl(
     *,
     profile_id: UUID,
     bypass_cache: bool = False,
+    **_kwargs,
 ) -> ArtifactContext:
     """List persona drafts owned by the current profile.
 

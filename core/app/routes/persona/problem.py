@@ -62,6 +62,8 @@ async def problem_persona(
                 session_id=session_id,
                 type=request.type,
                 message=request.message,
+                idempotency_key=request.idempotency_key,
+                accept=request.accept if request.idempotency_key else None,
             )
 
         result = await run_persona_operation_with_audit(

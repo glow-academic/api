@@ -498,6 +498,7 @@ class CreatePersonaApiResponse(BaseModel):
     """Response model for bulk create persona endpoint."""
 
     results: list[PersonaResultItem] = Field(..., description="Per-persona creation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Update Endpoint Types ==========
@@ -550,6 +551,7 @@ class UpdatePersonaApiResponse(BaseModel):
     """Response model for bulk update persona endpoint."""
 
     results: list[PersonaResultItem] = Field(..., description="Per-persona update results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 class SavePersonaFieldError(BaseModel):
@@ -584,6 +586,7 @@ class DeletePersonaApiResponse(BaseModel):
     """Response model for bulk delete persona endpoint."""
 
     results: list[DeletePersonaResult] = Field(..., description="Per-persona deletion results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Duplicate Endpoint Types ==========
@@ -594,6 +597,10 @@ class DuplicatePersonaApiRequest(BaseModel):
 
     id: UUID = Field(..., description="UUID of the persona to duplicate")
 
+    # Ack
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+
 
 class DuplicatePersonaApiResponse(BaseModel):
     """Response model for duplicate persona endpoint."""
@@ -601,6 +608,7 @@ class DuplicatePersonaApiResponse(BaseModel):
     success: bool = Field(..., description="Whether the duplication succeeded")
     id: UUID = Field(..., description="UUID of the newly created duplicate persona")
     message: str = Field(..., description="Human-readable result message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Draft Endpoint Types (composable infra) ==========
@@ -771,6 +779,10 @@ class ProblemPersonaApiRequest(BaseModel):
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
 
+    # Ack
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+
 
 class ProblemPersonaApiResponse(BaseModel):
     """Response model for persona problem endpoint."""
@@ -778,3 +790,4 @@ class ProblemPersonaApiResponse(BaseModel):
     problem_id: UUID = Field(..., description="UUID of the created problem")
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")

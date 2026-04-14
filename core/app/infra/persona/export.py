@@ -57,6 +57,7 @@ async def export_persona_impl(
     *,
     profile_id: UUID,
     id: UUID | None = None,
+    **_kwargs,
 ) -> dict:
     """Persona full export using composable infra functions.
 

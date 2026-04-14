@@ -59,6 +59,8 @@ async def duplicate_persona(
                 profile_id=profile_id,
                 id=request.id,
                 session_id=session_id,
+                idempotency_key=request.idempotency_key,
+                accept=request.accept if request.idempotency_key else None,
             )
 
         result = await run_persona_operation_with_audit(

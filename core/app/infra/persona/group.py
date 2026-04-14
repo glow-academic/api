@@ -49,6 +49,10 @@ class GroupPersonaApiRequest(BaseModel):
     )
     name: str | None = Field(None, description="Optional name for the group")
 
+    # Ack
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant group")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+
 
 class GroupPersonaApiResponse(BaseModel):
     """Response model for persona group endpoint."""
@@ -62,6 +66,9 @@ class GroupPersonaApiResponse(BaseModel):
     )
     name: str | None = Field(
         None, description="The name that was set (if provided)"
+    )
+    idempotency_key: UUID | None = Field(
+        None, description="Idempotency key echoed back for client correlation"
     )
 
 
@@ -99,6 +106,12 @@ async def group_persona_impl(
     if request is not None:
         group_id = request.group_id
         name = request.name
+
+    # ── Merge ack fields from request (HTTP) or params (generation pipeline)
+    if request is not None:
+        idempotency_key = idempotency_key or request.idempotency_key
+        if idempotency_key and accept is None:
+            accept = request.accept
 
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:

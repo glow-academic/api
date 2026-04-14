@@ -104,7 +104,7 @@ async def search_persona(
             upload_folder=get_upload_folder(),
         )
 
-        response.headers["X-Invalidate-Tags"] = ",".join(tags)
+        response.headers["X-Cache-Tags"] = ",".join(tags)
         return result
     except HTTPException:
         raise

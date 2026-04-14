@@ -36,6 +36,7 @@ async def generations_persona_impl(
     date_to: datetime | None = None,
     page_limit: int = 50,
     page_offset: int = 0,
+    **_kwargs,
 ) -> GenerationsPersonaApiResponse:
     """List persona generation groups.
 
