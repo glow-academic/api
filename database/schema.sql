@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ZH6ibboNksVaEHRaNNfnkXtaBINEgOmTMAskBhl0UyoEGeZW7AWRVjZb1a2Zc7G
+\restrict V0ysNMyseUYJWGc521ufTyx6YrW7aPKlizqeF9dnQXejE6IasgRnQdjPBdQIarZ
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -9863,6 +9863,23 @@ CREATE TABLE public.reasoning_levels_resource (
 
 
 --
+-- Name: refresh_entry; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.refresh_entry (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    operation_key uuid NOT NULL,
+    artifact_type public.artifact_type NOT NULL,
+    target text NOT NULL,
+    session_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
 -- Name: request_limits_calls_connection; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -17512,6 +17529,14 @@ ALTER TABLE ONLY public.reasoning_levels_resource
 
 
 --
+-- Name: refresh_entry refresh_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_entry
+    ADD CONSTRAINT refresh_entry_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: request_limits_calls_connection request_limits_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -24885,6 +24910,20 @@ CREATE INDEX idx_reasoning_levels_generated ON public.reasoning_levels_resource 
 --
 
 CREATE INDEX idx_reasoning_levels_mcp ON public.reasoning_levels_resource USING btree (mcp);
+
+
+--
+-- Name: idx_refresh_entry_operation_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_refresh_entry_operation_key ON public.refresh_entry USING btree (operation_key);
+
+
+--
+-- Name: idx_refresh_entry_target_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_refresh_entry_target_created ON public.refresh_entry USING btree (target, created_at DESC);
 
 
 --
@@ -39244,5 +39283,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ZH6ibboNksVaEHRaNNfnkXtaBINEgOmTMAskBhl0UyoEGeZW7AWRVjZb1a2Zc7G
+\unrestrict V0ysNMyseUYJWGc521ufTyx6YrW7aPKlizqeF9dnQXejE6IasgRnQdjPBdQIarZ
 
