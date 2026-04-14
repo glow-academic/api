@@ -238,6 +238,29 @@ def compute_can_duplicate(
     return has_permission(role_permissions, "profile", "duplicate")
 
 
+def compute_can_emulate(
+    actor_role: str,
+    target_role: str | None,
+    target_is_self: bool,
+) -> bool:
+    """Compute can_emulate permission.
+
+    Business logic:
+    - Cannot emulate own profile
+    - Target role must be in SIMULATABLE_ROLES for actor's role
+    """
+    from app.infra.identity.simulatable import SIMULATABLE_ROLES
+
+    if target_is_self:
+        return False
+
+    if target_role is None:
+        return False
+
+    allowed_targets = SIMULATABLE_ROLES.get(actor_role, set())
+    return target_role in allowed_targets
+
+
 # ========== Save/Create Endpoint Permission Functions ==========
 
 

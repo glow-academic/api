@@ -22,15 +22,20 @@ async def unemulate_profile_impl(
     *,
     profile_id: UUID,
     actor_profile_id: UUID | None = None,
+    target_profile_id: UUID | None = None,
 ) -> UnemulateProfileApiResponse:
-    """Exit the innermost emulation layer.
+    """Exit emulation for a specific profile (or innermost layer if no target).
 
     Raises HTTPException(400) if unemulation fails.
     Invalidates profile cache tags on success.
     """
     origin = actor_profile_id or profile_id
 
-    result = await resolve_unemulation(pool, actor_profile_id=origin)
+    result = await resolve_unemulation(
+        pool,
+        actor_profile_id=origin,
+        target_profile_id=target_profile_id,
+    )
 
     if not result.ok:
         raise HTTPException(

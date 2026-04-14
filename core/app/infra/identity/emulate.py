@@ -189,11 +189,13 @@ async def resolve_unemulation(
     pool: asyncpg.Pool,
     *,
     actor_profile_id: UUID,
+    target_profile_id: UUID | None = None,
 ) -> UnemulationResult:
-    """Consume the innermost emulation grant to peel one layer.
+    """Consume an emulation grant to peel one layer.
 
-    Walks the emulation chain from actor_profile_id (the real JWT profile),
-    finds the last grant in the chain, and creates a consumption for it.
+    Walks the emulation chain from actor_profile_id (the real JWT profile).
+    If target_profile_id is provided, consumes the grant targeting that profile.
+    Otherwise falls back to consuming the innermost (last) grant.
 
     On the next request, resolve_identity() will resolve one layer less.
     """
@@ -202,15 +204,26 @@ async def resolve_unemulation(
     if not chain:
         return UnemulationResult(ok=False, reason="No active emulation to exit")
 
-    # Consume the innermost (last) grant in the chain
-    innermost = chain[-1]
+    # Find the grant to consume
+    if target_profile_id is not None:
+        link = next(
+            (l for l in chain if l.target_profile_id == target_profile_id),
+            None,
+        )
+        if link is None:
+            return UnemulationResult(
+                ok=False,
+                reason="No active emulation found for this profile",
+            )
+    else:
+        link = chain[-1]
 
     async with pool.acquire() as conn:
-        await create_grant_consumption(conn, grant_id=innermost.grant_id)
+        await create_grant_consumption(conn, grant_id=link.grant_id)
 
     logger.info(
-        f"Unemulated: consumed grant {innermost.grant_id}, "
-        f"peeled target {innermost.target_profile_id} "
+        f"Unemulated: consumed grant {link.grant_id}, "
+        f"peeled target {link.target_profile_id} "
         f"(chain depth {len(chain)} → {len(chain) - 1})"
     )
 

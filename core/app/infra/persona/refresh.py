@@ -25,18 +25,32 @@ from redis.asyncio import Redis
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.refresh.types import RefreshResponse
 
-# Black-box entry refresh tools
+# Black-box entry refresh tools — persona-specific
 from app.tools.entries.persona.refresh import refresh_persona_internal
 from app.tools.entries.persona_drafts.refresh import refresh_persona_drafts
+# Black-box entry refresh tools — shared infrastructure
+from app.tools.entries.calls.refresh import refresh_calls_internal
+from app.tools.entries.groups.refresh import refresh_groups
+from app.tools.entries.group_names.refresh import refresh_group_names
+from app.tools.entries.messages.refresh import refresh_messages_internal
 from app.tools.entries.refreshes.create import create_refresh
+from app.tools.entries.runs.refresh import refresh_runs_internal
 
-# All persona MV targets
-ALL_TARGETS = ["personas_mv", "persona_drafts_mv"]
+# All persona MV targets (persona-specific + shared infrastructure)
+ALL_TARGETS = [
+    "personas_mv", "persona_drafts_mv",
+    "runs_mv", "messages_mv", "calls_mv", "groups_mv", "group_names_mv",
+]
 
 # Target → refresh function mapping
 _REFRESH_FNS = {
     "personas_mv": refresh_persona_internal,
     "persona_drafts_mv": refresh_persona_drafts,
+    "runs_mv": refresh_runs_internal,
+    "messages_mv": refresh_messages_internal,
+    "calls_mv": refresh_calls_internal,
+    "groups_mv": refresh_groups,
+    "group_names_mv": refresh_group_names,
 }
 
 # Tags to invalidate

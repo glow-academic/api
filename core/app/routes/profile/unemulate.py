@@ -11,7 +11,10 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
-from app.infra.profile.types import UnemulateProfileApiResponse
+from app.infra.profile.types import (
+    UnemulateProfileApiRequest,
+    UnemulateProfileApiResponse,
+)
 from app.infra.profile.unemulate import unemulate_profile_impl
 from app.utils.error.handle_route_error import handle_route_error
 
@@ -20,10 +23,11 @@ router = APIRouter()
 
 @router.post("/unemulate", response_model=UnemulateProfileApiResponse, tags=["profiles"])
 async def unemulate_profile(
+    request: UnemulateProfileApiRequest,
     http_request: Request,
     response: Response,
 ) -> UnemulateProfileApiResponse:
-    """Exit innermost emulation layer. Next request resolves one layer less."""
+    """Exit emulation for a specific target profile."""
     try:
         profile_id = getattr(http_request.state, "profile_id", None)
         if not profile_id:
@@ -35,6 +39,8 @@ async def unemulate_profile(
         )
         session_id = getattr(http_request.state, "session_id", None)
 
+        target_profile_id = UUID(request.target_profile_id)
+
         pool = get_pool()
         redis = get_redis_client()
 
@@ -45,13 +51,17 @@ async def unemulate_profile(
             profile_id=UUID(profile_id),
             session_id=session_id,
             operation="unemulate",
-            arguments={"profile_id": str(profile_id)},
+            arguments={
+                "profile_id": str(profile_id),
+                "target_profile_id": str(target_profile_id),
+            },
             response_model=UnemulateProfileApiResponse,
             runner=lambda: unemulate_profile_impl(
                 pool,
                 redis,
                 profile_id=UUID(profile_id),
                 actor_profile_id=actor_profile_id,
+                target_profile_id=target_profile_id,
             ),
             upload_folder=get_upload_folder(),
         )

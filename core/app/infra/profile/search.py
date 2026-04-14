@@ -17,10 +17,12 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.identity.resolve_identity import resolve_emulation_chain
 from app.infra.profile.permissions import (
     compute_can_delete,
     compute_can_duplicate,
     compute_can_edit,
+    compute_can_emulate,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.profile.types import (
@@ -47,6 +49,7 @@ async def search_profile_impl(
     redis: Redis,
     *,
     profile_id: UUID,
+    actor_profile_id: UUID | None = None,
     # Main filters
     search: str | None = None,
     cohort_ids: list[UUID] | None = None,
@@ -85,6 +88,12 @@ async def search_profile_impl(
     user_level = actor_profile.role_level
     user_department_ids = actor_profile.department_ids
     actor_name = actor_profile.name
+    actor_role = actor_profile.role
+
+    # Resolve emulation chain once for is_emulated computation
+    origin = actor_profile_id or profile_id
+    chain = await resolve_emulation_chain(pool, origin)
+    emulated_profile_ids: set[UUID] = {link.target_profile_id for link in chain}
 
     # -- Step 2: Scope by role hierarchy + optional role_filter --
     # Visible roles: roles at or below the requester's level (from DB).
@@ -286,6 +295,12 @@ async def search_profile_impl(
             target_role=target_role,
         )
         can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
+        can_emulate = compute_can_emulate(
+            actor_role=actor_role,
+            target_role=target_role,
+            target_is_self=target_is_self,
+        )
+        is_emulated = a.id in emulated_profile_ids
 
         profiles_list.append(
             ListProfilesApiProfile(
@@ -302,6 +317,8 @@ async def search_profile_impl(
                 can_edit=can_edit,
                 can_duplicate=can_duplicate,
                 can_delete=can_delete,
+                can_emulate=can_emulate,
+                is_emulated=is_emulated,
             )
         )
 

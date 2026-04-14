@@ -165,16 +165,11 @@ async def generate_persona_impl(
             tool_soft=tool_soft,
         )
 
-        # Step 5: Refresh MVs so history is queryable
-        async with pool.acquire() as conn:
-            from app.tools.entries.runs.refresh import refresh_runs_internal
-            from app.tools.entries.messages.refresh import refresh_messages_internal
-            from app.tools.entries.groups.refresh import refresh_groups
-            from app.tools.entries.calls.refresh import refresh_calls_internal
-            await refresh_runs_internal(conn)
-            await refresh_messages_internal(conn)
-            await refresh_groups(conn)
-            await refresh_calls_internal(conn)
+        # Step 5: Refresh all MVs (persona + shared infra) via canonical refresh
+        from app.infra.persona.refresh import refresh_persona_impl
+        await refresh_persona_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+        )
 
     except Exception as e:
         logger.exception(f"Persona generation failed: {e}")

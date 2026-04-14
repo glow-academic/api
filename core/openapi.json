@@ -9643,8 +9643,18 @@
           "profiles"
         ],
         "summary": "Unemulate Profile",
-        "description": "Exit innermost emulation layer. Next request resolves one layer less.",
+        "description": "Exit emulation for a specific target profile.",
         "operationId": "unemulate_profile_profiles_unemulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnemulateProfileApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -9652,6 +9662,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UnemulateProfileApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -82011,6 +82031,30 @@
             ],
             "title": "Can Delete",
             "description": "Whether the actor can delete this profile"
+          },
+          "can_emulate": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Can Emulate",
+            "description": "Whether the actor can emulate this profile"
+          },
+          "is_emulated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Emulated",
+            "description": "Whether this profile is currently being emulated by the actor"
           }
         },
         "type": "object",
@@ -108612,6 +108656,21 @@
         ],
         "title": "ToolResultItem",
         "description": "Per-item result within a bulk create/update response."
+      },
+      "UnemulateProfileApiRequest": {
+        "properties": {
+          "target_profile_id": {
+            "type": "string",
+            "title": "Target Profile Id",
+            "description": "Profile ID to stop emulating"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_profile_id"
+        ],
+        "title": "UnemulateProfileApiRequest",
+        "description": "Request model for exiting emulation of a specific profile."
       },
       "UnemulateProfileApiResponse": {
         "properties": {

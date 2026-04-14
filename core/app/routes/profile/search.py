@@ -56,11 +56,17 @@ async def search_profile(
         pool = get_pool()
         redis = get_redis_client()
 
+        identity = getattr(http_request.state, "identity", None)
+        actor_profile_id = (
+            getattr(identity, "actor_profile_id", None) if identity else None
+        )
+
         async def _runner() -> ListProfilesApiResponse:
             return await search_profile_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
+                actor_profile_id=actor_profile_id,
                 search=request.search,
                 cohort_ids=request.cohort_ids,
                 filter_department_ids=request.filter_department_ids,

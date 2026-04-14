@@ -406,6 +406,12 @@ class EmulateProfileApiResponse(BaseModel):
 # ========== Unemulate Endpoint Types ==========
 
 
+class UnemulateProfileApiRequest(BaseModel):
+    """Request model for exiting emulation of a specific profile."""
+
+    target_profile_id: str = Field(..., description="Profile ID to stop emulating")
+
+
 class UnemulateProfileApiResponse(BaseModel):
     """Response model for exiting emulation (peel one layer)."""
 
@@ -430,6 +436,8 @@ class ListProfilesApiProfile(BaseModel):
     can_edit: bool | None = Field(None, description="Whether the actor can edit this profile")
     can_duplicate: bool | None = Field(None, description="Whether the actor can duplicate this profile")
     can_delete: bool | None = Field(None, description="Whether the actor can delete this profile")
+    can_emulate: bool | None = Field(None, description="Whether the actor can emulate this profile")
+    is_emulated: bool | None = Field(None, description="Whether this profile is currently being emulated by the actor")
 
 
 class ListProfilesApiResponse(BaseModel):
