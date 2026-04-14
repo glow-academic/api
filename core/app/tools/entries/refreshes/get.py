@@ -1,4 +1,4 @@
-"""Refresh GET — batch get from refresh_mv."""
+"""Refresh GET — batch get from refreshes_mv."""
 
 from uuid import UUID
 
@@ -7,7 +7,7 @@ import asyncpg  # type: ignore
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.refreshes.types import GetRefreshResponse
 
-MV_NAME = "refresh_mv"
+MV_NAME = "refreshes_mv"
 
 
 async def get_refreshes(
@@ -15,7 +15,7 @@ async def get_refreshes(
     ids: list[UUID],
     bypass_mv: bool = False,
 ) -> list[GetRefreshResponse]:
-    """Get refresh entries by IDs from refresh_mv."""
+    """Get refresh entries by IDs from refreshes_mv."""
     if not ids:
         return []
 

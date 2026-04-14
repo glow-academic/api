@@ -7,13 +7,13 @@ import asyncpg
 from app.infra.globals import get_redis_client
 from app.utils.cache.invalidate_tags import invalidate_tags
 
-MV_NAME = "refresh_mv"
+MV_NAME = "refreshes_mv"
 
 
 async def refresh_refreshes_internal(
     conn: asyncpg.Connection,
 ) -> dict:
-    """Refresh refresh_mv concurrently."""
+    """Refresh refreshes_mv concurrently."""
     start_time = time.time()
     await conn.execute(f"REFRESH MATERIALIZED VIEW CONCURRENTLY {MV_NAME}")
     duration_ms = int((time.time() - start_time) * 1000)

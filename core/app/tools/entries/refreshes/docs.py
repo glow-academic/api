@@ -12,7 +12,7 @@ from app.tools.entries.refreshes.search import search_refreshes
 
 async def get_refreshes_docs(conn: asyncpg.Connection) -> DocsResponse:
     """Get full documentation for the refresh entry."""
-    entry_table = await get_table_info(conn, "refresh_entry")
+    entry_table = await get_table_info(conn, "refreshes_entry")
 
     tables = [t for t in [entry_table] if t is not None]
 

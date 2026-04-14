@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict J3Fy76mdB16HoiW5K77k65cQOjGL8CCGKx4OqLc61Zc4zBCOp7pFCIV81NoIxUR
+\restrict dObx6iUxR5ph5bkeKDfdmPJwLyBlgCukoaMcivsuVg6OdFOYDwbibaz6aq7fY3e
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -9863,27 +9863,27 @@ CREATE TABLE public.reasoning_levels_resource (
 
 
 --
--- Name: refresh_entry; Type: TABLE; Schema: public; Owner: -
+-- Name: refreshes_entry; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.refresh_entry (
-    id uuid DEFAULT uuidv7() NOT NULL,
-    operation_key uuid NOT NULL,
-    artifact_type public.artifact_type NOT NULL,
-    target text NOT NULL,
-    session_id uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    generated boolean DEFAULT false NOT NULL,
-    mcp boolean DEFAULT false NOT NULL
+CREATE TABLE public.refreshes_entry (
+    id uuid DEFAULT uuidv7() CONSTRAINT refresh_entry_id_not_null NOT NULL,
+    operation_key uuid CONSTRAINT refresh_entry_operation_key_not_null NOT NULL,
+    artifact_type public.artifact_type CONSTRAINT refresh_entry_artifact_type_not_null NOT NULL,
+    target text CONSTRAINT refresh_entry_target_not_null NOT NULL,
+    session_id uuid CONSTRAINT refresh_entry_session_id_not_null NOT NULL,
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT refresh_entry_created_at_not_null NOT NULL,
+    active boolean DEFAULT true CONSTRAINT refresh_entry_active_not_null NOT NULL,
+    generated boolean DEFAULT false CONSTRAINT refresh_entry_generated_not_null NOT NULL,
+    mcp boolean DEFAULT false CONSTRAINT refresh_entry_mcp_not_null NOT NULL
 );
 
 
 --
--- Name: refresh_mv; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+-- Name: refreshes_mv; Type: MATERIALIZED VIEW; Schema: public; Owner: -
 --
 
-CREATE MATERIALIZED VIEW public.refresh_mv AS
+CREATE MATERIALIZED VIEW public.refreshes_mv AS
  SELECT id,
     operation_key,
     artifact_type,
@@ -9893,7 +9893,7 @@ CREATE MATERIALIZED VIEW public.refresh_mv AS
     active,
     generated,
     mcp
-   FROM public.refresh_entry r
+   FROM public.refreshes_entry r
   WHERE (active = true)
   WITH NO DATA;
 
@@ -17548,11 +17548,11 @@ ALTER TABLE ONLY public.reasoning_levels_resource
 
 
 --
--- Name: refresh_entry refresh_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: refreshes_entry refreshes_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.refresh_entry
-    ADD CONSTRAINT refresh_entry_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.refreshes_entry
+    ADD CONSTRAINT refreshes_entry_pkey PRIMARY KEY (id);
 
 
 --
@@ -24932,17 +24932,17 @@ CREATE INDEX idx_reasoning_levels_mcp ON public.reasoning_levels_resource USING 
 
 
 --
--- Name: idx_refresh_entry_operation_key; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_refreshes_entry_operation_key; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_refresh_entry_operation_key ON public.refresh_entry USING btree (operation_key);
+CREATE INDEX idx_refreshes_entry_operation_key ON public.refreshes_entry USING btree (operation_key);
 
 
 --
--- Name: idx_refresh_entry_target_created; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_refreshes_entry_target_created; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_refresh_entry_target_created ON public.refresh_entry USING btree (target, created_at DESC);
+CREATE INDEX idx_refreshes_entry_target_created ON public.refreshes_entry USING btree (target, created_at DESC);
 
 
 --
@@ -28215,10 +28215,10 @@ CREATE INDEX reasoning_levels_calls_connection_id_idx ON public.reasoning_levels
 
 
 --
--- Name: refresh_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: refreshes_mv_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX refresh_mv_id_idx ON public.refresh_mv USING btree (id);
+CREATE UNIQUE INDEX refreshes_mv_id_idx ON public.refreshes_mv USING btree (id);
 
 
 --
@@ -39309,5 +39309,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict J3Fy76mdB16HoiW5K77k65cQOjGL8CCGKx4OqLc61Zc4zBCOp7pFCIV81NoIxUR
+\unrestrict dObx6iUxR5ph5bkeKDfdmPJwLyBlgCukoaMcivsuVg6OdFOYDwbibaz6aq7fY3e
 

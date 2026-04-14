@@ -1,4 +1,4 @@
-"""Refresh search — filtered/paginated query against refresh_mv."""
+"""Refresh search — filtered/paginated query against refreshes_mv."""
 
 from uuid import UUID
 
@@ -7,7 +7,7 @@ import asyncpg  # type: ignore
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.refreshes.types import GetRefreshResponse
 
-MV_NAME = "refresh_mv"
+MV_NAME = "refreshes_mv"
 
 
 async def search_refreshes(
@@ -20,7 +20,7 @@ async def search_refreshes(
     offset: int = 0,
     bypass_mv: bool = False,
 ) -> list[GetRefreshResponse]:
-    """Search refresh entries from refresh_mv with declarative filters."""
+    """Search refresh entries from refreshes_mv with declarative filters."""
     source = await resolve_mv_source(conn, MV_NAME, bypass_mv)
 
     rows = await conn.fetch(

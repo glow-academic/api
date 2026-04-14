@@ -1,4 +1,4 @@
-"""Refresh CREATE — insert into refresh_entry."""
+"""Refresh CREATE — insert into refreshes_entry."""
 
 from uuid import UUID
 
@@ -18,7 +18,7 @@ async def create_refresh(
     """Create a refresh entry for an MV target."""
     refresh_id = await conn.fetchval(
         """
-        INSERT INTO refresh_entry (operation_key, artifact_type, target, session_id, mcp, generated)
+        INSERT INTO refreshes_entry (operation_key, artifact_type, target, session_id, mcp, generated)
         VALUES ($1, $2::artifact_type, $3, $4, $5, true)
         RETURNING id
         """,
