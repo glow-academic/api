@@ -19,7 +19,7 @@ async def get_agent_drafts(
         """
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
-            d.group_id, d.session_id,
+            d.session_id,
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL), '{}') AS name_ids,
             COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL), '{}') AS description_ids,
             COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL), '{}') AS flag_ids,
@@ -48,7 +48,7 @@ async def get_agent_drafts(
         WHERE d.id = ANY($1)
           AND d.active = true
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.group_id, d.session_id
+                 d.session_id
         ORDER BY d.created_at DESC
         """,
         ids,
@@ -61,7 +61,6 @@ async def get_agent_drafts(
             generated=r["generated"],
             mcp=r["mcp"],
             active=r["active"],
-            group_id=r["group_id"],
             session_id=r["session_id"],
             name_ids=r["name_ids"],
             description_ids=r["description_ids"],

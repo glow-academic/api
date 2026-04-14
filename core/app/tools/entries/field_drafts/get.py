@@ -19,7 +19,7 @@ async def get_field_drafts(
         """
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
-            d.group_id, d.session_id,
+            d.session_id,
             COALESCE(ARRAY_AGG(DISTINCT cp.conditional_parameters_id) FILTER (WHERE cp.conditional_parameters_id IS NOT NULL), '{}') AS conditional_parameter_ids,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
             COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL), '{}') AS description_ids,
@@ -36,7 +36,7 @@ async def get_field_drafts(
         WHERE d.id = ANY($1)
           AND d.active = true
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.group_id, d.session_id
+                 d.session_id
         ORDER BY d.created_at DESC
         """,
         ids,
@@ -49,7 +49,6 @@ async def get_field_drafts(
             generated=r["generated"],
             mcp=r["mcp"],
             active=r["active"],
-            group_id=r["group_id"],
             session_id=r["session_id"],
             conditional_parameter_ids=r["conditional_parameter_ids"],
             department_ids=r["department_ids"],

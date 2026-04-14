@@ -57,7 +57,7 @@ async def get_persona_drafts(
         WHERE d.id = ANY($1)
           AND d.active = true
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.group_id, d.session_id
+                 d.session_id
         ORDER BY d.created_at DESC
         """,
         ids,

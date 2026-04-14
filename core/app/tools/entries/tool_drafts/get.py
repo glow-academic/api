@@ -19,7 +19,7 @@ async def get_tool_drafts(
         """
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
-            d.group_id, d.session_id,
+            d.session_id,
             COALESCE(ARRAY_AGG(DISTINCT ap.arg_positions_id) FILTER (WHERE ap.arg_positions_id IS NOT NULL), '{}') AS arg_position_ids,
             COALESCE(ARRAY_AGG(DISTINCT a.args_id) FILTER (WHERE a.args_id IS NOT NULL), '{}') AS arg_ids,
             COALESCE(ARRAY_AGG(DISTINCT ao.args_outputs_id) FILTER (WHERE ao.args_outputs_id IS NOT NULL), '{}') AS args_output_ids,
@@ -42,7 +42,7 @@ async def get_tool_drafts(
         WHERE d.id = ANY($1)
           AND d.active = true
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.group_id, d.session_id
+                 d.session_id
         ORDER BY d.created_at DESC
         """,
         ids,
@@ -55,7 +55,6 @@ async def get_tool_drafts(
             generated=r["generated"],
             mcp=r["mcp"],
             active=r["active"],
-            group_id=r["group_id"],
             session_id=r["session_id"],
             arg_position_ids=r["arg_position_ids"],
             arg_ids=r["arg_ids"],

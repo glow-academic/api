@@ -19,7 +19,7 @@ async def get_profile_drafts(
         """
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
-            d.group_id, d.session_id,
+            d.session_id,
             COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL), '{}') AS profile_ids,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
             COALESCE(ARRAY_AGG(DISTINCT em.emails_id) FILTER (WHERE em.emails_id IS NOT NULL), '{}') AS email_ids,
@@ -38,7 +38,7 @@ async def get_profile_drafts(
         WHERE d.id = ANY($1)
           AND d.active = true
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.group_id, d.session_id
+                 d.session_id
         ORDER BY d.created_at DESC
         """,
         ids,
@@ -51,7 +51,6 @@ async def get_profile_drafts(
             generated=r["generated"],
             mcp=r["mcp"],
             active=r["active"],
-            group_id=r["group_id"],
             session_id=r["session_id"],
             profile_ids=r["profile_ids"],
             department_ids=r["department_ids"],
