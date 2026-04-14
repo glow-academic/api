@@ -295,9 +295,8 @@ async def _execute_agent_dispatch(
                 delta = event.get("delta", "")
                 if delta:
                     assistant_output += delta
-                    # Emit artifact-scoped progress
                     await internal_sio.emit(
-                        f"{artifact_type}.generate.progress",
+                        f"{artifact_type}.generate.text.progress",
                         {
                             "sid": sid,
                             "rooms": [sid] if sid else [],
@@ -305,13 +304,23 @@ async def _execute_agent_dispatch(
                             "run_id": str(run_id),
                             "group_id": str(group_id),
                             "agent_id": str(dispatch.agent_id),
-                            "event_type": "text_delta",
                             "delta": delta,
                         },
                     )
 
             elif event_type == "text_complete":
                 assistant_output = event.get("text", assistant_output)
+                await internal_sio.emit(
+                    f"{artifact_type}.generate.text.complete",
+                    {
+                        "sid": sid,
+                        "rooms": [sid] if sid else [],
+                        "artifact_type": artifact_type,
+                        "run_id": str(run_id),
+                        "group_id": str(group_id),
+                        "text": assistant_output,
+                    },
+                )
 
             elif event_type in ("tool_call_start", "tool_call_delta"):
                 raw_id = cast(str, event.get("tool_call_id"))
@@ -329,6 +338,19 @@ async def _execute_agent_dispatch(
                         "arguments": "",
                     },
                 )
+                if event_type == "tool_call_start":
+                    await internal_sio.emit(
+                        f"{artifact_type}.generate.call.start",
+                        {
+                            "sid": sid,
+                            "rooms": [sid] if sid else [],
+                            "artifact_type": artifact_type,
+                            "run_id": str(run_id),
+                            "group_id": str(group_id),
+                            "tool_call_id": tool_call_id,
+                            "tool_name": st.get("tool_name"),
+                        },
+                    )
                 if event_type == "tool_call_delta":
                     delta = event.get("delta", "") or ""
                     if event.get("tool_name") and not st["tool_name"]:
@@ -416,6 +438,21 @@ async def _execute_agent_dispatch(
                     "result": tool_result,
                     "result_str": tool_result_str,
                 })
+
+                # Emit call complete
+                await internal_sio.emit(
+                    f"{artifact_type}.generate.call.complete",
+                    {
+                        "sid": sid,
+                        "rooms": [sid] if sid else [],
+                        "artifact_type": artifact_type,
+                        "run_id": str(run_id),
+                        "group_id": str(group_id),
+                        "tool_call_id": tool_call_id,
+                        "tool_name": tool_name,
+                        "success": tool_result.get("success", False) if isinstance(tool_result, dict) else False,
+                    },
+                )
 
             elif event_type == "output_item":
                 item = event.get("item")
