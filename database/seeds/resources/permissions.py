@@ -1079,6 +1079,12 @@ permissions = [
         name="Create Persona",
     ),
     dict(
+        id=sid("permission/persona/csv"),
+        artifact="persona",
+        operation="csv",
+        name="CSV Persona",
+    ),
+    dict(
         id=sid("permission/persona/delete"),
         artifact="persona",
         operation="delete",
@@ -2117,6 +2123,7 @@ PERMISSION_IDS = {
     ("parameter", "search"): sid("permission/parameter/search"),
     ("parameter", "update"): sid("permission/parameter/update"),
     ("persona", "create"): sid("permission/persona/create"),
+    ("persona", "csv"): sid("permission/persona/csv"),
     ("persona", "delete"): sid("permission/persona/delete"),
     ("persona", "docs"): sid("permission/persona/docs"),
     ("persona", "draft"): sid("permission/persona/draft"),
