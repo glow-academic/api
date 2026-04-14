@@ -1,8 +1,16 @@
-"""Persona generate logic — per-artifact generation entry point.
+"""Persona generate logic — deterministic infra architecture.
 
-Fire-and-return: resolves identity, checks persona:generate permission,
-validates resources against the registry, and emits to the internal bus.
-Progress/completion events arrive via SSE or WebSocket.
+Calls prepare_generation → execute_generation directly.
+No generic websocket events. Tool calls emit through audit path.
+Text streaming emits persona.generate.progress.
+
+Flow:
+  1. resolve_profile_identity_context → role, permissions
+  2. Permission check — persona:generate
+  3. Validate resources against registry
+  4. prepare_generation — create run, resolve context, build dispatches
+  5. execute_generation — agentic LLM loop
+  6. Emit persona.generate.completed
 """
 
 from __future__ import annotations
@@ -14,14 +22,20 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.generation.execute import execute_generation
+from app.infra.generation.prepare import prepare_generation
 from app.infra.globals import get_internal_sio
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.websocket.generation_types import (
     ArtifactGenerateRequest,
     ArtifactGenerateResponse,
+    GeneratePayload,
 )
 from app.registry.generate import REGISTRY
+from app.utils.logging.db_logger import get_logger
+
+logger = get_logger(__name__)
 
 ARTIFACT_TYPE = "persona"
 
@@ -39,58 +53,24 @@ async def generate_persona_impl(
     idempotency_key: UUID | None = None,
     **_kwargs,
 ) -> ArtifactGenerateResponse:
-    """Trigger persona generation.
+    """Persona generation using deterministic infra functions.
 
     Lifecycle via soft + accept:
-      - soft=True: validate only, return idempotency_key. LLM doesn't run.
-      - accept=True: emit to bus, full generation pipeline starts.
+      - soft=True: prepare only (run with active=false, context resolved,
+        messages persisted). LLM doesn't run, no cost.
+      - accept=True: prepare + execute (full generation).
       - accept=False: no-op.
-
-    Flow:
-      1. resolve_profile_identity_context → role, permissions
-      2. Permission check — persona:generate
-      3. Validate resources against registry
-      4. Emit to internal bus (skipped when soft)
-      5. Return group_id + idempotency_key
+      - neither (normal): prepare + execute immediately.
     """
+    internal_sio = get_internal_sio()
+    resolved_sid = sid or f"http-{uuid.uuid4()}"
+
     # ── Merge ack fields from request (HTTP) or params (generation pipeline)
     idempotency_key = idempotency_key or (
         uuid.UUID(request.idempotency_key) if request.idempotency_key else None
     )
     if idempotency_key and accept is None:
         accept = request.accept
-
-    # ── Short-circuit: ack path ───────────────────────────────────────
-    if accept is not None and idempotency_key is not None:
-        group_id = request.group_id
-        if accept:
-            # Accept: now emit to the bus — full pipeline runs
-            profile = await resolve_profile_identity_context(
-                pool, profile_id, redis, session_id=session_id,
-            )
-            if profile is None:
-                raise HTTPException(status_code=401, detail="Profile not found.")
-
-            payload = request.to_generate_payload(ARTIFACT_TYPE)
-            resolved_sid = sid or f"http-{uuid.uuid4()}"
-            internal_sio = get_internal_sio()
-            await internal_sio.emit(
-                "generate",
-                {
-                    "sid": resolved_sid,
-                    "profile_id": str(profile_id),
-                    "profiles_id": str(profile.profiles_id),
-                    "session_id": str(session_id),
-                    "group_id": str(group_id),
-                    "requests_per_day": profile.requests_per_day,
-                    **payload.model_dump(mode="json"),
-                },
-            )
-        # accept=False: no-op (generation never starts)
-        return ArtifactGenerateResponse(
-            group_id=str(group_id) if group_id else "",
-            idempotency_key=str(idempotency_key),
-        )
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -122,7 +102,10 @@ async def generate_persona_impl(
         raise HTTPException(status_code=400, detail="group_id is required")
 
     config = REGISTRY.get(ARTIFACT_TYPE)
-    if config and request.resources:
+    if not config:
+        raise HTTPException(status_code=400, detail=f"No config for {ARTIFACT_TYPE}")
+
+    if request.resources:
         invalid = set(request.resources) - set(config.valid_resource_types)
         if invalid:
             raise HTTPException(
@@ -130,35 +113,137 @@ async def generate_persona_impl(
                 detail=f"Invalid resources for {ARTIFACT_TYPE}: {sorted(invalid)}",
             )
 
-    # ── Step 4: Soft — validate only, don't emit ─────────────────────
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            # Accept: prepare + execute
+            payload = request.to_generate_payload(ARTIFACT_TYPE)
 
-    generated_key = idempotency_key or uuid.uuid4()
+            await internal_sio.emit(f"{ARTIFACT_TYPE}.generate.started", {
+                "sid": resolved_sid,
+                "rooms": [resolved_sid] if resolved_sid else [],
+                "artifact_type": ARTIFACT_TYPE,
+                "group_id": str(group_id),
+            })
 
-    if soft:
+            try:
+                prepared = await prepare_generation(
+                    pool, redis,
+                    profile_id=profile_id,
+                    profiles_id=profile.profiles_id,
+                    session_id=session_id,
+                    group_id=uuid.UUID(str(group_id)),
+                    artifact_type=ARTIFACT_TYPE,
+                    artifact_config=config,
+                    payload=payload,
+                )
+
+                result = await execute_generation(
+                    pool, redis,
+                    prepared=prepared,
+                    sid=resolved_sid,
+                )
+
+                await internal_sio.emit(f"{ARTIFACT_TYPE}.generate.completed", {
+                    "sid": resolved_sid,
+                    "rooms": [resolved_sid] if resolved_sid else [],
+                    "artifact_type": ARTIFACT_TYPE,
+                    "group_id": str(group_id),
+                    "run_id": str(prepared.run_id),
+                    "success": True,
+                    "input_tokens": result.total_input_tokens,
+                    "output_tokens": result.total_output_tokens,
+                })
+            except Exception as e:
+                logger.exception(f"Persona generation failed: {e}")
+                await internal_sio.emit(f"{ARTIFACT_TYPE}.generate.failed", {
+                    "sid": resolved_sid,
+                    "rooms": [resolved_sid] if resolved_sid else [],
+                    "artifact_type": ARTIFACT_TYPE,
+                    "group_id": str(group_id),
+                    "message": str(e),
+                })
+
+        # accept=False: no-op
         return ArtifactGenerateResponse(
             group_id=str(group_id),
-            idempotency_key=str(generated_key),
+            idempotency_key=str(idempotency_key),
         )
 
-    # ── Step 5: Emit to internal bus ──────────────────────────────────
+    # ── Step 4: Build payload ─────────────────────────────────────────
 
+    generated_key = idempotency_key or uuid.uuid4()
     payload = request.to_generate_payload(ARTIFACT_TYPE)
 
-    resolved_sid = sid or f"http-{uuid.uuid4()}"
+    # ── Step 5: Soft — prepare only, don't execute ────────────────────
 
-    internal_sio = get_internal_sio()
-    await internal_sio.emit(
-        "generate",
-        {
+    if soft:
+        try:
+            prepared = await prepare_generation(
+                pool, redis,
+                profile_id=profile_id,
+                profiles_id=profile.profiles_id,
+                session_id=session_id,
+                group_id=uuid.UUID(str(group_id)),
+                artifact_type=ARTIFACT_TYPE,
+                artifact_config=config,
+                payload=payload,
+                soft=True,
+            )
+            return ArtifactGenerateResponse(
+                group_id=str(group_id),
+                idempotency_key=str(prepared.run_id),
+            )
+        except Exception as e:
+            logger.exception(f"Persona generation prepare failed: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    # ── Step 6: Normal — prepare + execute immediately ────────────────
+
+    await internal_sio.emit(f"{ARTIFACT_TYPE}.generate.started", {
+        "sid": resolved_sid,
+        "rooms": [resolved_sid] if resolved_sid else [],
+        "artifact_type": ARTIFACT_TYPE,
+        "group_id": str(group_id),
+    })
+
+    try:
+        prepared = await prepare_generation(
+            pool, redis,
+            profile_id=profile_id,
+            profiles_id=profile.profiles_id,
+            session_id=session_id,
+            group_id=uuid.UUID(str(group_id)),
+            artifact_type=ARTIFACT_TYPE,
+            artifact_config=config,
+            payload=payload,
+        )
+
+        result = await execute_generation(
+            pool, redis,
+            prepared=prepared,
+            sid=resolved_sid,
+        )
+
+        await internal_sio.emit(f"{ARTIFACT_TYPE}.generate.completed", {
             "sid": resolved_sid,
-            "profile_id": str(profile_id),
-            "profiles_id": str(profile.profiles_id),
-            "session_id": str(session_id),
+            "rooms": [resolved_sid] if resolved_sid else [],
+            "artifact_type": ARTIFACT_TYPE,
             "group_id": str(group_id),
-            "requests_per_day": profile.requests_per_day,
-            **payload.model_dump(mode="json"),
-        },
-    )
+            "run_id": str(prepared.run_id),
+            "success": True,
+            "input_tokens": result.total_input_tokens,
+            "output_tokens": result.total_output_tokens,
+        })
+    except Exception as e:
+        logger.exception(f"Persona generation failed: {e}")
+        await internal_sio.emit(f"{ARTIFACT_TYPE}.generate.failed", {
+            "sid": resolved_sid,
+            "rooms": [resolved_sid] if resolved_sid else [],
+            "artifact_type": ARTIFACT_TYPE,
+            "group_id": str(group_id),
+            "message": str(e),
+        })
 
     return ArtifactGenerateResponse(
         group_id=str(group_id),
