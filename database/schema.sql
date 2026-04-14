@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict qaZpofw55f8VptptJHHDsOhHJASzG7vztlq5IMrVS6MmsgHugiqhlhb8xvrG1hH
+\restrict ipbSlMsnNTpgbOKqPwCRidwaPgDpngqpviaFjKefFBGjgQ4HEXtxOpIf0GcKswj
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -20069,6 +20069,13 @@ CREATE INDEX args_resource_name_idx ON public.args_resource USING btree (name);
 
 
 --
+-- Name: attempt_chat_mv_chat_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX attempt_chat_mv_chat_id_idx ON public.attempt_chat_mv USING btree (chat_id);
+
+
+--
 -- Name: attempt_conversations_entry_chat_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -20080,6 +20087,13 @@ CREATE INDEX attempt_conversations_entry_chat_id_idx ON public.attempt_conversat
 --
 
 CREATE INDEX attempt_conversations_entry_created_at_idx ON public.attempt_conversations_entry USING btree (created_at);
+
+
+--
+-- Name: attempt_conversations_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX attempt_conversations_mv_id_idx ON public.attempt_conversations_mv USING btree (id);
 
 
 --
@@ -28665,6 +28679,13 @@ CREATE INDEX runs_keys_connection_runs_id_idx ON public.runs_keys_connection USI
 
 
 --
+-- Name: runs_mv_run_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX runs_mv_run_id_idx ON public.runs_mv USING btree (run_id);
+
+
+--
 -- Name: scenario_departments_department_id_v7_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29551,6 +29572,20 @@ CREATE INDEX temperature_levels_calls_connection_call_id_idx ON public.temperatu
 --
 
 CREATE INDEX temperature_levels_calls_connection_id_idx ON public.temperature_levels_calls_connection USING btree (temperature_levels_id);
+
+
+--
+-- Name: test_grade_mv_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX test_grade_mv_id_idx ON public.test_grade_mv USING btree (id);
+
+
+--
+-- Name: test_invocation_mv_invocation_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX test_invocation_mv_invocation_id_idx ON public.test_invocation_mv USING btree (invocation_id);
 
 
 --
@@ -39499,5 +39534,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict qaZpofw55f8VptptJHHDsOhHJASzG7vztlq5IMrVS6MmsgHugiqhlhb8xvrG1hH
+\unrestrict ipbSlMsnNTpgbOKqPwCRidwaPgDpngqpviaFjKefFBGjgQ4HEXtxOpIf0GcKswj
 
