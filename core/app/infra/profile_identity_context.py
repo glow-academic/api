@@ -265,8 +265,7 @@ async def _resolve_group_id(
     Priority:
       1. attempt_id → active chat → group_id
       2. test_id → latest invocation → group_id
-      3. draft_id → draft's group_id
-      4. otherwise create a fresh group for the provided session
+      3. otherwise create a fresh group for the provided session
     """
     from app.infra.identity.group import resolve_group
 
@@ -277,7 +276,6 @@ async def _resolve_group_id(
             session_id=session_id,
             attempt_id=attempt_id,
             test_id=test_id,
-            draft_id=draft_id,
             artifact_type=artifact_type,
         )
 

@@ -12560,6 +12560,206 @@
         ]
       }
     },
+    "/attempt/generate": {
+      "post": {
+        "tags": [
+          "attempt"
+        ],
+        "summary": "Generate Attempt",
+        "description": "Trigger attempt generation. Returns immediately; progress via events.",
+        "operationId": "generate_attempt_attempt_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtifactGenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactGenerateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt"
+        ]
+      }
+    },
+    "/attempt/generations": {
+      "post": {
+        "tags": [
+          "attempt"
+        ],
+        "summary": "Generations Attempt",
+        "description": "List attempt generation groups \u2014 composable infra architecture.",
+        "operationId": "generations_attempt_attempt_generations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerationsAttemptApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerationsAttemptApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt"
+        ]
+      }
+    },
+    "/attempt/group": {
+      "post": {
+        "tags": [
+          "attempt"
+        ],
+        "summary": "Group Attempt",
+        "description": "Resolve or create an attempt group with optional naming.",
+        "operationId": "group_attempt_attempt_group_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupAttemptApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupAttemptApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt"
+        ]
+      }
+    },
+    "/attempt/problem": {
+      "post": {
+        "tags": [
+          "attempt"
+        ],
+        "summary": "Problem Attempt",
+        "description": "Report an attempt problem \u2014 composable infra architecture.",
+        "operationId": "problem_attempt_attempt_problem_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemAttemptApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemAttemptApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt"
+        ]
+      }
+    },
     "/attempt/start": {
       "post": {
         "tags": [
@@ -37701,6 +37901,28 @@
               }
             ],
             "title": "Metadata"
+          },
+          "dangerous": {
+            "type": "boolean",
+            "title": "Dangerous",
+            "default": false
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "default": true
           }
         },
         "type": "object",
@@ -37712,6 +37934,18 @@
           "group_id": {
             "type": "string",
             "title": "Group Id"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -47790,6 +48024,25 @@
             "type": "array",
             "title": "Personas",
             "description": "List of persona items to create"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -47808,6 +48061,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-persona creation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -47826,6 +48092,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-persona creation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -52768,6 +53047,25 @@
             "type": "array",
             "title": "Ids",
             "description": "List of persona UUIDs to delete"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -52786,6 +53084,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-persona deletion results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -53663,6 +53974,17 @@
               }
             ],
             "title": "Entity Id"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key"
           }
         },
         "type": "object",
@@ -55529,6 +55851,25 @@
             "format": "uuid",
             "title": "Id",
             "description": "UUID of the persona to duplicate"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -55555,6 +55896,19 @@
             "type": "string",
             "title": "Message",
             "description": "Human-readable result message"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -57754,6 +58108,18 @@
             ],
             "title": "Persona Id",
             "description": "UUID of a specific persona to export (omit for bulk export)"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           },
           "search": {
             "anyOf": [
@@ -60481,8 +60847,167 @@
         "title": "GenerationSavedEvent",
         "description": "Server-to-client: artifact persisted after generation."
       },
+      "GenerationsAttemptApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GenerationsAttemptApiRequest",
+        "description": "Request model for attempt generations endpoint."
+      },
+      "GenerationsAttemptApiResponse": {
+        "properties": {
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "Display name of the current actor"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/GenerationsAttemptListItem"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "Generation groups"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count",
+            "description": "Total number of matching generations",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GenerationsAttemptApiResponse",
+        "description": "Response model for attempt generations endpoint."
+      },
+      "GenerationsAttemptListItem": {
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Group Id",
+            "description": "UUID of the generation group"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "UUID of the parent session"
+          },
+          "group_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Name",
+            "description": "Name of the generation group"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At",
+            "description": "Timestamp of the generation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "group_id"
+        ],
+        "title": "GenerationsAttemptListItem",
+        "description": "Single generation group in the attempt generations response."
+      },
       "GenerationsPersonaApiRequest": {
         "properties": {
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          },
           "search": {
             "anyOf": [
               {
@@ -67959,6 +68484,18 @@
             "title": "Draft Id",
             "description": "UUID of the draft to load instead of published state"
           },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          },
           "names": {
             "anyOf": [
               {
@@ -74949,6 +75486,79 @@
         "title": "GradingStateData",
         "description": "Grading state for a chat in Record format.\n\nAll fields are Records keyed by standard_id strings.\nThis is the exact format the client needs - no transformation required."
       },
+      "GroupAttemptApiRequest": {
+        "properties": {
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id",
+            "description": "Existing group UUID (omit to create or reuse via time window)"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Optional name for the group"
+          }
+        },
+        "type": "object",
+        "title": "GroupAttemptApiRequest",
+        "description": "Request model for attempt group endpoint."
+      },
+      "GroupAttemptApiResponse": {
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Group Id",
+            "description": "Resolved or newly created group UUID"
+          },
+          "group_name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Name Id",
+            "description": "UUID of the created group_names entry (if name was provided)"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "The name that was set (if provided)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "group_id"
+        ],
+        "title": "GroupAttemptApiResponse",
+        "description": "Response model for attempt group endpoint."
+      },
       "GroupDetailCallItem": {
         "properties": {
           "id": {
@@ -75525,6 +76135,25 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -75563,6 +76192,19 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -88944,6 +89586,25 @@
             ],
             "title": "Pending Ids",
             "description": "Resource IDs to keep as pending (active=false on connection)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant draft"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -88963,6 +89624,12 @@
             "title": "Draft Id",
             "description": "UUID of the created or updated draft"
           },
+          "idempotency_key": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Idempotency Key",
+            "description": "Idempotency key for this draft operation (same as draft entry ID)"
+          },
           "message": {
             "type": "string",
             "title": "Message",
@@ -88977,6 +89644,7 @@
         "required": [
           "success",
           "draft_id",
+          "idempotency_key",
           "message",
           "form_state"
         ],
@@ -92744,6 +93412,55 @@
         "type": "object",
         "title": "PrimaryRubricTrendPoint"
       },
+      "ProblemAttemptApiRequest": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Problem type: feature, bug, question, other"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Problem description (max 1000 chars)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "message"
+        ],
+        "title": "ProblemAttemptApiRequest",
+        "description": "Request model for attempt problem endpoint."
+      },
+      "ProblemAttemptApiResponse": {
+        "properties": {
+          "problem_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Problem Id",
+            "description": "UUID of the created problem"
+          },
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Whether the problem was created",
+            "default": true
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Status message",
+            "default": "Problem created successfully"
+          }
+        },
+        "type": "object",
+        "required": [
+          "problem_id"
+        ],
+        "title": "ProblemAttemptApiResponse",
+        "description": "Response model for attempt problem endpoint."
+      },
       "ProblemPersonaApiRequest": {
         "properties": {
           "type": {
@@ -92755,6 +93472,25 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -92784,6 +93520,19 @@
             "title": "Message",
             "description": "Status message",
             "default": "Problem created successfully"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -94849,6 +95598,19 @@
             },
             "type": "array",
             "title": "Invalidated Tags"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -100485,6 +101247,18 @@
       },
       "SearchPersonaApiRequest": {
         "properties": {
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          },
           "search": {
             "anyOf": [
               {
@@ -110024,6 +110798,25 @@
             "type": "array",
             "title": "Personas",
             "description": "List of persona items to update"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -110042,6 +110835,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-persona update results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -110060,6 +110866,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-persona update results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
