@@ -13,6 +13,7 @@ Flow:
 
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg
@@ -22,8 +23,11 @@ from redis.asyncio import Redis
 
 from app.infra.group.refresh import refresh_group_impl
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.tools.entries.calls.search import search_calls
 from app.tools.entries.group_names.create import create_group_name
 from app.tools.entries.groups.create import create_group
+from app.tools.entries.messages.search import search_messages
+from app.tools.entries.runs.search import search_runs
 
 ARTIFACT_TYPE = "persona"
 DEFAULT_WINDOW_SECONDS = 60
@@ -52,6 +56,29 @@ class GroupPersonaApiRequest(BaseModel):
     accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
+class GroupCall(BaseModel):
+    """Tool call within a message."""
+    id: UUID
+    tool_name: str | None = None
+
+
+class GroupMessage(BaseModel):
+    """Message within a run."""
+    id: UUID
+    role: str
+    created_at: datetime | None = None
+    text_ids: list[UUID] = Field(default_factory=list)
+    call_ids: list[UUID] = Field(default_factory=list)
+    calls: list[GroupCall] = Field(default_factory=list)
+
+
+class GroupRun(BaseModel):
+    """Run within a group."""
+    id: UUID
+    created_at: datetime | None = None
+    messages: list[GroupMessage] = Field(default_factory=list)
+
+
 class GroupPersonaApiResponse(BaseModel):
     """Response model for persona group endpoint."""
 
@@ -67,6 +94,9 @@ class GroupPersonaApiResponse(BaseModel):
     )
     idempotency_key: UUID | None = Field(
         None, description="Idempotency key echoed back for client correlation"
+    )
+    runs: list[GroupRun] | None = Field(
+        None, description="Conversation history (populated when resolving existing group)"
     )
 
 
@@ -185,8 +215,70 @@ async def group_persona_impl(
     if created_new or group_name_id:
         await refresh_group_impl(pool, redis, profile_id=profile_id, session_id=session_id)
 
+    # ── Step 5: Resolve conversation history (existing group only) ────
+
+    runs_data: list[GroupRun] | None = None
+    if not created_new and not name:
+        # Resolving existing group — include history
+        async with pool.acquire() as conn:
+            run_items, _ = await search_runs(
+                conn, group_ids=[resolved_group_id], sort_order="asc", limit=10000,
+            )
+
+        if run_items:
+            run_ids = [r.run_id for r in run_items]
+
+            async with pool.acquire() as conn:
+                msg_items, _ = await search_messages(
+                    conn, run_ids=run_ids, sort_order="asc", limit=100000,
+                )
+                call_items = await search_calls(conn, run_ids=run_ids, limit=100000)
+
+            # Build call lookup: call_id → tool_name
+            call_tool_map: dict[UUID, str | None] = {}
+            for c in call_items:
+                tool_name = None
+                if hasattr(c, "tool_id") and c.tool_id:
+                    # Tool name comes from the tools_resource name
+                    # For now, use the tool_id as a placeholder
+                    tool_name = None
+                call_tool_map[c.id] = tool_name
+
+            # Group messages by run
+            from collections import defaultdict
+            msgs_by_run: dict[UUID, list] = defaultdict(list)
+            for m in msg_items:
+                msgs_by_run[m.run_id].append(m)
+
+            runs_data = []
+            for run_item in run_items:
+                run_messages = msgs_by_run.get(run_item.run_id, [])
+                group_messages = []
+                for m in run_messages:
+                    # Collect text_ids and call_ids from the message
+                    text_ids = getattr(m, "text_ids", []) or []
+                    call_ids = getattr(m, "call_ids", []) or []
+                    calls = [
+                        GroupCall(id=cid, tool_name=call_tool_map.get(cid))
+                        for cid in call_ids
+                    ]
+                    group_messages.append(GroupMessage(
+                        id=m.message_id,
+                        role=m.role,
+                        created_at=getattr(m, "created_at", None),
+                        text_ids=text_ids,
+                        call_ids=call_ids,
+                        calls=calls,
+                    ))
+                runs_data.append(GroupRun(
+                    id=run_item.run_id,
+                    created_at=getattr(run_item, "created_at", None),
+                    messages=group_messages,
+                ))
+
     return GroupPersonaApiResponse(
         group_id=resolved_group_id,
         group_name_id=group_name_id,
         name=name,
+        runs=runs_data,
     )

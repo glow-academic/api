@@ -75570,6 +75570,32 @@
         "title": "GroupAttemptApiResponse",
         "description": "Response model for attempt group endpoint."
       },
+      "GroupCall": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tool_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "GroupCall",
+        "description": "Tool call within a message."
+      },
       "GroupDetailCallItem": {
         "properties": {
           "id": {
@@ -76120,6 +76146,61 @@
         "title": "GroupListItem",
         "description": "Single group in the list response with hydrated metadata."
       },
+      "GroupMessage": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "text_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Text Ids"
+          },
+          "call_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Call Ids"
+          },
+          "calls": {
+            "items": {
+              "$ref": "#/components/schemas/GroupCall"
+            },
+            "type": "array",
+            "title": "Calls"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "role"
+        ],
+        "title": "GroupMessage",
+        "description": "Message within a run."
+      },
       "GroupPersonaApiRequest": {
         "properties": {
           "group_id": {
@@ -76216,6 +76297,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history (populated when resolving existing group)"
           }
         },
         "type": "object",
@@ -76224,6 +76320,40 @@
         ],
         "title": "GroupPersonaApiResponse",
         "description": "Response model for persona group endpoint."
+      },
+      "GroupRun": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/GroupMessage"
+            },
+            "type": "array",
+            "title": "Messages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "GroupRun",
+        "description": "Run within a group."
       },
       "GroupScenarioApiRequest": {
         "properties": {
