@@ -903,7 +903,6 @@ agents = [
     ),
 ]
 
-# Add shared tools to every agent
-for _agent in agents:
-    if GROUP_NAME_TOOL not in _agent["tool_ids"]:
-        _agent["tool_ids"].append(GROUP_NAME_TOOL)
+# NOTE: Group_Name (tool-resource/group/name) was previously added to every
+# agent as a shared tool. Each artifact now has its own group tool
+# (e.g., tool-resource/persona/group), so this is no longer needed.
