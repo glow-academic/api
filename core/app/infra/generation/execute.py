@@ -79,8 +79,10 @@ async def _call_responses_api(
     temperature: float, extra_body: dict | None,
 ) -> Any:
     """Call litellm Responses API."""
+    # The openai/ prefix tells litellm SDK to use OpenAI-compatible protocol.
+    effective_model = f"openai/{model}" if base_url and "/" not in model else model
     kwargs: dict[str, Any] = {
-        "model": model,
+        "model": effective_model,
         "input": responses_input,
         "stream": True,
         "temperature": temperature,
@@ -103,8 +105,10 @@ async def _call_chat_completions_api(
     temperature: float, reasoning: bool | None, extra_body: dict | None,
 ) -> Any:
     """Call litellm Chat Completions API."""
+    # The openai/ prefix tells litellm SDK to use OpenAI-compatible protocol.
+    effective_model = f"openai/{model}" if base_url and "/" not in model else model
     kwargs: dict[str, Any] = {
-        "model": model,
+        "model": effective_model,
         "messages": messages,
         "stream": True,
         "temperature": temperature,

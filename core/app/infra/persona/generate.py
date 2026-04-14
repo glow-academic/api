@@ -140,6 +140,12 @@ async def generate_persona_impl(
             payload=payload,
         )
 
+        logger.info(
+            f"GENERATE_PERSONA: prepared run_id={prepared.run_id}, "
+            f"dispatches={len(prepared.dispatches)}, "
+            f"resource_types={prepared.resource_types}"
+        )
+
         result = await execute_generation(
             pool, redis,
             prepared=prepared,
