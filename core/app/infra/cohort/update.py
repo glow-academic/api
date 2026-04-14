@@ -29,6 +29,7 @@ from app.tools.artifacts.cohort.update import (
 from app.tools.artifacts.cohort.update import (
     update_cohort as update_cohort_artifact,
 )
+from app.infra.cohort.types import UpdateCohortApiRequest, UpdateCohortApiResponse
 from app.utils.cache.invalidate_tags import invalidate_tags
 from app.utils.logging.db_logger import get_logger
 
@@ -40,12 +41,12 @@ async def update_cohort_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdateCohortApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdateCohortApiResponse:
     """Cohort bulk update using composable infra functions.
 
     Flow:
@@ -62,8 +63,9 @@ async def update_cohort_impl(
     )
     from app.infra.cohort.types import (
         CohortResultItem,
-        UpdateCohortApiResponse,
     )
+
+    items = request.cohorts
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

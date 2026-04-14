@@ -29,6 +29,7 @@ from app.tools.artifacts.eval.update import (
 from app.tools.artifacts.eval.update import (
     update_eval as update_eval_artifact,
 )
+from app.infra.eval.types import UpdateEvalApiRequest, UpdateEvalApiResponse
 from app.utils.cache.invalidate_tags import invalidate_tags
 from app.utils.logging.db_logger import get_logger
 
@@ -40,12 +41,12 @@ async def update_eval_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdateEvalApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdateEvalApiResponse:
     """Eval bulk update using composable infra functions.
 
     Flow:
@@ -59,8 +60,9 @@ async def update_eval_impl(
     from app.infra.eval.permissions import compute_can_edit
     from app.infra.eval.types import (
         EvalResultItem,
-        UpdateEvalApiResponse,
     )
+
+    items = request.evals
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

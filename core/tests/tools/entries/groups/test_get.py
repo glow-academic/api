@@ -17,7 +17,7 @@ async def _session(conn, profile_id):
 
 async def test_returns_group_by_id(conn, profile_id):
     session = await _session(conn, profile_id)
-    result = await create_group(conn, session_id=session.id)
+    result = await create_group(conn, session_id=session.id, artifact_type="persona")
     await refresh_groups(conn)
 
     items = await get_groups(conn, [result.id])
@@ -31,8 +31,8 @@ async def test_returns_group_by_id(conn, profile_id):
 
 async def test_returns_multiple(conn, profile_id):
     session = await _session(conn, profile_id)
-    r1 = await create_group(conn, session_id=session.id)
-    r2 = await create_group(conn, session_id=session.id)
+    r1 = await create_group(conn, session_id=session.id, artifact_type="persona")
+    r2 = await create_group(conn, session_id=session.id, artifact_type="persona")
     await refresh_groups(conn)
 
     items = await get_groups(conn, [r1.id, r2.id])
@@ -57,7 +57,7 @@ async def test_returns_empty_for_empty_ids(conn, profile_id):
 
 async def test_bypass_mv_returns_without_refresh(conn, profile_id):
     session = await _session(conn, profile_id)
-    result = await create_group(conn, session_id=session.id)
+    result = await create_group(conn, session_id=session.id, artifact_type="persona")
 
     items = await get_groups(conn, [result.id], bypass_mv=True)
 

@@ -34,8 +34,8 @@ async def search_messages(
     rows = await conn.fetch(
         f"""
         SELECT DISTINCT {source_alias}.message_id, {source_alias}.run_id, {source_alias}.role, {source_alias}.message_created_at,
-               {source_alias}.text_upload_ids, {source_alias}.audio_upload_ids, {source_alias}.image_upload_ids,
-               {source_alias}.video_upload_ids, {source_alias}.file_upload_ids, {source_alias}.call_upload_ids,
+               {source_alias}.text_ids, {source_alias}.audio_ids, {source_alias}.image_ids,
+               {source_alias}.video_ids, {source_alias}.file_ids, {source_alias}.call_ids,
                COUNT(*) OVER() AS total_count
         FROM {from_source}
         LEFT JOIN messages_agents_connection mac ON mac.message_id = {source_alias}.message_id

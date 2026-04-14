@@ -1265,3 +1265,55 @@ class DuplicateScenarioSqlRow(BaseModel):
     scenario_id: UUID | None = Field(None, description="UUID of the duplicated scenario")
     scenario_name: str | None = Field(None, description="Name of the duplicated scenario")
     actor_name: str | None = Field(None, description="Display name of the current actor")
+
+
+# =============================================================================
+# Generations Types
+# =============================================================================
+
+
+class GenerationsScenarioApiRequest(BaseModel):
+    """Request model for scenario generations endpoint."""
+
+    search: str | None = Field(None, description="Name search (ILIKE)")
+    date_from: datetime | None = Field(None, description="Start date filter")
+    date_to: datetime | None = Field(None, description="End date filter")
+    page_limit: int = Field(50, ge=1, le=100, description="Maximum items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
+
+
+class GenerationsScenarioListItem(BaseModel):
+    """Single generation group in the scenario generations response."""
+
+    group_id: UUID = Field(..., description="UUID of the generation group")
+    session_id: UUID | None = Field(None, description="UUID of the parent session")
+    group_name: str | None = Field(None, description="Name of the generation group")
+    created_at: datetime | None = Field(None, description="Timestamp of the generation")
+
+
+class GenerationsScenarioApiResponse(BaseModel):
+    """Response model for scenario generations endpoint."""
+
+    actor_name: str | None = Field(None, description="Display name of the current actor")
+    items: list[GenerationsScenarioListItem] = Field(default_factory=list, description="Generation groups")
+    total_count: int = Field(0, description="Total number of matching generations")
+
+
+# =============================================================================
+# Problem Types
+# =============================================================================
+
+
+class ProblemScenarioApiRequest(BaseModel):
+    """Request model for scenario problem endpoint."""
+
+    type: str = Field(..., description="Problem type: feature, bug, question, other")
+    message: str = Field(..., description="Problem description (max 1000 chars)")
+
+
+class ProblemScenarioApiResponse(BaseModel):
+    """Response model for scenario problem endpoint."""
+
+    problem_id: UUID = Field(..., description="UUID of the created problem")
+    success: bool = Field(True, description="Whether the problem was created")
+    message: str = Field("Problem created successfully", description="Status message")

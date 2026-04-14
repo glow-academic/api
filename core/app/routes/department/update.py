@@ -43,7 +43,7 @@ async def update_department(
                 pool,
                 redis,
                 profile_id=profile_id,
-                items=request.departments,
+                request=request,
                 session_id=session_id,
             )
 

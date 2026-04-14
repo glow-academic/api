@@ -79,7 +79,7 @@ class ProfileDraftEntry(BaseModel):
     """Draft entry for profile."""
 
     id: UUID | None = Field(None, description="Unique draft identifier")
-    version: int | None = Field(None, description="Draft version number")
+
     created_at: datetime | None = Field(None, description="Timestamp when draft was created")
     generated: bool | None = Field(None, description="Whether the draft was AI-generated")
     mcp: bool | None = Field(None, description="Whether the draft was created via MCP")
@@ -312,7 +312,7 @@ class PatchProfileDraftApiRequest(ScopedItem):
     ID-only for non-creatable resources:
       - active_flag_id, department_ids, email_ids, role_id, request_limit_ids
 
-    Client always sends full state (append-only — each write is a new version snapshot).
+    Client always sends full state (append-only — each write is a new snapshot).
     """
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
@@ -494,6 +494,7 @@ class ProfileContextApiResponse(BaseModel):
 
     # Session
     session_id: UUID | None = Field(None, description="Current session UUID")
+    group_id: UUID | None = Field(None, description="Active group UUID for generation panel")
 
     # Emulation
     is_emulation: bool | None = Field(None, description="Whether user is in emulation mode")

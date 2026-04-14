@@ -416,7 +416,7 @@ async def group_id(conn, session_id):
     """A fresh groups_entry ID (depends on session_id)."""
     from app.tools.entries.groups.create import create_group
 
-    group = await create_group(conn, session_id=session_id)
+    group = await create_group(conn, session_id=session_id, artifact_type="persona")
     return group.id
 
 

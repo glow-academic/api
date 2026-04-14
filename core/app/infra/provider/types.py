@@ -275,7 +275,7 @@ class PatchProviderDraftApiRequest(ScopedItem):
     ID-only for non-creatable resources:
       - flag_id, department_ids, endpoint_ids, key_ids, value_id
 
-    Client always sends full state (append-only — each write is a new version snapshot).
+    Client always sends full state (append-only — each write is a new snapshot).
     """
 
     input_draft_id: UUID | None = Field(None, description="Existing draft ID to update")

@@ -28,6 +28,7 @@ from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 from app.infra.model.types import (
+    CreateModelApiRequest,
     CreateModelItem,
     ModelFieldError,
     ModelResultItem,
@@ -40,12 +41,12 @@ async def create_model_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: CreateModelApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> CreateModelApiResponse:
     """Model bulk create using composable infra functions.
 
     Flow:
@@ -56,6 +57,8 @@ async def create_model_impl(
       5. invalidate_tags
     """
     from app.infra.model.permissions import compute_can_create
+
+    items = request.models
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

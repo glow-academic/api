@@ -18,3 +18,4 @@ class GetGroupResponse(BaseModel):
     active: bool
     mcp: bool
     generated: bool
+    artifact_type: str

@@ -28,6 +28,10 @@ from app.tools.artifacts.rubric.update import (
 from app.tools.artifacts.rubric.update import (
     update_rubric as update_rubric_artifact,
 )
+from app.infra.rubric.types import (
+    UpdateRubricApiRequest,
+    UpdateRubricApiResponse,
+)
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 
@@ -36,12 +40,12 @@ async def update_rubric_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdateRubricApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdateRubricApiResponse:
     """Rubric bulk update using composable infra functions.
 
     Flow:
@@ -54,8 +58,9 @@ async def update_rubric_impl(
     from app.infra.rubric.permissions import compute_can_edit
     from app.infra.rubric.types import (
         RubricResultItem,
-        UpdateRubricApiResponse,
     )
+
+    items = request.rubrics
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

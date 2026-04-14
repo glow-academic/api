@@ -1,0 +1,14 @@
+INPUT:
+  grade_id: 019d84c1-6aef-7d61-aec9-1dbed96532ac
+  tool_call_id: 019d84c1-47bb-777c-a479-cce772da8621
+  standard_group_id: 8b06e90d-478e-5d51-8234-948d05ff3f0f
+  score: 1
+  feedback: There is no coherence across resources because none of the critical persona fields (name, description, instructions, parameters) are populated. Only the color field is set in a later step, which does not contribute to persona coherence.
+
+OUTPUT:
+### Feedback Created
+- **Feedback ID:** `019d84c1-7d30-7121-bd7e-66762a92c665`
+- **Grade ID:** `019d84c1-6aef-7d61-aec9-1dbed96532ac`
+- **Score:** 1/5 (pass: 4)
+
+- **Feedback:** There is no coherence across resources because none of the critical persona fields (name, description, instructions, parameters) are populated. Only the color field is set in a later step, which does not contribute to persona coherence.

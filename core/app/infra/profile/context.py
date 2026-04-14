@@ -354,7 +354,8 @@ async def context_profile_impl(
     from app.infra.shared_types import QGetProfileContextV4RoleResource
 
     identity = await resolve_profile_identity_context(
-        pool, profile_id, redis, bypass_cache=bypass_cache
+        pool, profile_id, redis, bypass_cache=bypass_cache,
+        session_id=session_id,
     )
     if not identity:
         from fastapi import HTTPException
@@ -417,6 +418,7 @@ async def context_profile_impl(
         settings_id=str(identity.settings_id) if identity.settings_id else None,
         theme=theme,
         session_id=identity.session_id,
+        group_id=identity.group_id,
         is_emulation=is_emulation or None,
         emulation_depth=emulation_depth or None,
         role_resources=role_resources,

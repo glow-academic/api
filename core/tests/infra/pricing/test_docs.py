@@ -30,7 +30,7 @@ pytestmark = pytest.mark.asyncio
 
 async def _seed_pricing_graph(conn, redis_client, profile_resource_id):
     session = await create_session(conn, profile_id=profile_resource_id)
-    group = await create_group(conn, session_id=session.id, name="Pricing Group")
+    group = await create_group(conn, session_id=session.id, name="Pricing Group", artifact_type="persona")
     model = await create_model(
         conn,
         value="gpt-test-pricing",

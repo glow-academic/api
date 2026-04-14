@@ -33,6 +33,7 @@ logger = get_logger(__name__)
 
 
 from app.infra.auth.types import (
+    CreateAuthApiRequest,
     CreateAuthItem,
     AuthFieldError,
     AuthResultItem,
@@ -45,12 +46,12 @@ async def create_auth_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: CreateAuthApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> CreateAuthApiResponse:
     """Auth bulk create using composable infra functions.
 
     Flow:
@@ -62,6 +63,8 @@ async def create_auth_impl(
       6. perform_keycloak_sync (non-fatal)
     """
     from app.infra.auth.permissions import compute_can_create
+
+    items = request.auths
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

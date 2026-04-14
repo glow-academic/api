@@ -16,7 +16,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_search_includes_pricing_counts(conn, profile_id, redis_client):
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, session_id=session.id, group_id=group.id)
     input_pricing = await create_pricing(
         conn,

@@ -1,0 +1,29 @@
+## Context
+
+**New persona** — no artifact exists yet.
+Requested resources: **names, descriptions, colors, icons, instructions, flags, examples, parameter_fields, departments, voices**.Group ID: `019d7fb4-40f0-74ad-837f-67a9ad761ed4`.
+## Parameters
+
+Pass these to your tools:
+- `draft_id`: `019d7fb3-32ca-7c36-a81f-6a2881d205b1`
+
+## Tools
+
+- **Persona_Get**(id, draft_id, color_search, icon_search, descriptions_search, instructions_search, parameter_field_search, parameter_ids, color_show_selected, icon_show_selected, parameter_field_show_selected) — Get a specific persona with optional resource filters
+- **Persona_Draft**(draft_id, name, name_id, description, description_id, color, color_id, icon, icon_id, instructions, instructions_id, active_flag_id, active_flag, examples, example_ids, department_ids, departments, parameter_field_ids, parameter_fields, voice_ids, voices) — Save or update a persona draft with current form state
+- **Persona_Create**(name_id, name, color_id, color, icon_id, icon, instructions_id, instructions, description_id, description, active_flag_id, active_flag, department_ids, departments, parameter_field_ids, parameter_fields, example_ids, examples, voice_ids, voices) — Create a new persona with name, description, instructions, color, icon, and optional associations
+- **Group_Name**(group_id, name) — Set or update a group&#39;s display name
+
+## What To Do
+
+Save results by calling **Persona_Draft** with a single call. You can set multiple fields in one call. Never output plain text — always use a tool call.
+
+For each requested resource below, pick or generate **one** value and include it in a single `Persona_Draft` call.
+
+**Colors:** Pick ONE suitable color from Persona_Get using `color_id`, or generate ONE new hex code using `color` (e.g. `"#4A90D9"`). Do not create multiple drafts for multiple colors.
+**Names:** Generate ONE clear, descriptive persona name. Include `name` in the draft call.
+**Descriptions:** Write ONE detailed description. Include `description` in the draft call.
+**Instructions:** Write ONE behavioral instruction template. Include `instructions` in the draft call.
+**Icons:** Select ONE appropriate icon from Persona_Get. Include `icon_id` in the draft call.
+
+**IMPORTANT:** Only set the requested resources listed above. Do not add extra fields (e.g. if asked for colors, only pass `draft_id` + `color` or `color_id` — nothing else). Omit all optional fields entirely.

@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Request, Response, UploadFile
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.scenario.group import group_scenario_impl
 from app.infra.scenario.types import VideoUploadScenarioApiResponse
 from app.infra.scenario.video_upload import video_upload_scenario_impl
 from app.utils.error.handle_route_error import handle_route_error
@@ -63,6 +64,14 @@ async def upload_video(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_scenario_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> VideoUploadScenarioApiResponse:
             return await video_upload_scenario_impl(
                 pool,
@@ -82,6 +91,7 @@ async def upload_video(
             artifact="scenario",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="video_upload",
             arguments={
                 "filename": file.filename,

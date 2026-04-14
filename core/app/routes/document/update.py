@@ -43,7 +43,7 @@ async def update_document(
                 pool,
                 redis,
                 profile_id=profile_id,
-                items=request.documents,
+                request=request,
                 session_id=session_id,
             )
 

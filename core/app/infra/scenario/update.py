@@ -29,6 +29,10 @@ from app.tools.artifacts.scenario.update import (
 from app.tools.artifacts.scenario.update import (
     update_scenario as update_scenario_artifact,
 )
+from app.infra.scenario.types import (
+    UpdateScenarioApiRequest,
+    UpdateScenarioApiResponse,
+)
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 if TYPE_CHECKING:
@@ -56,12 +60,12 @@ async def update_scenario_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdateScenarioApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdateScenarioApiResponse:
     """Scenario bulk update using composable infra functions.
 
     Flow:
@@ -74,8 +78,9 @@ async def update_scenario_impl(
     from app.infra.scenario.permissions import compute_can_edit
     from app.infra.scenario.types import (
         ScenarioResultItem,
-        UpdateScenarioApiResponse,
     )
+
+    items = request.scenarios
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

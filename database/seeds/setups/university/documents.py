@@ -61,7 +61,6 @@ documents = [
         name="FERPA Policy",
         description="Family Educational Rights and Privacy Act (FERPA) policy document",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        parameter_field_ids=PF_FERPA_DOC,
     ),
     dict(
         id=FERPA_GENERAL,

@@ -43,7 +43,7 @@ async def create_eval(
                 pool,
                 redis,
                 profile_id=profile_id,
-                items=request.evals,
+                request=request,
                 session_id=session_id,
             )
 

@@ -28,6 +28,7 @@ from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 from app.infra.rubric.types import (
+    CreateRubricApiRequest,
     CreateRubricItem,
     RubricFieldError,
     RubricResultItem,
@@ -40,12 +41,12 @@ async def create_rubric_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: CreateRubricApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> CreateRubricApiResponse:
     """Rubric bulk create using composable infra functions.
 
     Flow:
@@ -56,6 +57,8 @@ async def create_rubric_impl(
       5. invalidate_tags
     """
     from app.infra.rubric.permissions import compute_can_create
+
+    items = request.rubrics
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -122,6 +125,8 @@ async def create_rubric_impl(
             standard_group_ids=item.standard_group_ids,
             simulation_rubric=bool(item.simulation_rubric_flag_id),
             video_rubric=bool(item.video_rubric_flag_id),
+            total_points=item.total_points,
+            pass_points=item.pass_points,
         )
 
         combined_flag_ids = [fid for fid in [item.active_flag_id, item.simulation_rubric_flag_id, item.video_rubric_flag_id] if fid]

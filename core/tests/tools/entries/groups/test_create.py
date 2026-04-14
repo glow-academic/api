@@ -16,14 +16,14 @@ async def _session(conn, profile_id):
 
 async def test_returns_id(conn, profile_id):
     session = await _session(conn, profile_id)
-    result = await create_group(conn, session_id=session.id)
+    result = await create_group(conn, session_id=session.id, artifact_type="persona")
 
     assert result.id is not None
 
 
 async def test_visible_via_get_after_refresh(conn, profile_id):
     session = await _session(conn, profile_id)
-    result = await create_group(conn, session_id=session.id)
+    result = await create_group(conn, session_id=session.id, artifact_type="persona")
     await refresh_groups(conn)
 
     items = await get_groups(conn, [result.id])
@@ -37,7 +37,7 @@ async def test_visible_via_get_after_refresh(conn, profile_id):
 
 async def test_passes_name(conn, profile_id):
     session = await _session(conn, profile_id)
-    result = await create_group(conn, session_id=session.id, name="test-group")
+    result = await create_group(conn, session_id=session.id, name="test-group", artifact_type="persona")
     await refresh_groups(conn)
 
     items = await get_groups(conn, [result.id])
@@ -48,7 +48,7 @@ async def test_passes_name(conn, profile_id):
 
 async def test_passes_mcp_flag(conn, profile_id):
     session = await _session(conn, profile_id)
-    result = await create_group(conn, session_id=session.id, mcp=True)
+    result = await create_group(conn, session_id=session.id, mcp=True, artifact_type="persona")
     await refresh_groups(conn)
 
     items = await get_groups(conn, [result.id])

@@ -1,12 +1,11 @@
 """Input: scenario.get"""
 
 from typing import Any
-from uuid import UUID
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
-from app.infra.scenario.get import get_scenario_impl
+from app.infra.scenario.get import SECTIONS, get_scenario_impl
 from app.infra.scenario.types import GetScenarioApiRequest
 
 internal_sio = get_internal_sio()
@@ -32,6 +31,13 @@ async def scenario_get(sid: str, data: dict[str, Any]) -> None:
     pool = get_pool()
     redis = get_redis_client()
 
+    # Build filters dict from nested SectionFilter objects
+    filters = {
+        s: getattr(payload, s)
+        for s in SECTIONS
+        if getattr(payload, s) is not None
+    }
+
     await run_artifact_operation_with_audit(
         pool,
         redis,
@@ -47,23 +53,9 @@ async def scenario_get(sid: str, data: dict[str, Any]) -> None:
             redis,
             profile_id=identity.profile_id,
             session_id=identity.session_id,
-            scenario_id=payload.scenario_id,
+            id=payload.id,
             draft_id=payload.draft_id,
-            parameter_ids=[UUID(str(pid)) for pid in payload.parameter_ids]
-            if payload.parameter_ids
-            else None,
-            description_search=payload.description_search,
-            persona_search=payload.persona_search,
-            document_search=payload.document_search,
-            parameter_search=payload.parameter_search,
-            problem_statement_search=payload.problem_statement_search,
-            image_search=payload.image_search,
-            video_search=payload.video_search,
-            question_search=payload.question_search,
-            option_search=payload.option_search,
-            persona_show_selected=payload.persona_show_selected,
-            document_show_selected=payload.document_show_selected,
-            parameter_show_selected=payload.parameter_show_selected,
+            filters=filters,
         ),
         arguments=payload.model_dump(mode="json"),
     )

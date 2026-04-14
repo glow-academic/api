@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.persona.audit import run_persona_operation_with_audit
 from app.infra.persona.get import get_persona_impl
+from app.infra.persona.group import group_persona_impl
 from app.infra.persona.types import (
     GetPersonaApiRequest,
     GetPersonaApiResponse,
@@ -38,6 +39,15 @@ async def get_persona(
 
         pool = get_pool()
         redis = get_redis_client()
+
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_persona_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         request_payload = request.model_dump(mode="json")
 
         # Build filters dict from nested SectionFilter objects
@@ -67,6 +77,7 @@ async def get_persona(
             redis,
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="get",
             arguments=request_payload,
             bypass_cache=bypass_cache,

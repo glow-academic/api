@@ -26,6 +26,9 @@ def _role_model(role: str):
 # Flags (from database/seeds/resources/flags.py)
 AGENT_ACTIVE_FLAG = sid("flag/agent-active")
 
+# Shared tools — added to every agent
+GROUP_NAME_TOOL = sid("tool-resource/group/name")
+
 # ---------------------------------------------------------------------------
 # Deterministic IDs — importable by other modules (e.g., systems.py)
 # When created via _impl, artifact ID = resource ID.
@@ -53,6 +56,7 @@ LEADERBOARD_AGENT = sid("agent/leaderboard")
 MODEL_AGENT = sid("agent/model")
 PARAMETER_AGENT = sid("agent/parameter")
 PERSONA_AGENT = sid("agent/persona")
+PERSONA_GEMINI_AGENT = sid("agent/persona-gemini")
 PRACTICE_AGENT = sid("agent/practice")
 PRICING_AGENT = sid("agent/pricing")
 PROFILE_AGENT = sid("agent/profile")
@@ -97,6 +101,7 @@ LEADERBOARD_AGENT_RESOURCE = sid("agent-resource/leaderboard")
 MODEL_AGENT_RESOURCE = sid("agent-resource/model")
 PARAMETER_AGENT_RESOURCE = sid("agent-resource/parameter")
 PERSONA_AGENT_RESOURCE = sid("agent-resource/persona")
+PERSONA_GEMINI_AGENT_RESOURCE = sid("agent-resource/persona-gemini")
 PRACTICE_AGENT_RESOURCE = sid("agent-resource/practice")
 PRICING_AGENT_RESOURCE = sid("agent-resource/pricing")
 PROFILE_AGENT_RESOURCE = sid("agent-resource/profile")
@@ -399,7 +404,9 @@ agents = [
             sid("tool-resource/group/export"),
             sid("tool-resource/group/generate"),
             sid("tool-resource/group/get"),
+            sid("tool-resource/group/name"),
             sid("tool-resource/group/refresh"),
+            sid("tool-resource/group/search"),
         ],
         prompt_id=_prompt_id("Group"),
         instruction_ids=[_instruction_id("Group")],
@@ -527,11 +534,43 @@ agents = [
             sid("tool-resource/persona/drafts"),
             sid("tool-resource/persona/duplicate"),
             sid("tool-resource/persona/export"),
+            sid("tool-resource/persona/generate"),
+            sid("tool-resource/persona/generations"),
             sid("tool-resource/persona/get"),
+            sid("tool-resource/persona/group"),
+            sid("tool-resource/persona/problem"),
             sid("tool-resource/persona/refresh"),
             sid("tool-resource/persona/search"),
             sid("tool-resource/persona/update"),
         ],
+        rubric_ids=[sid("rubric-resource/persona-rubric")],
+        prompt_id=_prompt_id("Persona"),
+        instruction_ids=[_instruction_id("Persona")],
+    ),
+    dict(
+        id=PERSONA_GEMINI_AGENT,
+        resource_id=PERSONA_GEMINI_AGENT_RESOURCE,
+        name="Persona Gemini",
+        description="AI agent for generating and managing persona resources using Gemini 2.5 Flash",
+        flag_ids=[AGENT_ACTIVE_FLAG],
+        model_id=sid("model-resource/gemini-2.5-flash"),
+        tool_ids=[
+            sid("tool-resource/persona/create"),
+            sid("tool-resource/persona/delete"),
+            sid("tool-resource/persona/draft"),
+            sid("tool-resource/persona/drafts"),
+            sid("tool-resource/persona/duplicate"),
+            sid("tool-resource/persona/export"),
+            sid("tool-resource/persona/generate"),
+            sid("tool-resource/persona/generations"),
+            sid("tool-resource/persona/get"),
+            sid("tool-resource/persona/group"),
+            sid("tool-resource/persona/problem"),
+            sid("tool-resource/persona/refresh"),
+            sid("tool-resource/persona/search"),
+            sid("tool-resource/persona/update"),
+        ],
+        rubric_ids=[sid("rubric-resource/persona-rubric")],
         prompt_id=_prompt_id("Persona"),
         instruction_ids=[_instruction_id("Persona")],
     ),
@@ -683,11 +722,17 @@ agents = [
             sid("tool-resource/scenario/drafts"),
             sid("tool-resource/scenario/duplicate"),
             sid("tool-resource/scenario/export"),
+            sid("tool-resource/scenario/generate"),
+            sid("tool-resource/scenario/generations"),
             sid("tool-resource/scenario/get"),
+            sid("tool-resource/scenario/group"),
+            sid("tool-resource/scenario/problem"),
             sid("tool-resource/scenario/refresh"),
             sid("tool-resource/scenario/search"),
             sid("tool-resource/scenario/update"),
+            sid("tool-resource/scenario-image/create"),
             sid("tool-resource/scenario-image/download"),
+            sid("tool-resource/scenario-video/create"),
             sid("tool-resource/scenario-video/download"),
         ],
         prompt_id=_prompt_id("Scenario"),
@@ -793,6 +838,10 @@ agents = [
             sid("tool-resource/test/search"),
             sid("tool-resource/test/start"),
             sid("tool-resource/test/stop"),
+            sid("tool-resource/test/grade"),
+            sid("tool-resource/test/feedback"),
+            sid("tool-resource/test/text-download"),
+            sid("tool-resource/test/call-download"),
         ],
         prompt_id=_prompt_id("Test Grade"),
         instruction_ids=[_instruction_id("Test Grade")],
@@ -849,3 +898,8 @@ agents = [
         ],
     ),
 ]
+
+# Add shared tools to every agent
+for _agent in agents:
+    if GROUP_NAME_TOOL not in _agent["tool_ids"]:
+        _agent["tool_ids"].append(GROUP_NAME_TOOL)

@@ -43,7 +43,7 @@ async def create_cohort(
                 pool,
                 redis,
                 profile_id=profile_id,
-                items=request.cohorts,
+                request=request,
                 session_id=session_id,
             )
 

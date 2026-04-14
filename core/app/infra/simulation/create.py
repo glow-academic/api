@@ -28,6 +28,7 @@ from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 from app.infra.simulation.types import (
+    CreateSimulationApiRequest,
     CreateSimulationItem,
     SimulationFieldError,
     SimulationResultItem,
@@ -40,12 +41,12 @@ async def create_simulation_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: CreateSimulationApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> CreateSimulationApiResponse:
     """Simulation bulk create using composable infra functions.
 
     Flow:
@@ -56,6 +57,8 @@ async def create_simulation_impl(
       5. invalidate_tags
     """
     from app.infra.simulation.permissions import compute_can_create
+
+    items = request.simulations
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

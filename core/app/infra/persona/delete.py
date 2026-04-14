@@ -111,7 +111,7 @@ async def delete_persona_impl(
     results = [
         DeletePersonaResult(
             success=True,
-            persona_id=pid,
+            id=pid,
             message=f"Persona '{name_map.get(pid, 'Unknown')}' deleted successfully",
         )
         for pid in result.deleted_ids

@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.scenario.group import group_scenario_impl
 from app.infra.scenario.image_download import image_download_scenario_impl
 from app.infra.scenario.types import (
     ImageDownloadScenarioApiRequest,
@@ -41,6 +42,14 @@ async def download_image(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_scenario_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> ImageDownloadScenarioApiResult:
             return await image_download_scenario_impl(
                 pool,
@@ -61,6 +70,7 @@ async def download_image(
             response_model=ImageDownloadScenarioApiResult,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            group_id=group_id,
         )
 
         encoded = urllib.parse.quote(result.filename, safe="")

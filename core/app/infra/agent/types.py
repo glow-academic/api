@@ -194,6 +194,7 @@ class CreateAgentItem(ScopedItem):
     tool_ids: list[UUID] | None = Field(None, description="Associated tool UUIDs")
     voice_ids: list[UUID] | None = Field(None, description="Associated voice UUIDs")
     agent_ids: list[UUID] | None = Field(None, description="Associated agent resource UUIDs")
+    rubric_ids: list[UUID] | None = Field(None, description="Associated rubric UUIDs")
     prompt_id: UUID | None = Field(None, description="System prompt resource UUID")
     instruction_ids: list[UUID] | None = Field(None, description="Instruction template resource UUIDs")
 
@@ -303,7 +304,7 @@ class PatchAgentDraftApiRequest(ScopedItem):
       - flag_ids, department_ids, model_id, tool_ids, reasoning_level_ids,
         temperature_level_ids, voice_ids, rubric_ids
 
-    Client always sends full state (append-only — each write is a new version snapshot).
+    Client always sends full state (append-only — each write is a new snapshot).
     """
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {

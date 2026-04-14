@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 
 class GetParameterResponse(BaseModel):
-    id: UUID = Field(..., description="UUID of the parameter")
+    parameter_id: UUID = Field(..., description="UUID of the parameter")
     name: str = Field(..., description="Parameter name")
     description: str = Field(..., description="Parameter description")
     value: str = Field(..., description="Parameter value")

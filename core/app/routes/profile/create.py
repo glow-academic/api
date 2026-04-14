@@ -43,7 +43,7 @@ async def create_profile(
                 pool,
                 redis,
                 profile_id=profile_id,
-                items=request.profiles,
+                request=request,
                 session_id=session_id,
             )
 

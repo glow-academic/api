@@ -28,6 +28,7 @@ from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 from app.infra.agent.types import (
+    CreateAgentApiRequest,
     CreateAgentItem,
     AgentFieldError,
     AgentResultItem,
@@ -40,12 +41,12 @@ async def create_agent_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: CreateAgentApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> CreateAgentApiResponse:
     """Agent bulk create using composable infra functions.
 
     Flow:
@@ -56,6 +57,8 @@ async def create_agent_impl(
       5. invalidate_tags
     """
     from app.infra.agent.permissions import compute_can_create
+
+    items = request.agents
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -121,6 +124,7 @@ async def create_agent_impl(
             description_id=item.description_id,
             department_ids=item.department_ids,
             model_id=item.model_id,
+            rubric_id=item.rubric_ids[0] if item.rubric_ids else None,
             tool_ids=item.tool_ids,
             voice_ids=item.voice_ids,
             prompt_id=item.prompt_id,
@@ -147,6 +151,7 @@ async def create_agent_impl(
                     temperature_level_ids=item.temperature_level_ids,
                     tool_ids=item.tool_ids,
                     voice_ids=item.voice_ids,
+                    rubric_ids=item.rubric_ids,
                     agent_ids=[agents_resource_id],
                     soft=soft,
                 )

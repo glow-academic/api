@@ -28,6 +28,7 @@ from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 from app.infra.profile.types import (
+    CreateProfileApiRequest,
     CreateProfileItem,
     ProfileFieldError,
     ProfileResultItem,
@@ -40,12 +41,12 @@ async def create_profile_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: CreateProfileApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> CreateProfileApiResponse:
     """Profile bulk create using composable infra functions.
 
     Flow:
@@ -56,6 +57,8 @@ async def create_profile_impl(
       5. invalidate_tags
     """
     from app.infra.profile.permissions import compute_can_create
+
+    items = request.profiles
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

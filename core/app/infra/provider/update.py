@@ -30,18 +30,23 @@ from app.tools.artifacts.provider.update import (
 )
 from app.utils.cache.invalidate_tags import invalidate_tags
 
+from app.infra.provider.types import (
+    UpdateProviderApiRequest,
+    UpdateProviderApiResponse,
+)
+
 
 async def update_provider_impl(
     pool: asyncpg.Pool,
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdateProviderApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdateProviderApiResponse:
     """Provider bulk update using composable infra functions.
 
     Flow:
@@ -54,8 +59,9 @@ async def update_provider_impl(
     from app.infra.provider.permissions import compute_can_edit
     from app.infra.provider.types import (
         ProviderResultItem,
-        UpdateProviderApiResponse,
     )
+
+    items = request.providers
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

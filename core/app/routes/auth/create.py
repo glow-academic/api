@@ -43,7 +43,7 @@ async def create_auth(
                 pool,
                 redis,
                 profile_id=profile_id,
-                items=request.auths,
+                request=request,
                 session_id=session_id,
             )
 

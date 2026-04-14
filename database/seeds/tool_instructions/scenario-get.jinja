@@ -1,1 +1,56 @@
-{# Scenario Get response template #}
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### Form State
+- **Name:** {% set sel = r.names | selectattr('selected') | list %}{% if sel %}`{{ sel[0].id }}` — {{ sel[0].name }}{% else %}not set{% endif %}
+- **Description:** {% set sel = r.descriptions | selectattr('selected') | list %}{% if sel %}`{{ sel[0].id }}` — {{ sel[0].description[:100] }}{% else %}not set{% endif %}
+- **Problem Statement:** {% set sel = r.problem_statements | selectattr('selected') | list %}{% if sel %}`{{ sel[0].problem_statement_id }}` — {{ sel[0].problem_statement[:100] }}{% else %}not set{% endif %}
+- **Departments:** {% set sel = r.departments | selectattr('selected') | list %}{% if sel %}{% for d in sel %}`{{ d.department_id }}` — {{ d.name }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}0{% endif %}
+- **Personas:** {% set sel = r.personas | selectattr('selected') | list %}{% if sel %}{% for p in sel %}`{{ p.persona_id }}` — {{ p.name }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}0{% endif %}
+- **Documents:** {% set sel = r.documents | selectattr('selected') | list %}{% if sel %}{% for d in sel %}`{{ d.document_id }}` — {{ d.name }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}0{% endif %}
+- **Objectives:** {% set sel = r.objectives | selectattr('selected') | list %}{{ sel | length }}
+- **Images:** {% set sel = r.images | selectattr('selected') | list %}{{ sel | length }}
+- **Videos:** {% set sel = r.videos | selectattr('selected') | list %}{{ sel | length }}
+- **Questions:** {% set sel = r.questions | selectattr('selected') | list %}{{ sel | length }}
+- **Parameter Fields:** {% set sel = r.parameter_fields | selectattr('selected') | list %}{{ sel | length }}
+
+## Available Options
+{% if r.departments %}
+### Departments
+{% for d in r.departments %}- `{{ d.department_id }}` — {{ d.name }}{% if d.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.personas %}
+### Personas
+{% for p in r.personas %}- `{{ p.persona_id }}` — {{ p.name }}{% if p.description %} — {{ p.description[:60] }}{% endif %}{% if p.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.documents %}
+### Documents
+{% for d in r.documents %}- `{{ d.document_id }}` — {{ d.name }}{% if d.description %} — {{ d.description[:60] }}{% endif %}{% if d.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.parameters %}
+### Parameter Groups
+{% for p in r.parameters %}- `{{ p.parameter_id }}` — {{ p.name }}{% if p.description %} — {{ p.description[:60] }}{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.parameter_fields %}
+### Parameter Fields
+{% for pf in r.parameter_fields %}- `{{ pf.id }}` — {{ pf.name }}{% if pf.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.images %}
+### Images
+{% for i in r.images %}- `{{ i.image_id }}` — {{ i.name }}{% if i.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.videos %}
+### Videos
+{% for v in r.videos %}- `{{ v.video_id }}` — {{ v.name }}{% if v.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error fetching scenario: {{ results[0].error }}
+{% else %}
+No scenario data returned.
+{% endif %}

@@ -381,7 +381,7 @@ class PatchModelDraftApiRequest(ScopedItem):
       - flag_ids, department_ids, modality_ids, pricing_ids, provider_id,
         quality_ids, reasoning_level_ids, temperature_level_ids, value_id, voice_ids
 
-    Client always sends full state (append-only — each write is a new version snapshot).
+    Client always sends full state (append-only — each write is a new snapshot).
     """
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {

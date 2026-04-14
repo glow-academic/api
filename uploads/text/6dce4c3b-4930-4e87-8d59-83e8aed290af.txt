@@ -1,0 +1,1 @@
+{"success": false, "message": "400: [{'field': 'color', 'message': 'Color \"#4A90D9,#27AE60,#F5A623,#D0021B,#8B572A,#7B8D8E,#B06CFF,#FF6F61,#50E3C2,#F8E71C\" not found'}]"}

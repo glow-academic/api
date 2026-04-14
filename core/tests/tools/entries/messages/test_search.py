@@ -14,7 +14,7 @@ pytestmark = pytest.mark.asyncio
 
 async def _setup(conn, profile_id):
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, group_id=group.id, session_id=session.id)
     result = await create_message(conn, run_id=run.id, role="user")
     return result, run

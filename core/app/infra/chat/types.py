@@ -474,7 +474,7 @@ class PatchChatDraftApiRequest(ScopedItem):
     Multi-select creatables: objectives, images, videos, questions, options
       → values create resources, created IDs are merged with existing IDs.
 
-    Client always sends full state (append-only — each write is a new version snapshot).
+    Client always sends full state (append-only — each write is a new snapshot).
     """
 
     input_draft_id: UUID | None = Field(None, description="UUID of the input draft")

@@ -18,7 +18,7 @@ pytestmark = pytest.mark.asyncio
 
 async def _run_deps(conn, profile_id):
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(
         conn,
         group_id=group.id,
@@ -108,9 +108,9 @@ class TestTextCompleteImpl:
         assert total_count == 1
         assert len(items) == 1
         assert items[0].role == "assistant"
-        assert len(items[0].text_upload_ids) == 1
+        assert len(items[0].text_ids) == 1
 
-        upload = await get_upload(conn, items[0].text_upload_ids[0])
+        upload = await get_upload(conn, items[0].text_ids[0])
         stored_path = tmp_path / upload.file_path
         assert stored_path.exists()
         assert stored_path.read_text() == "Hello world"

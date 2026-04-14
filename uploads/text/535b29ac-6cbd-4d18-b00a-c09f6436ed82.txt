@@ -1,0 +1,28 @@
+## Context
+
+Group ID: `019d82e3-2e27-7412-88d7-34c87323d689`.
+## Parameters
+
+Pass these to your tools:
+- `test_id`: `019d82e3-5dd4-7122-a993-7eea96d6bc9b`
+- `invocation_id`: `019d82e3-81b9-73da-b87d-19a43d4c7a02`
+- `run_id`: `019d82e3-5dcd-7462-98b8-b823b810b9e9`
+
+## Tools
+
+- **Test_Feedback**(grade_id, tool_call_id, standard_group_id, score, feedback) — Create a feedback entry for a rubric criterion within a test grade
+- **Test_Get**(id, start_date, end_date, eval_ids, department_ids, page, page_size, search, status, archived, sort_by, sort_order) — Get operation for Test
+- **Test_Grade**(invocation_id, score) — Create a grade entry for a test invocation with overall score
+
+## What To Do
+
+1. Call **Test_Get** to see the rubric standard groups and the original agent's output.
+2. Review the output against each standard group's criteria.
+3. Call **Test_Grade** with `invocation_id`, `passed` (true/false), and `score` (sum of all standard group scores). This returns a `grade_id`.
+4. For each standard group, call **Test_Feedback** with:
+   - `grade_id` from step 3
+   - `tool_call_id` — the specific tool call from the original output being evaluated
+   - `score` — 1 to 5
+   - `feedback` — specific evidence from the output
+
+Always use tool calls. Do not output plain text.

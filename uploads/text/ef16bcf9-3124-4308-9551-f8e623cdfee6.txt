@@ -1,0 +1,13 @@
+INPUT:
+  id: 019d84c1-4f29-7c0d-9238-b30957cb9f19
+
+OUTPUT:
+### Call Content
+{
+  "call_id": "019d84c1-4f29-7c0d-9238-b30957cb9f19",
+  "arguments": {
+    "draft_id": "019d84c1-3d0c-72c8-a378-f4c92cd87db5",
+    "color_id": "6dca5b92-3941-5d88-acdb-4fdf2d1a7ebe"
+  },
+  "output": "Draft saved. ID: `019d84c1-4f31-743b-8ed6-bd9433bc7a60`.\n\n\n### Form State\n- **Name:** not set\n- **Description:** not set\n- **Color:** `6dca5b92-3941-5d88-acdb-4fdf2d1a7ebe`\n- **Icon:** not set\n- **Instructions:** not set\n- **Active:** not set\n- **Departments:** 0\n- **Examples:** 0\n- **Voices:** 0\n- **Parameter Fields:** 0"
+}

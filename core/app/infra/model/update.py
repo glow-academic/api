@@ -30,18 +30,23 @@ from app.tools.artifacts.model.update import (
 )
 from app.utils.cache.invalidate_tags import invalidate_tags
 
+from app.infra.model.types import (
+    UpdateModelApiRequest,
+    UpdateModelApiResponse,
+)
+
 
 async def update_model_impl(
     pool: asyncpg.Pool,
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdateModelApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdateModelApiResponse:
     """Model bulk update using composable infra functions.
 
     Flow:
@@ -54,8 +59,9 @@ async def update_model_impl(
     from app.infra.model.permissions import compute_can_edit
     from app.infra.model.types import (
         ModelResultItem,
-        UpdateModelApiResponse,
     )
+
+    items = request.models
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

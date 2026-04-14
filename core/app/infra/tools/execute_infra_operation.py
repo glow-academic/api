@@ -45,6 +45,7 @@ from app.infra.events.audit import run_artifact_operation_with_audit
 from app.registry.operations import (
     INFRA_OPS,
     get_accepted_fields,
+    is_write_operation,
     resolve_callable,
     resolve_item_class,
     resolve_request_class,
@@ -296,12 +297,16 @@ async def execute_infra_operation(
                 ))
                 continue
 
-            # Check if this operation has a Pydantic item type (write operations)
+            # Determine soft behavior from registry — only write operations
+            # can be soft (pending ack). Read operations always execute immediately.
+            soft = ctx.soft and is_write_operation(target.operation)
+
+            # Check if this operation has a Pydantic item type (structured input)
             # or should pass args as kwargs directly (read operations like get/search)
             accepted = get_accepted_fields(target.artifact, target.operation)
 
             if accepted is not None:
-                # Write path: filter → sanitize → build item → wrap in request → execute
+                # Structured path: filter → sanitize → build item → wrap in request → execute
                 filtered = filter_to_accepted(rendered, target.artifact, target.operation)
                 from app.infra.tools.sanitize import sanitize_model_kwargs
                 filtered = sanitize_model_kwargs(filtered)
@@ -330,10 +335,10 @@ async def execute_infra_operation(
                         session_id=ctx.session_id,
                         draft_id=ctx.draft_id,
                         group_id=ctx.group_id,
-                        soft=ctx.soft,
+                        soft=soft,
                     )
             else:
-                # Read path: pass rendered args as kwargs directly
+                # Kwargs path: pass rendered args as kwargs directly
                 # Sanitize: strip empty strings, coerce string booleans
                 from app.infra.tools.sanitize import sanitize_model_kwargs
                 kwargs = sanitize_model_kwargs(rendered)

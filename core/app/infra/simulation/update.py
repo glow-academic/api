@@ -28,6 +28,10 @@ from app.tools.artifacts.simulation.update import (
 from app.tools.artifacts.simulation.update import (
     update_simulation as update_simulation_artifact,
 )
+from app.infra.simulation.types import (
+    UpdateSimulationApiRequest,
+    UpdateSimulationApiResponse,
+)
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 
@@ -36,12 +40,12 @@ async def update_simulation_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdateSimulationApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdateSimulationApiResponse:
     """Simulation bulk update using composable infra functions.
 
     Flow:
@@ -54,8 +58,9 @@ async def update_simulation_impl(
     from app.infra.simulation.permissions import compute_can_edit
     from app.infra.simulation.types import (
         SimulationResultItem,
-        UpdateSimulationApiResponse,
     )
+
+    items = request.simulations
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

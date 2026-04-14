@@ -44,7 +44,7 @@ async def auth_create(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            items=payload.auths,
+            request=payload,
             session_id=identity.session_id,
         ),
         arguments=payload.model_dump(mode="json"),

@@ -48,7 +48,7 @@ async def get_parameters(
 
     items = [
         GetParameterResponse(
-            id=r["id"],
+            parameter_id=r["id"],
             name=r["name"],
             description=r["description"],
             value=r["value"],

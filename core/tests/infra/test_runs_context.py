@@ -28,7 +28,7 @@ async def test_returns_runs_for_profile(pool, redis_client):
     async with pool.acquire() as conn:
         profile = await create_profile(conn, redis_client)
         session = await create_session(conn, profile_id=profile.id)
-        group = await create_group(conn, session_id=session.id)
+        group = await create_group(conn, session_id=session.id, artifact_type="persona")
         run = await create_run(
             conn,
             group_id=group.id,
@@ -48,7 +48,7 @@ async def test_filters_by_group_and_date_range(pool, redis_client):
     async with pool.acquire() as conn:
         profile = await create_profile(conn, redis_client)
         session = await create_session(conn, profile_id=profile.id)
-        group = await create_group(conn, session_id=session.id)
+        group = await create_group(conn, session_id=session.id, artifact_type="persona")
         run = await create_run(
             conn,
             group_id=group.id,

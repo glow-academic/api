@@ -28,6 +28,7 @@ from app.tools.artifacts.agent.update import (
 from app.tools.artifacts.agent.update import (
     update_agent as update_agent_artifact,
 )
+from app.infra.agent.types import UpdateAgentApiRequest, UpdateAgentApiResponse
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 
@@ -36,12 +37,12 @@ async def update_agent_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdateAgentApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdateAgentApiResponse:
     """Agent bulk update using composable infra functions.
 
     Flow:
@@ -57,8 +58,9 @@ async def update_agent_impl(
     )
     from app.infra.agent.types import (
         AgentResultItem,
-        UpdateAgentApiResponse,
     )
+
+    items = request.agents
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

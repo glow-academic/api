@@ -43,7 +43,7 @@ async def create_simulation(
                 pool,
                 redis,
                 profile_id=profile_id,
-                items=request.simulations,
+                request=request,
                 session_id=session_id,
             )
 

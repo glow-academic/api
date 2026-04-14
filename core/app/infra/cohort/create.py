@@ -32,6 +32,7 @@ logger = get_logger(__name__)
 
 
 from app.infra.cohort.types import (
+    CreateCohortApiRequest,
     CreateCohortItem,
     CohortFieldError,
     CohortResultItem,
@@ -44,12 +45,12 @@ async def create_cohort_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: CreateCohortApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> CreateCohortApiResponse:
     """Cohort bulk create using composable infra functions.
 
     Flow:
@@ -61,6 +62,8 @@ async def create_cohort_impl(
       6. sync_home_practice_entries (non-fatal)
     """
     from app.infra.cohort.permissions import compute_can_create
+
+    items = request.cohorts
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

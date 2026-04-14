@@ -11,8 +11,12 @@ from app.routes.scenario.drafts import router as drafts_router
 from app.routes.scenario.duplicate import router as duplicate_router
 from app.routes.scenario.export import router as export_router
 from app.routes.scenario.file import router as file_router
+from app.routes.scenario.generate import router as generate_router
+from app.routes.scenario.generations import router as generations_router
 from app.routes.scenario.get import router as get_router
+from app.routes.scenario.group import router as group_router
 from app.routes.scenario.image import router as image_router
+from app.routes.scenario.problem import router as problem_router
 from app.routes.scenario.refresh import router as refresh_router
 from app.routes.scenario.search import router as search_router
 from app.routes.scenario.text import router as text_router
@@ -32,7 +36,11 @@ router.include_router(delete_router)
 router.include_router(draft_router)
 router.include_router(drafts_router)
 router.include_router(export_router)
+router.include_router(generate_router)
+router.include_router(generations_router)
 router.include_router(docs_router)
+router.include_router(group_router)
+router.include_router(problem_router)
 router.include_router(refresh_router)
 
 # Typed media operations

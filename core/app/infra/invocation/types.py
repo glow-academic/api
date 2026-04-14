@@ -179,7 +179,7 @@ class SaveInvocationFieldError(BaseModel):
 class PatchInvocationDraftApiRequest(ScopedItem):
     """Request model for new-style invocation draft endpoint.
 
-    Client always sends full state (append-only — each write is a new version snapshot).
+    Client always sends full state (append-only — each write is a new snapshot).
     """
 
     input_draft_id: UUID | None = Field(None, description="Input draft ID to update")

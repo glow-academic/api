@@ -31,7 +31,7 @@ pytestmark = pytest.mark.asyncio
 async def _profile_session_run_call(conn, redis_client):
     profile = await create_profile(conn, redis_client)
     session = await create_session(conn, profile_id=profile.id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(
         conn, group_id=group.id, session_id=session.id, profiles_id=profile.id
     )
@@ -105,7 +105,7 @@ class TestPricingFilters:
                 department_ids=[department.id],
                 profile_ids=[profile.id],
             )
-            later_group = await create_group(conn, session_id=session.id)
+            later_group = await create_group(conn, session_id=session.id, artifact_type="persona")
             late_run = await create_run(
                 conn,
                 group_id=later_group.id,
@@ -166,7 +166,7 @@ class TestBenchmarkFilters:
             early_test = await create_test(
                 conn, call_id=early_call.id, profiles_id=profile.id
             )
-            later_group = await create_group(conn, session_id=_session.id)
+            later_group = await create_group(conn, session_id=_session.id, artifact_type="persona")
             later_run = await create_run(
                 conn,
                 group_id=later_group.id,

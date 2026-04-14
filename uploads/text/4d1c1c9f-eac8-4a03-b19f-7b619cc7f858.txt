@@ -1,0 +1,14 @@
+INPUT:
+  grade_id: 019d84c1-6aef-7d61-aec9-1dbed96532ac
+  tool_call_id: 019d84c1-4f29-7c0d-9238-b30957cb9f19
+  standard_group_id: 53fdbef0-a432-5455-9328-03874c14bbf2
+  score: 1
+  feedback: None of the relevant persona resources are populated with meaningful values. Name, description, instructions, and parameters are all unset. Only the color field is set, which is not sufficient for a persona resource.
+
+OUTPUT:
+### Feedback Created
+- **Feedback ID:** `019d84c1-7d53-71b3-abc9-f81dc3a04469`
+- **Grade ID:** `019d84c1-6aef-7d61-aec9-1dbed96532ac`
+- **Score:** 1/5 (pass: 4)
+
+- **Feedback:** None of the relevant persona resources are populated with meaningful values. Name, description, instructions, and parameters are all unset. Only the color field is set, which is not sufficient for a persona resource.

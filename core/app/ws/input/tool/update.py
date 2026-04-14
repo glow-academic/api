@@ -44,7 +44,7 @@ async def tool_update(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            items=payload.tools,
+            request=payload,
             session_id=identity.session_id,
         ),
         arguments=payload.model_dump(mode="json"),

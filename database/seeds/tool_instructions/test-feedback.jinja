@@ -1,0 +1,13 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### Feedback Created
+- **Feedback ID:** `{{ r.feedback_id }}`
+- **Grade ID:** `{{ r.grade_id }}`
+- **Score:** {{ r.score }}/{{ r.total_points }}{% if r.pass_points %} (pass: {{ r.pass_points }}){% endif %}
+
+- **Feedback:** {{ r.feedback }}
+{% elif results and results[0] and results[0].error %}
+Error creating feedback: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

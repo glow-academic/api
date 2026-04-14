@@ -19,7 +19,7 @@ async def _session(conn, profile_id):
 
 async def test_finds_created_group(conn, profile_id):
     session = await _session(conn, profile_id)
-    result = await create_group(conn, session_id=session.id)
+    result = await create_group(conn, session_id=session.id, artifact_type="persona")
     await refresh_groups(conn)
 
     items = await search_groups(conn, session_ids=[session.id])
@@ -30,7 +30,7 @@ async def test_finds_created_group(conn, profile_id):
 
 async def test_filters_by_session(conn, profile_id):
     session = await _session(conn, profile_id)
-    await create_group(conn, session_id=session.id)
+    await create_group(conn, session_id=session.id, artifact_type="persona")
     await refresh_groups(conn)
 
     items = await search_groups(conn, session_ids=[nonexistent_id()])
@@ -40,7 +40,7 @@ async def test_filters_by_session(conn, profile_id):
 
 async def test_filters_by_name(conn, profile_id):
     session = await _session(conn, profile_id)
-    result = await create_group(conn, session_id=session.id, name="unique-test-name")
+    result = await create_group(conn, session_id=session.id, name="unique-test-name", artifact_type="persona")
     await refresh_groups(conn)
 
     items = await search_groups(conn, name="unique-test-name")
@@ -51,7 +51,7 @@ async def test_filters_by_name(conn, profile_id):
 
 async def test_filters_by_date_from(conn, profile_id):
     session = await _session(conn, profile_id)
-    result = await create_group(conn, session_id=session.id)
+    result = await create_group(conn, session_id=session.id, artifact_type="persona")
     await refresh_groups(conn)
 
     future = datetime.now(UTC) + timedelta(days=1)
@@ -63,7 +63,7 @@ async def test_filters_by_date_from(conn, profile_id):
 
 async def test_filters_by_date_to(conn, profile_id):
     session = await _session(conn, profile_id)
-    result = await create_group(conn, session_id=session.id)
+    result = await create_group(conn, session_id=session.id, artifact_type="persona")
     await refresh_groups(conn)
 
     past = datetime.now(UTC) - timedelta(days=1)
@@ -75,8 +75,8 @@ async def test_filters_by_date_to(conn, profile_id):
 
 async def test_filters_by_mcp(conn, profile_id):
     session = await _session(conn, profile_id)
-    r_mcp = await create_group(conn, session_id=session.id, mcp=True)
-    r_normal = await create_group(conn, session_id=session.id, mcp=False)
+    r_mcp = await create_group(conn, session_id=session.id, mcp=True, artifact_type="persona")
+    r_normal = await create_group(conn, session_id=session.id, mcp=False, artifact_type="persona")
     await refresh_groups(conn)
 
     items = await search_groups(conn, mcp=True)
@@ -88,8 +88,8 @@ async def test_filters_by_mcp(conn, profile_id):
 
 async def test_pagination_limit(conn, profile_id):
     session = await _session(conn, profile_id)
-    await create_group(conn, session_id=session.id)
-    await create_group(conn, session_id=session.id)
+    await create_group(conn, session_id=session.id, artifact_type="persona")
+    await create_group(conn, session_id=session.id, artifact_type="persona")
     await refresh_groups(conn)
 
     items = await search_groups(conn, session_ids=[session.id], limit=1)
@@ -99,7 +99,7 @@ async def test_pagination_limit(conn, profile_id):
 
 async def test_returns_all_without_filter(conn, profile_id):
     session = await _session(conn, profile_id)
-    await create_group(conn, session_id=session.id)
+    await create_group(conn, session_id=session.id, artifact_type="persona")
     await refresh_groups(conn)
 
     items = await search_groups(conn)
@@ -109,7 +109,7 @@ async def test_returns_all_without_filter(conn, profile_id):
 
 async def test_bypass_mv_finds_without_refresh(conn, profile_id):
     session = await _session(conn, profile_id)
-    result = await create_group(conn, session_id=session.id)
+    result = await create_group(conn, session_id=session.id, artifact_type="persona")
 
     items = await search_groups(conn, session_ids=[session.id], bypass_mv=True)
 

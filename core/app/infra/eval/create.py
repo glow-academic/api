@@ -30,6 +30,7 @@ from app.utils.logging.db_logger import get_logger
 
 
 from app.infra.eval.types import (
+    CreateEvalApiRequest,
     CreateEvalItem,
     EvalFieldError,
     EvalResultItem,
@@ -44,12 +45,12 @@ async def create_eval_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: CreateEvalApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> CreateEvalApiResponse:
     """Eval bulk create using composable infra functions.
 
     Flow:
@@ -61,6 +62,8 @@ async def create_eval_impl(
       6. sync_benchmark_entries — pre-create benchmark + invocation entries (non-fatal)
     """
     from app.infra.eval.permissions import compute_can_create
+
+    items = request.evals
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

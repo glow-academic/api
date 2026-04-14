@@ -30,18 +30,23 @@ from app.tools.artifacts.field.update import (
 )
 from app.utils.cache.invalidate_tags import invalidate_tags
 
+from app.infra.field.types import (
+    UpdateFieldApiRequest,
+    UpdateFieldApiResponse,
+)
+
 
 async def update_field_impl(
     pool: asyncpg.Pool,
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdateFieldApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdateFieldApiResponse:
     """Field bulk update using composable infra functions.
 
     Flow:
@@ -54,8 +59,9 @@ async def update_field_impl(
     from app.infra.field.permissions import compute_can_edit
     from app.infra.field.types import (
         FieldResultItem,
-        UpdateFieldApiResponse,
     )
+
+    items = request.fields
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

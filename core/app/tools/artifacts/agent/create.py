@@ -26,6 +26,7 @@ MULTI_JUNCTIONS: list[tuple[str, str]] = [
     ("agent_tools_junction", "tools_id"),
     ("agent_voices_junction", "voices_id"),
     ("agent_agents_junction", "agents_id"),
+    ("agent_rubrics_junction", "rubrics_id"),
 ]
 
 
@@ -43,6 +44,7 @@ async def create_agent(
     tool_ids: list[UUID] | None = None,
     voice_ids: list[UUID] | None = None,
     agent_ids: list[UUID] | None = None,
+    rubric_ids: list[UUID] | None = None,
     active: bool | None = None,
     soft: bool = False,
     generated: bool = False,
@@ -86,6 +88,7 @@ async def create_agent(
         tool_ids,
         voice_ids,
         agent_ids,
+        rubric_ids,
     ]
     for (table, col), vals in zip(MULTI_JUNCTIONS, multi_vals):
         if vals:

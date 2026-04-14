@@ -1,0 +1,32 @@
+{
+  "result": "graded",
+  "overall_score": 5,
+  "passed": false,
+  "feedback": [
+    {
+      "standard_group": "Creates a distinct, believable persona identity",
+      "score": 1,
+      "evidence": "The persona identity is not distinct or believable. Only a color value and a generic group name are provided, with no character, personality traits, or description."
+    },
+    {
+      "standard_group": "Produces actionable behavioral instructions",
+      "score": 1,
+      "evidence": "No actionable behavioral instructions are present. The output only includes a color value and a group name, with no instructions for behavior, tone, boundaries, or response patterns."
+    },
+    {
+      "standard_group": "Selects appropriate parameter fields",
+      "score": 1,
+      "evidence": "No parameter fields relevant to persona (such as temperament, intensity, role, or type) are selected or described. Only a color and group name are provided."
+    },
+    {
+      "standard_group": "Maintains coherence across all resources",
+      "score": 1,
+      "evidence": "There is no coherence across resources because only a color and group name are provided. No persona identity, description, or parameters are present to align or be coherent."
+    },
+    {
+      "standard_group": "Populates all relevant persona resources",
+      "score": 1,
+      "evidence": "Relevant persona resources are not populated. Only a color and group name are given; all other fields are left empty or unspecified."
+    }
+  ]
+}

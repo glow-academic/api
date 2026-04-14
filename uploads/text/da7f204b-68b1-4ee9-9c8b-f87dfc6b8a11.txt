@@ -1,0 +1,24 @@
+## Context
+
+**New persona** — no artifact exists yet.
+Requested resources: **colors**.
+## Parameters
+
+Pass these to your tools:
+- `draft_id`: `019d7e35-453e-72c0-b5ed-f65f0dd04a97`
+
+## Tools
+
+- **Persona_Get**(id, draft_id, color_search, icon_search, descriptions_search, instructions_search, parameter_field_search, parameter_ids, color_show_selected, icon_show_selected, parameter_field_show_selected) — Get a specific persona with optional resource filters
+- **Persona_Draft**(draft_id, name, name_id, description, description_id, color, color_id, icon, icon_id, instructions, instructions_id, active_flag_id, active_flag, examples, example_ids, department_ids, departments, parameter_field_ids, parameter_fields, voice_ids, voices) — Save or update a persona draft with current form state
+- **Persona_Create**(name_id, name, color_id, color, icon_id, icon, instructions_id, instructions, description_id, description, active_flag_id, active_flag, department_ids, departments, parameter_field_ids, parameter_fields, example_ids, examples, voice_ids, voices) — Create a new persona with name, description, instructions, color, icon, and optional associations
+
+## What To Do
+
+Save results by calling **Persona_Draft** (or **Persona_Create**). Never output plain text — always use a tool call.
+
+You can set multiple fields in a single `Persona_Draft` call. After each call, check the form state in the response to confirm what was saved.
+
+**Colors:** Pick a suitable existing color from Persona_Get using `color_id`, or generate a new hex code using `color` (e.g. `"#4A90D9"`).
+
+**IMPORTANT:** Only set the requested resources listed above. Do not add extra fields (e.g. if asked for colors, only pass `draft_id` + `color` or `color_id` — nothing else). Omit all optional fields entirely.

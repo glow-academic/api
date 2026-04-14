@@ -1,0 +1,14 @@
+INPUT:
+  grade_id: 019d84c1-6aef-7d61-aec9-1dbed96532ac
+  tool_call_id: 019d84c1-47bb-777c-a479-cce772da8621
+  standard_group_id: 9b1e9200-6b67-5ac7-9457-7306208faaac
+  score: 1
+  feedback: No parameter fields (such as temperament, intensity, role, or type) were selected or set. The persona's intended character is not reflected in any parameters.
+
+OUTPUT:
+### Feedback Created
+- **Feedback ID:** `019d84c1-7d06-779a-a1ae-322b388b6bb1`
+- **Grade ID:** `019d84c1-6aef-7d61-aec9-1dbed96532ac`
+- **Score:** 1/5 (pass: 4)
+
+- **Feedback:** No parameter fields (such as temperament, intensity, role, or type) were selected or set. The persona's intended character is not reflected in any parameters.

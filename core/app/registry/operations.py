@@ -12,6 +12,33 @@ from collections.abc import Callable
 from typing import Any
 
 
+# ---------------------------------------------------------------------------
+# Operation classification: READ vs WRITE
+#
+# WRITE operations mutate state and need ack during generation (soft path).
+# READ operations are safe to execute immediately.
+# ---------------------------------------------------------------------------
+
+WRITE_OPERATIONS: frozenset[str] = frozenset({
+    # CRUD
+    "create", "update", "delete", "duplicate", "draft", "refresh",
+    # Uploads
+    "image_upload", "video_upload", "text_upload", "file_upload", "audio_upload",
+    # Artifact-specific
+    "run", "generate", "problem", "resolve", "emulate", "unemulate",
+    "context", "name", "group", "feedback",
+    # State machine
+    "start", "next", "end", "end_all", "message", "grade", "stop",
+    "response", "previous", "archive",
+    "audio_start", "audio_frame", "audio_stop", "audio_mute",
+})
+
+
+def is_write_operation(operation: str) -> bool:
+    """Check if an operation mutates state (needs ack during generation)."""
+    return operation in WRITE_OPERATIONS
+
+
 def resolve_callable(
     name: str,
     operation: str,

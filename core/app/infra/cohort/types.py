@@ -525,7 +525,7 @@ class PatchCohortDraftApiRequest(ScopedItem):
     ID-only for non-creatable resources:
       - flag_id, department_ids, simulation_ids, profile_ids
 
-    Client always sends full state (append-only — each write is a new version snapshot).
+    Client always sends full state (append-only — each write is a new snapshot).
     """
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {

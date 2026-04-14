@@ -30,6 +30,7 @@ from app.tools.artifacts.auth.update import (
 from app.tools.artifacts.auth.update import (
     update_auth as update_auth_artifact,
 )
+from app.infra.auth.types import UpdateAuthApiRequest, UpdateAuthApiResponse
 from app.utils.cache.invalidate_tags import invalidate_tags
 from app.utils.logging.db_logger import get_logger
 
@@ -41,12 +42,12 @@ async def update_auth_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdateAuthApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdateAuthApiResponse:
     """Auth bulk update using composable infra functions.
 
     Flow:
@@ -60,8 +61,9 @@ async def update_auth_impl(
     from app.infra.auth.permissions import compute_can_edit
     from app.infra.auth.types import (
         AuthResultItem,
-        UpdateAuthApiResponse,
     )
+
+    items = request.auths
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

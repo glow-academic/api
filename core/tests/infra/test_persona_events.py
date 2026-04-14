@@ -58,8 +58,8 @@ def test_create_event_config_resolves_bulk_persona_ids_from_output() -> None:
         {},
         {
             "results": [
-                {"persona_id": "965bd24f-dfae-4063-b370-e1373df46322"},
-                {"persona_id": "0c6a4d42-bc9a-4fb3-a00c-4ad1a1726752"},
+                {"id": "965bd24f-dfae-4063-b370-e1373df46322"},
+                {"id": "0c6a4d42-bc9a-4fb3-a00c-4ad1a1726752"},
             ]
         },
     )

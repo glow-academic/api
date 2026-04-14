@@ -15,7 +15,7 @@ pytestmark = pytest.mark.asyncio
 
 async def _test(conn, profile_id, **overrides):
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, group_id=group.id, session_id=session.id)
     call = await create_call(conn, run_id=run.id, session_id=session.id)
     defaults = dict(

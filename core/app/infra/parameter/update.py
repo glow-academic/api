@@ -30,18 +30,23 @@ from app.tools.artifacts.parameter.update import (
 )
 from app.utils.cache.invalidate_tags import invalidate_tags
 
+from app.infra.parameter.types import (
+    UpdateParameterApiRequest,
+    UpdateParameterApiResponse,
+)
+
 
 async def update_parameter_impl(
     pool: asyncpg.Pool,
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdateParameterApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdateParameterApiResponse:
     """Parameter bulk update using composable infra functions.
 
     Flow:
@@ -54,8 +59,9 @@ async def update_parameter_impl(
     from app.infra.parameter.permissions import compute_can_edit
     from app.infra.parameter.types import (
         ParameterResultItem,
-        UpdateParameterApiResponse,
     )
+
+    items = request.parameters
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

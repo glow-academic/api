@@ -1,1 +1,9 @@
-{# Scenario Image Download response template #}
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### Image Content
+{{ r.content }}
+{% elif results and results[0] and results[0].error %}
+Error downloading image: {{ results[0].error }}
+{% else %}
+No image data returned.
+{% endif %}

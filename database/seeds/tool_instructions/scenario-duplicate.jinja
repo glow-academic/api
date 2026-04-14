@@ -1,1 +1,5 @@
-{# Scenario Duplicate response template #}
+{% if success %}
+Scenario duplicated successfully.{% if scenario_id %} New ID: `{{ scenario_id }}`.{% endif %}
+{% else %}
+Duplicate failed.{% if message %} {{ message }}{% endif %}
+{% endif %}

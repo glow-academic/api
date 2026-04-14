@@ -43,7 +43,7 @@ async def create_parameter(
                 pool,
                 redis,
                 profile_id=profile_id,
-                items=request.parameters,
+                request=request,
                 session_id=session_id,
             )
 

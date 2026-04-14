@@ -93,7 +93,7 @@ class SimulationDraftEntry(BaseModel):
     draft_id: UUID | None = Field(None, description="UUID of the draft")
     created_at: datetime | None = Field(None, description="Creation timestamp")
     updated_at: datetime | None = Field(None, description="Last updated timestamp")
-    version: int | None = Field(None, description="Draft version number")
+
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     mcp: bool | None = Field(None, description="Whether this is an MCP draft")
     active: bool | None = Field(None, description="Whether the draft is active")
@@ -767,7 +767,7 @@ class PatchSimulationDraftApiRequest(ScopedItem):
     ID-only for non-creatable resources:
       - flag_ids, department_ids, scenario_ids
 
-    Client always sends full state (append-only — each write is a new version snapshot).
+    Client always sends full state (append-only — each write is a new snapshot).
     """
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {

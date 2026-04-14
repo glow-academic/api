@@ -15,7 +15,7 @@ pytestmark = pytest.mark.asyncio
 
 async def _call(conn, profile_id):
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, group_id=group.id, session_id=session.id)
     call = await create_call(conn, run_id=run.id, session_id=session.id)
     return session, call
@@ -24,7 +24,7 @@ async def _call(conn, profile_id):
 async def test_new_problem_appears_after_refresh(conn, profile_id):
     session, call = await _call(conn, profile_id)
     result = await create_problem(
-        conn, session_id=session.id, call_id=call.id, type="bug"
+        conn, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
     )
     await refresh_problems(conn)
 
@@ -37,7 +37,7 @@ async def test_new_problem_appears_after_refresh(conn, profile_id):
 async def test_new_problem_not_visible_before_refresh(conn, profile_id):
     session, call = await _call(conn, profile_id)
     result = await create_problem(
-        conn, session_id=session.id, call_id=call.id, type="bug"
+        conn, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
     )
 
     items = await get_problems(conn, [result.id])

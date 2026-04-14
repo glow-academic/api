@@ -104,7 +104,7 @@ async def test_pricing_facets_resolve_departments_and_date_range(pool, redis_cli
             profile_ids=[profile.id],
         )
         session = await create_session(conn, profile_id=profile.id)
-        group = await create_group(conn, session_id=session.id)
+        group = await create_group(conn, session_id=session.id, artifact_type="persona")
         run = await create_run(
             conn, group_id=group.id, session_id=session.id, profiles_id=profile.id
         )

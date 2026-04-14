@@ -43,7 +43,7 @@ async def create_field(
                 pool,
                 redis,
                 profile_id=profile_id,
-                items=request.fields,
+                request=request,
                 session_id=session_id,
             )
 

@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.scenario.group import group_scenario_impl
 from app.infra.scenario.types import (
     VideoDownloadScenarioApiRequest,
     VideoDownloadScenarioApiResult,
@@ -41,6 +42,14 @@ async def download_video(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_scenario_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> VideoDownloadScenarioApiResult:
             return await video_download_scenario_impl(
                 pool,
@@ -56,6 +65,7 @@ async def download_video(
             artifact="scenario",
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
             operation="video_download",
             arguments={"video_id": str(request.video_id)},
             response_model=VideoDownloadScenarioApiResult,

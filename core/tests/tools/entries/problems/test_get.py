@@ -16,7 +16,7 @@ pytestmark = pytest.mark.asyncio
 
 async def _call(conn, profile_id):
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, group_id=group.id, session_id=session.id)
     call = await create_call(conn, run_id=run.id, session_id=session.id)
     return session, call
@@ -25,7 +25,7 @@ async def _call(conn, profile_id):
 async def test_returns_problem_by_id(conn, profile_id):
     session, call = await _call(conn, profile_id)
     result = await create_problem(
-        conn, session_id=session.id, call_id=call.id, type="bug"
+        conn, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
     )
     await refresh_problems(conn)
 
@@ -41,9 +41,9 @@ async def test_returns_problem_by_id(conn, profile_id):
 
 async def test_returns_multiple(conn, profile_id):
     session, call = await _call(conn, profile_id)
-    r1 = await create_problem(conn, session_id=session.id, call_id=call.id, type="bug")
+    r1 = await create_problem(conn, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity")
     r2 = await create_problem(
-        conn, session_id=session.id, call_id=call.id, type="feature"
+        conn, session_id=session.id, call_id=call.id, type="feature", artifact_type="activity"
     )
     await refresh_problems(conn)
 
@@ -70,7 +70,7 @@ async def test_returns_empty_for_empty_ids(conn, profile_id):
 async def test_bypass_mv_returns_without_refresh(conn, profile_id):
     session, call = await _call(conn, profile_id)
     result = await create_problem(
-        conn, session_id=session.id, call_id=call.id, type="other"
+        conn, session_id=session.id, call_id=call.id, type="other", artifact_type="activity"
     )
 
     items = await get_problems(conn, [result.id], bypass_mv=True)

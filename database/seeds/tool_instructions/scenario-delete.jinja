@@ -1,1 +1,5 @@
-{# Scenario Delete response template #}
+{% if success %}
+Scenario{{ 's' if count and count > 1 else '' }} deleted successfully.{% if count %} {{ count }} removed.{% endif %}
+{% else %}
+Delete failed.{% if message %} {{ message }}{% endif %}
+{% endif %}

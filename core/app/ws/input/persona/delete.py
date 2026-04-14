@@ -44,7 +44,7 @@ async def persona_delete(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            persona_ids=payload.persona_ids,
+            persona_ids=payload.ids,
             session_id=identity.session_id,
         ),
         arguments=payload.model_dump(mode="json"),

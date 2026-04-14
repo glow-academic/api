@@ -1484,6 +1484,7 @@ async def _run_tool_module_seeds(
             args_ids=arg_ids if arg_ids else None,
             args_outputs_ids=args_output_ids if args_output_ids else None,
             permission_ids=tool_def["permission_ids"],
+            agent_id=tool_def.get("agent_id"),
             instruction_id=tool_def.get("instruction_id"),
         )
 

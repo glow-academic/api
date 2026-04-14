@@ -20,6 +20,7 @@ async def search_problems(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     mcp: bool | None = None,
+    artifact_type: str | None = None,
     limit: int = 20,
     offset: int = 0,
     bypass_mv: bool = False,
@@ -31,7 +32,7 @@ async def search_problems(
 
     rows = await conn.fetch(
         f"""
-        SELECT {source_alias}.problem_id, {source_alias}.profile_id, c.session_id, {source_alias}.type, {source_alias}.message, {source_alias}.resolved, {source_alias}.created_at, {source_alias}.active, {source_alias}.mcp, {source_alias}.generated
+        SELECT {source_alias}.problem_id, {source_alias}.profile_id, c.session_id, {source_alias}.type, {source_alias}.message, {source_alias}.resolved, {source_alias}.created_at, {source_alias}.active, {source_alias}.mcp, {source_alias}.generated, {source_alias}.artifact_type
         FROM {from_source}
         JOIN problems_entry pe ON pe.id = {source_alias}.problem_id
         LEFT JOIN calls_entry c ON c.id = pe.call_id
@@ -42,6 +43,7 @@ async def search_problems(
           AND ($5::timestamptz IS NULL OR {source_alias}.created_at >= $5)
           AND ($6::timestamptz IS NULL OR {source_alias}.created_at <= $6)
           AND ($7::boolean IS NULL OR {source_alias}.mcp = $7)
+          AND ($10::text IS NULL OR {source_alias}.artifact_type = $10::artifact_type)
         ORDER BY {source_alias}.created_at DESC
         LIMIT $8 OFFSET $9
         """,
@@ -54,6 +56,7 @@ async def search_problems(
         mcp,
         limit,
         offset,
+        artifact_type,
     )
 
     return [
@@ -68,6 +71,7 @@ async def search_problems(
             active=r["active"],
             mcp=r["mcp"],
             generated=r["generated"],
+            artifact_type=r["artifact_type"],
         )
         for r in rows
     ]

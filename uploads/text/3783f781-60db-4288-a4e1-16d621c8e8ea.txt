@@ -1,0 +1,31 @@
+{
+  "criteria_feedback": [
+    {
+      "standard_group_id": "bfe3dcdb-2e2f-53ed-9248-fe60589ccd10",
+      "score": 1,
+      "feedback": "The persona identity is not distinct or believable. Only a color (Blue) and a group name (\"Blue Color Selection\") are provided, with no description or personality traits."
+    },
+    {
+      "standard_group_id": "9ced1ac3-9965-589f-b145-e18866bc9a7c",
+      "score": 1,
+      "feedback": "No actionable behavioral instructions are present. The output only specifies a color and a group name, with no guidance for behavior, tone, boundaries, or response patterns."
+    },
+    {
+      "standard_group_id": "9b1e9200-6b67-5ac7-9457-7306208faaac",
+      "score": 1,
+      "feedback": "No parameter fields such as temperament, intensity, role, or type are selected or described. The output only mentions a color and a group name, which does not reflect a persona's character."
+    },
+    {
+      "standard_group_id": "8b06e90d-478e-5d51-8234-948d05ff3f0f",
+      "score": 1,
+      "feedback": "There is no coherence across resources because only a color and group name are provided. There is no description, instructions, or parameters to align or match."
+    },
+    {
+      "standard_group_id": "53fdbef0-a432-5455-9328-03874c14bbf2",
+      "score": 1,
+      "feedback": "Most relevant persona resources are missing. Only a color and group name are populated; all other fields are left empty or unspecified."
+    }
+  ],
+  "overall_score": 1,
+  "passed": false
+}

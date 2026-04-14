@@ -43,7 +43,7 @@ async def create_model(
                 pool,
                 redis,
                 profile_id=profile_id,
-                items=request.models,
+                request=request,
                 session_id=session_id,
             )
 

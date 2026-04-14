@@ -81,7 +81,7 @@ class TestAuth:
 
         with pytest.raises(HTTPException) as exc_info:
             await delete_persona_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID, persona_ids=[],
             )
         assert exc_info.value.status_code == 401
 
@@ -102,7 +102,7 @@ class TestProfileResolved:
         # but verify profile resolution was actually called
         try:
             await delete_persona_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID, persona_ids=[],
             )
         except Exception:
             pass  # downstream errors expected

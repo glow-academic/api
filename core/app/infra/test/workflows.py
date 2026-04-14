@@ -799,7 +799,6 @@ async def test_proceed_impl(
                     conn,
                     test_id=test_id,
                     call_id=invocation_call_id,
-                    group_id=next_invocation.group_id,
                 )
                 test_invocation_id = inv_result.id
                 await refresh_test_invocation(conn)

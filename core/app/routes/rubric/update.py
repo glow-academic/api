@@ -43,7 +43,7 @@ async def update_rubric(
                 pool,
                 redis,
                 profile_id=profile_id,
-                items=request.rubrics,
+                request=request,
                 session_id=session_id,
             )
 

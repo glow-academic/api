@@ -235,6 +235,59 @@ class GeneratePayload(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# Per-artifact generate types — used by <artifact>/generate endpoints
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class ArtifactGenerateRequest(BaseModel):
+    """Per-artifact generate request.
+
+    The artifact_type is implicit from the endpoint (e.g. /personas/generate).
+    permission_ids controls which tools the AI agent receives during generation.
+    resources is the field-level filter (e.g. ["names", "descriptions"]).
+    """
+
+    # Which tools the AI agent gets during generation
+    permissions: list[PermissionPair] | None = None
+    permission_ids: list[str] | None = None
+    resources: list[str] | None = None
+
+    # Common fields
+    artifact_id: Any | None = None
+    draft_id: Any | None = None
+    params: dict[str, Any] | None = None
+    user_instructions: list[str] | None = None
+    run_id: str | None = None
+    group_id: str | None = None
+    modality: str = "call"
+    extra_messages: list[dict[str, str]] | None = None
+    metadata: dict[str, Any] | None = None
+
+    def to_generate_payload(self, artifact_type: str) -> GeneratePayload:
+        """Convert to the canonical GeneratePayload for the internal bus."""
+        return GeneratePayload(
+            permissions=self.permissions,
+            permission_ids=self.permission_ids,
+            resources=self.resources,
+            artifact_id=self.artifact_id,
+            draft_id=self.draft_id,
+            params=self.params,
+            user_instructions=self.user_instructions,
+            run_id=self.run_id,
+            group_id=self.group_id,
+            modality=self.modality,
+            extra_messages=self.extra_messages,
+            metadata=self.metadata,
+        )
+
+
+class ArtifactGenerateResponse(BaseModel):
+    """Response from a per-artifact generate endpoint."""
+
+    group_id: str
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # Generate artifact types — moved from generate_artifact.py to avoid import chain
 # ═══════════════════════════════════════════════════════════════════════════
 

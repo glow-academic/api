@@ -81,11 +81,11 @@ async def update_persona_impl(
     # ── Step 2: Per-item permission check ──────────────────────────────
 
     for idx, item in enumerate(items):
-        perms = await resolve_persona_permissions_context(pool, item.persona_id)
+        perms = await resolve_persona_permissions_context(pool, item.id)
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
-                detail=f"Item {idx}: Persona {item.persona_id} not found.",
+                detail=f"Item {idx}: Persona {item.id} not found.",
             )
         if not compute_can_edit(
             role_level=profile.role_level, role_permissions=profile.role_permissions,
@@ -143,7 +143,7 @@ async def update_persona_impl(
 
                 await update_persona_artifact(
                     conn,
-                    item.persona_id,
+                    item.id,
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id
                     if item.description_id
@@ -165,7 +165,7 @@ async def update_persona_impl(
                 results.append(
                     PersonaResultItem(
                         success=True,
-                        persona_id=item.persona_id,
+                        id=item.id,
                         message="Persona updated successfully",
                     )
                 )

@@ -32,6 +32,7 @@ from app.tools.artifacts.department.update import (
 from app.tools.artifacts.department.update import (
     update_department as update_department_artifact,
 )
+from app.infra.department.types import UpdateDepartmentApiRequest, UpdateDepartmentApiResponse
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 
@@ -40,12 +41,12 @@ async def update_department_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdateDepartmentApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdateDepartmentApiResponse:
     """Department bulk update using composable infra functions.
 
     Flow:
@@ -59,8 +60,9 @@ async def update_department_impl(
     from app.infra.department.permissions import compute_can_edit
     from app.infra.department.types import (
         DepartmentResultItem,
-        UpdateDepartmentApiResponse,
     )
+
+    items = request.departments
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

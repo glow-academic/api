@@ -174,7 +174,7 @@ async def create_persona_impl(
                 results.append(
                     PersonaResultItem(
                         success=True,
-                        persona_id=result.id,
+                        id=result.id,
                         message="Persona created successfully",
                     )
                 )

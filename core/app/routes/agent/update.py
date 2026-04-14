@@ -42,7 +42,7 @@ async def update_agent(
                 pool,
                 redis,
                 profile_id=profile_id,
-                items=request.agents,
+                request=request,
             )
 
         response_data = await run_artifact_operation_with_audit(

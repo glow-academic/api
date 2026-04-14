@@ -77,6 +77,7 @@ def test_build_scenario_get_result_builds_canonical_response():
                 selected=[
                     SimpleNamespace(
                         id=parameter_id,
+                        parameter_id=parameter_id,
                         name="Mode",
                         description="Mode parameter",
                         document_parameter=False,
@@ -102,6 +103,7 @@ def test_build_scenario_get_result_builds_canonical_response():
             "videos": ResourcePair(selected=[], suggestions=[]),
             "questions": ResourcePair(selected=[], suggestions=[]),
             "options": ResourcePair(selected=[], suggestions=[]),
+            "fields": ResourcePair(selected=[], suggestions=[]),
         },
         entries={"files": [], "images": [], "videos": []},
     )
@@ -117,9 +119,21 @@ def test_build_scenario_get_result_builds_canonical_response():
     assert result.actor_name == "Operator"
     assert result.scenario_exists is True
     assert result.group_id == group_id
-    assert result.names.resource is not None
-    assert result.names.resource.name == "Triage"
-    assert result.departments.current[0].name == "Nursing"
-    assert result.parameters.current[0].parameter_id == parameter_id
-    assert result.parameter_fields.current[0].field_id == field_id
+    # Flat arrays with selected/suggested flags
+    assert result.names is not None
+    assert len(result.names) == 1
+    assert result.names[0].name == "Triage"
+    assert result.names[0].selected is True
+    # Departments flat list
+    selected_depts = [d for d in result.departments if d.selected]
+    assert len(selected_depts) == 1
+    assert selected_depts[0].name == "Nursing"
+    # Parameters flat list
+    selected_params = [p for p in result.parameters if p.selected]
+    assert len(selected_params) == 1
+    assert selected_params[0].parameter_id == parameter_id
+    # Parameter fields flat list
+    selected_fields = [f for f in result.parameter_fields if f.selected]
+    assert len(selected_fields) == 1
+    assert selected_fields[0].field_id == field_id
     assert result.resolved_parameter_ids == [str(parameter_id)]

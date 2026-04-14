@@ -1,0 +1,1 @@
+{"upload_id": "019d8319-449c-7f1f-994f-fda3f70a2197", "file_path": "/Users/ashoksaravanan/Coding/learnloopllc-glow-api/uploads/text/d27a2d4c-4893-48f4-8ce6-c7dba7189afe.txt", "content_type": "text/plain", "filename": "d27a2d4c-4893-48f4-8ce6-c7dba7189afe.txt", "size": 15}

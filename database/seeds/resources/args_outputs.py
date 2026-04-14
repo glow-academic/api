@@ -87,6 +87,12 @@ SHARED_ARGS_OUTPUTS = {
         name="operation",
         template="archive",
     ),
+    "operation_call_download": dict(
+        id=sid("args_output/operation_call_download"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="call_download",
+    ),
     "operation_context": dict(
         id=sid("args_output/operation_context"),
         args_id=_OPERATION_ARG_ID,
@@ -140,6 +146,18 @@ SHARED_ARGS_OUTPUTS = {
         args_id=_OPERATION_ARG_ID,
         name="operation",
         template="generate",
+    ),
+    "operation_generations": dict(
+        id=sid("args_output/operation_generations"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="generations",
+    ),
+    "operation_group": dict(
+        id=sid("args_output/operation_group"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="group",
     ),
     "operation_run": dict(
         id=sid("args_output/operation_run"),
@@ -404,6 +422,12 @@ SHARED_ARGS_OUTPUTS = {
         template="{{ page_size }}",
     ),
     # --- Payload: session/audio fields ---
+    "call_id": dict(
+        id=sid("args_output/call_id"),
+        args_id=sid("arg/call_id"),
+        name="call_id",
+        template="{{ call_id }}",
+    ),
     "chat_id": dict(
         id=sid("args_output/chat_id"),
         args_id=sid("arg/chat_id"),
@@ -472,11 +496,41 @@ SHARED_ARGS_OUTPUTS = {
         name="grade",
         template="{{ grade }}",
     ),
+    "grade_id": dict(
+        id=sid("args_output/grade_id"),
+        args_id=sid("arg/grade_id"),
+        name="grade_id",
+        template="{{ grade_id }}",
+    ),
+    "pass_points": dict(
+        id=sid("args_output/pass_points"),
+        args_id=sid("arg/pass_points"),
+        name="pass_points",
+        template="{{ pass_points }}",
+    ),
+    "tool_call_id": dict(
+        id=sid("args_output/tool_call_id"),
+        args_id=sid("arg/tool_call_id"),
+        name="tool_call_id",
+        template="{{ tool_call_id }}",
+    ),
+    "total_points": dict(
+        id=sid("args_output/total_points"),
+        args_id=sid("arg/total_points"),
+        name="total_points",
+        template="{{ total_points }}",
+    ),
     "score": dict(
         id=sid("args_output/score"),
         args_id=sid("arg/score"),
         name="score",
         template="{{ score }}",
+    ),
+    "standard_group_id": dict(
+        id=sid("args_output/standard_group_id"),
+        args_id=sid("arg/standard_group_id"),
+        name="standard_group_id",
+        template="{{ standard_group_id }}",
     ),
     # --- Routing: additional hardcoded operations ---
     "operation_start": dict(
@@ -520,6 +574,18 @@ SHARED_ARGS_OUTPUTS = {
         args_id=_OPERATION_ARG_ID,
         name="operation",
         template="export",
+    ),
+    "operation_feedback": dict(
+        id=sid("args_output/operation_feedback"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="feedback",
+    ),
+    "operation_name": dict(
+        id=sid("args_output/operation_name"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="name",
     ),
     "operation_refresh": dict(
         id=sid("args_output/operation_refresh"),

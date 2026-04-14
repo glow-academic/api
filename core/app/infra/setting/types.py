@@ -285,7 +285,7 @@ class PatchSettingDraftApiRequest(ScopedItem):
       - flag_id, department_ids, color_ids, profile_ids, auth_ids,
         provider_key_ids, auth_item_key_ids, threshold_ids
 
-    Client always sends full state (append-only — each write is a new version snapshot).
+    Client always sends full state (append-only — each write is a new snapshot).
     """
 
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to update")

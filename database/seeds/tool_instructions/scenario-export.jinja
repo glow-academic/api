@@ -1,1 +1,5 @@
-{# Scenario Export response template #}
+{% if success %}
+Export complete.{% if download_url %} Download: {{ download_url }}{% endif %}{% if count %} {{ count }} scenarios exported.{% endif %}
+{% else %}
+Export failed.{% if message %} {{ message }}{% endif %}
+{% endif %}

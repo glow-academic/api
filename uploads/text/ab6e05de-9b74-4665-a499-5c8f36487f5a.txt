@@ -1,0 +1,1 @@
+{"success": false, "message": "insert or update on table \"group_names_entry\" violates foreign key constraint \"group_names_entry_group_id_fkey\"\nDETAIL:  Key (group_id)=(019d7fa3-3854-7844-bc1c-bd99f68ea16a) is not present in table \"groups_entry\"."}

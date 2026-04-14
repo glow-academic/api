@@ -18,7 +18,7 @@ pytestmark = pytest.mark.asyncio
 async def _deps(conn, profile_id):
     """Create session → group → run → upload for testing."""
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(
         conn, group_id=group.id, session_id=session.id, profiles_id=profile_id
     )

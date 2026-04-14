@@ -25,7 +25,7 @@ async def get_problems(
 
     rows = await conn.fetch(
         f"""
-        SELECT {source_alias}.problem_id, {source_alias}.profile_id, c.session_id, {source_alias}.type, {source_alias}.message, {source_alias}.resolved, {source_alias}.created_at, {source_alias}.active, {source_alias}.mcp, {source_alias}.generated
+        SELECT {source_alias}.problem_id, {source_alias}.profile_id, c.session_id, {source_alias}.type, {source_alias}.message, {source_alias}.resolved, {source_alias}.created_at, {source_alias}.active, {source_alias}.mcp, {source_alias}.generated, {source_alias}.artifact_type
         FROM {from_source}
         JOIN problems_entry pe ON pe.id = {source_alias}.problem_id
         LEFT JOIN calls_entry c ON c.id = pe.call_id
@@ -46,6 +46,7 @@ async def get_problems(
             active=r["active"],
             mcp=r["mcp"],
             generated=r["generated"],
+            artifact_type=r["artifact_type"],
         )
         for r in rows
     ]

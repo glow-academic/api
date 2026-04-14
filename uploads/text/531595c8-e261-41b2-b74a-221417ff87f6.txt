@@ -1,0 +1,1 @@
+{"success": false, "message": "insert or update on table \"persona_drafts_names_connection\" violates foreign key constraint \"persona_drafts_names_connection_names_id_fkey\"\nDETAIL:  Key (names_id)=(6dca5b92-3941-5d88-acdb-4fdf2d1a7ebe) is not present in table \"names_resource\"."}

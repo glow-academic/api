@@ -43,7 +43,7 @@ async def create_tool(
                 pool,
                 redis,
                 profile_id=profile_id,
-                items=request.tools,
+                request=request,
                 session_id=session_id,
             )
 

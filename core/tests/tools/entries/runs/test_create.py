@@ -15,7 +15,7 @@ async def _session(conn, profile_id):
 
 
 async def _group(conn, session_id):
-    return await create_group(conn, session_id=session_id)
+    return await create_group(conn, session_id=session_id, artifact_type="persona")
 
 
 async def test_creates_run_entry(conn, profile_id):

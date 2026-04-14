@@ -26,7 +26,7 @@ class TestGetAuth:
 
         with pytest.raises(HTTPException) as exc_info:
             await get_scenario_impl(
-                object(), object(), profile_id=_PROFILE_ID, scenario_id=None,
+                object(), object(), profile_id=_PROFILE_ID, id=None,
             )
         assert exc_info.value.status_code == 401
 
@@ -47,7 +47,7 @@ class TestGetResolves:
 
         with pytest.raises(HTTPException):
             await get_scenario_impl(
-                object(), object(), profile_id=_PROFILE_ID, scenario_id=None,
+                object(), object(), profile_id=_PROFILE_ID, id=None,
             )
         assert len(called) == 1
 

@@ -33,18 +33,23 @@ from app.tools.artifacts.profile.update import (
 )
 from app.utils.cache.invalidate_tags import invalidate_tags
 
+from app.infra.profile.types import (
+    UpdateProfileApiRequest,
+    UpdateProfileApiResponse,
+)
+
 
 async def update_profile_impl(
     pool: asyncpg.Pool,
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdateProfileApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdateProfileApiResponse:
     """Profile bulk update using composable infra functions.
 
     Flow:
@@ -57,8 +62,9 @@ async def update_profile_impl(
     from app.infra.profile.permissions import compute_can_edit
     from app.infra.profile.types import (
         ProfileResultItem,
-        UpdateProfileApiResponse,
     )
+
+    items = request.profiles
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

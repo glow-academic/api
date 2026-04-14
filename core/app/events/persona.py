@@ -61,9 +61,9 @@ def _persona_result_entity_ids(
     del arguments
     return _uuid_list(
         [
-            item.get("persona_id")
+            item.get("id")
             for item in output.get("results", [])
-            if isinstance(item, dict) and item.get("persona_id")
+            if isinstance(item, dict) and item.get("id")
         ]
     )
 
@@ -74,7 +74,7 @@ def _persona_duplicate_entity_ids(
 ) -> list[UUID]:
     """Resolve duplicated persona ID from the operation output."""
     del arguments
-    return _uuid_list([output.get("persona_id")])
+    return _uuid_list([output.get("id")])
 
 
 def _persona_request_entity_ids(

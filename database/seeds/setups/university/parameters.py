@@ -107,6 +107,7 @@ parameters = [
         field_ids=TIME_FIELD_RESOURCES,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         scenario_parameter=True,
+        video_parameter=True,
     ),
     dict(
         id=P_LOCATION,
@@ -116,6 +117,7 @@ parameters = [
         field_ids=LOCATION_FIELD_RESOURCES,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         scenario_parameter=True,
+        video_parameter=True,
     ),
     dict(
         id=P_CLASS,
@@ -142,6 +144,7 @@ parameters = [
         description="FERPA-related concepts for policy selection",
         field_ids=CONCEPTS_FIELD_RESOURCES,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        video_parameter=True,
     ),
     dict(
         id=P_ROLE,
@@ -150,5 +153,6 @@ parameters = [
         description="Role types for neutral personas (Student, Professor, Instructional Staff)",
         field_ids=ROLE_FIELD_RESOURCES,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        video_parameter=True,
     ),
 ]

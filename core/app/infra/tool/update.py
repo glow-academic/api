@@ -28,6 +28,10 @@ from app.tools.artifacts.tool.update import (
 from app.tools.artifacts.tool.update import (
     update_tool as update_tool_artifact,
 )
+from app.infra.tool.types import (
+    UpdateToolApiRequest,
+    UpdateToolApiResponse,
+)
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 
@@ -36,12 +40,12 @@ async def update_tool_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdateToolApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdateToolApiResponse:
     """Tool bulk update using composable infra functions.
 
     Flow:
@@ -54,8 +58,9 @@ async def update_tool_impl(
     from app.infra.tool.permissions import compute_can_edit
     from app.infra.tool.types import (
         ToolResultItem,
-        UpdateToolApiResponse,
     )
+
+    items = request.tools
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

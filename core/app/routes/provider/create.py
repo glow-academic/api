@@ -43,7 +43,7 @@ async def create_provider(
                 pool,
                 redis,
                 profile_id=profile_id,
-                items=request.providers,
+                request=request,
                 session_id=session_id,
             )
 

@@ -18,7 +18,7 @@ async def _create_attempt_context_graph(pool, actor):
     from app.tools.entries.runs.create import create_run
 
     async with pool.acquire() as conn:
-        group = await create_group(conn, session_id=actor.session_id, name="ws-attempt")
+        group = await create_group(conn, session_id=actor.session_id, name="ws-attempt", artifact_type="persona")
         run = await create_run(
             conn,
             group_id=group.id,

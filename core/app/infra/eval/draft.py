@@ -122,7 +122,6 @@ async def patch_eval_draft_impl(
         async with conn.transaction():
             result = await create_eval_draft(
                 conn,
-                group_id=profile.group_id,
                 session_id=session_id,
                 profile_ids=[profile.profiles_id],
                 name_ids=[request.name_id] if request.name_id else None,

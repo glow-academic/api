@@ -69,8 +69,8 @@ def test_project_call_receipt_emits_bulk_persona_events_per_result_id() -> None:
             "output": {
                 "success": True,
                 "results": [
-                    {"success": True, "persona_id": str(first_id), "message": "ok"},
-                    {"success": True, "persona_id": str(second_id), "message": "ok"},
+                    {"success": True, "id": str(first_id), "message": "ok"},
+                    {"success": True, "id": str(second_id), "message": "ok"},
                 ],
             },
         },

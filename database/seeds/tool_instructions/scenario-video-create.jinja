@@ -1,1 +1,8 @@
-{# Scenario Video Create response template #}
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Video generated. ID: `{{ r.video_id }}`.{% if r.name %} Name: {{ r.name }}.{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error generating video: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

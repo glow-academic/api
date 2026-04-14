@@ -151,6 +151,9 @@ class CreateRubricItem(ScopedItem):
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for resolution")
+    # Denormalized point values
+    total_points: int | None = Field(None, description="Total points for rubric")
+    pass_points: int | None = Field(None, description="Points required to pass")
     # ID-only fields
     point_ids: list[UUID] | None = Field(None, description="Point UUIDs")
     standard_group_ids: list[UUID] | None = Field(None, description="Standard group UUIDs")
@@ -258,7 +261,7 @@ class PatchRubricDraftApiRequest(ScopedItem):
     ID-only for non-creatable resources:
       - flag_id, department_ids, point_ids, standard_group_ids, standard_ids
 
-    Client always sends full state (append-only — each write is a new version snapshot).
+    Client always sends full state (append-only — each write is a new snapshot).
     """
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {

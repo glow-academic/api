@@ -17,7 +17,7 @@ pytestmark = pytest.mark.asyncio
 
 async def _call(conn, profile_id):
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, group_id=group.id, session_id=session.id)
     call = await create_call(conn, run_id=run.id, session_id=session.id)
     return session, call
@@ -25,7 +25,7 @@ async def _call(conn, profile_id):
 
 async def _problem(conn, session, call):
     result = await create_problem(
-        conn, session_id=session.id, call_id=call.id, type="bug"
+        conn, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
     )
     return result.id
 

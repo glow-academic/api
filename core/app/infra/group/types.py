@@ -44,8 +44,9 @@ class GroupListItem(BaseModel):
 
 
 class GetGroupListRequest(BaseModel):
-    """Request for group list endpoint."""
+    """Request for group list/search endpoint."""
 
+    search: str | None = Field(default=None, description="Name search (ILIKE)")
     agent_id: UUID | None = Field(default=None, description="Filter by agent UUID")
     model_id: UUID | None = Field(default=None, description="Filter by model UUID")
     date_from: datetime | None = Field(default=None, description="Start date filter")
@@ -81,16 +82,16 @@ class GroupDetailCallItem(BaseModel):
 
 
 class GroupDetailMessageItem(BaseModel):
-    """A message with upload IDs by media type."""
+    """A message with resource IDs by media type."""
 
     id: UUID | None = Field(None, description="UUID of the message")
     role: str | None = Field(None, description="Role of the message sender")
-    text_upload_ids: list[UUID] = Field(default_factory=list, description="Text upload UUIDs")
-    audio_upload_ids: list[UUID] = Field(default_factory=list, description="Audio upload UUIDs")
-    image_upload_ids: list[UUID] = Field(default_factory=list, description="Image upload UUIDs")
-    video_upload_ids: list[UUID] = Field(default_factory=list, description="Video upload UUIDs")
-    file_upload_ids: list[UUID] = Field(default_factory=list, description="File upload UUIDs")
-    call_upload_ids: list[UUID] = Field(default_factory=list, description="Call upload UUIDs")
+    text_ids: list[UUID] = Field(default_factory=list, description="Text resource UUIDs")
+    audio_ids: list[UUID] = Field(default_factory=list, description="Audio resource UUIDs")
+    image_ids: list[UUID] = Field(default_factory=list, description="Image resource UUIDs")
+    video_ids: list[UUID] = Field(default_factory=list, description="Video resource UUIDs")
+    file_ids: list[UUID] = Field(default_factory=list, description="File resource UUIDs")
+    call_ids: list[UUID] = Field(default_factory=list, description="Call resource UUIDs")
     calls: list[GroupDetailCallItem] = Field(default_factory=list, description="Tool calls in this message")
 
 

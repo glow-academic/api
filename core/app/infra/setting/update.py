@@ -31,6 +31,10 @@ from app.tools.artifacts.setting.update import (
 from app.tools.artifacts.setting.update import (
     update_setting as update_setting_artifact,
 )
+from app.infra.setting.types import (
+    UpdateSettingApiRequest,
+    UpdateSettingApiResponse,
+)
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 
@@ -39,12 +43,12 @@ async def update_setting_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: UpdateSettingApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> UpdateSettingApiResponse:
     """Setting bulk update using composable infra functions.
 
     Flow:
@@ -57,8 +61,9 @@ async def update_setting_impl(
     from app.infra.setting.permissions import compute_can_edit
     from app.infra.setting.types import (
         SettingResultItem,
-        UpdateSettingApiResponse,
     )
+
+    items = request.settings
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.persona.audit import run_persona_operation_with_audit
 from app.infra.persona.create import create_persona_impl
+from app.infra.persona.group import group_persona_impl
 from app.infra.persona.types import (
     CreatePersonaApiRequest,
     CreatePersonaApiResponse,
@@ -38,12 +39,20 @@ async def create_persona(
         pool = get_pool()
         redis = get_redis_client()
 
+        # Resolve time-windowed group for audit linking
+        group_id = None
+        if session_id:
+            group_result = await group_persona_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
+            group_id = group_result.group_id
+
         async def _runner() -> CreatePersonaApiResponse:
             return await create_persona_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
-                items=request.personas,
+                request=request,
                 session_id=session_id,
             )
 
@@ -53,6 +62,7 @@ async def create_persona(
             profile_id=profile_id,
             session_id=session_id,
             operation="create",
+            group_id=group_id,
             arguments={
                 "personas": [item.model_dump(mode="json") for item in request.personas]
             },

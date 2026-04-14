@@ -353,7 +353,7 @@ async def create_persona_context_fixture(
             description="Persona context profile",
         )
         session_res = await create_session(conn, profile_id=profile_res.id)
-        group_res = await create_group(conn, session_id=session_res.id)
+        group_res = await create_group(conn, session_id=session_res.id, artifact_type="persona")
 
         published_name_res = await create_name(conn, published_name, redis_client)
         draft_name_res = await create_name(conn, draft_name, redis_client)

@@ -1,0 +1,8 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Generation started.{% if r.group_id %} Group ID: `{{ r.group_id }}`.{% endif %}
+{% elif results and results[0] and results[0].error %}
+Generation failed: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

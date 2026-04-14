@@ -28,6 +28,7 @@ from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 from app.infra.setting.types import (
+    CreateSettingApiRequest,
     CreateSettingItem,
     SettingFieldError,
     SettingResultItem,
@@ -40,12 +41,12 @@ async def create_setting_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    items: list,
+    request: CreateSettingApiRequest,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
-) -> dict:
+) -> CreateSettingApiResponse:
     """Setting bulk create using composable infra functions.
 
     Flow:
@@ -55,6 +56,8 @@ async def create_setting_impl(
       4. Single transaction: create_setting_artifact + denormalized snapshot per item
       5. invalidate_tags
     """
+    items = request.settings
+
     # ── Step 1: Profile context ────────────────────────────────────────
 
     profile = await resolve_profile_identity_context(

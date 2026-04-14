@@ -1,0 +1,36 @@
+{
+  "overall_score": 2,
+  "passed": false,
+  "feedback": [
+    {
+      "standard_group_id": "bfe3dcdb-2e2f-53ed-9248-fe60589ccd10",
+      "score": 1,
+      "tool_call_id": "019d8466-5a04-7b71-b067-7c89a318ad18",
+      "feedback": "No distinct or believable persona identity is created. The persona_exists flag is false, and there is no evidence of a name or description being set for a specific character."
+    },
+    {
+      "standard_group_id": "9ced1ac3-9965-589f-b145-e18866bc9a7c",
+      "score": 1,
+      "tool_call_id": "019d8466-5a04-7b71-b067-7c89a318ad18",
+      "feedback": "No actionable behavioral instructions are provided. The persona does not exist, and there are no instructions or templates present for driving persona behavior."
+    },
+    {
+      "standard_group_id": "9b1e9200-6b67-5ac7-9457-7306208faaac",
+      "score": 0,
+      "tool_call_id": "019d8466-5a04-7b71-b067-7c89a318ad18",
+      "feedback": "No parameter fields are selected or populated. The persona resource is empty, and there is no alignment with any intended character."
+    },
+    {
+      "standard_group_id": "8b06e90d-478e-5d51-8234-948d05ff3f0f",
+      "score": 0,
+      "tool_call_id": "019d8466-5a04-7b71-b067-7c89a318ad18",
+      "feedback": "There is no coherence across resources because no persona resources are populated. Name, description, instructions, and parameters are all missing."
+    },
+    {
+      "standard_group_id": "53fdbef0-a432-5455-9328-03874c14bbf2",
+      "score": 0,
+      "tool_call_id": "019d8466-5a04-7b71-b067-7c89a318ad18",
+      "feedback": "No relevant persona resources are populated. All fields are empty or at default, and nothing meaningful is specified."
+    }
+  ]
+}

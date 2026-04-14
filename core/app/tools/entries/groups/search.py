@@ -18,6 +18,7 @@ async def search_groups(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     mcp: bool | None = None,
+    artifact_type: str | None = None,
     limit: int = 20,
     offset: int = 0,
     bypass_mv: bool = False,
@@ -27,13 +28,14 @@ async def search_groups(
 
     rows = await conn.fetch(
         f"""
-        SELECT group_id, session_id, created_at, name, active, mcp, generated
+        SELECT group_id, session_id, created_at, name, active, mcp, generated, artifact_type
         FROM {source}
         WHERE ($1::uuid[] IS NULL OR session_id = ANY($1))
           AND ($2::text IS NULL OR name ILIKE '%' || $2 || '%')
           AND ($3::timestamptz IS NULL OR created_at >= $3)
           AND ($4::timestamptz IS NULL OR created_at <= $4)
           AND ($5::boolean IS NULL OR mcp = $5)
+          AND ($8::text IS NULL OR artifact_type = $8::artifact_type)
         ORDER BY created_at DESC
         LIMIT $6 OFFSET $7
         """,
@@ -44,6 +46,7 @@ async def search_groups(
         mcp,
         limit,
         offset,
+        artifact_type,
     )
 
     return [
@@ -55,6 +58,7 @@ async def search_groups(
             active=r["active"],
             mcp=r["mcp"],
             generated=r["generated"],
+            artifact_type=r["artifact_type"],
         )
         for r in rows
     ]

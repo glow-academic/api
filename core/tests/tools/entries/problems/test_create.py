@@ -15,7 +15,7 @@ pytestmark = pytest.mark.asyncio
 
 async def _call(conn, profile_id):
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, group_id=group.id, session_id=session.id)
     call = await create_call(conn, run_id=run.id, session_id=session.id)
     return session, call
@@ -24,7 +24,7 @@ async def _call(conn, profile_id):
 async def test_returns_id(conn, profile_id):
     session, call = await _call(conn, profile_id)
     result = await create_problem(
-        conn, session_id=session.id, call_id=call.id, type="bug"
+        conn, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
     )
 
     assert result.id is not None
@@ -33,7 +33,7 @@ async def test_returns_id(conn, profile_id):
 async def test_visible_via_get_after_refresh(conn, profile_id):
     session, call = await _call(conn, profile_id)
     result = await create_problem(
-        conn, session_id=session.id, call_id=call.id, type="bug"
+        conn, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
     )
     await refresh_problems(conn)
 
@@ -55,8 +55,7 @@ async def test_passes_custom_message(conn, profile_id):
         session_id=session.id,
         call_id=call.id,
         type="feature",
-        message="Custom message",
-    )
+        message="Custom message", artifact_type="activity")
     await refresh_problems(conn)
 
     items = await get_problems(conn, [result.id])
@@ -69,8 +68,7 @@ async def test_passes_custom_message(conn, profile_id):
 async def test_passes_mcp_flag(conn, profile_id):
     session, call = await _call(conn, profile_id)
     result = await create_problem(
-        conn, session_id=session.id, call_id=call.id, type="bug", mcp=True
-    )
+        conn, session_id=session.id, call_id=call.id, type="bug", mcp=True, artifact_type="activity")
     await refresh_problems(conn)
 
     items = await get_problems(conn, [result.id])
@@ -86,8 +84,7 @@ async def test_links_profile(conn, profile_id):
         session_id=session.id,
         call_id=call.id,
         type="question",
-        profile_id=profile_id,
-    )
+        profile_id=profile_id, artifact_type="activity")
     await refresh_problems(conn)
 
     items = await get_problems(conn, [result.id])

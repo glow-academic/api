@@ -23,7 +23,7 @@ async def get_groups(
 
     rows = await conn.fetch(
         f"""
-        SELECT group_id, session_id, created_at, name, active, mcp, generated
+        SELECT group_id, session_id, created_at, name, active, mcp, generated, artifact_type
         FROM {source}
         WHERE group_id = ANY($1)
         """,
@@ -39,6 +39,7 @@ async def get_groups(
             active=r["active"],
             mcp=r["mcp"],
             generated=r["generated"],
+            artifact_type=r["artifact_type"],
         )
         for r in rows
     ]

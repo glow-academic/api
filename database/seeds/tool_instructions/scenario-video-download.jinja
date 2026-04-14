@@ -1,1 +1,9 @@
-{# Scenario Video Download response template #}
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### Video Content
+{{ r.content }}
+{% elif results and results[0] and results[0].error %}
+Error downloading video: {{ results[0].error }}
+{% else %}
+No video data returned.
+{% endif %}

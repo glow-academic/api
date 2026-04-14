@@ -207,4 +207,4 @@ async def create_denormalized_snapshot(
             scenario_parameter=scenario_parameter,
             video_parameter=video_parameter,
         )
-    return result.id
+    return result.parameter_id

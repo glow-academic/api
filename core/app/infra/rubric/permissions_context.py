@@ -231,6 +231,8 @@ async def create_denormalized_snapshot(
     standard_group_ids: list[UUID] | None = None,
     simulation_rubric: bool = False,
     video_rubric: bool = False,
+    total_points: int | None = None,
+    pass_points: int | None = None,
 ) -> UUID:
     """Create a rubrics_resource snapshot by hydrating IDs to values.
 
@@ -267,5 +269,7 @@ async def create_denormalized_snapshot(
             standard_group_ids=standard_group_ids,
             simulation_rubric=simulation_rubric,
             video_rubric=video_rubric,
+            total_points=total_points or 0,
+            pass_points=pass_points or 0,
         )
     return result.id

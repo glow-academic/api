@@ -44,7 +44,7 @@ async def eval_update(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            items=payload.evals,
+            request=payload,
             session_id=identity.session_id,
         ),
         arguments=payload.model_dump(mode="json"),

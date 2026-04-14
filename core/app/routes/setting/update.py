@@ -43,7 +43,7 @@ async def update_setting(
                 pool,
                 redis,
                 profile_id=profile_id,
-                items=request.settings,
+                request=request,
                 session_id=session_id,
             )
 

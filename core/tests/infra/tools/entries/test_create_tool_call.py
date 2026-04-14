@@ -31,7 +31,7 @@ async def _failing_tool(conn, **kwargs):
 
 async def _deps(conn, profile_id):
     session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id)
+    group = await create_group(conn, session_id=session.id, artifact_type="persona")
     return session, group
 
 
