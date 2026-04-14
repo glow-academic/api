@@ -24,6 +24,7 @@ async def create_group(
         """
         INSERT INTO groups_entry (id, session_id, active, mcp, generated, artifact_type)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true, $5::artifact_type)
+        ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
     """,
         session_id,

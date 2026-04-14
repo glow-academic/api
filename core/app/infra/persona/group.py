@@ -80,6 +80,10 @@ async def group_persona_impl(
     group_id: UUID | None = None,
     name: str | None = None,
     window_seconds: int = DEFAULT_WINDOW_SECONDS,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    **_kwargs,
 ) -> GroupPersonaApiResponse:
     """Resolve or create a persona group with optional naming.
 
@@ -95,6 +99,24 @@ async def group_persona_impl(
     if request is not None:
         group_id = request.group_id
         name = request.name
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            # Promote: re-call create with soft=False → ON CONFLICT activates
+            async with pool.acquire() as conn:
+                await create_group(
+                    conn, session_id=session_id,
+                    artifact_type=ARTIFACT_TYPE,
+                    id=idempotency_key, soft=False,
+                )
+            await invalidate_tags(["groups"], redis=redis)
+        # accept=False: no-op
+        return GroupPersonaApiResponse(
+            group_id=idempotency_key,
+            group_name_id=None,
+            name=name,
+        )
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
