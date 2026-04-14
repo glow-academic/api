@@ -4,6 +4,7 @@ import time
 
 import asyncpg
 
+from app.infra.globals import get_redis_client
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 MV_NAME = "home_mv"
