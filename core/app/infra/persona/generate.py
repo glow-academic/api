@@ -121,13 +121,6 @@ async def generate_persona_impl(
     generated_key = idempotency_key or uuid.uuid4()
     payload = request.to_generate_payload(ARTIFACT_TYPE)
 
-    await internal_sio.emit(f"{ARTIFACT_TYPE}.generate.started", {
-        "sid": resolved_sid,
-        "rooms": [resolved_sid] if resolved_sid else [],
-        "artifact_type": ARTIFACT_TYPE,
-        "group_id": str(group_id),
-    })
-
     try:
         prepared = await prepare_generation(
             pool, redis,
@@ -172,25 +165,9 @@ async def generate_persona_impl(
             tool_soft=tool_soft,
         )
 
-        await internal_sio.emit(f"{ARTIFACT_TYPE}.generate.completed", {
-            "sid": resolved_sid,
-            "rooms": [resolved_sid] if resolved_sid else [],
-            "artifact_type": ARTIFACT_TYPE,
-            "group_id": str(group_id),
-            "run_id": str(prepared.run_id),
-            "success": True,
-            "input_tokens": result.total_input_tokens,
-            "output_tokens": result.total_output_tokens,
-        })
     except Exception as e:
         logger.exception(f"Persona generation failed: {e}")
-        await internal_sio.emit(f"{ARTIFACT_TYPE}.generate.failed", {
-            "sid": resolved_sid,
-            "rooms": [resolved_sid] if resolved_sid else [],
-            "artifact_type": ARTIFACT_TYPE,
-            "group_id": str(group_id),
-            "message": str(e),
-        })
+        raise
 
     return ArtifactGenerateResponse(
         group_id=str(group_id),

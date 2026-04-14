@@ -138,6 +138,16 @@ async def run_artifact_operation_with_audit(
                 return result.model_dump(mode="json")
             return result
 
+        async def _on_call_created(cid: UUID | None) -> None:
+            """Emit started event as soon as call record exists, before execution."""
+            await internal_sio.emit(f"{event_prefix}.started", {
+                "sid": sid,
+                "rooms": effective_rooms,
+                "call_id": str(cid) if cid else None,
+                "group_id": str(effective_group_id) if effective_group_id else None,
+                **arguments,
+            })
+
         async with pool.acquire() as conn:
             audit_result = await create_tool_call(
                 conn,
@@ -154,6 +164,7 @@ async def run_artifact_operation_with_audit(
                 mcp=mcp,
                 instruction_template=instruction_template,
                 raise_on_error=False,
+                on_call_created=_on_call_created,
             )
         result_data = audit_result.result
         call_upload_id = audit_result.call_upload_id
@@ -172,15 +183,6 @@ async def run_artifact_operation_with_audit(
                 "error_type": type(exc).__name__,
             })
             raise
-
-    # --- Started (call_id always available when audited) ---
-    await internal_sio.emit(f"{event_prefix}.started", {
-        "sid": sid,
-        "rooms": effective_rooms,
-        "call_id": str(call_upload_id) if call_upload_id else None,
-        "group_id": str(effective_group_id) if effective_group_id else None,
-        **arguments,
-    })
 
     # --- Failed ---
     if tool_error is not None:

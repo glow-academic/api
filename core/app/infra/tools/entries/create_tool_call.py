@@ -35,6 +35,7 @@ async def create_tool_call(
     mcp: bool = False,
     raise_on_error: bool = False,
     instruction_template: str | None = None,
+    on_call_created: Callable[[UUID | None], Any] | None = None,
 ) -> CreateToolSetupResponse:
     """Execute a tool and persist the full entry chain + files.
 
@@ -67,6 +68,10 @@ async def create_tool_call(
             mcp=mcp,
         )
         call_id = call_result.id
+
+    # 1b. Notify caller that call record exists (for emitting "started" events)
+    if on_call_created is not None:
+        await on_call_created(call_id)
 
     # 2. Execute — call tool_fn with call_id available
     tool_error: Exception | None = None

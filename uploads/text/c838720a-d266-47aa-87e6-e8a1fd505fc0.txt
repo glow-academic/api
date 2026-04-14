@@ -1,0 +1,33 @@
+## Context
+
+**New persona** — no artifact exists yet.
+Requested resources: **names, descriptions, colors, icons, instructions, flags, examples, parameter_fields, departments, voices**.Group ID: `019d8d44-a81b-728f-b8fd-6511dbe03a30`.
+## Parameters
+
+
+## Tools
+
+- **Persona_Get**(id, draft_id) — Get a specific persona with optional resource filters
+- **Persona_Draft**(draft_id, name, name_id, description, description_id, color, color_id, icon, icon_id, instructions, instructions_id, active_flag_id, active_flag, examples, example_ids, department_ids, departments, parameter_field_ids, parameter_fields, voice_ids, voices) — Save or update a persona draft with current form state
+- **Persona_Group**(group_id, name) — Resolve or create a persona group with optional naming
+
+## What To Do
+
+Always respond with tool calls — never output plain text, summaries, or lists.
+
+Save results by calling **Persona_Draft** with a single call. You can set multiple fields in one call.
+
+For each requested resource below, pick or generate **one** value and include it in a single `Persona_Draft` call.
+
+**Names:** Generate ONE clear, descriptive persona name. Include `name` in the draft call.
+**Descriptions:** Write ONE detailed description of the persona's background, role, and communication style. Include `description` in the draft call.
+**Colors:** Pick ONE suitable color from Persona_Get using `color_id`, or generate ONE new hex code using `color` (e.g. `"#4A90D9"`).
+**Icons:** Select ONE appropriate icon from Persona_Get. Include `icon_id` in the draft call.
+**Instructions:** Write ONE behavioral instruction template defining tone, knowledge boundaries, and response patterns. Include `instructions` in the draft call.
+**Active Flag:** Set `active_flag` to `true` to make the persona available, or leave unset for inactive. Use the `active_flag_id` from Persona_Get if available.
+**Departments:** Select relevant department IDs from Persona_Get. Include `department_ids` in the draft call.
+**Examples:** Select existing example IDs from Persona_Get using `example_ids`, or write new example utterances using `examples` (list of strings).
+**Voices:** Select ONE appropriate voice from Persona_Get. Include `voice_ids` in the draft call.
+**Parameter Fields:** First call `Persona_Get` to see available Parameter Groups. Then call `Persona_Get` again with `parameter_ids` set to the relevant group IDs to see the fields within. Select appropriate field IDs and include `parameter_field_ids` in the draft call.
+
+**IMPORTANT:** Only set the requested resources listed above. Do not add extra fields (e.g. if asked for colors, only pass `draft_id` + `color` or `color_id` — nothing else). Omit all optional fields entirely.
