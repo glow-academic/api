@@ -1073,6 +1073,12 @@ permissions = [
         name="Update Parameter",
     ),
     dict(
+        id=sid("permission/persona/context"),
+        artifact="persona",
+        operation="context",
+        name="Context Persona",
+    ),
+    dict(
         id=sid("permission/persona/create"),
         artifact="persona",
         operation="create",
@@ -2122,6 +2128,7 @@ PERMISSION_IDS = {
     ("parameter", "refresh"): sid("permission/parameter/refresh"),
     ("parameter", "search"): sid("permission/parameter/search"),
     ("parameter", "update"): sid("permission/parameter/update"),
+    ("persona", "context"): sid("permission/persona/context"),
     ("persona", "create"): sid("permission/persona/create"),
     ("persona", "csv"): sid("permission/persona/csv"),
     ("persona", "delete"): sid("permission/persona/delete"),

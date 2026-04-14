@@ -1610,6 +1610,16 @@ tools = [
         instruction_id=_iid("Persona Problem"),
     ),
     dict(
+        id=sid("tool/persona/context"),
+        resource_id=sid("tool-resource/persona/context"),
+        name="Persona Context",
+        description="Get page context for the persona artifact — docs + profile + permissions",
+        permission_ids=[sid("permission/persona/context")],
+        args=["entity_id"],
+        args_outputs=["artifact_persona", "operation_context", "entity_id"],
+        instruction_id=_iid("Persona Context"),
+    ),
+    dict(
         id=sid("tool/persona/csv"),
         resource_id=sid("tool-resource/persona/csv"),
         name="Persona CSV",

@@ -9,7 +9,7 @@ Level: 0 = highest privilege (superadmin), higher = less privilege.
 from database.seeds.ids import sid
 from database.seeds.resources.permissions import PERMISSION_IDS
 
-_READ_OPS = ["get", "search", "docs", "refresh", "export", "generations"]
+_READ_OPS = ["get", "search", "docs", "refresh", "export", "generations", "context"]
 _WRITE_OPS = ["create", "update", "delete", "duplicate", "draft", "drafts", "generate", "name", "grade", "feedback", "group", "problem", "csv"]
 _ALL_CRUD = _READ_OPS + _WRITE_OPS
 _MEDIA_OPS = [

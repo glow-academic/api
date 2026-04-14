@@ -782,6 +782,7 @@ INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("persona", "generations"): ("app.infra.persona.generations", "generations_persona_impl"),
     ("persona", "group"): ("app.infra.persona.group", "group_persona_impl"),
     ("persona", "problem"): ("app.infra.persona.problem", "problem_persona_impl"),
+    ("persona", "context"): ("app.infra.persona.page_context", "page_context_persona_impl"),
     **_infra("profile", **_FULL_CRUD),
     **_infra("provider", **_FULL_CRUD, csv=True),
     **_infra("rubric", **_FULL_CRUD, csv=True),
