@@ -31,7 +31,7 @@ async def test_finds_created_entry(conn, profile_id):
 
     items = await search_calls(conn, run_ids=[run.id])
 
-    ids = [item.call_id for item in items]
+    ids = [item.id for item in items]
     assert call.id in ids
 
 
@@ -67,5 +67,5 @@ async def test_bypass_mv_finds_without_refresh(conn, profile_id):
 
     items = await search_calls(conn, run_ids=[run.id], bypass_mv=True)
 
-    ids = [item.call_id for item in items]
+    ids = [item.id for item in items]
     assert call.id in ids

@@ -1,11 +1,12 @@
-"""Unified chat analytics router (home + practice via practice: bool)."""
+"""Chat analytics helpers — get, group, refresh, export, context.
+
+NOTE: draft.py and drafts.py moved to routes/attempt/.
+This module is NOT route-mounted but infra still imports individual files.
+"""
 
 from fastapi import APIRouter
 
 from app.routes.chat.context import router as context_router
-from app.routes.chat.docs import router as docs_router
-from app.routes.chat.draft import router as draft_router
-from app.routes.chat.drafts import router as drafts_router
 from app.routes.chat.export import router as export_router
 from app.routes.chat.get import router as get_router
 from app.routes.chat.group import router as group_router
@@ -15,9 +16,6 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 
 router.include_router(get_router)
 router.include_router(group_router)
-router.include_router(draft_router)
-router.include_router(drafts_router)
 router.include_router(export_router)
 router.include_router(refresh_router)
 router.include_router(context_router)
-router.include_router(docs_router)

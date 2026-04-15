@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -79,7 +81,7 @@ async def page_context_provider_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Provider page context — superset of docs_provider_impl.
+    """Provider page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -243,7 +245,39 @@ async def page_context_provider_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "create": [
+            StarterPrompt(title="Configure a provider", content="Create a new AI provider configuration with API endpoint and credentials."),
+            StarterPrompt(title="From API docs", content="I have API documentation — help me configure a provider from it."),
+            StarterPrompt(title="Template-based", content="Create a provider from a common template like OpenAI, Anthropic, or custom endpoint."),
+        ],
+        "search": [
+            StarterPrompt(title="Find providers", content="Help me find providers that match specific capabilities or rate limit requirements."),
+            StarterPrompt(title="Compare providers", content="Compare my provider configurations and identify gaps in coverage or redundancies."),
+            StarterPrompt(title="Audit providers", content="Review all providers and flag any with missing credentials or outdated endpoints."),
+        ],
+        "update": [
+            StarterPrompt(title="Optimize settings", content="Fine-tune this provider's timeout, retry, and concurrency settings."),
+            StarterPrompt(title="Update credentials", content="Update this provider's API keys and endpoint configuration."),
+            StarterPrompt(title="Add rate limits", content="Configure rate limits and failover settings for this provider."),
+        ],
+        "duplicate": [
+            StarterPrompt(title="Clone provider", content="Duplicate this provider and modify its endpoint for a different environment."),
+            StarterPrompt(title="Staging copy", content="Create a staging version of this provider with separate credentials."),
+        ],
+        "draft": [
+            StarterPrompt(title="Draft provider", content="Start drafting a new provider — suggest an endpoint and key configuration."),
+            StarterPrompt(title="Iterate draft", content="Review my current draft and suggest improvements to the API settings before saving."),
+        ],
+        "export": [
+            StarterPrompt(title="Export inventory", content="Generate a summary of all providers with their endpoints and status."),
+            StarterPrompt(title="Export analysis", content="Analyze my providers and create a report on coverage and rate limit configurations."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.provider.create import create_provider
@@ -335,6 +369,7 @@ async def page_context_provider_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

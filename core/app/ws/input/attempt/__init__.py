@@ -6,7 +6,6 @@ from . import (  # noqa: F401
     audio_start,
     audio_stop,
     audio_upload,
-    docs,
     end,
     end_all,
     export,
@@ -30,4 +29,11 @@ from . import (  # noqa: F401
     text_download,
     use_previous,
     video_download,
+    # Absorbed sub-modules
+    dashboard,
+    home,
+    leaderboard,
+    practice,
+    record,
+    reports,
 )

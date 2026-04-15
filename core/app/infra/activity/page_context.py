@@ -20,6 +20,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -46,7 +48,7 @@ async def page_context_activity_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Activity page context — superset of docs_activity_impl.
+    """Activity page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -93,15 +95,37 @@ async def page_context_activity_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "get": [
+            StarterPrompt(title="View engagement", content="Show engagement metrics and login patterns for a specific profile."),
+            StarterPrompt(title="Check usage", content="Display platform usage statistics and session details for this user."),
+        ],
+        "search": [
+            StarterPrompt(title="Find active users", content="Search for the most active users over the selected time period."),
+            StarterPrompt(title="Spot anomalies", content="Identify unusual activity patterns or outliers across users."),
+            StarterPrompt(title="Filter by period", content="Search activity records filtered by date range and engagement level."),
+        ],
+        "export": [
+            StarterPrompt(title="Export activity", content="Export activity data as a CSV report for the selected time period."),
+            StarterPrompt(title="Download metrics", content="Generate a downloadable summary of engagement and usage metrics."),
+        ],
+        "refresh": [
+            StarterPrompt(title="Refresh views", content="Refresh the activity materialized views to reflect the latest data."),
+            StarterPrompt(title="Update metrics", content="Rebuild activity analytics to include recently logged events."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.activity.export import export_activity
-    from app.routes.activity.get import get_activity
-    from app.routes.activity.problem import create_problem
-    from app.routes.activity.refresh import activity_refresh
-    from app.routes.activity.resolve import resolve_problem
-    from app.routes.activity.search import search_activity
+    from app.routes.system.activity.export import export_activity
+    from app.routes.system.activity.get import get_activity
+    from app.routes.system.activity.problem import create_problem
+    from app.routes.system.activity.refresh import activity_refresh
+    from app.routes.system.activity.resolve import resolve_problem
+    from app.routes.system.activity.search import search_activity
 
     return ComposedContextResponse(
         name="activity",
@@ -140,6 +164,7 @@ async def page_context_activity_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

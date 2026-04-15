@@ -11,7 +11,7 @@ from app.infra.identity.socket import resolve_socket_identity
 internal_sio = get_internal_sio()
 
 
-@sio.on("chat.draft")  # type: ignore
+@sio.on("attempt.draft")  # type: ignore
 async def chat_draft(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

@@ -5,7 +5,7 @@ import json
 import pytest
 
 from app.infra.tools.entries.create_tool_call import create_tool_call
-from app.tools.entries.calls.get import get_call
+from app.tools.entries.calls.get import get_calls
 from app.tools.entries.groups.create import create_group
 from app.tools.entries.messages.get import get_message
 from app.tools.entries.runs.get import get_run
@@ -102,7 +102,7 @@ async def test_with_tool_json_has_correct_shape(conn, profile_id, tmp_path):
 
     json_file = list((tmp_path / "call").glob("*.json"))[0]
     data = json.loads(json_file.read_text())
-    assert set(data.keys()) == {"call_id", "tool_id", "arguments", "output"}
+    assert set(data.keys()) == {"call_id", "tool_id", "arguments", "output", "raw_output"}
     assert data["arguments"] == {"name": "Dr. Smith"}
     assert data["tool_id"] == str(tool.id)
 
@@ -145,8 +145,8 @@ async def test_with_tool_creates_db_entries(conn, profile_id, tmp_path):
     run = await get_run(conn, result.run_id)
     assert run is not None
 
-    call = await get_call(conn, result.call_id)
-    assert call is not None
+    calls = await get_calls(conn, [result.call_id], bypass_mv=True)
+    assert len(calls) == 1
 
     message = await get_message(conn, result.message_id)
     assert message is not None

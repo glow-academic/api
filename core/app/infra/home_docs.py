@@ -87,9 +87,9 @@ async def docs_home_client(
         compute_status_instructional,
         format_cohort_names,
     )
-    from app.routes.home.export import export_home
-    from app.routes.home.get import home_get
-    from app.routes.home.search import search_home
+    from app.routes.attempt.home.export import export_home
+    from app.routes.attempt.home.get import home_get
+    from app.routes.attempt.home.search import search_home
 
     return ComposedDocsResponse(
         name="home",

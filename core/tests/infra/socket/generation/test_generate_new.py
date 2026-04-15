@@ -27,8 +27,8 @@ def _base_data(**overrides: object) -> dict:
         "sid": "s1",
         "profile_id": "00000000-0000-0000-0000-000000000001",
         "session_id": "sess-1",
-        "artifact_types": [{"name": "agent", "operation": "get"}],
-        "resource_types": [],
+        "artifact_type": "agent",
+        "operations": ["get"],
     }
     d.update(overrides)
     return d

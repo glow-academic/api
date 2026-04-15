@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -78,7 +80,7 @@ async def page_context_field_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Field page context — superset of docs_field_impl.
+    """Field page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -237,7 +239,39 @@ async def page_context_field_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "create": [
+            StarterPrompt(title="Create a field", content="Create a new custom field with appropriate type, validation, and defaults."),
+            StarterPrompt(title="From requirements", content="I need a specific data field — help me configure it with proper validation."),
+            StarterPrompt(title="Template-based", content="Create a field from a common pattern like text input, dropdown, or date picker."),
+        ],
+        "search": [
+            StarterPrompt(title="Find fields", content="Help me find fields that match specific types or validation criteria."),
+            StarterPrompt(title="Compare fields", content="Compare my fields and identify redundant or overlapping definitions."),
+            StarterPrompt(title="Audit fields", content="Review all fields and flag any with missing validation or incomplete configs."),
+        ],
+        "update": [
+            StarterPrompt(title="Enhance field", content="Improve this field's validation rules, description, and default values."),
+            StarterPrompt(title="Add constraints", content="Add validation constraints, help text, and conditional logic to this field."),
+            StarterPrompt(title="Refine type", content="Optimize this field's data type and format for its intended use case."),
+        ],
+        "duplicate": [
+            StarterPrompt(title="Clone & modify", content="Duplicate this field and modify the type or validation for a different use case."),
+            StarterPrompt(title="Bulk clone", content="Create variations of this field for different parameter configurations."),
+        ],
+        "draft": [
+            StarterPrompt(title="Draft field", content="Start drafting a new field — suggest a name, type, and validation rules."),
+            StarterPrompt(title="Iterate draft", content="Review my current draft and suggest improvements before saving."),
+        ],
+        "export": [
+            StarterPrompt(title="Export schema", content="Generate a summary of all fields and their validation configurations."),
+            StarterPrompt(title="Export field map", content="Create a report mapping fields to their usage across artifacts."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.field.create import create_field
@@ -329,6 +363,7 @@ async def page_context_field_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

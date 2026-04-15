@@ -47,14 +47,19 @@ ValidatePayloadFn = Callable[..., str | None]
 def resolve_primary_artifact_type(data: dict[str, Any]) -> str:
     """Resolve the primary artifact type name from raw request data.
 
-    Checks new `permissions` field first, falls back to legacy `artifact_types`.
+    Reads `artifact_type` directly, with legacy fallbacks.
     """
-    # New format: permissions: [{ artifact: "persona", operation: "create" }]
+    # New format: artifact_type is a top-level string
+    at = data.get("artifact_type")
+    if at and at != "unknown":
+        return at
+
+    # Legacy: permissions: [{ artifact: "persona", operation: "create" }]
     permissions_raw = data.get("permissions") or []
     if permissions_raw and isinstance(permissions_raw[0], dict):
         return permissions_raw[0].get("artifact", "unknown")
 
-    # Legacy format: artifact_types: [{ name: "persona", operation: "get" }]
+    # Legacy: artifact_types: [{ name: "persona", operation: "get" }]
     artifact_types_raw = data.get("artifact_types") or []
     if artifact_types_raw and isinstance(artifact_types_raw[0], dict):
         return artifact_types_raw[0].get("name", "unknown")
@@ -310,29 +315,20 @@ async def generate_prepare_impl(
         setup_generation_test_fn = setup_generation_test_fn or setup_generation_test
 
         # --- Step 1: Validate (pure) ---
-        # New format: resources is a plain list of strings
-        # Legacy format: resource_types is a list of ResourceTypeItem
-        # Empty = all valid resource types for this artifact
-        if payload.resources:
-            resource_types = payload.resources
-        elif payload.resource_types:
-            resource_types = [rt.name for rt in payload.resource_types if rt]
-        else:
-            resource_types = list(artifact_config.valid_resource_types)
+        resource_types = list(artifact_config.valid_resource_types)
+        payload_params = payload.params or {}
+        draft_id = payload_params.get("draft_id")
         error = validate_payload_fn(
-            resource_types_raw=resource_types,
             artifact_type=artifact_type,
-            valid_resource_types=artifact_config.valid_resource_types,
-            entry_types=artifact_config.entry_types,
             requires_draft=artifact_config.requires_draft,
-            draft_id=payload.draft_id,
+            draft_id=draft_id,
         )
         if error:
             await _emit_error(emit, sid, error, artifact_type)
             return
 
         # --- Step 2: Resolve artifact_id ---
-        artifact_id = payload.artifact_id
+        artifact_id = payload_params.get("artifact_id")
         payload_metadata = payload.metadata or {}
         if (
             artifact_type == "profile"
@@ -353,7 +349,7 @@ async def generate_prepare_impl(
                     artifact_type=artifact_type,
                     artifact_id=artifact_id,
                     group_id=group_id,
-                    draft_id=payload.draft_id,
+                    draft_id=draft_id,
                 )
             ],
             bypass_cache=bypass_cache,
@@ -376,21 +372,16 @@ async def generate_prepare_impl(
         config_agents = ws_ctx.agents
 
         # Agent groups from tool scores
-        # New path: use permissions to determine agent dispatch (artifact-level)
-        # Legacy path: use resource_types (resource-level)
-        dispatch_types = resource_types
-        if payload.permissions and not resource_types:
-            # No resource_types — use artifact names from permissions
-            dispatch_types = list({p.artifact for p in payload.permissions})
-        elif payload.permissions:
-            # Has resource_types AND permissions — use artifact names for dispatch
-            # (resource_types will be used for field filtering at execution time)
-            dispatch_types = list({p.artifact for p in payload.permissions})
+        if payload.operations:
+            dispatch_types = [artifact_type]
+        else:
+            dispatch_types = resource_types
 
         agent_groups = build_agent_groups_from_scores_fn(
             resource_types=dispatch_types,
             scores=ws_ctx.scores,
-            permissions=[{"artifact": p.artifact, "operation": p.operation} for p in payload.permissions] if payload.permissions else None,
+            operations=payload.operations,
+            artifact_type=artifact_type,
             tool_graph=getattr(ws_ctx, "tool_graph", None),
         )
 
@@ -529,14 +520,11 @@ async def generate_prepare_impl(
                 developer_instruction_templates=dev_templates,
                 payload_metadata=enriched_metadata,
                 save=None,
-                permissions=[{"artifact": p.artifact, "operation": p.operation} for p in payload.permissions] if payload.permissions else None,
+                operations=payload.operations,
                 artifact_type=artifact_type,
-                artifact_id=payload.artifact_id,
+                dangerous=payload.dangerous,
                 group_id=group_id_str,
-                resources=resource_types,
-                modality=payload.modality or "call",
-                profile=ws_ctx.profile,
-                params=payload.params or ({"draft_id": str(payload.draft_id)} if payload.draft_id else {}),
+                params=payload_params,
             )
 
             # Persist messages
@@ -557,8 +545,8 @@ async def generate_prepare_impl(
                     all_messages.append(em)
 
             # User instructions (persisted + emitted)
-            if payload.user_instructions:
-                for instruction in payload.user_instructions:
+            if payload.instructions:
+                for instruction in payload.instructions:
                     all_messages.append({"role": "user", "content": instruction})
                     await persist_run_message_fn(
                         conn,
@@ -599,7 +587,7 @@ async def generate_prepare_impl(
                         profiles_id=profiles_id_str,
                         session_id=session_id_str,
                         artifact_id=artifact_id,
-                        draft_id=payload.draft_id,
+                        draft_id=draft_id,
                         developer_instruction_templates=dispatch.developer_instruction_templates,
                         agent_id=agent_group_id,
                     ),

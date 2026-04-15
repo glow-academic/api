@@ -32,15 +32,16 @@ async def generate_new_impl(
     if not sid:
         return
 
-    # Resolve artifact type from permissions (new) or artifact_types (legacy)
-    permissions_raw = data.get("permissions") or []
-    artifact_types_raw = data.get("artifact_types") or []
-    if permissions_raw and isinstance(permissions_raw[0], dict):
-        artifact_type = permissions_raw[0].get("artifact", "unknown")
-    elif artifact_types_raw and isinstance(artifact_types_raw[0], dict):
-        artifact_type = artifact_types_raw[0].get("name", "unknown")
-    else:
-        artifact_type = "unknown"
+    # Resolve artifact type
+    artifact_type = data.get("artifact_type", "unknown")
+    if artifact_type == "unknown":
+        # Legacy fallback
+        permissions_raw = data.get("permissions") or []
+        artifact_types_raw = data.get("artifact_types") or []
+        if permissions_raw and isinstance(permissions_raw[0], dict):
+            artifact_type = permissions_raw[0].get("artifact", "unknown")
+        elif artifact_types_raw and isinstance(artifact_types_raw[0], dict):
+            artifact_type = artifact_types_raw[0].get("name", "unknown")
 
     # Identity context — resolved by client handler
     profile_id_str = data.get("profile_id")

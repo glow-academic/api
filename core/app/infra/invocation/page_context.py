@@ -20,6 +20,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -46,7 +48,7 @@ async def page_context_invocation_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Invocation page context — superset of docs_invocation_impl.
+    """Invocation page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -93,12 +95,26 @@ async def page_context_invocation_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "get": [
+            StarterPrompt(title="View invocation", content="Show execution details, run history, and results for this test invocation."),
+            StarterPrompt(title="Analyze results", content="Break down pass/fail outcomes and scoring for this invocation's runs."),
+            StarterPrompt(title="Review output", content="Review and explain the detailed output from this invocation."),
+        ],
+        "export": [
+            StarterPrompt(title="Export invocation", content="Export this invocation's execution data and results as CSV."),
+            StarterPrompt(title="Download history", content="Generate a downloadable report of this invocation's run history."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.invocation.draft import patch_invocation_draft
-    from app.routes.invocation.export import export_invocation
-    from app.routes.invocation.get import invocation_get
+    from app.routes.test.invocation.draft import patch_invocation_draft
+    from app.routes.test.invocation.export import export_invocation
+    from app.routes.test.invocation.get import invocation_get
 
     return ComposedContextResponse(
         name="invocation",
@@ -125,6 +141,7 @@ async def page_context_invocation_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

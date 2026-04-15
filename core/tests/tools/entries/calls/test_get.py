@@ -1,8 +1,8 @@
-"""Tests for get_call."""
+"""Tests for get_calls."""
 
 import pytest
 from app.tools.entries.calls.create import create_call
-from app.tools.entries.calls.get import get_call
+from app.tools.entries.calls.get import get_calls
 from app.tools.entries.groups.create import create_group
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
@@ -25,24 +25,24 @@ def _created(result):
 async def test_gets_created_calls(conn, session_id, run_id):
     created = _created(await create_call(conn, run_id=run_id, session_id=session_id))
     lookup_id = getattr(created, 'call_id', None) or getattr(created, 'id', None) or getattr(created, 'call', None)
-    item = await get_call(conn, lookup_id)
+    items = await get_calls(conn, [lookup_id], bypass_mv=True)
 
-    assert item is not None
-    assert item.id == lookup_id
+    assert len(items) == 1
+    assert items[0].id == lookup_id
 
 
 async def test_returns_empty_for_missing_id(conn):
-    item = await get_call(conn, nonexistent_id())
+    items = await get_calls(conn, [nonexistent_id()], bypass_mv=True)
 
-    assert item is None
+    assert items == []
 
 
 async def test_returns_created_item_after_second_lookup(conn, session_id, run_id):
     created = _created(await create_call(conn, run_id=run_id, session_id=session_id))
     lookup_id = getattr(created, 'call_id', None) or getattr(created, 'id', None) or getattr(created, 'call', None)
-    first = await get_call(conn, lookup_id)
-    second = await get_call(conn, lookup_id)
+    first = await get_calls(conn, [lookup_id], bypass_mv=True)
+    second = await get_calls(conn, [lookup_id], bypass_mv=True)
 
-    assert first is not None
-    assert second is not None
-    assert second.id == lookup_id
+    assert len(first) == 1
+    assert len(second) == 1
+    assert second[0].id == lookup_id

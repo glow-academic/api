@@ -58,9 +58,9 @@ async def docs_record_client(
     # -- Step 2: Assemble response ----------------------------------------
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.record.export import export_record
-    from app.routes.record.get import get_record
-    from app.routes.record.search import search_record
+    from app.routes.attempt.record.export import export_record
+    from app.routes.attempt.record.get import get_record
+    from app.routes.attempt.record.search import search_record
 
     return ComposedDocsResponse(
         name="record",

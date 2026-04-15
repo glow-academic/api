@@ -18,6 +18,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -41,7 +43,7 @@ async def page_context_leaderboard_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Leaderboard page context — superset of docs_leaderboard_impl.
+    """Leaderboard page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -77,7 +79,29 @@ async def page_context_leaderboard_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 5: Assemble response ----------------------------------------------
+    # -- Step 5: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "get": [
+            StarterPrompt(title="View rankings", content="Show current leaderboard standings with scores and accolades."),
+            StarterPrompt(title="Identify leaders", content="Highlight top performers and their winning metrics."),
+            StarterPrompt(title="Check standing", content="Show where a specific user ranks on the leaderboard."),
+        ],
+        "search": [
+            StarterPrompt(title="Compare periods", content="Search leaderboard history to compare rankings across time periods."),
+            StarterPrompt(title="Filter by cohort", content="Search leaderboard entries filtered by cohort or department."),
+        ],
+        "export": [
+            StarterPrompt(title="Export rankings", content="Export leaderboard rankings and accolade data as CSV."),
+            StarterPrompt(title="Download standings", content="Generate a downloadable leaderboard standings report."),
+        ],
+        "refresh": [
+            StarterPrompt(title="Refresh rankings", content="Refresh leaderboard materialized views with the latest scores."),
+            StarterPrompt(title="Update standings", content="Rebuild leaderboard rankings to reflect recent simulation results."),
+        ],
+    })
+
+    # -- Step 6: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.infra.leaderboard.permissions import (
@@ -86,10 +110,10 @@ async def page_context_leaderboard_impl(
         compute_accolade_winners,
         compute_message_stats,
     )
-    from app.routes.leaderboard.export import export_leaderboard
-    from app.routes.leaderboard.get import get_leaderboard
-    from app.routes.leaderboard.refresh import leaderboard_refresh
-    from app.routes.leaderboard.search import search_leaderboard
+    from app.routes.attempt.leaderboard.export import export_leaderboard
+    from app.routes.attempt.leaderboard.get import get_leaderboard
+    from app.routes.attempt.leaderboard.refresh import leaderboard_refresh
+    from app.routes.attempt.leaderboard.search import search_leaderboard
 
     return ComposedContextResponse(
         name="leaderboard",
@@ -137,6 +161,7 @@ async def page_context_leaderboard_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

@@ -42,7 +42,7 @@ class ArtifactMeta:
 
 # Standard endpoint sets
 _CRUD_ENDPOINTS = frozenset(
-    {"get", "list", "save", "delete", "duplicate", "draft", "docs", "export"}
+    {"get", "list", "save", "delete", "duplicate", "draft", "export"}
 )
 _SOCKET_EVENTS = frozenset({"generate", "complete", "progress", "error"})
 
@@ -78,29 +78,29 @@ _VIEWS: dict[str, tuple[str, frozenset[str]]] = {
     # Full panel views
     "dashboard": (
         "analytics",
-        frozenset({"get", "refresh", "docs", "export"}),
+        frozenset({"get", "refresh", "export"}),
     ),
     # Analytics views with refresh
-    "reports": ("analytics", frozenset({"search", "export", "refresh", "docs"})),
-    "leaderboard": ("leaderboard", frozenset({"get", "refresh", "docs", "export"})),
+    "reports": ("analytics", frozenset({"search", "export", "refresh"})),
+    "leaderboard": ("leaderboard", frozenset({"get", "refresh", "export"})),
     "activity": (
         "analytics",
-        frozenset({"get", "problem", "refresh", "resolve", "docs"}),
+        frozenset({"get", "problem", "refresh", "resolve"}),
     ),
-    "pricing": ("analytics", frozenset({"get", "refresh", "docs", "export"})),
-    "health": ("health", frozenset({"get", "refresh", "docs"})),
-    "benchmark": ("benchmark", frozenset({"get", "refresh", "docs"})),
+    "pricing": ("analytics", frozenset({"get", "refresh", "export"})),
+    "health": ("health", frozenset({"get", "refresh"})),
+    "benchmark": ("benchmark", frozenset({"get", "refresh"})),
     # Simple views
     "home": ("home", frozenset({"get", "export"})),
     "practice": ("practice", frozenset({"get", "export"})),
-    "attempt": ("home", frozenset({"get", "archive", "certifficate", "docs"})),
+    "attempt": ("home", frozenset({"get", "archive", "certifficate"})),
     "record": ("analytics", frozenset()),
-    "session": ("analytics", frozenset({"get", "docs"})),
-    "group": ("analytics", frozenset({"get", "docs"})),
-    "test": ("benchmark", frozenset({"get", "archive", "docs"})),
+    "session": ("analytics", frozenset({"get"})),
+    "group": ("analytics", frozenset({"get"})),
+    "test": ("benchmark", frozenset({"get", "archive"})),
     "invocation": ("benchmark", frozenset({"get", "draft"})),
     # Special
-    "chat": ("home", frozenset({"get", "draft", "refresh", "docs"})),
+    "chat": ("home", frozenset({"get", "draft", "refresh"})),
 }
 
 # ---------------------------------------------------------------------------

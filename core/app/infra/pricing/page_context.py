@@ -20,6 +20,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -46,7 +48,7 @@ async def page_context_pricing_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Pricing page context — superset of docs_pricing_impl.
+    """Pricing page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -93,13 +95,35 @@ async def page_context_pricing_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "get": [
+            StarterPrompt(title="View costs", content="Show AI model usage costs and token breakdowns for the current period."),
+            StarterPrompt(title="Check spending", content="Display cost trends and identify the highest-cost simulations."),
+        ],
+        "search": [
+            StarterPrompt(title="Find expensive runs", content="Search for the highest-cost simulation runs over a time period."),
+            StarterPrompt(title="Compare models", content="Search pricing data to compare costs across different AI models."),
+            StarterPrompt(title="Filter by date", content="Search pricing history filtered by date range and cost threshold."),
+        ],
+        "export": [
+            StarterPrompt(title="Export pricing", content="Export pricing data with cost breakdowns as CSV."),
+            StarterPrompt(title="Download costs", content="Generate a downloadable cost analysis report for billing review."),
+        ],
+        "refresh": [
+            StarterPrompt(title="Refresh pricing", content="Refresh pricing materialized views with the latest usage data."),
+            StarterPrompt(title="Update costs", content="Rebuild pricing analytics to include recently completed runs."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.pricing.export import export_pricing
-    from app.routes.pricing.get import get_pricing
-    from app.routes.pricing.refresh import pricing_refresh
-    from app.routes.pricing.search import search_pricing
+    from app.routes.system.pricing.export import export_pricing
+    from app.routes.system.pricing.get import get_pricing
+    from app.routes.system.pricing.refresh import pricing_refresh
+    from app.routes.system.pricing.search import search_pricing
 
     return ComposedContextResponse(
         name="pricing",
@@ -130,6 +154,7 @@ async def page_context_pricing_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

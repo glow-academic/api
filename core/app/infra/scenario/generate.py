@@ -29,6 +29,8 @@ from app.infra.scenario.refresh import refresh_scenario_impl
 from app.infra.websocket.generation_types import (
     ArtifactGenerateRequest,
     ArtifactGenerateResponse,
+    GenerateConfig,
+    GeneratePayload,
 )
 from app.registry.generate import REGISTRY
 from app.utils.logging.db_logger import get_logger
@@ -58,10 +60,11 @@ async def generate_scenario_impl(
     use soft=True (dormant, pending acceptance) or soft=False (immediate).
     """
     internal_sio = get_internal_sio()
-    resolved_sid = sid or request.sid or f"http-{uuid.uuid4()}"
+    resolved_sid = sid or f"http-{uuid.uuid4()}"
+    cfg = request.config or GenerateConfig()
 
     # dangerous=False -> tool calls are soft (pending). dangerous=True -> immediate.
-    tool_soft = not request.dangerous
+    tool_soft = not cfg.dangerous
 
     # Merge ack fields from request (HTTP) or params (generation pipeline).
     idempotency_key = idempotency_key or request.idempotency_key
@@ -90,7 +93,7 @@ async def generate_scenario_impl(
         )
 
     # Step 3: Validate resources.
-    group_id = request.group_id
+    group_id = cfg.group_id
     if not group_id:
         raise HTTPException(status_code=400, detail="group_id is required")
 
@@ -98,17 +101,15 @@ async def generate_scenario_impl(
     if not config:
         raise HTTPException(status_code=400, detail=f"No config for {ARTIFACT_TYPE}")
 
-    if request.resources:
-        invalid = set(request.resources) - set(config.valid_resource_types)
-        if invalid:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid resources for {ARTIFACT_TYPE}: {sorted(invalid)}",
-            )
-
     # Step 4: Prepare + Execute.
     generated_key = idempotency_key or uuid.uuid4()
-    payload = request.to_generate_payload(ARTIFACT_TYPE)
+    payload = GeneratePayload(
+        artifact_type=ARTIFACT_TYPE,
+        instructions=request.instructions,
+        operations=cfg.operations,
+        dangerous=cfg.dangerous,
+        params=cfg.params,
+    )
 
     try:
         prepared = await prepare_generation(

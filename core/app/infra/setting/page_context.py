@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -82,7 +84,7 @@ async def page_context_setting_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Setting page context — superset of docs_setting_impl.
+    """Setting page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -258,7 +260,39 @@ async def page_context_setting_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "create": [
+            StarterPrompt(title="Define a setting", content="Create a new system setting with appropriate defaults and constraints."),
+            StarterPrompt(title="From requirements", content="I have specific configuration needs — help me define the right settings."),
+            StarterPrompt(title="Template-based", content="Create a setting from a common pattern like feature flag, threshold, or policy."),
+        ],
+        "search": [
+            StarterPrompt(title="Find settings", content="Help me find settings that control specific system behaviors or features."),
+            StarterPrompt(title="Compare settings", content="Compare my settings and identify conflicting or redundant configurations."),
+            StarterPrompt(title="Audit settings", content="Review all settings and flag any with missing defaults or unclear descriptions."),
+        ],
+        "update": [
+            StarterPrompt(title="Adjust defaults", content="Update this setting's default value and constraints to match current requirements."),
+            StarterPrompt(title="Add constraints", content="Add validation constraints and acceptable value ranges to this setting."),
+            StarterPrompt(title="Review impact", content="Analyze the impact of changing this setting on system behavior."),
+        ],
+        "duplicate": [
+            StarterPrompt(title="Clone setting", content="Duplicate this setting and modify its constraints for a different environment."),
+            StarterPrompt(title="Environment copy", content="Create a variant of this setting with different defaults for staging or production."),
+        ],
+        "draft": [
+            StarterPrompt(title="Draft setting", content="Start drafting a new setting — suggest a name, default value, and constraints."),
+            StarterPrompt(title="Iterate draft", content="Review my current draft and suggest improvements to validation before saving."),
+        ],
+        "export": [
+            StarterPrompt(title="Export configuration", content="Generate a summary of all settings with their current values and constraints."),
+            StarterPrompt(title="Export analysis", content="Analyze my settings and create a report on configuration coverage and consistency."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.setting.create import create_setting
@@ -350,6 +384,7 @@ async def page_context_setting_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

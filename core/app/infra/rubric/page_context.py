@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -81,7 +83,7 @@ async def page_context_rubric_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Rubric page context — superset of docs_rubric_impl.
+    """Rubric page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -244,7 +246,39 @@ async def page_context_rubric_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "create": [
+            StarterPrompt(title="Build a rubric", content="Create a new rubric with clear criteria, point values, and performance levels."),
+            StarterPrompt(title="From objectives", content="I have learning objectives — help me create a rubric to assess them."),
+            StarterPrompt(title="Template-based", content="Create a rubric from a common template like holistic, analytic, or single-point."),
+        ],
+        "search": [
+            StarterPrompt(title="Find rubrics", content="Help me find rubrics that match specific assessment areas or scoring approaches."),
+            StarterPrompt(title="Compare rubrics", content="Compare my rubrics and identify overlapping criteria or scoring inconsistencies."),
+            StarterPrompt(title="Audit rubrics", content="Review all rubrics and flag any with vague criteria or unbalanced point distributions."),
+        ],
+        "update": [
+            StarterPrompt(title="Refine criteria", content="Improve this rubric's criteria descriptions and performance level descriptors."),
+            StarterPrompt(title="Adjust scoring", content="Rebalance this rubric's point distribution to better reflect learning priorities."),
+            StarterPrompt(title="Add standards", content="Add missing evaluation standards and scoring levels to this rubric."),
+        ],
+        "duplicate": [
+            StarterPrompt(title="Clone & adapt", content="Duplicate this rubric and adapt its criteria for a different subject area."),
+            StarterPrompt(title="Difficulty variant", content="Create a variation of this rubric with adjusted expectations for a different level."),
+        ],
+        "draft": [
+            StarterPrompt(title="Draft rubric", content="Start drafting a new rubric — suggest criteria, point values, and performance levels."),
+            StarterPrompt(title="Iterate draft", content="Review my current draft and suggest improvements to scoring before saving."),
+        ],
+        "export": [
+            StarterPrompt(title="Export rubric", content="Generate a printable summary of all rubrics with their criteria and scoring."),
+            StarterPrompt(title="Export analysis", content="Analyze my rubrics and create a report on assessment coverage and quality."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.rubric.create import create_rubric
@@ -336,6 +370,7 @@ async def page_context_rubric_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -76,7 +78,7 @@ async def page_context_tool_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Tool page context — superset of docs_tool_impl.
+    """Tool page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -226,7 +228,39 @@ async def page_context_tool_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "create": [
+            StarterPrompt(title="Define a tool", content="Create a new function calling tool with input arguments, output schema, and description."),
+            StarterPrompt(title="From API", content="I have an API endpoint — help me wrap it as a tool for agents to use."),
+            StarterPrompt(title="Template-based", content="Create a tool from a common pattern like search, calculator, or data lookup."),
+        ],
+        "search": [
+            StarterPrompt(title="Find tools", content="Help me find tools that match specific input types or functional capabilities."),
+            StarterPrompt(title="Compare tools", content="Compare my tools and identify overlapping functionality or missing capabilities."),
+            StarterPrompt(title="Audit tools", content="Review all tools and flag any with incomplete argument schemas or missing outputs."),
+        ],
+        "update": [
+            StarterPrompt(title="Refine arguments", content="Improve this tool's input argument definitions, types, and validation."),
+            StarterPrompt(title="Enhance output", content="Make this tool's output schema more structured and useful for agents."),
+            StarterPrompt(title="Add description", content="Improve this tool's description so agents understand when and how to use it."),
+        ],
+        "duplicate": [
+            StarterPrompt(title="Clone & modify", content="Duplicate this tool and adjust its arguments for a related but different function."),
+            StarterPrompt(title="Variant tool", content="Create a variation of this tool with different output formatting or constraints."),
+        ],
+        "draft": [
+            StarterPrompt(title="Draft tool", content="Start drafting a new tool — suggest a name, arguments, and output schema."),
+            StarterPrompt(title="Iterate draft", content="Review my current draft and suggest improvements to the argument schema before saving."),
+        ],
+        "export": [
+            StarterPrompt(title="Export catalog", content="Generate a summary of all tools with their arguments and descriptions."),
+            StarterPrompt(title="Export analysis", content="Analyze my tools and create a report on coverage and argument consistency."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.tool.create import create_tool
@@ -317,6 +351,7 @@ async def page_context_tool_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

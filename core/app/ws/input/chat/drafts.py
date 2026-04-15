@@ -8,7 +8,7 @@ from app.infra.globals import get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
 
 
-@sio.on("chat.drafts")  # type: ignore
+@sio.on("attempt.drafts")  # type: ignore
 async def chat_drafts(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

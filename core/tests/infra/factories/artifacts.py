@@ -397,9 +397,7 @@ async def create_persona_context_fixture(
         )
         draft_res = await create_persona_draft(
             conn,
-            group_id=group_res.id,
             session_id=session_res.id,
-            version=3,
             name_ids=[draft_name_res.id],
         )
 

@@ -222,7 +222,6 @@ async def persona_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
         ],
@@ -271,7 +270,6 @@ async def scenario_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
         ],
@@ -320,7 +318,6 @@ async def agent_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
         ],
@@ -406,7 +403,6 @@ async def cohort_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
         ],
@@ -446,7 +442,7 @@ async def health_route_client(
         artifact_name="health",
         prefix="/health",
         tags=["health"],
-        module_names=["get", "docs", "export", "refresh"],
+        module_names=["get", "export", "refresh"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -487,7 +483,6 @@ async def attempt_route_client(
             "get",
             "archive",
             "refresh",
-            "docs",
             "export",
             "start",
             "next",
@@ -540,7 +535,6 @@ async def test_route_client(
         module_names=[
             "get",
             "refresh",
-            "docs",
             "export",
             "start",
             "next",
@@ -588,7 +582,6 @@ async def session_route_client(
         module_names=[
             "get",
             "refresh",
-            "docs",
             "export",
         ],
     )
@@ -654,7 +647,7 @@ async def benchmark_route_client(
         artifact_name="benchmark",
         prefix="/benchmark",
         tags=["benchmark"],
-        module_names=["get", "search", "refresh", "export", "docs"],
+        module_names=["get", "search", "refresh", "export"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -691,7 +684,7 @@ async def pricing_route_client(
         artifact_name="pricing",
         prefix="/pricing",
         tags=["pricing"],
-        module_names=["get", "search", "refresh", "export", "docs"],
+        module_names=["get", "search", "refresh", "export"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -728,7 +721,7 @@ async def reports_route_client(
         artifact_name="reports",
         prefix="/report",
         tags=["report"],
-        module_names=["search", "refresh", "export", "docs"],
+        module_names=["search", "refresh", "export"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -765,7 +758,7 @@ async def leaderboard_route_client(
         artifact_name="leaderboard",
         prefix="/leaderboard",
         tags=["leaderboard"],
-        module_names=["get", "search", "refresh", "export", "docs"],
+        module_names=["get", "search", "refresh", "export"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -802,7 +795,7 @@ async def dashboard_route_client(
         artifact_name="dashboard",
         prefix="/dashboard",
         tags=["dashboard"],
-        module_names=["get", "search", "refresh", "export", "docs"],
+        module_names=["get", "search", "refresh", "export"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -839,7 +832,7 @@ async def home_route_client(
         artifact_name="home",
         prefix="/home",
         tags=["artifacts", "home"],
-        module_names=["get", "search", "refresh", "export", "docs"],
+        module_names=["get", "search", "refresh", "export"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -876,7 +869,7 @@ async def practice_route_client(
         artifact_name="practice",
         prefix="/practice",
         tags=["artifacts", "practice"],
-        module_names=["get", "search", "refresh", "export", "docs"],
+        module_names=["get", "search", "refresh", "export"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -913,7 +906,7 @@ async def record_route_client(
         artifact_name="record",
         prefix="/record",
         tags=["artifacts", "record"],
-        module_names=["get", "search", "refresh", "export", "docs"],
+        module_names=["get", "search", "refresh", "export"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -957,7 +950,6 @@ async def activity_route_client(
             "resolve",
             "refresh",
             "export",
-            "docs",
         ],
     )
 
@@ -1004,7 +996,6 @@ async def document_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
         ],
@@ -1053,7 +1044,6 @@ async def department_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
         ],
@@ -1102,7 +1092,6 @@ async def tool_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
         ],
@@ -1151,7 +1140,6 @@ async def setting_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
             "decrypt",
@@ -1201,7 +1189,6 @@ async def simulation_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
         ],
@@ -1250,7 +1237,6 @@ async def model_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
         ],
@@ -1299,7 +1285,6 @@ async def field_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
         ],
@@ -1348,7 +1333,6 @@ async def parameter_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
         ],
@@ -1397,7 +1381,6 @@ async def provider_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
             "decrypt",
@@ -1447,7 +1430,6 @@ async def rubric_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
         ],
@@ -1496,7 +1478,6 @@ async def eval_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
         ],
@@ -1545,7 +1526,6 @@ async def auth_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
         ],
@@ -1597,7 +1577,6 @@ async def profile_route_client(
             "duplicate",
             "draft",
             "drafts",
-            "docs",
             "export",
             "refresh",
         ],

@@ -1,75 +1,37 @@
 """Output events — what the server sends."""
 
 from . import (  # noqa: F401
-    # Activity (namespaced)
-    activity,
-    # Agent (namespaced)
+    # 3 operational parents
+    attempt,         # attempt.* events
+    test,            # test.* events
+    system,          # system.* events
+    # attempt sub-artifacts now under ws/output/attempt/
+    # home, practice, dashboard, leaderboard, record, reports
+    chat,            # chat WS handlers (stays at top-level)
+    # test sub-artifacts now under ws/output/test/
+    # benchmark → test/benchmark/, invocation → test/invocation/
+    # 16 canonical CRUD artifacts
     agent,
-    # Attempt (namespaced)
-    attempt,
-    # Auth (namespaced)
     auth,
-    # Benchmark (namespaced)
-    benchmark,
-    # Chat (namespaced)
-    chat,
-    # Cohort (namespaced)
     cohort,
-    # Dashboard (namespaced)
-    dashboard,
-    # Department (namespaced)
     department,
-    # Document (namespaced)
     document,
-    # Eval (namespaced)
     eval,
-    # Field (namespaced)
     field,
-    # Group (namespaced)
-    group,
-    # Health (namespaced)
-    health,
-    # Home (namespaced)
-    home,
-    # Invocation (namespaced)
-    invocation,
-    # Leaderboard (namespaced)
-    leaderboard,
-    # Model (namespaced)
     model,
-    # Parameter (namespaced)
     parameter,
-    # Persona (namespaced)
     persona,
-    # Practice (namespaced)
-    practice,
-    # Pricing (namespaced)
-    pricing,
-    # Profile (namespaced)
     profile,
-    # Provider (namespaced)
     provider,
-    # Record (namespaced)
-    record,
-    # Reports (namespaced)
-    reports,
-    # Rubric (namespaced)
     rubric,
-    # Scenario (namespaced)
     scenario,
-    # Session (namespaced)
-    session,
-    # Setting (namespaced)
     setting,
-    # Simulation (namespaced)
     simulation,
-    # Tool (namespaced)
     tool,
     # Connect/disconnect (top-level)
     connected,
     disconnected,
     # Non-artifact actions (now under their artifact folders)
-    docs,
     # Generate pipeline
     generate_pipeline,
     generate_prepare,

@@ -20,6 +20,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -46,7 +48,7 @@ async def page_context_session_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Session page context — superset of docs_session_impl.
+    """Session page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -93,11 +95,25 @@ async def page_context_session_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "get": [
+            StarterPrompt(title="View session", content="Show the full timeline with groups and run history for this session."),
+            StarterPrompt(title="Review timeline", content="Walk through the sequence of events and results in this session."),
+            StarterPrompt(title="Analyze groups", content="Break down group results and aggregated metrics within this session."),
+        ],
+        "export": [
+            StarterPrompt(title="Export session", content="Export this session's timeline and group data as CSV."),
+            StarterPrompt(title="Download results", content="Generate a downloadable report of session activity and outcomes."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.session.export import export_session
-    from app.routes.session.get import get_session
+    from app.routes.system.session.export import export_session
+    from app.routes.system.session.get import get_session
 
     return ComposedContextResponse(
         name="session",
@@ -120,6 +136,7 @@ async def page_context_session_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

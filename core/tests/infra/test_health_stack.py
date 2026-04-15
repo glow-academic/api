@@ -10,7 +10,6 @@ from datetime import UTC, datetime
 import pytest
 
 from app.infra.health.context import resolve_health_context
-from app.infra.health.docs import docs_health_impl
 from app.infra.health.export import export_health_impl
 from app.infra.health.refresh import refresh_health_impl
 from app.infra.metrics_snapshot import write_health_checks, write_metrics_snapshot
@@ -61,26 +60,6 @@ class TestResolveHealthContext:
         assert result.entries["health"][0].service == "redis"
         assert result.entries["metrics"][0].max_requests_total == 100
         assert result.resources == {}
-
-
-class TestHealthDocsClient:
-    async def test_returns_composed_docs(
-        self, pool, redis_client, profile_identity_factory
-    ):
-        profile = await profile_identity_factory()
-
-        result = await docs_health_impl(
-            pool,
-            redis_client,
-            profile_id=profile.artifact_id,
-        )
-
-        assert result.name == "health"
-        assert result.type == "analytics"
-        assert result.page_metadata.list.title == "Health"
-        assert result.entries[0].name == "health"
-        op_names = {operation.name for operation in result.api_operations}
-        assert {"get_health", "health_refresh", "export_health"} <= op_names
 
 
 class TestExportHealthClient:

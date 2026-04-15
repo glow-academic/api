@@ -19,6 +19,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -42,7 +44,7 @@ async def page_context_reports_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Reports page context — superset of docs_reports_impl.
+    """Reports page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -78,7 +80,25 @@ async def page_context_reports_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 5: Assemble response ----------------------------------------------
+    # -- Step 5: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "search": [
+            StarterPrompt(title="Generate report", content="Search and generate a comprehensive performance report with overview and trends."),
+            StarterPrompt(title="Analyze trends", content="Search report data to identify performance trends over time."),
+            StarterPrompt(title="Compare cohorts", content="Search reports to compare performance metrics across cohorts."),
+        ],
+        "export": [
+            StarterPrompt(title="Export reports", content="Export report analytics with overview and trend data as CSV."),
+            StarterPrompt(title="Download analysis", content="Generate a downloadable comprehensive performance analysis report."),
+        ],
+        "refresh": [
+            StarterPrompt(title="Refresh reports", content="Refresh reports materialized views with the latest analytics data."),
+            StarterPrompt(title="Rebuild sections", content="Rebuild report sections including overview, leaderboard, and trends."),
+        ],
+    })
+
+    # -- Step 6: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.infra.reports.permissions import (
@@ -89,9 +109,9 @@ async def page_context_reports_impl(
         compute_reports_header_metrics,
         compute_trends_section,
     )
-    from app.routes.reports.export import export_reports
-    from app.routes.reports.refresh import reports_refresh
-    from app.routes.reports.search import get_reports
+    from app.routes.attempt.report.export import export_reports
+    from app.routes.attempt.report.refresh import reports_refresh
+    from app.routes.attempt.report.search import get_reports
 
     return ComposedContextResponse(
         name="reports",
@@ -144,6 +164,7 @@ async def page_context_reports_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

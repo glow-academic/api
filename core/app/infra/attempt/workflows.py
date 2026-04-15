@@ -437,8 +437,8 @@ async def audio_response_cancelled_impl(
                 "generate",
                 {
                     "sid": sid,
-                    "artifact_types": data.get("artifact_types")
-                    or [{"name": data.get("artifact_type", ""), "operation": "get"}],
+                    "artifact_type": data.get("artifact_type", ""),
+                    "operations": data.get("operations") or ["get"],
                     "group_id": group_id,
                     "metadata": data.get("metadata", {}),
                 },
@@ -664,7 +664,7 @@ async def attempt_message_impl(
         chat_entry_id=attempt_chat.chat_entry_id,
         department_id=attempt_chat.department_id,
         attempt_chat_id=attempt_chat.chat_id,
-        user_instructions=[message],
+        instructions=[message],
     )
 
 
@@ -1059,16 +1059,15 @@ async def emit_chat_generate_impl(
     department_id: uuid.UUID,
     attempt_chat_id: uuid.UUID | None,
     draft_id: uuid.UUID | None = None,
-    resource_types: list[str] | None = None,
-    user_instructions: list[str] | None = None,
-    save: bool = True,
+    operations: list[str] | None = None,
+    instructions: list[str] | None = None,
     chat_started_emitted: bool = False,
 ) -> None:
     """Create group + run, then emit to generate pipeline."""
     from app.tools.entries.groups.create import create_group
     from app.tools.entries.runs.create import create_run
 
-    resolved_resource_types = resource_types or [
+    resolved_operations = operations or [
         "personas",
         "scenarios",
         "parameters",
@@ -1086,6 +1085,10 @@ async def emit_chat_generate_impl(
         )
         run_id = run_result.id
 
+    params: dict[str, Any] = {"artifact_id": str(chat_entry_id)}
+    if draft_id:
+        params["draft_id"] = str(draft_id)
+
     await emit(
         [
             internal_event(
@@ -1093,14 +1096,12 @@ async def emit_chat_generate_impl(
                 GenerateRequestData(
                     sid=sid,
                     profile_id=str(profile_id),
-                    profiles_id=str(profiles_id) if profiles_id else None,
                     session_id=str(session_id),
-                    artifact_types=[{"name": "chat", "operation": "get"}],
-                    artifact_id=str(chat_entry_id),
-                    draft_id=str(draft_id) if draft_id else None,
-                    resource_types=resolved_resource_types,
-                    user_instructions=user_instructions,
-                    save=save,
+                    profiles_id=str(profiles_id) if profiles_id else None,
+                    artifact_type="chat",
+                    operations=resolved_operations,
+                    instructions=instructions,
+                    params=params,
                     run_id=str(run_id),
                     group_id=str(group_id),
                     metadata={
@@ -1520,7 +1521,7 @@ async def attempt_proceed_impl(
                 department_id=department_id,
                 attempt_chat_id=attempt_chat_id,
                 draft_id=draft_id,
-                resource_types=resource_types_to_generate,
+                operations=resource_types_to_generate,
             )
         else:
             await emit(

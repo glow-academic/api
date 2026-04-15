@@ -13,4 +13,7 @@ from . import (  # noqa: F401
     run,
     start,
     stop,
+    # Absorbed sub-modules
+    benchmark,
+    invocation,
 )

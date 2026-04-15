@@ -21,6 +21,8 @@ from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
     DocsResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -47,7 +49,7 @@ async def page_context_group_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Group page context — superset of docs_group_impl.
+    """Group page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -92,11 +94,25 @@ async def page_context_group_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "get": [
+            StarterPrompt(title="View group", content="Show runs, results, and aggregated metrics for this test invocation group."),
+            StarterPrompt(title="Analyze results", content="Break down pass rates and scoring across runs in this group."),
+            StarterPrompt(title="Compare runs", content="Compare individual run results within this group."),
+        ],
+        "export": [
+            StarterPrompt(title="Export group", content="Export this group's run data and metrics as CSV."),
+            StarterPrompt(title="Download results", content="Generate a downloadable report of group performance data."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.group.export import export_group
-    from app.routes.group.get import get_group
+    from app.routes.system.group.export import export_group
+    from app.routes.system.group.get import get_group
 
     return ComposedContextResponse(
         name="group",
@@ -119,6 +135,7 @@ async def page_context_group_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

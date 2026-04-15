@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -86,7 +88,7 @@ async def page_context_persona_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Persona page context — superset of docs_persona_impl.
+    """Persona page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -280,7 +282,39 @@ async def page_context_persona_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "create": [
+            StarterPrompt(title="Generate a persona", content="Create a new persona with a unique personality, communication style, and background."),
+            StarterPrompt(title="From description", content="I have a character in mind — help me build a complete persona from my description."),
+            StarterPrompt(title="Role-based", content="Create a persona for a specific professional role with appropriate communication patterns."),
+        ],
+        "search": [
+            StarterPrompt(title="Find personas", content="Help me find personas that match specific criteria or training needs."),
+            StarterPrompt(title="Compare personas", content="Compare my personas and identify gaps in coverage across scenarios."),
+            StarterPrompt(title="Audit personas", content="Review all personas and flag any with incomplete or inconsistent configurations."),
+        ],
+        "update": [
+            StarterPrompt(title="Enhance persona", content="Improve this persona's description, instructions, and voice to be more realistic."),
+            StarterPrompt(title="Refine voice", content="Make this persona's communication style more distinct and natural."),
+            StarterPrompt(title="Add details", content="Add missing fields like examples, departments, and parameter values to this persona."),
+        ],
+        "duplicate": [
+            StarterPrompt(title="Clone & vary", content="Duplicate this persona and create a variation with a different personality or role."),
+            StarterPrompt(title="Bulk clone", content="Create 3 variations of this persona for different training scenarios."),
+        ],
+        "draft": [
+            StarterPrompt(title="Draft persona", content="Start drafting a new persona — suggest a name, role, and key traits."),
+            StarterPrompt(title="Iterate draft", content="Review my current draft and suggest improvements before saving."),
+        ],
+        "export": [
+            StarterPrompt(title="Export summary", content="Generate a summary of all personas suitable for sharing with stakeholders."),
+            StarterPrompt(title="Export analysis", content="Analyze my personas and create a report on coverage and quality."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.persona.create import create_persona
@@ -378,6 +412,7 @@ async def page_context_persona_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

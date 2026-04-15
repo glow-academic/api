@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -78,7 +80,7 @@ async def page_context_profile_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Profile page context — superset of docs_profile_impl.
+    """Profile page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -235,7 +237,39 @@ async def page_context_profile_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "create": [
+            StarterPrompt(title="Create a profile", content="Create a new user profile with appropriate role and department assignments."),
+            StarterPrompt(title="From role", content="I need a profile for a specific role — help me configure the right permissions."),
+            StarterPrompt(title="Template-based", content="Create a profile from a common role template like admin, instructor, or student."),
+        ],
+        "search": [
+            StarterPrompt(title="Find profiles", content="Help me find profiles by role, department, or permission level."),
+            StarterPrompt(title="Compare profiles", content="Compare my profiles and identify inconsistent role or department assignments."),
+            StarterPrompt(title="Audit access", content="Review all profiles and flag any with excessive or missing permissions."),
+        ],
+        "update": [
+            StarterPrompt(title="Update permissions", content="Adjust this profile's permissions and access levels for their role."),
+            StarterPrompt(title="Reassign departments", content="Update this profile's department assignments to match their current responsibilities."),
+            StarterPrompt(title="Review access", content="Audit this profile's access rights and suggest appropriate changes."),
+        ],
+        "duplicate": [
+            StarterPrompt(title="Clone profile", content="Duplicate this profile to create another user with the same role and permissions."),
+            StarterPrompt(title="Team onboarding", content="Clone this profile multiple times for new team members joining the same department."),
+        ],
+        "draft": [
+            StarterPrompt(title="Draft profile", content="Start drafting a new profile — suggest a role and department configuration."),
+            StarterPrompt(title="Iterate draft", content="Review my current draft and suggest improvements to permissions before saving."),
+        ],
+        "export": [
+            StarterPrompt(title="Export roster", content="Generate a summary of all profiles with their roles and department assignments."),
+            StarterPrompt(title="Export audit", content="Create a permissions audit report showing access levels across all profiles."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.profile.create import create_profile
@@ -326,6 +360,7 @@ async def page_context_profile_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

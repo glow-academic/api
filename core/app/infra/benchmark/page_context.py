@@ -20,6 +20,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -44,7 +46,7 @@ async def page_context_benchmark_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Benchmark page context — superset of docs_benchmark_impl.
+    """Benchmark page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -92,16 +94,38 @@ async def page_context_benchmark_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "get": [
+            StarterPrompt(title="View benchmark", content="Show evaluation results and model performance for this benchmark."),
+            StarterPrompt(title="Compare models", content="Compare model scores and pass rates across benchmark test scenarios."),
+        ],
+        "search": [
+            StarterPrompt(title="Find benchmarks", content="Search benchmark run history filtered by date or test configuration."),
+            StarterPrompt(title="Track regressions", content="Identify performance regressions across recent benchmark runs."),
+            StarterPrompt(title="Filter by status", content="Search benchmarks filtered by pass/fail status or score range."),
+        ],
+        "export": [
+            StarterPrompt(title="Export benchmarks", content="Export benchmark evaluation data as a CSV report."),
+            StarterPrompt(title="Download comparison", content="Generate a downloadable model performance comparison report."),
+        ],
+        "refresh": [
+            StarterPrompt(title="Refresh benchmarks", content="Refresh benchmark materialized views with the latest run data."),
+            StarterPrompt(title="Rebuild metrics", content="Rebuild aggregated benchmark metrics from recent test results."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.infra.benchmark.permissions import (
         compute_benchmark_eval_status,
     )
-    from app.routes.benchmark.export import export_benchmark
-    from app.routes.benchmark.get import get_benchmark
-    from app.routes.benchmark.refresh import benchmark_refresh
-    from app.routes.benchmark.search import search_benchmark_history
+    from app.routes.test.benchmark.export import export_benchmark
+    from app.routes.test.benchmark.get import get_benchmark
+    from app.routes.test.benchmark.refresh import benchmark_refresh
+    from app.routes.test.benchmark.search import search_benchmark_history
 
     return ComposedContextResponse(
         name="benchmark",
@@ -137,6 +161,7 @@ async def page_context_benchmark_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

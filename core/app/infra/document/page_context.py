@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -84,7 +86,7 @@ async def page_context_document_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Document page context — superset of docs_document_impl.
+    """Document page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -267,7 +269,39 @@ async def page_context_document_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "create": [
+            StarterPrompt(title="Create a document", content="Create a new document resource with structured content and metadata."),
+            StarterPrompt(title="From topic", content="I have a topic in mind — help me create a comprehensive document about it."),
+            StarterPrompt(title="Template-based", content="Create a document from a common template like guide, reference, or policy."),
+        ],
+        "search": [
+            StarterPrompt(title="Find documents", content="Help me find documents that match specific content or metadata criteria."),
+            StarterPrompt(title="Compare documents", content="Compare my documents and identify gaps in coverage or consistency."),
+            StarterPrompt(title="Audit documents", content="Review all documents and flag any with missing content or broken references."),
+        ],
+        "update": [
+            StarterPrompt(title="Enhance document", content="Improve this document's content, structure, and metadata."),
+            StarterPrompt(title="Refine content", content="Make this document clearer, more concise, and better organized."),
+            StarterPrompt(title="Add references", content="Add missing sections, files, images, and supporting content to this document."),
+        ],
+        "duplicate": [
+            StarterPrompt(title="Clone & adapt", content="Duplicate this document and adapt it for a different context or audience."),
+            StarterPrompt(title="Bulk clone", content="Create variations of this document for different departments or use cases."),
+        ],
+        "draft": [
+            StarterPrompt(title="Draft document", content="Start drafting a new document — suggest a title, structure, and key sections."),
+            StarterPrompt(title="Iterate draft", content="Review my current draft and suggest improvements before saving."),
+        ],
+        "export": [
+            StarterPrompt(title="Export summary", content="Generate a summary of all documents suitable for sharing with stakeholders."),
+            StarterPrompt(title="Export catalog", content="Create a catalog report of all documents with their metadata and status."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.document.create import create_document
@@ -363,6 +397,7 @@ async def page_context_document_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

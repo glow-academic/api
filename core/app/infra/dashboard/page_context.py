@@ -19,6 +19,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -42,7 +44,7 @@ async def page_context_dashboard_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Dashboard page context — superset of docs_dashboard_impl.
+    """Dashboard page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -79,7 +81,29 @@ async def page_context_dashboard_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 5: Assemble response ----------------------------------------------
+    # -- Step 5: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "get": [
+            StarterPrompt(title="View metrics", content="Show the aggregated performance metrics and section breakdowns for the dashboard."),
+            StarterPrompt(title="Analyze trends", content="Highlight key trends and changes in the dashboard's primary metrics."),
+            StarterPrompt(title="Spot outliers", content="Identify outlier metrics or sections that need attention."),
+        ],
+        "search": [
+            StarterPrompt(title="Find history", content="Search dashboard history entries to compare metrics over time."),
+            StarterPrompt(title="Filter by cohort", content="Search dashboard data filtered by cohort or department."),
+        ],
+        "export": [
+            StarterPrompt(title="Export dashboard", content="Export the current dashboard metrics and sections as CSV."),
+            StarterPrompt(title="Download summary", content="Generate a downloadable summary of all dashboard analytics."),
+        ],
+        "refresh": [
+            StarterPrompt(title="Refresh dashboard", content="Refresh dashboard materialized views with the latest data."),
+            StarterPrompt(title="Rebuild metrics", content="Rebuild aggregated dashboard metrics from the latest simulation results."),
+        ],
+    })
+
+    # -- Step 6: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.infra.dashboard.permissions import (
@@ -89,10 +113,10 @@ async def page_context_dashboard_impl(
         compute_primary_metrics,
         compute_secondary_metrics,
     )
-    from app.routes.dashboard.export import export_dashboard
-    from app.routes.dashboard.get import get_dashboard
-    from app.routes.dashboard.refresh import dashboard_refresh
-    from app.routes.dashboard.search import search_dashboard
+    from app.routes.attempt.dashboard.export import export_dashboard
+    from app.routes.attempt.dashboard.get import get_dashboard
+    from app.routes.attempt.dashboard.refresh import dashboard_refresh
+    from app.routes.attempt.dashboard.search import search_dashboard
 
     return ComposedContextResponse(
         name="dashboard",
@@ -145,6 +169,7 @@ async def page_context_dashboard_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

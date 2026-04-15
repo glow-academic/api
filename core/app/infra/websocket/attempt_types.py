@@ -24,14 +24,20 @@ class AttemptChatRequestData(BaseModel):
 
 
 class GenerateRequestData(BaseModel):
+    """Internal server-to-server payload for triggering generation.
+
+    Matches GeneratePayload shape with added identity fields.
+    """
+
     sid: str
     profile_id: str
-    artifact_types: list[dict[str, str]]
-    artifact_id: str
-    resource_types: list[str]
-    save: bool = True
-    draft_id: str | None = None
-    user_instructions: list[str] | None = None
+    session_id: str | None = None
+    profiles_id: str | None = None
+    artifact_type: str
+    operations: list[str] | None = None
+    instructions: list[str] | None = None
+    dangerous: bool = False
+    params: dict[str, Any] | None = None
     run_id: str | None = None
     group_id: str | None = None
     modality: str = "call"

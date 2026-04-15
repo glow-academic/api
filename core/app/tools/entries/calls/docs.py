@@ -6,7 +6,7 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.get_table_info import get_table_info
 from app.infra.docs.types import DocsResponse
 from app.tools.entries.calls.create import create_call
-from app.tools.entries.calls.get import get_call
+from app.tools.entries.calls.get import get_calls
 from app.tools.entries.calls.search import search_calls
 
 
@@ -36,8 +36,8 @@ async def get_calls_docs(conn: asyncpg.Connection) -> DocsResponse:
                 ),
             ),
             get_operation_info(
-                get_call,
-                description="Retrieves a single call entry by ID from calls_entry.",
+                get_calls,
+                description="Retrieves call entries by IDs from calls_mv.",
             ),
             get_operation_info(
                 search_calls,

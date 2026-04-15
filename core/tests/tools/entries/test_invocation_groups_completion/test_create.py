@@ -9,7 +9,9 @@ from app.tools.entries.calls.create import create_call
 from app.tools.entries.groups.create import create_group
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
-from app.tools.entries.test_invocation_groupss.create import create_test_invocation_groups
+from app.tools.entries.test.create import create_test
+from app.tools.entries.test_invocation.create import create_test_invocation
+from app.tools.entries.test_invocation_groups.create import create_test_invocation_groups
 
 pytestmark = pytest.mark.asyncio
 
@@ -19,7 +21,9 @@ async def _setup_entry(conn, profile_id):
     group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, group_id=group.id, session_id=session.id)
     call = await create_call(conn, run_id=run.id, session_id=session.id)
-    seed = await create_test_invocation_groups(conn, session_id=session.id)
+    test = await create_test(conn, call_id=call.id)
+    ti = await create_test_invocation(conn, test_id=test.id, call_id=call.id)
+    seed = await create_test_invocation_groups(conn, ti.id)
     return session, call, seed
 
 

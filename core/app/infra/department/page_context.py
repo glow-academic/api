@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -78,7 +80,7 @@ async def page_context_department_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Department page context — superset of docs_department_impl.
+    """Department page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -218,7 +220,39 @@ async def page_context_department_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "create": [
+            StarterPrompt(title="Create a department", content="Create a new organizational department with clear responsibilities and structure."),
+            StarterPrompt(title="From description", content="I have a team structure in mind — help me formalize it as a department."),
+            StarterPrompt(title="Template-based", content="Create a department from a common template like Engineering, Sales, or Support."),
+        ],
+        "search": [
+            StarterPrompt(title="Find departments", content="Help me find departments that match specific organizational criteria."),
+            StarterPrompt(title="Review structure", content="Review my departments and suggest improvements to the organizational hierarchy."),
+            StarterPrompt(title="Audit departments", content="Check all departments for missing descriptions or overlapping responsibilities."),
+        ],
+        "update": [
+            StarterPrompt(title="Enhance department", content="Improve this department's description and organizational details."),
+            StarterPrompt(title="Refine scope", content="Clarify this department's boundaries and responsibilities within the organization."),
+            StarterPrompt(title="Add settings", content="Add missing settings and configuration details to this department."),
+        ],
+        "duplicate": [
+            StarterPrompt(title="Clone & rename", content="Duplicate this department to create a parallel unit with a different focus."),
+            StarterPrompt(title="Bulk clone", content="Create variations of this department for multiple regions or divisions."),
+        ],
+        "draft": [
+            StarterPrompt(title="Draft department", content="Start drafting a new department — suggest a name, scope, and responsibilities."),
+            StarterPrompt(title="Iterate draft", content="Review my current draft and suggest improvements before saving."),
+        ],
+        "export": [
+            StarterPrompt(title="Export overview", content="Generate a summary of all departments and their organizational roles."),
+            StarterPrompt(title="Export hierarchy", content="Create a report showing department structure and interdependencies."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.department.create import create_department
@@ -307,6 +341,7 @@ async def page_context_department_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

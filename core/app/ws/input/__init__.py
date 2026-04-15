@@ -1,40 +1,34 @@
 """Input events — what the client sends."""
 
 from . import (  # noqa: F401
-    activity,
+    # 3 operational parents
+    attempt,         # attempt.* events
+    test,            # test.* events
+    system,          # system.* events
+    # attempt sub-artifacts now under ws/input/attempt/
+    # home, practice, dashboard, leaderboard, record, reports
+    chat,            # chat.draft/drafts WS handlers (stays at top-level)
+    # test sub-artifacts now under ws/input/test/
+    # benchmark → test/benchmark/, invocation → test/invocation/
+    # 16 canonical CRUD artifacts
     agent,
-    attempt,
     auth,
-    benchmark,
-    chat,
     cohort,
-    connect,
-    dashboard,
     department,
-    disconnect,
-    docs,
     document,
     eval,
     field,
-    group,
-    health,
-    home,
-    invocation,
-    leaderboard,
     model,
     parameter,
     persona,
-    practice,
-    pricing,
     profile,
     provider,
-    record,
-    reports,
     rubric,
     scenario,
-    session,
     setting,
     simulation,
-    test,
     tool,
+    # Root-level actions
+    connect,
+    disconnect,
 )

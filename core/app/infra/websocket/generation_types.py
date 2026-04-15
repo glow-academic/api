@@ -97,78 +97,30 @@ class GenerateErrorApiRequest(BaseModel):
     resource_id: str | None = None
 
 
-from typing import Literal
-
 from pydantic import model_validator
 
-ArtifactOperation = Literal[
-    "get", "list", "duplicate", "delete", "draft", "save", "docs", "export", "refresh"
-]
-ResourceOperation = Literal["get", "create", "link", "search", "docs"]
-EntryOperation = Literal["get", "search", "docs", "create", "refresh"]
 
-
-class ArtifactTypeItem(BaseModel):
-    """Typed artifact operation reference."""
-
-    name: str
-    operation: ArtifactOperation
-
-
-class ResourceTypeItem(BaseModel):
-    """Typed resource operation reference."""
-
-    name: str
-    operation: ResourceOperation
-
-
-class EntryTypeItem(BaseModel):
-    """Typed entry operation reference."""
-
-    name: str
-    operation: EntryOperation
-
-
-class PermissionPair(BaseModel):
-    """Human-readable (artifact, operation) pair."""
-
-    artifact: str
-    operation: str
+# ═══════════════════════════════════════════════════════════════════════════
+# Internal bus payload — flows between prepare and execute
+# ═══════════════════════════════════════════════════════════════════════════
 
 
 class GeneratePayload(BaseModel):
-    """Unified client-to-server payload for the `generate` WebSocket event.
+    """Internal bus payload — built by the server from ArtifactGenerateRequest.
 
-    Permissions — which tools the AI can use (provide one or both):
-      permissions: [("persona", "create"), ...]  — human-readable pairs
-      permission_ids: ["uuid", ...]              — direct permission resource UUIDs
-
-    Resources — field-level filter within artifact tools:
-      resources: ["names", "descriptions"]       — only these fields are processed
-      (empty or omitted = all fields)
-
-    Legacy fields (artifact_types, resource_types, entry_types) are still
-    accepted for backward compatibility and converted to the new format.
+    The canonical internal representation of a generation request.
+    WebSocket clients can also send data matching this shape directly.
     """
 
-    # ── New canonical fields ──────────────────────────────────────────
-    permissions: list[PermissionPair] | None = None
-    permission_ids: list[str] | None = None
-    resources: list[str] | None = None
-
-    # ── Legacy fields (backward compatibility) ────────────────────────
-    artifact_types: list[ArtifactTypeItem] | None = None
-    resource_types: list[ResourceTypeItem] | None = None
-    entry_types: list[EntryTypeItem] | None = None
-
-    # ── Common fields ─────────────────────────────────────────────────
-    artifact_id: Any | None = None
-    draft_id: Any | None = None  # Legacy — use params.draft_id instead
+    artifact_type: str = "unknown"
+    instructions: list[str] | None = None
+    operations: list[str] | None = None
+    dangerous: bool = False
     params: dict[str, Any] | None = None
-    user_instructions: list[str] | None = None
-    run_id: str | None = None
     group_id: str | None = None
+    run_id: str | None = None
     modality: str = "call"
+    # Internal-only fields (not in client-facing request)
     extra_messages: list[dict[str, str]] | None = None
     metadata: dict[str, Any] | None = None
 
@@ -177,62 +129,62 @@ class GeneratePayload(BaseModel):
     def _coerce_legacy_fields(cls, data: Any) -> Any:
         """Coerce legacy formats for backward compatibility.
 
-        - Plain string resource_types → ResourceTypeItem
-        - artifact_types → permissions (if permissions not provided)
+        Handles old clients sending permissions, artifact_types, user_instructions, etc.
         """
         if not isinstance(data, dict):
             return data
 
-        # Coerce plain string resource_types to ResourceTypeItem
-        raw_rt = data.get("resource_types")
-        if isinstance(raw_rt, list):
-            data["resource_types"] = [
-                {"name": item, "operation": "create"}
-                if isinstance(item, str)
-                else item
-                for item in raw_rt
-            ]
+        # Strip fully removed fields
+        for key in ("resources", "resource_types", "permission_ids", "entry_types"):
+            data.pop(key, None)
 
-        # Coerce plain string permissions to PermissionPair
-        raw_perms = data.get("permissions")
-        if isinstance(raw_perms, list) and raw_perms:
-            data["permissions"] = [
-                {"artifact": p[0], "operation": p[1]}
-                if isinstance(p, (list, tuple))
-                else p
-                for p in raw_perms
-            ]
+        # Legacy: permissions [{artifact, operation}] → operations [str]
+        raw_perms = data.pop("permissions", None)
+        if raw_perms and isinstance(raw_perms, list) and "operations" not in data:
+            ops: list[str] = []
+            artifact = None
+            for p in raw_perms:
+                if isinstance(p, dict):
+                    ops.append(p.get("operation", ""))
+                    artifact = artifact or p.get("artifact")
+                elif isinstance(p, (list, tuple)) and len(p) >= 2:
+                    ops.append(p[1])
+                    artifact = artifact or p[0]
+            if ops:
+                data["operations"] = ops
+            if artifact and not data.get("artifact_type"):
+                data["artifact_type"] = artifact
+
+        # Legacy: artifact_types [{name, operation}] → artifact_type + operations
+        raw_at = data.pop("artifact_types", None)
+        if raw_at and isinstance(raw_at, list) and not data.get("artifact_type"):
+            first = raw_at[0] if raw_at else {}
+            if isinstance(first, dict):
+                data.setdefault("artifact_type", first.get("name", "unknown"))
+                if "operations" not in data:
+                    data["operations"] = [
+                        item.get("operation", "get")
+                        for item in raw_at
+                        if isinstance(item, dict)
+                    ]
+
+        # Legacy: user_instructions → instructions
+        raw_ui = data.pop("user_instructions", None)
+        if raw_ui and "instructions" not in data:
+            data["instructions"] = raw_ui
+
+        # Legacy: artifact_id / draft_id → params
+        artifact_id = data.pop("artifact_id", None)
+        draft_id = data.pop("draft_id", None)
+        if artifact_id or draft_id:
+            params = data.get("params") or {}
+            if artifact_id and "artifact_id" not in params:
+                params["artifact_id"] = str(artifact_id)
+            if draft_id and "draft_id" not in params:
+                params["draft_id"] = str(draft_id)
+            data["params"] = params
 
         return data
-
-    @property
-    def artifact_type(self) -> str:
-        """Derived primary artifact type for backward compatibility."""
-        if self.permissions:
-            return self.permissions[0].artifact
-        if self.artifact_types:
-            return self.artifact_types[0].name
-        return "unknown"
-
-    @property
-    def resolved_permissions(self) -> list[PermissionPair]:
-        """Canonical permission list — merges permissions + legacy artifact_types."""
-        result: list[PermissionPair] = []
-        if self.permissions:
-            result.extend(self.permissions)
-        if self.artifact_types:
-            for at in self.artifact_types:
-                pair = PermissionPair(artifact=at.name, operation=at.operation)
-                if pair not in result:
-                    result.append(pair)
-        return result
-
-    @property
-    def resolved_resources(self) -> list[str] | None:
-        """Canonical resource filter — prefers new `resources` field."""
-        if self.resources is not None:
-            return self.resources
-        return None
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -240,54 +192,75 @@ class GeneratePayload(BaseModel):
 # ═══════════════════════════════════════════════════════════════════════════
 
 
+class GenerateConfig(BaseModel):
+    """Developer configuration — all optional with sensible defaults."""
+
+    operations: list[str] | None = None  # ["draft", "get", "group"] — defaults to artifact's standard ops
+    dangerous: bool = False              # True = execute immediately, False = review first
+    params: dict[str, Any] | None = None  # developer context (draft_id, entity_id, etc.)
+    group_id: str | None = None          # optional — server resolves if omitted
+
+
 class ArtifactGenerateRequest(BaseModel):
-    """Per-artifact generate request.
+    """Per-artifact generate request. Artifact type is implicit from the endpoint URL."""
 
-    The artifact_type is implicit from the endpoint (e.g. /personas/generate).
-    permission_ids controls which tools the AI agent receives during generation.
-    resources is the field-level filter (e.g. ["names", "descriptions"]).
-    """
+    instructions: list[str] | None = None   # what the user wants
+    config: GenerateConfig | None = None    # developer configuration
+    idempotency_key: UUID | None = None     # ack
+    accept: bool = True                     # ack
 
-    # Which tools the AI agent gets during generation
-    permissions: list[PermissionPair] | None = None
-    permission_ids: list[str] | None = None
-    resources: list[str] | None = None
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_legacy_fields(cls, data: Any) -> Any:
+        """Coerce legacy request formats for backward compatibility."""
+        if not isinstance(data, dict):
+            return data
 
-    # Common fields
-    artifact_id: Any | None = None
-    draft_id: Any | None = None
-    params: dict[str, Any] | None = None
-    user_instructions: list[str] | None = None
-    run_id: str | None = None
-    group_id: str | None = None
-    modality: str = "call"
-    extra_messages: list[dict[str, str]] | None = None
-    metadata: dict[str, Any] | None = None
-    sid: str | None = None  # Client socket ID for event delivery
+        # Already new format
+        if "config" in data:
+            # Still map user_instructions → instructions
+            raw_ui = data.pop("user_instructions", None)
+            if raw_ui and "instructions" not in data:
+                data["instructions"] = raw_ui
+            return data
 
-    # Mode
-    dangerous: bool = False  # True = execute immediately (bypass review), False = review first (default)
+        # Legacy format detected — restructure into new shape
+        raw_ui = data.pop("user_instructions", None)
+        if raw_ui and "instructions" not in data:
+            data["instructions"] = raw_ui
 
-    # Ack
-    idempotency_key: UUID | None = None
-    accept: bool = True
+        config: dict[str, Any] = {}
 
-    def to_generate_payload(self, artifact_type: str) -> GeneratePayload:
-        """Convert to the canonical GeneratePayload for the internal bus."""
-        return GeneratePayload(
-            permissions=self.permissions,
-            permission_ids=self.permission_ids,
-            resources=self.resources,
-            artifact_id=self.artifact_id,
-            draft_id=self.draft_id,
-            params=self.params,
-            user_instructions=self.user_instructions,
-            run_id=self.run_id,
-            group_id=self.group_id,
-            modality=self.modality,
-            extra_messages=self.extra_messages,
-            metadata=self.metadata,
-        )
+        # permissions [{artifact, operation}] → operations [str]
+        raw_perms = data.pop("permissions", None)
+        if raw_perms and isinstance(raw_perms, list):
+            config["operations"] = [
+                p.get("operation", "") if isinstance(p, dict)
+                else (p[1] if isinstance(p, (list, tuple)) else "")
+                for p in raw_perms
+            ]
+
+        config["dangerous"] = data.pop("dangerous", False)
+        config["group_id"] = data.pop("group_id", None)
+
+        # Merge artifact_id, draft_id, params into config.params
+        params = data.pop("params", None) or {}
+        artifact_id = data.pop("artifact_id", None)
+        draft_id = data.pop("draft_id", None)
+        if artifact_id:
+            params["artifact_id"] = str(artifact_id)
+        if draft_id:
+            params["draft_id"] = str(draft_id)
+        if params:
+            config["params"] = params
+
+        # Drop server-internal fields that don't belong in client request
+        for k in ("permission_ids", "modality", "extra_messages",
+                   "metadata", "sid", "run_id", "resources", "resource_types"):
+            data.pop(k, None)
+
+        data["config"] = config
+        return data
 
 
 class ArtifactGenerateResponse(BaseModel):

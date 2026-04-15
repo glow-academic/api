@@ -91,26 +91,20 @@ async def prepare_generation(
     from app.tools.entries.runs.create import create_run
 
     # --- Step 1: Validate ---
-    if payload.resources:
-        resource_types = payload.resources
-    elif payload.resource_types:
-        resource_types = [rt.name for rt in payload.resource_types if rt]
-    else:
-        resource_types = list(artifact_config.valid_resource_types)
+    resource_types = list(artifact_config.valid_resource_types)
+    payload_params = payload.params or {}
 
+    draft_id = payload_params.get("draft_id")
     error = validate_payload(
-        resource_types_raw=resource_types,
         artifact_type=artifact_type,
-        valid_resource_types=artifact_config.valid_resource_types,
-        entry_types=artifact_config.entry_types,
         requires_draft=artifact_config.requires_draft,
-        draft_id=payload.draft_id,
+        draft_id=draft_id,
     )
     if error:
         raise ValueError(error)
 
     # --- Step 2: Resolve artifact_id ---
-    artifact_id = payload.artifact_id
+    artifact_id = payload_params.get("artifact_id")
     payload_metadata = payload.metadata or {}
     if artifact_type == "profile" and not artifact_id and payload_metadata.get("staff_id"):
         artifact_id = uuid.UUID(payload_metadata["staff_id"])
@@ -125,7 +119,7 @@ async def prepare_generation(
                 artifact_type=artifact_type,
                 artifact_id=artifact_id,
                 group_id=group_id,
-                draft_id=payload.draft_id,
+                draft_id=draft_id,
             )
         ],
         bypass_cache=True,
@@ -144,19 +138,16 @@ async def prepare_generation(
     config_agents = ws_ctx.agents
 
     # --- Step 4: Agent groups from scores ---
-    dispatch_types = resource_types
-    if payload.permissions and not resource_types:
-        dispatch_types = list({p.artifact for p in payload.permissions})
-    elif payload.permissions:
-        dispatch_types = list({p.artifact for p in payload.permissions})
+    if payload.operations:
+        dispatch_types = [artifact_type]
+    else:
+        dispatch_types = resource_types
 
     agent_groups = build_agent_groups_from_scores(
         resource_types=dispatch_types,
         scores=ws_ctx.scores,
-        permissions=[
-            {"artifact": p.artifact, "operation": p.operation}
-            for p in payload.permissions
-        ] if payload.permissions else None,
+        operations=payload.operations,
+        artifact_type=artifact_type,
         tool_graph=getattr(ws_ctx, "tool_graph", None),
     )
 
@@ -286,19 +277,11 @@ async def prepare_generation(
             developer_instruction_templates=dev_templates,
             payload_metadata=enriched_metadata,
             save=None,
-            permissions=[
-                {"artifact": p.artifact, "operation": p.operation}
-                for p in payload.permissions
-            ] if payload.permissions else None,
+            operations=payload.operations,
             artifact_type=artifact_type,
-            artifact_id=payload.artifact_id,
+            dangerous=payload.dangerous,
             group_id=str(group_id),
-            resources=resource_types,
-            modality=payload.modality or "call",
-            profile=ws_ctx.profile,
-            params=payload.params or (
-                {"draft_id": str(payload.draft_id)} if payload.draft_id else {}
-            ),
+            params=payload_params,
         )
 
         # Persist messages to the run
@@ -314,8 +297,8 @@ async def prepare_generation(
                     )
 
             # User instructions
-            if payload.user_instructions:
-                for instruction in payload.user_instructions:
+            if payload.instructions:
+                for instruction in payload.instructions:
                     await persist_run_message(
                         conn,
                         run_id=run_id,
@@ -329,8 +312,8 @@ async def prepare_generation(
         if payload.extra_messages:
             for em in payload.extra_messages:
                 all_messages.append(em)
-        if payload.user_instructions:
-            for instruction in payload.user_instructions:
+        if payload.instructions:
+            for instruction in payload.instructions:
                 all_messages.append({"role": "user", "content": instruction})
 
         dispatches.append(AgentDispatch(

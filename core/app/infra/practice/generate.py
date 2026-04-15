@@ -20,6 +20,8 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.websocket.generation_types import (
     ArtifactGenerateRequest,
     ArtifactGenerateResponse,
+    GenerateConfig,
+    GeneratePayload,
 )
 from app.registry.generate import REGISTRY
 
@@ -69,22 +71,21 @@ async def generate_practice_impl(
 
     # -- Step 3: Validate resources -----------------------------------------
 
-    group_id = request.group_id
+    cfg = request.config or GenerateConfig()
+    group_id = cfg.group_id
     if not group_id:
         raise HTTPException(status_code=400, detail="group_id is required")
 
     config = REGISTRY.get(ARTIFACT_TYPE)
-    if config and request.resources:
-        invalid = set(request.resources) - set(config.valid_resource_types)
-        if invalid:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid resources for {ARTIFACT_TYPE}: {sorted(invalid)}",
-            )
-
     # -- Step 4: Emit to internal bus ---------------------------------------
 
-    payload = request.to_generate_payload(ARTIFACT_TYPE)
+    payload = GeneratePayload(
+        artifact_type=ARTIFACT_TYPE,
+        instructions=request.instructions,
+        operations=cfg.operations,
+        dangerous=cfg.dangerous,
+        params=cfg.params,
+    )
 
     resolved_sid = sid or f"http-{uuid.uuid4()}"
 

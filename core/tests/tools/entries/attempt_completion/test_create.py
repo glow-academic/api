@@ -5,11 +5,12 @@ import pytest
 from app.tools.entries.attempt_completion.create import create_attempt_completion
 from app.tools.entries.attempt_completion.refresh import refresh_attempt_completion
 from app.tools.entries.attempt_completion.refresh import MV_NAME
+from app.tools.entries.attempt.create import create_attempt
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.groups.create import create_group
+from app.tools.entries.persona.create import create_persona
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
-from app.tools.entries.attempts.create import create_attempt
 
 pytestmark = pytest.mark.asyncio
 
@@ -19,7 +20,8 @@ async def _setup_entry(conn, profile_id):
     group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, group_id=group.id, session_id=session.id)
     call = await create_call(conn, run_id=run.id, session_id=session.id)
-    seed = await create_attempt(conn, session_id=session.id)
+    persona = await create_persona(conn)
+    seed = await create_attempt(conn, call_id=call.id, user_persona_id=persona.id, profiles_id=profile_id)
     return session, call, seed
 
 

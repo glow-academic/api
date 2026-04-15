@@ -74,9 +74,9 @@ async def docs_practice_client(
     # ── Step 3: Assemble response ──────────────────────────────────────
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.practice.export import export_practice
-    from app.routes.practice.get import practice_get
-    from app.routes.practice.search import search_practice
+    from app.routes.attempt.practice.export import export_practice
+    from app.routes.attempt.practice.get import practice_get
+    from app.routes.attempt.practice.search import search_practice
 
     return ComposedDocsResponse(
         name="practice",

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, List
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -115,6 +115,28 @@ class CallerPermissions(BaseModel):
     disabled_reason: str | None = Field(None, description="Human-readable reason if editing is disabled")
 
 
+class StarterPrompt(BaseModel):
+    """Starter prompt for the generation panel."""
+
+    title: str = Field(..., description="Short label shown on the button")
+    content: str = Field(..., description="Full instruction text inserted when clicked")
+
+
+class OperationPrompts(BaseModel):
+    """Starter prompts keyed by operation name.
+
+    Each key is an operation (e.g. "create", "search", "draft", "export")
+    and the value is a list of starter prompts for that operation.
+    The client picks from the operations the caller has permission for
+    and rotates through them.
+    """
+
+    prompts: dict[str, list[StarterPrompt]] = Field(
+        default_factory=dict,
+        description="Map of operation name to starter prompts",
+    )
+
+
 class ComposedContextResponse(BaseModel):
     """Page bootstrap response — docs + profile identity + evaluated permissions.
 
@@ -131,6 +153,7 @@ class ComposedContextResponse(BaseModel):
     permission_docs: list[OperationInfo] = Field(..., description="Permission function signatures (for MCP/dev tooling)")
     api_operations: list[OperationInfo] = Field(..., description="API operation documentation")
     page_metadata: DocsApiResponse | None = Field(None, description="Page-level metadata")
+    prompts: OperationPrompts | None = Field(None, description="Starter prompts keyed by operation")
     # Identity + evaluated permissions
     profile: ProfileSummary = Field(..., description="Caller identity from JWT")
     caller_permissions: CallerPermissions = Field(..., description="Evaluated permissions for this caller")

@@ -21,6 +21,8 @@ from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
     DocsResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -47,7 +49,7 @@ async def page_context_health_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Health page context — superset of docs_health_impl.
+    """Health page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -92,12 +94,30 @@ async def page_context_health_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "get": [
+            StarterPrompt(title="Check status", content="Show current system health metrics and service status indicators."),
+            StarterPrompt(title="Find issues", content="Identify any degraded services or health warnings in the system."),
+            StarterPrompt(title="Diagnose problem", content="Help diagnose the root cause of a specific health concern."),
+        ],
+        "export": [
+            StarterPrompt(title="Export health", content="Export system health metrics and status data as CSV."),
+            StarterPrompt(title="Download report", content="Generate a downloadable system health diagnostics report."),
+        ],
+        "refresh": [
+            StarterPrompt(title="Refresh health", content="Refresh the health materialized views with the latest status data."),
+            StarterPrompt(title="Update checks", content="Rebuild health analytics to include the most recent service checks."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.health.export import export_health
-    from app.routes.health.get import get_health
-    from app.routes.health.refresh import health_refresh
+    from app.routes.system.health.export import export_health
+    from app.routes.system.health.get import get_health
+    from app.routes.system.health.refresh import health_refresh
 
     return ComposedContextResponse(
         name="health",
@@ -124,6 +144,7 @@ async def page_context_health_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

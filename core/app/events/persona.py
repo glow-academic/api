@@ -16,7 +16,6 @@ from app.events.types import (
     default_filter_events,
     require_authenticated_profile,
 )
-from app.infra.docs.types import ComposedDocsResponse
 from app.infra.persona.permissions import (
     compute_can_create,
     compute_can_delete,
@@ -427,22 +426,6 @@ PERSONA_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "artifacts.persona.search.performed": None,
         },
         include_call_lifecycle=False,
-    ),
-    "docs": OperationEventConfig(
-        operation="docs",
-        scope="entity",
-        entity_key="entity_id",
-        can_subscribe=require_authenticated_profile,
-        lifecycle_models={
-            "completed": ComposedDocsResponse,
-            "failed": OperationErrorEvent,
-        },
-        domain_events={
-            "artifacts.persona.docs.viewed": None,
-        },
-        resolve_entity_ids=lambda arguments, output: _persona_request_entity_ids(
-            arguments, output, "entity_id"
-        ),
     ),
     "export": OperationEventConfig(
         operation="export",

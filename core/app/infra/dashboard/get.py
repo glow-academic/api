@@ -33,7 +33,7 @@ from app.infra.dashboard.permissions import (
 )
 from app.infra.globals import get_redis_client
 from app.infra.auth.types import AnalyticsFilterFields
-from app.routes.dashboard.search import _build_history_response
+from app.routes.attempt.dashboard.search import _build_history_response
 from app.infra.dashboard.types import (
     DashboardBundleResponse,
     DashboardRequest,

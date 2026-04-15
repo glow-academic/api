@@ -12,7 +12,6 @@ from app.infra.pricing.context import (
     resolve_pricing_context,
     resolve_pricing_search_context,
 )
-from app.infra.pricing.docs import docs_pricing_impl
 from app.infra.pricing.export import export_pricing_impl
 from app.infra.pricing.refresh import refresh_pricing_impl
 from app.tools.entries.groups.create import create_group
@@ -141,31 +140,6 @@ class TestResolvePricingSearchContext:
         assert any(item.id == group.id for item in result.entries["total_groups"])
         assert any(item.run_id == run.id for item in result.entries["runs"])
         assert "names" in result.resources
-
-
-class TestPricingDocsClient:
-    async def test_returns_composed_docs(
-        self, pool, redis_client, profile_identity_factory
-    ):
-        profile = await profile_identity_factory()
-
-        result = await docs_pricing_impl(
-            pool,
-            redis_client,
-            profile_id=profile.artifact_id,
-        )
-
-        assert result.name == "pricing"
-        assert result.type == "analytics"
-        assert result.page_metadata.list.title == "Pricing"
-        assert result.entries[0].name == "run_pricing"
-        op_names = {operation.name for operation in result.api_operations}
-        assert {
-            "get_pricing",
-            "search_pricing",
-            "pricing_refresh",
-            "export_pricing",
-        } <= op_names
 
 
 class TestExportPricingClient:

@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -86,7 +88,7 @@ async def page_context_cohort_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Cohort page context — superset of docs_cohort_impl.
+    """Cohort page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -267,7 +269,39 @@ async def page_context_cohort_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "create": [
+            StarterPrompt(title="Create a cohort", content="Create a new student cohort with appropriate grouping and scheduling."),
+            StarterPrompt(title="From class roster", content="I have a class roster — help me organize it into a well-structured cohort."),
+            StarterPrompt(title="Template-based", content="Create a cohort from a common template like course section or training group."),
+        ],
+        "search": [
+            StarterPrompt(title="Find cohorts", content="Help me find cohorts that match specific criteria or scheduling needs."),
+            StarterPrompt(title="Compare cohorts", content="Compare my cohorts and identify gaps in student coverage or scheduling."),
+            StarterPrompt(title="Audit cohorts", content="Review all cohorts and flag any with missing members or incomplete setups."),
+        ],
+        "update": [
+            StarterPrompt(title="Enhance cohort", content="Improve this cohort's description, scheduling, and member organization."),
+            StarterPrompt(title="Optimize grouping", content="Suggest better grouping strategies for this cohort's members."),
+            StarterPrompt(title="Add simulations", content="Add simulation assignments and persona mappings to this cohort."),
+        ],
+        "duplicate": [
+            StarterPrompt(title="Clone & adjust", content="Duplicate this cohort and adjust it for a different course section or term."),
+            StarterPrompt(title="Bulk clone", content="Create variations of this cohort for multiple parallel sections."),
+        ],
+        "draft": [
+            StarterPrompt(title="Draft cohort", content="Start drafting a new cohort — suggest a name, structure, and member criteria."),
+            StarterPrompt(title="Iterate draft", content="Review my current draft and suggest improvements before saving."),
+        ],
+        "export": [
+            StarterPrompt(title="Export roster", content="Generate an export of all cohorts with their member lists and assignments."),
+            StarterPrompt(title="Export schedule", content="Create a scheduling overview of cohort simulation assignments."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.cohort.create import create_cohort
@@ -363,6 +397,7 @@ async def page_context_cohort_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

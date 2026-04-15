@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -47,7 +49,7 @@ async def page_context_practice_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Practice page context — superset of docs_practice_impl.
+    """Practice page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -95,13 +97,35 @@ async def page_context_practice_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "get": [
+            StarterPrompt(title="View progress", content="Show my practice stats, completion history, and current streaks."),
+            StarterPrompt(title="Check performance", content="Summarize my scores and improvement trajectory across practice sessions."),
+            StarterPrompt(title="Find scenarios", content="Identify available scenarios to practice based on my progress."),
+        ],
+        "search": [
+            StarterPrompt(title="Search history", content="Search my practice history by scenario name or date range."),
+            StarterPrompt(title="Filter results", content="Search practice sessions filtered by score range or completion status."),
+        ],
+        "export": [
+            StarterPrompt(title="Export practice", content="Export my practice history and performance data as CSV."),
+            StarterPrompt(title="Download progress", content="Generate a downloadable report of my practice improvement over time."),
+        ],
+        "refresh": [
+            StarterPrompt(title="Refresh practice", content="Refresh practice materialized views with the latest session data."),
+            StarterPrompt(title="Update stats", content="Rebuild practice analytics to include recently completed sessions."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.practice.export import export_practice
-    from app.routes.practice.get import practice_get
-    from app.routes.practice.refresh import practice_refresh
-    from app.routes.practice.search import search_practice
+    from app.routes.attempt.practice.export import export_practice
+    from app.routes.attempt.practice.get import practice_get
+    from app.routes.attempt.practice.refresh import practice_refresh
+    from app.routes.attempt.practice.search import search_practice
 
     return ComposedContextResponse(
         name="practice",
@@ -133,6 +157,7 @@ async def page_context_practice_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

@@ -90,17 +90,14 @@ async def attempt_audio_start_internal_impl(
         )
 
     # Step 3: Emit to generate pipeline with modality=audio
-    resource_types = ["contents", "hints"]
-
     await internal_sio.emit(
         "generate",
         GenerateRequestData(
             sid=sid,
             profile_id=str(profile_id),
-            artifact_types=[{"name": "attempt", "operation": "get"}],
-            artifact_id=str(attempt_id),
-            resource_types=resource_types,
-            save=True,
+            artifact_type="attempt",
+            operations=["get"],
+            params={"artifact_id": str(attempt_id)},
             run_id=str(run.id),
             group_id=str(group_id),
             modality="audio",

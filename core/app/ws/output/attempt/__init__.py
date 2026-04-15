@@ -36,4 +36,11 @@ from . import (  # noqa: F401
     user_received_start,
     user_start,
     video_download,
+    # Absorbed sub-modules
+    dashboard,
+    home,
+    leaderboard,
+    practice,
+    record,
+    reports,
 )

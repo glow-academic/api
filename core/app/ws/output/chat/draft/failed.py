@@ -17,4 +17,4 @@ async def chat_draft_failed(data: dict[str, Any]) -> None:
     if call_id:
         append_call_event(UUID(call_id), "chat.draft.failed", data, UPLOAD_FOLDER)
     for room in rooms:
-        await sio.emit("chat.draft.failed", data, room=room)
+        await sio.emit("attempt.draft.failed", data, room=room)

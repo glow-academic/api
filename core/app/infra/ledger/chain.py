@@ -70,7 +70,8 @@ def read_entry(sequence: int) -> LedgerEntry | None:
 def read_latest() -> LedgerEntry | None:
     """Read the most recent ledger entry."""
     _ensure_dir()
-    files = sorted(LEDGER_DIR.glob("*.json"))
+    # Only match numbered entry files (000000.json, 000001.json, etc.)
+    files = sorted(LEDGER_DIR.glob("[0-9]*.json"))
     if not files:
         return None
     data = json.loads(files[-1].read_text())
@@ -80,7 +81,7 @@ def read_latest() -> LedgerEntry | None:
 def count_entries() -> int:
     """Count total ledger entries."""
     _ensure_dir()
-    return len(list(LEDGER_DIR.glob("*.json")))
+    return len(list(LEDGER_DIR.glob("[0-9]*.json")))
 
 
 # ---------------------------------------------------------------------------

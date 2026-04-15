@@ -1,10 +1,9 @@
-"""Benchmark test artifact router."""
+"""Test operational router — test + absorbed benchmark/invocation artifacts."""
 
 from fastapi import APIRouter
 
 from app.routes.test.archive import router as archive_router
 from app.routes.test.context import router as context_router
-from app.routes.test.docs import router as docs_router
 from app.routes.test.end import router as end_router
 from app.routes.test.export import router as export_router
 from app.routes.test.call import router as call_router
@@ -25,6 +24,10 @@ from app.routes.test.start import router as start_router
 from app.routes.test.stop import router as stop_router
 from app.routes.test.text import router as text_router
 
+# Absorbed sub-routers (one-to-one nesting, each keeps its own prefix)
+from app.routes.test.benchmark import router as benchmark_router
+from app.routes.test.invocation import router as invocation_router
+
 router = APIRouter(prefix="/test", tags=["test"])
 
 router.include_router(get_router)
@@ -33,7 +36,6 @@ router.include_router(leave_router)
 router.include_router(archive_router)
 router.include_router(refresh_router)
 router.include_router(export_router)
-router.include_router(docs_router)
 router.include_router(context_router)
 # Socket event API equivalents
 router.include_router(start_router)
@@ -51,3 +53,8 @@ router.include_router(problem_router)
 # Media operations
 router.include_router(text_router)
 router.include_router(call_router)
+
+# Absorbed sub-routers (one-to-one nesting)
+# TODO: Future optimization — merge search endpoints, unify context, etc.
+router.include_router(benchmark_router)    # prefix="/benchmark"
+router.include_router(invocation_router)   # prefix="/invocation"

@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -90,7 +92,7 @@ async def page_context_simulation_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Simulation page context — superset of docs_simulation_impl.
+    """Simulation page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -273,7 +275,39 @@ async def page_context_simulation_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "create": [
+            StarterPrompt(title="Build a simulation", content="Create a new simulation combining scenarios with rubrics and time limits."),
+            StarterPrompt(title="From scenario", content="I have a scenario — help me build a complete simulation assessment from it."),
+            StarterPrompt(title="Template-based", content="Create a simulation from a common template like role-play, interview, or troubleshooting."),
+        ],
+        "search": [
+            StarterPrompt(title="Find simulations", content="Help me find simulations that match specific training goals or scenario types."),
+            StarterPrompt(title="Compare simulations", content="Compare my simulations and identify gaps in assessment coverage."),
+            StarterPrompt(title="Audit simulations", content="Review all simulations and flag any with missing rubrics or incomplete scenario configurations."),
+        ],
+        "update": [
+            StarterPrompt(title="Refine flow", content="Improve this simulation's scenario ordering, rubric assignments, and time limits."),
+            StarterPrompt(title="Add scenarios", content="Add additional scenarios and evaluation criteria to this simulation."),
+            StarterPrompt(title="Adjust timing", content="Optimize this simulation's time limits and scenario pacing for learners."),
+        ],
+        "duplicate": [
+            StarterPrompt(title="Clone & adapt", content="Duplicate this simulation and modify its scenarios for a different training context."),
+            StarterPrompt(title="Difficulty variant", content="Create a variation of this simulation with adjusted time limits and rubric expectations."),
+        ],
+        "draft": [
+            StarterPrompt(title="Draft simulation", content="Start drafting a new simulation — suggest scenarios, rubrics, and time limits."),
+            StarterPrompt(title="Iterate draft", content="Review my current draft and suggest improvements to the assessment flow before saving."),
+        ],
+        "export": [
+            StarterPrompt(title="Export overview", content="Generate a summary of all simulations with their scenarios and evaluation criteria."),
+            StarterPrompt(title="Export analysis", content="Analyze my simulations and create a report on assessment coverage and quality."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.simulation.create import create_simulation
@@ -369,6 +403,7 @@ async def page_context_simulation_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

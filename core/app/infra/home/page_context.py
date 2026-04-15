@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -47,7 +49,7 @@ async def page_context_home_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Home page context — superset of docs_home_impl.
+    """Home page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -95,7 +97,29 @@ async def page_context_home_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "get": [
+            StarterPrompt(title="View progress", content="Show my personal simulation stats, completion history, and progress."),
+            StarterPrompt(title="Check next steps", content="Identify my next assigned simulations and upcoming deadlines."),
+            StarterPrompt(title="Review scores", content="Summarize my recent scores and highlight areas for improvement."),
+        ],
+        "search": [
+            StarterPrompt(title="Find simulations", content="Search my simulation history by scenario name or completion status."),
+            StarterPrompt(title="Filter by date", content="Search my home dashboard entries filtered by date range."),
+        ],
+        "export": [
+            StarterPrompt(title="Export progress", content="Export my personal dashboard data and completion history as CSV."),
+            StarterPrompt(title="Download stats", content="Generate a downloadable report of my simulation performance."),
+        ],
+        "refresh": [
+            StarterPrompt(title="Refresh home", content="Refresh home materialized views to show the latest activity."),
+            StarterPrompt(title="Update stats", content="Rebuild my personal dashboard metrics with the most recent data."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.infra.home_permissions import (
@@ -109,10 +133,10 @@ async def page_context_home_impl(
         compute_status_instructional,
         format_cohort_names,
     )
-    from app.routes.home.export import export_home
-    from app.routes.home.get import home_get
-    from app.routes.home.refresh import home_refresh
-    from app.routes.home.search import search_home
+    from app.routes.attempt.home.export import export_home
+    from app.routes.attempt.home.get import home_get
+    from app.routes.attempt.home.refresh import home_refresh
+    from app.routes.attempt.home.search import search_home
 
     return ComposedContextResponse(
         name="home",
@@ -181,6 +205,7 @@ async def page_context_home_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

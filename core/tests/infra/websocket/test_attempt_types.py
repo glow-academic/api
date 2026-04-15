@@ -12,18 +12,19 @@ from app.infra.websocket.generation_types import (
 )
 
 
-def test_generate_request_data_defaults_save_and_modality():
+def test_generate_request_data_defaults_modality_and_fields():
     payload = GenerateRequestData(
         sid="sid-1",
         profile_id="profile-1",
-        artifact_types=[{"name": "document", "operation": "save"}],
-        artifact_id="artifact-1",
-        resource_types=["documents"],
+        artifact_type="document",
+        operations=["save"],
     )
 
-    assert payload.save is True
     assert payload.modality == "call"
     assert payload.extra_messages is None
+    assert payload.dangerous is False
+    assert payload.instructions is None
+    assert payload.params is None
 
 
 def test_attempt_ended_data_defaults_all_scenarios_complete_false():

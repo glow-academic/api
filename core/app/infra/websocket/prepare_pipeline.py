@@ -42,22 +42,15 @@ logger = get_logger(__name__)
 
 def validate_payload(
     *,
-    resource_types_raw: list[str],
     artifact_type: str,
-    valid_resource_types: list[str],
-    entry_types: list[str],
     requires_draft: bool,
     draft_id: UUID | None,
+    # Deprecated params kept for call-site compat — ignored
+    resource_types_raw: list[str] | None = None,
+    valid_resource_types: list[str] | None = None,
+    entry_types: list[str] | None = None,
 ) -> str | None:
-    """Validate generation payload. Returns error string or None if valid.
-
-    Empty resource_types_raw is allowed — caller should default to all valid types.
-    """
-    all_valid = set(valid_resource_types) | set(entry_types)
-    invalid = [rt for rt in resource_types_raw if rt not in all_valid]
-    if invalid:
-        return f"Invalid resource types: {', '.join(invalid)}"
-
+    """Validate generation payload. Returns error string or None if valid."""
     if requires_draft and not draft_id:
         return f"draft_id is required for {artifact_type} generation"
 
@@ -366,77 +359,17 @@ def resolve_agent_config(
 
 def build_canonical_context(
     *,
-    artifact_type: str,
-    permissions: list[dict[str, str]] | None = None,
-    resources: list[str] | None = None,
-    artifact_id: UUID | None = None,
-    group_id: str | None = None,
-    modality: str = "call",
-    agent: Any,
-    llm_config: LLMConfig,
-    scoped_tools: list[dict[str, Any]],
-    profile: Any | None = None,
+    operations: list[str] | None = None,
+    dangerous: bool = False,
     params: dict[str, Any] | None = None,
+    group_id: str | None = None,
 ) -> dict[str, Any]:
-    """Build the canonical 5-namespace Jinja context for developer instructions.
-
-    Five namespaces:
-      - request: what was asked (artifact_type, artifact_id, permissions, resources, modality)
-      - params: contextual parameters the model can pass to tools (draft_id, etc.)
-      - agent: who's doing the work (name, model, modalities, voices, qualities)
-      - profile: who's asking (name, email, role, department)
-      - tools: what's available (scoped tool list with names, descriptions, args)
-    """
-    from app.infra.artifacts.convert_tools_to_openai_format import sanitize_tool_name
-
+    """Flat config context for developer instruction templates."""
     return {
-        "request": {
-            "artifact_type": artifact_type,
-            "artifact_id": str(artifact_id) if artifact_id else None,
-            "group_id": group_id,
-            "permissions": permissions or [],
-            "resources": resources or [],
-            "modality": modality,
-        },
+        "operations": operations or [],
+        "dangerous": dangerous,
         "params": params or {},
-        "agent": {
-            "name": getattr(agent, "name", ""),
-            "model": llm_config.model,
-            "provider": llm_config.provider,
-            "temperature": llm_config.temperature,
-            "reasoning": llm_config.reasoning,
-            "modalities": list(getattr(agent, "modalities", [])) or ["call"],
-            "voices": list(getattr(agent, "voices", [])),
-            "qualities": [getattr(agent, "quality", None)] if getattr(agent, "quality", None) else [],
-        },
-        "profile": {
-            "name": getattr(profile, "name", "") if profile else "",
-            "email": getattr(profile, "primary_email", "") if profile else "",
-            "role": getattr(profile, "role", "") if profile else "",
-            "role_name": getattr(profile, "role_name", "") if profile else "",
-            "department_ids": [str(d) for d in getattr(profile, "department_ids", [])] if profile else [],
-        },
-        "tools": [
-            {
-                "name": sanitize_tool_name(td.get("name", "")),
-                "description": td.get("description", ""),
-                "args": list((td.get("arguments") or {}).keys()),
-            }
-            for td in scoped_tools
-        ],
-        # Flat aliases for convenience in templates
-        "artifact_type": artifact_type,
-        "artifact_id": str(artifact_id) if artifact_id else None,
-        "permissions": permissions or [],
-        "resources": resources or [],
-        "llm_config": {
-            "model": llm_config.model,
-            "temperature": llm_config.temperature,
-            "reasoning": llm_config.reasoning,
-            "modality": modality,
-            "provider": llm_config.provider,
-            "voice": llm_config.voice,
-        },
+        "group_id": group_id,
     }
 
 
@@ -451,19 +384,16 @@ def build_agent_dispatch(
     developer_instruction_templates: list[str],
     payload_metadata: dict[str, Any],
     save: bool | None,
-    permissions: list[dict[str, str]] | None = None,
+    operations: list[str] | None = None,
     artifact_type: str = "",
-    artifact_id: UUID | None = None,
+    dangerous: bool = False,
     group_id: str | None = None,
-    resources: list[str] | None = None,
-    modality: str = "call",
-    profile: Any | None = None,
     params: dict[str, Any] | None = None,
 ) -> AgentDispatch:
     """Build a complete AgentDispatch for one agent (pure).
 
-    Scopes tools by permissions, builds canonical context, renders instructions,
-    builds message list.
+    Scopes tools by operations (mapped to (artifact_type, operation) pairs),
+    builds canonical context, renders instructions, builds message list.
     """
     # Filter tools to agent's tool_ids
     agent_tool_id_set = (
@@ -476,9 +406,9 @@ def build_agent_dispatch(
     ]
 
     # Least privilege: further filter tools to only those whose permissions
-    # intersect with the requested permissions.
-    if permissions:
-        perm_set = {(p["artifact"], p["operation"]) for p in permissions}
+    # intersect with the requested operations for this artifact_type.
+    if operations:
+        perm_set = {(artifact_type, op) for op in operations}
         scoped_tools = [
             td for td in scoped_tools
             if any(
@@ -493,19 +423,12 @@ def build_agent_dispatch(
         if td.get("_args_outputs")
     ]
 
-    # Build canonical context for developer instruction rendering
+    # Build flat config context for developer instruction rendering
     jinja_context = build_canonical_context(
-        artifact_type=artifact_type,
-        permissions=permissions,
-        resources=resources,
-        artifact_id=artifact_id,
-        group_id=group_id,
-        modality=modality,
-        agent=agent,
-        llm_config=llm_config,
-        scoped_tools=scoped_tools,
-        profile=profile,
+        operations=operations,
+        dangerous=dangerous,
         params=params,
+        group_id=group_id,
     )
 
     # Render developer instructions
@@ -529,7 +452,6 @@ def build_agent_dispatch(
 
     for m in rendered_developer_messages:
         if has_media_sentinels(m):
-            # TODO: resolve agent_input_modalities from agent's model → modalities_resource
             content_blocks = post_process_media_sentinels(
                 m, agent_input_modalities=None
             )
@@ -550,12 +472,6 @@ def build_agent_dispatch(
                     persist=True,
                 )
             )
-
-    # extra_messages are NOT persisted (they come pre-persisted, e.g. chat history)
-    # TODO: extra_messages should be passed in from payload, not accessed here
-
-    # user_instructions are persisted
-    # TODO: user_instructions should be passed in from payload, not accessed here
 
     # Metadata
     metadata: dict[str, Any] = dict(payload_metadata)
@@ -588,26 +504,23 @@ def build_agent_groups_from_scores(
     *,
     resource_types: list[str],
     scores: Any,
-    permissions: list[dict] | None = None,
+    operations: list[str] | None = None,
+    artifact_type: str = "",
     tool_graph: Any | None = None,
 ) -> dict[UUID, list[str]]:
-    """Map to agent_id groups using permissions or resource_types.
+    """Map to agent_id groups using operations or resource_types.
 
-    New path (permissions): match (artifact, operation) pairs against the
-    tool graph's ResolvedTools. Groups by agent_id → [artifact_types...].
+    New path (operations): convert to (artifact_type, operation) pairs and match
+    against the tool graph's ResolvedTools. Groups by agent_id → [targets...].
 
-    Legacy path (resource_types): match resource_types against
+    Fallback path (resource_types): match resource_types against
     ArtifactToolScores.best. Groups by agent_id → [resource_types...].
     """
     agent_groups: dict[UUID, list[str]] = {}
 
-    # New path: permission-based matching
-    if permissions and tool_graph and hasattr(tool_graph, "tools"):
-        perm_set = {
-            (p.get("artifact") or p.get("name", ""), p.get("operation", ""))
-            if isinstance(p, dict) else (getattr(p, "artifact", ""), getattr(p, "operation", ""))
-            for p in permissions
-        }
+    # Operations-based matching via tool graph
+    if operations and tool_graph and hasattr(tool_graph, "tools"):
+        perm_set = {(artifact_type, op) for op in operations}
         for resolved_tool in tool_graph.tools:
             if (resolved_tool.target, resolved_tool.operation) in perm_set:
                 agent_groups.setdefault(resolved_tool.agent_id, []).append(
@@ -620,7 +533,7 @@ def build_agent_groups_from_scores(
         }
         return agent_groups
 
-    # Legacy path: resource_type scoring
+    # Fallback: resource_type scoring
     for rt in resource_types:
         best = scores.best.get(rt)
         if best is not None:

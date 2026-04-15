@@ -7,7 +7,6 @@ from app.routes.setting.create import router as create_router
 from app.routes.setting.csv import router as csv_router
 from app.routes.setting.decrypt import router as decrypt_router
 from app.routes.setting.delete import router as delete_router
-from app.routes.setting.docs import router as docs_router
 from app.routes.setting.draft import router as draft_router
 from app.routes.setting.drafts import router as drafts_router
 from app.routes.setting.duplicate import router as duplicate_router
@@ -35,7 +34,6 @@ router.include_router(drafts_router)
 router.include_router(export_router)
 router.include_router(context_router)
 router.include_router(csv_router)
-router.include_router(docs_router)
 router.include_router(generate_router)
 router.include_router(generations_router)
 router.include_router(group_router)

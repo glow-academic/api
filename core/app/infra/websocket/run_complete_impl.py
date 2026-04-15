@@ -53,9 +53,10 @@ def build_audio_continue_payload(
         "profile_id": profile_id,
         "profiles_id": profiles_id,
         "session_id": session_id,
-        "artifact_types": data.get("artifact_types")
-        or [{"name": artifact_type, "operation": "get"}],
+        "artifact_type": data.get("artifact_type") or artifact_type,
+        "operations": data.get("operations") or ["get"],
         "group_id": group_id,
+        "modality": "audio",
         "metadata": data.get("metadata", {}),
     }
 

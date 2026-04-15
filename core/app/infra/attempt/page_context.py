@@ -20,6 +20,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -44,7 +46,7 @@ async def page_context_attempt_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Attempt page context — superset of docs_attempt_impl.
+    """Attempt page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -106,7 +108,21 @@ async def page_context_attempt_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "get": [
+            StarterPrompt(title="Review attempt", content="Show detailed scoring, chat history, and standards for this attempt."),
+            StarterPrompt(title="Analyze performance", content="Break down this attempt's results and highlight strengths and gaps."),
+            StarterPrompt(title="Generate feedback", content="Create constructive feedback based on this attempt's outcomes."),
+        ],
+        "export": [
+            StarterPrompt(title="Export attempt", content="Export this attempt's data including scores and chat transcripts."),
+            StarterPrompt(title="Download results", content="Generate a downloadable report of attempt performance data."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.attempt.archive import archive_attempts
@@ -185,6 +201,7 @@ async def page_context_attempt_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

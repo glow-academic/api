@@ -19,6 +19,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -42,7 +44,7 @@ async def page_context_record_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Record page context — superset of docs_record_impl.
+    """Record page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -79,13 +81,35 @@ async def page_context_record_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 5: Assemble response ----------------------------------------------
+    # -- Step 5: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "get": [
+            StarterPrompt(title="View record", content="Show the performance dashboard with attempt history and trends for this profile."),
+            StarterPrompt(title="Check progress", content="Summarize this profile's scoring trends and improvement trajectory."),
+            StarterPrompt(title="Analyze performance", content="Break down strengths and weaknesses across this profile's attempts."),
+        ],
+        "search": [
+            StarterPrompt(title="Find records", content="Search records by profile name, department, or performance level."),
+            StarterPrompt(title="Compare profiles", content="Search records to compare performance across different profiles."),
+        ],
+        "export": [
+            StarterPrompt(title="Export records", content="Export profile performance data and attempt history as CSV."),
+            StarterPrompt(title="Download report", content="Generate a downloadable per-profile performance report."),
+        ],
+        "refresh": [
+            StarterPrompt(title="Refresh records", content="Refresh record materialized views with the latest attempt data."),
+            StarterPrompt(title="Update profiles", content="Rebuild profile performance metrics from recent simulation results."),
+        ],
+    })
+
+    # -- Step 6: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.record.export import export_record
-    from app.routes.record.get import get_record
-    from app.routes.record.refresh import record_refresh
-    from app.routes.record.search import search_record
+    from app.routes.attempt.record.export import export_record
+    from app.routes.attempt.record.get import get_record
+    from app.routes.attempt.record.refresh import record_refresh
+    from app.routes.attempt.record.search import search_record
 
     return ComposedContextResponse(
         name="record",
@@ -117,6 +141,7 @@ async def page_context_record_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

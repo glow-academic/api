@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -87,7 +89,7 @@ async def page_context_agent_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Agent page context — superset of docs_agent_impl.
+    """Agent page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -288,7 +290,39 @@ async def page_context_agent_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "create": [
+            StarterPrompt(title="Create an agent", content="Create a new AI agent with specific capabilities, personality, and response style."),
+            StarterPrompt(title="From description", content="I have an agent concept in mind — help me build a complete agent configuration."),
+            StarterPrompt(title="Template-based", content="Create an agent from a common template like tutor, interviewer, or coach."),
+        ],
+        "search": [
+            StarterPrompt(title="Find agents", content="Help me find agents that match specific capabilities or training scenarios."),
+            StarterPrompt(title="Compare agents", content="Compare my agents and identify which is best suited for each use case."),
+            StarterPrompt(title="Audit agents", content="Review all agents and flag any with incomplete or inconsistent configurations."),
+        ],
+        "update": [
+            StarterPrompt(title="Enhance agent", content="Improve this agent's configuration, capabilities, and response patterns."),
+            StarterPrompt(title="Refine behavior", content="Make this agent's behavior more consistent and aligned with its intended purpose."),
+            StarterPrompt(title="Add tools", content="Add missing tool configurations, instructions, and model settings to this agent."),
+        ],
+        "duplicate": [
+            StarterPrompt(title="Clone & vary", content="Duplicate this agent and create a variation with different capabilities or style."),
+            StarterPrompt(title="Bulk clone", content="Create 3 variations of this agent tuned for different training scenarios."),
+        ],
+        "draft": [
+            StarterPrompt(title="Draft agent", content="Start drafting a new agent — suggest a name, role, and key capabilities."),
+            StarterPrompt(title="Iterate draft", content="Review my current draft and suggest improvements before saving."),
+        ],
+        "export": [
+            StarterPrompt(title="Export summary", content="Generate a summary of all agents suitable for sharing with stakeholders."),
+            StarterPrompt(title="Export comparison", content="Create a comparison report of agent configurations and capabilities."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.agent.create import create_agent
@@ -387,6 +421,7 @@ async def page_context_agent_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

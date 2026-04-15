@@ -3,12 +3,15 @@
 import pytest
 from tests.helpers import nonexistent_id
 
+from app.tools.entries.attempt_chat.create import create_attempt_chat
+from app.tools.entries.attempt_message.create import create_attempt_message
 from app.tools.entries.attempt_message_completion.create import create_attempt_message_completion
 from app.tools.entries.attempt_message_completion.refresh import refresh_attempt_message_completion
 from app.tools.entries.attempt_message_completion.search import search_attempt_message_completions
-from app.tools.entries.attempt_messages.create import create_attempt_message
 from app.tools.entries.calls.create import create_call
+from app.tools.entries.chat.create import create_chat
 from app.tools.entries.groups.create import create_group
+from app.tools.entries.messages.create import create_message
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 
@@ -20,7 +23,10 @@ async def _setup(conn, profile_id):
     group = await create_group(conn, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, group_id=group.id, session_id=session.id)
     call = await create_call(conn, run_id=run.id, session_id=session.id)
-    attempt_message = await create_attempt_message(conn, session_id=session.id)
+    chat = await create_chat(conn, session_id=session.id)
+    attempt_chat = await create_attempt_chat(conn, call_id=call.id, chat_id=chat.id)
+    message = await create_message(conn, run_id=run.id, role="user")
+    attempt_message = await create_attempt_message(conn, chat_id=attempt_chat.id, message_id=message.id, call_id=call.id)
     completion = await create_attempt_message_completion(
         conn, attempt_message_id=attempt_message.id, call_id=call.id
     )

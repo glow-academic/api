@@ -1,7 +1,7 @@
 """Group name endpoint — composable infra architecture.
 
 Core logic for creating/updating group names via group_names_entry.
-Thin route handler lives in app.routes.group.name.
+Thin route handler lives in app.routes.system.group.name.
 
 Flow:
   1. resolve_profile_identity_context → profile (role, permissions)

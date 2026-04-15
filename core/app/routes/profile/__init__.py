@@ -6,7 +6,6 @@ from app.routes.profile.context import router as context_router
 from app.routes.profile.emulate import router as emulate_router
 from app.routes.profile.create import router as create_router
 from app.routes.profile.delete import router as delete_router
-from app.routes.profile.docs import router as docs_router
 from app.routes.profile.draft import router as draft_router
 from app.routes.profile.drafts import router as drafts_router
 from app.routes.profile.duplicate import router as duplicate_router
@@ -32,7 +31,6 @@ router.include_router(duplicate_router)
 router.include_router(draft_router)
 router.include_router(drafts_router)
 router.include_router(delete_router)
-router.include_router(docs_router)
 router.include_router(export_router)
 router.include_router(generate_router)
 router.include_router(generations_router)

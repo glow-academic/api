@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -79,7 +81,7 @@ async def page_context_parameter_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Parameter page context — superset of docs_parameter_impl.
+    """Parameter page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -232,7 +234,39 @@ async def page_context_parameter_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "create": [
+            StarterPrompt(title="Define a parameter", content="Create a new configuration parameter with appropriate type, constraints, and default value."),
+            StarterPrompt(title="From requirements", content="I need a specific parameter — help me define it with proper validation and type."),
+            StarterPrompt(title="Template-based", content="Create a parameter from a common pattern like toggle, slider, or text input."),
+        ],
+        "search": [
+            StarterPrompt(title="Find parameters", content="Help me find parameters that match specific types or constraint criteria."),
+            StarterPrompt(title="Compare parameters", content="Compare my parameters and identify inconsistent defaults or missing constraints."),
+            StarterPrompt(title="Audit parameters", content="Review all parameters and flag any with missing validation or unclear descriptions."),
+        ],
+        "update": [
+            StarterPrompt(title="Refine constraints", content="Improve this parameter's validation rules, acceptable ranges, and error messages."),
+            StarterPrompt(title="Update defaults", content="Optimize this parameter's default value based on common usage patterns."),
+            StarterPrompt(title="Add description", content="Add a clear description and usage guidance to this parameter."),
+        ],
+        "duplicate": [
+            StarterPrompt(title="Clone & adjust", content="Duplicate this parameter and modify its constraints for a different use case."),
+            StarterPrompt(title="Bulk clone", content="Create several variations of this parameter with different default values."),
+        ],
+        "draft": [
+            StarterPrompt(title="Draft parameter", content="Start drafting a new parameter — suggest a name, type, and default value."),
+            StarterPrompt(title="Iterate draft", content="Review my current draft and suggest improvements to constraints before saving."),
+        ],
+        "export": [
+            StarterPrompt(title="Export summary", content="Generate a summary of all parameters suitable for documentation or review."),
+            StarterPrompt(title="Export analysis", content="Analyze my parameters and create a report on type coverage and defaults."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.parameter.create import create_parameter
@@ -322,6 +356,7 @@ async def page_context_parameter_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

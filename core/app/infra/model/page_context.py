@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -86,7 +88,7 @@ async def page_context_model_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Model page context — superset of docs_model_impl.
+    """Model page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -280,7 +282,39 @@ async def page_context_model_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "create": [
+            StarterPrompt(title="Create a model", content="Create a new AI model configuration with optimized parameters."),
+            StarterPrompt(title="From use case", content="I have a specific use case — help me configure the right model for it."),
+            StarterPrompt(title="Template-based", content="Create a model configuration from a common pattern like conversational, analytical, or creative."),
+        ],
+        "search": [
+            StarterPrompt(title="Find models", content="Help me find models that match specific capability or performance criteria."),
+            StarterPrompt(title="Compare models", content="Compare my model configurations and suggest the best one for each use case."),
+            StarterPrompt(title="Audit models", content="Review all models and flag any with suboptimal or inconsistent parameters."),
+        ],
+        "update": [
+            StarterPrompt(title="Enhance model", content="Improve this model's configuration and parameter settings."),
+            StarterPrompt(title="Optimize parameters", content="Fine-tune this model's temperature, token limits, and other parameters."),
+            StarterPrompt(title="Add capabilities", content="Configure additional modalities, providers, and quality settings for this model."),
+        ],
+        "duplicate": [
+            StarterPrompt(title="Clone & tune", content="Duplicate this model and tune the parameters for a different use case."),
+            StarterPrompt(title="Bulk clone", content="Create variations of this model with different temperature and reasoning settings."),
+        ],
+        "draft": [
+            StarterPrompt(title="Draft model", content="Start drafting a new model — suggest a provider, parameters, and quality tier."),
+            StarterPrompt(title="Iterate draft", content="Review my current draft and suggest parameter improvements before saving."),
+        ],
+        "export": [
+            StarterPrompt(title="Export summary", content="Generate a summary of all model configurations for review."),
+            StarterPrompt(title="Export comparison", content="Create a comparison report of model capabilities, pricing, and parameters."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.model.create import create_model
@@ -379,6 +413,7 @@ async def page_context_model_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

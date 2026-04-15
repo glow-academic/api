@@ -20,6 +20,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -68,7 +70,7 @@ async def page_context_chat_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Chat page context — superset of docs_chat_impl.
+    """Chat page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -228,10 +230,28 @@ async def page_context_chat_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "get": [
+            StarterPrompt(title="View chat", content="Show the full message history, scoring, and rubric evaluations for this chat."),
+            StarterPrompt(title="Analyze responses", content="Break down the quality and scoring of responses in this conversation."),
+            StarterPrompt(title="Review rubric", content="Show how this chat performed against each rubric criterion."),
+        ],
+        "export": [
+            StarterPrompt(title="Export transcript", content="Export the chat transcript with messages and scoring as CSV."),
+            StarterPrompt(title="Download evaluation", content="Generate a downloadable report of rubric evaluations and scores."),
+        ],
+        "refresh": [
+            StarterPrompt(title="Refresh chat data", content="Refresh the chat materialized views to reflect the latest messages."),
+            StarterPrompt(title="Update scores", content="Rebuild chat analytics to include recently completed evaluations."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.chat.draft import patch_chat_draft
+    from app.routes.attempt.draft import patch_chat_draft
     from app.routes.chat.export import export_chat
     from app.routes.chat.get import chat_get
     from app.routes.chat.refresh import chat_refresh
@@ -324,6 +344,7 @@ async def page_context_chat_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

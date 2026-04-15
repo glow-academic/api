@@ -4,7 +4,6 @@ from . import (  # noqa: F401
     context,
     create,
     delete,
-    docs,
     draft,
     drafts,
     duplicate,

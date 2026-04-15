@@ -34,7 +34,7 @@ from app.tools.entries.runs.create import create_run
 
 internal_sio = get_internal_sio()
 
-GRADE_RESOURCE_TYPES = [
+GRADE_OPERATIONS = [
     "feedbacks",
     "strengths",
     "improvements",
@@ -140,20 +140,19 @@ async def attempt_end_internal_impl(
                         GenerateRequestData(
                             sid=sid,
                             profile_id=str(profile_id),
-                            profiles_id=str(identity.profiles_id)
-                            if identity and identity.profiles_id
-                            else None,
-                            session_id=str(session_id),
-                            artifact_types=[{"name": "attempt", "operation": "get"}],
-                            artifact_id=str(payload.attempt_id),
-                            resource_types=GRADE_RESOURCE_TYPES,
-                            save=True,
+                            artifact_type="attempt",
+                            operations=GRADE_OPERATIONS,
+                            params={"artifact_id": str(payload.attempt_id)},
                             run_id=str(run_result.id),
                             group_id=str(group_result.id),
                             metadata={
                                 "attempt_id": str(payload.attempt_id),
                                 "chat_id": str(payload.chat_id),
                                 "grade_id": grade_id,
+                                "profiles_id": str(identity.profiles_id)
+                                if identity and identity.profiles_id
+                                else None,
+                                "session_id": str(session_id),
                             },
                         ).model_dump(mode="json"),
                     ),

@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -78,7 +80,7 @@ async def page_context_auth_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Auth page context — superset of docs_auth_impl.
+    """Auth page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -233,7 +235,39 @@ async def page_context_auth_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "create": [
+            StarterPrompt(title="Create auth config", content="Create a new authentication configuration with appropriate security settings."),
+            StarterPrompt(title="From requirements", content="I have specific security requirements — help me build an auth configuration."),
+            StarterPrompt(title="Role-based config", content="Create an authentication configuration for a specific user role or access level."),
+        ],
+        "search": [
+            StarterPrompt(title="Find auth configs", content="Help me find authentication configurations that match specific security criteria."),
+            StarterPrompt(title="Audit security", content="Review all auth configurations and flag potential security vulnerabilities."),
+            StarterPrompt(title="Compare configs", content="Compare my auth configurations and identify inconsistencies across providers."),
+        ],
+        "update": [
+            StarterPrompt(title="Enhance config", content="Improve this authentication configuration's security and usability settings."),
+            StarterPrompt(title="Add restrictions", content="Add IP restrictions, session limits, or other security constraints to this config."),
+            StarterPrompt(title="Tighten security", content="Review this auth config and recommend stricter security settings."),
+        ],
+        "duplicate": [
+            StarterPrompt(title="Clone & customize", content="Duplicate this auth config and adjust it for a different user group or environment."),
+            StarterPrompt(title="Bulk clone", content="Create variations of this auth config for different access tiers."),
+        ],
+        "draft": [
+            StarterPrompt(title="Draft auth config", content="Start drafting a new auth configuration — suggest protocols and security settings."),
+            StarterPrompt(title="Iterate draft", content="Review my current draft and suggest security improvements before saving."),
+        ],
+        "export": [
+            StarterPrompt(title="Export overview", content="Generate a summary of all auth configurations for a security review."),
+            StarterPrompt(title="Export audit report", content="Create a security audit report of all authentication configurations."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.auth.create import create_auth
@@ -325,6 +359,7 @@ async def page_context_auth_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

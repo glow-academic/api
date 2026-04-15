@@ -45,7 +45,6 @@ def _base_data(**overrides: object) -> dict:
         "session_id": _SESSION_ID,
         "group_id": _GROUP_ID,
         "artifact_types": [{"name": "agent", "operation": "get"}],
-        "resource_types": [{"name": "names", "operation": "create"}],
     }
     d.update(overrides)
     return d

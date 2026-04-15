@@ -11,7 +11,6 @@ from app.events.types import (
     OperationEventConfig,
     require_authenticated_profile,
 )
-from app.infra.docs.types import ComposedDocsResponse
 from app.infra.tool.types import (
     CreateToolApiRequest,
     CreateToolApiResponse,
@@ -174,20 +173,6 @@ TOOL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         entity_key=None,
         can_subscribe=require_authenticated_profile,
         include_call_lifecycle=False,
-    ),
-    "docs": OperationEventConfig(
-        operation="docs",
-        domain_events={"artifacts.tool.docs.viewed": None},
-        scope="entity",
-        entity_key="entity_id",
-        can_subscribe=require_authenticated_profile,
-        lifecycle_models={
-            "completed": ComposedDocsResponse,
-            "failed": OperationErrorEvent,
-        },
-        resolve_entity_ids=lambda arguments, output: _tool_request_entity_ids(
-            arguments, output, "entity_id"
-        ),
     ),
     "export": OperationEventConfig(
         operation="export",

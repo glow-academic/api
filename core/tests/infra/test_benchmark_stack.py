@@ -9,7 +9,6 @@ import zipfile
 import pytest
 
 from app.infra.benchmark.context import resolve_benchmark_context
-from app.infra.benchmark.docs import docs_benchmark_impl
 from app.infra.benchmark.export import export_benchmark_impl
 from app.infra.benchmark.refresh import refresh_benchmark_impl
 from app.tools.entries.benchmark.create import create_benchmark
@@ -52,31 +51,6 @@ class TestResolveBenchmarkContext:
         assert result.entries["invocations"] == []
         assert result.entries["tests"] == []
         assert result.entries["test_invocations"] == []
-
-
-class TestBenchmarkDocsClient:
-    async def test_returns_composed_docs(
-        self, pool, redis_client, profile_identity_factory
-    ):
-        profile = await profile_identity_factory()
-
-        result = await docs_benchmark_impl(
-            pool,
-            redis_client,
-            profile_id=profile.artifact_id,
-        )
-
-        assert result.name == "benchmark"
-        assert result.type == "analytics"
-        assert result.page_metadata.list.title == "Benchmarks"
-        assert result.entries[0].name == "benchmark"
-        api_names = {operation.name for operation in result.api_operations}
-        assert {
-            "get_benchmark",
-            "search_benchmark_history",
-            "benchmark_refresh",
-            "export_benchmark",
-        } <= api_names
 
 
 class TestExportBenchmarkClient:

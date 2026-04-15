@@ -67,16 +67,65 @@ def test_prepared_generation_num_agents_counts_dispatches():
     assert prepared.num_agents == 0
 
 
-def test_generate_payload_coerces_string_resource_types_and_exposes_primary_type():
+def test_generate_payload_strips_legacy_resource_types():
+    """resource_types is stripped by _coerce_legacy_fields — no longer on model."""
     payload = GeneratePayload(
         artifact_types=[{"name": "document", "operation": "save"}],
         artifact_id="artifact-1",
         resource_types=["documents", "images"],
     )
 
-    assert [item.name for item in payload.resource_types] == ["documents", "images"]
-    assert all(item.operation == "create" for item in payload.resource_types)
+    assert not hasattr(payload, "resource_types")
     assert payload.artifact_type == "document"
+    assert payload.operations == ["save"]
+    assert payload.params == {"artifact_id": "artifact-1"}
+
+
+def test_generate_payload_new_format():
+    """New-format GeneratePayload fields are accepted directly."""
+    payload = GeneratePayload(
+        artifact_type="agent",
+        operations=["get", "draft"],
+        instructions=["Build an agent"],
+        dangerous=True,
+        params={"artifact_id": "a-1"},
+    )
+
+    assert payload.artifact_type == "agent"
+    assert payload.operations == ["get", "draft"]
+    assert payload.instructions == ["Build an agent"]
+    assert payload.dangerous is True
+    assert payload.params == {"artifact_id": "a-1"}
+
+
+def test_generate_payload_coerces_legacy_permissions():
+    """Legacy permissions list is converted to operations + artifact_type."""
+    payload = GeneratePayload(
+        permissions=[{"artifact": "persona", "operation": "create"}],
+    )
+
+    assert payload.artifact_type == "persona"
+    assert payload.operations == ["create"]
+
+
+def test_generate_payload_coerces_user_instructions():
+    """Legacy user_instructions is converted to instructions."""
+    payload = GeneratePayload(
+        artifact_type="agent",
+        user_instructions=["do this", "do that"],
+    )
+
+    assert payload.instructions == ["do this", "do that"]
+
+
+def test_generate_payload_coerces_draft_id_into_params():
+    """Legacy draft_id is moved into params."""
+    payload = GeneratePayload(
+        artifact_type="cohort",
+        draft_id="draft-1",
+    )
+
+    assert payload.params == {"draft_id": "draft-1"}
 
 
 def test_generation_complete_data_defaults_to_complete_type():

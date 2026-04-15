@@ -15,7 +15,13 @@ from app.infra.websocket.generate_prepare_impl import (
 from app.infra.websocket.prepare_types import LLMConfig
 
 
-def test_resolve_primary_artifact_type_uses_first_entry_name():
+def test_resolve_primary_artifact_type_uses_direct_field():
+    """New format: artifact_type is a top-level string."""
+    assert resolve_primary_artifact_type({"artifact_type": "agent"}) == "agent"
+
+
+def test_resolve_primary_artifact_type_legacy_artifact_types():
+    """Legacy format: artifact_types list with name/operation dicts."""
     assert (
         resolve_primary_artifact_type(
             {"artifact_types": [{"name": "agent", "operation": "get"}]}
@@ -24,9 +30,20 @@ def test_resolve_primary_artifact_type_uses_first_entry_name():
     )
 
 
+def test_resolve_primary_artifact_type_legacy_permissions():
+    """Legacy format: permissions list with artifact/operation dicts."""
+    assert (
+        resolve_primary_artifact_type(
+            {"permissions": [{"artifact": "persona", "operation": "create"}]}
+        )
+        == "persona"
+    )
+
+
 def test_resolve_primary_artifact_type_falls_back_to_unknown():
     assert resolve_primary_artifact_type({"artifact_types": []}) == "unknown"
     assert resolve_primary_artifact_type({}) == "unknown"
+    assert resolve_primary_artifact_type({"artifact_type": "unknown"}) == "unknown"
 
 
 def test_parse_generation_identity_returns_uuid_tuple():

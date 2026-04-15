@@ -6,7 +6,6 @@ from app.routes.scenario.context import router as context_router
 from app.routes.scenario.create import router as create_router
 from app.routes.scenario.csv import router as csv_router
 from app.routes.scenario.delete import router as delete_router
-from app.routes.scenario.docs import router as docs_router
 from app.routes.scenario.draft import router as draft_router
 from app.routes.scenario.drafts import router as drafts_router
 from app.routes.scenario.duplicate import router as duplicate_router
@@ -39,7 +38,6 @@ router.include_router(drafts_router)
 router.include_router(export_router)
 router.include_router(generate_router)
 router.include_router(generations_router)
-router.include_router(docs_router)
 router.include_router(context_router)
 router.include_router(group_router)
 router.include_router(problem_router)

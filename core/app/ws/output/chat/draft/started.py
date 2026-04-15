@@ -17,4 +17,4 @@ async def chat_draft_started(data: dict[str, Any]) -> None:
     if call_id:
         append_call_event(UUID(call_id), "chat.draft.started", data, UPLOAD_FOLDER)
     for room in rooms:
-        await sio.emit("chat.draft.started", data, room=room)
+        await sio.emit("attempt.draft.started", data, room=room)

@@ -11,7 +11,6 @@ from app.events.types import (
     OperationEventConfig,
     require_authenticated_profile,
 )
-from app.infra.docs.types import ComposedDocsResponse
 from app.infra.auth.types import (
     CreateAuthApiRequest,
     CreateAuthApiResponse,
@@ -174,20 +173,6 @@ AUTH_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         can_subscribe=require_authenticated_profile,
         domain_events={"artifacts.auth.search.performed": None},
         include_call_lifecycle=False,
-    ),
-    "docs": OperationEventConfig(
-        operation="docs",
-        scope="entity",
-        entity_key="entity_id",
-        can_subscribe=require_authenticated_profile,
-        lifecycle_models={
-            "completed": ComposedDocsResponse,
-            "failed": OperationErrorEvent,
-        },
-        domain_events={"artifacts.auth.docs.viewed": None},
-        resolve_entity_ids=lambda arguments, output: _auth_request_entity_ids(
-            arguments, output, "entity_id"
-        ),
     ),
     "export": OperationEventConfig(
         operation="export",

@@ -18,12 +18,6 @@ permissions = [
         name="Context Activity",
     ),
     dict(
-        id=sid("permission/activity/docs"),
-        artifact="activity",
-        operation="docs",
-        name="Docs Activity",
-    ),
-    dict(
         id=sid("permission/activity/export"),
         artifact="activity",
         operation="export",
@@ -94,12 +88,6 @@ permissions = [
         artifact="agent",
         operation="delete",
         name="Delete Agent",
-    ),
-    dict(
-        id=sid("permission/agent/docs"),
-        artifact="agent",
-        operation="docs",
-        name="Docs Agent",
     ),
     dict(
         id=sid("permission/agent/draft"),
@@ -190,12 +178,6 @@ permissions = [
         artifact="attempt",
         operation="context",
         name="Context Attempt",
-    ),
-    dict(
-        id=sid("permission/attempt/docs"),
-        artifact="attempt",
-        operation="docs",
-        name="Docs Attempt",
     ),
     dict(
         id=sid("permission/attempt/end"),
@@ -329,12 +311,6 @@ permissions = [
         name="Delete Auth",
     ),
     dict(
-        id=sid("permission/auth/docs"),
-        artifact="auth",
-        operation="docs",
-        name="Docs Auth",
-    ),
-    dict(
         id=sid("permission/auth/draft"),
         artifact="auth",
         operation="draft",
@@ -413,12 +389,6 @@ permissions = [
         name="Context Benchmark",
     ),
     dict(
-        id=sid("permission/benchmark/docs"),
-        artifact="benchmark",
-        operation="docs",
-        name="Docs Benchmark",
-    ),
-    dict(
         id=sid("permission/benchmark/export"),
         artifact="benchmark",
         operation="export",
@@ -473,12 +443,6 @@ permissions = [
         name="Context Chat",
     ),
     dict(
-        id=sid("permission/chat/docs"),
-        artifact="chat",
-        operation="docs",
-        name="Docs Chat",
-    ),
-    dict(
         id=sid("permission/chat/draft"),
         artifact="chat",
         operation="draft",
@@ -531,12 +495,6 @@ permissions = [
         artifact="cohort",
         operation="delete",
         name="Delete Cohort",
-    ),
-    dict(
-        id=sid("permission/cohort/docs"),
-        artifact="cohort",
-        operation="docs",
-        name="Docs Cohort",
     ),
     dict(
         id=sid("permission/cohort/draft"),
@@ -617,12 +575,6 @@ permissions = [
         name="Context Dashboard",
     ),
     dict(
-        id=sid("permission/dashboard/docs"),
-        artifact="dashboard",
-        operation="docs",
-        name="Docs Dashboard",
-    ),
-    dict(
         id=sid("permission/dashboard/export"),
         artifact="dashboard",
         operation="export",
@@ -687,12 +639,6 @@ permissions = [
         artifact="department",
         operation="delete",
         name="Delete Department",
-    ),
-    dict(
-        id=sid("permission/department/docs"),
-        artifact="department",
-        operation="docs",
-        name="Docs Department",
     ),
     dict(
         id=sid("permission/department/draft"),
@@ -783,12 +729,6 @@ permissions = [
         artifact="document",
         operation="delete",
         name="Delete Document",
-    ),
-    dict(
-        id=sid("permission/document/docs"),
-        artifact="document",
-        operation="docs",
-        name="Docs Document",
     ),
     dict(
         id=sid("permission/document/draft"),
@@ -886,12 +826,6 @@ permissions = [
         name="Delete Eval",
     ),
     dict(
-        id=sid("permission/eval/docs"),
-        artifact="eval",
-        operation="docs",
-        name="Docs Eval",
-    ),
-    dict(
         id=sid("permission/eval/draft"),
         artifact="eval",
         operation="draft",
@@ -982,12 +916,6 @@ permissions = [
         name="Delete Field",
     ),
     dict(
-        id=sid("permission/field/docs"),
-        artifact="field",
-        operation="docs",
-        name="Docs Field",
-    ),
-    dict(
         id=sid("permission/field/draft"),
         artifact="field",
         operation="draft",
@@ -1066,12 +994,6 @@ permissions = [
         name="Context Group",
     ),
     dict(
-        id=sid("permission/group/docs"),
-        artifact="group",
-        operation="docs",
-        name="Docs Group",
-    ),
-    dict(
         id=sid("permission/group/export"),
         artifact="group",
         operation="export",
@@ -1133,12 +1055,6 @@ permissions = [
         name="Context Health",
     ),
     dict(
-        id=sid("permission/health/docs"),
-        artifact="health",
-        operation="docs",
-        name="Docs Health",
-    ),
-    dict(
         id=sid("permission/health/export"),
         artifact="health",
         operation="export",
@@ -1191,12 +1107,6 @@ permissions = [
         artifact="home",
         operation="context",
         name="Context Home",
-    ),
-    dict(
-        id=sid("permission/home/docs"),
-        artifact="home",
-        operation="docs",
-        name="Docs Home",
     ),
     dict(
         id=sid("permission/home/export"),
@@ -1257,12 +1167,6 @@ permissions = [
         artifact="invocation",
         operation="decrypt",
         name="Decrypt Invocation",
-    ),
-    dict(
-        id=sid("permission/invocation/docs"),
-        artifact="invocation",
-        operation="docs",
-        name="Docs Invocation",
     ),
     dict(
         id=sid("permission/invocation/draft"),
@@ -1331,12 +1235,6 @@ permissions = [
         name="Context Leaderboard",
     ),
     dict(
-        id=sid("permission/leaderboard/docs"),
-        artifact="leaderboard",
-        operation="docs",
-        name="Docs Leaderboard",
-    ),
-    dict(
         id=sid("permission/leaderboard/export"),
         artifact="leaderboard",
         operation="export",
@@ -1401,12 +1299,6 @@ permissions = [
         artifact="model",
         operation="delete",
         name="Delete Model",
-    ),
-    dict(
-        id=sid("permission/model/docs"),
-        artifact="model",
-        operation="docs",
-        name="Docs Model",
     ),
     dict(
         id=sid("permission/model/draft"),
@@ -1497,12 +1389,6 @@ permissions = [
         artifact="parameter",
         operation="delete",
         name="Delete Parameter",
-    ),
-    dict(
-        id=sid("permission/parameter/docs"),
-        artifact="parameter",
-        operation="docs",
-        name="Docs Parameter",
     ),
     dict(
         id=sid("permission/parameter/draft"),
@@ -1601,12 +1487,6 @@ permissions = [
         name="Delete Persona",
     ),
     dict(
-        id=sid("permission/persona/docs"),
-        artifact="persona",
-        operation="docs",
-        name="Docs Persona",
-    ),
-    dict(
         id=sid("permission/persona/draft"),
         artifact="persona",
         operation="draft",
@@ -1685,12 +1565,6 @@ permissions = [
         name="Context Practice",
     ),
     dict(
-        id=sid("permission/practice/docs"),
-        artifact="practice",
-        operation="docs",
-        name="Docs Practice",
-    ),
-    dict(
         id=sid("permission/practice/export"),
         artifact="practice",
         operation="export",
@@ -1743,12 +1617,6 @@ permissions = [
         artifact="pricing",
         operation="context",
         name="Context Pricing",
-    ),
-    dict(
-        id=sid("permission/pricing/docs"),
-        artifact="pricing",
-        operation="docs",
-        name="Docs Pricing",
     ),
     dict(
         id=sid("permission/pricing/export"),
@@ -1815,12 +1683,6 @@ permissions = [
         artifact="profile",
         operation="delete",
         name="Delete Profile",
-    ),
-    dict(
-        id=sid("permission/profile/docs"),
-        artifact="profile",
-        operation="docs",
-        name="Docs Profile",
     ),
     dict(
         id=sid("permission/profile/draft"),
@@ -1931,12 +1793,6 @@ permissions = [
         name="Delete Provider",
     ),
     dict(
-        id=sid("permission/provider/docs"),
-        artifact="provider",
-        operation="docs",
-        name="Docs Provider",
-    ),
-    dict(
         id=sid("permission/provider/draft"),
         artifact="provider",
         operation="draft",
@@ -2015,12 +1871,6 @@ permissions = [
         name="Context Record",
     ),
     dict(
-        id=sid("permission/record/docs"),
-        artifact="record",
-        operation="docs",
-        name="Docs Record",
-    ),
-    dict(
         id=sid("permission/record/export"),
         artifact="record",
         operation="export",
@@ -2073,12 +1923,6 @@ permissions = [
         artifact="reports",
         operation="context",
         name="Context Reports",
-    ),
-    dict(
-        id=sid("permission/reports/docs"),
-        artifact="reports",
-        operation="docs",
-        name="Docs Reports",
     ),
     dict(
         id=sid("permission/reports/export"),
@@ -2145,12 +1989,6 @@ permissions = [
         artifact="rubric",
         operation="delete",
         name="Delete Rubric",
-    ),
-    dict(
-        id=sid("permission/rubric/docs"),
-        artifact="rubric",
-        operation="docs",
-        name="Docs Rubric",
     ),
     dict(
         id=sid("permission/rubric/draft"),
@@ -2243,12 +2081,6 @@ permissions = [
         name="Delete Scenario",
     ),
     dict(
-        id=sid("permission/scenario/docs"),
-        artifact="scenario",
-        operation="docs",
-        name="Docs Scenario",
-    ),
-    dict(
         id=sid("permission/scenario/draft"),
         artifact="scenario",
         operation="draft",
@@ -2335,12 +2167,6 @@ permissions = [
         name="Context Session",
     ),
     dict(
-        id=sid("permission/session/docs"),
-        artifact="session",
-        operation="docs",
-        name="Docs Session",
-    ),
-    dict(
         id=sid("permission/session/export"),
         artifact="session",
         operation="export",
@@ -2411,12 +2237,6 @@ permissions = [
         artifact="setting",
         operation="delete",
         name="Delete Setting",
-    ),
-    dict(
-        id=sid("permission/setting/docs"),
-        artifact="setting",
-        operation="docs",
-        name="Docs Setting",
     ),
     dict(
         id=sid("permission/setting/draft"),
@@ -2509,12 +2329,6 @@ permissions = [
         name="Delete Simulation",
     ),
     dict(
-        id=sid("permission/simulation/docs"),
-        artifact="simulation",
-        operation="docs",
-        name="Docs Simulation",
-    ),
-    dict(
         id=sid("permission/simulation/draft"),
         artifact="simulation",
         operation="draft",
@@ -2591,12 +2405,6 @@ permissions = [
         artifact="test",
         operation="archive",
         name="Archive Test",
-    ),
-    dict(
-        id=sid("permission/test/docs"),
-        artifact="test",
-        operation="docs",
-        name="Docs Test",
     ),
     dict(
         id=sid("permission/test/end"),
@@ -2725,12 +2533,6 @@ permissions = [
         name="Delete Tool",
     ),
     dict(
-        id=sid("permission/tool/docs"),
-        artifact="tool",
-        operation="docs",
-        name="Docs Tool",
-    ),
-    dict(
         id=sid("permission/tool/draft"),
         artifact="tool",
         operation="draft",
@@ -2810,8 +2612,7 @@ permissions = [
 
 PERMISSION_IDS = {
 
-    ("activity", "context"): sid("permission/activity/context"),    ("activity", "docs"): sid("permission/activity/docs"),
-    ("activity", "export"): sid("permission/activity/export"),
+    ("activity", "context"): sid("permission/activity/context"),    ("activity", "export"): sid("permission/activity/export"),
     ("activity", "generate"): sid("permission/activity/generate"),
     ("activity", "generations"): sid("permission/activity/generations"),
     ("activity", "get"): sid("permission/activity/get"),
@@ -2823,7 +2624,6 @@ PERMISSION_IDS = {
 
     ("agent", "context"): sid("permission/agent/context"),    ("agent", "create"): sid("permission/agent/create"),
     ("agent", "delete"): sid("permission/agent/delete"),
-    ("agent", "docs"): sid("permission/agent/docs"),
     ("agent", "draft"): sid("permission/agent/draft"),
     ("agent", "drafts"): sid("permission/agent/drafts"),
     ("agent", "duplicate"): sid("permission/agent/duplicate"),
@@ -2838,7 +2638,6 @@ PERMISSION_IDS = {
     ("agent", "update"): sid("permission/agent/update"),
     ("attempt", "archive"): sid("permission/attempt/archive"),
     ("attempt", "audio_start"): sid("permission/attempt/audio_start"),
-    ("attempt", "docs"): sid("permission/attempt/docs"),
     ("attempt", "end"): sid("permission/attempt/end"),
     ("attempt", "end_all"): sid("permission/attempt/end_all"),
     ("attempt", "export"): sid("permission/attempt/export"),
@@ -2865,7 +2664,6 @@ PERMISSION_IDS = {
 
     ("auth", "context"): sid("permission/auth/context"),    ("auth", "create"): sid("permission/auth/create"),
     ("auth", "delete"): sid("permission/auth/delete"),
-    ("auth", "docs"): sid("permission/auth/docs"),
     ("auth", "draft"): sid("permission/auth/draft"),
     ("auth", "drafts"): sid("permission/auth/drafts"),
     ("auth", "duplicate"): sid("permission/auth/duplicate"),
@@ -2879,8 +2677,7 @@ PERMISSION_IDS = {
     ("auth", "search"): sid("permission/auth/search"),
     ("auth", "update"): sid("permission/auth/update"),
 
-    ("benchmark", "context"): sid("permission/benchmark/context"),    ("benchmark", "docs"): sid("permission/benchmark/docs"),
-    ("benchmark", "export"): sid("permission/benchmark/export"),
+    ("benchmark", "context"): sid("permission/benchmark/context"),    ("benchmark", "export"): sid("permission/benchmark/export"),
     ("benchmark", "generate"): sid("permission/benchmark/generate"),
     ("benchmark", "generations"): sid("permission/benchmark/generations"),
     ("benchmark", "get"): sid("permission/benchmark/get"),
@@ -2889,8 +2686,7 @@ PERMISSION_IDS = {
     ("benchmark", "refresh"): sid("permission/benchmark/refresh"),
     ("benchmark", "search"): sid("permission/benchmark/search"),
 
-    ("chat", "context"): sid("permission/chat/context"),    ("chat", "docs"): sid("permission/chat/docs"),
-    ("chat", "draft"): sid("permission/chat/draft"),
+    ("chat", "context"): sid("permission/chat/context"),    ("chat", "draft"): sid("permission/chat/draft"),
     ("chat", "drafts"): sid("permission/chat/drafts"),
     ("chat", "export"): sid("permission/chat/export"),
     ("chat", "get"): sid("permission/chat/get"),
@@ -2899,7 +2695,6 @@ PERMISSION_IDS = {
 
     ("cohort", "context"): sid("permission/cohort/context"),    ("cohort", "create"): sid("permission/cohort/create"),
     ("cohort", "delete"): sid("permission/cohort/delete"),
-    ("cohort", "docs"): sid("permission/cohort/docs"),
     ("cohort", "draft"): sid("permission/cohort/draft"),
     ("cohort", "drafts"): sid("permission/cohort/drafts"),
     ("cohort", "duplicate"): sid("permission/cohort/duplicate"),
@@ -2913,8 +2708,7 @@ PERMISSION_IDS = {
     ("cohort", "search"): sid("permission/cohort/search"),
     ("cohort", "update"): sid("permission/cohort/update"),
 
-    ("dashboard", "context"): sid("permission/dashboard/context"),    ("dashboard", "docs"): sid("permission/dashboard/docs"),
-    ("dashboard", "export"): sid("permission/dashboard/export"),
+    ("dashboard", "context"): sid("permission/dashboard/context"),    ("dashboard", "export"): sid("permission/dashboard/export"),
     ("dashboard", "generate"): sid("permission/dashboard/generate"),
     ("dashboard", "generations"): sid("permission/dashboard/generations"),
     ("dashboard", "get"): sid("permission/dashboard/get"),
@@ -2925,7 +2719,6 @@ PERMISSION_IDS = {
 
     ("department", "context"): sid("permission/department/context"),    ("department", "create"): sid("permission/department/create"),
     ("department", "delete"): sid("permission/department/delete"),
-    ("department", "docs"): sid("permission/department/docs"),
     ("department", "draft"): sid("permission/department/draft"),
     ("department", "drafts"): sid("permission/department/drafts"),
     ("department", "duplicate"): sid("permission/department/duplicate"),
@@ -2941,7 +2734,6 @@ PERMISSION_IDS = {
 
     ("document", "context"): sid("permission/document/context"),    ("document", "create"): sid("permission/document/create"),
     ("document", "delete"): sid("permission/document/delete"),
-    ("document", "docs"): sid("permission/document/docs"),
     ("document", "draft"): sid("permission/document/draft"),
     ("document", "drafts"): sid("permission/document/drafts"),
     ("document", "duplicate"): sid("permission/document/duplicate"),
@@ -2962,7 +2754,6 @@ PERMISSION_IDS = {
 
     ("eval", "context"): sid("permission/eval/context"),    ("eval", "create"): sid("permission/eval/create"),
     ("eval", "delete"): sid("permission/eval/delete"),
-    ("eval", "docs"): sid("permission/eval/docs"),
     ("eval", "draft"): sid("permission/eval/draft"),
     ("eval", "drafts"): sid("permission/eval/drafts"),
     ("eval", "duplicate"): sid("permission/eval/duplicate"),
@@ -2978,7 +2769,6 @@ PERMISSION_IDS = {
 
     ("field", "context"): sid("permission/field/context"),    ("field", "create"): sid("permission/field/create"),
     ("field", "delete"): sid("permission/field/delete"),
-    ("field", "docs"): sid("permission/field/docs"),
     ("field", "draft"): sid("permission/field/draft"),
     ("field", "drafts"): sid("permission/field/drafts"),
     ("field", "duplicate"): sid("permission/field/duplicate"),
@@ -2991,7 +2781,6 @@ PERMISSION_IDS = {
     ("field", "refresh"): sid("permission/field/refresh"),
     ("field", "search"): sid("permission/field/search"),
     ("field", "update"): sid("permission/field/update"),
-    ("group", "docs"): sid("permission/group/docs"),
     ("group", "export"): sid("permission/group/export"),
     ("group", "generate"): sid("permission/group/generate"),
     ("group", "generations"): sid("permission/group/generations"),
@@ -3001,8 +2790,7 @@ PERMISSION_IDS = {
     ("group", "refresh"): sid("permission/group/refresh"),
     ("group", "search"): sid("permission/group/search"),
 
-    ("health", "context"): sid("permission/health/context"),    ("health", "docs"): sid("permission/health/docs"),
-    ("health", "export"): sid("permission/health/export"),
+    ("health", "context"): sid("permission/health/context"),    ("health", "export"): sid("permission/health/export"),
     ("health", "generate"): sid("permission/health/generate"),
     ("health", "generations"): sid("permission/health/generations"),
     ("health", "get"): sid("permission/health/get"),
@@ -3011,8 +2799,7 @@ PERMISSION_IDS = {
     ("health", "refresh"): sid("permission/health/refresh"),
     ("health", "search"): sid("permission/health/search"),
 
-    ("home", "context"): sid("permission/home/context"),    ("home", "docs"): sid("permission/home/docs"),
-    ("home", "export"): sid("permission/home/export"),
+    ("home", "context"): sid("permission/home/context"),    ("home", "export"): sid("permission/home/export"),
     ("home", "generate"): sid("permission/home/generate"),
     ("home", "generations"): sid("permission/home/generations"),
     ("home", "get"): sid("permission/home/get"),
@@ -3022,7 +2809,6 @@ PERMISSION_IDS = {
     ("home", "search"): sid("permission/home/search"),
 
     ("invocation", "context"): sid("permission/invocation/context"),    ("invocation", "decrypt"): sid("permission/invocation/decrypt"),
-    ("invocation", "docs"): sid("permission/invocation/docs"),
     ("invocation", "draft"): sid("permission/invocation/draft"),
     ("invocation", "drafts"): sid("permission/invocation/drafts"),
     ("invocation", "export"): sid("permission/invocation/export"),
@@ -3034,8 +2820,7 @@ PERMISSION_IDS = {
     ("invocation", "refresh"): sid("permission/invocation/refresh"),
     ("invocation", "search"): sid("permission/invocation/search"),
 
-    ("leaderboard", "context"): sid("permission/leaderboard/context"),    ("leaderboard", "docs"): sid("permission/leaderboard/docs"),
-    ("leaderboard", "export"): sid("permission/leaderboard/export"),
+    ("leaderboard", "context"): sid("permission/leaderboard/context"),    ("leaderboard", "export"): sid("permission/leaderboard/export"),
     ("leaderboard", "generate"): sid("permission/leaderboard/generate"),
     ("leaderboard", "generations"): sid("permission/leaderboard/generations"),
     ("leaderboard", "get"): sid("permission/leaderboard/get"),
@@ -3046,7 +2831,6 @@ PERMISSION_IDS = {
 
     ("model", "context"): sid("permission/model/context"),    ("model", "create"): sid("permission/model/create"),
     ("model", "delete"): sid("permission/model/delete"),
-    ("model", "docs"): sid("permission/model/docs"),
     ("model", "draft"): sid("permission/model/draft"),
     ("model", "drafts"): sid("permission/model/drafts"),
     ("model", "duplicate"): sid("permission/model/duplicate"),
@@ -3062,7 +2846,6 @@ PERMISSION_IDS = {
 
     ("parameter", "context"): sid("permission/parameter/context"),    ("parameter", "create"): sid("permission/parameter/create"),
     ("parameter", "delete"): sid("permission/parameter/delete"),
-    ("parameter", "docs"): sid("permission/parameter/docs"),
     ("parameter", "draft"): sid("permission/parameter/draft"),
     ("parameter", "drafts"): sid("permission/parameter/drafts"),
     ("parameter", "duplicate"): sid("permission/parameter/duplicate"),
@@ -3079,7 +2862,6 @@ PERMISSION_IDS = {
     ("persona", "create"): sid("permission/persona/create"),
     ("persona", "csv"): sid("permission/persona/csv"),
     ("persona", "delete"): sid("permission/persona/delete"),
-    ("persona", "docs"): sid("permission/persona/docs"),
     ("persona", "draft"): sid("permission/persona/draft"),
     ("persona", "drafts"): sid("permission/persona/drafts"),
     ("persona", "duplicate"): sid("permission/persona/duplicate"),
@@ -3093,8 +2875,7 @@ PERMISSION_IDS = {
     ("persona", "search"): sid("permission/persona/search"),
     ("persona", "update"): sid("permission/persona/update"),
 
-    ("practice", "context"): sid("permission/practice/context"),    ("practice", "docs"): sid("permission/practice/docs"),
-    ("practice", "export"): sid("permission/practice/export"),
+    ("practice", "context"): sid("permission/practice/context"),    ("practice", "export"): sid("permission/practice/export"),
     ("practice", "generate"): sid("permission/practice/generate"),
     ("practice", "generations"): sid("permission/practice/generations"),
     ("practice", "get"): sid("permission/practice/get"),
@@ -3103,8 +2884,7 @@ PERMISSION_IDS = {
     ("practice", "refresh"): sid("permission/practice/refresh"),
     ("practice", "search"): sid("permission/practice/search"),
 
-    ("pricing", "context"): sid("permission/pricing/context"),    ("pricing", "docs"): sid("permission/pricing/docs"),
-    ("pricing", "export"): sid("permission/pricing/export"),
+    ("pricing", "context"): sid("permission/pricing/context"),    ("pricing", "export"): sid("permission/pricing/export"),
     ("pricing", "generate"): sid("permission/pricing/generate"),
     ("pricing", "generations"): sid("permission/pricing/generations"),
     ("pricing", "get"): sid("permission/pricing/get"),
@@ -3115,7 +2895,6 @@ PERMISSION_IDS = {
     ("profile", "context"): sid("permission/profile/context"),
     ("profile", "create"): sid("permission/profile/create"),
     ("profile", "delete"): sid("permission/profile/delete"),
-    ("profile", "docs"): sid("permission/profile/docs"),
     ("profile", "draft"): sid("permission/profile/draft"),
     ("profile", "drafts"): sid("permission/profile/drafts"),
     ("profile", "duplicate"): sid("permission/profile/duplicate"),
@@ -3134,7 +2913,6 @@ PERMISSION_IDS = {
     ("provider", "context"): sid("permission/provider/context"),    ("provider", "create"): sid("permission/provider/create"),
     ("provider", "decrypt"): sid("permission/provider/decrypt"),
     ("provider", "delete"): sid("permission/provider/delete"),
-    ("provider", "docs"): sid("permission/provider/docs"),
     ("provider", "draft"): sid("permission/provider/draft"),
     ("provider", "drafts"): sid("permission/provider/drafts"),
     ("provider", "duplicate"): sid("permission/provider/duplicate"),
@@ -3148,8 +2926,7 @@ PERMISSION_IDS = {
     ("provider", "search"): sid("permission/provider/search"),
     ("provider", "update"): sid("permission/provider/update"),
 
-    ("record", "context"): sid("permission/record/context"),    ("record", "docs"): sid("permission/record/docs"),
-    ("record", "export"): sid("permission/record/export"),
+    ("record", "context"): sid("permission/record/context"),    ("record", "export"): sid("permission/record/export"),
     ("record", "generate"): sid("permission/record/generate"),
     ("record", "generations"): sid("permission/record/generations"),
     ("record", "get"): sid("permission/record/get"),
@@ -3158,8 +2935,7 @@ PERMISSION_IDS = {
     ("record", "refresh"): sid("permission/record/refresh"),
     ("record", "search"): sid("permission/record/search"),
 
-    ("reports", "context"): sid("permission/reports/context"),    ("reports", "docs"): sid("permission/reports/docs"),
-    ("reports", "export"): sid("permission/reports/export"),
+    ("reports", "context"): sid("permission/reports/context"),    ("reports", "export"): sid("permission/reports/export"),
     ("reports", "generate"): sid("permission/reports/generate"),
     ("reports", "generations"): sid("permission/reports/generations"),
     ("reports", "get"): sid("permission/reports/get"),
@@ -3170,7 +2946,6 @@ PERMISSION_IDS = {
 
     ("rubric", "context"): sid("permission/rubric/context"),    ("rubric", "create"): sid("permission/rubric/create"),
     ("rubric", "delete"): sid("permission/rubric/delete"),
-    ("rubric", "docs"): sid("permission/rubric/docs"),
     ("rubric", "draft"): sid("permission/rubric/draft"),
     ("rubric", "drafts"): sid("permission/rubric/drafts"),
     ("rubric", "duplicate"): sid("permission/rubric/duplicate"),
@@ -3186,7 +2961,6 @@ PERMISSION_IDS = {
 
     ("scenario", "context"): sid("permission/scenario/context"),    ("scenario", "create"): sid("permission/scenario/create"),
     ("scenario", "delete"): sid("permission/scenario/delete"),
-    ("scenario", "docs"): sid("permission/scenario/docs"),
     ("scenario", "draft"): sid("permission/scenario/draft"),
     ("scenario", "drafts"): sid("permission/scenario/drafts"),
     ("scenario", "duplicate"): sid("permission/scenario/duplicate"),
@@ -3204,8 +2978,7 @@ PERMISSION_IDS = {
     ("scenario", "video_upload"): sid("permission/scenario/video_upload"),
     ("scenario", "video_download"): sid("permission/scenario/video_download"),
 
-    ("session", "context"): sid("permission/session/context"),    ("session", "docs"): sid("permission/session/docs"),
-    ("session", "export"): sid("permission/session/export"),
+    ("session", "context"): sid("permission/session/context"),    ("session", "export"): sid("permission/session/export"),
     ("session", "generate"): sid("permission/session/generate"),
     ("session", "generations"): sid("permission/session/generations"),
     ("session", "get"): sid("permission/session/get"),
@@ -3217,7 +2990,6 @@ PERMISSION_IDS = {
     ("setting", "context"): sid("permission/setting/context"),    ("setting", "create"): sid("permission/setting/create"),
     ("setting", "decrypt"): sid("permission/setting/decrypt"),
     ("setting", "delete"): sid("permission/setting/delete"),
-    ("setting", "docs"): sid("permission/setting/docs"),
     ("setting", "draft"): sid("permission/setting/draft"),
     ("setting", "drafts"): sid("permission/setting/drafts"),
     ("setting", "duplicate"): sid("permission/setting/duplicate"),
@@ -3233,7 +3005,6 @@ PERMISSION_IDS = {
 
     ("simulation", "context"): sid("permission/simulation/context"),    ("simulation", "create"): sid("permission/simulation/create"),
     ("simulation", "delete"): sid("permission/simulation/delete"),
-    ("simulation", "docs"): sid("permission/simulation/docs"),
     ("simulation", "draft"): sid("permission/simulation/draft"),
     ("simulation", "drafts"): sid("permission/simulation/drafts"),
     ("simulation", "duplicate"): sid("permission/simulation/duplicate"),
@@ -3247,7 +3018,6 @@ PERMISSION_IDS = {
     ("simulation", "search"): sid("permission/simulation/search"),
     ("simulation", "update"): sid("permission/simulation/update"),
     ("test", "archive"): sid("permission/test/archive"),
-    ("test", "docs"): sid("permission/test/docs"),
     ("test", "end"): sid("permission/test/end"),
     ("test", "export"): sid("permission/test/export"),
     ("test", "generate"): sid("permission/test/generate"),
@@ -3269,7 +3039,6 @@ PERMISSION_IDS = {
 
     ("tool", "context"): sid("permission/tool/context"),    ("tool", "create"): sid("permission/tool/create"),
     ("tool", "delete"): sid("permission/tool/delete"),
-    ("tool", "docs"): sid("permission/tool/docs"),
     ("tool", "draft"): sid("permission/tool/draft"),
     ("tool", "drafts"): sid("permission/tool/drafts"),
     ("tool", "duplicate"): sid("permission/tool/duplicate"),

@@ -68,22 +68,20 @@ def resolve_callable(
 #   delete    → delete_{name}
 #   duplicate → duplicate_{name}
 #   draft     → patch_{name}_draft
-#   docs      → None (not yet implemented)
 # ---------------------------------------------------------------------------
 
 _A = "app.routes"
 
 ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     # activity (view-only)
-    ("activity", "get"): (f"{_A}.activity.get", "get_activity_websocket"),
+    ("activity", "get"): (f"{_A}.system.activity.get", "get_activity_websocket"),
     ("activity", "list"): None,
     ("activity", "save"): None,
     ("activity", "delete"): None,
     ("activity", "duplicate"): None,
     ("activity", "draft"): None,
-    ("activity", "docs"): None,
     ("activity", "export"): None,
-    ("activity", "refresh"): (f"{_A}.activity.refresh", "activity_refresh"),
+    ("activity", "refresh"): (f"{_A}.system.activity.refresh", "activity_refresh"),
     # agent
     ("agent", "get"): (f"{_A}.agent.get", "get_agent_websocket"),
     ("agent", "list"): (f"{_A}.agent.list", "get_agent_list"),
@@ -91,7 +89,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("agent", "delete"): (f"{_A}.agent.delete", "delete_agent"),
     ("agent", "duplicate"): (f"{_A}.agent.duplicate", "duplicate_agent"),
     ("agent", "draft"): (f"{_A}.agent.draft", "patch_agent_draft"),
-    ("agent", "docs"): None,
     ("agent", "export"): None,
     ("agent", "refresh"): None,
     # attempt (view-only)
@@ -101,7 +98,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("attempt", "delete"): None,
     ("attempt", "duplicate"): None,
     ("attempt", "draft"): None,
-    ("attempt", "docs"): None,
     ("attempt", "export"): None,
     ("attempt", "refresh"): None,
     # auth
@@ -111,27 +107,24 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("auth", "delete"): (f"{_A}.auth.delete", "delete_auth"),
     ("auth", "duplicate"): (f"{_A}.auth.duplicate", "duplicate_auth"),
     ("auth", "draft"): (f"{_A}.auth.draft", "patch_auth_draft"),
-    ("auth", "docs"): None,
     ("auth", "export"): None,
     ("auth", "refresh"): None,
     # benchmark (view-only, no websocket)
-    ("benchmark", "get"): (f"{_A}.benchmark.get", "get_benchmark"),
+    ("benchmark", "get"): (f"{_A}.test.benchmark.get", "get_benchmark"),
     ("benchmark", "list"): None,
     ("benchmark", "save"): None,
     ("benchmark", "delete"): None,
     ("benchmark", "duplicate"): None,
     ("benchmark", "draft"): None,
-    ("benchmark", "docs"): None,
     ("benchmark", "export"): None,
-    ("benchmark", "refresh"): (f"{_A}.benchmark.refresh", "benchmark_refresh"),
+    ("benchmark", "refresh"): (f"{_A}.test.benchmark.refresh", "benchmark_refresh"),
     # chat (partial — has get, save, draft)
     ("chat", "get"): (f"{_A}.chat.get", "get_chat_websocket"),
     ("chat", "list"): None,
     ("chat", "save"): None,
     ("chat", "delete"): None,
     ("chat", "duplicate"): None,
-    ("chat", "draft"): (f"{_A}.chat.draft", "patch_chat_draft"),
-    ("chat", "docs"): None,
+    ("chat", "draft"): (f"{_A}.attempt.draft", "patch_chat_draft"),
     ("chat", "export"): None,
     ("chat", "refresh"): (f"{_A}.chat.refresh", "chat_refresh"),
     # cohort
@@ -141,19 +134,17 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("cohort", "delete"): (f"{_A}.cohort.delete", "delete_cohort"),
     ("cohort", "duplicate"): (f"{_A}.cohort.duplicate", "duplicate_cohort"),
     ("cohort", "draft"): (f"{_A}.cohort.draft", "patch_cohort_draft"),
-    ("cohort", "docs"): None,
     ("cohort", "export"): (f"{_A}.cohort.export", "export_cohorts"),
     ("cohort", "refresh"): None,
     # dashboard (view-only)
-    ("dashboard", "get"): (f"{_A}.dashboard.get", "get_dashboard_websocket"),
+    ("dashboard", "get"): (f"{_A}.attempt.dashboard.get", "get_dashboard_websocket"),
     ("dashboard", "list"): None,
     ("dashboard", "save"): None,
     ("dashboard", "delete"): None,
     ("dashboard", "duplicate"): None,
     ("dashboard", "draft"): None,
-    ("dashboard", "docs"): None,
-    ("dashboard", "export"): (f"{_A}.dashboard.export", "export_dashboard"),
-    ("dashboard", "refresh"): (f"{_A}.dashboard.refresh", "dashboard_refresh"),
+    ("dashboard", "export"): (f"{_A}.attempt.dashboard.export", "export_dashboard"),
+    ("dashboard", "refresh"): (f"{_A}.attempt.dashboard.refresh", "dashboard_refresh"),
     # department
     ("department", "get"): (f"{_A}.department.get", "get_department_websocket"),
     ("department", "list"): (f"{_A}.department.list", "get_department_list"),
@@ -161,7 +152,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("department", "delete"): (f"{_A}.department.delete", "delete_department"),
     ("department", "duplicate"): (f"{_A}.department.duplicate", "duplicate_department"),
     ("department", "draft"): (f"{_A}.department.draft", "patch_department_draft"),
-    ("department", "docs"): None,
     ("department", "export"): None,
     ("department", "refresh"): None,
     # document
@@ -171,7 +161,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("document", "delete"): (f"{_A}.document.delete", "delete_document"),
     ("document", "duplicate"): (f"{_A}.document.duplicate", "duplicate_document"),
     ("document", "draft"): (f"{_A}.document.draft", "patch_document_draft"),
-    ("document", "docs"): None,
     ("document", "export"): None,
     ("document", "refresh"): None,
     # eval
@@ -181,7 +170,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("eval", "delete"): (f"{_A}.eval.delete", "delete_eval"),
     ("eval", "duplicate"): (f"{_A}.eval.duplicate", "duplicate_eval"),
     ("eval", "draft"): (f"{_A}.eval.draft", "patch_eval_draft"),
-    ("eval", "docs"): None,
     ("eval", "export"): None,
     ("eval", "refresh"): None,
     # field
@@ -191,7 +179,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("field", "delete"): (f"{_A}.field.delete", "delete_field"),
     ("field", "duplicate"): (f"{_A}.field.duplicate", "duplicate_field"),
     ("field", "draft"): (f"{_A}.field.draft", "patch_field_draft"),
-    ("field", "docs"): None,
     ("field", "export"): None,
     ("field", "refresh"): None,
     # group (view-only)
@@ -201,7 +188,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("group", "delete"): None,
     ("group", "duplicate"): None,
     ("group", "draft"): None,
-    ("group", "docs"): None,
     ("group", "export"): None,
     ("group", "refresh"): None,
     # health (view-only)
@@ -211,40 +197,36 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("health", "delete"): None,
     ("health", "duplicate"): None,
     ("health", "draft"): None,
-    ("health", "docs"): None,
     ("health", "export"): None,
-    ("health", "refresh"): (f"{_A}.health.refresh", "health_refresh"),
+    ("health", "refresh"): (f"{_A}.system.health.refresh", "health_refresh"),
     # home (view-only)
-    ("home", "get"): (f"{_A}.home.get", "get_home_websocket"),
+    ("home", "get"): (f"{_A}.attempt.home.get", "get_home_websocket"),
     ("home", "list"): None,
     ("home", "save"): None,
     ("home", "delete"): None,
     ("home", "duplicate"): None,
     ("home", "draft"): None,
-    ("home", "docs"): None,
-    ("home", "export"): (f"{_A}.home.export", "export_home"),
+    ("home", "export"): (f"{_A}.attempt.home.export", "export_home"),
     ("home", "refresh"): None,
     ("home", "context"): ("app.infra.home.page_context", "page_context_home_impl"),
     # invocation (view-only + draft)
-    ("invocation", "get"): (f"{_A}.invocation.get", "get_invocation_websocket"),
+    ("invocation", "get"): (f"{_A}.test.invocation.get", "get_invocation_websocket"),
     ("invocation", "list"): None,
     ("invocation", "save"): None,
     ("invocation", "delete"): None,
     ("invocation", "duplicate"): None,
-    ("invocation", "draft"): (f"{_A}.invocation.draft", "patch_invocation_draft"),
-    ("invocation", "docs"): None,
+    ("invocation", "draft"): (f"{_A}.test.invocation.draft", "patch_invocation_draft"),
     ("invocation", "export"): None,
     ("invocation", "refresh"): None,
     # leaderboard (view-only)
-    ("leaderboard", "get"): (f"{_A}.leaderboard.get", "get_leaderboard_websocket"),
+    ("leaderboard", "get"): (f"{_A}.attempt.leaderboard.get", "get_leaderboard_websocket"),
     ("leaderboard", "list"): None,
     ("leaderboard", "save"): None,
     ("leaderboard", "delete"): None,
     ("leaderboard", "duplicate"): None,
     ("leaderboard", "draft"): None,
-    ("leaderboard", "docs"): None,
-    ("leaderboard", "export"): (f"{_A}.leaderboard.export", "export_leaderboard"),
-    ("leaderboard", "refresh"): (f"{_A}.leaderboard.refresh", "leaderboard_refresh"),
+    ("leaderboard", "export"): (f"{_A}.attempt.leaderboard.export", "export_leaderboard"),
+    ("leaderboard", "refresh"): (f"{_A}.attempt.leaderboard.refresh", "leaderboard_refresh"),
     # model
     ("model", "get"): (f"{_A}.model.get", "get_model_websocket"),
     ("model", "list"): (f"{_A}.model.list", "get_model_list"),
@@ -252,7 +234,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("model", "delete"): (f"{_A}.model.delete", "delete_model"),
     ("model", "duplicate"): (f"{_A}.model.duplicate", "duplicate_model"),
     ("model", "draft"): (f"{_A}.model.draft", "patch_model_draft"),
-    ("model", "docs"): None,
     ("model", "export"): None,
     ("model", "refresh"): None,
     # parameter
@@ -262,7 +243,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("parameter", "delete"): (f"{_A}.parameter.delete", "delete_parameter"),
     ("parameter", "duplicate"): (f"{_A}.parameter.duplicate", "duplicate_parameter"),
     ("parameter", "draft"): (f"{_A}.parameter.draft", "patch_parameter_draft"),
-    ("parameter", "docs"): None,
     ("parameter", "export"): None,
     ("parameter", "refresh"): None,
     # persona
@@ -272,30 +252,27 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("persona", "delete"): (f"{_A}.persona.delete", "delete_persona"),
     ("persona", "duplicate"): (f"{_A}.persona.duplicate", "duplicate_persona"),
     ("persona", "draft"): (f"{_A}.persona.draft", "patch_persona_draft"),
-    ("persona", "docs"): None,
     ("persona", "export"): (f"{_A}.persona.export", "export_personas"),
     ("persona", "refresh"): None,
     # practice (view-only)
-    ("practice", "get"): (f"{_A}.practice.get", "get_practice_websocket"),
+    ("practice", "get"): (f"{_A}.attempt.practice.get", "get_practice_websocket"),
     ("practice", "list"): None,
     ("practice", "save"): None,
     ("practice", "delete"): None,
     ("practice", "duplicate"): None,
     ("practice", "draft"): None,
-    ("practice", "docs"): None,
-    ("practice", "export"): (f"{_A}.practice.export", "export_practice"),
+    ("practice", "export"): (f"{_A}.attempt.practice.export", "export_practice"),
     ("practice", "refresh"): None,
     ("practice", "context"): ("app.infra.practice.page_context", "page_context_practice_impl"),
     # pricing (view-only)
-    ("pricing", "get"): (f"{_A}.pricing.get", "get_pricing_websocket"),
+    ("pricing", "get"): (f"{_A}.system.pricing.get", "get_pricing_websocket"),
     ("pricing", "list"): None,
     ("pricing", "save"): None,
     ("pricing", "delete"): None,
     ("pricing", "duplicate"): None,
     ("pricing", "draft"): None,
-    ("pricing", "docs"): None,
-    ("pricing", "export"): (f"{_A}.pricing.export", "export_pricing"),
-    ("pricing", "refresh"): (f"{_A}.pricing.refresh", "pricing_refresh"),
+    ("pricing", "export"): (f"{_A}.system.pricing.export", "export_pricing"),
+    ("pricing", "refresh"): (f"{_A}.system.pricing.refresh", "pricing_refresh"),
     # profile
     ("profile", "get"): (f"{_A}.profile.get", "get_profile_websocket"),
     ("profile", "list"): (f"{_A}.profile.list", "get_profile_list"),
@@ -303,7 +280,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("profile", "delete"): (f"{_A}.profile.delete", "delete_profile"),
     ("profile", "duplicate"): (f"{_A}.profile.duplicate", "duplicate_profile"),
     ("profile", "draft"): (f"{_A}.profile.draft", "patch_profile_draft"),
-    ("profile", "docs"): None,
     ("profile", "export"): None,
     ("profile", "refresh"): None,
     # provider
@@ -313,7 +289,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("provider", "delete"): (f"{_A}.provider.delete", "delete_provider"),
     ("provider", "duplicate"): (f"{_A}.provider.duplicate", "duplicate_provider"),
     ("provider", "draft"): (f"{_A}.provider.draft", "patch_provider_draft"),
-    ("provider", "docs"): None,
     ("provider", "export"): None,
     ("provider", "refresh"): None,
     # record (view-only)
@@ -323,20 +298,18 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("record", "delete"): None,
     ("record", "duplicate"): None,
     ("record", "draft"): None,
-    ("record", "docs"): None,
     ("record", "export"): None,
     ("record", "refresh"): None,
     ("record", "context"): ("app.infra.record.page_context", "page_context_record_impl"),
     # reports (view-only)
-    ("reports", "search"): (f"{_A}.reports.search", "get_reports"),
+    ("reports", "search"): (f"{_A}.attempt.report.search", "get_reports"),
     ("reports", "list"): None,
     ("reports", "save"): None,
     ("reports", "delete"): None,
     ("reports", "duplicate"): None,
     ("reports", "draft"): None,
-    ("reports", "docs"): None,
-    ("reports", "export"): (f"{_A}.reports.export", "export_report"),
-    ("reports", "refresh"): (f"{_A}.reports.refresh", "reports_refresh"),
+    ("reports", "export"): (f"{_A}.attempt.report.export", "export_report"),
+    ("reports", "refresh"): (f"{_A}.attempt.report.refresh", "reports_refresh"),
     # rubric
     ("rubric", "get"): (f"{_A}.rubric.get", "get_rubric_websocket"),
     ("rubric", "list"): (f"{_A}.rubric.list", "get_rubric_list"),
@@ -344,7 +317,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("rubric", "delete"): (f"{_A}.rubric.delete", "delete_rubric"),
     ("rubric", "duplicate"): (f"{_A}.rubric.duplicate", "duplicate_rubric"),
     ("rubric", "draft"): (f"{_A}.rubric.draft", "patch_rubric_draft"),
-    ("rubric", "docs"): None,
     ("rubric", "export"): None,
     ("rubric", "refresh"): None,
     # scenario
@@ -354,7 +326,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("scenario", "delete"): (f"{_A}.scenario.delete", "delete_scenario"),
     ("scenario", "duplicate"): (f"{_A}.scenario.duplicate", "duplicate_scenario"),
     ("scenario", "draft"): (f"{_A}.scenario.draft", "patch_scenario_draft"),
-    ("scenario", "docs"): None,
     ("scenario", "export"): (f"{_A}.scenario.export", "export_scenarios"),
     ("scenario", "refresh"): None,
     # session (view-only)
@@ -364,7 +335,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("session", "delete"): None,
     ("session", "duplicate"): None,
     ("session", "draft"): None,
-    ("session", "docs"): None,
     ("session", "export"): None,
     ("session", "refresh"): None,
     # setting
@@ -374,7 +344,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("setting", "delete"): (f"{_A}.setting.delete", "delete_setting"),
     ("setting", "duplicate"): (f"{_A}.setting.duplicate", "duplicate_setting"),
     ("setting", "draft"): (f"{_A}.setting.draft", "patch_setting_draft"),
-    ("setting", "docs"): None,
     ("setting", "export"): None,
     ("setting", "refresh"): None,
     # simulation
@@ -384,7 +353,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("simulation", "delete"): (f"{_A}.simulation.delete", "delete_simulation"),
     ("simulation", "duplicate"): (f"{_A}.simulation.duplicate", "duplicate_simulation"),
     ("simulation", "draft"): (f"{_A}.simulation.draft", "patch_simulation_draft"),
-    ("simulation", "docs"): None,
     ("simulation", "export"): (f"{_A}.simulation.export", "export_simulations"),
     ("simulation", "refresh"): None,
     # test (view-only)
@@ -394,7 +362,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("test", "delete"): None,
     ("test", "duplicate"): None,
     ("test", "draft"): None,
-    ("test", "docs"): None,
     ("test", "export"): None,
     ("test", "refresh"): None,
     # tool
@@ -404,7 +371,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("tool", "delete"): (f"{_A}.tool.delete", "delete_tool"),
     ("tool", "duplicate"): (f"{_A}.tool.duplicate", "duplicate_tool"),
     ("tool", "draft"): (f"{_A}.tool.draft", "patch_tool_draft"),
-    ("tool", "docs"): None,
     ("tool", "export"): None,
     ("tool", "refresh"): None,
 }
@@ -417,7 +383,6 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
 #   create → create_{name}_internal
 #   link   → link_{name}_internal
 #   search → search_{name}_internal
-#   docs   → None (not yet implemented)
 # ---------------------------------------------------------------------------
 
 _R = "app.tools.resources"
@@ -437,7 +402,6 @@ def _res(
     d[(name, "create")] = (f"{_R}.{name}.create", f"create_{name}") if create else None
     d[(name, "link")] = (f"{_R}.{name}.link", f"link_{name}") if link else None
     d[(name, "search")] = (f"{_R}.{name}.search", f"search_{name}") if search else None
-    d[(name, "docs")] = None
     return d
 
 
@@ -523,7 +487,6 @@ RESOURCE_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
 #   get    → get_{name}_entries_internal
 #   search → search_{name}_entries_internal
 #   create → create_{name}_entry_internal
-#   docs   → None (not yet implemented)
 #
 # Notable exceptions (non-standard get function names):
 #   chat           → get_chat_entries_internal
@@ -556,7 +519,6 @@ def _ent(
     d[(name, "create")] = (
         (f"{_E}.{name}.create", f"create_{name}_entry_internal") if create else None
     )
-    d[(name, "docs")] = None
     return d
 
 
@@ -656,7 +618,6 @@ ENTRY_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
 #   duplicate → duplicate_{name}_impl
 #   export    → export_{name}_impl
 #   refresh   → refresh_{name}_impl
-#   docs      → docs_{name}_impl
 #
 # Attempt/test state-machine operations use {name}_{op}_internal_impl.
 # ---------------------------------------------------------------------------
@@ -678,7 +639,6 @@ def _infra(
     duplicate: bool = False,
     export: bool = False,
     refresh: bool = False,
-    docs: bool = False,
     csv: bool = False,
     context: bool = False,
     # Media operations
@@ -721,8 +681,6 @@ def _infra(
         d[(name, "export")] = (f"{_I}.{name}.export", f"export_{name}_impl")
     if refresh:
         d[(name, "refresh")] = (f"{_I}.{name}.refresh", f"refresh_{name}_impl")
-    if docs:
-        d[(name, "docs")] = (f"{_I}.{name}.docs", f"docs_{name}_impl")
     if csv:
         d[(name, "csv")] = (f"{_I}.{name}.csv", f"csv_{name}_impl")
     if context:
@@ -764,10 +722,10 @@ def _infra(
 
 
 # Standard CRUD artifacts (create, update, delete, search, get, draft, drafts,
-# duplicate, export, refresh, docs)
+# duplicate, export, refresh)
 _FULL_CRUD = dict(
     create=True, update=True, delete=True, search=True, get=True,
-    draft=True, drafts=True, duplicate=True, export=True, refresh=True, docs=True,
+    draft=True, drafts=True, duplicate=True, export=True, refresh=True,
     context=True,
 )
 
@@ -805,11 +763,11 @@ INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     **_infra("simulation", **_FULL_CRUD, csv=True),
     **_infra("tool", **_FULL_CRUD),
     # --- View + partial artifacts ---
-    **_infra("activity", export=True, refresh=True, docs=True, context=True),
-    **_infra("benchmark", get=True, export=True, refresh=True, docs=True, context=True),
-    **_infra("chat", get=True, draft=True, drafts=True, export=True, refresh=True, docs=True, context=True),
-    **_infra("dashboard", export=True, refresh=True, docs=True, context=True),
-    **_infra("group", get=True, export=True, refresh=True, docs=True, context=True,
+    **_infra("activity", export=True, refresh=True, context=True),
+    **_infra("benchmark", get=True, export=True, refresh=True, context=True),
+    **_infra("chat", get=True, draft=True, drafts=True, export=True, refresh=True, context=True),
+    **_infra("dashboard", export=True, refresh=True, context=True),
+    **_infra("group", get=True, export=True, refresh=True, context=True,
              image_download=True, video_download=True,
              text_download=True,
              file_download=True, file_preview=True,
@@ -817,20 +775,19 @@ INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("group", "name"): ("app.infra.group.name", "name_group_impl"),
     ("group", "generations"): ("app.infra.group.generations", "generations_group_impl"),
     ("group", "problem"): ("app.infra.group.problem", "problem_group_impl"),
-    **_infra("health", get=True, export=True, refresh=True, docs=True, context=True),
-    **_infra("invocation", get=True, draft=True, drafts=True, export=True, refresh=True, docs=True, context=True),
-    **_infra("leaderboard", export=True, refresh=True, docs=True, context=True),
-    **_infra("pricing", get=True, export=True, refresh=True, docs=True, context=True),
-    **_infra("reports", get=True, export=True, refresh=True, docs=True, context=True),
-    **_infra("session", get=True, export=True, refresh=True, docs=True, context=True),
-    **_infra("test", get=True, search=True, export=True, refresh=True, docs=True, context=True,
+    **_infra("health", get=True, export=True, refresh=True, context=True),
+    **_infra("invocation", get=True, draft=True, drafts=True, export=True, refresh=True, context=True),
+    **_infra("leaderboard", export=True, refresh=True, context=True),
+    **_infra("pricing", get=True, export=True, refresh=True, context=True),
+    **_infra("reports", get=True, export=True, refresh=True, context=True),
+    **_infra("session", get=True, export=True, refresh=True, context=True),
+    **_infra("test", get=True, search=True, export=True, refresh=True, context=True,
              text_download=True, call_download=True),
     # --- Attempt state-machine + media operations ---
     ("attempt", "get"): (f"{_I}.attempt.get", "get_attempt_impl"),
     ("attempt", "search"): (f"{_I}.attempt.search", "search_attempt_impl"),
     ("attempt", "export"): (f"{_I}.attempt.export", "export_attempt_impl"),
     ("attempt", "refresh"): (f"{_I}.attempt.refresh", "refresh_attempt_impl"),
-    ("attempt", "docs"): (f"{_I}.attempt.docs", "docs_attempt_impl"),
     ("attempt", "context"): (f"{_I}.attempt.page_context", "page_context_attempt_impl"),
     ("attempt", "start"): (f"{_I}.attempt.start", "attempt_start_internal_impl"),
     ("attempt", "end"): (f"{_I}.attempt.end", "attempt_end_internal_impl"),

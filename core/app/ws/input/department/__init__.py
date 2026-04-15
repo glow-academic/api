@@ -3,7 +3,6 @@
 from . import (  # noqa: F401
     create,
     delete,
-    docs,
     draft,
     drafts,
     duplicate,

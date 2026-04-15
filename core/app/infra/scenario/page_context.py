@@ -21,6 +21,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
+    OperationPrompts,
+    StarterPrompt,
 )
 from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
@@ -88,7 +90,7 @@ async def page_context_scenario_impl(
     entity_id: UUID | None = None,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Scenario page context — superset of docs_scenario_impl.
+    """Scenario page context.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)
@@ -294,7 +296,39 @@ async def page_context_scenario_impl(
 
     profile_summary = await build_profile_summary(pool, redis, profile)
 
-    # -- Step 6: Assemble response ----------------------------------------------
+    # -- Step 6: Starter prompts --------------------------------------------------
+
+    prompts = OperationPrompts(prompts={
+        "create": [
+            StarterPrompt(title="Design a scenario", content="Create a new practice scenario with objectives, personas, and evaluation criteria."),
+            StarterPrompt(title="From topic", content="I have a training topic — help me design a complete practice scenario for it."),
+            StarterPrompt(title="Template-based", content="Create a scenario from a common template like interview, negotiation, or customer service."),
+        ],
+        "search": [
+            StarterPrompt(title="Find scenarios", content="Help me find scenarios that match specific training objectives or skill areas."),
+            StarterPrompt(title="Compare scenarios", content="Compare my scenarios and identify gaps in training coverage."),
+            StarterPrompt(title="Audit scenarios", content="Review all scenarios and flag any with missing objectives or incomplete configurations."),
+        ],
+        "update": [
+            StarterPrompt(title="Enhance scenario", content="Improve this scenario's objectives, problem statement, and evaluation flow."),
+            StarterPrompt(title="Add resources", content="Add missing personas, documents, and evaluation criteria to this scenario."),
+            StarterPrompt(title="Adjust difficulty", content="Tune this scenario's difficulty level and learner progression."),
+        ],
+        "duplicate": [
+            StarterPrompt(title="Clone & vary", content="Duplicate this scenario and create a variation with different difficulty or context."),
+            StarterPrompt(title="Bulk clone", content="Create multiple variations of this scenario for different training objectives."),
+        ],
+        "draft": [
+            StarterPrompt(title="Draft scenario", content="Start drafting a new scenario — suggest objectives, personas, and a problem statement."),
+            StarterPrompt(title="Iterate draft", content="Review my current draft and suggest improvements before saving."),
+        ],
+        "export": [
+            StarterPrompt(title="Export summary", content="Generate a summary of all scenarios suitable for curriculum review."),
+            StarterPrompt(title="Export analysis", content="Analyze my scenarios and create a report on training coverage and quality."),
+        ],
+    })
+
+    # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
     from app.routes.scenario.create import create_scenario
@@ -395,6 +429,7 @@ async def page_context_scenario_impl(
             ),
         ],
         page_metadata=page_metadata,
+        prompts=prompts,
         profile=profile_summary,
         caller_permissions=caller_permissions,
     )

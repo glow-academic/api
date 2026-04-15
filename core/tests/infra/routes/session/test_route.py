@@ -37,13 +37,12 @@ async def _create_session_route_graph(pool, actor):
         group = await create_group(
             conn,
             session_id=actor.session_id,
-            name="session-route-group",
+            artifact_type="session",
         )
         run = await create_run(
             conn,
             group_id=group.id,
             session_id=actor.session_id,
-            profiles_id=actor.profiles_id,
         )
         call = await create_call(
             conn,
@@ -61,7 +60,7 @@ async def _create_session_route_graph(pool, actor):
             call_id=call.id,
             type="bug",
             message="Session route problem",
-            profile_id=actor.profiles_id,, artifact_type="activity"
+            profile_id=actor.profiles_id, artifact_type="activity"
         )
         await create_chat(
             conn,
