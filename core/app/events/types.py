@@ -73,7 +73,7 @@ class OperationEventConfig:
         *failed* → error model (typically ``OperationErrorEvent``).
 
     ``domain_events``
-        Keyed by full event name (e.g. ``artifacts.attempt.assistant.progress``).
+        Keyed by full event name (e.g. ``artifacts.attempt.chat.assistant.progress``).
         These fire *during* the operation and can be any number with any shape.
     """
 

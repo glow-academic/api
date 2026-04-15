@@ -9,7 +9,7 @@ from app.infra.attempt.end import attempt_end_internal_impl
 internal_sio = get_internal_sio()
 
 
-@sio.on("attempt.end")  # type: ignore
+@sio.on("attempt.chat.end")  # type: ignore
 async def attempt_end(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

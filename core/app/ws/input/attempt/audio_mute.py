@@ -11,7 +11,7 @@ from app.utils.logging.db_logger import get_logger
 logger = get_logger(__name__)
 
 
-@sio.on("attempt.audio_mute")  # type: ignore
+@sio.on("attempt.chat.mute")  # type: ignore
 async def attempt_audio_mute(sid: str, data: dict[str, Any]) -> None:
     chat_id = data.get("chat_id")
     if not chat_id:

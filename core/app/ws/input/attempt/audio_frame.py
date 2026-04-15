@@ -8,7 +8,7 @@ from app.infra.websocket.attempt.audio_frame import (
 )
 
 
-@sio.on("attempt.audio_frame")  # type: ignore
+@sio.on("attempt.chat.frame")  # type: ignore
 async def attempt_audio_frame(sid: str, data: dict[str, Any]) -> None:
     chat_id = data.get("chat_id")
     if not chat_id:

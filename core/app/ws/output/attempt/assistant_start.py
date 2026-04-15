@@ -15,6 +15,6 @@ async def attempt_assistant_start_output(data: dict[str, Any]) -> None:
     rooms = data.get("rooms") or ([sid] if sid else [])
     call_id = data.get("call_id")
     if call_id:
-        append_call_event(UUID(call_id), "attempt.assistant_start", data, UPLOAD_FOLDER)
+        append_call_event(UUID(call_id), "attempt.chat.assistant_start", data, UPLOAD_FOLDER)
     for room in rooms:
-        await sio.emit("attempt.assistant_start", data, room=room)
+        await sio.emit("attempt.chat.assistant_start", data, room=room)

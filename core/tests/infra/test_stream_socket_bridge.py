@@ -38,7 +38,7 @@ async def test_wrap_emit_with_stream_bridge_publishes_attempt_message_event() ->
 
         assert [event.event for event in recorded] == ["attempt_assistant_complete"]
         published = await queue.get()
-        assert published.event_type == "artifacts.attempt.assistant.complete"
+        assert published.event_type == "artifacts.attempt.chat.assistant.complete"
         assert published.entity_id == UUID("11111111-1111-1111-1111-111111111111")
         assert published.payload["content"] == "done"
     finally:

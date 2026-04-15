@@ -15,6 +15,6 @@ async def attempt_stopped_output(data: dict[str, Any]) -> None:
     rooms = data.get("rooms") or ([sid] if sid else [])
     call_id = data.get("call_id")
     if call_id:
-        append_call_event(UUID(call_id), "attempt.stopped", data, UPLOAD_FOLDER)
+        append_call_event(UUID(call_id), "attempt.chat.stopped", data, UPLOAD_FOLDER)
     for room in rooms:
-        await sio.emit("attempt.stopped", data, room=room)
+        await sio.emit("attempt.chat.stopped", data, room=room)

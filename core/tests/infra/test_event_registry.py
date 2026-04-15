@@ -27,7 +27,7 @@ def test_registry_resolves_attempt_config() -> None:
     assert config is not None
     assert config.artifact == "attempt"
     assert "message" in config.operations
-    assert "artifacts.attempt.assistant.progress" in config.event_types
+    assert "artifacts.attempt.chat.assistant.progress" in config.event_types
 
 
 def test_registry_resolves_auth_config() -> None:

@@ -75,7 +75,7 @@ ATTEMPT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         },
         domain_events={
             "artifacts.attempt.started": AttemptStartedEvent,
-            "artifacts.attempt.chat_started": AttemptChatStartedEvent,
+            "artifacts.attempt.chat.started": AttemptChatStartedEvent,
         },
     ),
     "message": OperationEventConfig(
@@ -90,9 +90,9 @@ ATTEMPT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.attempt.assistant.start": AttemptAssistantStartEvent,
-            "artifacts.attempt.assistant.progress": AttemptAssistantProgressEvent,
-            "artifacts.attempt.assistant.complete": AttemptAssistantCompleteEvent,
+            "artifacts.attempt.chat.assistant.start": AttemptAssistantStartEvent,
+            "artifacts.attempt.chat.assistant.progress": AttemptAssistantProgressEvent,
+            "artifacts.attempt.chat.assistant.complete": AttemptAssistantCompleteEvent,
         },
         filter_events=default_filter_events,
     ),
@@ -108,9 +108,9 @@ ATTEMPT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.attempt.grade.start": AttemptGradeStartEvent,
-            "artifacts.attempt.grade.progress": AttemptGradeProgressEvent,
-            "artifacts.attempt.grade.complete": AttemptGradeCompleteEvent,
+            "artifacts.attempt.chat.grade.start": AttemptGradeStartEvent,
+            "artifacts.attempt.chat.grade.progress": AttemptGradeProgressEvent,
+            "artifacts.attempt.chat.grade.complete": AttemptGradeCompleteEvent,
         },
         filter_events=default_filter_events,
     ),
@@ -127,7 +127,7 @@ ATTEMPT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         },
         domain_events={
             "artifacts.attempt.ended": AttemptEndedEvent,
-            "artifacts.attempt.chat_ended": AttemptChatEndedEvent,
+            "artifacts.attempt.chat.ended": AttemptChatEndedEvent,
         },
     ),
     "response": OperationEventConfig(
@@ -142,7 +142,7 @@ ATTEMPT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.attempt.response.saved": AttemptResponseResultEvent,
+            "artifacts.attempt.chat.response.saved": AttemptResponseResultEvent,
         },
     ),
     "stop": OperationEventConfig(
@@ -157,7 +157,7 @@ ATTEMPT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.attempt.stopped": AttemptStoppedEvent,
+            "artifacts.attempt.chat.stopped": AttemptStoppedEvent,
         },
     ),
     "audio": OperationEventConfig(
@@ -172,9 +172,9 @@ ATTEMPT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.attempt.audio.start": AttemptAudioReadyEvent,
-            "artifacts.attempt.audio.progress": AttemptAssistantProgressEvent,
-            "artifacts.attempt.audio.complete": AttemptAudioEndedEvent,
+            "artifacts.attempt.chat.voice.start": AttemptAudioReadyEvent,
+            "artifacts.attempt.chat.voice.progress": AttemptAssistantProgressEvent,
+            "artifacts.attempt.chat.voice.complete": AttemptAudioEndedEvent,
         },
         filter_events=default_filter_events,
     ),

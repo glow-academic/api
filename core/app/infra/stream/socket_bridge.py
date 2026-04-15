@@ -14,23 +14,23 @@ _SOCKET_EVENT_TO_PUBLIC: dict[tuple[str, str], dict[str, str]] = {
         "attempt_started": "artifacts.attempt.started",
     },
     ("attempt", "message"): {
-        "attempt_assistant_start": "artifacts.attempt.assistant.start",
-        "attempt_assistant_progress": "artifacts.attempt.assistant.progress",
-        "attempt_assistant_complete": "artifacts.attempt.assistant.complete",
+        "attempt_assistant_start": "artifacts.attempt.chat.assistant.start",
+        "attempt_assistant_progress": "artifacts.attempt.chat.assistant.progress",
+        "attempt_assistant_complete": "artifacts.attempt.chat.assistant.complete",
     },
     ("attempt", "grade"): {
-        "attempt_grade_start": "artifacts.attempt.grade.start",
-        "attempt_grade_progress": "artifacts.attempt.grade.progress",
+        "attempt_grade_start": "artifacts.attempt.chat.grade.start",
+        "attempt_grade_progress": "artifacts.attempt.chat.grade.progress",
     },
     ("attempt", "end"): {
         "attempt_ended": "artifacts.attempt.ended",
-        "attempt_chat_ended": "artifacts.attempt.chat_ended",
+        "attempt_chat_ended": "artifacts.attempt.chat.ended",
     },
     ("attempt", "response"): {
-        "attempt_response_result": "artifacts.attempt.response.saved",
+        "attempt_response_result": "artifacts.attempt.chat.response.saved",
     },
     ("attempt", "stop"): {
-        "attempt_stopped": "artifacts.attempt.stopped",
+        "attempt_stopped": "artifacts.attempt.chat.stopped",
     },
     ("test", "start"): {
         "test_started": "artifacts.test.started",

@@ -11,7 +11,7 @@ from app.infra.websocket.attempt.audio_start import (
 internal_sio = get_internal_sio()
 
 
-@sio.on("attempt.audio_start")  # type: ignore
+@sio.on("attempt.chat.voice")  # type: ignore
 async def attempt_audio_start(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

@@ -15,6 +15,6 @@ async def attempt_user_progress_output(data: dict[str, Any]) -> None:
     rooms = data.get("rooms") or ([sid] if sid else [])
     call_id = data.get("call_id")
     if call_id:
-        append_call_event(UUID(call_id), "attempt.user_progress", data, UPLOAD_FOLDER)
+        append_call_event(UUID(call_id), "attempt.chat.user_progress", data, UPLOAD_FOLDER)
     for room in rooms:
-        await sio.emit("attempt.user_progress", data, room=room)
+        await sio.emit("attempt.chat.user_progress", data, room=room)

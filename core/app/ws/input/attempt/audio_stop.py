@@ -8,7 +8,7 @@ from app.infra.websocket.attempt.audio_stop import (
 )
 
 
-@sio.on("attempt.audio_stop")  # type: ignore
+@sio.on("attempt.chat.silence")  # type: ignore
 async def attempt_audio_stop(sid: str, data: dict[str, Any]) -> None:
     chat_id = data.get("chat_id")
     if not chat_id:

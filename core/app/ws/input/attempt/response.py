@@ -9,7 +9,7 @@ from app.infra.attempt.response import attempt_response_internal_impl
 internal_sio = get_internal_sio()
 
 
-@sio.on("attempt.response")  # type: ignore
+@sio.on("attempt.chat.response")  # type: ignore
 async def attempt_response(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

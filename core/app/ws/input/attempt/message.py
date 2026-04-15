@@ -10,7 +10,7 @@ from app.infra.attempt.message import attempt_message_internal_impl
 internal_sio = get_internal_sio()
 
 
-@sio.on("attempt.message")  # type: ignore
+@sio.on("attempt.chat.send")  # type: ignore
 async def attempt_message(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:
