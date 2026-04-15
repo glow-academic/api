@@ -1,9 +1,7 @@
-"""Attempt response endpoint — submit a video question response.
+"""Chat response — submit a quiz/video question response.
 
-Synchronous equivalent of socket event: attempt_response_submit.
-Reuses: socket/client/attempt/response.py infra.
-
-TODO: Wire to actual infra (record response, return correctness).
+Was: POST /attempt/response
+Now: POST /attempt/chat/response
 """
 
 from __future__ import annotations
@@ -12,9 +10,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from app.infra.attempt.client_types import AttemptResponsePayload
-from app.infra.attempt.response import (
-    attempt_response_internal_impl,
-)
+from app.infra.attempt.response import attempt_response_internal_impl
 
 router = APIRouter()
 
@@ -27,7 +23,7 @@ class ResponseAttemptApiResponse(BaseModel):
 
 
 @router.post("/response", response_model=ResponseAttemptApiResponse)
-async def attempt_response(
+async def chat_response(
     request: AttemptResponsePayload,
     http_request: Request,
 ) -> ResponseAttemptApiResponse:

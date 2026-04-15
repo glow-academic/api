@@ -1,4 +1,8 @@
-"""Attempt end sub-router — end a single chat or all remaining chats."""
+"""Chat end — end a single chat within an attempt.
+
+Was: POST /attempt/end
+Now: POST /attempt/chat/end
+"""
 
 from __future__ import annotations
 
@@ -7,6 +11,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from app.infra.attempt.end import attempt_end_internal_impl
 from app.infra.attempt.grade_types import (
     AttemptGradeAnalysisEntry,
     AttemptGradeFeedbackEntry,
@@ -15,13 +20,11 @@ from app.infra.attempt.grade_types import (
     AttemptGradeReplacementEntry,
     AttemptGradeStrengthEntry,
 )
-from app.infra.attempt.end import attempt_end_internal_impl
-from app.routes.attempt.end.all import router as all_router
 
-router = APIRouter(prefix="/end", tags=["attempt-end"])
+router = APIRouter()
 
 
-class EndAttemptApiRequest(BaseModel):
+class EndChatApiRequest(BaseModel):
     attempt_id: UUID = Field(..., description="UUID of the attempt to end")
     chat_id: UUID = Field(..., description="UUID of the chat to end")
     grade: bool = Field(True, description="Whether to trigger grading after ending")
@@ -38,7 +41,7 @@ class EndAttemptApiRequest(BaseModel):
     replacements: list[AttemptGradeReplacementEntry] | None = Field(None, description="Pre-computed replacement entries")
 
 
-class EndAttemptApiResponse(BaseModel):
+class EndChatApiResponse(BaseModel):
     chat_id: str = Field(..., description="ID of the ended chat")
     is_attempt_finished: bool | None = Field(None, description="Whether the entire attempt is finished")
     grade_id: str | None = Field(None, description="ID of the generated grade")
@@ -46,11 +49,11 @@ class EndAttemptApiResponse(BaseModel):
     passed: bool | None = Field(None, description="Whether the attempt passed")
 
 
-@router.post("", response_model=EndAttemptApiResponse)
-async def end_attempt(
-    request: EndAttemptApiRequest,
+@router.post("/end", response_model=EndChatApiResponse)
+async def chat_end(
+    request: EndChatApiRequest,
     http_request: Request,
-) -> EndAttemptApiResponse:
+) -> EndChatApiResponse:
     """End a single chat within an attempt.
 
     Browser client: sends grade=True, internal AI generates full grade.
@@ -72,7 +75,4 @@ async def end_attempt(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    return EndAttemptApiResponse.model_validate(result.model_dump(mode="json"))
-
-
-router.include_router(all_router)
+    return EndChatApiResponse.model_validate(result.model_dump(mode="json"))

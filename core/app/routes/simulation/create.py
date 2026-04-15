@@ -64,11 +64,7 @@ async def create_simulation(
             session_id=session_id,
             group_id=group_id,
             operation="create",
-            arguments={
-                "simulations": [
-                    item.model_dump(mode="json") for item in request.simulations
-                ]
-            },
+            arguments=request.model_dump(mode="json"),
             response_model=CreateSimulationApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

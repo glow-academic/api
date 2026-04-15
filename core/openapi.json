@@ -2806,6 +2806,16 @@
         "summary": "Simulation Refresh",
         "description": "Refresh simulation materialized views and invalidate caches.",
         "operationId": "simulation_refresh_simulation_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshSimulationApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2813,6 +2823,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -17821,17 +17841,16 @@
     "/attempt/end": {
       "post": {
         "tags": [
-          "attempt",
-          "attempt-end"
+          "attempt"
         ],
         "summary": "End Attempt",
-        "description": "End a single chat within an attempt.\n\nBrowser client: sends grade=True, internal AI generates full grade.\nAgent: can optionally provide score, feedbacks, strengths, etc. to skip AI.",
+        "description": "End all remaining chats in an attempt.",
         "operationId": "end_attempt_attempt_end_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EndAttemptApiRequest"
+                "$ref": "#/components/schemas/AttemptEndAllPayload"
               }
             }
           },
@@ -17865,60 +17884,7 @@
           }
         ],
         "x-cache-tags": [
-          "attempt",
-          "attempt-end"
-        ]
-      }
-    },
-    "/attempt/end/all": {
-      "post": {
-        "tags": [
-          "attempt",
-          "attempt-end"
-        ],
-        "summary": "End All Attempt",
-        "description": "End all remaining chats in an attempt.",
-        "operationId": "end_all_attempt_attempt_end_all_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AttemptEndAllPayload"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EndAllAttemptApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "attempt-end"
+          "attempt"
         ]
       }
     },
@@ -17936,206 +17902,6 @@
             "content": {
               "application/json": {
                 "schema": {}
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt"
-        ]
-      }
-    },
-    "/attempt/message": {
-      "post": {
-        "tags": [
-          "attempt"
-        ],
-        "summary": "Attempt Message",
-        "description": "Send a message in an attempt chat.\n\nBrowser client: sends message only, internal AI generates response + hints.\nAgent: can optionally provide assistant_content, hints, contents to skip AI.",
-        "operationId": "attempt_message_attempt_message_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MessageAttemptApiRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageAttemptApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt"
-        ]
-      }
-    },
-    "/attempt/grade": {
-      "post": {
-        "tags": [
-          "attempt"
-        ],
-        "summary": "Attempt Grade",
-        "description": "Trigger grading for an attempt chat.\n\nBrowser client: sends chat_id only, internal AI generates full grade.\nAgent: can optionally provide score, feedbacks, strengths, etc. to skip AI.",
-        "operationId": "attempt_grade_attempt_grade_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GradeAttemptRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GradeAttemptApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt"
-        ]
-      }
-    },
-    "/attempt/stop": {
-      "post": {
-        "tags": [
-          "attempt"
-        ],
-        "summary": "Attempt Stop",
-        "description": "Stop message generation for an attempt chat.",
-        "operationId": "attempt_stop_attempt_stop_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AttemptStopPayload"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StopAttemptApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt"
-        ]
-      }
-    },
-    "/attempt/response": {
-      "post": {
-        "tags": [
-          "attempt"
-        ],
-        "summary": "Attempt Response",
-        "description": "Submit a video question response.",
-        "operationId": "attempt_response_attempt_response_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AttemptResponsePayload"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseAttemptApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
               }
             }
           }
@@ -18300,20 +18066,280 @@
         ]
       }
     },
-    "/attempt/audio/start": {
+    "/attempt/chat/end": {
       "post": {
         "tags": [
           "attempt",
-          "attempt-audio"
+          "attempt-chat"
         ],
-        "summary": "Audio Start",
-        "description": "Start an audio session for an attempt chat.",
-        "operationId": "audio_start_attempt_audio_start_post",
+        "summary": "Chat End",
+        "description": "End a single chat within an attempt.\n\nBrowser client: sends grade=True, internal AI generates full grade.\nAgent: can optionally provide score, feedbacks, strengths, etc. to skip AI.",
+        "operationId": "chat_end_attempt_chat_end_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AudioStartPayload"
+                "$ref": "#/components/schemas/EndChatApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EndChatApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/grade": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Grade",
+        "description": "Trigger grading for an attempt chat.\n\nBrowser client: sends chat_id only, internal AI generates full grade.\nAgent: can optionally provide score, feedbacks, strengths, etc. to skip AI.",
+        "operationId": "chat_grade_attempt_chat_grade_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GradeAttemptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GradeAttemptApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/response": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Response",
+        "description": "Submit a video question response.",
+        "operationId": "chat_response_attempt_chat_response_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptResponsePayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseAttemptApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/send": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Send",
+        "description": "Send a message in an attempt chat.\n\nBrowser client: sends message only, internal AI generates response + hints.\nAgent: can optionally provide assistant_content, hints, contents to skip AI.",
+        "operationId": "chat_send_attempt_chat_send_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatSendApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatSendApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/stop": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Stop",
+        "description": "Stop message generation for an attempt chat.",
+        "operationId": "chat_stop_attempt_chat_stop_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptStopPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StopChatApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/voice": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Voice",
+        "description": "Start a voice session for an attempt chat.",
+        "operationId": "chat_voice_attempt_chat_voice_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatVoiceRequest"
               }
             }
           },
@@ -18348,24 +18374,24 @@
         ],
         "x-cache-tags": [
           "attempt",
-          "attempt-audio"
+          "attempt-chat"
         ]
       }
     },
-    "/attempt/audio/frame": {
+    "/attempt/chat/frame": {
       "post": {
         "tags": [
           "attempt",
-          "attempt-audio"
+          "attempt-chat"
         ],
-        "summary": "Audio Frame",
-        "description": "Push audio bytes into the session inbound queue.",
-        "operationId": "audio_frame_attempt_audio_frame_post",
+        "summary": "Chat Frame",
+        "description": "Send an audio segment into the voice session via audio_id reference.",
+        "operationId": "chat_frame_attempt_chat_frame_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AudioFramePayload"
+                "$ref": "#/components/schemas/ChatFrameRequest"
               }
             }
           },
@@ -18377,7 +18403,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AudioFrameResponse"
+                  "$ref": "#/components/schemas/ChatFrameResponse"
                 }
               }
             }
@@ -18400,24 +18426,76 @@
         ],
         "x-cache-tags": [
           "attempt",
-          "attempt-audio"
+          "attempt-chat"
         ]
       }
     },
-    "/attempt/audio/stop": {
+    "/attempt/chat/mute": {
       "post": {
         "tags": [
           "attempt",
-          "attempt-audio"
+          "attempt-chat"
         ],
-        "summary": "Audio Stop",
-        "description": "Stop an audio session for an attempt chat.",
-        "operationId": "audio_stop_attempt_audio_stop_post",
+        "summary": "Chat Mute",
+        "description": "Toggle microphone mute for a voice session.",
+        "operationId": "chat_mute_attempt_chat_mute_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AudioStopPayload"
+                "$ref": "#/components/schemas/ChatMuteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMuteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/silence": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Silence",
+        "description": "End a voice session for an attempt chat.",
+        "operationId": "chat_silence_attempt_chat_silence_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatSilenceRequest"
               }
             }
           },
@@ -18452,59 +18530,7 @@
         ],
         "x-cache-tags": [
           "attempt",
-          "attempt-audio"
-        ]
-      }
-    },
-    "/attempt/audio/mute": {
-      "post": {
-        "tags": [
-          "attempt",
-          "attempt-audio"
-        ],
-        "summary": "Audio Mute",
-        "description": "Toggle microphone mute for an audio session.",
-        "operationId": "audio_mute_attempt_audio_mute_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AudioMutePayload"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AudioMuteResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "attempt-audio"
+          "attempt-chat"
         ]
       }
     },
@@ -47256,88 +47282,6 @@
         "title": "AudioDownloadGroupApiRequest",
         "description": "Request model for group audio download endpoint."
       },
-      "AudioFramePayload": {
-        "properties": {
-          "chat_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Chat Id"
-          },
-          "upload_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Upload Id"
-          },
-          "audio": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Audio"
-          }
-        },
-        "type": "object",
-        "required": [
-          "chat_id"
-        ],
-        "title": "AudioFramePayload"
-      },
-      "AudioFrameResponse": {
-        "properties": {
-          "accepted": {
-            "type": "boolean",
-            "title": "Accepted"
-          }
-        },
-        "type": "object",
-        "required": [
-          "accepted"
-        ],
-        "title": "AudioFrameResponse"
-      },
-      "AudioMutePayload": {
-        "properties": {
-          "chat_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Chat Id"
-          },
-          "muted": {
-            "type": "boolean",
-            "title": "Muted",
-            "default": false
-          }
-        },
-        "type": "object",
-        "required": [
-          "chat_id"
-        ],
-        "title": "AudioMutePayload"
-      },
-      "AudioMuteResponse": {
-        "properties": {
-          "accepted": {
-            "type": "boolean",
-            "title": "Accepted"
-          }
-        },
-        "type": "object",
-        "required": [
-          "accepted"
-        ],
-        "title": "AudioMuteResponse"
-      },
       "AudioStartInternalResult": {
         "properties": {
           "chat_id": {
@@ -47367,20 +47311,6 @@
         "title": "AudioStartInternalResult",
         "description": "Structured result for audio start orchestration."
       },
-      "AudioStartPayload": {
-        "properties": {
-          "chat_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Chat Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "chat_id"
-        ],
-        "title": "AudioStartPayload"
-      },
       "AudioStopInternalResult": {
         "properties": {
           "chat_id": {
@@ -47399,20 +47329,6 @@
         ],
         "title": "AudioStopInternalResult",
         "description": "Structured result for audio stop orchestration."
-      },
-      "AudioStopPayload": {
-        "properties": {
-          "chat_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Chat Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "chat_id"
-        ],
-        "title": "AudioStopPayload"
       },
       "AudioUploadAttemptApiResponse": {
         "properties": {
@@ -50224,6 +50140,39 @@
         "type": "object",
         "title": "ChatFlagSection"
       },
+      "ChatFrameRequest": {
+        "properties": {
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id"
+          },
+          "audio_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Audio Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_id",
+          "audio_id"
+        ],
+        "title": "ChatFrameRequest"
+      },
+      "ChatFrameResponse": {
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "accepted"
+        ],
+        "title": "ChatFrameResponse"
+      },
       "ChatImageSection": {
         "properties": {
           "show": {
@@ -50289,6 +50238,38 @@
         },
         "type": "object",
         "title": "ChatImageSection"
+      },
+      "ChatMuteRequest": {
+        "properties": {
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id"
+          },
+          "muted": {
+            "type": "boolean",
+            "title": "Muted",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_id"
+        ],
+        "title": "ChatMuteRequest"
+      },
+      "ChatMuteResponse": {
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "accepted"
+        ],
+        "title": "ChatMuteResponse"
       },
       "ChatNameSection": {
         "properties": {
@@ -50818,6 +50799,157 @@
         "type": "object",
         "title": "ChatScenarioSection"
       },
+      "ChatSendApiRequest": {
+        "properties": {
+          "attempt_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Attempt Id"
+          },
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "parent_message_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Message Id"
+          },
+          "assistant_content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assistant Content"
+          },
+          "hints": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/app__routes__attempt__chat__send__HintEntry"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hints"
+          },
+          "contents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/app__routes__attempt__chat__send__ContentEntry"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "attempt_id",
+          "chat_id",
+          "message"
+        ],
+        "title": "ChatSendApiRequest"
+      },
+      "ChatSendApiResponse": {
+        "properties": {
+          "chat_id": {
+            "type": "string",
+            "title": "Chat Id"
+          },
+          "user_message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Message Id"
+          },
+          "assistant_message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assistant Message Id"
+          },
+          "assistant_content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assistant Content"
+          },
+          "hints": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hints"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_id"
+        ],
+        "title": "ChatSendApiResponse"
+      },
+      "ChatSilenceRequest": {
+        "properties": {
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_id"
+        ],
+        "title": "ChatSilenceRequest"
+      },
       "ChatSimulationOperational": {
         "properties": {
           "simulation_id": {
@@ -51189,6 +51321,20 @@
         },
         "type": "object",
         "title": "ChatVideoSection"
+      },
+      "ChatVoiceRequest": {
+        "properties": {
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_id"
+        ],
+        "title": "ChatVoiceRequest"
       },
       "CohortDepartment": {
         "properties": {
@@ -63829,7 +63975,7 @@
         "title": "EmulateProfileApiResponse",
         "description": "Response model for profile emulation."
       },
-      "EndAllAttemptApiResponse": {
+      "EndAttemptApiResponse": {
         "properties": {
           "attempt_id": {
             "type": "string",
@@ -63861,9 +64007,9 @@
           "attempt_id",
           "success"
         ],
-        "title": "EndAllAttemptApiResponse"
+        "title": "EndAttemptApiResponse"
       },
-      "EndAttemptApiRequest": {
+      "EndChatApiRequest": {
         "properties": {
           "attempt_id": {
             "type": "string",
@@ -64015,9 +64161,9 @@
           "attempt_id",
           "chat_id"
         ],
-        "title": "EndAttemptApiRequest"
+        "title": "EndChatApiRequest"
       },
-      "EndAttemptApiResponse": {
+      "EndChatApiResponse": {
         "properties": {
           "chat_id": {
             "type": "string",
@@ -64077,7 +64223,7 @@
         "required": [
           "chat_id"
         ],
-        "title": "EndAttemptApiResponse"
+        "title": "EndChatApiResponse"
       },
       "EndTestApiRequest": {
         "properties": {
@@ -89829,6 +89975,25 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -89867,6 +90032,19 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -98093,143 +98271,6 @@
         },
         "type": "object",
         "title": "ListToolApiTool"
-      },
-      "MessageAttemptApiRequest": {
-        "properties": {
-          "attempt_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Attempt Id"
-          },
-          "chat_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Chat Id"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message"
-          },
-          "parent_message_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parent Message Id"
-          },
-          "assistant_content": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Assistant Content"
-          },
-          "hints": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/app__routes__attempt__message__HintEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Hints"
-          },
-          "contents": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/app__routes__attempt__message__ContentEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Contents"
-          }
-        },
-        "type": "object",
-        "required": [
-          "attempt_id",
-          "chat_id",
-          "message"
-        ],
-        "title": "MessageAttemptApiRequest"
-      },
-      "MessageAttemptApiResponse": {
-        "properties": {
-          "chat_id": {
-            "type": "string",
-            "title": "Chat Id"
-          },
-          "user_message_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "User Message Id"
-          },
-          "assistant_message_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Assistant Message Id"
-          },
-          "assistant_content": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Assistant Content"
-          },
-          "hints": {
-            "anyOf": [
-              {
-                "items": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Hints"
-          }
-        },
-        "type": "object",
-        "required": [
-          "chat_id"
-        ],
-        "title": "MessageAttemptApiResponse"
       },
       "MessageData-Input": {
         "properties": {
@@ -111310,6 +111351,47 @@
         "title": "RefreshScenarioApiRequest",
         "description": "Request model for scenario refresh endpoint."
       },
+      "RefreshSimulationApiRequest": {
+        "properties": {
+          "targets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targets",
+            "description": "MV targets to refresh (omit for all). Options: simulation_drafts_mv, runs_mv, messages_mv, calls_mv, groups_mv, group_names_mv"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject. Only meaningful with idempotency_key",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "RefreshSimulationApiRequest",
+        "description": "Request model for simulation refresh endpoint."
+      },
       "ReplacementEntry": {
         "properties": {
           "section": {
@@ -121233,7 +121315,7 @@
         ],
         "title": "StartTestApiResponse"
       },
-      "StopAttemptApiResponse": {
+      "StopChatApiResponse": {
         "properties": {
           "chat_id": {
             "type": "string",
@@ -121260,7 +121342,7 @@
           "chat_id",
           "success"
         ],
-        "title": "StopAttemptApiResponse"
+        "title": "StopChatApiResponse"
       },
       "StopTestApiResponse": {
         "properties": {
@@ -130173,7 +130255,7 @@
         "title": "SectionFilter",
         "description": "Per-section filter options for GET requests."
       },
-      "app__routes__attempt__message__ContentEntry": {
+      "app__routes__attempt__chat__send__ContentEntry": {
         "properties": {
           "content": {
             "type": "string",
@@ -130199,7 +130281,7 @@
         "title": "ContentEntry",
         "description": "Agent-provided content entry for a message."
       },
-      "app__routes__attempt__message__HintEntry": {
+      "app__routes__attempt__chat__send__HintEntry": {
         "properties": {
           "hint": {
             "type": "string",

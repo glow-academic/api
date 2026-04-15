@@ -234,6 +234,9 @@ async def patch_simulation_draft_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
+                session_id=session_id,
+                targets=["simulation_drafts_mv"],
+                operation_key=idempotency_key,
             )
         return PatchSimulationDraftApiResponse(
             success=True,
@@ -308,16 +311,20 @@ async def patch_simulation_draft_impl(
                 scenario_rubric_ids=request.scenario_rubric_ids,
                 scenario_time_limit_ids=request.scenario_time_limit_ids,
                 profile_ids=[profile.profiles_id],
+                pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
-    # ── Step 5: Canonical refresh (skipped for soft drafts) ────────────
+    # ── Step 5: Canonical refresh ──────────────────────────────────────
 
-    if not soft:
-        await refresh_simulation_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-        )
+    await refresh_simulation_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        targets=["simulation_drafts_mv"],
+        soft=soft,
+        operation_key=idempotency_key or result.id,
+    )
 
     # ── Step 6: Build form state (server is source of truth) ──────────
 

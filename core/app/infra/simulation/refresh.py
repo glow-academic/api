@@ -187,7 +187,7 @@ async def refresh_simulation_impl(
             success=True,
             refreshed_views=effective_targets if accept else [],
             invalidated_tags=_TAGS if accept else [],
-            idempotency_key=idempotency_key,
+            idempotency_key=effective_operation_key,
         )
 
     # ── Step 2: Soft — record intent only ────────────────────────────────

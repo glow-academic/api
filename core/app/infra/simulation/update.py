@@ -169,6 +169,8 @@ async def update_simulation_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
             )
 
         return UpdateSimulationApiResponse(
@@ -279,6 +281,9 @@ async def update_simulation_impl(
         pool,
         redis,
         profile_id=profile_id,
+        session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or (results[0].simulation_id if results else None),
     )
 
     return UpdateSimulationApiResponse(results=results, idempotency_key=idempotency_key)

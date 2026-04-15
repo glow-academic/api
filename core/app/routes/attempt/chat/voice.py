@@ -1,6 +1,7 @@
-"""Attempt audio start — thin HTTP adapter over internal orchestration.
+"""Chat voice — start a voice session on a chat.
 
-Mirrors socket event: attempt_audio_start.
+Was: POST /attempt/audio/start
+Now: POST /attempt/chat/voice
 """
 
 from __future__ import annotations
@@ -18,16 +19,16 @@ from app.infra.websocket.attempt.audio_start import (
 router = APIRouter()
 
 
-class AudioStartPayload(BaseModel):
+class ChatVoiceRequest(BaseModel):
     chat_id: UUID
 
 
-@router.post("/start", response_model=AudioStartInternalResult)
-async def audio_start(
-    request: AudioStartPayload,
+@router.post("/voice", response_model=AudioStartInternalResult)
+async def chat_voice(
+    request: ChatVoiceRequest,
     http_request: Request,
 ) -> AudioStartInternalResult:
-    """Start an audio session for an attempt chat."""
+    """Start a voice session for an attempt chat."""
     profile_id = getattr(http_request.state, "profile_id", None)
     session_id = getattr(http_request.state, "session_id", None)
     if not profile_id or not session_id:

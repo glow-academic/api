@@ -70,7 +70,7 @@ async def generate_simulation_impl(
     resolved_sid = sid or request.sid or f"http-{uuid.uuid4()}"
 
     # dangerous=False → tool calls are soft (pending). dangerous=True → immediate.
-    tool_soft = soft or not request.dangerous
+    tool_soft = not request.dangerous
 
     # ── Merge ack fields from request (HTTP) or params (generation pipeline)
     idempotency_key = idempotency_key or request.idempotency_key
@@ -176,6 +176,7 @@ async def generate_simulation_impl(
             redis,
             profile_id=profile_id,
             session_id=session_id,
+            operation_key=generated_key,
         )
 
     except Exception as e:

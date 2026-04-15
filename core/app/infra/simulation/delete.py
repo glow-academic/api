@@ -113,6 +113,7 @@ async def delete_simulation_impl(
             redis,
             profile_id=profile_id,
             session_id=session_id,
+            operation_key=idempotency_key or (simulation_ids[0] if simulation_ids else None),
         )
 
         return DeleteSimulationApiResponse(
@@ -157,6 +158,8 @@ async def delete_simulation_impl(
         redis,
         profile_id=profile_id,
         session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
     )
 
     results = [

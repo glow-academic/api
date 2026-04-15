@@ -92,6 +92,8 @@ async def duplicate_simulation_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
             )
         # accept=False: no-op
         return DuplicateSimulationApiResponse(
@@ -158,6 +160,7 @@ async def duplicate_simulation_impl(
         async with conn.transaction():
             result = await create_simulation_artifact(
                 conn,
+                id=idempotency_key,
                 name_id=new_name_resource.id,
                 description_id=original.description_ids[0]
                 if original.description_ids
@@ -179,6 +182,9 @@ async def duplicate_simulation_impl(
         pool,
         redis,
         profile_id=profile_id,
+        session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or result.id,
     )
 
     return DuplicateSimulationApiResponse(

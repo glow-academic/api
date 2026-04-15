@@ -1,6 +1,7 @@
-"""Attempt audio mute — thin HTTP adapter over internal orchestration.
+"""Chat mute — toggle microphone mute for a voice session.
 
-Mirrors socket event: attempt_audio_mute.
+Was: POST /attempt/audio/mute
+Now: POST /attempt/chat/mute
 """
 
 from __future__ import annotations
@@ -21,21 +22,21 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
-class AudioMutePayload(BaseModel):
+class ChatMuteRequest(BaseModel):
     chat_id: UUID
     muted: bool = False
 
 
-class AudioMuteResponse(BaseModel):
+class ChatMuteResponse(BaseModel):
     accepted: bool
 
 
-@router.post("/mute", response_model=AudioMuteResponse)
-async def audio_mute(
-    request: AudioMutePayload,
+@router.post("/mute", response_model=ChatMuteResponse)
+async def chat_mute(
+    request: ChatMuteRequest,
     http_request: Request,
-) -> AudioMuteResponse:
-    """Toggle microphone mute for an audio session."""
+) -> ChatMuteResponse:
+    """Toggle microphone mute for a voice session."""
     profile_id = getattr(http_request.state, "profile_id", None)
     if not profile_id:
         raise HTTPException(status_code=401, detail="Missing profile")
@@ -64,4 +65,4 @@ async def audio_mute(
         {"type": "mic.set_muted", "muted": request.muted}
     )
 
-    return AudioMuteResponse(accepted=True)
+    return ChatMuteResponse(accepted=True)

@@ -126,13 +126,23 @@ async def create_simulation_impl(
                 )
             if artifacts:
                 artifact = artifacts[0]
+                practice = False
+                if artifact.flag_ids:
+                    async with pool.acquire() as conn:
+                        flag_artifacts = await get_flags(
+                            conn,
+                            list(artifact.flag_ids),
+                            redis,
+                            bypass_cache=True,
+                        )
+                    practice = any(flag.type == "practice" for flag in flag_artifacts)
                 await create_denormalized_snapshot(
                     pool,
                     redis,
                     id=artifact.id,
                     name_id=artifact.name_ids[0] if artifact.name_ids else None,
                     description_id=artifact.description_ids[0] if artifact.description_ids else None,
-                    practice=False,
+                    practice=practice,
                     department_ids=artifact.department_ids,
                     scenario_ids=artifact.scenario_ids,
                     scenario_rubric_ids=artifact.scenario_rubric_ids,
@@ -145,6 +155,8 @@ async def create_simulation_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
             )
 
         return CreateSimulationApiResponse(
@@ -249,6 +261,9 @@ async def create_simulation_impl(
         pool,
         redis,
         profile_id=profile_id,
+        session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or (results[0].simulation_id if results else None),
     )
 
     return CreateSimulationApiResponse(results=results, idempotency_key=idempotency_key)

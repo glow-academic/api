@@ -1,15 +1,7 @@
-"""Attempt grade endpoint — trigger grading for an attempt chat.
+"""Chat grade — trigger grading for an attempt chat.
 
-Equivalent of socket event: attempt_grade.
-
-When called by a browser client, only attempt_id/chat_id is provided — the
-internal AI generates grade, feedback, strengths, improvements, analyses,
-highlights, and replacements.
-
-When called by an agent, optional fields allow providing pre-computed results.
-If optional fields are omitted, the internal AI pipeline runs as normal.
-
-TODO: Wire to actual infra (trigger or skip grading pipeline).
+Was: POST /attempt/grade
+Now: POST /attempt/chat/grade
 """
 
 from __future__ import annotations
@@ -17,10 +9,8 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from app.infra.attempt.grade_types import (
-    GradeAttemptRequest,
-)
 from app.infra.attempt.grade import attempt_grade_internal_impl
+from app.infra.attempt.grade_types import GradeAttemptRequest
 
 router = APIRouter()
 
@@ -33,7 +23,7 @@ class GradeAttemptApiResponse(BaseModel):
 
 
 @router.post("/grade", response_model=GradeAttemptApiResponse)
-async def attempt_grade(
+async def chat_grade(
     request: GradeAttemptRequest,
     http_request: Request,
 ) -> GradeAttemptApiResponse:

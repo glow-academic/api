@@ -1,6 +1,7 @@
-"""Attempt audio stop — thin HTTP adapter over internal orchestration.
+"""Chat silence — end a voice session.
 
-Mirrors socket event: attempt_audio_stop.
+Was: POST /attempt/audio/stop
+Now: POST /attempt/chat/silence
 """
 
 from __future__ import annotations
@@ -18,16 +19,16 @@ from app.infra.websocket.attempt.audio_stop import (
 router = APIRouter()
 
 
-class AudioStopPayload(BaseModel):
+class ChatSilenceRequest(BaseModel):
     chat_id: UUID
 
 
-@router.post("/stop", response_model=AudioStopInternalResult)
-async def audio_stop(
-    request: AudioStopPayload,
+@router.post("/silence", response_model=AudioStopInternalResult)
+async def chat_silence(
+    request: ChatSilenceRequest,
     http_request: Request,
 ) -> AudioStopInternalResult:
-    """Stop an audio session for an attempt chat."""
+    """End a voice session for an attempt chat."""
     profile_id = getattr(http_request.state, "profile_id", None)
     if not profile_id:
         raise HTTPException(status_code=401, detail="Missing profile")

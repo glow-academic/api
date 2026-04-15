@@ -1,18 +1,7 @@
-"""Attempt message endpoint — send a message in an attempt chat.
+"""Chat send — send a message in an attempt chat.
 
-Equivalent of socket event: attempt_message.
-
-When called by a browser client, only message is provided — the internal AI
-generates the assistant response, hints, and content entries.
-
-When called by an agent, optional fields allow providing pre-computed results:
-  - assistant_content: skip LLM generation, use this as the response
-  - hints: attach pre-computed hints to the message
-  - content: attach pre-computed content entries
-
-If optional fields are omitted, the internal AI pipeline runs as normal.
-
-TODO: Wire to actual infra (create user message, trigger or skip generation).
+Was: POST /attempt/message
+Now: POST /attempt/chat/send
 """
 
 from __future__ import annotations
@@ -52,7 +41,7 @@ class ContentEntry(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class MessageAttemptApiRequest(BaseModel):
+class ChatSendApiRequest(BaseModel):
     attempt_id: UUID
     chat_id: UUID
     message: str
@@ -63,7 +52,7 @@ class MessageAttemptApiRequest(BaseModel):
     contents: list[ContentEntry] | None = None
 
 
-class MessageAttemptApiResponse(BaseModel):
+class ChatSendApiResponse(BaseModel):
     chat_id: str
     user_message_id: str | None = None
     assistant_message_id: str | None = None
@@ -71,11 +60,11 @@ class MessageAttemptApiResponse(BaseModel):
     hints: list[dict[str, Any]] | None = None
 
 
-@router.post("/message", response_model=MessageAttemptApiResponse)
-async def attempt_message(
-    request: MessageAttemptApiRequest,
+@router.post("/send", response_model=ChatSendApiResponse)
+async def chat_send(
+    request: ChatSendApiRequest,
     http_request: Request,
-) -> MessageAttemptApiResponse:
+) -> ChatSendApiResponse:
     """Send a message in an attempt chat.
 
     Browser client: sends message only, internal AI generates response + hints.
@@ -97,4 +86,4 @@ async def attempt_message(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    return MessageAttemptApiResponse.model_validate(result.model_dump(mode="json"))
+    return ChatSendApiResponse.model_validate(result.model_dump(mode="json"))

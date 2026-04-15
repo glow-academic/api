@@ -1962,7 +1962,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetSimulationApiResponse-Output"
+                  "$ref": "#/components/schemas/GetSimulationApiResponse"
                 }
               }
             }
@@ -2631,6 +2631,16 @@
         "summary": "Simulation Refresh",
         "description": "Refresh simulation materialized views and invalidate caches.",
         "operationId": "simulation_refresh_simulation_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshSimulationApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2638,6 +2648,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -12110,7 +12130,7 @@
       "post": {
         "tags": [
           "profile",
-          "profiles"
+          "profile"
         ],
         "summary": "Emulate Profile",
         "description": "Create emulation grant. Next request will resolve to target profile.",
@@ -12158,7 +12178,7 @@
       "post": {
         "tags": [
           "profile",
-          "profiles"
+          "profile"
         ],
         "summary": "Unemulate Profile",
         "description": "Exit emulation for a specific target profile.",
@@ -34708,7 +34728,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetSimulationApiResponse-Input"
+                "$ref": "#/components/schemas/GetSimulationApiResponse"
               }
             }
           },
@@ -54670,6 +54690,25 @@
             "type": "array",
             "title": "Simulations",
             "description": "List of simulations to create"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -54688,6 +54727,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -54706,6 +54758,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -58003,6 +58068,25 @@
             "type": "array",
             "title": "Simulation Ids",
             "description": "UUIDs of simulations to delete"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -58021,6 +58105,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -60548,6 +60645,25 @@
             "format": "uuid",
             "title": "Simulation Id",
             "description": "UUID of the simulation to duplicate"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -60574,6 +60690,19 @@
             "type": "string",
             "title": "Message",
             "description": "Human-readable result message"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -81109,6 +81238,19 @@
       },
       "GetSimulationApiRequest": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "UUID of the simulation to retrieve"
+          },
           "simulation_id": {
             "anyOf": [
               {
@@ -81120,7 +81262,7 @@
               }
             ],
             "title": "Simulation Id",
-            "description": "UUID of the simulation to retrieve"
+            "description": "Legacy alias for the simulation UUID"
           },
           "draft_id": {
             "anyOf": [
@@ -81133,9 +81275,9 @@
               }
             ],
             "title": "Draft Id",
-            "description": "UUID of the draft to retrieve"
+            "description": "UUID of the draft to load instead of published state"
           },
-          "scenario_search": {
+          "snapshot_key": {
             "anyOf": [
               {
                 "type": "string"
@@ -81144,8 +81286,107 @@
                 "type": "null"
               }
             ],
-            "title": "Scenario Search",
-            "description": "Search text to filter scenarios"
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__simulation__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for names section"
+          },
+          "descriptions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__simulation__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for descriptions section"
+          },
+          "flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__simulation__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags section"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__simulation__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for departments section"
+          },
+          "scenarios": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__simulation__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for scenarios section"
+          },
+          "scenario_flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__simulation__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for scenario flags section"
+          },
+          "scenario_positions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__simulation__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for scenario positions section"
+          },
+          "scenario_rubrics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__simulation__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for scenario rubrics section"
+          },
+          "scenario_time_limits": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__simulation__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for scenario time limits section"
           },
           "filter_scenario_ids": {
             "anyOf": [
@@ -81161,14 +81402,38 @@
               }
             ],
             "title": "Filter Scenario Ids",
-            "description": "Filter by scenario UUIDs"
+            "description": "Legacy scenario ID filter for nested scenario resources"
+          },
+          "scenario_search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Search",
+            "description": "Legacy search text for scenarios"
+          },
+          "scenario_show_selected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Show Selected",
+            "description": "Legacy selected-only filter for scenarios"
           }
         },
         "type": "object",
         "title": "GetSimulationApiRequest",
-        "description": "Request for getting a single simulation."
+        "description": "Request model for get simulation endpoint."
       },
-      "GetSimulationApiResponse-Input": {
+      "GetSimulationApiResponse": {
         "properties": {
           "actor_name": {
             "anyOf": [
@@ -81231,6 +81496,18 @@
             "title": "Group Id",
             "description": "UUID of the owning group"
           },
+          "show_ai_generate": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show Ai Generate",
+            "description": "Whether AI generation is available"
+          },
           "basic_show_ai_generate": {
             "anyOf": [
               {
@@ -81241,106 +81518,142 @@
               }
             ],
             "title": "Basic Show Ai Generate",
-            "description": "Show AI generate for basic step"
+            "description": "Legacy basic-step AI generate flag"
           },
           "names": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SimulationNameSection"
+                "items": {
+                  "$ref": "#/components/schemas/SimulationNameResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Name section data"
+            "title": "Names",
+            "description": "Name resources with selected/suggested flags"
           },
           "descriptions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SimulationDescriptionSection"
+                "items": {
+                  "$ref": "#/components/schemas/SimulationDescriptionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Description section data"
+            "title": "Descriptions",
+            "description": "Description resources with selected/suggested flags"
           },
           "flags": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SimulationFlagSection"
+                "items": {
+                  "$ref": "#/components/schemas/SimulationFlagConfig"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Flag section data"
+            "title": "Flags",
+            "description": "Flag configs with selected/suggested flags"
           },
           "departments": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SimulationDepartmentSection"
+                "items": {
+                  "$ref": "#/components/schemas/SimulationDepartment"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Department section data"
+            "title": "Departments",
+            "description": "Department resources with selected/suggested flags"
           },
           "scenarios": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SimulationScenarioSection"
+                "items": {
+                  "$ref": "#/components/schemas/SimulationScenario"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Scenario section data"
+            "title": "Scenarios",
+            "description": "Scenario resources with selected/suggested flags"
           },
           "scenario_flags": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SimulationScenarioFlagSection"
+                "items": {
+                  "$ref": "#/components/schemas/SimulationScenarioFlag"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Scenario flag section data"
+            "title": "Scenario Flags",
+            "description": "Scenario flag resources with selected/suggested flags"
           },
           "scenario_positions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SimulationScenarioPositionSection"
+                "items": {
+                  "$ref": "#/components/schemas/SimulationScenarioPosition"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Scenario position section data"
+            "title": "Scenario Positions",
+            "description": "Scenario position resources with selected/suggested flags"
           },
           "scenario_rubrics": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SimulationScenarioRubricSection"
+                "items": {
+                  "$ref": "#/components/schemas/SimulationScenarioRubric"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Scenario rubric section data"
+            "title": "Scenario Rubrics",
+            "description": "Scenario rubric resources with selected/suggested flags"
           },
           "scenario_time_limits": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SimulationScenarioTimeLimitSection"
+                "items": {
+                  "$ref": "#/components/schemas/SimulationScenarioTimeLimit"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Scenario time limit section data"
+            "title": "Scenario Time Limits",
+            "description": "Scenario time limit resources with selected/suggested flags"
           },
           "rubrics": {
             "anyOf": [
@@ -81360,201 +81673,7 @@
         },
         "type": "object",
         "title": "GetSimulationApiResponse",
-        "description": "Section-first response for simulation editor."
-      },
-      "GetSimulationApiResponse-Output": {
-        "properties": {
-          "actor_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Actor Name",
-            "description": "Display name of the current actor"
-          },
-          "simulation_exists": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Simulation Exists",
-            "description": "Whether the simulation exists"
-          },
-          "can_edit": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Can Edit",
-            "description": "Whether the current user can edit"
-          },
-          "disabled_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Disabled Reason",
-            "description": "Reason the simulation is disabled"
-          },
-          "group_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Group Id",
-            "description": "UUID of the owning group"
-          },
-          "basic_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Basic Show Ai Generate",
-            "description": "Show AI generate for basic step"
-          },
-          "names": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SimulationNameSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Name section data"
-          },
-          "descriptions": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SimulationDescriptionSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Description section data"
-          },
-          "flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SimulationFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Flag section data"
-          },
-          "departments": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SimulationDepartmentSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Department section data"
-          },
-          "scenarios": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SimulationScenarioSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Scenario section data"
-          },
-          "scenario_flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SimulationScenarioFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Scenario flag section data"
-          },
-          "scenario_positions": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SimulationScenarioPositionSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Scenario position section data"
-          },
-          "scenario_rubrics": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SimulationScenarioRubricSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Scenario rubric section data"
-          },
-          "scenario_time_limits": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SimulationScenarioTimeLimitSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Scenario time limit section data"
-          },
-          "rubrics": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationRubric"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rubrics",
-            "description": "Available rubric catalog items"
-          }
-        },
-        "type": "object",
-        "title": "GetSimulationApiResponse",
-        "description": "Section-first response for simulation editor."
+        "description": "Response model for get simulation endpoint."
       },
       "GetSimulationDraftResponse": {
         "properties": {
@@ -86817,6 +86936,25 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -86855,6 +86993,19 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -101773,6 +101924,19 @@
       },
       "PatchSimulationDraftApiRequest": {
         "properties": {
+          "draft_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Id",
+            "description": "Existing draft UUID to patch"
+          },
           "input_draft_id": {
             "anyOf": [
               {
@@ -101784,7 +101948,7 @@
               }
             ],
             "title": "Input Draft Id",
-            "description": "UUID of the input draft"
+            "description": "Legacy alias for the input draft UUID"
           },
           "name": {
             "anyOf": [
@@ -102007,6 +102171,41 @@
             ],
             "title": "Scenario Time Limits",
             "description": "Scenario time limit values to create"
+          },
+          "pending_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Ids",
+            "description": "Resource IDs to keep as pending where supported by the tool layer"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant draft"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -102026,20 +102225,19 @@
             "title": "Draft Id",
             "description": "UUID of the saved draft"
           },
+          "idempotency_key": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Idempotency Key",
+            "description": "Idempotency key for this draft operation"
+          },
           "message": {
             "type": "string",
             "title": "Message",
             "description": "Human-readable result message"
           },
           "form_state": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SimulationDraftFormState"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "$ref": "#/components/schemas/app__infra__simulation__types__DraftFormState",
             "description": "Server-authoritative form state"
           }
         },
@@ -102047,7 +102245,9 @@
         "required": [
           "success",
           "draft_id",
-          "message"
+          "idempotency_key",
+          "message",
+          "form_state"
         ],
         "title": "PatchSimulationDraftApiResponse",
         "description": "Response model for new-style simulation draft endpoint."
@@ -105830,6 +106030,25 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -105859,6 +106078,19 @@
             "title": "Message",
             "description": "Status message",
             "default": "Problem created successfully"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -108216,6 +108448,47 @@
         "type": "object",
         "title": "RefreshScenarioApiRequest",
         "description": "Request model for scenario refresh endpoint."
+      },
+      "RefreshSimulationApiRequest": {
+        "properties": {
+          "targets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targets",
+            "description": "MV targets to refresh (omit for all). Options: simulation_drafts_mv, runs_mv, messages_mv, calls_mv, groups_mv, group_names_mv"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject. Only meaningful with idempotency_key",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "RefreshSimulationApiRequest",
+        "description": "Request model for simulation refresh endpoint."
       },
       "ReplacementEntry": {
         "properties": {
@@ -116768,47 +117041,29 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "SimulationDepartment",
         "description": "Department for simulation."
-      },
-      "SimulationDepartmentSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationDepartment"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected departments"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationDepartment"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available departments"
-          }
-        },
-        "type": "object",
-        "title": "SimulationDepartmentSection"
       },
       "SimulationDescriptionResource": {
         "properties": {
@@ -116848,146 +117103,29 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "SimulationDescriptionResource",
         "description": "Description resource for simulation."
-      },
-      "SimulationDescriptionSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SimulationDescriptionResource"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Currently selected description resource"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationDescriptionResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available description resources"
-          }
-        },
-        "type": "object",
-        "title": "SimulationDescriptionSection"
-      },
-      "SimulationDraftFormState": {
-        "properties": {
-          "name_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name Id",
-            "description": "UUID of the selected name resource"
-          },
-          "description_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description Id",
-            "description": "UUID of the selected description resource"
-          },
-          "flag_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Flag Ids",
-            "description": "Selected flag UUIDs",
-            "default": []
-          },
-          "department_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Department Ids",
-            "description": "Selected department UUIDs",
-            "default": []
-          },
-          "scenario_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Scenario Ids",
-            "description": "Selected scenario UUIDs",
-            "default": []
-          },
-          "scenario_flag_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Scenario Flag Ids",
-            "description": "Selected scenario flag UUIDs",
-            "default": []
-          },
-          "scenario_position_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Scenario Position Ids",
-            "description": "Selected scenario position UUIDs",
-            "default": []
-          },
-          "scenario_rubric_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Scenario Rubric Ids",
-            "description": "Selected scenario rubric UUIDs",
-            "default": []
-          },
-          "scenario_time_limit_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Scenario Time Limit Ids",
-            "description": "Selected scenario time limit UUIDs",
-            "default": []
-          }
-        },
-        "type": "object",
-        "title": "SimulationDraftFormState",
-        "description": "Full form state after draft patch \u2014 server is source of truth.\n\nClient replaces its local form state with this after every successful patch."
       },
       "SimulationFieldError": {
         "properties": {
@@ -117082,6 +117220,24 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
@@ -117091,42 +117247,6 @@
         ],
         "title": "SimulationFlagConfig",
         "description": "Enriched flag config for direct client consumption."
-      },
-      "SimulationFlagSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationFlagConfig"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected flags"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationFlagConfig"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available flag configs"
-          }
-        },
-        "type": "object",
-        "title": "SimulationFlagSection"
       },
       "SimulationNameResource": {
         "properties": {
@@ -117166,43 +117286,29 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "SimulationNameResource",
         "description": "Name resource for simulation."
-      },
-      "SimulationNameSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SimulationNameResource"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Currently selected name resource"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationNameResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available name resources"
-          }
-        },
-        "type": "object",
-        "title": "SimulationNameSection"
       },
       "SimulationResultItem": {
         "properties": {
@@ -117459,6 +117565,24 @@
             ],
             "title": "Show Questions",
             "description": "Whether to show questions"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
@@ -117553,47 +117677,29 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "SimulationScenarioFlag",
         "description": "Scenario flag (denormalized: includes flag name/description/icon)."
-      },
-      "SimulationScenarioFlagSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationScenarioFlag"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected scenario flags"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationScenarioFlag"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available scenario flags"
-          }
-        },
-        "type": "object",
-        "title": "SimulationScenarioFlagSection"
       },
       "SimulationScenarioPosition": {
         "properties": {
@@ -117646,47 +117752,29 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "SimulationScenarioPosition",
         "description": "Scenario position."
-      },
-      "SimulationScenarioPositionSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationScenarioPosition"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected scenario positions"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationScenarioPosition"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available scenario positions"
-          }
-        },
-        "type": "object",
-        "title": "SimulationScenarioPositionSection"
       },
       "SimulationScenarioRubric": {
         "properties": {
@@ -117740,83 +117828,29 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "SimulationScenarioRubric",
         "description": "Scenario rubric."
-      },
-      "SimulationScenarioRubricSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationScenarioRubric"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected scenario rubrics"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationScenarioRubric"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available scenario rubrics"
-          }
-        },
-        "type": "object",
-        "title": "SimulationScenarioRubricSection"
-      },
-      "SimulationScenarioSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationScenario"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected scenarios"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationScenario"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available scenarios"
-          }
-        },
-        "type": "object",
-        "title": "SimulationScenarioSection"
       },
       "SimulationScenarioTimeLimit": {
         "properties": {
@@ -117881,47 +117915,29 @@
             ],
             "title": "Negative",
             "description": "Whether the time limit is negative"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "SimulationScenarioTimeLimit",
         "description": "Scenario time limit."
-      },
-      "SimulationScenarioTimeLimitSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationScenarioTimeLimit"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected scenario time limits"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/SimulationScenarioTimeLimit"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available scenario time limits"
-          }
-        },
-        "type": "object",
-        "title": "SimulationScenarioTimeLimitSection"
       },
       "SkillFeedback": {
         "properties": {
@@ -125391,6 +125407,25 @@
             "type": "array",
             "title": "Simulations",
             "description": "List of simulations to update"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -125409,6 +125444,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -125427,6 +125475,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -127072,6 +127133,225 @@
         ],
         "title": "DraftVideoValue",
         "description": "Value for creating a video via the draft endpoint."
+      },
+      "app__infra__simulation__types__DraftFormState": {
+        "properties": {
+          "name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Id",
+            "description": "UUID of the selected name resource"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Saved name value"
+          },
+          "description_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description Id",
+            "description": "UUID of the selected description resource"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Saved description value"
+          },
+          "flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Flag Ids",
+            "description": "Selected flag UUIDs",
+            "default": []
+          },
+          "department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Department Ids",
+            "description": "Selected department UUIDs",
+            "default": []
+          },
+          "scenario_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Scenario Ids",
+            "description": "Selected scenario UUIDs",
+            "default": []
+          },
+          "scenario_flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Scenario Flag Ids",
+            "description": "Selected scenario flag UUIDs",
+            "default": []
+          },
+          "scenario_position_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Scenario Position Ids",
+            "description": "Selected scenario position UUIDs",
+            "default": []
+          },
+          "scenario_rubric_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Scenario Rubric Ids",
+            "description": "Selected scenario rubric UUIDs",
+            "default": []
+          },
+          "scenario_time_limit_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Scenario Time Limit Ids",
+            "description": "Selected scenario time limit UUIDs",
+            "default": []
+          },
+          "pending_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Ids",
+            "description": "Pending resource UUIDs (empty until tool-layer support exists)",
+            "default": []
+          }
+        },
+        "type": "object",
+        "title": "DraftFormState",
+        "description": "Full form state after draft patch \u2014 server is source of truth.\n\nClient replaces its local form state with this after every successful patch."
+      },
+      "app__infra__simulation__types__SectionFilter": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Filter options by search text"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Max options to return"
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected",
+            "description": "Only return selected items"
+          },
+          "suggested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested",
+            "description": "Only return suggested items"
+          },
+          "include": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include",
+            "description": "Include this section in response (default true)"
+          },
+          "parameter_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Ids",
+            "description": "Reserved for parity with persona pattern"
+          }
+        },
+        "type": "object",
+        "title": "SectionFilter",
+        "description": "Per-section filter options for GET requests."
       },
       "app__routes__attempt__message__ContentEntry": {
         "properties": {
