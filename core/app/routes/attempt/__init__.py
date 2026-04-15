@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.routes.attempt.archive import router as archive_router
 from app.routes.attempt.audio import router as audio_router
+from app.routes.attempt.context import router as context_router
 from app.routes.attempt.docs import router as docs_router
 from app.routes.attempt.end import router as end_router
 from app.routes.attempt.expire import router as expire_router
@@ -36,6 +37,7 @@ router.include_router(get_router)
 router.include_router(search_router)
 router.include_router(archive_router)
 router.include_router(refresh_router)
+router.include_router(context_router)
 router.include_router(docs_router)
 router.include_router(export_router)
 router.include_router(generate_router)

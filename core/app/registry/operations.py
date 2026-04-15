@@ -224,6 +224,7 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("home", "docs"): None,
     ("home", "export"): (f"{_A}.home.export", "export_home"),
     ("home", "refresh"): None,
+    ("home", "context"): ("app.infra.home.page_context", "page_context_home_impl"),
     # invocation (view-only + draft)
     ("invocation", "get"): (f"{_A}.invocation.get", "get_invocation_websocket"),
     ("invocation", "list"): None,
@@ -284,6 +285,7 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("practice", "docs"): None,
     ("practice", "export"): (f"{_A}.practice.export", "export_practice"),
     ("practice", "refresh"): None,
+    ("practice", "context"): ("app.infra.practice.page_context", "page_context_practice_impl"),
     # pricing (view-only)
     ("pricing", "get"): (f"{_A}.pricing.get", "get_pricing_websocket"),
     ("pricing", "list"): None,
@@ -324,6 +326,7 @@ ARTIFACT_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("record", "docs"): None,
     ("record", "export"): None,
     ("record", "refresh"): None,
+    ("record", "context"): ("app.infra.record.page_context", "page_context_record_impl"),
     # reports (view-only)
     ("reports", "search"): (f"{_A}.reports.search", "get_reports"),
     ("reports", "list"): None,
@@ -812,6 +815,8 @@ INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
              file_download=True, file_preview=True,
              audio_download=True, call_download=True),
     ("group", "name"): ("app.infra.group.name", "name_group_impl"),
+    ("group", "generations"): ("app.infra.group.generations", "generations_group_impl"),
+    ("group", "problem"): ("app.infra.group.problem", "problem_group_impl"),
     **_infra("health", get=True, export=True, refresh=True, docs=True, context=True),
     **_infra("invocation", get=True, draft=True, drafts=True, export=True, refresh=True, docs=True, context=True),
     **_infra("leaderboard", export=True, refresh=True, docs=True, context=True),
@@ -826,6 +831,7 @@ INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("attempt", "export"): (f"{_I}.attempt.export", "export_attempt_impl"),
     ("attempt", "refresh"): (f"{_I}.attempt.refresh", "refresh_attempt_impl"),
     ("attempt", "docs"): (f"{_I}.attempt.docs", "docs_attempt_impl"),
+    ("attempt", "context"): (f"{_I}.attempt.page_context", "page_context_attempt_impl"),
     ("attempt", "start"): (f"{_I}.attempt.start", "attempt_start_internal_impl"),
     ("attempt", "end"): (f"{_I}.attempt.end", "attempt_end_internal_impl"),
     ("attempt", "end_all"): (f"{_I}.attempt.end_all", "attempt_end_all_internal_impl"),

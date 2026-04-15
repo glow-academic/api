@@ -3,7 +3,9 @@
 from fastapi import APIRouter
 
 from app.routes.group.generate import router as generate_router
+from app.routes.group.generations import router as generations_router
 from app.routes.group.group import router as group_group_router
+from app.routes.group.problem import router as problem_router
 from app.routes.group.search import router as search_router
 from app.routes.group.audio import router as audio_router
 from app.routes.group.call import router as call_router
@@ -30,8 +32,10 @@ router.include_router(export_router)
 
 # Group-specific operations
 router.include_router(generate_router)
+router.include_router(generations_router)
 router.include_router(group_group_router)
 router.include_router(name_router)
+router.include_router(problem_router)
 
 # Typed media operations
 router.include_router(image_router)
