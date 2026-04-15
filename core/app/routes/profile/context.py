@@ -1,89 +1,64 @@
-"""POST /context — identity + permissions + theme.
-
-Thin route — delegates to context_profile_impl.
-"""
+"""Profile context endpoint — page bootstrap with docs + profile + permissions."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, Request, Response
 
+from app.infra.docs.types import ComposedContextResponse
+from app.infra.docs_helper import DocsApiRequest
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
-from app.infra.profile.context import context_profile_impl
 from app.infra.profile.group import group_profile_impl
-from app.infra.profile.types import ProfileContextApiResponse
-from app.infra.shared_types import GetProfileContextApiRequest
-from app.utils.error.handle_route_error import handle_route_error
+from app.infra.profile.page_context import page_context_profile_impl
 
 router = APIRouter()
 
 
-@router.post("/context", response_model=ProfileContextApiResponse, tags=["profiles"])
+@router.post("/context", response_model=ComposedContextResponse)
 async def get_profile_context(
-    request: GetProfileContextApiRequest,
+    body: DocsApiRequest,
     http_request: Request,
     response: Response,
-) -> ProfileContextApiResponse:
-    """Identity + permissions + theme context endpoint."""
-    try:
-        try:
-            profile_id = http_request.state.profile_id
-        except AttributeError:
-            profile_id = None
+) -> ComposedContextResponse:
+    """Get page context for the profile artifact.
 
-        if not profile_id:
-            raise HTTPException(status_code=404, detail="Profile ID is required")
+    Returns docs + profile identity + evaluated permissions in a single call.
+    Superset of /docs — clients can migrate from /docs to /context incrementally.
+    """
+    profile_id = http_request.state.profile_id
+    session_id = http_request.state.session_id
+    pool = get_pool()
+    redis = get_redis_client()
 
-        bypass_cache = http_request.headers.get("X-Bypass-Cache") == "1"
-        pool = get_pool()
-        redis = get_redis_client()
-        session_id = getattr(http_request.state, "session_id", None)
-
-        # Resolve time-windowed group for audit linking
-        group_id = None
-        if session_id:
-            group_result = await group_profile_impl(
-                pool, redis, profile_id=profile_id, session_id=session_id,
-            )
-            group_id = group_result.group_id
-
-        req_identity = getattr(http_request.state, "identity", None)
-        is_emulation = (
-            getattr(req_identity, "is_emulation", False) if req_identity else False
+    # Resolve time-windowed group for audit linking
+    group_id = None
+    if session_id:
+        group_result = await group_profile_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
         )
-        emulation_depth = (
-            getattr(req_identity, "emulation_depth", 0) if req_identity else 0
-        )
+        group_id = group_result.group_id
 
-        return await run_artifact_operation_with_audit(
+    async def _runner() -> ComposedContextResponse:
+        return await page_context_profile_impl(
             pool,
             redis,
-            artifact="profile",
             profile_id=profile_id,
-            session_id=session_id,
-            group_id=group_id,
-            operation="context",
-            arguments={"profile_id": str(profile_id)},
-            bypass_cache=bypass_cache,
-            response_model=ProfileContextApiResponse,
-            runner=lambda: context_profile_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                bypass_cache=bypass_cache,
-                is_emulation=is_emulation,
-                emulation_depth=emulation_depth,
-            ),
-            upload_folder=get_upload_folder(),
+            entity_id=body.entity_id,
         )
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        handle_route_error(
-            error=e,
-            route_path=http_request.url.path,
-            operation="get_profile_context",
-            request=http_request,
-        )
+    result = await run_artifact_operation_with_audit(
+        pool,
+        redis,
+        artifact="profile",
+        profile_id=profile_id,
+        session_id=session_id,
+        group_id=group_id,
+        operation="context",
+        arguments=body.model_dump(mode="json"),
+        response_model=ComposedContextResponse,
+        runner=_runner,
+        upload_folder=get_upload_folder(),
+    )
+
+    response.headers["X-Cache-Tags"] = "profiles"
+    return result

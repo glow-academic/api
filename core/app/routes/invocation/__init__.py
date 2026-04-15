@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from app.routes.invocation.context import router as context_router
 from app.routes.invocation.decrypt import router as decrypt_router
 from app.routes.invocation.docs import router as docs_router
 from app.routes.invocation.draft import router as draft_router
@@ -19,4 +20,5 @@ router.include_router(drafts_router)
 router.include_router(refresh_router)
 router.include_router(export_router)
 router.include_router(docs_router)
+router.include_router(context_router)
 router.include_router(decrypt_router)

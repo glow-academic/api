@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from app.routes.chat.context import router as context_router
 from app.routes.chat.docs import router as docs_router
 from app.routes.chat.draft import router as draft_router
 from app.routes.chat.drafts import router as drafts_router
@@ -18,4 +19,5 @@ router.include_router(draft_router)
 router.include_router(drafts_router)
 router.include_router(export_router)
 router.include_router(refresh_router)
+router.include_router(context_router)
 router.include_router(docs_router)

@@ -7,6 +7,7 @@ from app.routes.group.group import router as group_group_router
 from app.routes.group.search import router as search_router
 from app.routes.group.audio import router as audio_router
 from app.routes.group.call import router as call_router
+from app.routes.group.context import router as context_router
 from app.routes.group.docs import router as docs_router
 from app.routes.group.export import router as export_router
 from app.routes.group.file import router as file_router
@@ -23,6 +24,7 @@ router = APIRouter(prefix="/group", tags=["group"])
 router.include_router(get_router)
 router.include_router(search_router)
 router.include_router(refresh_router)
+router.include_router(context_router)
 router.include_router(docs_router)
 router.include_router(export_router)
 

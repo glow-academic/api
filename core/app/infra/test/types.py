@@ -8,6 +8,7 @@ Three-layer BFF pattern types:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -271,3 +272,55 @@ class ExportTestApiResponse(BaseModel):
     file_name: str = Field(..., description="Name of the exported file")
     mime_type: str = Field(..., description="MIME type of the exported file")
     row_count: int = Field(..., description="Number of rows in the export")
+
+
+# =============================================================================
+# Generations Types
+# =============================================================================
+
+
+class GenerationsTestApiRequest(BaseModel):
+    """Request model for test generations endpoint."""
+
+    search: str | None = Field(None, description="Name search (ILIKE)")
+    date_from: datetime | None = Field(None, description="Start date filter")
+    date_to: datetime | None = Field(None, description="End date filter")
+    page_limit: int = Field(50, ge=1, le=100, description="Maximum items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
+
+
+class GenerationsTestListItem(BaseModel):
+    """Single generation group in the test generations response."""
+
+    group_id: UUID = Field(..., description="UUID of the generation group")
+    session_id: UUID | None = Field(None, description="UUID of the parent session")
+    group_name: str | None = Field(None, description="Name of the generation group")
+    created_at: datetime | None = Field(None, description="Timestamp of the generation")
+
+
+class GenerationsTestApiResponse(BaseModel):
+    """Response model for test generations endpoint."""
+
+    actor_name: str | None = Field(None, description="Display name of the current actor")
+    items: list[GenerationsTestListItem] = Field(default_factory=list, description="Generation groups")
+    total_count: int = Field(0, description="Total number of matching generations")
+
+
+# =============================================================================
+# Problem Types
+# =============================================================================
+
+
+class ProblemTestApiRequest(BaseModel):
+    """Request model for test problem endpoint."""
+
+    type: str = Field(..., description="Problem type: feature, bug, question, other")
+    message: str = Field(..., description="Problem description (max 1000 chars)")
+
+
+class ProblemTestApiResponse(BaseModel):
+    """Response model for test problem endpoint."""
+
+    problem_id: UUID = Field(..., description="UUID of the created problem")
+    success: bool = Field(True, description="Whether the problem was created")
+    message: str = Field("Problem created successfully", description="Status message")

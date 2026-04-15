@@ -677,6 +677,7 @@ def _infra(
     refresh: bool = False,
     docs: bool = False,
     csv: bool = False,
+    context: bool = False,
     # Media operations
     image_upload: bool = False,
     image_download: bool = False,
@@ -721,6 +722,8 @@ def _infra(
         d[(name, "docs")] = (f"{_I}.{name}.docs", f"docs_{name}_impl")
     if csv:
         d[(name, "csv")] = (f"{_I}.{name}.csv", f"csv_{name}_impl")
+    if context:
+        d[(name, "context")] = (f"{_I}.{name}.page_context", f"page_context_{name}_impl")
     # Media operations
     if image_upload:
         d[(name, "image_upload")] = (f"{_I}.{name}.image_upload", f"image_upload_{name}_impl")
@@ -762,6 +765,7 @@ def _infra(
 _FULL_CRUD = dict(
     create=True, update=True, delete=True, search=True, get=True,
     draft=True, drafts=True, duplicate=True, export=True, refresh=True, docs=True,
+    context=True,
 )
 
 INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
@@ -782,7 +786,6 @@ INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("persona", "generations"): ("app.infra.persona.generations", "generations_persona_impl"),
     ("persona", "group"): ("app.infra.persona.group", "group_persona_impl"),
     ("persona", "problem"): ("app.infra.persona.problem", "problem_persona_impl"),
-    ("persona", "context"): ("app.infra.persona.page_context", "page_context_persona_impl"),
     **_infra("profile", **_FULL_CRUD),
     **_infra("provider", **_FULL_CRUD, csv=True),
     **_infra("rubric", **_FULL_CRUD, csv=True),
@@ -799,23 +802,23 @@ INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     **_infra("simulation", **_FULL_CRUD, csv=True),
     **_infra("tool", **_FULL_CRUD),
     # --- View + partial artifacts ---
-    **_infra("activity", export=True, refresh=True, docs=True),
-    **_infra("benchmark", get=True, export=True, refresh=True, docs=True),
-    **_infra("chat", get=True, draft=True, drafts=True, export=True, refresh=True, docs=True),
-    **_infra("dashboard", export=True, refresh=True, docs=True),
-    **_infra("group", get=True, export=True, refresh=True, docs=True,
+    **_infra("activity", export=True, refresh=True, docs=True, context=True),
+    **_infra("benchmark", get=True, export=True, refresh=True, docs=True, context=True),
+    **_infra("chat", get=True, draft=True, drafts=True, export=True, refresh=True, docs=True, context=True),
+    **_infra("dashboard", export=True, refresh=True, docs=True, context=True),
+    **_infra("group", get=True, export=True, refresh=True, docs=True, context=True,
              image_download=True, video_download=True,
              text_download=True,
              file_download=True, file_preview=True,
              audio_download=True, call_download=True),
     ("group", "name"): ("app.infra.group.name", "name_group_impl"),
-    **_infra("health", get=True, export=True, refresh=True, docs=True),
-    **_infra("invocation", get=True, draft=True, drafts=True, export=True, refresh=True, docs=True),
-    **_infra("leaderboard", export=True, refresh=True, docs=True),
-    **_infra("pricing", get=True, export=True, refresh=True, docs=True),
-    **_infra("reports", get=True, export=True, refresh=True, docs=True),
-    **_infra("session", get=True, export=True, refresh=True, docs=True),
-    **_infra("test", get=True, search=True, export=True, refresh=True, docs=True,
+    **_infra("health", get=True, export=True, refresh=True, docs=True, context=True),
+    **_infra("invocation", get=True, draft=True, drafts=True, export=True, refresh=True, docs=True, context=True),
+    **_infra("leaderboard", export=True, refresh=True, docs=True, context=True),
+    **_infra("pricing", get=True, export=True, refresh=True, docs=True, context=True),
+    **_infra("reports", get=True, export=True, refresh=True, docs=True, context=True),
+    **_infra("session", get=True, export=True, refresh=True, docs=True, context=True),
+    **_infra("test", get=True, search=True, export=True, refresh=True, docs=True, context=True,
              text_download=True, call_download=True),
     # --- Attempt state-machine + media operations ---
     ("attempt", "get"): (f"{_I}.attempt.get", "get_attempt_impl"),

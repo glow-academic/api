@@ -11,8 +11,11 @@ from app.routes.profile.draft import router as draft_router
 from app.routes.profile.drafts import router as drafts_router
 from app.routes.profile.duplicate import router as duplicate_router
 from app.routes.profile.export import router as export_router
+from app.routes.profile.generate import router as generate_router
+from app.routes.profile.generations import router as generations_router
 from app.routes.profile.get import router as get_router
 from app.routes.profile.group import router as group_router
+from app.routes.profile.problem import router as problem_router
 from app.routes.profile.refresh import router as refresh_router
 from app.routes.profile.search import router as search_router
 from app.routes.profile.update import router as update_router
@@ -31,7 +34,10 @@ router.include_router(drafts_router)
 router.include_router(delete_router)
 router.include_router(docs_router)
 router.include_router(export_router)
+router.include_router(generate_router)
+router.include_router(generations_router)
 router.include_router(group_router)
+router.include_router(problem_router)
 router.include_router(refresh_router)
 
 # Profile-specific operations

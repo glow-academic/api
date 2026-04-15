@@ -1,0 +1,144 @@
+"""Test page context — docs + profile identity + evaluated permissions.
+
+Superset of docs.py. A single endpoint that gives the client everything
+it needs to render the test page:
+  1. resolve_profile_identity_context — who you are (name, role, departments)
+  2. Entry docs — test entry schema introspection (same as docs.py)
+  3. Permission docs — test status computation function
+  4. Permission evaluation — concrete booleans for THIS caller
+  5. Page metadata — titles and descriptions for list/detail/new views
+"""
+
+from __future__ import annotations
+
+import asyncio
+from uuid import UUID
+
+import asyncpg
+from redis.asyncio import Redis
+
+from app.infra.docs.get_operation_info import get_operation_info
+from app.infra.docs.types import (
+    CallerPermissions,
+    ComposedContextResponse,
+    ProfileSummary,
+)
+from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
+from app.infra.profile_identity_context import resolve_profile_identity_context
+
+# Entry tool docs
+from app.tools.entries.test.docs import get_test_docs
+
+_PAGE_METADATA = PageMetadataConfig(
+    list_title="Tests",
+    list_description="View benchmark test configurations.",
+    detail_title="Test",
+    detail_description="View test invocations and evaluation results.",
+    new_title="Test",
+    new_description="View test invocations and evaluation results.",
+)
+
+
+async def page_context_test_impl(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    entity_id: UUID | None = None,
+    **_kwargs,
+) -> ComposedContextResponse:
+    """Test page context — superset of docs_test_impl.
+
+    Flow:
+      1. resolve_profile_identity_context -> profile identity (kept, not discarded)
+      2. Parallel: entry docs fetch
+      3. Evaluate caller permissions using profile data
+      4. Assemble ComposedContextResponse
+    """
+    from fastapi import HTTPException
+
+    # -- Step 1: Profile context ------------------------------------------------
+
+    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+
+    if profile is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Profile not found. Please sign in again.",
+        )
+
+    # -- Step 2: Parallel docs fetches ------------------------------------------
+
+    async def _fetch_test_docs() -> object:
+        async with pool.acquire() as c:
+            return await get_test_docs(c)
+
+    (test_entry,) = await asyncio.gather(
+        _fetch_test_docs(),
+    )
+
+    # -- Step 3: Page metadata --------------------------------------------------
+
+    page_metadata = compute_docs_metadata(_PAGE_METADATA)
+
+    # -- Step 4: Evaluate caller permissions ------------------------------------
+    # Test has no artifact-level permissions module; use simple role defaults.
+
+    caller_permissions = CallerPermissions(
+        can_create=False,
+        can_draft=False,
+        can_duplicate=False,
+    )
+
+    # -- Step 5: Build profile summary ------------------------------------------
+
+    profile_summary = ProfileSummary(
+        name=profile.name,
+        role=profile.role,
+        role_level=profile.role_level,
+        department_ids=profile.department_ids,
+        artifact_access=profile.role_artifacts,
+        is_active=profile.is_active,
+    )
+
+    # -- Step 6: Assemble response ----------------------------------------------
+
+    # Lazy imports to avoid circular dependencies
+    from app.infra.test.permissions import compute_test_status
+    from app.routes.test.archive import archive_test_artifacts
+    from app.routes.test.export import export_test
+    from app.routes.test.get import get_test_artifact
+
+    return ComposedContextResponse(
+        name="test",
+        type="analytics",
+        description=(
+            "Test analytics provides detailed views of benchmark test "
+            "configurations including invocations, runs, and evaluation results."
+        ),
+        entries=[test_entry],
+        resources=[],
+        permission_docs=[
+            get_operation_info(
+                compute_test_status,
+                description="Compute a minimal status label from chat completion counts.",
+            ),
+        ],
+        api_operations=[
+            get_operation_info(
+                get_test_artifact,
+                description="POST /get — Get a single test artifact with invocations.",
+            ),
+            get_operation_info(
+                archive_test_artifacts,
+                description="POST /archive — Archive completed tests.",
+            ),
+            get_operation_info(
+                export_test,
+                description="POST /export — Export test data as CSV/ZIP.",
+            ),
+        ],
+        page_metadata=page_metadata,
+        profile=profile_summary,
+        caller_permissions=caller_permissions,
+    )

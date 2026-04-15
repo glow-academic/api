@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from datetime import datetime
 from typing import Any, ClassVar
 from uuid import UUID
 
@@ -421,3 +422,55 @@ class ListAgentApiResponse(BaseModel):
     model_filter: ListFilterSection | None = Field(None, description="Filter options for models")
     tool_filter: ListFilterSection | None = Field(None, description="Filter options for tools")
     total_count: int | None = Field(None, description="Total number of matching records")
+
+
+# =============================================================================
+# Generations Types
+# =============================================================================
+
+
+class GenerationsAgentApiRequest(BaseModel):
+    """Request model for agent generations endpoint."""
+
+    search: str | None = Field(None, description="Name search (ILIKE)")
+    date_from: datetime | None = Field(None, description="Start date filter")
+    date_to: datetime | None = Field(None, description="End date filter")
+    page_limit: int = Field(50, ge=1, le=100, description="Maximum items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
+
+
+class GenerationsAgentListItem(BaseModel):
+    """Single generation group in the agent generations response."""
+
+    group_id: UUID = Field(..., description="UUID of the generation group")
+    session_id: UUID | None = Field(None, description="UUID of the parent session")
+    group_name: str | None = Field(None, description="Name of the generation group")
+    created_at: datetime | None = Field(None, description="Timestamp of the generation")
+
+
+class GenerationsAgentApiResponse(BaseModel):
+    """Response model for agent generations endpoint."""
+
+    actor_name: str | None = Field(None, description="Display name of the current actor")
+    items: list[GenerationsAgentListItem] = Field(default_factory=list, description="Generation groups")
+    total_count: int = Field(0, description="Total number of matching generations")
+
+
+# =============================================================================
+# Problem Types
+# =============================================================================
+
+
+class ProblemAgentApiRequest(BaseModel):
+    """Request model for agent problem endpoint."""
+
+    type: str = Field(..., description="Problem type: feature, bug, question, other")
+    message: str = Field(..., description="Problem description (max 1000 chars)")
+
+
+class ProblemAgentApiResponse(BaseModel):
+    """Response model for agent problem endpoint."""
+
+    problem_id: UUID = Field(..., description="UUID of the created problem")
+    success: bool = Field(True, description="Whether the problem was created")
+    message: str = Field("Problem created successfully", description="Status message")

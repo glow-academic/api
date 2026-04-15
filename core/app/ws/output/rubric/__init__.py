@@ -2,15 +2,18 @@
 
 from . import (  # noqa: F401
     create,
-    update,
     delete,
-    duplicate,
+    docs,
     draft,
     drafts,
+    duplicate,
+    export,
+    generate,
+    generations,
     get,
     group,
-    search,
-    docs,
-    export,
+    problem,
     refresh,
+    search,
+    update,
 )
