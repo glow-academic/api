@@ -13,6 +13,18 @@ from app.infra.cohort.types import (
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
+SECTIONS = (
+    "names",
+    "descriptions",
+    "flags",
+    "departments",
+    "simulations",
+    "simulation_positions",
+    "simulation_availability",
+    "profiles",
+    "profile_personas",
+    "personas",
+)
 
 
 @router.post("/get", response_model=GetCohortApiResponse)
@@ -45,13 +57,15 @@ async def get_cohort(
             group_id = group_result.group_id
 
         async def _runner() -> GetCohortApiResponse:
+            effective_id = request.id or request.cohort_id
             return await get_cohort_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
-                cohort_id=request.cohort_id,
+                cohort_id=effective_id,
                 draft_id=request.draft_id,
+                filters={section: getattr(request, section) for section in SECTIONS},
                 descriptions_search=request.descriptions_search,
                 simulation_search=request.simulation_search,
                 simulation_show_selected=request.simulation_show_selected,

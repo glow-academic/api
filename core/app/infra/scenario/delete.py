@@ -19,6 +19,8 @@ from redis.asyncio import Redis
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.scenario.permissions import compute_can_delete
 from app.infra.scenario.permissions_context import resolve_scenario_permissions_context
+from app.infra.delete.delete_artifact import restore_artifacts
+from app.infra.scenario.refresh import refresh_scenario_impl
 from app.infra.scenario.types import (
     DeleteScenarioApiResponse,
     DeleteScenarioResult,
@@ -26,7 +28,6 @@ from app.infra.scenario.types import (
 from app.tools.artifacts.scenario.delete import delete_scenarios
 from app.tools.artifacts.scenario.get import get_scenarios
 from app.tools.resources.names.get import get_names
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def delete_scenario_impl(
@@ -37,6 +38,8 @@ async def delete_scenario_impl(
     scenario_ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> DeleteScenarioApiResponse:
     """Scenario bulk delete using composable infra functions.
 
@@ -46,8 +49,41 @@ async def delete_scenario_impl(
       3. Per-item: compute_can_delete → permission check (fail fast)
       4. Fetch names for result messages
       5. Single transaction: delete_scenarios → bulk delete
-      6. invalidate_tags
+      6. refresh_scenario_impl → canonical refresh
     """
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            # Confirm deletion: no-op (already deactivated by soft delete)
+            pass
+        else:
+            # Reject: restore soft-deleted artifacts
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await restore_artifacts(
+                        conn,
+                        table="scenario_artifact",
+                        ids=scenario_ids,
+                    )
+        await refresh_scenario_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
+        return DeleteScenarioApiResponse(
+            results=[
+                DeleteScenarioResult(
+                    success=True,
+                    scenario_id=scenario_id,
+                    message="Delete confirmed" if accept else "Delete rejected - scenario restored",
+                )
+                for scenario_id in scenario_ids
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -104,17 +140,31 @@ async def delete_scenario_impl(
         async with conn.transaction():
             result = await delete_scenarios(conn, scenario_ids, soft=soft)
 
-    # ── Step 6: Invalidate cache ──────────────────────────────────────
+    # ── Step 6: Canonical refresh ─────────────────────────────────────
 
-    await invalidate_tags(["scenarios"], redis=redis)
+    await refresh_scenario_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
+    )
 
     results = [
         DeleteScenarioResult(
             success=True,
             scenario_id=pid,
-            message=f"Scenario '{name_map.get(pid, 'Unknown')}' deleted successfully",
+            message=(
+                f"Scenario '{name_map.get(pid, 'Unknown')}' deleted (pending acceptance)"
+                if soft
+                else f"Scenario '{name_map.get(pid, 'Unknown')}' deleted successfully"
+            ),
         )
         for pid in result.deleted_ids
     ]
 
-    return DeleteScenarioApiResponse(results=results)
+    return DeleteScenarioApiResponse(
+        results=results,
+        idempotency_key=idempotency_key,
+    )

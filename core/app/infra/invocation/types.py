@@ -6,6 +6,7 @@ Includes Suite/Bundle types for the customization flow and socket generation lay
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, ClassVar
 from uuid import UUID
 
@@ -261,3 +262,55 @@ class DecryptInvocationKeyApiResponse(BaseModel):
     key: str | None = Field(None, description="Decrypted key value")
     name: str | None = Field(None, description="Key display name")
     actor_name: str | None = Field(None, description="Name of the actor who decrypted")
+
+
+# =============================================================================
+# Generations Types
+# =============================================================================
+
+
+class GenerationsInvocationApiRequest(BaseModel):
+    """Request model for invocation generations endpoint."""
+
+    search: str | None = Field(None, description="Name search (ILIKE)")
+    date_from: datetime | None = Field(None, description="Start date filter")
+    date_to: datetime | None = Field(None, description="End date filter")
+    page_limit: int = Field(50, ge=1, le=100, description="Maximum items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
+
+
+class GenerationsInvocationListItem(BaseModel):
+    """Single generation group in the invocation generations response."""
+
+    group_id: UUID = Field(..., description="UUID of the generation group")
+    session_id: UUID | None = Field(None, description="UUID of the parent session")
+    group_name: str | None = Field(None, description="Name of the generation group")
+    created_at: datetime | None = Field(None, description="Timestamp of the generation")
+
+
+class GenerationsInvocationApiResponse(BaseModel):
+    """Response model for invocation generations endpoint."""
+
+    actor_name: str | None = Field(None, description="Display name of the current actor")
+    items: list[GenerationsInvocationListItem] = Field(default_factory=list, description="Generation groups")
+    total_count: int = Field(0, description="Total number of matching generations")
+
+
+# =============================================================================
+# Problem Types
+# =============================================================================
+
+
+class ProblemInvocationApiRequest(BaseModel):
+    """Request model for invocation problem endpoint."""
+
+    type: str = Field(..., description="Problem type: feature, bug, question, other")
+    message: str = Field(..., description="Problem description (max 1000 chars)")
+
+
+class ProblemInvocationApiResponse(BaseModel):
+    """Response model for invocation problem endpoint."""
+
+    problem_id: UUID = Field(..., description="UUID of the created problem")
+    success: bool = Field(True, description="Whether the problem was created")
+    message: str = Field("Problem created successfully", description="Status message")

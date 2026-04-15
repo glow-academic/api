@@ -23,9 +23,11 @@ from app.infra.scenario.permissions_context import (
     resolve_scenario_permissions_context,
     resolve_scenario_values,
 )
+from app.infra.scenario.refresh import refresh_scenario_impl
 from app.tools.artifacts.scenario.update import (
     _UNSET,
 )
+from app.tools.artifacts.scenario.get import get_scenarios
 from app.tools.artifacts.scenario.update import (
     update_scenario as update_scenario_artifact,
 )
@@ -33,7 +35,6 @@ from app.infra.scenario.types import (
     UpdateScenarioApiRequest,
     UpdateScenarioApiResponse,
 )
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 if TYPE_CHECKING:
     from app.infra.scenario.types import UpdateScenarioItem
@@ -65,6 +66,8 @@ async def update_scenario_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> UpdateScenarioApiResponse:
     """Scenario bulk update using composable infra functions.
 
@@ -73,14 +76,83 @@ async def update_scenario_impl(
       2. Per-item: resolve_scenario_permissions_context → exists + compute_can_edit
       3. Per-item value resolution (raw → ID, no required field enforcement)
       4. Single transaction: update_scenario_artifact + denormalized snapshot per item
-      5. invalidate_tags
+      5. canonical refresh via refresh_scenario_impl
     """
     from app.infra.scenario.permissions import compute_can_edit
     from app.infra.scenario.types import (
         ScenarioResultItem,
     )
 
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key and accept is None:
+        accept = request.accept
     items = request.scenarios
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await update_scenario_artifact(
+                        conn,
+                        idempotency_key,
+                        soft=False,
+                    )
+
+            async with pool.acquire() as conn:
+                artifacts = await get_scenarios(
+                    conn,
+                    [idempotency_key],
+                    names=True,
+                    descriptions=True,
+                    departments=True,
+                    documents=True,
+                    images=True,
+                    objectives=True,
+                    options=True,
+                    parameter_fields=True,
+                    personas=True,
+                    problem_statements=True,
+                    questions=True,
+                    videos=True,
+                )
+            if artifacts:
+                artifact = artifacts[0]
+                await create_denormalized_snapshot(
+                    pool,
+                    redis,
+                    name_id=artifact.name_ids[0] if artifact.name_ids else None,
+                    description_id=artifact.description_ids[0] if artifact.description_ids else None,
+                    department_ids=artifact.department_ids or None,
+                    persona_ids=artifact.persona_ids or None,
+                    parameter_field_ids=artifact.parameter_field_ids or None,
+                    document_ids=artifact.document_ids or None,
+                    objective_ids=artifact.objective_ids or None,
+                    image_ids=artifact.image_ids or None,
+                    video_ids=artifact.video_ids or None,
+                    question_ids=artifact.question_ids or None,
+                    option_ids=artifact.option_ids or None,
+                    problem_statement_ids=artifact.problem_statement_ids or None,
+                )
+
+            await refresh_scenario_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
+            )
+
+        return UpdateScenarioApiResponse(
+            results=[
+                ScenarioResultItem(
+                    success=True,
+                    scenario_id=idempotency_key,
+                    message="Update accepted" if accept else "Update rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -138,37 +210,42 @@ async def update_scenario_impl(
             error_results.append(ScenarioResultItem(success=True, message="Validated"))
 
     if has_errors:
-        return UpdateScenarioApiResponse(results=error_results)
+        return UpdateScenarioApiResponse(
+            results=error_results,
+            idempotency_key=idempotency_key,
+        )
 
     # ── Step 4: Single transaction ─────────────────────────────────────
 
     results: list[ScenarioResultItem] = []
 
     for item in items:
-        # Create denormalized snapshot OUTSIDE transaction (read-only hydration)
-        scenarios_resource_id = await create_denormalized_snapshot(
-            pool,
-            redis,
-            name_id=item.name_id,
-            description_id=item.description_id,
-            department_ids=item.department_ids,
-            persona_ids=item.persona_ids,
-            parameter_field_ids=item.parameter_field_ids,
-            document_ids=item.document_ids,
-            objective_ids=item.objective_ids,
-            image_ids=item.image_ids,
-            video_ids=item.video_ids,
-            question_ids=item.question_ids,
-            option_ids=item.option_ids,
-            problem_statement_ids=[item.problem_statement_id]
-            if item.problem_statement_id
-            else None,
-            images_enabled=item.images_enabled_flag,
-            objectives_enabled=item.objectives_enabled_flag,
-            problem_statement_enabled=item.problem_statement_enabled_flag,
-            questions_enabled=item.questions_enabled_flag,
-            video_enabled=item.video_enabled_flag,
-        )
+        scenarios_resource_id = None
+        if not soft:
+            # Create denormalized snapshot OUTSIDE transaction (read-only hydration)
+            scenarios_resource_id = await create_denormalized_snapshot(
+                pool,
+                redis,
+                name_id=item.name_id,
+                description_id=item.description_id,
+                department_ids=item.department_ids,
+                persona_ids=item.persona_ids,
+                parameter_field_ids=item.parameter_field_ids,
+                document_ids=item.document_ids,
+                objective_ids=item.objective_ids,
+                image_ids=item.image_ids,
+                video_ids=item.video_ids,
+                question_ids=item.question_ids,
+                option_ids=item.option_ids,
+                problem_statement_ids=[item.problem_statement_id]
+                if item.problem_statement_id
+                else None,
+                images_enabled=item.images_enabled_flag,
+                objectives_enabled=item.objectives_enabled_flag,
+                problem_statement_enabled=item.problem_statement_enabled_flag,
+                questions_enabled=item.questions_enabled_flag,
+                video_enabled=item.video_enabled_flag,
+            )
 
         flag_ids = _collect_flag_ids(item)
 
@@ -195,7 +272,7 @@ async def update_scenario_impl(
                     else None,
                     question_ids=item.question_ids,
                     video_ids=item.video_ids,
-                    scenario_ids=[scenarios_resource_id],
+                    scenario_ids=[scenarios_resource_id] if scenarios_resource_id else None,
                     soft=soft,
                 )
 
@@ -203,12 +280,24 @@ async def update_scenario_impl(
             ScenarioResultItem(
                 success=True,
                 scenario_id=item.scenario_id,
-                message="Scenario updated successfully",
+                message=(
+                    "Scenario updated (pending acceptance)"
+                    if soft
+                    else "Scenario updated successfully"
+                ),
             )
         )
 
-    # ── Step 5: Invalidate cache ───────────────────────────────────────
+    # ── Step 5: Canonical refresh ──────────────────────────────────────
 
-    await invalidate_tags(["scenarios"], redis=redis)
+    first_id = results[0].scenario_id if results else None
+    await refresh_scenario_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or first_id,
+    )
 
-    return UpdateScenarioApiResponse(results=results)
+    return UpdateScenarioApiResponse(results=results, idempotency_key=idempotency_key)

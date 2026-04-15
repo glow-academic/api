@@ -30,6 +30,18 @@ permissions = [
         name="Export Activity",
     ),
     dict(
+        id=sid("permission/activity/generate"),
+        artifact="activity",
+        operation="generate",
+        name="Generate Activity",
+    ),
+    dict(
+        id=sid("permission/activity/generations"),
+        artifact="activity",
+        operation="generations",
+        name="Generations Activity",
+    ),
+    dict(
         id=sid("permission/activity/get"),
         artifact="activity",
         operation="get",
@@ -413,6 +425,18 @@ permissions = [
         name="Export Benchmark",
     ),
     dict(
+        id=sid("permission/benchmark/generate"),
+        artifact="benchmark",
+        operation="generate",
+        name="Generate Benchmark",
+    ),
+    dict(
+        id=sid("permission/benchmark/generations"),
+        artifact="benchmark",
+        operation="generations",
+        name="Generations Benchmark",
+    ),
+    dict(
         id=sid("permission/benchmark/get"),
         artifact="benchmark",
         operation="get",
@@ -423,6 +447,12 @@ permissions = [
         artifact="benchmark",
         operation="group",
         name="Group Benchmark",
+    ),
+    dict(
+        id=sid("permission/benchmark/problem"),
+        artifact="benchmark",
+        operation="problem",
+        name="Problem Benchmark",
     ),
     dict(
         id=sid("permission/benchmark/refresh"),
@@ -599,6 +629,18 @@ permissions = [
         name="Export Dashboard",
     ),
     dict(
+        id=sid("permission/dashboard/generate"),
+        artifact="dashboard",
+        operation="generate",
+        name="Generate Dashboard",
+    ),
+    dict(
+        id=sid("permission/dashboard/generations"),
+        artifact="dashboard",
+        operation="generations",
+        name="Generations Dashboard",
+    ),
+    dict(
         id=sid("permission/dashboard/get"),
         artifact="dashboard",
         operation="get",
@@ -609,6 +651,12 @@ permissions = [
         artifact="dashboard",
         operation="group",
         name="Group Dashboard",
+    ),
+    dict(
+        id=sid("permission/dashboard/problem"),
+        artifact="dashboard",
+        operation="problem",
+        name="Problem Dashboard",
     ),
     dict(
         id=sid("permission/dashboard/refresh"),
@@ -1097,6 +1145,18 @@ permissions = [
         name="Export Health",
     ),
     dict(
+        id=sid("permission/health/generate"),
+        artifact="health",
+        operation="generate",
+        name="Generate Health",
+    ),
+    dict(
+        id=sid("permission/health/generations"),
+        artifact="health",
+        operation="generations",
+        name="Generations Health",
+    ),
+    dict(
         id=sid("permission/health/get"),
         artifact="health",
         operation="get",
@@ -1107,6 +1167,12 @@ permissions = [
         artifact="health",
         operation="group",
         name="Group Health",
+    ),
+    dict(
+        id=sid("permission/health/problem"),
+        artifact="health",
+        operation="problem",
+        name="Problem Health",
     ),
     dict(
         id=sid("permission/health/refresh"),
@@ -1139,6 +1205,18 @@ permissions = [
         name="Export Home",
     ),
     dict(
+        id=sid("permission/home/generate"),
+        artifact="home",
+        operation="generate",
+        name="Generate Home",
+    ),
+    dict(
+        id=sid("permission/home/generations"),
+        artifact="home",
+        operation="generations",
+        name="Generations Home",
+    ),
+    dict(
         id=sid("permission/home/get"),
         artifact="home",
         operation="get",
@@ -1149,6 +1227,12 @@ permissions = [
         artifact="home",
         operation="group",
         name="Group Home",
+    ),
+    dict(
+        id=sid("permission/home/problem"),
+        artifact="home",
+        operation="problem",
+        name="Problem Home",
     ),
     dict(
         id=sid("permission/home/refresh"),
@@ -1199,10 +1283,34 @@ permissions = [
         name="Export Invocation",
     ),
     dict(
+        id=sid("permission/invocation/generate"),
+        artifact="invocation",
+        operation="generate",
+        name="Generate Invocation",
+    ),
+    dict(
+        id=sid("permission/invocation/generations"),
+        artifact="invocation",
+        operation="generations",
+        name="Generations Invocation",
+    ),
+    dict(
         id=sid("permission/invocation/get"),
         artifact="invocation",
         operation="get",
         name="Get Invocation",
+    ),
+    dict(
+        id=sid("permission/invocation/group"),
+        artifact="invocation",
+        operation="group",
+        name="Group Invocation",
+    ),
+    dict(
+        id=sid("permission/invocation/problem"),
+        artifact="invocation",
+        operation="problem",
+        name="Problem Invocation",
     ),
     dict(
         id=sid("permission/invocation/refresh"),
@@ -1235,6 +1343,18 @@ permissions = [
         name="Export Leaderboard",
     ),
     dict(
+        id=sid("permission/leaderboard/generate"),
+        artifact="leaderboard",
+        operation="generate",
+        name="Generate Leaderboard",
+    ),
+    dict(
+        id=sid("permission/leaderboard/generations"),
+        artifact="leaderboard",
+        operation="generations",
+        name="Generations Leaderboard",
+    ),
+    dict(
         id=sid("permission/leaderboard/get"),
         artifact="leaderboard",
         operation="get",
@@ -1245,6 +1365,12 @@ permissions = [
         artifact="leaderboard",
         operation="group",
         name="Group Leaderboard",
+    ),
+    dict(
+        id=sid("permission/leaderboard/problem"),
+        artifact="leaderboard",
+        operation="problem",
+        name="Problem Leaderboard",
     ),
     dict(
         id=sid("permission/leaderboard/refresh"),
@@ -1571,6 +1697,18 @@ permissions = [
         name="Export Practice",
     ),
     dict(
+        id=sid("permission/practice/generate"),
+        artifact="practice",
+        operation="generate",
+        name="Generate Practice",
+    ),
+    dict(
+        id=sid("permission/practice/generations"),
+        artifact="practice",
+        operation="generations",
+        name="Generations Practice",
+    ),
+    dict(
         id=sid("permission/practice/get"),
         artifact="practice",
         operation="get",
@@ -1581,6 +1719,12 @@ permissions = [
         artifact="practice",
         operation="group",
         name="Group Practice",
+    ),
+    dict(
+        id=sid("permission/practice/problem"),
+        artifact="practice",
+        operation="problem",
+        name="Problem Practice",
     ),
     dict(
         id=sid("permission/practice/refresh"),
@@ -1613,6 +1757,18 @@ permissions = [
         name="Export Pricing",
     ),
     dict(
+        id=sid("permission/pricing/generate"),
+        artifact="pricing",
+        operation="generate",
+        name="Generate Pricing",
+    ),
+    dict(
+        id=sid("permission/pricing/generations"),
+        artifact="pricing",
+        operation="generations",
+        name="Generations Pricing",
+    ),
+    dict(
         id=sid("permission/pricing/get"),
         artifact="pricing",
         operation="get",
@@ -1623,6 +1779,12 @@ permissions = [
         artifact="pricing",
         operation="group",
         name="Group Pricing",
+    ),
+    dict(
+        id=sid("permission/pricing/problem"),
+        artifact="pricing",
+        operation="problem",
+        name="Problem Pricing",
     ),
     dict(
         id=sid("permission/pricing/refresh"),
@@ -1865,6 +2027,18 @@ permissions = [
         name="Export Record",
     ),
     dict(
+        id=sid("permission/record/generate"),
+        artifact="record",
+        operation="generate",
+        name="Generate Record",
+    ),
+    dict(
+        id=sid("permission/record/generations"),
+        artifact="record",
+        operation="generations",
+        name="Generations Record",
+    ),
+    dict(
         id=sid("permission/record/get"),
         artifact="record",
         operation="get",
@@ -1875,6 +2049,12 @@ permissions = [
         artifact="record",
         operation="group",
         name="Group Record",
+    ),
+    dict(
+        id=sid("permission/record/problem"),
+        artifact="record",
+        operation="problem",
+        name="Problem Record",
     ),
     dict(
         id=sid("permission/record/refresh"),
@@ -1907,6 +2087,18 @@ permissions = [
         name="Export Reports",
     ),
     dict(
+        id=sid("permission/reports/generate"),
+        artifact="reports",
+        operation="generate",
+        name="Generate Reports",
+    ),
+    dict(
+        id=sid("permission/reports/generations"),
+        artifact="reports",
+        operation="generations",
+        name="Generations Reports",
+    ),
+    dict(
         id=sid("permission/reports/get"),
         artifact="reports",
         operation="get",
@@ -1917,6 +2109,12 @@ permissions = [
         artifact="reports",
         operation="group",
         name="Group Reports",
+    ),
+    dict(
+        id=sid("permission/reports/problem"),
+        artifact="reports",
+        operation="problem",
+        name="Problem Reports",
     ),
     dict(
         id=sid("permission/reports/refresh"),
@@ -2149,6 +2347,18 @@ permissions = [
         name="Export Session",
     ),
     dict(
+        id=sid("permission/session/generate"),
+        artifact="session",
+        operation="generate",
+        name="Generate Session",
+    ),
+    dict(
+        id=sid("permission/session/generations"),
+        artifact="session",
+        operation="generations",
+        name="Generations Session",
+    ),
+    dict(
         id=sid("permission/session/get"),
         artifact="session",
         operation="get",
@@ -2159,6 +2369,12 @@ permissions = [
         artifact="session",
         operation="group",
         name="Group Session",
+    ),
+    dict(
+        id=sid("permission/session/problem"),
+        artifact="session",
+        operation="problem",
+        name="Problem Session",
     ),
     dict(
         id=sid("permission/session/refresh"),
@@ -2596,6 +2812,8 @@ PERMISSION_IDS = {
 
     ("activity", "context"): sid("permission/activity/context"),    ("activity", "docs"): sid("permission/activity/docs"),
     ("activity", "export"): sid("permission/activity/export"),
+    ("activity", "generate"): sid("permission/activity/generate"),
+    ("activity", "generations"): sid("permission/activity/generations"),
     ("activity", "get"): sid("permission/activity/get"),
     ("activity", "group"): sid("permission/activity/group"),
     ("activity", "problem"): sid("permission/activity/problem"),
@@ -2663,8 +2881,11 @@ PERMISSION_IDS = {
 
     ("benchmark", "context"): sid("permission/benchmark/context"),    ("benchmark", "docs"): sid("permission/benchmark/docs"),
     ("benchmark", "export"): sid("permission/benchmark/export"),
+    ("benchmark", "generate"): sid("permission/benchmark/generate"),
+    ("benchmark", "generations"): sid("permission/benchmark/generations"),
     ("benchmark", "get"): sid("permission/benchmark/get"),
     ("benchmark", "group"): sid("permission/benchmark/group"),
+    ("benchmark", "problem"): sid("permission/benchmark/problem"),
     ("benchmark", "refresh"): sid("permission/benchmark/refresh"),
     ("benchmark", "search"): sid("permission/benchmark/search"),
 
@@ -2694,8 +2915,11 @@ PERMISSION_IDS = {
 
     ("dashboard", "context"): sid("permission/dashboard/context"),    ("dashboard", "docs"): sid("permission/dashboard/docs"),
     ("dashboard", "export"): sid("permission/dashboard/export"),
+    ("dashboard", "generate"): sid("permission/dashboard/generate"),
+    ("dashboard", "generations"): sid("permission/dashboard/generations"),
     ("dashboard", "get"): sid("permission/dashboard/get"),
     ("dashboard", "group"): sid("permission/dashboard/group"),
+    ("dashboard", "problem"): sid("permission/dashboard/problem"),
     ("dashboard", "refresh"): sid("permission/dashboard/refresh"),
     ("dashboard", "search"): sid("permission/dashboard/search"),
 
@@ -2779,15 +3003,21 @@ PERMISSION_IDS = {
 
     ("health", "context"): sid("permission/health/context"),    ("health", "docs"): sid("permission/health/docs"),
     ("health", "export"): sid("permission/health/export"),
+    ("health", "generate"): sid("permission/health/generate"),
+    ("health", "generations"): sid("permission/health/generations"),
     ("health", "get"): sid("permission/health/get"),
     ("health", "group"): sid("permission/health/group"),
+    ("health", "problem"): sid("permission/health/problem"),
     ("health", "refresh"): sid("permission/health/refresh"),
     ("health", "search"): sid("permission/health/search"),
 
     ("home", "context"): sid("permission/home/context"),    ("home", "docs"): sid("permission/home/docs"),
     ("home", "export"): sid("permission/home/export"),
+    ("home", "generate"): sid("permission/home/generate"),
+    ("home", "generations"): sid("permission/home/generations"),
     ("home", "get"): sid("permission/home/get"),
     ("home", "group"): sid("permission/home/group"),
+    ("home", "problem"): sid("permission/home/problem"),
     ("home", "refresh"): sid("permission/home/refresh"),
     ("home", "search"): sid("permission/home/search"),
 
@@ -2796,14 +3026,21 @@ PERMISSION_IDS = {
     ("invocation", "draft"): sid("permission/invocation/draft"),
     ("invocation", "drafts"): sid("permission/invocation/drafts"),
     ("invocation", "export"): sid("permission/invocation/export"),
+    ("invocation", "generate"): sid("permission/invocation/generate"),
+    ("invocation", "generations"): sid("permission/invocation/generations"),
     ("invocation", "get"): sid("permission/invocation/get"),
+    ("invocation", "group"): sid("permission/invocation/group"),
+    ("invocation", "problem"): sid("permission/invocation/problem"),
     ("invocation", "refresh"): sid("permission/invocation/refresh"),
     ("invocation", "search"): sid("permission/invocation/search"),
 
     ("leaderboard", "context"): sid("permission/leaderboard/context"),    ("leaderboard", "docs"): sid("permission/leaderboard/docs"),
     ("leaderboard", "export"): sid("permission/leaderboard/export"),
+    ("leaderboard", "generate"): sid("permission/leaderboard/generate"),
+    ("leaderboard", "generations"): sid("permission/leaderboard/generations"),
     ("leaderboard", "get"): sid("permission/leaderboard/get"),
     ("leaderboard", "group"): sid("permission/leaderboard/group"),
+    ("leaderboard", "problem"): sid("permission/leaderboard/problem"),
     ("leaderboard", "refresh"): sid("permission/leaderboard/refresh"),
     ("leaderboard", "search"): sid("permission/leaderboard/search"),
 
@@ -2858,15 +3095,21 @@ PERMISSION_IDS = {
 
     ("practice", "context"): sid("permission/practice/context"),    ("practice", "docs"): sid("permission/practice/docs"),
     ("practice", "export"): sid("permission/practice/export"),
+    ("practice", "generate"): sid("permission/practice/generate"),
+    ("practice", "generations"): sid("permission/practice/generations"),
     ("practice", "get"): sid("permission/practice/get"),
     ("practice", "group"): sid("permission/practice/group"),
+    ("practice", "problem"): sid("permission/practice/problem"),
     ("practice", "refresh"): sid("permission/practice/refresh"),
     ("practice", "search"): sid("permission/practice/search"),
 
     ("pricing", "context"): sid("permission/pricing/context"),    ("pricing", "docs"): sid("permission/pricing/docs"),
     ("pricing", "export"): sid("permission/pricing/export"),
+    ("pricing", "generate"): sid("permission/pricing/generate"),
+    ("pricing", "generations"): sid("permission/pricing/generations"),
     ("pricing", "get"): sid("permission/pricing/get"),
     ("pricing", "group"): sid("permission/pricing/group"),
+    ("pricing", "problem"): sid("permission/pricing/problem"),
     ("pricing", "refresh"): sid("permission/pricing/refresh"),
     ("pricing", "search"): sid("permission/pricing/search"),
     ("profile", "context"): sid("permission/profile/context"),
@@ -2907,15 +3150,21 @@ PERMISSION_IDS = {
 
     ("record", "context"): sid("permission/record/context"),    ("record", "docs"): sid("permission/record/docs"),
     ("record", "export"): sid("permission/record/export"),
+    ("record", "generate"): sid("permission/record/generate"),
+    ("record", "generations"): sid("permission/record/generations"),
     ("record", "get"): sid("permission/record/get"),
     ("record", "group"): sid("permission/record/group"),
+    ("record", "problem"): sid("permission/record/problem"),
     ("record", "refresh"): sid("permission/record/refresh"),
     ("record", "search"): sid("permission/record/search"),
 
     ("reports", "context"): sid("permission/reports/context"),    ("reports", "docs"): sid("permission/reports/docs"),
     ("reports", "export"): sid("permission/reports/export"),
+    ("reports", "generate"): sid("permission/reports/generate"),
+    ("reports", "generations"): sid("permission/reports/generations"),
     ("reports", "get"): sid("permission/reports/get"),
     ("reports", "group"): sid("permission/reports/group"),
+    ("reports", "problem"): sid("permission/reports/problem"),
     ("reports", "refresh"): sid("permission/reports/refresh"),
     ("reports", "search"): sid("permission/reports/search"),
 
@@ -2957,8 +3206,11 @@ PERMISSION_IDS = {
 
     ("session", "context"): sid("permission/session/context"),    ("session", "docs"): sid("permission/session/docs"),
     ("session", "export"): sid("permission/session/export"),
+    ("session", "generate"): sid("permission/session/generate"),
+    ("session", "generations"): sid("permission/session/generations"),
     ("session", "get"): sid("permission/session/get"),
     ("session", "group"): sid("permission/session/group"),
+    ("session", "problem"): sid("permission/session/problem"),
     ("session", "refresh"): sid("permission/session/refresh"),
     ("session", "search"): sid("permission/session/search"),
 

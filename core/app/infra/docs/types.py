@@ -1,11 +1,15 @@
 """Shared Pydantic models for entry/resource/artifact documentation."""
 
+from __future__ import annotations
+
 from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 from app.infra.docs_helper import DocsApiResponse
+from app.infra.profile.types import ThemePrimitives
+from app.infra.shared_types import QGetProfileContextV4RoleResource
 
 
 class ColumnInfo(BaseModel):
@@ -72,14 +76,30 @@ class ComposedDocsResponse(BaseModel):
 
 
 class ProfileSummary(BaseModel):
-    """Caller identity derived from JWT — who you are on this page."""
+    """Caller identity derived from JWT — who you are on this page.
 
+    Superset of the old six-field version: now carries everything the client
+    needs so that ``/{artifact}/context`` fully replaces ``/profiles/context``
+    and the extra ``getLayoutContextData`` round-trip can be dropped.
+    """
+
+    # --- Original fields ---
     name: str = Field(..., description="Display name of the authenticated user")
     role: str = Field(..., description="Role name (e.g. 'Super Administrator')")
     role_level: int = Field(..., description="Role hierarchy level (0 = highest privilege)")
     department_ids: list[UUID] = Field(..., description="Departments the user belongs to")
     artifact_access: list[str] = Field(..., description="Artifact types this role can access (sidebar visibility)")
     is_active: bool = Field(..., description="Whether the user's profile is active")
+
+    # --- New fields (needed by client providers) ---
+    id: UUID = Field(..., description="Profile UUID (SocketProvider, ProfileProvider)")
+    theme: ThemePrimitives | None = Field(None, description="Theme primitives (ThemeHydrator)")
+    group_id: UUID | None = Field(None, description="Active generation group UUID (GroupProvider)")
+    session_id: UUID | None = Field(None, description="Current session UUID")
+    is_emulation: bool = Field(False, description="Whether user is in emulation mode (ProfileProvider)")
+    role_resources: list[QGetProfileContextV4RoleResource] | None = Field(None, description="All role resources for emulation display (ProfileProvider)")
+    scoped_roles: list[str] | None = Field(None, description="Roles the user can emulate (ProfileProvider)")
+    active: bool = Field(True, description="Alias for is_active (ProfileProvider uses this name)")
 
 
 class CallerPermissions(BaseModel):

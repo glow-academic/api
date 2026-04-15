@@ -34,6 +34,9 @@ class CohortNameResource(BaseModel):
     id: UUID | None = Field(None, description="Unique identifier")
     name: str | None = Field(None, description="Display name")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class CohortDescriptionResource(BaseModel):
@@ -42,6 +45,9 @@ class CohortDescriptionResource(BaseModel):
     id: UUID | None = Field(None, description="Unique identifier")
     description: str | None = Field(None, description="Description text")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class CohortFlagConfig(BaseModel):
@@ -55,6 +61,9 @@ class CohortFlagConfig(BaseModel):
     show: bool | None = Field(None, description="Whether to show this flag in the UI")
     required: bool | None = Field(None, description="Whether this flag is required")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class CohortDepartment(BaseModel):
@@ -64,6 +73,9 @@ class CohortDepartment(BaseModel):
     name: str | None = Field(None, description="Department name")
     description: str | None = Field(None, description="Department description")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class CohortSimulation(BaseModel):
@@ -73,15 +85,22 @@ class CohortSimulation(BaseModel):
     name: str | None = Field(None, description="Simulation name")
     description: str | None = Field(None, description="Simulation description")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class CohortSimulationPosition(BaseModel):
     """Simulation position for cohort."""
 
+    id: UUID | None = Field(None, description="Unique identifier")
     simulation_id: UUID | None = Field(None, description="Associated simulation UUID")
     value: int | None = Field(None, description="Position value")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     mcp: bool | None = Field(None, description="Whether created via MCP")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class CohortSimulationAvailability(BaseModel):
@@ -93,6 +112,9 @@ class CohortSimulationAvailability(BaseModel):
     type: str | None = Field(None, description="Availability type")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     mcp: bool | None = Field(None, description="Whether created via MCP")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class CohortProfile(BaseModel):
@@ -103,6 +125,9 @@ class CohortProfile(BaseModel):
     description: str | None = Field(None, description="Profile description")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     mcp: bool | None = Field(None, description="Whether created via MCP")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class CohortProfilePersona(BaseModel):
@@ -113,6 +138,29 @@ class CohortProfilePersona(BaseModel):
     persona_id: UUID | None = Field(None, description="Associated persona UUID")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     mcp: bool | None = Field(None, description="Whether created via MCP")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class CohortPersonaResource(BaseModel):
+    """Persona option exposed from cohort GET."""
+
+    id: UUID | None = Field(None, description="Persona UUID")
+    name: str | None = Field(None, description="Persona name")
+    description: str | None = Field(None, description="Persona description")
+    icon: str | None = Field(None, description="Persona icon")
+    color: str | None = Field(None, description="Persona color")
+    department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
+    instructions: str | None = Field(None, description="Persona instructions")
+    examples: list[str] | None = Field(None, description="Persona examples")
+    parameter_field_ids: list[UUID] | None = Field(None, description="Associated parameter field UUIDs")
+    active: bool | None = Field(None, description="Whether the persona is active")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    mcp: bool | None = Field(None, description="Whether created via MCP")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 # =============================================================================
@@ -147,16 +195,40 @@ class CohortResources(BaseModel):
 # =============================================================================
 
 
-class GetCohortApiRequest(BaseModel):
-    """Request for getting a single cohort."""
+class SectionFilter(BaseModel):
+    """Per-section filter options for GET requests."""
 
-    cohort_id: UUID | None = Field(None, description="Cohort UUID to retrieve")
-    descriptions_search: str | None = Field(None, description="Search query for descriptions")
-    simulation_search: str | None = Field(None, description="Search query for simulations")
-    simulation_show_selected: bool | None = Field(None, description="Whether to show only selected simulations")
-    profile_search: str | None = Field(None, description="Search query for profiles")
-    profile_show_selected: bool | None = Field(None, description="Whether to show only selected profiles")
+    search: str | None = Field(None, description="Filter options by search text")
+    limit: int | None = Field(None, description="Max options to return")
+    selected: bool | None = Field(None, description="Only return selected items")
+    suggested: bool | None = Field(None, description="Only return suggested items")
+    include: bool | None = Field(None, description="Include this section in response (default true)")
+    parameter_ids: list[str] | None = Field(None, description="Reserved for parity with persona pattern")
+
+
+class GetCohortApiRequest(BaseModel):
+    """Request model for get cohort endpoint."""
+
+    id: UUID | None = Field(None, description="Cohort UUID to retrieve")
+    cohort_id: UUID | None = Field(None, description="Legacy alias for cohort UUID")
     draft_id: UUID | None = Field(None, description="Draft UUID to load from")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+    names: SectionFilter | None = Field(None, description="Filter options for names section")
+    descriptions: SectionFilter | None = Field(None, description="Filter options for descriptions section")
+    flags: SectionFilter | None = Field(None, description="Filter options for flags section")
+    departments: SectionFilter | None = Field(None, description="Filter options for departments section")
+    simulations: SectionFilter | None = Field(None, description="Filter options for simulations section")
+    simulation_positions: SectionFilter | None = Field(None, description="Filter options for simulation positions section")
+    simulation_availability: SectionFilter | None = Field(None, description="Filter options for simulation availability section")
+    profiles: SectionFilter | None = Field(None, description="Filter options for profiles section")
+    profile_personas: SectionFilter | None = Field(None, description="Filter options for profile personas section")
+    personas: SectionFilter | None = Field(None, description="Filter options for personas section")
+    # Legacy top-level filters retained for compatibility while adapters migrate.
+    descriptions_search: str | None = Field(None, description="Legacy search query for descriptions")
+    simulation_search: str | None = Field(None, description="Legacy search query for simulations")
+    simulation_show_selected: bool | None = Field(None, description="Legacy selected-only flag for simulations")
+    profile_search: str | None = Field(None, description="Legacy search query for profiles")
+    profile_show_selected: bool | None = Field(None, description="Legacy selected-only flag for profiles")
 
 
 class CohortNameSection(BaseResourceSection):
@@ -213,22 +285,23 @@ class GetCohortApiResponse(BaseModel):
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled")
     group_id: UUID | None = Field(None, description="Associated group UUID")
+    show_ai_generate: bool | None = Field(None, description="Whether AI generation is available")
 
-    # Step-level AI generation flags
-    basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for basic step")
-    simulations_step_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for simulations step")
-    profiles_step_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for profiles step")
-
-    names: CohortNameSection | None = Field(None, description="Name section with resource and options")
-    descriptions: CohortDescriptionSection | None = Field(None, description="Description section with resource and options")
-    flags: CohortFlagSection | None = Field(None, description="Flag section with resource and options")
-    departments: CohortDepartmentSection | None = Field(None, description="Department section with selections and options")
-    simulations: CohortSimulationSection | None = Field(None, description="Simulation section with selections and options")
-    simulation_positions: CohortSimulationPositionSection | None = Field(None, description="Simulation position section")
-    simulation_availability: CohortSimulationAvailabilitySection | None = Field(None, description="Simulation availability section")
-    profiles: CohortProfileSection | None = Field(None, description="Profile section with selections and options")
-    profile_personas: CohortProfilePersonaSection | None = Field(None, description="Profile persona section")
-    personas: list[GetPersonaResponse] | None = Field(None, description="List of available personas")
+    names: list[CohortNameResource] | None = Field(None, description="Name resources with selected/suggested flags")
+    descriptions: list[CohortDescriptionResource] | None = Field(None, description="Description resources with selected/suggested flags")
+    flags: list[CohortFlagConfig] | None = Field(None, description="Flag resources with selected/suggested flags")
+    departments: list[CohortDepartment] | None = Field(None, description="Department resources with selected/suggested flags")
+    simulations: list[CohortSimulation] | None = Field(None, description="Simulation resources with selected/suggested flags")
+    simulation_positions: list[CohortSimulationPosition] | None = Field(None, description="Simulation position resources with selected/suggested flags")
+    simulation_availability: list[CohortSimulationAvailability] | None = Field(None, description="Simulation availability resources with selected/suggested flags")
+    profiles: list[CohortProfile] | None = Field(None, description="Profile resources with selected/suggested flags")
+    profile_personas: list[CohortProfilePersona] | None = Field(None, description="Profile persona resources with selected/suggested flags")
+    personas: list[CohortPersonaResource] | None = Field(None, description="Persona resources with selected/suggested flags")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource IDs from the draft, when available")
+    # Legacy step flags retained for callers that still read them.
+    basic_show_ai_generate: bool | None = Field(None, description="Legacy AI-generate flag for the basic step")
+    simulations_step_show_ai_generate: bool | None = Field(None, description="Legacy AI-generate flag for the simulations step")
+    profiles_step_show_ai_generate: bool | None = Field(None, description="Legacy AI-generate flag for the profiles step")
 
 
 # =============================================================================
@@ -384,12 +457,15 @@ class CreateCohortApiRequest(BaseModel):
     """Request model for bulk create cohort endpoint."""
 
     cohorts: list[CreateCohortItem] = Field(..., description="List of cohorts to create")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateCohortApiResponse(BaseModel):
     """Response model for bulk create cohort endpoint."""
 
     results: list[CohortResultItem] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # =============================================================================
@@ -429,12 +505,15 @@ class UpdateCohortApiRequest(BaseModel):
     """Request model for bulk update cohort endpoint."""
 
     cohorts: list[UpdateCohortItem] = Field(..., description="List of cohorts to update")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateCohortApiResponse(BaseModel):
     """Response model for bulk update cohort endpoint."""
 
     results: list[CohortResultItem] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 class SaveCohortFieldError(BaseModel):
@@ -453,6 +532,8 @@ class DeleteCohortApiRequest(BaseModel):
     """Request model for bulk delete cohort endpoint."""
 
     cohort_ids: list[UUID] = Field(..., description="Cohort UUIDs to delete")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    accept: bool = Field(True, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
 
 
 class DeleteCohortResult(BaseModel):
@@ -467,6 +548,7 @@ class DeleteCohortApiResponse(BaseModel):
     """Response model for bulk delete cohort endpoint."""
 
     results: list[DeleteCohortResult] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # =============================================================================
@@ -478,6 +560,8 @@ class DuplicateCohortApiRequest(BaseModel):
     """Request for duplicating a cohort."""
 
     cohort_id: UUID = Field(..., description="Cohort UUID to duplicate")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateCohortApiResponse(BaseModel):
@@ -486,6 +570,7 @@ class DuplicateCohortApiResponse(BaseModel):
     success: bool = Field(..., description="Whether the operation succeeded")
     cohort_id: UUID = Field(..., description="Newly created cohort UUID")
     message: str = Field(..., description="Human-readable result message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # =============================================================================
@@ -516,27 +601,23 @@ class DraftProfilePersonaValue(BaseModel):
 
 
 class PatchCohortDraftApiRequest(ScopedItem):
-    """Request model for new-style cohort draft endpoint.
-
-    Dual-mode for creatable resources:
-      - Single-select: name/name_id, description/description_id
-      - Multi-select compound: simulation_positions, simulation_availability,
-        profile_personas (values create resources, created IDs merged with existing IDs)
-    ID-only for non-creatable resources:
-      - flag_id, department_ids, simulation_ids, profile_ids
-
-    Client always sends full state (append-only — each write is a new snapshot).
-    """
+    """Request model for cohort draft endpoint."""
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
+        "flag": "flags",
         "flag_id": "flags",
+        "active_flag": "flags",
+        "active_flag_id": "flags",
         "department_ids": "departments",
+        "departments": "departments",
         "simulation_ids": "simulations",
+        "simulations": "simulations",
         "profile_ids": "profiles",
+        "profiles": "profiles",
         "simulation_position_ids": "simulation_positions",
         "simulation_positions": "simulation_positions",
         "simulation_availability_ids": "simulation_availability",
@@ -545,7 +626,8 @@ class PatchCohortDraftApiRequest(ScopedItem):
         "profile_personas": "profile_personas",
     }
 
-    input_draft_id: UUID | None = Field(None, description="Existing draft UUID to patch")
+    draft_id: UUID | None = Field(None, description="Existing draft UUID to patch")
+    input_draft_id: UUID | None = Field(None, description="Legacy alias for existing draft UUID to patch")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Name value to create a resource")
@@ -553,11 +635,17 @@ class PatchCohortDraftApiRequest(ScopedItem):
     description: str | None = Field(None, description="Description value to create a resource")
     description_id: UUID | None = Field(None, description="Existing description resource UUID")
 
-    # Non-creatable — ID-only
+    # Matchable single-select
+    flag: str | None = Field(None, description="Flag type or name to resolve")
     flag_id: UUID | None = Field(None, description="Flag option UUID")
+    active_flag_id: UUID | None = Field(None, description="UUID of the flag option to set active status")
+    active_flag: bool | None = Field(None, description="Whether the cohort is active (resolved to flag_id)")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
+    departments: list[str] | None = Field(None, description="Department names to resolve")
     simulation_ids: list[UUID] | None = Field(None, description="Simulation UUIDs")
+    simulations: list[str] | None = Field(None, description="Simulation names to resolve")
     profile_ids: list[UUID] | None = Field(None, description="Profile UUIDs")
+    profiles: list[str] | None = Field(None, description="Profile names to resolve")
 
     # Creatable multi-select compound — values create resources, IDs merged
     simulation_position_ids: list[UUID] | None = Field(None, description="Existing simulation position UUIDs")
@@ -566,23 +654,42 @@ class PatchCohortDraftApiRequest(ScopedItem):
     simulation_availability: list[DraftSimulationAvailabilityValue] | None = Field(None, description="Simulation availability values to create")
     profile_persona_ids: list[UUID] | None = Field(None, description="Existing profile persona UUIDs")
     profile_personas: list[DraftProfilePersonaValue] | None = Field(None, description="Profile persona values to create")
+    pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep as pending where supported by the tool layer")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack or retry")
+    accept: bool = Field(True, description="Accept or reject dormant draft state")
 
 
-class CohortDraftFormState(BaseModel):
+class DraftFormState(BaseModel):
     """Full form state after draft patch — server is source of truth.
 
     Client replaces its local form state with this after every successful patch.
     """
 
     name_id: UUID | None = Field(None, description="Selected name resource UUID")
+    name: str | None = Field(None, description="Name value that was saved")
     description_id: UUID | None = Field(None, description="Selected description resource UUID")
+    description: str | None = Field(None, description="Description value that was saved")
     flag_id: UUID | None = Field(None, description="Selected flag option UUID")
+    flag: str | None = Field(None, description="Flag value that was saved")
+    active_flag_id: UUID | None = Field(None, description="Selected active flag option UUID")
+    active_flag: bool | None = Field(None, description="Whether the active flag was enabled")
     department_ids: list[UUID] = Field(default_factory=list, description="Selected department UUIDs")
+    departments: list[str] = Field(default_factory=list, description="Department values that were saved")
     simulation_ids: list[UUID] = Field(default_factory=list, description="Selected simulation UUIDs")
+    simulations: list[str] = Field(default_factory=list, description="Simulation values that were saved")
     simulation_position_ids: list[UUID] = Field(default_factory=list, description="Selected simulation position UUIDs")
+    simulation_positions: list[DraftSimulationPositionValue] = Field(default_factory=list, description="Simulation position values that were saved")
     simulation_availability_ids: list[UUID] = Field(default_factory=list, description="Selected simulation availability UUIDs")
+    simulation_availability: list[DraftSimulationAvailabilityValue] = Field(default_factory=list, description="Simulation availability values that were saved")
     profile_ids: list[UUID] = Field(default_factory=list, description="Selected profile UUIDs")
+    profiles: list[str] = Field(default_factory=list, description="Profile values that were saved")
     profile_persona_ids: list[UUID] = Field(default_factory=list, description="Selected profile persona UUIDs")
+    profile_personas: list[DraftProfilePersonaValue] = Field(default_factory=list, description="Profile persona values that were saved")
+    pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource IDs retained on the draft")
+
+
+class CohortDraftFormState(DraftFormState):
+    """Backward-compatible alias for callers still importing the old name."""
 
 
 class PatchCohortDraftApiResponse(BaseModel):
@@ -590,8 +697,9 @@ class PatchCohortDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the operation succeeded")
     draft_id: UUID = Field(..., description="Draft UUID")
+    idempotency_key: UUID = Field(..., description="Idempotency key for this draft operation")
     message: str = Field(..., description="Human-readable result message")
-    form_state: CohortDraftFormState | None = Field(None, description="Server-authoritative form state")
+    form_state: DraftFormState | None = Field(None, description="Server-authoritative form state")
 
 
 # =============================================================================
@@ -685,6 +793,8 @@ class ProblemCohortApiRequest(BaseModel):
 
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemCohortApiResponse(BaseModel):
@@ -693,3 +803,4 @@ class ProblemCohortApiResponse(BaseModel):
     problem_id: UUID = Field(..., description="UUID of the created problem")
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")

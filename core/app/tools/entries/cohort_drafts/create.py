@@ -22,12 +22,14 @@ async def create_cohort_draft(
     simulation_availability_ids: list[UUID] | None = None,
     simulation_position_ids: list[UUID] | None = None,
     simulation_ids: list[UUID] | None = None,
+    pending_ids: set[UUID] | None = None,
 ) -> CreateCohortDraftResponse:
     """Create a cohort_drafts entry with optional connection table links."""
     draft_id = await conn.fetchval(
         """
         INSERT INTO cohort_drafts_entry (id, session_id, active, mcp, generated)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
+        ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         session_id,
@@ -75,12 +77,15 @@ async def create_cohort_draft(
         ),
     ]
 
+    _pending = pending_ids or set()
     for table, col, ids in connections:
         for rid in ids:
             await conn.execute(
-                f"INSERT INTO {table} (draft_id, {col}) VALUES ($1, $2)",
+                f"INSERT INTO {table} (draft_id, {col}, active) VALUES ($1, $2, $3) "
+                f"ON CONFLICT (draft_id, {col}) DO UPDATE SET active = EXCLUDED.active",
                 draft_id,
                 rid,
+                False if soft else (rid not in _pending),
             )
 
     return CreateCohortDraftResponse(id=draft_id)

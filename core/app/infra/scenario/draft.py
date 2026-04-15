@@ -5,12 +5,12 @@ Core draft function that composes existing black-box tools:
   2. compute_can_draft — permission check
   3. Value resolution (creatable resources only) — raw value → ID
   4. create_scenario_draft — entry tool (append-only snapshot)
-  5. refresh_scenario_drafts — MV refresh
-  6. invalidate_tags — cache invalidation
+ 5. refresh_scenario_impl — MV refresh + cache invalidation
 """
 
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
 import asyncpg
@@ -26,7 +26,7 @@ from app.infra.scenario.types import (
     ScenarioDraftFormState,
 )
 from app.tools.entries.scenario_drafts.create import create_scenario_draft
-from app.tools.entries.scenario_drafts.refresh import refresh_scenario_drafts
+from app.infra.scenario.refresh import refresh_scenario_impl
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.images.create import create_image
 from app.tools.resources.names.create import create_name
@@ -37,7 +37,7 @@ from app.tools.resources.problem_statements.create import (
 )
 from app.tools.resources.questions.create import create_question
 from app.tools.resources.videos.create import create_video
-from app.utils.cache.invalidate_tags import invalidate_tags
+from app.infra.tools.sanitize import sanitize_model_kwargs
 
 # ---------------------------------------------------------------------------
 # Value resolution — creatable resources only
@@ -140,7 +140,12 @@ async def patch_scenario_draft_impl(
     *,
     profile_id: UUID,
     session_id: UUID,
-    request: PatchScenarioDraftApiRequest,
+    request: PatchScenarioDraftApiRequest | None = None,
+    draft_id: UUID | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    **kwargs: Any,
 ) -> PatchScenarioDraftApiResponse:
     """Scenario draft using composable infra functions.
 
@@ -149,9 +154,88 @@ async def patch_scenario_draft_impl(
       2. compute_can_draft → permission check
       3. Value resolution (creatable resources only)
       4. create_scenario_draft entry tool (append-only snapshot)
-      5. refresh_scenario_drafts MV
-      6. invalidate_tags
+      5. refresh_scenario_impl MV + cache invalidation
     """
+
+    # ── Merge ack fields from request (HTTP) or params (generation pipeline)
+    if request is not None:
+        idempotency_key = idempotency_key or request.idempotency_key
+        if idempotency_key and accept is None:
+            accept = request.accept
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            # Promote: re-call create with soft=False → ON CONFLICT activates
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_scenario_draft(
+                        conn,
+                        session_id=session_id,
+                        id=idempotency_key,
+                        soft=False,
+                    )
+            await refresh_scenario_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                targets=["scenario_drafts_mv"],
+                operation_key=idempotency_key,
+            )
+        return PatchScenarioDraftApiResponse(
+            success=True,
+            draft_id=idempotency_key,
+            idempotency_key=idempotency_key,
+            message="Draft accepted" if accept else "Draft rejected",
+            form_state=ScenarioDraftFormState(
+                name_id=None,
+                description_id=None,
+                problem_statement_id=None,
+                flag_ids=[],
+                department_ids=[],
+                persona_ids=[],
+                document_ids=[],
+                parameter_field_ids=[],
+                objective_ids=[],
+                image_ids=[],
+                video_ids=[],
+                question_ids=[],
+                option_ids=[],
+            ),
+        )
+
+    # Build request from kwargs if not provided directly
+    if request is None:
+        filtered = sanitize_model_kwargs(
+            kwargs,
+            list_fields={
+                "flag_ids",
+                "department_ids",
+                "persona_ids",
+                "document_ids",
+                "parameter_field_ids",
+                "objective_ids",
+                "objectives",
+                "image_ids",
+                "images",
+                "video_ids",
+                "videos",
+                "question_ids",
+                "questions",
+                "option_ids",
+                "options",
+                "pending_ids",
+            },
+            value_id_pairs=[
+                ("name", "name_id"),
+                ("description", "description_id"),
+                ("problem_statement", "problem_statement_id"),
+            ],
+        )
+        if draft_id:
+            filtered["input_draft_id"] = draft_id
+        request = PatchScenarioDraftApiRequest(**filtered)
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -192,6 +276,8 @@ async def patch_scenario_draft_impl(
             result = await create_scenario_draft(
                 conn,
                 session_id=session_id,
+                id=idempotency_key,
+                soft=soft,
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id]
                 if request.description_id
@@ -230,18 +316,22 @@ async def patch_scenario_draft_impl(
         option_ids=request.option_ids or [],
     )
 
-    # ── Step 6: Refresh MV ─────────────────────────────────────────────
+    # ── Step 5: Refresh MV + cache invalidation ────────────────────────
 
-    async with pool.acquire() as conn:
-        await refresh_scenario_drafts(conn)
-
-    # ── Step 7: Invalidate cache ───────────────────────────────────────
-
-    await invalidate_tags(["scenarios", "drafts"], redis=redis)
+    await refresh_scenario_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        targets=["scenario_drafts_mv"],
+        soft=soft,
+        operation_key=idempotency_key or result.id,
+    )
 
     return PatchScenarioDraftApiResponse(
         success=True,
         draft_id=result.id,
-        message="Draft created successfully",
+        idempotency_key=idempotency_key or result.id,
+        message="Draft created (pending acceptance)" if soft else "Draft created successfully",
         form_state=form_state,
     )

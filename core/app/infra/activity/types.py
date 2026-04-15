@@ -128,3 +128,35 @@ class ResolveProblemApiResponse(BaseModel):
     problem_id: UUID = Field(..., description="ID of the resolved problem")
     resolved: bool = Field(..., description="Current resolved status")
     updated_at: datetime = Field(..., description="Timestamp of the update")
+
+
+# =============================================================================
+# Generations Types
+# =============================================================================
+
+
+class GenerationsActivityApiRequest(BaseModel):
+    """Request model for activity generations endpoint."""
+
+    search: str | None = Field(None, description="Name search (ILIKE)")
+    date_from: datetime | None = Field(None, description="Filter by creation date (>=)")
+    date_to: datetime | None = Field(None, description="Filter by creation date (<=)")
+    page_limit: int = Field(50, ge=1, description="Max items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
+
+
+class GenerationsActivityListItem(BaseModel):
+    """Single generation group in the activity generations response."""
+
+    group_id: UUID = Field(..., description="UUID of the generation group")
+    session_id: UUID | None = Field(None, description="Session that created this group")
+    group_name: str | None = Field(None, description="Optional human-readable group name")
+    created_at: datetime | None = Field(None, description="Timestamp of the generation")
+
+
+class GenerationsActivityApiResponse(BaseModel):
+    """Response model for activity generations endpoint."""
+
+    actor_name: str | None = Field(None, description="Display name of the current actor")
+    items: list[GenerationsActivityListItem] = Field(default_factory=list, description="Generation groups")
+    total_count: int = Field(0, description="Total number of matching generations")

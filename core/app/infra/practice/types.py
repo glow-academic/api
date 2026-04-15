@@ -1,5 +1,6 @@
 """Types for practice artifact endpoint."""
 
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -76,3 +77,55 @@ class ListPracticeResponse(HistoryResponse):
     """Client-facing API response for practice list (paginated history)."""
 
     pass
+
+
+# =============================================================================
+# Generations Types
+# =============================================================================
+
+
+class GenerationsPracticeApiRequest(BaseModel):
+    """Request model for practice generations endpoint."""
+
+    search: str | None = Field(None, description="Name search (ILIKE)")
+    date_from: datetime | None = Field(None, description="Start date filter")
+    date_to: datetime | None = Field(None, description="End date filter")
+    page_limit: int = Field(50, ge=1, le=100, description="Maximum items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
+
+
+class GenerationsPracticeListItem(BaseModel):
+    """Single generation group in the practice generations response."""
+
+    group_id: UUID = Field(..., description="UUID of the generation group")
+    session_id: UUID | None = Field(None, description="UUID of the parent session")
+    group_name: str | None = Field(None, description="Name of the generation group")
+    created_at: datetime | None = Field(None, description="Timestamp of the generation")
+
+
+class GenerationsPracticeApiResponse(BaseModel):
+    """Response model for practice generations endpoint."""
+
+    actor_name: str | None = Field(None, description="Display name of the current actor")
+    items: list[GenerationsPracticeListItem] = Field(default_factory=list, description="Generation groups")
+    total_count: int = Field(0, description="Total number of matching generations")
+
+
+# =============================================================================
+# Problem Types
+# =============================================================================
+
+
+class ProblemPracticeApiRequest(BaseModel):
+    """Request model for practice problem endpoint."""
+
+    type: str = Field(..., description="Problem type: feature, bug, question, other")
+    message: str = Field(..., description="Problem description (max 1000 chars)")
+
+
+class ProblemPracticeApiResponse(BaseModel):
+    """Response model for practice problem endpoint."""
+
+    problem_id: UUID = Field(..., description="UUID of the created problem")
+    success: bool = Field(True, description="Whether the problem was created")
+    message: str = Field("Problem created successfully", description="Status message")

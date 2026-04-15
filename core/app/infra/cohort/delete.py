@@ -23,10 +23,11 @@ from app.infra.cohort.types import (
     DeleteCohortApiResponse,
     DeleteCohortResult,
 )
+from app.infra.cohort.refresh import refresh_cohort_impl
+from app.infra.delete.delete_artifact import restore_artifacts
 from app.tools.artifacts.cohort.delete import delete_cohorts
 from app.tools.artifacts.cohort.get import get_cohorts
 from app.tools.resources.names.get import get_names
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def delete_cohort_impl(
@@ -37,6 +38,8 @@ async def delete_cohort_impl(
     cohort_ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> DeleteCohortApiResponse:
     """Cohort bulk delete using composable infra functions.
 
@@ -46,8 +49,47 @@ async def delete_cohort_impl(
       3. Per-item: compute_can_delete → permission check (fail fast)
       4. Fetch names for result messages
       5. Single transaction: delete_cohorts → bulk delete
-      6. invalidate_tags
+      6. refresh_cohort_impl
     """
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            # Confirm deletion: already soft-deleted, so just refresh state.
+            pass
+        else:
+            # Reject: restore the soft-deleted cohort artifacts.
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await restore_artifacts(
+                        conn,
+                        table="cohort_artifact",
+                        ids=cohort_ids,
+                    )
+
+        await refresh_cohort_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key or (cohort_ids[0] if cohort_ids else None),
+        )
+
+        return DeleteCohortApiResponse(
+            idempotency_key=idempotency_key,
+            results=[
+                DeleteCohortResult(
+                    success=True,
+                    cohort_id=cohort_id,
+                    message=(
+                        "Delete confirmed"
+                        if accept
+                        else "Delete rejected — cohort restored"
+                    ),
+                )
+                for cohort_id in cohort_ids
+            ],
+        )
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -105,9 +147,16 @@ async def delete_cohort_impl(
         async with conn.transaction():
             result = await delete_cohorts(conn, cohort_ids, soft=soft)
 
-    # ── Step 6: Invalidate cache ──────────────────────────────────────
+    # ── Step 6: Canonical refresh ──────────────────────────────────────
 
-    await invalidate_tags(["cohorts"], redis=redis)
+    await refresh_cohort_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
+    )
 
     # TODO: Add home_practice_sync cleanup for deleted cohort entries
 
@@ -115,9 +164,16 @@ async def delete_cohort_impl(
         DeleteCohortResult(
             success=True,
             cohort_id=pid,
-            message=f"Cohort '{name_map.get(pid, 'Unknown')}' deleted successfully",
+            message=(
+                f"Cohort '{name_map.get(pid, 'Unknown')}' deleted (pending confirmation)"
+                if soft
+                else f"Cohort '{name_map.get(pid, 'Unknown')}' deleted successfully"
+            ),
         )
         for pid in result.deleted_ids
     ]
 
-    return DeleteCohortApiResponse(results=results)
+    return DeleteCohortApiResponse(
+        results=results,
+        idempotency_key=idempotency_key,
+    )

@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Request
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.cohort.generate import generate_cohort_impl
+from app.infra.cohort.group import group_cohort_impl
 from app.infra.websocket.generation_types import (
     ArtifactGenerateRequest,
     ArtifactGenerateResponse,
@@ -43,6 +44,19 @@ async def generate_cohort(
         pool = get_pool()
         redis = get_redis_client()
 
+        group_id = None
+        if session_id:
+            group_result = await group_cohort_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+            )
+            group_id = group_result.group_id
+
+        if not request.group_id and group_id:
+            request = request.model_copy(update={"group_id": str(group_id)})
+
         async def _runner() -> ArtifactGenerateResponse:
             return await generate_cohort_impl(
                 pool,
@@ -59,6 +73,7 @@ async def generate_cohort(
             profile_id=profile_id,
             session_id=session_id,
             operation="generate",
+            group_id=group_id,
             arguments=request.model_dump(mode="json"),
             response_model=ArtifactGenerateResponse,
             runner=_runner,

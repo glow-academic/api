@@ -9,6 +9,18 @@ from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
 
 internal_sio = get_internal_sio()
+SECTIONS = (
+    "names",
+    "descriptions",
+    "flags",
+    "departments",
+    "simulations",
+    "simulation_positions",
+    "simulation_availability",
+    "profiles",
+    "profile_personas",
+    "personas",
+)
 
 
 @sio.on("cohort.get")  # type: ignore
@@ -46,8 +58,9 @@ async def cohort_get(sid: str, data: dict[str, Any]) -> None:
             redis,
             profile_id=identity.profile_id,
             session_id=identity.session_id,
-            cohort_id=payload.cohort_id,
+            cohort_id=payload.id or payload.cohort_id,
             draft_id=payload.draft_id,
+            filters={section: getattr(payload, section) for section in SECTIONS},
             descriptions_search=payload.descriptions_search,
             simulation_search=payload.simulation_search,
             simulation_show_selected=payload.simulation_show_selected,

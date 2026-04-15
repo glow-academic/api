@@ -20,12 +20,10 @@ from fastapi import HTTPException
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
+from app.infra.group.refresh import refresh_group_impl
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.group_names.create import create_group_name
-from app.tools.entries.group_names.refresh import refresh_group_names
 from app.tools.entries.groups.create import create_group
-from app.tools.entries.groups.refresh import refresh_groups
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 ARTIFACT_TYPE = "scenario"
 DEFAULT_WINDOW_SECONDS = 60
@@ -48,6 +46,14 @@ class GroupScenarioApiRequest(BaseModel):
         description="Existing group UUID (omit to create or reuse via time window)",
     )
     name: str | None = Field(None, description="Optional name for the group")
+    idempotency_key: UUID | None = Field(
+        None,
+        description="Operation key for ack — promotes or rejects a dormant group",
+    )
+    accept: bool = Field(
+        True,
+        description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+    )
 
 
 class GroupScenarioApiResponse(BaseModel):
@@ -62,6 +68,9 @@ class GroupScenarioApiResponse(BaseModel):
     )
     name: str | None = Field(
         None, description="The name that was set (if provided)"
+    )
+    idempotency_key: UUID | None = Field(
+        None, description="Idempotency key echoed back for client correlation"
     )
 
 
@@ -80,6 +89,9 @@ async def group_scenario_impl(
     group_id: UUID | None = None,
     name: str | None = None,
     window_seconds: int = DEFAULT_WINDOW_SECONDS,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    **_kwargs,
 ) -> GroupScenarioApiResponse:
     """Resolve or create a scenario group with optional naming.
 
@@ -95,6 +107,35 @@ async def group_scenario_impl(
     if request is not None:
         group_id = request.group_id
         name = request.name
+        idempotency_key = idempotency_key or request.idempotency_key
+        if idempotency_key and accept is None:
+            accept = request.accept
+
+    # ── Ack short-circuit ─────────────────────────────────────────────
+
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                await create_group(
+                    conn,
+                    session_id=session_id,
+                    artifact_type=ARTIFACT_TYPE,
+                    id=idempotency_key,
+                    soft=False,
+                )
+            await refresh_group_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+            )
+
+        return GroupScenarioApiResponse(
+            group_id=idempotency_key,
+            group_name_id=None,
+            name=name,
+            idempotency_key=idempotency_key,
+        )
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -129,7 +170,11 @@ async def group_scenario_impl(
             await redis.expire(key, window_seconds)
         else:
             async with pool.acquire() as conn:
-                result = await create_group(conn, session_id=session_id, artifact_type=ARTIFACT_TYPE)
+                result = await create_group(
+                    conn,
+                    session_id=session_id,
+                    artifact_type=ARTIFACT_TYPE,
+                )
             resolved_group_id = result.id
             await redis.setex(key, window_seconds, str(resolved_group_id))
             created_new = True
@@ -147,18 +192,19 @@ async def group_scenario_impl(
             )
             group_name_id = name_result.id
 
-        # Refresh MVs
-        async with pool.acquire() as conn:
-            await refresh_group_names(conn)
-            await refresh_groups(conn)
-
-    # ── Step 4: Invalidate cache (only if we wrote something) ─────────
+    # ── Step 4: Canonical refresh (only if we wrote something) ────────
 
     if created_new or group_name_id:
-        await invalidate_tags(["groups"], redis=redis)
+        await refresh_group_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+        )
 
     return GroupScenarioApiResponse(
         group_id=resolved_group_id,
         group_name_id=group_name_id,
         name=name,
+        idempotency_key=idempotency_key,
     )

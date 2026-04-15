@@ -6,13 +6,14 @@ from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.refresh.types import RefreshResponse
 from app.infra.scenario.group import group_scenario_impl
-from app.infra.scenario.refresh import refresh_scenario_impl
+from app.infra.scenario.refresh import RefreshScenarioApiRequest, refresh_scenario_impl
 
 router = APIRouter()
 
 
 @router.post("/refresh", response_model=RefreshResponse)
 async def scenario_refresh(
+    request: RefreshScenarioApiRequest,
     http_request: Request,
     response: Response,
 ) -> RefreshResponse:
@@ -35,6 +36,8 @@ async def scenario_refresh(
             pool,
             redis,
             profile_id=profile_id,
+            session_id=session_id,
+            request=request,
         )
 
     result = await run_artifact_operation_with_audit(
@@ -44,7 +47,7 @@ async def scenario_refresh(
         profile_id=profile_id,
         session_id=session_id,
         operation="refresh",
-        arguments={},
+        arguments=request.model_dump(mode="json"),
         response_model=RefreshResponse,
         runner=_runner,
         upload_folder=get_upload_folder(),

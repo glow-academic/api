@@ -20,8 +20,8 @@ from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
     ComposedContextResponse,
-    ProfileSummary,
 )
+from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
 from app.infra.profile_identity_context import resolve_profile_identity_context
 
@@ -226,14 +226,7 @@ async def page_context_chat_impl(
 
     # -- Step 5: Build profile summary ------------------------------------------
 
-    profile_summary = ProfileSummary(
-        name=profile.name,
-        role=profile.role,
-        role_level=profile.role_level,
-        department_ids=profile.department_ids,
-        artifact_access=profile.role_artifacts,
-        is_active=profile.is_active,
-    )
+    profile_summary = await build_profile_summary(pool, redis, profile)
 
     # -- Step 6: Assemble response ----------------------------------------------
 

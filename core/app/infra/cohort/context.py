@@ -1,33 +1,26 @@
-"""Resolve cohort artifact context — merged junctions + hydrated resources.
+"""Resolve cohort artifact context - merged junctions + hydrated resources.
 
 Given a cohort_id (and optional draft_id), fetches the published artifact
 and draft entry, merges junction IDs (draft overrides published), then
 hydrates all resources in parallel (selected + suggestions).
 
-Composes existing black-box fetchers — no raw SQL.
+Composes existing black-box fetchers - no raw SQL.
 """
 
 from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
+from typing import Any
 from uuid import UUID
 
 import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.types import ArtifactContext, ResourcePair
-
-# Artifact + draft fetchers
-from app.tools.artifacts.cohort.get import (
-    get_cohorts as get_cohort_artifacts,
-)
+from app.tools.artifacts.cohort.get import get_cohorts as get_cohort_artifacts
 from app.tools.entries.cohort_drafts.get import get_cohort_drafts
-
-# Resource get fetchers (by known IDs)
 from app.tools.resources.departments.get import get_departments
-
-# Resource search fetchers (bounded, paginated)
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.descriptions.search import search_descriptions
@@ -42,8 +35,12 @@ from app.tools.resources.profiles.search import search_profiles
 from app.tools.resources.simulation_availability.get import (
     get_simulation_availability,
 )
-from app.tools.resources.simulation_positions.get import (
-    get_simulation_positions,
+from app.tools.resources.simulation_availability.search import (
+    search_simulation_availability,
+)
+from app.tools.resources.simulation_positions.get import get_simulation_positions
+from app.tools.resources.simulation_positions.search import (
+    search_simulation_positions,
 )
 from app.tools.resources.simulations.get import get_simulations
 from app.tools.resources.simulations.search import search_simulations
@@ -68,21 +65,12 @@ async def resolve_cohort_context(
     group_id: UUID,
     draft_id: UUID | None = None,
     user_department_ids: list[UUID] | None = None,
-    descriptions_search: str | None = None,
-    simulation_search: str | None = None,
-    simulation_show_selected: bool | None = None,
-    profile_search: str | None = None,
-    profile_show_selected: bool | None = None,
+    filters: dict[str, Any | None] | None = None,
     bypass_cache: bool = False,
 ) -> ArtifactContext:
-    """Resolve a cohort artifact into fully hydrated resources.
-
-    Steps:
-      1. Fetch artifact + draft in parallel → merge IDs
-      2. Parallel hydrate: get (selected) + search (suggestions) per resource
-      3. Assemble ArtifactContext with ResourcePairs
-    """
+    """Resolve a cohort artifact into fully hydrated resources."""
     user_dept_ids = user_department_ids or []
+    section_filters = filters or {}
 
     # Step 1: fetch artifact + draft in parallel
 
@@ -116,38 +104,65 @@ async def resolve_cohort_context(
     artifact = artifacts[0] if artifacts else None
     draft = drafts[0] if drafts else None
 
-    # Merge IDs: start from published, draft overrides if present
     merged = _merge_junction_ids(artifact, draft)
+    active = artifact.active if artifact else True
 
-    # Step 2: parallel hydrate — selected + suggestions for each resource
+    def _sf(section: str, attr: str, default=None):
+        sf = section_filters.get(section)
+        if sf is None:
+            return default
+        if isinstance(sf, dict):
+            return sf.get(attr, default)
+        return getattr(sf, attr, default)
 
-    async def _fetch_names_selected() -> list:
+    def _include(section: str) -> bool:
+        return _sf(section, "include", True) is not False
+
+    def _limit(section: str, default: int) -> int:
+        value = _sf(section, "limit", None)
+        return default if value is None else value
+
+    # Step 2: parallel hydrate - selected + suggestions for each resource
+
+    async def _get_names() -> list:
+        if not _include("names"):
+            return []
         async with pool.acquire() as conn:
             return await get_names(conn, merged.name_ids, redis, bypass_cache)
 
-    async def _fetch_names_suggestions() -> list:
+    async def _search_names() -> list:
+        if not _include("names"):
+            return []
         async with pool.acquire() as conn:
             return await search_names(
                 conn,
                 redis,
+                search=_sf("names", "search"),
+                limit_count=_limit("names", 20),
                 draft_id=group_id,
+                suggest_source="all",
                 exclude_ids=merged.name_ids,
                 bypass_cache=bypass_cache,
                 cohort=True,
             )
 
-    async def _fetch_descriptions_selected() -> list:
+    async def _get_descriptions() -> list:
+        if not _include("descriptions"):
+            return []
         async with pool.acquire() as conn:
             return await get_descriptions(
                 conn, merged.description_ids, redis, bypass_cache
             )
 
-    async def _fetch_descriptions_suggestions() -> list:
+    async def _search_descriptions() -> list:
+        if not _include("descriptions"):
+            return []
         async with pool.acquire() as conn:
             return await search_descriptions(
                 conn,
                 redis,
-                search=descriptions_search,
+                search=_sf("descriptions", "search"),
+                limit_count=_limit("descriptions", 20),
                 draft_id=group_id,
                 suggest_source="all",
                 exclude_ids=merged.description_ids,
@@ -155,65 +170,82 @@ async def resolve_cohort_context(
                 cohort=True,
             )
 
-    async def _fetch_flags_selected() -> list:
+    async def _get_flags() -> list:
+        if not _include("flags"):
+            return []
         async with pool.acquire() as conn:
             return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
 
-    async def _fetch_flags_all() -> list:
+    async def _search_flags() -> list:
+        if not _include("flags"):
+            return []
         async with pool.acquire() as conn:
             return await search_flags(
                 conn,
                 redis,
-                search=None,
-                limit_count=50,
+                search=_sf("flags", "search"),
+                limit_count=_limit("flags", 50),
                 offset_count=0,
                 exclude_ids=merged.flag_ids,
                 bypass_cache=bypass_cache,
                 cohort=True,
             )
 
-    async def _fetch_departments_selected() -> list:
+    async def _get_departments() -> list:
+        if not _include("departments"):
+            return []
         async with pool.acquire() as conn:
             return await get_departments(
                 conn, merged.department_ids, redis, bypass_cache=bypass_cache
             )
 
-    async def _fetch_departments_suggestions() -> list:
+    async def _search_departments() -> list:
+        if not _include("departments"):
+            return []
         async with pool.acquire() as conn:
             return await search_departments(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
+                search=_sf("departments", "search"),
+                limit_count=_limit("departments", 20),
                 offset_count=0,
-                department_ids=user_dept_ids,
+                draft_id=group_id,
                 suggest_source="all",
                 exclude_ids=merged.department_ids,
+                department_ids=user_dept_ids,
                 bypass_cache=bypass_cache,
+                cohort=True,
             )
 
-    async def _fetch_simulations_selected() -> list:
+    async def _get_simulations() -> list:
+        if not _include("simulations"):
+            return []
         async with pool.acquire() as conn:
             return await get_simulations(
                 conn, merged.simulation_ids, redis, bypass_cache=bypass_cache
             )
 
-    async def _fetch_simulations_suggestions() -> list:
+    async def _search_simulations() -> list:
+        if not _include("simulations"):
+            return []
         async with pool.acquire() as conn:
             return await search_simulations(
                 conn,
                 redis,
-                search=simulation_search,
-                limit_count=20,
+                search=_sf("simulations", "search"),
+                limit_count=_limit("simulations", 20),
                 offset_count=0,
                 draft_id=group_id,
-                suggest_source="selected" if simulation_show_selected else "all",
+                suggest_source="all",
                 exclude_ids=merged.simulation_ids,
+                department_ids=user_dept_ids,
                 bypass_cache=bypass_cache,
                 cohort=True,
             )
 
-    async def _fetch_simulation_positions() -> list:
+    async def _get_simulation_positions() -> list:
+        if not _include("simulation_positions"):
+            return []
         if not merged.simulation_position_ids:
             return []
         async with pool.acquire() as conn:
@@ -221,7 +253,24 @@ async def resolve_cohort_context(
                 conn, merged.simulation_position_ids, redis, bypass_cache=bypass_cache
             )
 
-    async def _fetch_simulation_availability() -> list:
+    async def _search_simulation_positions() -> list:
+        if not _include("simulation_positions"):
+            return []
+        async with pool.acquire() as conn:
+            return await search_simulation_positions(
+                conn,
+                redis,
+                limit_count=_limit("simulation_positions", 20),
+                offset_count=0,
+                exclude_ids=merged.simulation_position_ids,
+                simulation_ids=merged.simulation_ids or None,
+                bypass_cache=bypass_cache,
+                cohort=True,
+            )
+
+    async def _get_simulation_availability() -> list:
+        if not _include("simulation_availability"):
+            return []
         if not merged.simulation_availability_ids:
             return []
         async with pool.acquire() as conn:
@@ -232,7 +281,25 @@ async def resolve_cohort_context(
                 bypass_cache=bypass_cache,
             )
 
-    async def _fetch_profiles_selected() -> list:
+    async def _search_simulation_availability() -> list:
+        if not _include("simulation_availability"):
+            return []
+        async with pool.acquire() as conn:
+            return await search_simulation_availability(
+                conn,
+                redis,
+                search=_sf("simulation_availability", "search"),
+                limit_count=_limit("simulation_availability", 20),
+                offset_count=0,
+                exclude_ids=merged.simulation_availability_ids,
+                simulation_ids=merged.simulation_ids or None,
+                bypass_cache=bypass_cache,
+                cohort=True,
+            )
+
+    async def _get_profiles() -> list:
+        if not _include("profiles"):
+            return []
         if not merged.profile_ids:
             return []
         async with pool.acquire() as conn:
@@ -240,20 +307,27 @@ async def resolve_cohort_context(
                 conn, merged.profile_ids, redis, bypass_cache=bypass_cache
             )
 
-    async def _fetch_profiles_suggestions() -> list:
+    async def _search_profiles() -> list:
+        if not _include("profiles"):
+            return []
         async with pool.acquire() as conn:
             return await search_profiles(
                 conn,
                 redis,
-                search=profile_search,
-                limit_count=20,
+                search=_sf("profiles", "search"),
+                limit_count=_limit("profiles", 20),
                 offset_count=0,
+                draft_id=group_id,
+                suggest_source="all",
                 exclude_ids=merged.profile_ids or [],
                 department_ids=user_dept_ids,
                 bypass_cache=bypass_cache,
+                cohort=True,
             )
 
-    async def _fetch_profile_personas() -> list:
+    async def _get_profile_personas() -> list:
+        if not _include("profile_personas"):
+            return []
         if not merged.profile_persona_ids:
             return []
         async with pool.acquire() as conn:
@@ -261,15 +335,22 @@ async def resolve_cohort_context(
                 conn, merged.profile_persona_ids, redis, bypass_cache=bypass_cache
             )
 
-    async def _fetch_personas_catalog() -> list:
+    async def _search_personas() -> list:
+        if not _include("personas"):
+            return []
         async with pool.acquire() as conn:
             return await search_personas(
                 conn,
                 redis,
-                search=None,
-                limit_count=100,
+                search=_sf("personas", "search"),
+                limit_count=_limit("personas", 100),
                 offset_count=0,
+                draft_id=group_id,
+                suggest_source="all",
+                exclude_ids=[],
+                department_ids=user_dept_ids,
                 bypass_cache=bypass_cache,
+                persona=True,
             )
 
     (
@@ -278,38 +359,47 @@ async def resolve_cohort_context(
         descriptions_selected,
         descriptions_suggestions,
         flags_selected,
-        flags_all,
+        flags_suggestions,
         departments_selected,
         departments_suggestions,
         simulations_selected,
         simulations_suggestions,
         simulation_positions_selected,
+        simulation_positions_suggestions,
         simulation_availability_selected,
+        simulation_availability_suggestions,
         profiles_selected,
         profiles_suggestions,
         profile_personas_selected,
         personas_catalog,
     ) = await asyncio.gather(
-        _fetch_names_selected(),
-        _fetch_names_suggestions(),
-        _fetch_descriptions_selected(),
-        _fetch_descriptions_suggestions(),
-        _fetch_flags_selected(),
-        _fetch_flags_all(),
-        _fetch_departments_selected(),
-        _fetch_departments_suggestions(),
-        _fetch_simulations_selected(),
-        _fetch_simulations_suggestions(),
-        _fetch_simulation_positions(),
-        _fetch_simulation_availability(),
-        _fetch_profiles_selected(),
-        _fetch_profiles_suggestions(),
-        _fetch_profile_personas(),
-        _fetch_personas_catalog(),
+        _get_names(),
+        _search_names(),
+        _get_descriptions(),
+        _search_descriptions(),
+        _get_flags(),
+        _search_flags(),
+        _get_departments(),
+        _search_departments(),
+        _get_simulations(),
+        _search_simulations(),
+        _get_simulation_positions(),
+        _search_simulation_positions(),
+        _get_simulation_availability(),
+        _search_simulation_availability(),
+        _get_profiles(),
+        _search_profiles(),
+        _get_profile_personas(),
+        _search_personas(),
     )
 
-    # Filter flags to cohort-specific types
-    flags_suggestions = [f for f in flags_all if f.type in COHORT_FLAG_TYPES]
+    flags_suggestions = [
+        flag for flag in flags_suggestions if getattr(flag, "type", None) in COHORT_FLAG_TYPES
+    ]
+
+    # Cohort draft black-boxes do not expose inactive connections, so pending_ids
+    # remain empty until the draft layer grows that support.
+    pending_ids: set[UUID] = set()
 
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,
@@ -332,20 +422,22 @@ async def resolve_cohort_context(
                 selected=simulations_selected, suggestions=simulations_suggestions
             ),
             "simulation_positions": ResourcePair(
-                selected=list(simulation_positions_selected), suggestions=[]
+                selected=simulation_positions_selected,
+                suggestions=simulation_positions_suggestions,
             ),
             "simulation_availability": ResourcePair(
-                selected=list(simulation_availability_selected), suggestions=[]
+                selected=simulation_availability_selected,
+                suggestions=simulation_availability_suggestions,
             ),
             "profiles": ResourcePair(
-                selected=list(profiles_selected), suggestions=list(profiles_suggestions)
+                selected=profiles_selected, suggestions=profiles_suggestions
             ),
             "profile_personas": ResourcePair(
-                selected=list(profile_personas_selected), suggestions=[]
+                selected=profile_personas_selected, suggestions=[]
             ),
             "personas": ResourcePair(selected=[], suggestions=personas_catalog),
         },
-        entries={},
+        entries={"pending_ids": pending_ids},
     )
 
 
@@ -416,7 +508,3 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
         profile_ids=profile_ids,
         profile_persona_ids=profile_persona_ids,
     )
-
-
-async def _empty() -> list:
-    return []

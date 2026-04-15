@@ -7,7 +7,7 @@ Core duplicate function that composes existing black-box tools:
   4. create_name — new name resource ("{name} Copy")
   5. search_flags — find inactive flag (scenario_active, value=false)
   6. create_scenario — new artifact with original's IDs + new name + inactive flag
-  7. invalidate_tags — cache invalidation
+7. canonical refresh via refresh_scenario_impl
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ from app.infra.scenario.permissions import compute_can_duplicate
 from app.infra.scenario.types import (
     DuplicateScenarioApiResponse,
 )
+from app.infra.scenario.refresh import refresh_scenario_impl
 from app.tools.artifacts.scenario.create import (
     create_scenario as create_scenario_artifact,
 )
@@ -30,7 +31,6 @@ from app.tools.artifacts.scenario.get import get_scenarios
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def duplicate_scenario_impl(
@@ -41,6 +41,8 @@ async def duplicate_scenario_impl(
     scenario_id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> DuplicateScenarioApiResponse:
     """Scenario duplicate using composable infra functions.
 
@@ -51,7 +53,7 @@ async def duplicate_scenario_impl(
       4. create_name("{name} Copy") -> new name resource
       5. search_flags -> find inactive flag (scenario_active, value=false)
       6. create_scenario -> new artifact with original IDs + inactive flag
-      7. invalidate_tags
+      7. canonical refresh via refresh_scenario_impl
     """
 
     # -- Step 1: Profile context ------------------------------------------------
@@ -75,6 +77,31 @@ async def duplicate_scenario_impl(
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to duplicate this scenario.",
+        )
+
+    # -- Ack short-circuit ------------------------------------------------------
+
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_scenario_artifact(
+                        conn,
+                        id=idempotency_key,
+                        soft=False,
+                    )
+            await refresh_scenario_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
+            )
+        return DuplicateScenarioApiResponse(
+            success=True,
+            scenario_id=idempotency_key,
+            message="Duplicate accepted" if accept else "Duplicate rejected",
+            idempotency_key=idempotency_key,
         )
 
     # -- Step 3: Fetch original scenario with all junctions ---------------------
@@ -157,12 +184,20 @@ async def duplicate_scenario_impl(
                 soft=soft,
             )
 
-    # -- Step 7: Invalidate cache -----------------------------------------------
+    # -- Step 7: Canonical refresh ----------------------------------------------
 
-    await invalidate_tags(["scenarios"], redis=redis)
+    await refresh_scenario_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or result.id,
+    )
 
     return DuplicateScenarioApiResponse(
         success=True,
         scenario_id=result.id,
-        message=f"Scenario '{original_name}' duplicated successfully",
+        message="Scenario duplicated (pending acceptance)" if soft else f"Scenario '{original_name}' duplicated successfully",
+        idempotency_key=idempotency_key,
     )
