@@ -18066,6 +18066,110 @@
         ]
       }
     },
+    "/attempt/chat/send": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Send",
+        "description": "Send text or audio input to an attempt chat.\n\nRouting logic:\n- Voice session active + audio_id \u2192 feed audio to voice pipeline\n- Voice session active + text \u2192 feed text to voice pipeline (TTS)\n- No voice session + text \u2192 standard text generation pipeline\n- No voice session + audio_id \u2192 STT \u2192 standard text pipeline",
+        "operationId": "chat_send_attempt_chat_send_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatSendRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatSendResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/stop": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Stop",
+        "description": "Stop message generation for an attempt chat.",
+        "operationId": "chat_stop_attempt_chat_stop_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptStopPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StopChatApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
     "/attempt/chat/end": {
       "post": {
         "tags": [
@@ -18222,110 +18326,6 @@
         ]
       }
     },
-    "/attempt/chat/send": {
-      "post": {
-        "tags": [
-          "attempt",
-          "attempt-chat"
-        ],
-        "summary": "Chat Send",
-        "description": "Send a message in an attempt chat.\n\nBrowser client: sends message only, internal AI generates response + hints.\nAgent: can optionally provide assistant_content, hints, contents to skip AI.",
-        "operationId": "chat_send_attempt_chat_send_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChatSendApiRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChatSendApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "attempt-chat"
-        ]
-      }
-    },
-    "/attempt/chat/stop": {
-      "post": {
-        "tags": [
-          "attempt",
-          "attempt-chat"
-        ],
-        "summary": "Chat Stop",
-        "description": "Stop message generation for an attempt chat.",
-        "operationId": "chat_stop_attempt_chat_stop_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AttemptStopPayload"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StopChatApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "attempt-chat"
-        ]
-      }
-    },
     "/attempt/chat/voice": {
       "post": {
         "tags": [
@@ -18352,58 +18352,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AudioStartInternalResult"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "attempt-chat"
-        ]
-      }
-    },
-    "/attempt/chat/frame": {
-      "post": {
-        "tags": [
-          "attempt",
-          "attempt-chat"
-        ],
-        "summary": "Chat Frame",
-        "description": "Send an audio segment into the voice session via audio_id reference.",
-        "operationId": "chat_frame_attempt_chat_frame_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChatFrameRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChatFrameResponse"
                 }
               }
             }
@@ -18508,6 +18456,266 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AudioStopInternalResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/feedback": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Feedback",
+        "description": "Create feedback items for the latest grade on a chat.",
+        "operationId": "chat_feedback_attempt_chat_feedback_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatFeedbackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatFeedbackResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/strengths": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Strengths",
+        "description": "Create strength items (with optional inline highlights) for the latest grade.",
+        "operationId": "chat_strengths_attempt_chat_strengths_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatStrengthsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatStrengthsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/improvements": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Improvements",
+        "description": "Create improvement items (with optional inline replacements) for the latest grade.",
+        "operationId": "chat_improvements_attempt_chat_improvements_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatImprovementsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatImprovementsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/analyses": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Analyses",
+        "description": "Create analysis items for the latest grade on a chat.",
+        "operationId": "chat_analyses_attempt_chat_analyses_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatAnalysesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatAnalysesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/hints": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Hints",
+        "description": "Create hint items for messages in a chat.",
+        "operationId": "chat_hints_attempt_chat_hints_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatHintsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatHintsResponse"
                 }
               }
             }
@@ -48866,6 +49074,92 @@
         "title": "CallerPermissions",
         "description": "Evaluated permissions for the current caller on this artifact type."
       },
+      "ChatAnalysesRequest": {
+        "properties": {
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id"
+          },
+          "analyses": {
+            "items": {
+              "$ref": "#/components/schemas/ChatAnalysisItem"
+            },
+            "type": "array",
+            "title": "Analyses"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_id",
+          "analyses"
+        ],
+        "title": "ChatAnalysesRequest"
+      },
+      "ChatAnalysesResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "analysis_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Analysis Ids"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "analysis_ids"
+        ],
+        "title": "ChatAnalysesResponse"
+      },
+      "ChatAnalysisItem": {
+        "properties": {
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "title": "ChatAnalysisItem"
+      },
       "ChatData-Input": {
         "properties": {
           "id": {
@@ -49985,6 +50279,103 @@
         "title": "ChatDraftFormState",
         "description": "Server-authoritative form state returned after draft save."
       },
+      "ChatFeedbackItem": {
+        "properties": {
+          "feedback": {
+            "type": "string",
+            "title": "Feedback"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feedback"
+        ],
+        "title": "ChatFeedbackItem"
+      },
+      "ChatFeedbackRequest": {
+        "properties": {
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id"
+          },
+          "feedbacks": {
+            "items": {
+              "$ref": "#/components/schemas/ChatFeedbackItem"
+            },
+            "type": "array",
+            "title": "Feedbacks"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_id",
+          "feedbacks"
+        ],
+        "title": "ChatFeedbackRequest"
+      },
+      "ChatFeedbackResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "feedback_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Feedback Ids"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "feedback_ids"
+        ],
+        "title": "ChatFeedbackResponse"
+      },
       "ChatFieldSection": {
         "properties": {
           "show": {
@@ -50117,38 +50508,138 @@
         "type": "object",
         "title": "ChatFlagSection"
       },
-      "ChatFrameRequest": {
+      "ChatHighlightItem": {
+        "properties": {
+          "section": {
+            "type": "string",
+            "title": "Section"
+          },
+          "idx": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idx"
+          }
+        },
+        "type": "object",
+        "required": [
+          "section"
+        ],
+        "title": "ChatHighlightItem"
+      },
+      "ChatHintItem": {
+        "properties": {
+          "hint": {
+            "type": "string",
+            "title": "Hint"
+          },
+          "message_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Id"
+          },
+          "idx": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idx"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hint"
+        ],
+        "title": "ChatHintItem"
+      },
+      "ChatHintsRequest": {
         "properties": {
           "chat_id": {
             "type": "string",
             "format": "uuid",
             "title": "Chat Id"
           },
-          "audio_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Audio Id"
+          "hints": {
+            "items": {
+              "$ref": "#/components/schemas/ChatHintItem"
+            },
+            "type": "array",
+            "title": "Hints"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "default": true
           }
         },
         "type": "object",
         "required": [
           "chat_id",
-          "audio_id"
+          "hints"
         ],
-        "title": "ChatFrameRequest"
+        "title": "ChatHintsRequest"
       },
-      "ChatFrameResponse": {
+      "ChatHintsResponse": {
         "properties": {
-          "accepted": {
+          "success": {
             "type": "boolean",
-            "title": "Accepted"
+            "title": "Success"
+          },
+          "hint_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Hint Ids"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
         "required": [
-          "accepted"
+          "success",
+          "hint_ids"
         ],
-        "title": "ChatFrameResponse"
+        "title": "ChatHintsResponse"
       },
       "ChatImageSection": {
         "properties": {
@@ -50215,6 +50706,123 @@
         },
         "type": "object",
         "title": "ChatImageSection"
+      },
+      "ChatImprovementItem": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "message_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Id"
+          },
+          "replacements": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ChatReplacementItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replacements"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "description"
+        ],
+        "title": "ChatImprovementItem"
+      },
+      "ChatImprovementsRequest": {
+        "properties": {
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id"
+          },
+          "improvements": {
+            "items": {
+              "$ref": "#/components/schemas/ChatImprovementItem"
+            },
+            "type": "array",
+            "title": "Improvements"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_id",
+          "improvements"
+        ],
+        "title": "ChatImprovementsRequest"
+      },
+      "ChatImprovementsResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "improvement_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Improvement Ids"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "improvement_ids"
+        ],
+        "title": "ChatImprovementsResponse"
       },
       "ChatMuteRequest": {
         "properties": {
@@ -50710,6 +51318,35 @@
         "type": "object",
         "title": "ChatQuestionSection"
       },
+      "ChatReplacementItem": {
+        "properties": {
+          "section": {
+            "type": "string",
+            "title": "Section"
+          },
+          "replace": {
+            "type": "string",
+            "title": "Replace"
+          },
+          "idx": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idx"
+          }
+        },
+        "type": "object",
+        "required": [
+          "section",
+          "replace"
+        ],
+        "title": "ChatReplacementItem"
+      },
       "ChatScenarioSection": {
         "properties": {
           "show": {
@@ -50776,21 +51413,35 @@
         "type": "object",
         "title": "ChatScenarioSection"
       },
-      "ChatSendApiRequest": {
+      "ChatSendRequest": {
         "properties": {
-          "attempt_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Attempt Id"
-          },
           "chat_id": {
             "type": "string",
             "format": "uuid",
             "title": "Chat Id"
           },
-          "message": {
-            "type": "string",
-            "title": "Message"
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "audio_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Id"
           },
           "parent_message_id": {
             "anyOf": [
@@ -50803,115 +51454,32 @@
               }
             ],
             "title": "Parent Message Id"
-          },
-          "assistant_content": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Assistant Content"
-          },
-          "hints": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/app__routes__attempt__chat__send__HintEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Hints"
-          },
-          "contents": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/app__routes__attempt__chat__send__ContentEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Contents"
-          }
-        },
-        "type": "object",
-        "required": [
-          "attempt_id",
-          "chat_id",
-          "message"
-        ],
-        "title": "ChatSendApiRequest"
-      },
-      "ChatSendApiResponse": {
-        "properties": {
-          "chat_id": {
-            "type": "string",
-            "title": "Chat Id"
-          },
-          "user_message_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "User Message Id"
-          },
-          "assistant_message_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Assistant Message Id"
-          },
-          "assistant_content": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Assistant Content"
-          },
-          "hints": {
-            "anyOf": [
-              {
-                "items": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Hints"
           }
         },
         "type": "object",
         "required": [
           "chat_id"
         ],
-        "title": "ChatSendApiResponse"
+        "title": "ChatSendRequest"
+      },
+      "ChatSendResponse": {
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          },
+          "message_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Message Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "accepted",
+          "message_id"
+        ],
+        "title": "ChatSendResponse"
       },
       "ChatSilenceRequest": {
         "properties": {
@@ -51232,6 +51800,123 @@
         ],
         "title": "ChatSimulationOperational",
         "description": "Simulation data for starting a chat session.\n\nContains data needed to start a simulation AND card display stats.\nNow serves as the unified type for home/practice simulation cards."
+      },
+      "ChatStrengthItem": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "message_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Id"
+          },
+          "highlights": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ChatHighlightItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Highlights"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "description"
+        ],
+        "title": "ChatStrengthItem"
+      },
+      "ChatStrengthsRequest": {
+        "properties": {
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id"
+          },
+          "strengths": {
+            "items": {
+              "$ref": "#/components/schemas/ChatStrengthItem"
+            },
+            "type": "array",
+            "title": "Strengths"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_id",
+          "strengths"
+        ],
+        "title": "ChatStrengthsRequest"
+      },
+      "ChatStrengthsResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "strength_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Strength Ids"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "strength_ids"
+        ],
+        "title": "ChatStrengthsResponse"
       },
       "ChatVideoSection": {
         "properties": {
@@ -52670,7 +53355,7 @@
         "title": "ConnectionConfirmedPayload",
         "description": "Server-to-client: connection confirmed."
       },
-      "ContentEntry-Output": {
+      "ContentEntry": {
         "properties": {
           "content": {
             "anyOf": [
@@ -90360,7 +91045,7 @@
         "title": "HighlightEntry",
         "description": "Highlight entry within a strength."
       },
-      "HintEntry-Output": {
+      "HintEntry": {
         "properties": {
           "hint": {
             "anyOf": [
@@ -98310,7 +98995,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/app__infra__attempt__types__ContentEntry"
+                  "$ref": "#/components/schemas/ContentEntry"
                 },
                 "type": "array"
               },
@@ -98340,7 +99025,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/app__infra__attempt__types__HintEntry"
+                  "$ref": "#/components/schemas/HintEntry"
                 },
                 "type": "array"
               },
@@ -98457,7 +99142,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/ContentEntry-Output"
+                  "$ref": "#/components/schemas/ContentEntry"
                 },
                 "type": "array"
               },
@@ -98487,7 +99172,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/HintEntry-Output"
+                  "$ref": "#/components/schemas/HintEntry"
                 },
                 "type": "array"
               },
@@ -129036,104 +129721,6 @@
         "title": "VideoUploadScenarioApiResponse",
         "description": "Response model for scenario video upload endpoint."
       },
-      "app__infra__attempt__types__ContentEntry": {
-        "properties": {
-          "content": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Content",
-            "description": "Content text of the entry"
-          },
-          "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name",
-            "description": "Display name (user or persona)"
-          },
-          "color": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Color",
-            "description": "Persona color for display"
-          },
-          "icon": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Icon",
-            "description": "Icon identifier for display"
-          },
-          "created_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Created At",
-            "description": "ISO timestamp when content was created"
-          }
-        },
-        "type": "object",
-        "title": "ContentEntry",
-        "description": "Content entry with computed display fields.\n\nEach content has its own display info (name/icon/color) computed from\npersona metadata on the server. Client renders each content with its\nown persona styling."
-      },
-      "app__infra__attempt__types__HintEntry": {
-        "properties": {
-          "hint": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Hint",
-            "description": "Hint text for practice mode"
-          },
-          "idx": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Idx",
-            "description": "Index position of the hint"
-          }
-        },
-        "type": "object",
-        "title": "HintEntry",
-        "description": "Hint entry (practice mode only, message_id implied by parent)."
-      },
       "app__infra__chat__types__DraftImageValue": {
         "properties": {
           "name": {
@@ -130231,58 +130818,6 @@
         "type": "object",
         "title": "SectionFilter",
         "description": "Per-section filter options for GET requests."
-      },
-      "app__routes__attempt__chat__send__ContentEntry": {
-        "properties": {
-          "content": {
-            "type": "string",
-            "title": "Content"
-          },
-          "persona_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Persona Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content"
-        ],
-        "title": "ContentEntry",
-        "description": "Agent-provided content entry for a message."
-      },
-      "app__routes__attempt__chat__send__HintEntry": {
-        "properties": {
-          "hint": {
-            "type": "string",
-            "title": "Hint"
-          },
-          "message_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Message Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "hint"
-        ],
-        "title": "HintEntry",
-        "description": "Agent-provided hint for a message."
       },
       "app__routes__cohort__export__ExportCohortApiRequest": {
         "properties": {

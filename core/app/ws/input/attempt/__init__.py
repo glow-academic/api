@@ -2,7 +2,6 @@
 
 from . import (  # noqa: F401
     audio_download,
-    audio_frame,
     audio_mute,
     audio_start,
     audio_stop,
