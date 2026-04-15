@@ -12,7 +12,7 @@ from app.routes.reports.problem import router as problem_router
 from app.routes.reports.refresh import router as refresh_router
 from app.routes.reports.search import router as search_router
 
-router = APIRouter(prefix="/reports", tags=["reports"])
+router = APIRouter(prefix="/report", tags=["report"])
 router.include_router(export_router)
 router.include_router(generate_router)
 router.include_router(generations_router)

@@ -211,8 +211,8 @@ async def persona_route_client(
 
     persona_router = _build_artifact_router_for_tests(
         artifact_name="persona",
-        prefix="/personas",
-        tags=["personas"],
+        prefix="/persona",
+        tags=["persona"],
         module_names=[
             "get",
             "search",
@@ -260,8 +260,8 @@ async def scenario_route_client(
 
     scenario_router = _build_artifact_router_for_tests(
         artifact_name="scenario",
-        prefix="/scenarios",
-        tags=["scenarios"],
+        prefix="/scenario",
+        tags=["scenario"],
         module_names=[
             "get",
             "search",
@@ -309,8 +309,8 @@ async def agent_route_client(
 
     agent_router = _build_artifact_router_for_tests(
         artifact_name="agent",
-        prefix="/agents",
-        tags=["agents"],
+        prefix="/agent",
+        tags=["agent"],
         module_names=[
             "get",
             "search",
@@ -395,8 +395,8 @@ async def cohort_route_client(
 
     cohort_router = _build_artifact_router_for_tests(
         artifact_name="cohort",
-        prefix="/cohorts",
-        tags=["cohorts"],
+        prefix="/cohort",
+        tags=["cohort"],
         module_names=[
             "get",
             "search",
@@ -726,8 +726,8 @@ async def reports_route_client(
 
     reports_router = _build_artifact_router_for_tests(
         artifact_name="reports",
-        prefix="/reports",
-        tags=["reports"],
+        prefix="/report",
+        tags=["report"],
         module_names=["search", "refresh", "export", "docs"],
     )
 
@@ -993,8 +993,8 @@ async def document_route_client(
 
     document_router = _build_artifact_router_for_tests(
         artifact_name="document",
-        prefix="/documents",
-        tags=["documents"],
+        prefix="/document",
+        tags=["document"],
         module_names=[
             "get",
             "search",
@@ -1042,8 +1042,8 @@ async def department_route_client(
 
     department_router = _build_artifact_router_for_tests(
         artifact_name="department",
-        prefix="/departments",
-        tags=["departments"],
+        prefix="/department",
+        tags=["department"],
         module_names=[
             "get",
             "search",
@@ -1091,8 +1091,8 @@ async def tool_route_client(
 
     tool_router = _build_artifact_router_for_tests(
         artifact_name="tool",
-        prefix="/tools",
-        tags=["tools"],
+        prefix="/tool",
+        tags=["tool"],
         module_names=[
             "get",
             "search",
@@ -1140,8 +1140,8 @@ async def setting_route_client(
 
     setting_router = _build_artifact_router_for_tests(
         artifact_name="setting",
-        prefix="/settings",
-        tags=["settings"],
+        prefix="/setting",
+        tags=["setting"],
         module_names=[
             "get",
             "search",
@@ -1190,8 +1190,8 @@ async def simulation_route_client(
 
     simulation_router = _build_artifact_router_for_tests(
         artifact_name="simulation",
-        prefix="/simulations",
-        tags=["simulations"],
+        prefix="/simulation",
+        tags=["simulation"],
         module_names=[
             "get",
             "search",
@@ -1239,8 +1239,8 @@ async def model_route_client(
 
     model_router = _build_artifact_router_for_tests(
         artifact_name="model",
-        prefix="/models",
-        tags=["models"],
+        prefix="/model",
+        tags=["model"],
         module_names=[
             "get",
             "search",
@@ -1288,8 +1288,8 @@ async def field_route_client(
 
     field_router = _build_artifact_router_for_tests(
         artifact_name="field",
-        prefix="/fields",
-        tags=["fields"],
+        prefix="/field",
+        tags=["field"],
         module_names=[
             "get",
             "search",
@@ -1337,8 +1337,8 @@ async def parameter_route_client(
 
     parameter_router = _build_artifact_router_for_tests(
         artifact_name="parameter",
-        prefix="/parameters",
-        tags=["parameters"],
+        prefix="/parameter",
+        tags=["parameter"],
         module_names=[
             "get",
             "search",
@@ -1386,8 +1386,8 @@ async def provider_route_client(
 
     provider_router = _build_artifact_router_for_tests(
         artifact_name="provider",
-        prefix="/providers",
-        tags=["providers"],
+        prefix="/provider",
+        tags=["provider"],
         module_names=[
             "get",
             "search",
@@ -1436,8 +1436,8 @@ async def rubric_route_client(
 
     rubric_router = _build_artifact_router_for_tests(
         artifact_name="rubric",
-        prefix="/rubrics",
-        tags=["rubrics"],
+        prefix="/rubric",
+        tags=["rubric"],
         module_names=[
             "get",
             "search",
@@ -1485,8 +1485,8 @@ async def eval_route_client(
 
     eval_router = _build_artifact_router_for_tests(
         artifact_name="eval",
-        prefix="/evals",
-        tags=["evals"],
+        prefix="/eval",
+        tags=["eval"],
         module_names=[
             "get",
             "search",
@@ -1534,8 +1534,8 @@ async def auth_route_client(
 
     auth_router = _build_artifact_router_for_tests(
         artifact_name="auth",
-        prefix="/auths",
-        tags=["auths"],
+        prefix="/auth",
+        tags=["auth"],
         module_names=[
             "get",
             "search",
@@ -1586,8 +1586,8 @@ async def profile_route_client(
 
     profile_router = _build_artifact_router_for_tests(
         artifact_name="profile",
-        prefix="/profiles",
-        tags=["profiles"],
+        prefix="/profile",
+        tags=["profile"],
         module_names=[
             "get",
             "search",

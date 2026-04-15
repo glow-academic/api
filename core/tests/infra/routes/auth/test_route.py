@@ -87,7 +87,7 @@ class TestAuthRoute:
         )
 
         response = await auth_route_client.client.post(
-            "/auths/create",
+            "/auth/create",
             json={
                 "auths": [
                     {
@@ -123,7 +123,7 @@ class TestAuthRoute:
         )
 
         response = await auth_route_client.client.post(
-            "/auths/get",
+            "/auth/get",
             json={"auth_id": created["auth_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -154,7 +154,7 @@ class TestAuthRoute:
         )
 
         response = await auth_route_client.client.post(
-            "/auths/search",
+            "/auth/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(auth_route_actor.department_id)],
@@ -188,7 +188,7 @@ class TestAuthRoute:
         updated = await _create_auth_route_resources(pool, redis_client)
 
         response = await auth_route_client.client.post(
-            "/auths/update",
+            "/auth/update",
             json={
                 "auths": [
                     {
@@ -224,7 +224,7 @@ class TestAuthRoute:
         )
 
         response = await auth_route_client.client.post(
-            "/auths/delete",
+            "/auth/delete",
             json={"auth_ids": [created["auth_id"]]},
         )
 
@@ -248,7 +248,7 @@ class TestAuthRoute:
         )
 
         response = await auth_route_client.client.post(
-            "/auths/duplicate",
+            "/auth/duplicate",
             json={"auth_id": created["auth_id"]},
         )
 
@@ -272,7 +272,7 @@ class TestAuthRoute:
         )
 
         response = await auth_route_client.client.patch(
-            "/auths/draft",
+            "/auth/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -304,7 +304,7 @@ class TestAuthRoute:
         )
 
         draft_response = await auth_route_client.client.patch(
-            "/auths/draft",
+            "/auth/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -318,7 +318,7 @@ class TestAuthRoute:
         draft_id = draft_response.json()["draft_id"]
 
         response = await auth_route_client.client.post(
-            "/auths/drafts",
+            "/auth/drafts",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -339,7 +339,7 @@ class TestAuthRoute:
         )
 
         response = await auth_route_client.client.post(
-            "/auths/docs",
+            "/auth/docs",
             json={},
         )
 
@@ -365,7 +365,7 @@ class TestAuthRoute:
         )
 
         response = await auth_route_client.client.post(
-            "/auths/export",
+            "/auth/export",
             json={"auth_id": created["auth_id"]},
         )
 
@@ -386,7 +386,7 @@ class TestAuthRoute:
         )
 
         response = await auth_route_client.client.post(
-            "/auths/refresh",
+            "/auth/refresh",
             json={},
         )
 
@@ -410,7 +410,7 @@ class TestAuthRoute:
         )
 
         response = await auth_route_client.client.post(
-            "/auths/create",
+            "/auth/create",
             json={
                 "auths": [
                     {

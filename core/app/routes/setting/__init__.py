@@ -21,7 +21,7 @@ from app.routes.setting.refresh import router as refresh_router
 from app.routes.setting.search import router as search_router
 from app.routes.setting.update import router as update_router
 
-router = APIRouter(prefix="/settings", tags=["settings"])
+router = APIRouter(prefix="/setting", tags=["setting"])
 
 # Include all endpoint routers
 router.include_router(search_router)

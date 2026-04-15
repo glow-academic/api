@@ -20,7 +20,7 @@ from app.routes.persona.refresh import router as refresh_router
 from app.routes.persona.search import router as search_router
 from app.routes.persona.update import router as update_router
 
-router = APIRouter(prefix="/personas", tags=["personas"])
+router = APIRouter(prefix="/persona", tags=["persona"])
 
 # Include all endpoint routers
 router.include_router(get_router)

@@ -20,7 +20,7 @@ from app.routes.eval.refresh import router as refresh_router
 from app.routes.eval.search import router as search_router
 from app.routes.eval.update import router as update_router
 
-router = APIRouter(prefix="/evals", tags=["evals"])
+router = APIRouter(prefix="/eval", tags=["eval"])
 
 # Standard artifact operations
 router.include_router(search_router)

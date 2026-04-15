@@ -20,7 +20,7 @@ from app.routes.cohort.refresh import router as refresh_router
 from app.routes.cohort.search import router as search_router
 from app.routes.cohort.update import router as update_router
 
-router = APIRouter(prefix="/cohorts", tags=["cohorts"])
+router = APIRouter(prefix="/cohort", tags=["cohort"])
 
 # Include all endpoint routers (standard 6 endpoints)
 router.include_router(search_router)

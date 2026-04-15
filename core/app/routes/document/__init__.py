@@ -22,7 +22,7 @@ from app.routes.document.search import router as search_router
 from app.routes.document.text import router as text_router
 from app.routes.document.update import router as update_router
 
-router = APIRouter(prefix="/documents", tags=["documents"])
+router = APIRouter(prefix="/document", tags=["document"])
 
 # Standard artifact operations
 router.include_router(search_router)

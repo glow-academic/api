@@ -20,7 +20,7 @@ from app.routes.model.refresh import router as refresh_router
 from app.routes.model.search import router as search_router
 from app.routes.model.update import router as update_router
 
-router = APIRouter(prefix="/models", tags=["models"])
+router = APIRouter(prefix="/model", tags=["model"])
 
 # Include all endpoint routers
 router.include_router(get_router)

@@ -74,7 +74,7 @@ class TestDepartmentRoute:
         )
 
         response = await department_route_client.client.post(
-            "/departments/create",
+            "/department/create",
             json={
                 "departments": [
                     {
@@ -107,7 +107,7 @@ class TestDepartmentRoute:
         )
 
         response = await department_route_client.client.post(
-            "/departments/get",
+            "/department/get",
             json={"department_id": created["department_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -140,7 +140,7 @@ class TestDepartmentRoute:
         )
 
         response = await department_route_client.client.post(
-            "/departments/search",
+            "/department/search",
             json={
                 "search": created["name"],
                 "page_size": 10,
@@ -174,7 +174,7 @@ class TestDepartmentRoute:
         updated = await _create_department_route_resources(pool, redis_client)
 
         response = await department_route_client.client.post(
-            "/departments/update",
+            "/department/update",
             json={
                 "departments": [
                     {
@@ -208,7 +208,7 @@ class TestDepartmentRoute:
         )
 
         response = await department_route_client.client.post(
-            "/departments/delete",
+            "/department/delete",
             json={"department_ids": [created["department_id"]]},
         )
 
@@ -233,7 +233,7 @@ class TestDepartmentRoute:
         )
 
         response = await department_route_client.client.post(
-            "/departments/duplicate",
+            "/department/duplicate",
             json={"department_id": created["department_id"]},
         )
 
@@ -257,7 +257,7 @@ class TestDepartmentRoute:
         )
 
         response = await department_route_client.client.patch(
-            "/departments/draft",
+            "/department/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -285,7 +285,7 @@ class TestDepartmentRoute:
             session_id=department_route_actor.session_id,
         )
         draft_response = await department_route_client.client.patch(
-            "/departments/draft",
+            "/department/draft",
             json={
                 "name_id": str(resources.name_id),
             },
@@ -293,7 +293,7 @@ class TestDepartmentRoute:
         assert draft_response.status_code == 200, draft_response.text
 
         response = await department_route_client.client.post(
-            "/departments/drafts",
+            "/department/drafts",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -318,7 +318,7 @@ class TestDepartmentRoute:
         )
 
         response = await department_route_client.client.post(
-            "/departments/docs",
+            "/department/docs",
             json={"entity_id": None},
         )
 
@@ -343,7 +343,7 @@ class TestDepartmentRoute:
         )
 
         response = await department_route_client.client.post(
-            "/departments/export",
+            "/department/export",
             json={"department_id": created["department_id"]},
         )
 
@@ -364,7 +364,7 @@ class TestDepartmentRoute:
         )
 
         response = await department_route_client.client.post(
-            "/departments/refresh",
+            "/department/refresh",
             json={},
         )
 
@@ -388,7 +388,7 @@ class TestDepartmentRoute:
         )
 
         response = await department_route_client.client.post(
-            "/departments/create",
+            "/department/create",
             json={
                 "departments": [
                     {

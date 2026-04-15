@@ -31,7 +31,7 @@ class TestReportsRoute:
         )
 
         response = await reports_route_client.client.post(
-            "/reports/search",
+            "/report/search",
             json={
                 "target_profile_id": str(reports_route_actor.profiles_id),
                 "actor_profile_id": str(reports_route_actor.profile_id),
@@ -64,7 +64,7 @@ class TestReportsRoute:
         )
 
         response = await reports_route_client.client.post(
-            "/reports/docs",
+            "/report/docs",
             json={"entity_id": None},
         )
 
@@ -87,7 +87,7 @@ class TestReportsRoute:
         )
 
         response = await reports_route_client.client.post(
-            "/reports/export",
+            "/report/export",
             json={},
         )
 
@@ -114,7 +114,7 @@ class TestReportsRoute:
         )
 
         response = await reports_route_client.client.post(
-            "/reports/refresh",
+            "/report/refresh",
             json={},
         )
 

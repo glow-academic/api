@@ -21,7 +21,7 @@ from app.routes.provider.refresh import router as refresh_router
 from app.routes.provider.search import router as search_router
 from app.routes.provider.update import router as update_router
 
-router = APIRouter(prefix="/providers", tags=["providers"])
+router = APIRouter(prefix="/provider", tags=["provider"])
 
 # Include all endpoint routers (standard 6 endpoints)
 router.include_router(search_router)

@@ -68,7 +68,7 @@ class TestRubricRoute:
         )
 
         response = await rubric_route_client.client.post(
-            "/rubrics/create",
+            "/rubric/create",
             json={
                 "rubrics": [
                     {
@@ -101,7 +101,7 @@ class TestRubricRoute:
         )
 
         response = await rubric_route_client.client.post(
-            "/rubrics/get",
+            "/rubric/get",
             json={"rubric_id": created["rubric_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -132,7 +132,7 @@ class TestRubricRoute:
         )
 
         response = await rubric_route_client.client.post(
-            "/rubrics/search",
+            "/rubric/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(rubric_route_actor.department_id)],
@@ -166,7 +166,7 @@ class TestRubricRoute:
         updated = await _create_rubric_route_resources(pool, redis_client)
 
         response = await rubric_route_client.client.post(
-            "/rubrics/update",
+            "/rubric/update",
             json={
                 "rubrics": [
                     {
@@ -199,7 +199,7 @@ class TestRubricRoute:
         )
 
         response = await rubric_route_client.client.post(
-            "/rubrics/delete",
+            "/rubric/delete",
             json={"rubric_ids": [created["rubric_id"]]},
         )
 
@@ -223,7 +223,7 @@ class TestRubricRoute:
         )
 
         response = await rubric_route_client.client.post(
-            "/rubrics/duplicate",
+            "/rubric/duplicate",
             json={"rubric_id": created["rubric_id"]},
         )
 
@@ -247,7 +247,7 @@ class TestRubricRoute:
         )
 
         response = await rubric_route_client.client.patch(
-            "/rubrics/draft",
+            "/rubric/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -276,7 +276,7 @@ class TestRubricRoute:
         )
 
         draft_response = await rubric_route_client.client.patch(
-            "/rubrics/draft",
+            "/rubric/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -287,7 +287,7 @@ class TestRubricRoute:
         draft_id = draft_response.json()["draft_id"]
 
         response = await rubric_route_client.client.post(
-            "/rubrics/drafts",
+            "/rubric/drafts",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -308,7 +308,7 @@ class TestRubricRoute:
         )
 
         response = await rubric_route_client.client.post(
-            "/rubrics/docs",
+            "/rubric/docs",
             json={},
         )
 
@@ -334,7 +334,7 @@ class TestRubricRoute:
         )
 
         response = await rubric_route_client.client.post(
-            "/rubrics/export",
+            "/rubric/export",
             json={"rubric_id": created["rubric_id"]},
         )
 
@@ -355,7 +355,7 @@ class TestRubricRoute:
         )
 
         response = await rubric_route_client.client.post(
-            "/rubrics/refresh",
+            "/rubric/refresh",
             json={},
         )
 
@@ -379,7 +379,7 @@ class TestRubricRoute:
         )
 
         response = await rubric_route_client.client.post(
-            "/rubrics/create",
+            "/rubric/create",
             json={
                 "rubrics": [
                     {

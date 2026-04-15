@@ -20,7 +20,7 @@ from app.routes.rubric.refresh import router as refresh_router
 from app.routes.rubric.search import router as search_router
 from app.routes.rubric.update import router as update_router
 
-router = APIRouter(prefix="/rubrics", tags=["rubrics"])
+router = APIRouter(prefix="/rubric", tags=["rubric"])
 
 # Include all endpoint routers
 router.include_router(get_router)

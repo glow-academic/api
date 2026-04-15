@@ -80,7 +80,7 @@ class TestDocumentRoute:
         )
 
         response = await document_route_client.client.post(
-            "/documents/create",
+            "/document/create",
             json={
                 "documents": [
                     {
@@ -115,7 +115,7 @@ class TestDocumentRoute:
         )
 
         response = await document_route_client.client.post(
-            "/documents/get",
+            "/document/get",
             json={"document_id": created["document_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -151,7 +151,7 @@ class TestDocumentRoute:
         )
 
         response = await document_route_client.client.post(
-            "/documents/search",
+            "/document/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(document_route_actor.department_id)],
@@ -187,7 +187,7 @@ class TestDocumentRoute:
         updated = await _create_document_route_resources(pool, redis_client)
 
         response = await document_route_client.client.post(
-            "/documents/update",
+            "/document/update",
             json={
                 "documents": [
                     {
@@ -207,7 +207,7 @@ class TestDocumentRoute:
         assert payload["results"][0]["document_id"] == created["document_id"]
 
         get_response = await document_route_client.client.post(
-            "/documents/get",
+            "/document/get",
             json={"document_id": created["document_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -233,7 +233,7 @@ class TestDocumentRoute:
         )
 
         response = await document_route_client.client.post(
-            "/documents/delete",
+            "/document/delete",
             json={"document_ids": [created["document_id"]]},
         )
 
@@ -258,7 +258,7 @@ class TestDocumentRoute:
         )
 
         response = await document_route_client.client.post(
-            "/documents/duplicate",
+            "/document/duplicate",
             json={"document_id": created["document_id"]},
         )
 
@@ -282,7 +282,7 @@ class TestDocumentRoute:
         )
 
         response = await document_route_client.client.patch(
-            "/documents/draft",
+            "/document/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -310,7 +310,7 @@ class TestDocumentRoute:
             session_id=document_route_actor.session_id,
         )
         draft_response = await document_route_client.client.patch(
-            "/documents/draft",
+            "/document/draft",
             json={
                 "name_id": str(resources.name_id),
             },
@@ -318,7 +318,7 @@ class TestDocumentRoute:
         assert draft_response.status_code == 200, draft_response.text
 
         response = await document_route_client.client.post(
-            "/documents/drafts",
+            "/document/drafts",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -343,7 +343,7 @@ class TestDocumentRoute:
         )
 
         response = await document_route_client.client.post(
-            "/documents/docs",
+            "/document/docs",
             json={"entity_id": None},
         )
 
@@ -368,7 +368,7 @@ class TestDocumentRoute:
         )
 
         response = await document_route_client.client.post(
-            "/documents/export",
+            "/document/export",
             json={"document_id": created["document_id"]},
         )
 
@@ -389,7 +389,7 @@ class TestDocumentRoute:
         )
 
         response = await document_route_client.client.post(
-            "/documents/refresh",
+            "/document/refresh",
             json={},
         )
 
@@ -414,7 +414,7 @@ class TestDocumentRoute:
         )
 
         response = await document_route_client.client.post(
-            "/documents/create",
+            "/document/create",
             json={
                 "documents": [
                     {

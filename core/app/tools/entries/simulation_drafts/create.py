@@ -26,12 +26,14 @@ async def create_simulation_draft(
     scenario_rubric_ids: list[UUID] | None = None,
     scenario_time_limit_ids: list[UUID] | None = None,
     scenario_ids: list[UUID] | None = None,
+    pending_ids: set[UUID] | None = None,
 ) -> CreateSimulationDraftResponse:
     """Create a simulation_drafts entry with optional connection table links."""
     draft_id = await conn.fetchval(
         """
         INSERT INTO simulation_drafts_entry (id, session_id, active, mcp, generated)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
+        ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         session_id,
@@ -80,12 +82,15 @@ async def create_simulation_draft(
         ("simulation_drafts_scenarios_connection", "scenarios_id", scenario_ids or []),
     ]
 
+    _pending = pending_ids or set()
     for table, col, ids in connections:
         for rid in ids:
             await conn.execute(
-                f"INSERT INTO {table} (draft_id, {col}) VALUES ($1, $2)",
+                f"INSERT INTO {table} (draft_id, {col}, active) VALUES ($1, $2, $3) "
+                f"ON CONFLICT (draft_id, {col}) DO UPDATE SET active = EXCLUDED.active",
                 draft_id,
                 rid,
+                False if soft else (rid not in _pending),
             )
 
     return CreateSimulationDraftResponse(id=draft_id)

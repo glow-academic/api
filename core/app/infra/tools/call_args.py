@@ -110,7 +110,7 @@ async def resolve_tool(
             ],
         },
         ttl=3600,
-        tags=["tools"],
+        tags=["tool"],
         redis=get_redis_client(),
     )
     return tool_info

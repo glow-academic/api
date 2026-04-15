@@ -15,6 +15,17 @@ from app.infra.simulation.types import (
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
+SECTIONS = (
+    "names",
+    "descriptions",
+    "flags",
+    "departments",
+    "scenarios",
+    "scenario_flags",
+    "scenario_positions",
+    "scenario_rubrics",
+    "scenario_time_limits",
+)
 
 
 @router.post("/get", response_model=GetSimulationApiResponse)
@@ -52,9 +63,11 @@ async def get_simulation(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
-                simulation_id=request.simulation_id,
+                id=request.id or request.simulation_id,
                 draft_id=request.draft_id,
+                filters={section: getattr(request, section) for section in SECTIONS},
                 scenario_search=request.scenario_search,
+                scenario_show_selected=request.scenario_show_selected,
                 filter_scenario_ids=request.filter_scenario_ids,
                 bypass_cache=bypass_cache,
             )

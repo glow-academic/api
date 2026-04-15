@@ -22,7 +22,7 @@ from app.utils.error.handle_route_error import handle_route_error
 router = APIRouter()
 
 
-@router.post("/emulate", response_model=EmulateProfileApiResponse, tags=["profiles"])
+@router.post("/emulate", response_model=EmulateProfileApiResponse, tags=["profile"])
 async def emulate_profile(
     request: EmulateProfileApiRequest,
     http_request: Request,

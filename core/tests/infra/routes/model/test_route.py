@@ -67,7 +67,7 @@ class TestModelRoute:
         )
 
         response = await model_route_client.client.post(
-            "/models/create",
+            "/model/create",
             json={
                 "models": [
                     {
@@ -100,7 +100,7 @@ class TestModelRoute:
         )
 
         response = await model_route_client.client.post(
-            "/models/get",
+            "/model/get",
             json={"model_id": created["model_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -132,7 +132,7 @@ class TestModelRoute:
         )
 
         response = await model_route_client.client.post(
-            "/models/search",
+            "/model/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(model_route_actor.department_id)],
@@ -166,7 +166,7 @@ class TestModelRoute:
         updated = await _create_model_route_resources(pool, redis_client)
 
         response = await model_route_client.client.post(
-            "/models/update",
+            "/model/update",
             json={
                 "models": [
                     {
@@ -199,7 +199,7 @@ class TestModelRoute:
         )
 
         response = await model_route_client.client.post(
-            "/models/delete",
+            "/model/delete",
             json={"model_ids": [created["model_id"]]},
         )
 
@@ -223,7 +223,7 @@ class TestModelRoute:
         )
 
         response = await model_route_client.client.post(
-            "/models/duplicate",
+            "/model/duplicate",
             json={"model_id": created["model_id"]},
         )
 
@@ -247,7 +247,7 @@ class TestModelRoute:
         )
 
         response = await model_route_client.client.patch(
-            "/models/draft",
+            "/model/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -273,13 +273,13 @@ class TestModelRoute:
             session_id=model_route_actor.session_id,
         )
         draft_response = await model_route_client.client.patch(
-            "/models/draft",
+            "/model/draft",
             json={"name_id": str(resources.name_id)},
         )
         assert draft_response.status_code == 200, draft_response.text
 
         response = await model_route_client.client.post(
-            "/models/drafts",
+            "/model/drafts",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -300,7 +300,7 @@ class TestModelRoute:
         )
 
         response = await model_route_client.client.post(
-            "/models/docs",
+            "/model/docs",
             json={},
         )
 
@@ -326,7 +326,7 @@ class TestModelRoute:
         )
 
         response = await model_route_client.client.post(
-            "/models/export",
+            "/model/export",
             json={"model_id": created["model_id"]},
         )
 
@@ -347,7 +347,7 @@ class TestModelRoute:
         )
 
         response = await model_route_client.client.post(
-            "/models/refresh",
+            "/model/refresh",
             json={},
         )
 
@@ -371,7 +371,7 @@ class TestModelRoute:
         )
 
         response = await model_route_client.client.post(
-            "/models/create",
+            "/model/create",
             json={
                 "models": [
                     {

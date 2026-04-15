@@ -6,14 +6,14 @@
     "version": "0.1.0"
   },
   "paths": {
-    "/personas/get": {
+    "/persona/get": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Get Persona",
         "description": "Get persona information using the canonical shared persona operation.",
-        "operationId": "get_persona_personas_get_post",
+        "operationId": "get_persona_persona_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -53,14 +53,14 @@
         ]
       }
     },
-    "/personas/search": {
+    "/persona/search": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Search Persona",
         "description": "Search personas \u2014 composable infra architecture.",
-        "operationId": "search_persona_personas_search_post",
+        "operationId": "search_persona_persona_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -100,14 +100,14 @@
         ]
       }
     },
-    "/personas/create": {
+    "/persona/create": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Create Persona",
         "description": "Create personas using composable infra architecture.",
-        "operationId": "create_persona_personas_create_post",
+        "operationId": "create_persona_persona_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -147,19 +147,19 @@
         ]
       }
     },
-    "/personas/csv": {
+    "/persona/csv": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Parse Persona Csv",
         "description": "Parse a CSV file and return mapped items for preview.",
-        "operationId": "parse_persona_csv_personas_csv_post",
+        "operationId": "parse_persona_csv_persona_csv_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_parse_persona_csv_personas_csv_post"
+                "$ref": "#/components/schemas/Body_parse_persona_csv_persona_csv_post"
               }
             }
           },
@@ -194,14 +194,14 @@
         ]
       }
     },
-    "/personas/update": {
+    "/persona/update": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Update Persona",
         "description": "Update personas using composable infra architecture.",
-        "operationId": "update_persona_personas_update_post",
+        "operationId": "update_persona_persona_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -241,14 +241,14 @@
         ]
       }
     },
-    "/personas/duplicate": {
+    "/persona/duplicate": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Duplicate Persona",
         "description": "Duplicate a persona \u2014 composable infra architecture.",
-        "operationId": "duplicate_persona_personas_duplicate_post",
+        "operationId": "duplicate_persona_persona_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -288,14 +288,14 @@
         ]
       }
     },
-    "/personas/delete": {
+    "/persona/delete": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Delete Persona",
         "description": "Bulk delete personas \u2014 composable infra architecture.",
-        "operationId": "delete_persona_personas_delete_post",
+        "operationId": "delete_persona_persona_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -335,14 +335,14 @@
         ]
       }
     },
-    "/personas/draft": {
+    "/persona/draft": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Patch Persona Draft",
         "description": "Patch persona draft \u2014 composable infra architecture.",
-        "operationId": "patch_persona_draft_personas_draft_post",
+        "operationId": "patch_persona_draft_persona_draft_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -382,14 +382,14 @@
         ]
       }
     },
-    "/personas/drafts": {
+    "/persona/drafts": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Get Persona Drafts",
         "description": "List persona drafts owned by the current profile.",
-        "operationId": "get_persona_drafts_personas_drafts_post",
+        "operationId": "get_persona_drafts_persona_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -409,14 +409,14 @@
         ]
       }
     },
-    "/personas/context": {
+    "/persona/context": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Get Persona Context",
         "description": "Get page context for the persona artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_persona_context_personas_context_post",
+        "operationId": "get_persona_context_persona_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -456,14 +456,14 @@
         ]
       }
     },
-    "/personas/docs": {
+    "/persona/docs": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Get Persona Docs Endpoint",
         "description": "Get composed documentation for the persona artifact.",
-        "operationId": "get_persona_docs_endpoint_personas_docs_post",
+        "operationId": "get_persona_docs_endpoint_persona_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -503,14 +503,14 @@
         ]
       }
     },
-    "/personas/export": {
+    "/persona/export": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Export Personas",
         "description": "Export all personas as a clean, denormalized CSV.",
-        "operationId": "export_personas_personas_export_post",
+        "operationId": "export_personas_persona_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -550,14 +550,14 @@
         ]
       }
     },
-    "/personas/generate": {
+    "/persona/generate": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Generate Persona",
         "description": "Trigger persona generation. Returns immediately; progress via events.",
-        "operationId": "generate_persona_personas_generate_post",
+        "operationId": "generate_persona_persona_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -597,14 +597,14 @@
         ]
       }
     },
-    "/personas/generations": {
+    "/persona/generations": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Generations Persona",
         "description": "List persona generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_persona_personas_generations_post",
+        "operationId": "generations_persona_persona_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -644,14 +644,14 @@
         ]
       }
     },
-    "/personas/group": {
+    "/persona/group": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Group Persona",
         "description": "Resolve or create a persona group with optional naming.",
-        "operationId": "group_persona_personas_group_post",
+        "operationId": "group_persona_persona_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -691,14 +691,14 @@
         ]
       }
     },
-    "/personas/problem": {
+    "/persona/problem": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Problem Persona",
         "description": "Report a persona problem \u2014 composable infra architecture.",
-        "operationId": "problem_persona_personas_problem_post",
+        "operationId": "problem_persona_persona_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -738,14 +738,14 @@
         ]
       }
     },
-    "/personas/refresh": {
+    "/persona/refresh": {
       "post": {
         "tags": [
-          "personas"
+          "persona"
         ],
         "summary": "Persona Refresh",
         "description": "Refresh persona materialized views and invalidate caches.",
-        "operationId": "persona_refresh_personas_refresh_post",
+        "operationId": "persona_refresh_persona_refresh_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -765,14 +765,14 @@
         ]
       }
     },
-    "/scenarios/get": {
+    "/scenario/get": {
       "post": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Get Scenario",
         "description": "Get scenario information using the canonical shared scenario operation.",
-        "operationId": "get_scenario_scenarios_get_post",
+        "operationId": "get_scenario_scenario_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -812,14 +812,14 @@
         ]
       }
     },
-    "/scenarios/search": {
+    "/scenario/search": {
       "post": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Search Scenario",
         "description": "Search scenarios \u2014 composable infra architecture.",
-        "operationId": "search_scenario_scenarios_search_post",
+        "operationId": "search_scenario_scenario_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -859,14 +859,14 @@
         ]
       }
     },
-    "/scenarios/create": {
+    "/scenario/create": {
       "post": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Create Scenario",
         "description": "Create scenarios using composable infra architecture.",
-        "operationId": "create_scenario_scenarios_create_post",
+        "operationId": "create_scenario_scenario_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -906,19 +906,19 @@
         ]
       }
     },
-    "/scenarios/csv": {
+    "/scenario/csv": {
       "post": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Parse Scenario Csv",
         "description": "Parse a CSV file and return mapped items for preview.",
-        "operationId": "parse_scenario_csv_scenarios_csv_post",
+        "operationId": "parse_scenario_csv_scenario_csv_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_parse_scenario_csv_scenarios_csv_post"
+                "$ref": "#/components/schemas/Body_parse_scenario_csv_scenario_csv_post"
               }
             }
           },
@@ -953,14 +953,14 @@
         ]
       }
     },
-    "/scenarios/update": {
+    "/scenario/update": {
       "post": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Update Scenario",
         "description": "Update scenarios using composable infra architecture.",
-        "operationId": "update_scenario_scenarios_update_post",
+        "operationId": "update_scenario_scenario_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1000,14 +1000,14 @@
         ]
       }
     },
-    "/scenarios/duplicate": {
+    "/scenario/duplicate": {
       "post": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Duplicate Scenario",
         "description": "Duplicate a scenario \u2014 composable infra architecture.",
-        "operationId": "duplicate_scenario_scenarios_duplicate_post",
+        "operationId": "duplicate_scenario_scenario_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1047,14 +1047,14 @@
         ]
       }
     },
-    "/scenarios/delete": {
+    "/scenario/delete": {
       "post": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Delete Scenario",
         "description": "Bulk delete scenarios \u2014 composable infra architecture.",
-        "operationId": "delete_scenario_scenarios_delete_post",
+        "operationId": "delete_scenario_scenario_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1094,14 +1094,14 @@
         ]
       }
     },
-    "/scenarios/draft": {
+    "/scenario/draft": {
       "patch": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Patch Scenario Draft",
         "description": "Patch scenario draft \u2014 composable infra architecture.",
-        "operationId": "patch_scenario_draft_scenarios_draft_patch",
+        "operationId": "patch_scenario_draft_scenario_draft_patch",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1141,14 +1141,14 @@
         ]
       }
     },
-    "/scenarios/drafts": {
+    "/scenario/drafts": {
       "post": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Get Scenario Drafts",
         "description": "List scenario drafts owned by the current profile.",
-        "operationId": "get_scenario_drafts_scenarios_drafts_post",
+        "operationId": "get_scenario_drafts_scenario_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1168,14 +1168,14 @@
         ]
       }
     },
-    "/scenarios/export": {
+    "/scenario/export": {
       "post": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Export Scenarios",
         "description": "Export all scenarios as a clean, denormalized CSV.",
-        "operationId": "export_scenarios_scenarios_export_post",
+        "operationId": "export_scenarios_scenario_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1215,14 +1215,14 @@
         ]
       }
     },
-    "/scenarios/generate": {
+    "/scenario/generate": {
       "post": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Generate Scenario",
         "description": "Trigger scenario generation. Returns immediately; progress via events.",
-        "operationId": "generate_scenario_scenarios_generate_post",
+        "operationId": "generate_scenario_scenario_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1262,14 +1262,14 @@
         ]
       }
     },
-    "/scenarios/generations": {
+    "/scenario/generations": {
       "post": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Generations Scenario",
         "description": "List scenario generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_scenario_scenarios_generations_post",
+        "operationId": "generations_scenario_scenario_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1309,14 +1309,14 @@
         ]
       }
     },
-    "/scenarios/docs": {
+    "/scenario/docs": {
       "post": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Get Scenario Docs Endpoint",
         "description": "Get composed documentation for the scenario artifact.",
-        "operationId": "get_scenario_docs_endpoint_scenarios_docs_post",
+        "operationId": "get_scenario_docs_endpoint_scenario_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1356,14 +1356,14 @@
         ]
       }
     },
-    "/scenarios/context": {
+    "/scenario/context": {
       "post": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Get Scenario Context",
         "description": "Get page context for the scenario artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_scenario_context_scenarios_context_post",
+        "operationId": "get_scenario_context_scenario_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1403,14 +1403,14 @@
         ]
       }
     },
-    "/scenarios/group": {
+    "/scenario/group": {
       "post": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Group Scenario",
         "description": "Resolve or create a scenario group with optional naming.",
-        "operationId": "group_scenario_scenarios_group_post",
+        "operationId": "group_scenario_scenario_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1450,14 +1450,14 @@
         ]
       }
     },
-    "/scenarios/problem": {
+    "/scenario/problem": {
       "post": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Problem Scenario",
         "description": "Report a scenario problem \u2014 composable infra architecture.",
-        "operationId": "problem_scenario_scenarios_problem_post",
+        "operationId": "problem_scenario_scenario_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1497,14 +1497,14 @@
         ]
       }
     },
-    "/scenarios/refresh": {
+    "/scenario/refresh": {
       "post": {
         "tags": [
-          "scenarios"
+          "scenario"
         ],
         "summary": "Scenario Refresh",
         "description": "Refresh scenario materialized views and invalidate caches.",
-        "operationId": "scenario_refresh_scenarios_refresh_post",
+        "operationId": "scenario_refresh_scenario_refresh_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1544,15 +1544,15 @@
         ]
       }
     },
-    "/scenarios/image/upload": {
+    "/scenario/image/upload": {
       "post": {
         "tags": [
-          "scenarios",
+          "scenario",
           "scenario-image"
         ],
         "summary": "Upload Image",
         "description": "Upload an image for later use in scenarios.",
-        "operationId": "upload_image_scenarios_image_upload_post",
+        "operationId": "upload_image_scenario_image_upload_post",
         "security": [
           {
             "BearerAuth": []
@@ -1597,7 +1597,7 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_upload_image_scenarios_image_upload_post"
+                "$ref": "#/components/schemas/Body_upload_image_scenario_image_upload_post"
               }
             }
           }
@@ -1626,15 +1626,15 @@
         }
       }
     },
-    "/scenarios/image/download": {
+    "/scenario/image/download": {
       "post": {
         "tags": [
-          "scenarios",
+          "scenario",
           "scenario-image"
         ],
         "summary": "Download Image",
         "description": "Download an image file by image resource ID.",
-        "operationId": "download_image_scenarios_image_download_post",
+        "operationId": "download_image_scenario_image_download_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1672,15 +1672,15 @@
         ]
       }
     },
-    "/scenarios/video/upload": {
+    "/scenario/video/upload": {
       "post": {
         "tags": [
-          "scenarios",
+          "scenario",
           "scenario-video"
         ],
         "summary": "Upload Video",
         "description": "Upload a video for later use in scenarios.",
-        "operationId": "upload_video_scenarios_video_upload_post",
+        "operationId": "upload_video_scenario_video_upload_post",
         "security": [
           {
             "BearerAuth": []
@@ -1725,7 +1725,7 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_upload_video_scenarios_video_upload_post"
+                "$ref": "#/components/schemas/Body_upload_video_scenario_video_upload_post"
               }
             }
           }
@@ -1754,15 +1754,15 @@
         }
       }
     },
-    "/scenarios/video/download": {
+    "/scenario/video/download": {
       "post": {
         "tags": [
-          "scenarios",
+          "scenario",
           "scenario-video"
         ],
         "summary": "Download Video",
         "description": "Download a video file by video resource ID with range support.",
-        "operationId": "download_video_scenarios_video_download_post",
+        "operationId": "download_video_scenario_video_download_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1800,15 +1800,15 @@
         ]
       }
     },
-    "/scenarios/text/download": {
+    "/scenario/text/download": {
       "post": {
         "tags": [
-          "scenarios",
+          "scenario",
           "scenario-text"
         ],
         "summary": "Download Text",
         "description": "Download a text file by text resource ID.",
-        "operationId": "download_text_scenarios_text_download_post",
+        "operationId": "download_text_scenario_text_download_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1846,15 +1846,15 @@
         ]
       }
     },
-    "/scenarios/file/download": {
+    "/scenario/file/download": {
       "post": {
         "tags": [
-          "scenarios",
+          "scenario",
           "scenario-file"
         ],
         "summary": "Download File",
         "description": "Download a file by file resource ID with range support.",
-        "operationId": "download_file_scenarios_file_download_post",
+        "operationId": "download_file_scenario_file_download_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1892,15 +1892,15 @@
         ]
       }
     },
-    "/scenarios/file/preview": {
+    "/scenario/file/preview": {
       "post": {
         "tags": [
-          "scenarios",
+          "scenario",
           "scenario-file"
         ],
         "summary": "Preview File",
         "description": "Return a PNG preview of the first page of a PDF file resource.",
-        "operationId": "preview_file_scenarios_file_preview_post",
+        "operationId": "preview_file_scenario_file_preview_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1938,14 +1938,14 @@
         ]
       }
     },
-    "/simulations/get": {
+    "/simulation/get": {
       "post": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Get Simulation",
         "description": "Get simulation information using the canonical shared simulation operation.",
-        "operationId": "get_simulation_simulations_get_post",
+        "operationId": "get_simulation_simulation_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1985,14 +1985,14 @@
         ]
       }
     },
-    "/simulations/search": {
+    "/simulation/search": {
       "post": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Search Simulation",
         "description": "Search simulations \u2014 composable infra architecture.",
-        "operationId": "search_simulation_simulations_search_post",
+        "operationId": "search_simulation_simulation_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2032,14 +2032,14 @@
         ]
       }
     },
-    "/simulations/create": {
+    "/simulation/create": {
       "post": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Create Simulation",
         "description": "Create simulations using composable infra architecture.",
-        "operationId": "create_simulation_simulations_create_post",
+        "operationId": "create_simulation_simulation_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2079,14 +2079,14 @@
         ]
       }
     },
-    "/simulations/context": {
+    "/simulation/context": {
       "post": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Get Simulation Context",
         "description": "Get page context for the simulation artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_simulation_context_simulations_context_post",
+        "operationId": "get_simulation_context_simulation_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2126,19 +2126,19 @@
         ]
       }
     },
-    "/simulations/csv": {
+    "/simulation/csv": {
       "post": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Parse Simulation Csv",
         "description": "Parse a CSV file and return mapped items for preview.",
-        "operationId": "parse_simulation_csv_simulations_csv_post",
+        "operationId": "parse_simulation_csv_simulation_csv_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_parse_simulation_csv_simulations_csv_post"
+                "$ref": "#/components/schemas/Body_parse_simulation_csv_simulation_csv_post"
               }
             }
           },
@@ -2173,14 +2173,14 @@
         ]
       }
     },
-    "/simulations/update": {
+    "/simulation/update": {
       "post": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Update Simulation",
         "description": "Update simulations using composable infra architecture.",
-        "operationId": "update_simulation_simulations_update_post",
+        "operationId": "update_simulation_simulation_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2220,14 +2220,14 @@
         ]
       }
     },
-    "/simulations/duplicate": {
+    "/simulation/duplicate": {
       "post": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Duplicate Simulation",
         "description": "Duplicate a simulation \u2014 composable infra architecture.",
-        "operationId": "duplicate_simulation_simulations_duplicate_post",
+        "operationId": "duplicate_simulation_simulation_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2267,14 +2267,14 @@
         ]
       }
     },
-    "/simulations/delete": {
+    "/simulation/delete": {
       "post": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Delete Simulation",
         "description": "Bulk delete simulations \u2014 composable infra architecture.",
-        "operationId": "delete_simulation_simulations_delete_post",
+        "operationId": "delete_simulation_simulation_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2314,14 +2314,14 @@
         ]
       }
     },
-    "/simulations/draft": {
+    "/simulation/draft": {
       "patch": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Patch Simulation Draft",
         "description": "Patch simulation draft \u2014 composable infra architecture.",
-        "operationId": "patch_simulation_draft_simulations_draft_patch",
+        "operationId": "patch_simulation_draft_simulation_draft_patch",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2361,14 +2361,14 @@
         ]
       }
     },
-    "/simulations/drafts": {
+    "/simulation/drafts": {
       "post": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Get Simulation Drafts",
         "description": "List simulation drafts owned by the current profile.",
-        "operationId": "get_simulation_drafts_simulations_drafts_post",
+        "operationId": "get_simulation_drafts_simulation_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2388,14 +2388,14 @@
         ]
       }
     },
-    "/simulations/export": {
+    "/simulation/export": {
       "post": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Export Simulations",
         "description": "Export all simulations as a clean, denormalized CSV.",
-        "operationId": "export_simulations_simulations_export_post",
+        "operationId": "export_simulations_simulation_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2435,14 +2435,14 @@
         ]
       }
     },
-    "/simulations/docs": {
+    "/simulation/docs": {
       "post": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Get Simulation Docs Endpoint",
         "description": "Get composed documentation for the simulation artifact.",
-        "operationId": "get_simulation_docs_endpoint_simulations_docs_post",
+        "operationId": "get_simulation_docs_endpoint_simulation_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2482,14 +2482,14 @@
         ]
       }
     },
-    "/simulations/generate": {
+    "/simulation/generate": {
       "post": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Generate Simulation",
         "description": "Trigger simulation generation. Returns immediately; progress via events.",
-        "operationId": "generate_simulation_simulations_generate_post",
+        "operationId": "generate_simulation_simulation_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2529,14 +2529,14 @@
         ]
       }
     },
-    "/simulations/generations": {
+    "/simulation/generations": {
       "post": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Generations Simulation",
         "description": "List simulation generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_simulation_simulations_generations_post",
+        "operationId": "generations_simulation_simulation_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2576,14 +2576,14 @@
         ]
       }
     },
-    "/simulations/problem": {
+    "/simulation/problem": {
       "post": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Problem Simulation",
         "description": "Report a simulation problem \u2014 composable infra architecture.",
-        "operationId": "problem_simulation_simulations_problem_post",
+        "operationId": "problem_simulation_simulation_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2623,14 +2623,14 @@
         ]
       }
     },
-    "/simulations/refresh": {
+    "/simulation/refresh": {
       "post": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Simulation Refresh",
         "description": "Refresh simulation materialized views and invalidate caches.",
-        "operationId": "simulation_refresh_simulations_refresh_post",
+        "operationId": "simulation_refresh_simulation_refresh_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2650,14 +2650,14 @@
         ]
       }
     },
-    "/simulations/group": {
+    "/simulation/group": {
       "post": {
         "tags": [
-          "simulations"
+          "simulation"
         ],
         "summary": "Group Simulation",
         "description": "Resolve or create a simulation group with optional naming.",
-        "operationId": "group_simulation_simulations_group_post",
+        "operationId": "group_simulation_simulation_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2697,14 +2697,14 @@
         ]
       }
     },
-    "/documents/search": {
+    "/document/search": {
       "post": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Search Document",
         "description": "Search documents \u2014 composable infra architecture.",
-        "operationId": "search_document_documents_search_post",
+        "operationId": "search_document_document_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2744,14 +2744,14 @@
         ]
       }
     },
-    "/documents/get": {
+    "/document/get": {
       "post": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Get Document",
         "description": "Get document information using the canonical shared document operation.",
-        "operationId": "get_document_documents_get_post",
+        "operationId": "get_document_document_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2791,14 +2791,14 @@
         ]
       }
     },
-    "/documents/create": {
+    "/document/create": {
       "post": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Create Document",
         "description": "Create documents using composable infra architecture.",
-        "operationId": "create_document_documents_create_post",
+        "operationId": "create_document_document_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2838,14 +2838,14 @@
         ]
       }
     },
-    "/documents/update": {
+    "/document/update": {
       "post": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Update Document",
         "description": "Update documents using composable infra architecture.",
-        "operationId": "update_document_documents_update_post",
+        "operationId": "update_document_document_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2885,14 +2885,14 @@
         ]
       }
     },
-    "/documents/duplicate": {
+    "/document/duplicate": {
       "post": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Duplicate Document",
         "description": "Duplicate a document \u2014 composable infra architecture.",
-        "operationId": "duplicate_document_documents_duplicate_post",
+        "operationId": "duplicate_document_document_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2932,14 +2932,14 @@
         ]
       }
     },
-    "/documents/delete": {
+    "/document/delete": {
       "post": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Delete Document",
         "description": "Bulk delete documents \u2014 composable infra architecture.",
-        "operationId": "delete_document_documents_delete_post",
+        "operationId": "delete_document_document_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2979,14 +2979,14 @@
         ]
       }
     },
-    "/documents/draft": {
+    "/document/draft": {
       "patch": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Patch Document Draft",
         "description": "Patch document draft \u2014 composable infra architecture.",
-        "operationId": "patch_document_draft_documents_draft_patch",
+        "operationId": "patch_document_draft_document_draft_patch",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3026,14 +3026,14 @@
         ]
       }
     },
-    "/documents/drafts": {
+    "/document/drafts": {
       "post": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Get Document Drafts",
         "description": "List document drafts owned by the current profile.",
-        "operationId": "get_document_drafts_documents_drafts_post",
+        "operationId": "get_document_drafts_document_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -3053,14 +3053,14 @@
         ]
       }
     },
-    "/documents/context": {
+    "/document/context": {
       "post": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Get Document Context",
         "description": "Get page context for the document artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_document_context_documents_context_post",
+        "operationId": "get_document_context_document_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3100,14 +3100,14 @@
         ]
       }
     },
-    "/documents/docs": {
+    "/document/docs": {
       "post": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Get Document Docs Endpoint",
         "description": "Get composed documentation for the document artifact.",
-        "operationId": "get_document_docs_endpoint_documents_docs_post",
+        "operationId": "get_document_docs_endpoint_document_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3147,14 +3147,14 @@
         ]
       }
     },
-    "/documents/generate": {
+    "/document/generate": {
       "post": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Generate Document",
         "description": "Trigger document generation. Returns immediately; progress via events.",
-        "operationId": "generate_document_documents_generate_post",
+        "operationId": "generate_document_document_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3194,14 +3194,14 @@
         ]
       }
     },
-    "/documents/generations": {
+    "/document/generations": {
       "post": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Generations Document",
         "description": "List document generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_document_documents_generations_post",
+        "operationId": "generations_document_document_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3241,14 +3241,14 @@
         ]
       }
     },
-    "/documents/group": {
+    "/document/group": {
       "post": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Group Document",
         "description": "Resolve or create a document group with optional naming.",
-        "operationId": "group_document_documents_group_post",
+        "operationId": "group_document_document_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3288,14 +3288,14 @@
         ]
       }
     },
-    "/documents/problem": {
+    "/document/problem": {
       "post": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Problem Document",
         "description": "Report a document problem \u2014 composable infra architecture.",
-        "operationId": "problem_document_documents_problem_post",
+        "operationId": "problem_document_document_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3335,14 +3335,14 @@
         ]
       }
     },
-    "/documents/refresh": {
+    "/document/refresh": {
       "post": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Document Refresh",
         "description": "Refresh document materialized views and invalidate caches.",
-        "operationId": "document_refresh_documents_refresh_post",
+        "operationId": "document_refresh_document_refresh_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -3362,14 +3362,14 @@
         ]
       }
     },
-    "/documents/export": {
+    "/document/export": {
       "post": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Export Documents",
         "description": "Export all documents as a clean, denormalized CSV.",
-        "operationId": "export_documents_documents_export_post",
+        "operationId": "export_documents_document_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3409,19 +3409,19 @@
         ]
       }
     },
-    "/documents/csv": {
+    "/document/csv": {
       "post": {
         "tags": [
-          "documents"
+          "document"
         ],
         "summary": "Parse Document Csv",
         "description": "Parse a CSV file and return mapped items for preview.",
-        "operationId": "parse_document_csv_documents_csv_post",
+        "operationId": "parse_document_csv_document_csv_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_parse_document_csv_documents_csv_post"
+                "$ref": "#/components/schemas/Body_parse_document_csv_document_csv_post"
               }
             }
           },
@@ -3456,20 +3456,20 @@
         ]
       }
     },
-    "/documents/text/upload": {
+    "/document/text/upload": {
       "post": {
         "tags": [
-          "documents",
+          "document",
           "document-text"
         ],
         "summary": "Upload Text",
         "description": "Upload a text file for later use in documents.",
-        "operationId": "upload_text_documents_text_upload_post",
+        "operationId": "upload_text_document_text_upload_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_upload_text_documents_text_upload_post"
+                "$ref": "#/components/schemas/Body_upload_text_document_text_upload_post"
               }
             }
           },
@@ -3504,15 +3504,15 @@
         ]
       }
     },
-    "/documents/text/download": {
+    "/document/text/download": {
       "post": {
         "tags": [
-          "documents",
+          "document",
           "document-text"
         ],
         "summary": "Download Text",
         "description": "Download a text file by text resource ID.",
-        "operationId": "download_text_documents_text_download_post",
+        "operationId": "download_text_document_text_download_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3550,20 +3550,20 @@
         ]
       }
     },
-    "/documents/file/upload": {
+    "/document/file/upload": {
       "post": {
         "tags": [
-          "documents",
+          "document",
           "document-file"
         ],
         "summary": "Upload File",
         "description": "Upload a file for later use in documents.",
-        "operationId": "upload_file_documents_file_upload_post",
+        "operationId": "upload_file_document_file_upload_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_upload_file_documents_file_upload_post"
+                "$ref": "#/components/schemas/Body_upload_file_document_file_upload_post"
               }
             }
           },
@@ -3598,15 +3598,15 @@
         ]
       }
     },
-    "/documents/file/download": {
+    "/document/file/download": {
       "post": {
         "tags": [
-          "documents",
+          "document",
           "document-file"
         ],
         "summary": "Download File",
         "description": "Download a file by file resource ID.",
-        "operationId": "download_file_documents_file_download_post",
+        "operationId": "download_file_document_file_download_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3644,15 +3644,15 @@
         ]
       }
     },
-    "/documents/file/preview": {
+    "/document/file/preview": {
       "post": {
         "tags": [
-          "documents",
+          "document",
           "document-file"
         ],
         "summary": "Preview File",
         "description": "Return a PNG preview of the first page of a PDF upload.",
-        "operationId": "preview_file_documents_file_preview_post",
+        "operationId": "preview_file_document_file_preview_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3690,14 +3690,14 @@
         ]
       }
     },
-    "/departments/get": {
+    "/department/get": {
       "post": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Get Department",
         "description": "Get department information using the canonical shared department operation.",
-        "operationId": "get_department_departments_get_post",
+        "operationId": "get_department_department_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3737,14 +3737,14 @@
         ]
       }
     },
-    "/departments/search": {
+    "/department/search": {
       "post": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Search Department",
         "description": "Search departments \u2014 composable infra architecture.",
-        "operationId": "search_department_departments_search_post",
+        "operationId": "search_department_department_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3784,14 +3784,14 @@
         ]
       }
     },
-    "/departments/create": {
+    "/department/create": {
       "post": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Create Department",
         "description": "Create departments using composable infra architecture.",
-        "operationId": "create_department_departments_create_post",
+        "operationId": "create_department_department_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3831,14 +3831,14 @@
         ]
       }
     },
-    "/departments/update": {
+    "/department/update": {
       "post": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Update Department",
         "description": "Update departments using composable infra architecture.",
-        "operationId": "update_department_departments_update_post",
+        "operationId": "update_department_department_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3878,14 +3878,14 @@
         ]
       }
     },
-    "/departments/duplicate": {
+    "/department/duplicate": {
       "post": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Duplicate Department",
         "description": "Duplicate a department \u2014 composable infra architecture.",
-        "operationId": "duplicate_department_departments_duplicate_post",
+        "operationId": "duplicate_department_department_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3925,14 +3925,14 @@
         ]
       }
     },
-    "/departments/delete": {
+    "/department/delete": {
       "post": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Delete Department",
         "description": "Bulk delete departments \u2014 composable infra architecture.",
-        "operationId": "delete_department_departments_delete_post",
+        "operationId": "delete_department_department_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3972,14 +3972,14 @@
         ]
       }
     },
-    "/departments/draft": {
+    "/department/draft": {
       "patch": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Patch Department Draft",
         "description": "Patch department draft \u2014 composable infra architecture.",
-        "operationId": "patch_department_draft_departments_draft_patch",
+        "operationId": "patch_department_draft_department_draft_patch",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4019,14 +4019,14 @@
         ]
       }
     },
-    "/departments/drafts": {
+    "/department/drafts": {
       "post": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Get Department Drafts",
         "description": "List department drafts owned by the current profile.",
-        "operationId": "get_department_drafts_departments_drafts_post",
+        "operationId": "get_department_drafts_department_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -4046,14 +4046,14 @@
         ]
       }
     },
-    "/departments/context": {
+    "/department/context": {
       "post": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Get Department Context",
         "description": "Get page context for the department artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_department_context_departments_context_post",
+        "operationId": "get_department_context_department_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4093,14 +4093,14 @@
         ]
       }
     },
-    "/departments/docs": {
+    "/department/docs": {
       "post": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Get Department Docs Endpoint",
         "description": "Get composed documentation for the department artifact.",
-        "operationId": "get_department_docs_endpoint_departments_docs_post",
+        "operationId": "get_department_docs_endpoint_department_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4140,14 +4140,14 @@
         ]
       }
     },
-    "/departments/export": {
+    "/department/export": {
       "post": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Export Departments",
         "description": "Export all departments as a clean, denormalized CSV.",
-        "operationId": "export_departments_departments_export_post",
+        "operationId": "export_departments_department_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4187,19 +4187,19 @@
         ]
       }
     },
-    "/departments/csv": {
+    "/department/csv": {
       "post": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Parse Department Csv",
         "description": "Parse a CSV file and return mapped items for preview.",
-        "operationId": "parse_department_csv_departments_csv_post",
+        "operationId": "parse_department_csv_department_csv_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_parse_department_csv_departments_csv_post"
+                "$ref": "#/components/schemas/Body_parse_department_csv_department_csv_post"
               }
             }
           },
@@ -4234,14 +4234,14 @@
         ]
       }
     },
-    "/departments/generate": {
+    "/department/generate": {
       "post": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Generate Department",
         "description": "Trigger department generation. Returns immediately; progress via events.",
-        "operationId": "generate_department_departments_generate_post",
+        "operationId": "generate_department_department_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4281,14 +4281,14 @@
         ]
       }
     },
-    "/departments/generations": {
+    "/department/generations": {
       "post": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Generations Department",
         "description": "List department generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_department_departments_generations_post",
+        "operationId": "generations_department_department_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4328,14 +4328,14 @@
         ]
       }
     },
-    "/departments/group": {
+    "/department/group": {
       "post": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Group Department",
         "description": "Resolve or create a department group with optional naming.",
-        "operationId": "group_department_departments_group_post",
+        "operationId": "group_department_department_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4375,14 +4375,14 @@
         ]
       }
     },
-    "/departments/problem": {
+    "/department/problem": {
       "post": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Problem Department",
         "description": "Report a department problem \u2014 composable infra architecture.",
-        "operationId": "problem_department_departments_problem_post",
+        "operationId": "problem_department_department_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4422,14 +4422,14 @@
         ]
       }
     },
-    "/departments/refresh": {
+    "/department/refresh": {
       "post": {
         "tags": [
-          "departments"
+          "department"
         ],
         "summary": "Department Refresh",
         "description": "Refresh department materialized views and invalidate caches.",
-        "operationId": "department_refresh_departments_refresh_post",
+        "operationId": "department_refresh_department_refresh_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -4449,14 +4449,14 @@
         ]
       }
     },
-    "/cohorts/search": {
+    "/cohort/search": {
       "post": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Search Cohort",
         "description": "Search cohorts \u2014 composable infra architecture.",
-        "operationId": "search_cohort_cohorts_search_post",
+        "operationId": "search_cohort_cohort_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4496,14 +4496,14 @@
         ]
       }
     },
-    "/cohorts/get": {
+    "/cohort/get": {
       "post": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Get Cohort",
         "description": "Get cohort information using the canonical shared cohort operation.",
-        "operationId": "get_cohort_cohorts_get_post",
+        "operationId": "get_cohort_cohort_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4543,14 +4543,14 @@
         ]
       }
     },
-    "/cohorts/create": {
+    "/cohort/create": {
       "post": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Create Cohort",
         "description": "Create cohorts using composable infra architecture.",
-        "operationId": "create_cohort_cohorts_create_post",
+        "operationId": "create_cohort_cohort_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4590,14 +4590,14 @@
         ]
       }
     },
-    "/cohorts/update": {
+    "/cohort/update": {
       "post": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Update Cohort",
         "description": "Update cohorts using composable infra architecture.",
-        "operationId": "update_cohort_cohorts_update_post",
+        "operationId": "update_cohort_cohort_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4637,14 +4637,14 @@
         ]
       }
     },
-    "/cohorts/duplicate": {
+    "/cohort/duplicate": {
       "post": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Duplicate Cohort",
         "description": "Duplicate a cohort \u2014 composable infra architecture.",
-        "operationId": "duplicate_cohort_cohorts_duplicate_post",
+        "operationId": "duplicate_cohort_cohort_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4684,14 +4684,14 @@
         ]
       }
     },
-    "/cohorts/delete": {
+    "/cohort/delete": {
       "post": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Delete Cohort",
         "description": "Bulk delete cohorts \u2014 composable infra architecture.",
-        "operationId": "delete_cohort_cohorts_delete_post",
+        "operationId": "delete_cohort_cohort_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4731,14 +4731,14 @@
         ]
       }
     },
-    "/cohorts/draft": {
+    "/cohort/draft": {
       "patch": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Patch Cohort Draft",
         "description": "Patch cohort draft \u2014 composable infra architecture.",
-        "operationId": "patch_cohort_draft_cohorts_draft_patch",
+        "operationId": "patch_cohort_draft_cohort_draft_patch",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4778,14 +4778,14 @@
         ]
       }
     },
-    "/cohorts/drafts": {
+    "/cohort/drafts": {
       "post": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Get Cohort Drafts",
         "description": "List cohort drafts owned by the current profile.",
-        "operationId": "get_cohort_drafts_cohorts_drafts_post",
+        "operationId": "get_cohort_drafts_cohort_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -4805,14 +4805,14 @@
         ]
       }
     },
-    "/cohorts/export": {
+    "/cohort/export": {
       "post": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Export Cohorts",
         "description": "Export all cohorts as a clean, denormalized CSV.",
-        "operationId": "export_cohorts_cohorts_export_post",
+        "operationId": "export_cohorts_cohort_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4852,19 +4852,19 @@
         ]
       }
     },
-    "/cohorts/csv": {
+    "/cohort/csv": {
       "post": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Parse Cohort Csv",
         "description": "Parse a CSV file and return mapped items for preview.",
-        "operationId": "parse_cohort_csv_cohorts_csv_post",
+        "operationId": "parse_cohort_csv_cohort_csv_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_parse_cohort_csv_cohorts_csv_post"
+                "$ref": "#/components/schemas/Body_parse_cohort_csv_cohort_csv_post"
               }
             }
           },
@@ -4899,14 +4899,14 @@
         ]
       }
     },
-    "/cohorts/context": {
+    "/cohort/context": {
       "post": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Get Cohort Context",
         "description": "Get page context for the cohort artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_cohort_context_cohorts_context_post",
+        "operationId": "get_cohort_context_cohort_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4946,14 +4946,14 @@
         ]
       }
     },
-    "/cohorts/docs": {
+    "/cohort/docs": {
       "post": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Get Cohort Docs Endpoint",
         "description": "Get composed documentation for the cohort artifact.",
-        "operationId": "get_cohort_docs_endpoint_cohorts_docs_post",
+        "operationId": "get_cohort_docs_endpoint_cohort_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4993,14 +4993,14 @@
         ]
       }
     },
-    "/cohorts/generate": {
+    "/cohort/generate": {
       "post": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Generate Cohort",
         "description": "Trigger cohort generation. Returns immediately; progress via events.",
-        "operationId": "generate_cohort_cohorts_generate_post",
+        "operationId": "generate_cohort_cohort_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5040,14 +5040,14 @@
         ]
       }
     },
-    "/cohorts/generations": {
+    "/cohort/generations": {
       "post": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Generations Cohort",
         "description": "List cohort generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_cohort_cohorts_generations_post",
+        "operationId": "generations_cohort_cohort_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5087,14 +5087,14 @@
         ]
       }
     },
-    "/cohorts/group": {
+    "/cohort/group": {
       "post": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Group Cohort",
         "description": "Resolve or create a cohort group with optional naming.",
-        "operationId": "group_cohort_cohorts_group_post",
+        "operationId": "group_cohort_cohort_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5134,14 +5134,14 @@
         ]
       }
     },
-    "/cohorts/problem": {
+    "/cohort/problem": {
       "post": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Problem Cohort",
         "description": "Report a cohort problem \u2014 composable infra architecture.",
-        "operationId": "problem_cohort_cohorts_problem_post",
+        "operationId": "problem_cohort_cohort_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5181,14 +5181,24 @@
         ]
       }
     },
-    "/cohorts/refresh": {
+    "/cohort/refresh": {
       "post": {
         "tags": [
-          "cohorts"
+          "cohort"
         ],
         "summary": "Cohort Refresh",
         "description": "Refresh cohort materialized views and invalidate caches.",
-        "operationId": "cohort_refresh_cohorts_refresh_post",
+        "operationId": "cohort_refresh_cohort_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshCohortApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -5196,6 +5206,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -5208,14 +5228,14 @@
         ]
       }
     },
-    "/evals/search": {
+    "/eval/search": {
       "post": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Search Eval",
         "description": "Search evals \u2014 composable infra architecture.",
-        "operationId": "search_eval_evals_search_post",
+        "operationId": "search_eval_eval_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5255,14 +5275,14 @@
         ]
       }
     },
-    "/evals/get": {
+    "/eval/get": {
       "post": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Get Eval",
         "description": "Get eval information using the canonical shared eval operation.",
-        "operationId": "get_eval_evals_get_post",
+        "operationId": "get_eval_eval_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5302,14 +5322,14 @@
         ]
       }
     },
-    "/evals/create": {
+    "/eval/create": {
       "post": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Create Eval",
         "description": "Create evals using composable infra architecture.",
-        "operationId": "create_eval_evals_create_post",
+        "operationId": "create_eval_eval_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5349,19 +5369,19 @@
         ]
       }
     },
-    "/evals/csv": {
+    "/eval/csv": {
       "post": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Parse Eval Csv",
         "description": "Parse a CSV file and return mapped items for preview.",
-        "operationId": "parse_eval_csv_evals_csv_post",
+        "operationId": "parse_eval_csv_eval_csv_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_parse_eval_csv_evals_csv_post"
+                "$ref": "#/components/schemas/Body_parse_eval_csv_eval_csv_post"
               }
             }
           },
@@ -5396,14 +5416,14 @@
         ]
       }
     },
-    "/evals/update": {
+    "/eval/update": {
       "post": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Update Eval",
         "description": "Update evals using composable infra architecture.",
-        "operationId": "update_eval_evals_update_post",
+        "operationId": "update_eval_eval_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5443,14 +5463,14 @@
         ]
       }
     },
-    "/evals/duplicate": {
+    "/eval/duplicate": {
       "post": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Duplicate Eval",
         "description": "Duplicate an eval \u2014 composable infra architecture.",
-        "operationId": "duplicate_eval_evals_duplicate_post",
+        "operationId": "duplicate_eval_eval_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5490,14 +5510,14 @@
         ]
       }
     },
-    "/evals/delete": {
+    "/eval/delete": {
       "post": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Delete Eval",
         "description": "Bulk delete evals \u2014 composable infra architecture.",
-        "operationId": "delete_eval_evals_delete_post",
+        "operationId": "delete_eval_eval_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5537,14 +5557,14 @@
         ]
       }
     },
-    "/evals/draft": {
+    "/eval/draft": {
       "patch": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Patch Eval Draft",
         "description": "Patch eval draft \u2014 composable infra architecture.",
-        "operationId": "patch_eval_draft_evals_draft_patch",
+        "operationId": "patch_eval_draft_eval_draft_patch",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5584,14 +5604,14 @@
         ]
       }
     },
-    "/evals/drafts": {
+    "/eval/drafts": {
       "post": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Get Eval Drafts",
         "description": "List eval drafts owned by the current profile.",
-        "operationId": "get_eval_drafts_evals_drafts_post",
+        "operationId": "get_eval_drafts_eval_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -5611,14 +5631,14 @@
         ]
       }
     },
-    "/evals/export": {
+    "/eval/export": {
       "post": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Export Evals",
         "description": "Export all evals as a clean, denormalized CSV.",
-        "operationId": "export_evals_evals_export_post",
+        "operationId": "export_evals_eval_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5658,14 +5678,14 @@
         ]
       }
     },
-    "/evals/generate": {
+    "/eval/generate": {
       "post": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Generate Eval",
         "description": "Trigger eval generation. Returns immediately; progress via events.",
-        "operationId": "generate_eval_evals_generate_post",
+        "operationId": "generate_eval_eval_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5705,14 +5725,14 @@
         ]
       }
     },
-    "/evals/generations": {
+    "/eval/generations": {
       "post": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Generations Eval",
         "description": "List eval generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_eval_evals_generations_post",
+        "operationId": "generations_eval_eval_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5752,14 +5772,14 @@
         ]
       }
     },
-    "/evals/context": {
+    "/eval/context": {
       "post": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Get Eval Context",
         "description": "Get page context for the eval artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_eval_context_evals_context_post",
+        "operationId": "get_eval_context_eval_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5799,14 +5819,14 @@
         ]
       }
     },
-    "/evals/docs": {
+    "/eval/docs": {
       "post": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Get Eval Docs Endpoint",
         "description": "Get composed documentation for the eval artifact.",
-        "operationId": "get_eval_docs_endpoint_evals_docs_post",
+        "operationId": "get_eval_docs_endpoint_eval_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5846,14 +5866,14 @@
         ]
       }
     },
-    "/evals/group": {
+    "/eval/group": {
       "post": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Group Eval",
         "description": "Resolve or create an eval group with optional naming.",
-        "operationId": "group_eval_evals_group_post",
+        "operationId": "group_eval_eval_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5893,14 +5913,14 @@
         ]
       }
     },
-    "/evals/problem": {
+    "/eval/problem": {
       "post": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Problem Eval",
         "description": "Report an eval problem \u2014 composable infra architecture.",
-        "operationId": "problem_eval_evals_problem_post",
+        "operationId": "problem_eval_eval_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5940,14 +5960,14 @@
         ]
       }
     },
-    "/evals/refresh": {
+    "/eval/refresh": {
       "post": {
         "tags": [
-          "evals"
+          "eval"
         ],
         "summary": "Eval Refresh",
         "description": "Refresh eval materialized views and invalidate caches.",
-        "operationId": "eval_refresh_evals_refresh_post",
+        "operationId": "eval_refresh_eval_refresh_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -5967,14 +5987,14 @@
         ]
       }
     },
-    "/rubrics/get": {
+    "/rubric/get": {
       "post": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Get Rubric",
         "description": "Get rubric information using the canonical shared rubric operation.",
-        "operationId": "get_rubric_rubrics_get_post",
+        "operationId": "get_rubric_rubric_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6014,14 +6034,14 @@
         ]
       }
     },
-    "/rubrics/search": {
+    "/rubric/search": {
       "post": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Search Rubric",
         "description": "Search rubrics \u2014 composable infra architecture.",
-        "operationId": "search_rubric_rubrics_search_post",
+        "operationId": "search_rubric_rubric_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6061,14 +6081,14 @@
         ]
       }
     },
-    "/rubrics/context": {
+    "/rubric/context": {
       "post": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Get Rubric Context",
         "description": "Get page context for the rubric artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_rubric_context_rubrics_context_post",
+        "operationId": "get_rubric_context_rubric_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6108,14 +6128,14 @@
         ]
       }
     },
-    "/rubrics/create": {
+    "/rubric/create": {
       "post": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Create Rubric",
         "description": "Create rubrics using composable infra architecture.",
-        "operationId": "create_rubric_rubrics_create_post",
+        "operationId": "create_rubric_rubric_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6155,14 +6175,14 @@
         ]
       }
     },
-    "/rubrics/update": {
+    "/rubric/update": {
       "post": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Update Rubric",
         "description": "Update rubrics using composable infra architecture.",
-        "operationId": "update_rubric_rubrics_update_post",
+        "operationId": "update_rubric_rubric_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6202,14 +6222,14 @@
         ]
       }
     },
-    "/rubrics/duplicate": {
+    "/rubric/duplicate": {
       "post": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Duplicate Rubric",
         "description": "Duplicate a rubric \u2014 composable infra architecture.",
-        "operationId": "duplicate_rubric_rubrics_duplicate_post",
+        "operationId": "duplicate_rubric_rubric_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6249,14 +6269,14 @@
         ]
       }
     },
-    "/rubrics/delete": {
+    "/rubric/delete": {
       "post": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Delete Rubric",
         "description": "Bulk delete rubrics \u2014 composable infra architecture.",
-        "operationId": "delete_rubric_rubrics_delete_post",
+        "operationId": "delete_rubric_rubric_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6296,14 +6316,14 @@
         ]
       }
     },
-    "/rubrics/draft": {
+    "/rubric/draft": {
       "patch": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Patch Rubric Draft",
         "description": "Patch rubric draft \u2014 composable infra architecture.",
-        "operationId": "patch_rubric_draft_rubrics_draft_patch",
+        "operationId": "patch_rubric_draft_rubric_draft_patch",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6343,14 +6363,14 @@
         ]
       }
     },
-    "/rubrics/drafts": {
+    "/rubric/drafts": {
       "post": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Get Rubric Drafts",
         "description": "List rubric drafts owned by the current profile.",
-        "operationId": "get_rubric_drafts_rubrics_drafts_post",
+        "operationId": "get_rubric_drafts_rubric_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6370,14 +6390,14 @@
         ]
       }
     },
-    "/rubrics/docs": {
+    "/rubric/docs": {
       "post": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Get Rubric Docs Endpoint",
         "description": "Get composed documentation for the rubric artifact.",
-        "operationId": "get_rubric_docs_endpoint_rubrics_docs_post",
+        "operationId": "get_rubric_docs_endpoint_rubric_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6417,14 +6437,14 @@
         ]
       }
     },
-    "/rubrics/export": {
+    "/rubric/export": {
       "post": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Export Rubrics",
         "description": "Export all rubrics as a clean, denormalized CSV.",
-        "operationId": "export_rubrics_rubrics_export_post",
+        "operationId": "export_rubrics_rubric_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6464,19 +6484,19 @@
         ]
       }
     },
-    "/rubrics/csv": {
+    "/rubric/csv": {
       "post": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Parse Rubric Csv",
         "description": "Parse a CSV file and return mapped items for preview.",
-        "operationId": "parse_rubric_csv_rubrics_csv_post",
+        "operationId": "parse_rubric_csv_rubric_csv_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_parse_rubric_csv_rubrics_csv_post"
+                "$ref": "#/components/schemas/Body_parse_rubric_csv_rubric_csv_post"
               }
             }
           },
@@ -6511,14 +6531,14 @@
         ]
       }
     },
-    "/rubrics/generate": {
+    "/rubric/generate": {
       "post": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Generate Rubric",
         "description": "Trigger rubric generation. Returns immediately; progress via events.",
-        "operationId": "generate_rubric_rubrics_generate_post",
+        "operationId": "generate_rubric_rubric_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6558,14 +6578,14 @@
         ]
       }
     },
-    "/rubrics/generations": {
+    "/rubric/generations": {
       "post": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Generations Rubric",
         "description": "List rubric generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_rubric_rubrics_generations_post",
+        "operationId": "generations_rubric_rubric_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6605,14 +6625,14 @@
         ]
       }
     },
-    "/rubrics/group": {
+    "/rubric/group": {
       "post": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Group Rubric",
         "description": "Resolve or create a rubric group with optional naming.",
-        "operationId": "group_rubric_rubrics_group_post",
+        "operationId": "group_rubric_rubric_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6652,14 +6672,14 @@
         ]
       }
     },
-    "/rubrics/problem": {
+    "/rubric/problem": {
       "post": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Problem Rubric",
         "description": "Report a rubric problem \u2014 composable infra architecture.",
-        "operationId": "problem_rubric_rubrics_problem_post",
+        "operationId": "problem_rubric_rubric_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6699,14 +6719,14 @@
         ]
       }
     },
-    "/rubrics/refresh": {
+    "/rubric/refresh": {
       "post": {
         "tags": [
-          "rubrics"
+          "rubric"
         ],
         "summary": "Rubric Refresh",
         "description": "Refresh rubric materialized views and invalidate caches.",
-        "operationId": "rubric_refresh_rubrics_refresh_post",
+        "operationId": "rubric_refresh_rubric_refresh_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6726,14 +6746,14 @@
         ]
       }
     },
-    "/settings/search": {
+    "/setting/search": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Search Setting",
         "description": "Search settings \u2014 composable infra architecture.",
-        "operationId": "search_setting_settings_search_post",
+        "operationId": "search_setting_setting_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6773,14 +6793,14 @@
         ]
       }
     },
-    "/settings/get": {
+    "/setting/get": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Get Setting",
         "description": "Get setting information using the canonical shared setting operation.",
-        "operationId": "get_setting_settings_get_post",
+        "operationId": "get_setting_setting_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6820,14 +6840,14 @@
         ]
       }
     },
-    "/settings/create": {
+    "/setting/create": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Create Setting",
         "description": "Create settings using composable infra architecture.",
-        "operationId": "create_setting_settings_create_post",
+        "operationId": "create_setting_setting_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6867,14 +6887,14 @@
         ]
       }
     },
-    "/settings/update": {
+    "/setting/update": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Update Setting",
         "description": "Update settings using composable infra architecture.",
-        "operationId": "update_setting_settings_update_post",
+        "operationId": "update_setting_setting_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6914,14 +6934,14 @@
         ]
       }
     },
-    "/settings/duplicate": {
+    "/setting/duplicate": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Duplicate Setting",
         "description": "Duplicate a setting \u2014 composable infra architecture.",
-        "operationId": "duplicate_setting_settings_duplicate_post",
+        "operationId": "duplicate_setting_setting_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6961,14 +6981,14 @@
         ]
       }
     },
-    "/settings/delete": {
+    "/setting/delete": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Delete Setting",
         "description": "Bulk delete settings \u2014 composable infra architecture.",
-        "operationId": "delete_setting_settings_delete_post",
+        "operationId": "delete_setting_setting_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7008,14 +7028,14 @@
         ]
       }
     },
-    "/settings/draft": {
+    "/setting/draft": {
       "patch": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Patch Setting Draft",
         "description": "Patch setting draft \u2014 composable infra architecture.",
-        "operationId": "patch_setting_draft_settings_draft_patch",
+        "operationId": "patch_setting_draft_setting_draft_patch",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7055,14 +7075,14 @@
         ]
       }
     },
-    "/settings/drafts": {
+    "/setting/drafts": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Get Setting Drafts",
         "description": "List setting drafts owned by the current profile.",
-        "operationId": "get_setting_drafts_settings_drafts_post",
+        "operationId": "get_setting_drafts_setting_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -7082,14 +7102,14 @@
         ]
       }
     },
-    "/settings/export": {
+    "/setting/export": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Export Settings",
         "description": "Export all settings as a clean, denormalized CSV.",
-        "operationId": "export_settings_settings_export_post",
+        "operationId": "export_settings_setting_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7129,14 +7149,14 @@
         ]
       }
     },
-    "/settings/context": {
+    "/setting/context": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Get Setting Context",
         "description": "Get page context for the setting artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_setting_context_settings_context_post",
+        "operationId": "get_setting_context_setting_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7176,19 +7196,19 @@
         ]
       }
     },
-    "/settings/csv": {
+    "/setting/csv": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Parse Setting Csv",
         "description": "Parse a CSV file and return mapped items for preview.",
-        "operationId": "parse_setting_csv_settings_csv_post",
+        "operationId": "parse_setting_csv_setting_csv_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_parse_setting_csv_settings_csv_post"
+                "$ref": "#/components/schemas/Body_parse_setting_csv_setting_csv_post"
               }
             }
           },
@@ -7223,14 +7243,14 @@
         ]
       }
     },
-    "/settings/docs": {
+    "/setting/docs": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Get Setting Docs Endpoint",
         "description": "Get composed documentation for the setting artifact.",
-        "operationId": "get_setting_docs_endpoint_settings_docs_post",
+        "operationId": "get_setting_docs_endpoint_setting_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7270,14 +7290,14 @@
         ]
       }
     },
-    "/settings/generate": {
+    "/setting/generate": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Generate Setting",
         "description": "Trigger setting generation. Returns immediately; progress via events.",
-        "operationId": "generate_setting_settings_generate_post",
+        "operationId": "generate_setting_setting_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7317,14 +7337,14 @@
         ]
       }
     },
-    "/settings/generations": {
+    "/setting/generations": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Generations Setting",
         "description": "List setting generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_setting_settings_generations_post",
+        "operationId": "generations_setting_setting_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7364,14 +7384,14 @@
         ]
       }
     },
-    "/settings/group": {
+    "/setting/group": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Group Setting",
         "description": "Resolve or create a setting group with optional naming.",
-        "operationId": "group_setting_settings_group_post",
+        "operationId": "group_setting_setting_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7411,14 +7431,14 @@
         ]
       }
     },
-    "/settings/problem": {
+    "/setting/problem": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Problem Setting",
         "description": "Report a setting problem \u2014 composable infra architecture.",
-        "operationId": "problem_setting_settings_problem_post",
+        "operationId": "problem_setting_setting_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7458,14 +7478,14 @@
         ]
       }
     },
-    "/settings/refresh": {
+    "/setting/refresh": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Setting Refresh",
         "description": "Refresh setting materialized views and invalidate caches.",
-        "operationId": "setting_refresh_settings_refresh_post",
+        "operationId": "setting_refresh_setting_refresh_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -7485,14 +7505,14 @@
         ]
       }
     },
-    "/settings/decrypt": {
+    "/setting/decrypt": {
       "post": {
         "tags": [
-          "settings"
+          "setting"
         ],
         "summary": "Decrypt Setting Key",
         "description": "Decrypt a key scoped to a setting artifact.",
-        "operationId": "decrypt_setting_key_settings_decrypt_post",
+        "operationId": "decrypt_setting_key_setting_decrypt_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7532,14 +7552,14 @@
         ]
       }
     },
-    "/agents/context": {
+    "/agent/context": {
       "post": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Get Agent Context",
         "description": "Get page context for the agent artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_agent_context_agents_context_post",
+        "operationId": "get_agent_context_agent_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7579,14 +7599,14 @@
         ]
       }
     },
-    "/agents/get": {
+    "/agent/get": {
       "post": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Get Agent",
         "description": "Get agent information using the canonical shared agent operation.",
-        "operationId": "get_agent_agents_get_post",
+        "operationId": "get_agent_agent_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7626,14 +7646,14 @@
         ]
       }
     },
-    "/agents/search": {
+    "/agent/search": {
       "post": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Search Agent",
         "description": "Search agents \u2014 composable infra architecture.",
-        "operationId": "search_agent_agents_search_post",
+        "operationId": "search_agent_agent_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7673,14 +7693,14 @@
         ]
       }
     },
-    "/agents/create": {
+    "/agent/create": {
       "post": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Create Agent",
         "description": "Create agents using composable infra architecture.",
-        "operationId": "create_agent_agents_create_post",
+        "operationId": "create_agent_agent_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7720,19 +7740,19 @@
         ]
       }
     },
-    "/agents/csv": {
+    "/agent/csv": {
       "post": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Parse Agent Csv",
         "description": "Parse a CSV file and return mapped items for preview.",
-        "operationId": "parse_agent_csv_agents_csv_post",
+        "operationId": "parse_agent_csv_agent_csv_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_parse_agent_csv_agents_csv_post"
+                "$ref": "#/components/schemas/Body_parse_agent_csv_agent_csv_post"
               }
             }
           },
@@ -7767,14 +7787,14 @@
         ]
       }
     },
-    "/agents/update": {
+    "/agent/update": {
       "post": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Update Agent",
         "description": "Update agents using composable infra architecture.",
-        "operationId": "update_agent_agents_update_post",
+        "operationId": "update_agent_agent_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7814,14 +7834,14 @@
         ]
       }
     },
-    "/agents/duplicate": {
+    "/agent/duplicate": {
       "post": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Duplicate Agent",
         "description": "Duplicate an agent \u2014 composable infra architecture.",
-        "operationId": "duplicate_agent_agents_duplicate_post",
+        "operationId": "duplicate_agent_agent_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7861,14 +7881,14 @@
         ]
       }
     },
-    "/agents/delete": {
+    "/agent/delete": {
       "post": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Delete Agent",
         "description": "Bulk delete agents \u2014 composable infra architecture.",
-        "operationId": "delete_agent_agents_delete_post",
+        "operationId": "delete_agent_agent_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7908,14 +7928,14 @@
         ]
       }
     },
-    "/agents/draft": {
+    "/agent/draft": {
       "patch": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Patch Agent Draft",
         "description": "Patch agent draft \u2014 composable infra architecture.",
-        "operationId": "patch_agent_draft_agents_draft_patch",
+        "operationId": "patch_agent_draft_agent_draft_patch",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7955,14 +7975,14 @@
         ]
       }
     },
-    "/agents/drafts": {
+    "/agent/drafts": {
       "post": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Get Agent Drafts",
         "description": "List agent drafts owned by the current profile.",
-        "operationId": "get_agent_drafts_agents_drafts_post",
+        "operationId": "get_agent_drafts_agent_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -7982,14 +8002,14 @@
         ]
       }
     },
-    "/agents/export": {
+    "/agent/export": {
       "post": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Export Agents",
         "description": "Export all agents as a clean, denormalized CSV.",
-        "operationId": "export_agents_agents_export_post",
+        "operationId": "export_agents_agent_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8029,14 +8049,14 @@
         ]
       }
     },
-    "/agents/generate": {
+    "/agent/generate": {
       "post": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Generate Agent",
         "description": "Trigger agent generation. Returns immediately; progress via events.",
-        "operationId": "generate_agent_agents_generate_post",
+        "operationId": "generate_agent_agent_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8076,14 +8096,14 @@
         ]
       }
     },
-    "/agents/generations": {
+    "/agent/generations": {
       "post": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Generations Agent",
         "description": "List agent generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_agent_agents_generations_post",
+        "operationId": "generations_agent_agent_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8123,14 +8143,14 @@
         ]
       }
     },
-    "/agents/docs": {
+    "/agent/docs": {
       "post": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Get Agent Docs Endpoint",
         "description": "Get composed documentation for the agent artifact.",
-        "operationId": "get_agent_docs_endpoint_agents_docs_post",
+        "operationId": "get_agent_docs_endpoint_agent_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8170,14 +8190,14 @@
         ]
       }
     },
-    "/agents/group": {
+    "/agent/group": {
       "post": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Group Agent",
         "description": "Resolve or create an agent group with optional naming.",
-        "operationId": "group_agent_agents_group_post",
+        "operationId": "group_agent_agent_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8217,14 +8237,14 @@
         ]
       }
     },
-    "/agents/problem": {
+    "/agent/problem": {
       "post": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Problem Agent",
         "description": "Report an agent problem \u2014 composable infra architecture.",
-        "operationId": "problem_agent_agents_problem_post",
+        "operationId": "problem_agent_agent_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8264,14 +8284,14 @@
         ]
       }
     },
-    "/agents/refresh": {
+    "/agent/refresh": {
       "post": {
         "tags": [
-          "agents"
+          "agent"
         ],
         "summary": "Agent Refresh",
         "description": "Refresh agent materialized views and invalidate caches.",
-        "operationId": "agent_refresh_agents_refresh_post",
+        "operationId": "agent_refresh_agent_refresh_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -8291,14 +8311,14 @@
         ]
       }
     },
-    "/models/get": {
+    "/model/get": {
       "post": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Get Model",
         "description": "Get model information using the canonical shared model operation.",
-        "operationId": "get_model_models_get_post",
+        "operationId": "get_model_model_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8338,14 +8358,14 @@
         ]
       }
     },
-    "/models/search": {
+    "/model/search": {
       "post": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Search Model",
         "description": "Search models \u2014 composable infra architecture.",
-        "operationId": "search_model_models_search_post",
+        "operationId": "search_model_model_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8385,14 +8405,14 @@
         ]
       }
     },
-    "/models/create": {
+    "/model/create": {
       "post": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Create Model",
         "description": "Create models using composable infra architecture.",
-        "operationId": "create_model_models_create_post",
+        "operationId": "create_model_model_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8432,14 +8452,14 @@
         ]
       }
     },
-    "/models/update": {
+    "/model/update": {
       "post": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Update Model",
         "description": "Update models using composable infra architecture.",
-        "operationId": "update_model_models_update_post",
+        "operationId": "update_model_model_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8479,14 +8499,14 @@
         ]
       }
     },
-    "/models/duplicate": {
+    "/model/duplicate": {
       "post": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Duplicate Model",
         "description": "Duplicate a model \u2014 composable infra architecture.",
-        "operationId": "duplicate_model_models_duplicate_post",
+        "operationId": "duplicate_model_model_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8526,14 +8546,14 @@
         ]
       }
     },
-    "/models/delete": {
+    "/model/delete": {
       "post": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Delete Model",
         "description": "Bulk delete models \u2014 composable infra architecture.",
-        "operationId": "delete_model_models_delete_post",
+        "operationId": "delete_model_model_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8573,14 +8593,14 @@
         ]
       }
     },
-    "/models/draft": {
+    "/model/draft": {
       "patch": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Patch Model Draft",
         "description": "Patch model draft \u2014 composable infra architecture.",
-        "operationId": "patch_model_draft_models_draft_patch",
+        "operationId": "patch_model_draft_model_draft_patch",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8620,14 +8640,14 @@
         ]
       }
     },
-    "/models/drafts": {
+    "/model/drafts": {
       "post": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Get Model Drafts",
         "description": "List model drafts owned by the current profile.",
-        "operationId": "get_model_drafts_models_drafts_post",
+        "operationId": "get_model_drafts_model_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -8647,14 +8667,14 @@
         ]
       }
     },
-    "/models/context": {
+    "/model/context": {
       "post": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Get Model Context",
         "description": "Get page context for the model artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_model_context_models_context_post",
+        "operationId": "get_model_context_model_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8694,14 +8714,14 @@
         ]
       }
     },
-    "/models/docs": {
+    "/model/docs": {
       "post": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Get Model Docs Endpoint",
         "description": "Get composed documentation for the model artifact.",
-        "operationId": "get_model_docs_endpoint_models_docs_post",
+        "operationId": "get_model_docs_endpoint_model_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8741,14 +8761,14 @@
         ]
       }
     },
-    "/models/export": {
+    "/model/export": {
       "post": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Export Models",
         "description": "Export all models as a clean, denormalized CSV.",
-        "operationId": "export_models_models_export_post",
+        "operationId": "export_models_model_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8788,19 +8808,19 @@
         ]
       }
     },
-    "/models/csv": {
+    "/model/csv": {
       "post": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Parse Model Csv",
         "description": "Parse a CSV file and return mapped items for preview.",
-        "operationId": "parse_model_csv_models_csv_post",
+        "operationId": "parse_model_csv_model_csv_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_parse_model_csv_models_csv_post"
+                "$ref": "#/components/schemas/Body_parse_model_csv_model_csv_post"
               }
             }
           },
@@ -8835,14 +8855,14 @@
         ]
       }
     },
-    "/models/generate": {
+    "/model/generate": {
       "post": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Generate Model",
         "description": "Trigger model generation. Returns immediately; progress via events.",
-        "operationId": "generate_model_models_generate_post",
+        "operationId": "generate_model_model_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8882,14 +8902,14 @@
         ]
       }
     },
-    "/models/generations": {
+    "/model/generations": {
       "post": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Generations Model",
         "description": "List model generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_model_models_generations_post",
+        "operationId": "generations_model_model_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8929,14 +8949,14 @@
         ]
       }
     },
-    "/models/group": {
+    "/model/group": {
       "post": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Group Model",
         "description": "Resolve or create a model group with optional naming.",
-        "operationId": "group_model_models_group_post",
+        "operationId": "group_model_model_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8976,14 +8996,14 @@
         ]
       }
     },
-    "/models/problem": {
+    "/model/problem": {
       "post": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Problem Model",
         "description": "Report a model problem \u2014 composable infra architecture.",
-        "operationId": "problem_model_models_problem_post",
+        "operationId": "problem_model_model_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9023,14 +9043,14 @@
         ]
       }
     },
-    "/models/refresh": {
+    "/model/refresh": {
       "post": {
         "tags": [
-          "models"
+          "model"
         ],
         "summary": "Model Refresh",
         "description": "Refresh model materialized views and invalidate caches.",
-        "operationId": "model_refresh_models_refresh_post",
+        "operationId": "model_refresh_model_refresh_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -9050,14 +9070,14 @@
         ]
       }
     },
-    "/providers/search": {
+    "/provider/search": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Search Provider",
         "description": "Search providers \u2014 composable infra architecture.",
-        "operationId": "search_provider_providers_search_post",
+        "operationId": "search_provider_provider_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9097,14 +9117,14 @@
         ]
       }
     },
-    "/providers/get": {
+    "/provider/get": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Get Provider",
         "description": "Get provider information using the canonical shared provider operation.",
-        "operationId": "get_provider_providers_get_post",
+        "operationId": "get_provider_provider_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9144,14 +9164,14 @@
         ]
       }
     },
-    "/providers/create": {
+    "/provider/create": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Create Provider",
         "description": "Create providers using composable infra architecture.",
-        "operationId": "create_provider_providers_create_post",
+        "operationId": "create_provider_provider_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9191,14 +9211,14 @@
         ]
       }
     },
-    "/providers/update": {
+    "/provider/update": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Update Provider",
         "description": "Update providers using composable infra architecture.",
-        "operationId": "update_provider_providers_update_post",
+        "operationId": "update_provider_provider_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9238,14 +9258,14 @@
         ]
       }
     },
-    "/providers/duplicate": {
+    "/provider/duplicate": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Duplicate Provider",
         "description": "Duplicate a provider \u2014 composable infra architecture.",
-        "operationId": "duplicate_provider_providers_duplicate_post",
+        "operationId": "duplicate_provider_provider_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9285,14 +9305,14 @@
         ]
       }
     },
-    "/providers/delete": {
+    "/provider/delete": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Delete Provider",
         "description": "Bulk delete providers \u2014 composable infra architecture.",
-        "operationId": "delete_provider_providers_delete_post",
+        "operationId": "delete_provider_provider_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9332,14 +9352,14 @@
         ]
       }
     },
-    "/providers/draft": {
+    "/provider/draft": {
       "patch": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Patch Provider Draft",
         "description": "Patch provider draft \u2014 composable infra architecture.",
-        "operationId": "patch_provider_draft_providers_draft_patch",
+        "operationId": "patch_provider_draft_provider_draft_patch",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9379,14 +9399,14 @@
         ]
       }
     },
-    "/providers/drafts": {
+    "/provider/drafts": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Get Provider Drafts",
         "description": "List provider drafts owned by the current profile.",
-        "operationId": "get_provider_drafts_providers_drafts_post",
+        "operationId": "get_provider_drafts_provider_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -9406,14 +9426,14 @@
         ]
       }
     },
-    "/providers/context": {
+    "/provider/context": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Get Provider Context",
         "description": "Get page context for the provider artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_provider_context_providers_context_post",
+        "operationId": "get_provider_context_provider_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9453,14 +9473,14 @@
         ]
       }
     },
-    "/providers/docs": {
+    "/provider/docs": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Get Provider Docs Endpoint",
         "description": "Get composed documentation for the provider artifact.",
-        "operationId": "get_provider_docs_endpoint_providers_docs_post",
+        "operationId": "get_provider_docs_endpoint_provider_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9500,14 +9520,14 @@
         ]
       }
     },
-    "/providers/export": {
+    "/provider/export": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Export Providers",
         "description": "Export all providers as a clean, denormalized CSV.",
-        "operationId": "export_providers_providers_export_post",
+        "operationId": "export_providers_provider_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9547,19 +9567,19 @@
         ]
       }
     },
-    "/providers/csv": {
+    "/provider/csv": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Parse Provider Csv",
         "description": "Parse a CSV file and return mapped items for preview.",
-        "operationId": "parse_provider_csv_providers_csv_post",
+        "operationId": "parse_provider_csv_provider_csv_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_parse_provider_csv_providers_csv_post"
+                "$ref": "#/components/schemas/Body_parse_provider_csv_provider_csv_post"
               }
             }
           },
@@ -9594,14 +9614,14 @@
         ]
       }
     },
-    "/providers/refresh": {
+    "/provider/refresh": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Provider Refresh",
         "description": "Refresh provider materialized views and invalidate caches.",
-        "operationId": "provider_refresh_providers_refresh_post",
+        "operationId": "provider_refresh_provider_refresh_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -9621,14 +9641,14 @@
         ]
       }
     },
-    "/providers/decrypt": {
+    "/provider/decrypt": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Decrypt Provider Key",
         "description": "Decrypt a key scoped to a provider artifact.",
-        "operationId": "decrypt_provider_key_providers_decrypt_post",
+        "operationId": "decrypt_provider_key_provider_decrypt_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9668,14 +9688,14 @@
         ]
       }
     },
-    "/providers/generate": {
+    "/provider/generate": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Generate Provider",
         "description": "Trigger provider generation. Returns immediately; progress via events.",
-        "operationId": "generate_provider_providers_generate_post",
+        "operationId": "generate_provider_provider_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9715,14 +9735,14 @@
         ]
       }
     },
-    "/providers/generations": {
+    "/provider/generations": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Generations Provider",
         "description": "List provider generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_provider_providers_generations_post",
+        "operationId": "generations_provider_provider_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9762,14 +9782,14 @@
         ]
       }
     },
-    "/providers/group": {
+    "/provider/group": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Group Provider",
         "description": "Resolve or create a provider group with optional naming.",
-        "operationId": "group_provider_providers_group_post",
+        "operationId": "group_provider_provider_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9809,14 +9829,14 @@
         ]
       }
     },
-    "/providers/problem": {
+    "/provider/problem": {
       "post": {
         "tags": [
-          "providers"
+          "provider"
         ],
         "summary": "Problem Provider",
         "description": "Report a provider problem \u2014 composable infra architecture.",
-        "operationId": "problem_provider_providers_problem_post",
+        "operationId": "problem_provider_provider_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9856,14 +9876,14 @@
         ]
       }
     },
-    "/parameters/get": {
+    "/parameter/get": {
       "post": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Get Parameter",
         "description": "Get parameter information using the canonical shared parameter operation.",
-        "operationId": "get_parameter_parameters_get_post",
+        "operationId": "get_parameter_parameter_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9903,14 +9923,14 @@
         ]
       }
     },
-    "/parameters/search": {
+    "/parameter/search": {
       "post": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Search Parameter",
         "description": "Search parameters \u2014 composable infra architecture.",
-        "operationId": "search_parameter_parameters_search_post",
+        "operationId": "search_parameter_parameter_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9950,14 +9970,14 @@
         ]
       }
     },
-    "/parameters/create": {
+    "/parameter/create": {
       "post": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Create Parameter",
         "description": "Create parameters using composable infra architecture.",
-        "operationId": "create_parameter_parameters_create_post",
+        "operationId": "create_parameter_parameter_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9997,14 +10017,14 @@
         ]
       }
     },
-    "/parameters/update": {
+    "/parameter/update": {
       "post": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Update Parameter",
         "description": "Update parameters using composable infra architecture.",
-        "operationId": "update_parameter_parameters_update_post",
+        "operationId": "update_parameter_parameter_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10044,14 +10064,14 @@
         ]
       }
     },
-    "/parameters/duplicate": {
+    "/parameter/duplicate": {
       "post": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Duplicate Parameter",
         "description": "Duplicate a parameter \u2014 composable infra architecture.",
-        "operationId": "duplicate_parameter_parameters_duplicate_post",
+        "operationId": "duplicate_parameter_parameter_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10091,14 +10111,14 @@
         ]
       }
     },
-    "/parameters/context": {
+    "/parameter/context": {
       "post": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Get Parameter Context",
         "description": "Get page context for the parameter artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_parameter_context_parameters_context_post",
+        "operationId": "get_parameter_context_parameter_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10138,14 +10158,14 @@
         ]
       }
     },
-    "/parameters/delete": {
+    "/parameter/delete": {
       "post": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Delete Parameter",
         "description": "Bulk delete parameters \u2014 composable infra architecture.",
-        "operationId": "delete_parameter_parameters_delete_post",
+        "operationId": "delete_parameter_parameter_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10185,14 +10205,14 @@
         ]
       }
     },
-    "/parameters/draft": {
+    "/parameter/draft": {
       "patch": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Patch Parameter Draft",
         "description": "Patch parameter draft \u2014 composable infra architecture.",
-        "operationId": "patch_parameter_draft_parameters_draft_patch",
+        "operationId": "patch_parameter_draft_parameter_draft_patch",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10232,14 +10252,14 @@
         ]
       }
     },
-    "/parameters/drafts": {
+    "/parameter/drafts": {
       "post": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Get Parameter Drafts",
         "description": "List parameter drafts owned by the current profile.",
-        "operationId": "get_parameter_drafts_parameters_drafts_post",
+        "operationId": "get_parameter_drafts_parameter_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -10259,14 +10279,14 @@
         ]
       }
     },
-    "/parameters/docs": {
+    "/parameter/docs": {
       "post": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Get Parameter Docs Endpoint",
         "description": "Get composed documentation for the parameter artifact.",
-        "operationId": "get_parameter_docs_endpoint_parameters_docs_post",
+        "operationId": "get_parameter_docs_endpoint_parameter_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10306,14 +10326,14 @@
         ]
       }
     },
-    "/parameters/export": {
+    "/parameter/export": {
       "post": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Export Parameters",
         "description": "Export all parameters as a clean, denormalized CSV.",
-        "operationId": "export_parameters_parameters_export_post",
+        "operationId": "export_parameters_parameter_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10353,19 +10373,19 @@
         ]
       }
     },
-    "/parameters/csv": {
+    "/parameter/csv": {
       "post": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Parse Parameter Csv",
         "description": "Parse a CSV file and return mapped items for preview.",
-        "operationId": "parse_parameter_csv_parameters_csv_post",
+        "operationId": "parse_parameter_csv_parameter_csv_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_parse_parameter_csv_parameters_csv_post"
+                "$ref": "#/components/schemas/Body_parse_parameter_csv_parameter_csv_post"
               }
             }
           },
@@ -10400,14 +10420,14 @@
         ]
       }
     },
-    "/parameters/generate": {
+    "/parameter/generate": {
       "post": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Generate Parameter",
         "description": "Trigger parameter generation. Returns immediately; progress via events.",
-        "operationId": "generate_parameter_parameters_generate_post",
+        "operationId": "generate_parameter_parameter_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10447,14 +10467,14 @@
         ]
       }
     },
-    "/parameters/generations": {
+    "/parameter/generations": {
       "post": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Generations Parameter",
         "description": "List parameter generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_parameter_parameters_generations_post",
+        "operationId": "generations_parameter_parameter_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10494,14 +10514,14 @@
         ]
       }
     },
-    "/parameters/group": {
+    "/parameter/group": {
       "post": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Group Parameter",
         "description": "Resolve or create a parameter group with optional naming.",
-        "operationId": "group_parameter_parameters_group_post",
+        "operationId": "group_parameter_parameter_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10541,14 +10561,14 @@
         ]
       }
     },
-    "/parameters/problem": {
+    "/parameter/problem": {
       "post": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Problem Parameter",
         "description": "Report a parameter problem \u2014 composable infra architecture.",
-        "operationId": "problem_parameter_parameters_problem_post",
+        "operationId": "problem_parameter_parameter_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10588,14 +10608,14 @@
         ]
       }
     },
-    "/parameters/refresh": {
+    "/parameter/refresh": {
       "post": {
         "tags": [
-          "parameters"
+          "parameter"
         ],
         "summary": "Parameter Refresh",
         "description": "Refresh parameter materialized views and invalidate caches.",
-        "operationId": "parameter_refresh_parameters_refresh_post",
+        "operationId": "parameter_refresh_parameter_refresh_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -10615,14 +10635,14 @@
         ]
       }
     },
-    "/fields/get": {
+    "/field/get": {
       "post": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Get Field",
         "description": "Get field information using the canonical shared field operation.",
-        "operationId": "get_field_fields_get_post",
+        "operationId": "get_field_field_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10662,14 +10682,14 @@
         ]
       }
     },
-    "/fields/search": {
+    "/field/search": {
       "post": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Search Field",
         "description": "Search fields \u2014 composable infra architecture.",
-        "operationId": "search_field_fields_search_post",
+        "operationId": "search_field_field_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10709,14 +10729,14 @@
         ]
       }
     },
-    "/fields/create": {
+    "/field/create": {
       "post": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Create Field",
         "description": "Create fields using composable infra architecture.",
-        "operationId": "create_field_fields_create_post",
+        "operationId": "create_field_field_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10756,14 +10776,14 @@
         ]
       }
     },
-    "/fields/update": {
+    "/field/update": {
       "post": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Update Field",
         "description": "Update fields using composable infra architecture.",
-        "operationId": "update_field_fields_update_post",
+        "operationId": "update_field_field_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10803,14 +10823,14 @@
         ]
       }
     },
-    "/fields/duplicate": {
+    "/field/duplicate": {
       "post": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Duplicate Field",
         "description": "Duplicate a field \u2014 composable infra architecture.",
-        "operationId": "duplicate_field_fields_duplicate_post",
+        "operationId": "duplicate_field_field_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10850,14 +10870,14 @@
         ]
       }
     },
-    "/fields/delete": {
+    "/field/delete": {
       "post": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Delete Field",
         "description": "Bulk delete fields \u2014 composable infra architecture.",
-        "operationId": "delete_field_fields_delete_post",
+        "operationId": "delete_field_field_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10897,14 +10917,14 @@
         ]
       }
     },
-    "/fields/draft": {
+    "/field/draft": {
       "patch": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Patch Field Draft",
         "description": "Patch field draft \u2014 composable infra architecture.",
-        "operationId": "patch_field_draft_fields_draft_patch",
+        "operationId": "patch_field_draft_field_draft_patch",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10944,14 +10964,14 @@
         ]
       }
     },
-    "/fields/drafts": {
+    "/field/drafts": {
       "post": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Get Field Drafts",
         "description": "List field drafts owned by the current profile.",
-        "operationId": "get_field_drafts_fields_drafts_post",
+        "operationId": "get_field_drafts_field_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -10971,14 +10991,14 @@
         ]
       }
     },
-    "/fields/context": {
+    "/field/context": {
       "post": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Get Field Context",
         "description": "Get page context for the field artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_field_context_fields_context_post",
+        "operationId": "get_field_context_field_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11018,14 +11038,14 @@
         ]
       }
     },
-    "/fields/docs": {
+    "/field/docs": {
       "post": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Get Field Docs Endpoint",
         "description": "Get composed documentation for the field artifact.",
-        "operationId": "get_field_docs_endpoint_fields_docs_post",
+        "operationId": "get_field_docs_endpoint_field_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11065,14 +11085,14 @@
         ]
       }
     },
-    "/fields/export": {
+    "/field/export": {
       "post": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Export Fields",
         "description": "Export all fields as a clean, denormalized CSV.",
-        "operationId": "export_fields_fields_export_post",
+        "operationId": "export_fields_field_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11112,19 +11132,19 @@
         ]
       }
     },
-    "/fields/csv": {
+    "/field/csv": {
       "post": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Parse Field Csv",
         "description": "Parse a CSV file and return mapped items for preview.",
-        "operationId": "parse_field_csv_fields_csv_post",
+        "operationId": "parse_field_csv_field_csv_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_parse_field_csv_fields_csv_post"
+                "$ref": "#/components/schemas/Body_parse_field_csv_field_csv_post"
               }
             }
           },
@@ -11159,14 +11179,14 @@
         ]
       }
     },
-    "/fields/generate": {
+    "/field/generate": {
       "post": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Generate Field",
         "description": "Trigger field generation. Returns immediately; progress via events.",
-        "operationId": "generate_field_fields_generate_post",
+        "operationId": "generate_field_field_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11206,14 +11226,14 @@
         ]
       }
     },
-    "/fields/generations": {
+    "/field/generations": {
       "post": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Generations Field",
         "description": "List field generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_field_fields_generations_post",
+        "operationId": "generations_field_field_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11253,14 +11273,14 @@
         ]
       }
     },
-    "/fields/group": {
+    "/field/group": {
       "post": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Group Field",
         "description": "Resolve or create a field group with optional naming.",
-        "operationId": "group_field_fields_group_post",
+        "operationId": "group_field_field_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11300,14 +11320,14 @@
         ]
       }
     },
-    "/fields/problem": {
+    "/field/problem": {
       "post": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Problem Field",
         "description": "Report a field problem \u2014 composable infra architecture.",
-        "operationId": "problem_field_fields_problem_post",
+        "operationId": "problem_field_field_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11347,14 +11367,14 @@
         ]
       }
     },
-    "/fields/refresh": {
+    "/field/refresh": {
       "post": {
         "tags": [
-          "fields"
+          "field"
         ],
         "summary": "Field Refresh",
         "description": "Refresh field materialized views and invalidate caches.",
-        "operationId": "field_refresh_fields_refresh_post",
+        "operationId": "field_refresh_field_refresh_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -11374,14 +11394,14 @@
         ]
       }
     },
-    "/profiles/get": {
+    "/profile/get": {
       "post": {
         "tags": [
-          "profiles"
+          "profile"
         ],
         "summary": "Get Profile",
         "description": "Get profile information using the canonical shared profile operation.",
-        "operationId": "get_profile_profiles_get_post",
+        "operationId": "get_profile_profile_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11421,14 +11441,14 @@
         ]
       }
     },
-    "/profiles/search": {
+    "/profile/search": {
       "post": {
         "tags": [
-          "profiles"
+          "profile"
         ],
         "summary": "Search Profile",
         "description": "Search profiles \u2014 composable infra architecture.",
-        "operationId": "search_profile_profiles_search_post",
+        "operationId": "search_profile_profile_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11468,14 +11488,14 @@
         ]
       }
     },
-    "/profiles/create": {
+    "/profile/create": {
       "post": {
         "tags": [
-          "profiles"
+          "profile"
         ],
         "summary": "Create Profile",
         "description": "Create profiles using composable infra architecture.",
-        "operationId": "create_profile_profiles_create_post",
+        "operationId": "create_profile_profile_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11515,14 +11535,14 @@
         ]
       }
     },
-    "/profiles/update": {
+    "/profile/update": {
       "post": {
         "tags": [
-          "profiles"
+          "profile"
         ],
         "summary": "Update Profile",
         "description": "Update profiles using composable infra architecture.",
-        "operationId": "update_profile_profiles_update_post",
+        "operationId": "update_profile_profile_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11562,14 +11582,14 @@
         ]
       }
     },
-    "/profiles/duplicate": {
+    "/profile/duplicate": {
       "post": {
         "tags": [
-          "profiles"
+          "profile"
         ],
         "summary": "Duplicate Profile",
         "description": "Duplicate a profile \u2014 composable infra architecture.",
-        "operationId": "duplicate_profile_profiles_duplicate_post",
+        "operationId": "duplicate_profile_profile_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11609,14 +11629,14 @@
         ]
       }
     },
-    "/profiles/draft": {
+    "/profile/draft": {
       "patch": {
         "tags": [
-          "profiles"
+          "profile"
         ],
         "summary": "Patch Profile Draft",
         "description": "Patch profile draft \u2014 composable infra architecture.",
-        "operationId": "patch_profile_draft_profiles_draft_patch",
+        "operationId": "patch_profile_draft_profile_draft_patch",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11656,14 +11676,14 @@
         ]
       }
     },
-    "/profiles/drafts": {
+    "/profile/drafts": {
       "post": {
         "tags": [
-          "profiles"
+          "profile"
         ],
         "summary": "Get Profile Drafts",
         "description": "List profile drafts owned by the current profile.",
-        "operationId": "get_profile_drafts_profiles_drafts_post",
+        "operationId": "get_profile_drafts_profile_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -11683,14 +11703,14 @@
         ]
       }
     },
-    "/profiles/delete": {
+    "/profile/delete": {
       "post": {
         "tags": [
-          "profiles"
+          "profile"
         ],
         "summary": "Delete Profile",
         "description": "Bulk delete profiles \u2014 composable infra architecture.",
-        "operationId": "delete_profile_profiles_delete_post",
+        "operationId": "delete_profile_profile_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11730,14 +11750,14 @@
         ]
       }
     },
-    "/profiles/docs": {
+    "/profile/docs": {
       "post": {
         "tags": [
-          "profiles"
+          "profile"
         ],
         "summary": "Get Profile Docs Endpoint",
         "description": "Get composed documentation for the profile artifact.",
-        "operationId": "get_profile_docs_endpoint_profiles_docs_post",
+        "operationId": "get_profile_docs_endpoint_profile_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11777,14 +11797,14 @@
         ]
       }
     },
-    "/profiles/export": {
+    "/profile/export": {
       "post": {
         "tags": [
-          "profiles"
+          "profile"
         ],
         "summary": "Export Profiles",
         "description": "Export all profiles as a clean, denormalized CSV.",
-        "operationId": "export_profiles_profiles_export_post",
+        "operationId": "export_profiles_profile_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11824,14 +11844,14 @@
         ]
       }
     },
-    "/profiles/generate": {
+    "/profile/generate": {
       "post": {
         "tags": [
-          "profiles"
+          "profile"
         ],
         "summary": "Generate Profile",
         "description": "Trigger profile generation. Returns immediately; progress via events.",
-        "operationId": "generate_profile_profiles_generate_post",
+        "operationId": "generate_profile_profile_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11871,14 +11891,14 @@
         ]
       }
     },
-    "/profiles/generations": {
+    "/profile/generations": {
       "post": {
         "tags": [
-          "profiles"
+          "profile"
         ],
         "summary": "Generations Profile",
         "description": "List profile generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_profile_profiles_generations_post",
+        "operationId": "generations_profile_profile_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11918,14 +11938,14 @@
         ]
       }
     },
-    "/profiles/group": {
+    "/profile/group": {
       "post": {
         "tags": [
-          "profiles"
+          "profile"
         ],
         "summary": "Group Profile",
         "description": "Resolve or create a profile group with optional naming.",
-        "operationId": "group_profile_profiles_group_post",
+        "operationId": "group_profile_profile_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11965,14 +11985,14 @@
         ]
       }
     },
-    "/profiles/problem": {
+    "/profile/problem": {
       "post": {
         "tags": [
-          "profiles"
+          "profile"
         ],
         "summary": "Problem Profile",
         "description": "Report a profile problem \u2014 composable infra architecture.",
-        "operationId": "problem_profile_profiles_problem_post",
+        "operationId": "problem_profile_profile_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12012,14 +12032,14 @@
         ]
       }
     },
-    "/profiles/refresh": {
+    "/profile/refresh": {
       "post": {
         "tags": [
-          "profiles"
+          "profile"
         ],
         "summary": "Profile Refresh",
         "description": "Refresh profile materialized views and invalidate caches.",
-        "operationId": "profile_refresh_profiles_refresh_post",
+        "operationId": "profile_refresh_profile_refresh_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -12039,14 +12059,14 @@
         ]
       }
     },
-    "/profiles/context": {
+    "/profile/context": {
       "post": {
         "tags": [
-          "profiles"
+          "profile"
         ],
         "summary": "Get Profile Context",
         "description": "Get page context for the profile artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_profile_context_profiles_context_post",
+        "operationId": "get_profile_context_profile_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12086,15 +12106,15 @@
         ]
       }
     },
-    "/profiles/emulate": {
+    "/profile/emulate": {
       "post": {
         "tags": [
-          "profiles",
+          "profile",
           "profiles"
         ],
         "summary": "Emulate Profile",
         "description": "Create emulation grant. Next request will resolve to target profile.",
-        "operationId": "emulate_profile_profiles_emulate_post",
+        "operationId": "emulate_profile_profile_emulate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12134,15 +12154,15 @@
         ]
       }
     },
-    "/profiles/unemulate": {
+    "/profile/unemulate": {
       "post": {
         "tags": [
-          "profiles",
+          "profile",
           "profiles"
         ],
         "summary": "Unemulate Profile",
         "description": "Exit emulation for a specific target profile.",
-        "operationId": "unemulate_profile_profiles_unemulate_post",
+        "operationId": "unemulate_profile_profile_unemulate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12182,14 +12202,14 @@
         ]
       }
     },
-    "/auths/context": {
+    "/auth/context": {
       "post": {
         "tags": [
-          "auths"
+          "auth"
         ],
         "summary": "Get Auth Context",
         "description": "Get page context for the auth artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_auth_context_auths_context_post",
+        "operationId": "get_auth_context_auth_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12229,14 +12249,14 @@
         ]
       }
     },
-    "/auths/get": {
+    "/auth/get": {
       "post": {
         "tags": [
-          "auths"
+          "auth"
         ],
         "summary": "Get Auth",
         "description": "Get auth information using the canonical shared auth operation.",
-        "operationId": "get_auth_auths_get_post",
+        "operationId": "get_auth_auth_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12276,14 +12296,14 @@
         ]
       }
     },
-    "/auths/search": {
+    "/auth/search": {
       "post": {
         "tags": [
-          "auths"
+          "auth"
         ],
         "summary": "Search Auth",
         "description": "Search auths \u2014 composable infra architecture.",
-        "operationId": "search_auth_auths_search_post",
+        "operationId": "search_auth_auth_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12323,14 +12343,14 @@
         ]
       }
     },
-    "/auths/create": {
+    "/auth/create": {
       "post": {
         "tags": [
-          "auths"
+          "auth"
         ],
         "summary": "Create Auth",
         "description": "Create auths using composable infra architecture.",
-        "operationId": "create_auth_auths_create_post",
+        "operationId": "create_auth_auth_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12370,14 +12390,14 @@
         ]
       }
     },
-    "/auths/update": {
+    "/auth/update": {
       "post": {
         "tags": [
-          "auths"
+          "auth"
         ],
         "summary": "Update Auth",
         "description": "Update auths using composable infra architecture.",
-        "operationId": "update_auth_auths_update_post",
+        "operationId": "update_auth_auth_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12417,14 +12437,14 @@
         ]
       }
     },
-    "/auths/duplicate": {
+    "/auth/duplicate": {
       "post": {
         "tags": [
-          "auths"
+          "auth"
         ],
         "summary": "Duplicate Auth",
         "description": "Duplicate an auth \u2014 composable infra architecture.",
-        "operationId": "duplicate_auth_auths_duplicate_post",
+        "operationId": "duplicate_auth_auth_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12464,14 +12484,14 @@
         ]
       }
     },
-    "/auths/delete": {
+    "/auth/delete": {
       "post": {
         "tags": [
-          "auths"
+          "auth"
         ],
         "summary": "Delete Auth",
         "description": "Bulk delete auths \u2014 composable infra architecture.",
-        "operationId": "delete_auth_auths_delete_post",
+        "operationId": "delete_auth_auth_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12511,14 +12531,14 @@
         ]
       }
     },
-    "/auths/draft": {
+    "/auth/draft": {
       "patch": {
         "tags": [
-          "auths"
+          "auth"
         ],
         "summary": "Patch Auth Draft",
         "description": "Patch auth draft \u2014 composable infra architecture.",
-        "operationId": "patch_auth_draft_auths_draft_patch",
+        "operationId": "patch_auth_draft_auth_draft_patch",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12558,14 +12578,14 @@
         ]
       }
     },
-    "/auths/drafts": {
+    "/auth/drafts": {
       "post": {
         "tags": [
-          "auths"
+          "auth"
         ],
         "summary": "Get Auth Drafts",
         "description": "List auth drafts owned by the current profile.",
-        "operationId": "get_auth_drafts_auths_drafts_post",
+        "operationId": "get_auth_drafts_auth_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -12585,14 +12605,14 @@
         ]
       }
     },
-    "/auths/docs": {
+    "/auth/docs": {
       "post": {
         "tags": [
-          "auths"
+          "auth"
         ],
         "summary": "Get Auth Docs Endpoint",
         "description": "Get composed documentation for the auth artifact.",
-        "operationId": "get_auth_docs_endpoint_auths_docs_post",
+        "operationId": "get_auth_docs_endpoint_auth_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12632,14 +12652,14 @@
         ]
       }
     },
-    "/auths/export": {
+    "/auth/export": {
       "post": {
         "tags": [
-          "auths"
+          "auth"
         ],
         "summary": "Export Auths",
         "description": "Export all auths as a clean, denormalized CSV.",
-        "operationId": "export_auths_auths_export_post",
+        "operationId": "export_auths_auth_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12679,14 +12699,14 @@
         ]
       }
     },
-    "/auths/generate": {
+    "/auth/generate": {
       "post": {
         "tags": [
-          "auths"
+          "auth"
         ],
         "summary": "Generate Auth",
         "description": "Trigger auth generation. Returns immediately; progress via events.",
-        "operationId": "generate_auth_auths_generate_post",
+        "operationId": "generate_auth_auth_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12726,14 +12746,14 @@
         ]
       }
     },
-    "/auths/generations": {
+    "/auth/generations": {
       "post": {
         "tags": [
-          "auths"
+          "auth"
         ],
         "summary": "Generations Auth",
         "description": "List auth generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_auth_auths_generations_post",
+        "operationId": "generations_auth_auth_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12773,14 +12793,14 @@
         ]
       }
     },
-    "/auths/group": {
+    "/auth/group": {
       "post": {
         "tags": [
-          "auths"
+          "auth"
         ],
         "summary": "Group Auth",
         "description": "Resolve or create an auth group with optional naming.",
-        "operationId": "group_auth_auths_group_post",
+        "operationId": "group_auth_auth_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12820,14 +12840,14 @@
         ]
       }
     },
-    "/auths/problem": {
+    "/auth/problem": {
       "post": {
         "tags": [
-          "auths"
+          "auth"
         ],
         "summary": "Problem Auth",
         "description": "Report an auth problem \u2014 composable infra architecture.",
-        "operationId": "problem_auth_auths_problem_post",
+        "operationId": "problem_auth_auth_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12867,14 +12887,14 @@
         ]
       }
     },
-    "/auths/refresh": {
+    "/auth/refresh": {
       "post": {
         "tags": [
-          "auths"
+          "auth"
         ],
         "summary": "Auth Refresh",
         "description": "Refresh auth materialized views and invalidate caches.",
-        "operationId": "auth_refresh_auths_refresh_post",
+        "operationId": "auth_refresh_auth_refresh_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -12894,14 +12914,14 @@
         ]
       }
     },
-    "/tools/search": {
+    "/tool/search": {
       "post": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Search Tool",
         "description": "Search tools \u2014 composable infra architecture.",
-        "operationId": "search_tool_tools_search_post",
+        "operationId": "search_tool_tool_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12941,14 +12961,14 @@
         ]
       }
     },
-    "/tools/get": {
+    "/tool/get": {
       "post": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Get Tool",
         "description": "Get tool information using the canonical shared tool operation.",
-        "operationId": "get_tool_tools_get_post",
+        "operationId": "get_tool_tool_get_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12988,14 +13008,14 @@
         ]
       }
     },
-    "/tools/create": {
+    "/tool/create": {
       "post": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Create Tool",
         "description": "Create tools using composable infra architecture.",
-        "operationId": "create_tool_tools_create_post",
+        "operationId": "create_tool_tool_create_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -13035,14 +13055,14 @@
         ]
       }
     },
-    "/tools/update": {
+    "/tool/update": {
       "post": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Update Tool",
         "description": "Update tools using composable infra architecture.",
-        "operationId": "update_tool_tools_update_post",
+        "operationId": "update_tool_tool_update_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -13082,14 +13102,14 @@
         ]
       }
     },
-    "/tools/duplicate": {
+    "/tool/duplicate": {
       "post": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Duplicate Tool",
         "description": "Duplicate a tool \u2014 composable infra architecture.",
-        "operationId": "duplicate_tool_tools_duplicate_post",
+        "operationId": "duplicate_tool_tool_duplicate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -13129,14 +13149,14 @@
         ]
       }
     },
-    "/tools/delete": {
+    "/tool/delete": {
       "post": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Delete Tool",
         "description": "Bulk delete tools \u2014 composable infra architecture.",
-        "operationId": "delete_tool_tools_delete_post",
+        "operationId": "delete_tool_tool_delete_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -13176,14 +13196,14 @@
         ]
       }
     },
-    "/tools/draft": {
+    "/tool/draft": {
       "patch": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Patch Tool Draft",
         "description": "Patch tool draft \u2014 composable infra architecture.",
-        "operationId": "patch_tool_draft_tools_draft_patch",
+        "operationId": "patch_tool_draft_tool_draft_patch",
         "requestBody": {
           "content": {
             "application/json": {
@@ -13223,14 +13243,14 @@
         ]
       }
     },
-    "/tools/drafts": {
+    "/tool/drafts": {
       "post": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Get Tool Drafts",
         "description": "List tool drafts owned by the current profile.",
-        "operationId": "get_tool_drafts_tools_drafts_post",
+        "operationId": "get_tool_drafts_tool_drafts_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -13250,14 +13270,14 @@
         ]
       }
     },
-    "/tools/export": {
+    "/tool/export": {
       "post": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Export Tools",
         "description": "Export all tools as a clean, denormalized CSV.",
-        "operationId": "export_tools_tools_export_post",
+        "operationId": "export_tools_tool_export_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -13297,14 +13317,14 @@
         ]
       }
     },
-    "/tools/generate": {
+    "/tool/generate": {
       "post": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Generate Tool",
         "description": "Trigger tool generation. Returns immediately; progress via events.",
-        "operationId": "generate_tool_tools_generate_post",
+        "operationId": "generate_tool_tool_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -13344,14 +13364,14 @@
         ]
       }
     },
-    "/tools/generations": {
+    "/tool/generations": {
       "post": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Generations Tool",
         "description": "List tool generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_tool_tools_generations_post",
+        "operationId": "generations_tool_tool_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -13391,19 +13411,19 @@
         ]
       }
     },
-    "/tools/csv": {
+    "/tool/csv": {
       "post": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Parse Tool Csv",
         "description": "Parse a CSV file and return mapped items for preview.",
-        "operationId": "parse_tool_csv_tools_csv_post",
+        "operationId": "parse_tool_csv_tool_csv_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_parse_tool_csv_tools_csv_post"
+                "$ref": "#/components/schemas/Body_parse_tool_csv_tool_csv_post"
               }
             }
           },
@@ -13438,14 +13458,14 @@
         ]
       }
     },
-    "/tools/context": {
+    "/tool/context": {
       "post": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Get Tool Context",
         "description": "Get page context for the tool artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_tool_context_tools_context_post",
+        "operationId": "get_tool_context_tool_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -13485,14 +13505,14 @@
         ]
       }
     },
-    "/tools/docs": {
+    "/tool/docs": {
       "post": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Get Tool Docs Endpoint",
         "description": "Get composed documentation for the tool artifact.",
-        "operationId": "get_tool_docs_endpoint_tools_docs_post",
+        "operationId": "get_tool_docs_endpoint_tool_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -13532,14 +13552,14 @@
         ]
       }
     },
-    "/tools/group": {
+    "/tool/group": {
       "post": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Group Tool",
         "description": "Resolve or create a tool group with optional naming.",
-        "operationId": "group_tool_tools_group_post",
+        "operationId": "group_tool_tool_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -13579,14 +13599,14 @@
         ]
       }
     },
-    "/tools/problem": {
+    "/tool/problem": {
       "post": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Problem Tool",
         "description": "Report a tool problem \u2014 composable infra architecture.",
-        "operationId": "problem_tool_tools_problem_post",
+        "operationId": "problem_tool_tool_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -13626,14 +13646,14 @@
         ]
       }
     },
-    "/tools/refresh": {
+    "/tool/refresh": {
       "post": {
         "tags": [
-          "tools"
+          "tool"
         ],
         "summary": "Tool Refresh",
         "description": "Refresh tool materialized views and invalidate caches.",
-        "operationId": "tool_refresh_tools_refresh_post",
+        "operationId": "tool_refresh_tool_refresh_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -18520,14 +18540,14 @@
         ]
       }
     },
-    "/reports/export": {
+    "/report/export": {
       "post": {
         "tags": [
-          "reports"
+          "report"
         ],
         "summary": "Export Reports",
         "description": "Export all reports data as a clean, denormalized ZIP.",
-        "operationId": "export_reports_reports_export_post",
+        "operationId": "export_reports_report_export_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -18547,14 +18567,14 @@
         ]
       }
     },
-    "/reports/generate": {
+    "/report/generate": {
       "post": {
         "tags": [
-          "reports"
+          "report"
         ],
         "summary": "Generate Reports",
         "description": "Trigger reports generation. Returns immediately; progress via events.",
-        "operationId": "generate_reports_reports_generate_post",
+        "operationId": "generate_reports_report_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -18594,14 +18614,14 @@
         ]
       }
     },
-    "/reports/generations": {
+    "/report/generations": {
       "post": {
         "tags": [
-          "reports"
+          "report"
         ],
         "summary": "Generations Reports",
         "description": "List reports generation groups \u2014 composable infra architecture.",
-        "operationId": "generations_reports_reports_generations_post",
+        "operationId": "generations_reports_report_generations_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -18641,14 +18661,14 @@
         ]
       }
     },
-    "/reports/group": {
+    "/report/group": {
       "post": {
         "tags": [
-          "reports"
+          "report"
         ],
         "summary": "Group Reports",
         "description": "Resolve or create a reports group with optional naming.",
-        "operationId": "group_reports_reports_group_post",
+        "operationId": "group_reports_report_group_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -18688,14 +18708,14 @@
         ]
       }
     },
-    "/reports/problem": {
+    "/report/problem": {
       "post": {
         "tags": [
-          "reports"
+          "report"
         ],
         "summary": "Problem Reports",
         "description": "Report a reports problem \u2014 composable infra architecture.",
-        "operationId": "problem_reports_reports_problem_post",
+        "operationId": "problem_reports_report_problem_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -18735,14 +18755,14 @@
         ]
       }
     },
-    "/reports/search": {
+    "/report/search": {
       "post": {
         "tags": [
-          "reports"
+          "report"
         ],
         "summary": "Get Reports",
         "description": "Get reports artifact data via composable context resolver.",
-        "operationId": "get_reports_reports_search_post",
+        "operationId": "get_reports_report_search_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -18782,14 +18802,14 @@
         ]
       }
     },
-    "/reports/refresh": {
+    "/report/refresh": {
       "post": {
         "tags": [
-          "reports"
+          "report"
         ],
         "summary": "Reports Refresh",
         "description": "Refresh reports caches.",
-        "operationId": "reports_refresh_reports_refresh_post",
+        "operationId": "reports_refresh_report_refresh_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -18809,14 +18829,14 @@
         ]
       }
     },
-    "/reports/docs": {
+    "/report/docs": {
       "post": {
         "tags": [
-          "reports"
+          "report"
         ],
         "summary": "Get Reports Docs Endpoint",
         "description": "Get composed documentation for the reports analytics.",
-        "operationId": "get_reports_docs_endpoint_reports_docs_post",
+        "operationId": "get_reports_docs_endpoint_report_docs_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -18856,14 +18876,14 @@
         ]
       }
     },
-    "/reports/context": {
+    "/report/context": {
       "post": {
         "tags": [
-          "reports"
+          "report"
         ],
         "summary": "Get Reports Context",
         "description": "Get page context for the reports artifact.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
-        "operationId": "get_reports_context_reports_context_post",
+        "operationId": "get_reports_context_report_context_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -45654,7 +45674,7 @@
         "title": "BenchmarkResponse",
         "description": "Response with benchmark data."
       },
-      "Body_parse_agent_csv_agents_csv_post": {
+      "Body_parse_agent_csv_agent_csv_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45666,9 +45686,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_parse_agent_csv_agents_csv_post"
+        "title": "Body_parse_agent_csv_agent_csv_post"
       },
-      "Body_parse_cohort_csv_cohorts_csv_post": {
+      "Body_parse_cohort_csv_cohort_csv_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45680,9 +45700,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_parse_cohort_csv_cohorts_csv_post"
+        "title": "Body_parse_cohort_csv_cohort_csv_post"
       },
-      "Body_parse_department_csv_departments_csv_post": {
+      "Body_parse_department_csv_department_csv_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45694,9 +45714,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_parse_department_csv_departments_csv_post"
+        "title": "Body_parse_department_csv_department_csv_post"
       },
-      "Body_parse_document_csv_documents_csv_post": {
+      "Body_parse_document_csv_document_csv_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45708,9 +45728,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_parse_document_csv_documents_csv_post"
+        "title": "Body_parse_document_csv_document_csv_post"
       },
-      "Body_parse_eval_csv_evals_csv_post": {
+      "Body_parse_eval_csv_eval_csv_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45722,9 +45742,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_parse_eval_csv_evals_csv_post"
+        "title": "Body_parse_eval_csv_eval_csv_post"
       },
-      "Body_parse_field_csv_fields_csv_post": {
+      "Body_parse_field_csv_field_csv_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45736,9 +45756,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_parse_field_csv_fields_csv_post"
+        "title": "Body_parse_field_csv_field_csv_post"
       },
-      "Body_parse_model_csv_models_csv_post": {
+      "Body_parse_model_csv_model_csv_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45750,9 +45770,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_parse_model_csv_models_csv_post"
+        "title": "Body_parse_model_csv_model_csv_post"
       },
-      "Body_parse_parameter_csv_parameters_csv_post": {
+      "Body_parse_parameter_csv_parameter_csv_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45764,9 +45784,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_parse_parameter_csv_parameters_csv_post"
+        "title": "Body_parse_parameter_csv_parameter_csv_post"
       },
-      "Body_parse_persona_csv_personas_csv_post": {
+      "Body_parse_persona_csv_persona_csv_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45778,9 +45798,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_parse_persona_csv_personas_csv_post"
+        "title": "Body_parse_persona_csv_persona_csv_post"
       },
-      "Body_parse_provider_csv_providers_csv_post": {
+      "Body_parse_provider_csv_provider_csv_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45792,9 +45812,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_parse_provider_csv_providers_csv_post"
+        "title": "Body_parse_provider_csv_provider_csv_post"
       },
-      "Body_parse_rubric_csv_rubrics_csv_post": {
+      "Body_parse_rubric_csv_rubric_csv_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45806,9 +45826,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_parse_rubric_csv_rubrics_csv_post"
+        "title": "Body_parse_rubric_csv_rubric_csv_post"
       },
-      "Body_parse_scenario_csv_scenarios_csv_post": {
+      "Body_parse_scenario_csv_scenario_csv_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45820,9 +45840,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_parse_scenario_csv_scenarios_csv_post"
+        "title": "Body_parse_scenario_csv_scenario_csv_post"
       },
-      "Body_parse_setting_csv_settings_csv_post": {
+      "Body_parse_setting_csv_setting_csv_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45834,9 +45854,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_parse_setting_csv_settings_csv_post"
+        "title": "Body_parse_setting_csv_setting_csv_post"
       },
-      "Body_parse_simulation_csv_simulations_csv_post": {
+      "Body_parse_simulation_csv_simulation_csv_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45848,9 +45868,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_parse_simulation_csv_simulations_csv_post"
+        "title": "Body_parse_simulation_csv_simulation_csv_post"
       },
-      "Body_parse_tool_csv_tools_csv_post": {
+      "Body_parse_tool_csv_tool_csv_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45862,7 +45882,7 @@
         "required": [
           "file"
         ],
-        "title": "Body_parse_tool_csv_tools_csv_post"
+        "title": "Body_parse_tool_csv_tool_csv_post"
       },
       "Body_upload_audio_attempt_audio_upload_post": {
         "properties": {
@@ -45878,7 +45898,7 @@
         ],
         "title": "Body_upload_audio_attempt_audio_upload_post"
       },
-      "Body_upload_file_documents_file_upload_post": {
+      "Body_upload_file_document_file_upload_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45890,9 +45910,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_upload_file_documents_file_upload_post"
+        "title": "Body_upload_file_document_file_upload_post"
       },
-      "Body_upload_image_scenarios_image_upload_post": {
+      "Body_upload_image_scenario_image_upload_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45904,9 +45924,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_upload_image_scenarios_image_upload_post"
+        "title": "Body_upload_image_scenario_image_upload_post"
       },
-      "Body_upload_text_documents_text_upload_post": {
+      "Body_upload_text_document_text_upload_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45918,9 +45938,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_upload_text_documents_text_upload_post"
+        "title": "Body_upload_text_document_text_upload_post"
       },
-      "Body_upload_video_scenarios_video_upload_post": {
+      "Body_upload_video_scenario_video_upload_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -45932,7 +45952,7 @@
         "required": [
           "file"
         ],
-        "title": "Body_upload_video_scenarios_video_upload_post"
+        "title": "Body_upload_video_scenario_video_upload_post"
       },
       "CallDownloadGroupApiRequest": {
         "properties": {
@@ -50357,6 +50377,25 @@
             "type": "array",
             "title": "Cohorts",
             "description": "List of cohorts to create"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -50375,6 +50414,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -50393,6 +50445,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -56987,6 +57052,25 @@
             "type": "array",
             "title": "Cohort Ids",
             "description": "Cohort UUIDs to delete"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -57005,6 +57089,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -59795,6 +59892,25 @@
             "format": "uuid",
             "title": "Cohort Id",
             "description": "Cohort UUID to duplicate"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -59821,6 +59937,19 @@
             "type": "string",
             "title": "Message",
             "description": "Human-readable result message"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -84259,6 +84388,25 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -84297,6 +84445,19 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -98837,15 +98998,8 @@
             "description": "Draft UUID"
           },
           "idempotency_key": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid",
             "title": "Idempotency Key",
             "description": "Idempotency key for this draft operation"
           },
@@ -98870,6 +99024,7 @@
         "required": [
           "success",
           "draft_id",
+          "idempotency_key",
           "message"
         ],
         "title": "PatchCohortDraftApiResponse",
@@ -98889,15 +99044,8 @@
             "description": "Draft UUID"
           },
           "idempotency_key": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid",
             "title": "Idempotency Key",
             "description": "Idempotency key for this draft operation"
           },
@@ -98922,6 +99070,7 @@
         "required": [
           "success",
           "draft_id",
+          "idempotency_key",
           "message"
         ],
         "title": "PatchCohortDraftApiResponse",
@@ -104426,6 +104575,25 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -104455,6 +104623,19 @@
             "title": "Message",
             "description": "Status message",
             "default": "Problem created successfully"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -107910,6 +108091,47 @@
         ],
         "title": "RecordRequest",
         "description": "Request for record profile report \u2014 dashboard scoped to one profile."
+      },
+      "RefreshCohortApiRequest": {
+        "properties": {
+          "targets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targets",
+            "description": "MV targets to refresh (omit for all). Options: cohort_drafts_mv"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject. Only meaningful with idempotency_key",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "RefreshCohortApiRequest",
+        "description": "Request model for cohort refresh endpoint."
       },
       "RefreshResponse": {
         "properties": {
@@ -121360,6 +121582,25 @@
             "type": "array",
             "title": "Cohorts",
             "description": "List of cohorts to update"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -121378,6 +121619,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -121396,6 +121650,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",

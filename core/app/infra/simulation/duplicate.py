@@ -7,7 +7,7 @@ Core duplicate function that composes existing black-box tools:
   4. create_name — new name resource ("{name} Copy")
   5. search_flags — find inactive flag (simulation_active, value=false)
   6. create_simulation — new artifact with original's IDs + new name + inactive flag
-  7. invalidate_tags — cache invalidation
+  7. refresh_simulation_impl — canonical refresh
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.simulation.permissions import compute_can_duplicate
+from app.infra.simulation.refresh import refresh_simulation_impl
 from app.infra.simulation.types import (
     DuplicateSimulationApiResponse,
 )
@@ -30,7 +31,6 @@ from app.tools.artifacts.simulation.get import get_simulations
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def duplicate_simulation_impl(
@@ -41,6 +41,9 @@ async def duplicate_simulation_impl(
     simulation_id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    **_kwargs,
 ) -> DuplicateSimulationApiResponse:
     """Simulation duplicate using composable infra functions.
 
@@ -51,10 +54,10 @@ async def duplicate_simulation_impl(
       4. create_name("{name} Copy") -> new name resource
       5. search_flags -> find inactive flag (simulation_active, value=false)
       6. create_simulation -> new artifact with original IDs + inactive flag
-      7. invalidate_tags
+      7. refresh_simulation_impl -> canonical refresh
     """
 
-    # -- Step 1: Profile context ------------------------------------------------
+    # ── Step 1: Profile context ────────────────────────────────────────
 
     profile = await resolve_profile_identity_context(
         pool,
@@ -69,7 +72,7 @@ async def duplicate_simulation_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    # -- Step 2: Permission check -----------------------------------------------
+    # ── Step 2: Permission check ───────────────────────────────────────
 
     if not compute_can_duplicate(role_level=profile.role_level, role_permissions=profile.role_permissions):
         raise HTTPException(
@@ -77,7 +80,28 @@ async def duplicate_simulation_impl(
             detail="You don't have permission to duplicate this simulation.",
         )
 
-    # -- Step 3: Fetch original simulation with all junctions -------------------
+    # ── Short-circuit: ack path ───────────────────────────────────────
+
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            # Promote: re-call create with soft=False -> ON CONFLICT activates
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_simulation_artifact(conn, id=idempotency_key, soft=False)
+            await refresh_simulation_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+            )
+        # accept=False: no-op
+        return DuplicateSimulationApiResponse(
+            success=True,
+            simulation_id=idempotency_key,
+            message="Duplicate accepted" if accept else "Duplicate rejected",
+            idempotency_key=idempotency_key,
+        )
+
+    # ── Step 3: Fetch original simulation with all junctions ──────────
 
     async with pool.acquire() as conn:
         originals = await get_simulations(
@@ -94,17 +118,16 @@ async def duplicate_simulation_impl(
             simulations=True,
         )
 
-    if not originals:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Simulation {simulation_id} not found.",
-        )
+        if not originals:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Simulation {simulation_id} not found.",
+            )
 
-    original = originals[0]
+        original = originals[0]
 
-    # -- Step 4: Create new name resource ---------------------------------------
+        # ── Step 4: Create new name resource ───────────────────────────────
 
-    async with pool.acquire() as conn:
         original_name = "Unknown"
         if original.name_ids:
             name_resources = await get_names(conn, original.name_ids, redis)
@@ -113,9 +136,8 @@ async def duplicate_simulation_impl(
 
         new_name_resource = await create_name(conn, f"{original_name} Copy", redis)
 
-    # -- Step 5: Find inactive flag (simulation_active, value=false) ------------
+        # ── Step 5: Find inactive flag (simulation_active, value=false) ───────
 
-    async with pool.acquire() as conn:
         inactive_flag_id: UUID | None = None
         flag_results = await search_flags(
             conn,
@@ -128,7 +150,7 @@ async def duplicate_simulation_impl(
         if inactive_match:
             inactive_flag_id = inactive_match.id
 
-    # -- Step 6: Create new simulation artifact with inactive flag --------------
+    # ── Step 6: Create new simulation artifact with inactive flag ─────────
 
     flag_ids = [inactive_flag_id] if inactive_flag_id else None
 
@@ -151,12 +173,17 @@ async def duplicate_simulation_impl(
                 soft=soft,
             )
 
-    # -- Step 7: Invalidate cache -----------------------------------------------
+    # ── Step 7: Refresh (via canonical refresh) ─────────────────────────
 
-    await invalidate_tags(["simulations"], redis=redis)
+    await refresh_simulation_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+    )
 
     return DuplicateSimulationApiResponse(
         success=True,
         simulation_id=result.id,
-        message=f"Simulation '{original_name}' duplicated successfully",
+        message="Simulation duplicated (pending acceptance)" if soft else f"Simulation '{original_name}' duplicated successfully",
+        idempotency_key=idempotency_key,
     )

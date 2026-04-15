@@ -5,7 +5,7 @@ Core delete function that composes existing black-box tools:
   2. resolve_simulation_permissions_context — per-item exists, departments, usage
   3. compute_can_delete — permission check
   4. delete_simulations — bulk delete tool
-  5. invalidate_tags — cache invalidation
+  5. refresh_simulation_impl — canonical refresh
 """
 
 from __future__ import annotations
@@ -16,11 +16,13 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.delete.delete_artifact import restore_artifacts
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.simulation.permissions import compute_can_delete
 from app.infra.simulation.permissions_context import (
     resolve_simulation_permissions_context,
 )
+from app.infra.simulation.refresh import refresh_simulation_impl
 from app.infra.simulation.types import (
     DeleteSimulationApiResponse,
     DeleteSimulationResult,
@@ -28,7 +30,6 @@ from app.infra.simulation.types import (
 from app.tools.artifacts.simulation.delete import delete_simulations
 from app.tools.artifacts.simulation.get import get_simulations
 from app.tools.resources.names.get import get_names
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def delete_simulation_impl(
@@ -39,6 +40,8 @@ async def delete_simulation_impl(
     simulation_ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> DeleteSimulationApiResponse:
     """Simulation bulk delete using composable infra functions.
 
@@ -48,7 +51,7 @@ async def delete_simulation_impl(
       3. Per-item: compute_can_delete → permission check (fail fast)
       4. Fetch names for result messages
       5. Single transaction: delete_simulations → bulk delete
-      6. invalidate_tags
+      6. refresh_simulation_impl → canonical refresh
     """
 
     # ── Step 1: Profile context ────────────────────────────────────────
@@ -85,8 +88,48 @@ async def delete_simulation_impl(
             ):
                 raise HTTPException(
                     status_code=403,
-                    detail=f"Item {idx}: You don't have permission to delete this simulation.",
+                    detail=(
+                        f"Item {idx}: You don't have permission to delete this simulation."
+                    ),
                 )
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            # Confirm deletion: no-op (already deactivated by soft delete)
+            pass
+        else:
+            # Reject: restore soft-deleted artifacts
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await restore_artifacts(
+                        conn,
+                        table="simulation_artifact",
+                        ids=simulation_ids,
+                    )
+
+        await refresh_simulation_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+        )
+
+        return DeleteSimulationApiResponse(
+            results=[
+                DeleteSimulationResult(
+                    success=True,
+                    simulation_id=simulation_id,
+                    message=(
+                        "Delete confirmed"
+                        if accept
+                        else "Delete rejected — simulation restored"
+                    ),
+                )
+                for simulation_id in simulation_ids
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     # ── Step 4: Fetch names for result messages ───────────────────────
 
@@ -107,17 +150,29 @@ async def delete_simulation_impl(
         async with conn.transaction():
             result = await delete_simulations(conn, simulation_ids, soft=soft)
 
-    # ── Step 6: Invalidate cache ──────────────────────────────────────
+    # ── Step 6: Canonical refresh ─────────────────────────────────────
 
-    await invalidate_tags(["simulations"], redis=redis)
+    await refresh_simulation_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+    )
 
     results = [
         DeleteSimulationResult(
             success=True,
             simulation_id=pid,
-            message=f"Simulation '{name_map.get(pid, 'Unknown')}' deleted successfully",
+            message=(
+                f"Simulation '{name_map.get(pid, 'Unknown')}' deleted (pending confirmation)"
+                if soft
+                else f"Simulation '{name_map.get(pid, 'Unknown')}' deleted successfully"
+            ),
         )
         for pid in result.deleted_ids
     ]
 
-    return DeleteSimulationApiResponse(results=results)
+    return DeleteSimulationApiResponse(
+        results=results,
+        idempotency_key=idempotency_key,
+    )

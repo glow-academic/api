@@ -104,7 +104,7 @@ class TestProviderRoute:
         )
 
         response = await provider_route_client.client.post(
-            "/providers/create",
+            "/provider/create",
             json={
                 "providers": [
                     {
@@ -140,7 +140,7 @@ class TestProviderRoute:
         )
 
         response = await provider_route_client.client.post(
-            "/providers/get",
+            "/provider/get",
             json={"provider_id": created["provider_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -171,7 +171,7 @@ class TestProviderRoute:
         )
 
         response = await provider_route_client.client.post(
-            "/providers/search",
+            "/provider/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(provider_route_actor.department_id)],
@@ -206,7 +206,7 @@ class TestProviderRoute:
         updated = await _create_provider_route_resources(pool, redis_client)
 
         response = await provider_route_client.client.post(
-            "/providers/update",
+            "/provider/update",
             json={
                 "providers": [
                     {
@@ -242,7 +242,7 @@ class TestProviderRoute:
         )
 
         response = await provider_route_client.client.post(
-            "/providers/delete",
+            "/provider/delete",
             json={"provider_ids": [created["provider_id"]]},
         )
 
@@ -266,7 +266,7 @@ class TestProviderRoute:
         )
 
         response = await provider_route_client.client.post(
-            "/providers/duplicate",
+            "/provider/duplicate",
             json={"provider_id": created["provider_id"]},
         )
 
@@ -290,7 +290,7 @@ class TestProviderRoute:
         )
 
         response = await provider_route_client.client.patch(
-            "/providers/draft",
+            "/provider/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -322,7 +322,7 @@ class TestProviderRoute:
         )
 
         draft_response = await provider_route_client.client.patch(
-            "/providers/draft",
+            "/provider/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -333,7 +333,7 @@ class TestProviderRoute:
         draft_id = draft_response.json()["draft_id"]
 
         response = await provider_route_client.client.post(
-            "/providers/drafts",
+            "/provider/drafts",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -354,7 +354,7 @@ class TestProviderRoute:
         )
 
         response = await provider_route_client.client.post(
-            "/providers/docs",
+            "/provider/docs",
             json={},
         )
 
@@ -380,7 +380,7 @@ class TestProviderRoute:
         )
 
         response = await provider_route_client.client.post(
-            "/providers/export",
+            "/provider/export",
             json={"provider_id": created["provider_id"]},
         )
 
@@ -401,7 +401,7 @@ class TestProviderRoute:
         )
 
         response = await provider_route_client.client.post(
-            "/providers/refresh",
+            "/provider/refresh",
             json={},
         )
 
@@ -426,7 +426,7 @@ class TestProviderRoute:
         )
 
         response = await provider_route_client.client.post(
-            "/providers/decrypt",
+            "/provider/decrypt",
             json={
                 "provider_id": created["provider_id"],
                 "key_id": created["key_id"],
@@ -454,7 +454,7 @@ class TestProviderRoute:
         )
 
         response = await provider_route_client.client.post(
-            "/providers/create",
+            "/provider/create",
             json={
                 "providers": [
                     {

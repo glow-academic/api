@@ -21,7 +21,7 @@ from app.routes.profile.search import router as search_router
 from app.routes.profile.update import router as update_router
 from app.routes.profile.unemulate import router as unemulate_router
 
-router = APIRouter(prefix="/profiles", tags=["profiles"])
+router = APIRouter(prefix="/profile", tags=["profile"])
 
 # Standard artifact operations
 router.include_router(get_router)

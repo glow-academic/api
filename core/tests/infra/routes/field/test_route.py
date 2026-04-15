@@ -88,7 +88,7 @@ class TestFieldRoute:
         )
 
         response = await field_route_client.client.post(
-            "/fields/create",
+            "/field/create",
             json={
                 "fields": [
                     {
@@ -124,7 +124,7 @@ class TestFieldRoute:
         )
 
         response = await field_route_client.client.post(
-            "/fields/get",
+            "/field/get",
             json={"field_id": created["field_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -155,7 +155,7 @@ class TestFieldRoute:
         )
 
         response = await field_route_client.client.post(
-            "/fields/search",
+            "/field/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(field_route_actor.department_id)],
@@ -189,7 +189,7 @@ class TestFieldRoute:
         updated = await _create_field_route_resources(pool, redis_client)
 
         response = await field_route_client.client.post(
-            "/fields/update",
+            "/field/update",
             json={
                 "fields": [
                     {
@@ -225,7 +225,7 @@ class TestFieldRoute:
         )
 
         response = await field_route_client.client.post(
-            "/fields/delete",
+            "/field/delete",
             json={"field_ids": [created["field_id"]]},
         )
 
@@ -249,7 +249,7 @@ class TestFieldRoute:
         )
 
         response = await field_route_client.client.post(
-            "/fields/duplicate",
+            "/field/duplicate",
             json={"field_id": created["field_id"]},
         )
 
@@ -273,7 +273,7 @@ class TestFieldRoute:
         )
 
         response = await field_route_client.client.patch(
-            "/fields/draft",
+            "/field/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -303,7 +303,7 @@ class TestFieldRoute:
         )
 
         draft_response = await field_route_client.client.patch(
-            "/fields/draft",
+            "/field/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -314,7 +314,7 @@ class TestFieldRoute:
         draft_id = draft_response.json()["draft_id"]
 
         response = await field_route_client.client.post(
-            "/fields/drafts",
+            "/field/drafts",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -335,7 +335,7 @@ class TestFieldRoute:
         )
 
         response = await field_route_client.client.post(
-            "/fields/docs",
+            "/field/docs",
             json={},
         )
 
@@ -361,7 +361,7 @@ class TestFieldRoute:
         )
 
         response = await field_route_client.client.post(
-            "/fields/export",
+            "/field/export",
             json={"field_id": created["field_id"]},
         )
 
@@ -382,7 +382,7 @@ class TestFieldRoute:
         )
 
         response = await field_route_client.client.post(
-            "/fields/refresh",
+            "/field/refresh",
             json={},
         )
 
@@ -406,7 +406,7 @@ class TestFieldRoute:
         )
 
         response = await field_route_client.client.post(
-            "/fields/create",
+            "/field/create",
             json={
                 "fields": [
                     {

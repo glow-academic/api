@@ -79,7 +79,7 @@ class TestCohortRoute:
         )
 
         response = await cohort_route_client.client.post(
-            "/cohorts/create",
+            "/cohort/create",
             json={
                 "cohorts": [
                     {
@@ -116,7 +116,7 @@ class TestCohortRoute:
         )
 
         response = await cohort_route_client.client.post(
-            "/cohorts/get",
+            "/cohort/get",
             json={"cohort_id": created["cohort_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -156,7 +156,7 @@ class TestCohortRoute:
         )
 
         response = await cohort_route_client.client.post(
-            "/cohorts/search",
+            "/cohort/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(cohort_route_actor.department_id)],
@@ -202,11 +202,11 @@ class TestCohortRoute:
         )
 
         first = await cohort_route_client.client.post(
-            "/cohorts/get",
+            "/cohort/get",
             json={"cohort_id": created["cohort_id"]},
         )
         second = await cohort_route_client.client.post(
-            "/cohorts/get",
+            "/cohort/get",
             json={"cohort_id": created["cohort_id"]},
         )
 
@@ -231,7 +231,7 @@ class TestCohortRoute:
         updated = await _create_cohort_route_resources(pool, redis_client)
 
         response = await cohort_route_client.client.post(
-            "/cohorts/update",
+            "/cohort/update",
             json={
                 "cohorts": [
                     {
@@ -253,7 +253,7 @@ class TestCohortRoute:
         assert payload["results"][0]["cohort_id"] == created["cohort_id"]
 
         get_response = await cohort_route_client.client.post(
-            "/cohorts/get",
+            "/cohort/get",
             json={"cohort_id": created["cohort_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -284,7 +284,7 @@ class TestCohortRoute:
         )
 
         response = await cohort_route_client.client.post(
-            "/cohorts/duplicate",
+            "/cohort/duplicate",
             json={"cohort_id": created["cohort_id"]},
         )
 
@@ -310,7 +310,7 @@ class TestCohortRoute:
         )
 
         response = await cohort_route_client.client.post(
-            "/cohorts/delete",
+            "/cohort/delete",
             json={"cohort_ids": [created["cohort_id"]]},
         )
 
@@ -321,7 +321,7 @@ class TestCohortRoute:
         assert payload["results"][0]["cohort_id"] == created["cohort_id"]
 
         search_response = await cohort_route_client.client.post(
-            "/cohorts/search",
+            "/cohort/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(cohort_route_actor.department_id)],
@@ -353,7 +353,7 @@ class TestCohortRoute:
         draft_name = f"Draft Cohort {unique_tag()}"
 
         response = await cohort_route_client.client.patch(
-            "/cohorts/draft",
+            "/cohort/draft",
             json={
                 "name": draft_name,
                 "department_ids": [str(cohort_route_actor.department_id)],
@@ -370,7 +370,7 @@ class TestCohortRoute:
         assert payload["form_state"]["name_id"] is not None
 
         get_response = await cohort_route_client.client.post(
-            "/cohorts/get",
+            "/cohort/get",
             json={
                 "cohort_id": created["cohort_id"],
                 "draft_id": payload["draft_id"],
@@ -405,7 +405,7 @@ class TestCohortRoute:
             session_id=cohort_route_actor.session_id,
         )
         drafts_response = await cohort_route_client.client.post(
-            "/cohorts/drafts",
+            "/cohort/drafts",
         )
 
         assert drafts_response.status_code == 200, drafts_response.text
@@ -428,7 +428,7 @@ class TestCohortRoute:
         )
 
         response = await cohort_route_client.client.post(
-            "/cohorts/docs",
+            "/cohort/docs",
             json={"entity_id": created["cohort_id"]},
         )
 
@@ -457,7 +457,7 @@ class TestCohortRoute:
         )
 
         response = await cohort_route_client.client.post(
-            "/cohorts/export",
+            "/cohort/export",
             json={"cohort_id": created["cohort_id"]},
         )
 
@@ -479,7 +479,7 @@ class TestCohortRoute:
         )
 
         response = await cohort_route_client.client.post(
-            "/cohorts/refresh",
+            "/cohort/refresh",
         )
 
         assert response.status_code == 200, response.text
@@ -503,7 +503,7 @@ class TestCohortRoute:
         )
 
         response = await cohort_route_client.client.post(
-            "/cohorts/create",
+            "/cohort/create",
             json={
                 "cohorts": [
                     {

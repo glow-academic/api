@@ -93,7 +93,7 @@ class TestAgentRoute:
         )
 
         response = await agent_route_client.client.post(
-            "/agents/create",
+            "/agent/create",
             json={
                 "agents": [
                     {
@@ -130,7 +130,7 @@ class TestAgentRoute:
         )
 
         response = await agent_route_client.client.post(
-            "/agents/get",
+            "/agent/get",
             json={"agent_id": created["agent_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -167,7 +167,7 @@ class TestAgentRoute:
         )
 
         response = await agent_route_client.client.post(
-            "/agents/search",
+            "/agent/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(agent_route_actor.department_id)],
@@ -214,11 +214,11 @@ class TestAgentRoute:
         )
 
         first = await agent_route_client.client.post(
-            "/agents/get",
+            "/agent/get",
             json={"agent_id": created["agent_id"]},
         )
         second = await agent_route_client.client.post(
-            "/agents/get",
+            "/agent/get",
             json={"agent_id": created["agent_id"]},
         )
 
@@ -243,7 +243,7 @@ class TestAgentRoute:
         updated = await _create_agent_route_resources(pool, redis_client)
 
         response = await agent_route_client.client.post(
-            "/agents/update",
+            "/agent/update",
             json={
                 "agents": [
                     {
@@ -265,7 +265,7 @@ class TestAgentRoute:
         assert payload["results"][0]["agent_id"] == created["agent_id"]
 
         get_response = await agent_route_client.client.post(
-            "/agents/get",
+            "/agent/get",
             json={"agent_id": created["agent_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -295,7 +295,7 @@ class TestAgentRoute:
         )
 
         response = await agent_route_client.client.post(
-            "/agents/duplicate",
+            "/agent/duplicate",
             json={"agent_id": created["agent_id"]},
         )
 
@@ -321,7 +321,7 @@ class TestAgentRoute:
         )
 
         response = await agent_route_client.client.post(
-            "/agents/delete",
+            "/agent/delete",
             json={"agent_ids": [created["agent_id"]]},
         )
 
@@ -332,7 +332,7 @@ class TestAgentRoute:
         assert payload["results"][0]["agent_id"] == created["agent_id"]
 
         search_response = await agent_route_client.client.post(
-            "/agents/search",
+            "/agent/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(agent_route_actor.department_id)],
@@ -364,7 +364,7 @@ class TestAgentRoute:
         draft_name = f"Draft Agent {unique_tag()}"
 
         response = await agent_route_client.client.patch(
-            "/agents/draft",
+            "/agent/draft",
             json={
                 "name": draft_name,
                 "department_ids": [str(agent_route_actor.department_id)],
@@ -381,7 +381,7 @@ class TestAgentRoute:
         assert payload["form_state"]["name_id"] is not None
 
         get_response = await agent_route_client.client.post(
-            "/agents/get",
+            "/agent/get",
             json={
                 "agent_id": created["agent_id"],
                 "draft_id": payload["draft_id"],
@@ -416,7 +416,7 @@ class TestAgentRoute:
             session_id=agent_route_actor.session_id,
         )
         drafts_response = await agent_route_client.client.post(
-            "/agents/drafts",
+            "/agent/drafts",
         )
 
         assert drafts_response.status_code == 200, drafts_response.text
@@ -439,7 +439,7 @@ class TestAgentRoute:
         )
 
         response = await agent_route_client.client.post(
-            "/agents/docs",
+            "/agent/docs",
             json={"entity_id": created["agent_id"]},
         )
 
@@ -468,7 +468,7 @@ class TestAgentRoute:
         )
 
         response = await agent_route_client.client.post(
-            "/agents/export",
+            "/agent/export",
             json={"agent_id": created["agent_id"]},
         )
 
@@ -489,7 +489,7 @@ class TestAgentRoute:
         )
 
         response = await agent_route_client.client.post(
-            "/agents/refresh",
+            "/agent/refresh",
         )
 
         assert response.status_code == 200, response.text
@@ -513,7 +513,7 @@ class TestAgentRoute:
         )
 
         response = await agent_route_client.client.post(
-            "/agents/create",
+            "/agent/create",
             json={
                 "agents": [
                     {

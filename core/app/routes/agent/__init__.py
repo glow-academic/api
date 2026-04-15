@@ -20,7 +20,7 @@ from app.routes.agent.refresh import router as refresh_router
 from app.routes.agent.search import router as search_router
 from app.routes.agent.update import router as update_router
 
-router = APIRouter(prefix="/agents", tags=["agents"])
+router = APIRouter(prefix="/agent", tags=["agent"])
 
 # Standard artifact operations
 router.include_router(context_router)

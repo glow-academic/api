@@ -67,7 +67,7 @@ class TestToolRoute:
         )
 
         response = await tool_route_client.client.post(
-            "/tools/create",
+            "/tool/create",
             json={
                 "tools": [
                     {
@@ -102,7 +102,7 @@ class TestToolRoute:
         )
 
         response = await tool_route_client.client.post(
-            "/tools/get",
+            "/tool/get",
             json={"tool_id": created["tool_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -137,7 +137,7 @@ class TestToolRoute:
         )
 
         response = await tool_route_client.client.post(
-            "/tools/search",
+            "/tool/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(tool_route_actor.department_id)],
@@ -169,11 +169,11 @@ class TestToolRoute:
         )
 
         first = await tool_route_client.client.post(
-            "/tools/get",
+            "/tool/get",
             json={"tool_id": created["tool_id"]},
         )
         second = await tool_route_client.client.post(
-            "/tools/get",
+            "/tool/get",
             json={"tool_id": created["tool_id"]},
         )
 
@@ -198,7 +198,7 @@ class TestToolRoute:
         updated = await _create_tool_route_resources(pool, redis_client)
 
         response = await tool_route_client.client.post(
-            "/tools/update",
+            "/tool/update",
             json={
                 "tools": [
                     {
@@ -218,7 +218,7 @@ class TestToolRoute:
         assert payload["results"][0]["tool_id"] == created["tool_id"]
 
         get_response = await tool_route_client.client.post(
-            "/tools/get",
+            "/tool/get",
             json={"tool_id": created["tool_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -244,7 +244,7 @@ class TestToolRoute:
         )
 
         response = await tool_route_client.client.post(
-            "/tools/delete",
+            "/tool/delete",
             json={"tool_ids": [created["tool_id"]]},
         )
 
@@ -255,7 +255,7 @@ class TestToolRoute:
         assert payload["results"][0]["tool_id"] == created["tool_id"]
 
         search_response = await tool_route_client.client.post(
-            "/tools/search",
+            "/tool/search",
             json={"search": created["name"], "page_size": 10, "page_offset": 0},
         )
         search_payload = search_response.json()
@@ -278,7 +278,7 @@ class TestToolRoute:
         )
 
         response = await tool_route_client.client.post(
-            "/tools/duplicate",
+            "/tool/duplicate",
             json={"tool_id": created["tool_id"]},
         )
 
@@ -302,7 +302,7 @@ class TestToolRoute:
         )
 
         response = await tool_route_client.client.patch(
-            "/tools/draft",
+            "/tool/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -332,7 +332,7 @@ class TestToolRoute:
             session_id=tool_route_actor.session_id,
         )
         draft_response = await tool_route_client.client.patch(
-            "/tools/draft",
+            "/tool/draft",
             json={
                 "name_id": str(resources.name_id),
             },
@@ -340,7 +340,7 @@ class TestToolRoute:
         assert draft_response.status_code == 200, draft_response.text
 
         response = await tool_route_client.client.post(
-            "/tools/drafts",
+            "/tool/drafts",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -361,7 +361,7 @@ class TestToolRoute:
         )
 
         response = await tool_route_client.client.post(
-            "/tools/docs",
+            "/tool/docs",
             json={},
         )
 
@@ -397,7 +397,7 @@ class TestToolRoute:
         )
 
         response = await tool_route_client.client.post(
-            "/tools/export",
+            "/tool/export",
             json={"tool_id": created["tool_id"]},
         )
 
@@ -418,7 +418,7 @@ class TestToolRoute:
         )
 
         response = await tool_route_client.client.post(
-            "/tools/refresh",
+            "/tool/refresh",
             json={},
         )
 
@@ -442,7 +442,7 @@ class TestToolRoute:
         )
 
         response = await tool_route_client.client.post(
-            "/tools/create",
+            "/tool/create",
             json={
                 "tools": [
                     {

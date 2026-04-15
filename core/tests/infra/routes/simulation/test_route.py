@@ -81,7 +81,7 @@ class TestSimulationRoute:
         )
 
         response = await simulation_route_client.client.post(
-            "/simulations/create",
+            "/simulation/create",
             json={
                 "simulations": [
                     {
@@ -115,7 +115,7 @@ class TestSimulationRoute:
         )
 
         response = await simulation_route_client.client.post(
-            "/simulations/get",
+            "/simulation/get",
             json={"simulation_id": created["simulation_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -152,7 +152,7 @@ class TestSimulationRoute:
         )
 
         response = await simulation_route_client.client.post(
-            "/simulations/search",
+            "/simulation/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(simulation_route_actor.department_id)],
@@ -187,7 +187,7 @@ class TestSimulationRoute:
         updated = await _create_simulation_route_resources(pool, redis_client)
 
         response = await simulation_route_client.client.post(
-            "/simulations/update",
+            "/simulation/update",
             json={
                 "simulations": [
                     {
@@ -221,7 +221,7 @@ class TestSimulationRoute:
         )
 
         response = await simulation_route_client.client.post(
-            "/simulations/delete",
+            "/simulation/delete",
             json={"simulation_ids": [created["simulation_id"]]},
         )
 
@@ -245,7 +245,7 @@ class TestSimulationRoute:
         )
 
         response = await simulation_route_client.client.post(
-            "/simulations/duplicate",
+            "/simulation/duplicate",
             json={"simulation_id": created["simulation_id"]},
         )
 
@@ -269,7 +269,7 @@ class TestSimulationRoute:
         )
 
         response = await simulation_route_client.client.patch(
-            "/simulations/draft",
+            "/simulation/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -296,13 +296,13 @@ class TestSimulationRoute:
             session_id=simulation_route_actor.session_id,
         )
         draft_response = await simulation_route_client.client.patch(
-            "/simulations/draft",
+            "/simulation/draft",
             json={"name_id": str(resources.name_id)},
         )
         assert draft_response.status_code == 200, draft_response.text
 
         response = await simulation_route_client.client.post(
-            "/simulations/drafts",
+            "/simulation/drafts",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -323,7 +323,7 @@ class TestSimulationRoute:
         )
 
         response = await simulation_route_client.client.post(
-            "/simulations/docs",
+            "/simulation/docs",
             json={},
         )
 
@@ -349,7 +349,7 @@ class TestSimulationRoute:
         )
 
         response = await simulation_route_client.client.post(
-            "/simulations/export",
+            "/simulation/export",
             json={"simulation_id": created["simulation_id"]},
         )
 
@@ -370,7 +370,7 @@ class TestSimulationRoute:
         )
 
         response = await simulation_route_client.client.post(
-            "/simulations/refresh",
+            "/simulation/refresh",
             json={},
         )
 
@@ -394,7 +394,7 @@ class TestSimulationRoute:
         )
 
         response = await simulation_route_client.client.post(
-            "/simulations/create",
+            "/simulation/create",
             json={
                 "simulations": [
                     {

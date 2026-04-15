@@ -19,7 +19,7 @@ from app.routes.auth.refresh import router as refresh_router
 from app.routes.auth.search import router as search_router
 from app.routes.auth.update import router as update_router
 
-router = APIRouter(prefix="/auths", tags=["auths"])
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 # Include all endpoint routers
 router.include_router(context_router)

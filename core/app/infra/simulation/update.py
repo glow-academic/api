@@ -6,6 +6,7 @@ Composes existing black-box tools:
   3. resolve_simulation_values — raw value → ID resolution
   4. update_simulation_artifact — junction writes (partial update)
   5. create_denormalized_snapshot — simulations_resource snapshot
+  6. refresh_simulation_impl — canonical cache refresh
 """
 
 from __future__ import annotations
@@ -16,12 +17,14 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.simulation.refresh import refresh_simulation_impl
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.simulation.permissions_context import (
     create_denormalized_snapshot,
     resolve_simulation_permissions_context,
     resolve_simulation_values,
 )
+from app.tools.artifacts.simulation.get import get_simulations
 from app.tools.artifacts.simulation.update import (
     _UNSET,
 )
@@ -32,7 +35,7 @@ from app.infra.simulation.types import (
     UpdateSimulationApiRequest,
     UpdateSimulationApiResponse,
 )
-from app.utils.cache.invalidate_tags import invalidate_tags
+from app.tools.resources.flags.get import get_flags
 
 
 async def update_simulation_impl(
@@ -45,6 +48,8 @@ async def update_simulation_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> UpdateSimulationApiResponse:
     """Simulation bulk update using composable infra functions.
 
@@ -53,12 +58,16 @@ async def update_simulation_impl(
       2. Per-item: resolve_simulation_permissions_context → exists + compute_can_edit
       3. Per-item value resolution (raw → ID, no required field enforcement)
       4. Single transaction: update_simulation_artifact + denormalized snapshot per item
-      5. invalidate_tags
+      5. canonical refresh via refresh_simulation_impl
     """
     from app.infra.simulation.permissions import compute_can_edit
     from app.infra.simulation.types import (
         SimulationResultItem,
     )
+
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key and accept is None:
+        accept = request.accept
 
     items = request.simulations
 
@@ -101,7 +110,79 @@ async def update_simulation_impl(
                     detail=f"Item {idx}: You don't have permission to update this simulation.",
                 )
 
-    # ── Step 3: Per-item value resolution ──────────────────────────────
+    # ── Step 3: ACK short-circuit ───────────────────────────────────────
+
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await update_simulation_artifact(
+                        conn,
+                        idempotency_key,
+                        soft=False,
+                    )
+
+            async with pool.acquire() as conn:
+                artifacts = await get_simulations(
+                    conn,
+                    [idempotency_key],
+                    names=True,
+                    descriptions=True,
+                    departments=True,
+                    flags=True,
+                    scenarios=True,
+                    scenario_flags=True,
+                    scenario_positions=True,
+                    scenario_rubrics=True,
+                    scenario_time_limits=True,
+                )
+            if artifacts:
+                artifact = artifacts[0]
+                practice = False
+                if artifact.flag_ids:
+                    async with pool.acquire() as conn:
+                        flag_artifacts = await get_flags(
+                            conn,
+                            list(artifact.flag_ids),
+                            redis,
+                            bypass_cache=True,
+                        )
+                    practice = any(flag.type == "practice" for flag in flag_artifacts)
+
+                await create_denormalized_snapshot(
+                    pool,
+                    redis,
+                    name_id=artifact.name_ids[0] if artifact.name_ids else None,
+                    description_id=artifact.description_ids[0]
+                    if artifact.description_ids
+                    else None,
+                    practice=practice,
+                    department_ids=artifact.department_ids or None,
+                    scenario_ids=artifact.scenario_ids or None,
+                    scenario_rubric_ids=artifact.scenario_rubric_ids or None,
+                    scenario_time_limit_ids=artifact.scenario_time_limit_ids or None,
+                    scenario_position_ids=artifact.scenario_position_ids or None,
+                    scenario_flag_ids=artifact.scenario_flag_ids or None,
+                )
+
+            await refresh_simulation_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+            )
+
+        return UpdateSimulationApiResponse(
+            results=[
+                SimulationResultItem(
+                    success=True,
+                    simulation_id=idempotency_key,
+                    message="Update accepted" if accept else "Update rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
+
+    # ── Step 4: Per-item value resolution ──────────────────────────────
 
     has_errors = False
     error_results: list[SimulationResultItem] = []
@@ -125,27 +206,32 @@ async def update_simulation_impl(
             )
 
     if has_errors:
-        return UpdateSimulationApiResponse(results=error_results)
+        return UpdateSimulationApiResponse(
+            results=error_results,
+            idempotency_key=idempotency_key,
+        )
 
-    # ── Step 4: Single transaction ─────────────────────────────────────
+    # ── Step 5: Single transaction ─────────────────────────────────────
 
     results: list[SimulationResultItem] = []
 
     for item in items:
-        # Create denormalized snapshot OUTSIDE transaction (read-only hydration)
-        simulations_resource_id = await create_denormalized_snapshot(
-            pool,
-            redis,
-            name_id=item.name_id,
-            description_id=item.description_id,
-            practice=bool(item.practice_flag_id),
-            department_ids=item.department_ids,
-            scenario_ids=item.scenario_ids,
-            scenario_rubric_ids=item.scenario_rubric_ids,
-            scenario_time_limit_ids=item.scenario_time_limit_ids,
-            scenario_position_ids=item.scenario_position_ids,
-            scenario_flag_ids=item.scenario_flag_ids,
-        )
+        # Create denormalized snapshot outside the transaction unless soft=True.
+        simulations_resource_id = None
+        if not soft:
+            simulations_resource_id = await create_denormalized_snapshot(
+                pool,
+                redis,
+                name_id=item.name_id,
+                description_id=item.description_id,
+                practice=bool(item.practice_flag_id),
+                department_ids=item.department_ids,
+                scenario_ids=item.scenario_ids,
+                scenario_rubric_ids=item.scenario_rubric_ids,
+                scenario_time_limit_ids=item.scenario_time_limit_ids,
+                scenario_position_ids=item.scenario_position_ids,
+                scenario_flag_ids=item.scenario_flag_ids,
+            )
 
         # Combine dedicated *_flag_id fields into flag_ids for the artifact
         combined_flag_ids: list[UUID] = []
@@ -171,7 +257,9 @@ async def update_simulation_impl(
                     scenario_position_ids=item.scenario_position_ids,
                     scenario_rubric_ids=item.scenario_rubric_ids,
                     scenario_time_limit_ids=item.scenario_time_limit_ids,
-                    simulation_ids=[simulations_resource_id],
+                    simulation_ids=[simulations_resource_id]
+                    if simulations_resource_id
+                    else None,
                     soft=soft,
                 )
 
@@ -179,12 +267,18 @@ async def update_simulation_impl(
             SimulationResultItem(
                 success=True,
                 simulation_id=item.simulation_id,
-                message="Simulation updated successfully",
+                message="Simulation updated (pending acceptance)"
+                if soft
+                else "Simulation updated successfully",
             )
         )
 
-    # ── Step 5: Invalidate cache ───────────────────────────────────────
+    # ── Step 6: Canonical refresh ──────────────────────────────────────
 
-    await invalidate_tags(["simulations"], redis=redis)
+    await refresh_simulation_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+    )
 
-    return UpdateSimulationApiResponse(results=results)
+    return UpdateSimulationApiResponse(results=results, idempotency_key=idempotency_key)

@@ -20,7 +20,7 @@ from app.routes.tool.refresh import router as refresh_router
 from app.routes.tool.search import router as search_router
 from app.routes.tool.update import router as update_router
 
-router = APIRouter(prefix="/tools", tags=["tools"])
+router = APIRouter(prefix="/tool", tags=["tool"])
 
 # Include all endpoint routers
 router.include_router(search_router)

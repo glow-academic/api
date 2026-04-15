@@ -20,7 +20,7 @@ from app.routes.department.refresh import router as refresh_router
 from app.routes.department.search import router as search_router
 from app.routes.department.update import router as update_router
 
-router = APIRouter(prefix="/departments", tags=["departments"])
+router = APIRouter(prefix="/department", tags=["department"])
 
 # Include all endpoint routers
 router.include_router(get_router)

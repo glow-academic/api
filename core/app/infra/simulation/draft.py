@@ -5,13 +5,13 @@ Core draft function that composes existing black-box tools:
   2. compute_can_draft — permission check
   3. Value resolution (creatable resources only) — raw value → ID
   4. create_simulation_draft — entry tool (append-only snapshot)
-  5. Build form state (server is source of truth)
-  6. refresh_simulation_drafts — MV refresh
-  7. invalidate_tags — cache invalidation
+  5. refresh_simulation_impl — canonical refresh + cache invalidation
+  6. Build form state (server is source of truth)
 """
 
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
 import asyncpg
@@ -19,7 +19,9 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.infra.simulation.permissions import compute_can_draft
+from app.infra.simulation.refresh import refresh_simulation_impl
 from app.infra.simulation.types import (
     PatchSimulationDraftApiRequest,
     PatchSimulationDraftApiResponse,
@@ -29,11 +31,10 @@ from app.infra.simulation.types import (
 from app.tools.entries.simulation_drafts.create import (
     create_simulation_draft,
 )
-from app.tools.entries.simulation_drafts.refresh import (
-    refresh_simulation_drafts,
-)
 from app.tools.resources.descriptions.create import create_description
+from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.names.create import create_name
+from app.tools.resources.names.search import search_names
 from app.tools.resources.scenario_flags.create import create_scenario_flag
 from app.tools.resources.scenario_positions.create import (
     create_scenario_position,
@@ -42,7 +43,6 @@ from app.tools.resources.scenario_rubrics.create import create_scenario_rubric
 from app.tools.resources.scenario_time_limits.create import (
     create_scenario_time_limit,
 )
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 # ---------------------------------------------------------------------------
 # Value resolution — creatable resources only
@@ -71,12 +71,42 @@ async def _resolve_creatable_values(
         # ── Single-select creatables ──────────────────────────────────────
 
         if request.name is not None and request.name_id is None:
-            result = await create_name(conn, request.name, redis)
-            request.name_id = result.id
+            results = await search_names(conn, redis, search=request.name, limit_count=20)
+            match = next(
+                (
+                    r
+                    for r in results
+                    if r.name is not None and r.name.lower() == request.name.lower()
+                ),
+                None,
+            )
+            if match and match.id:
+                request.name_id = match.id
+            else:
+                result = await create_name(conn, request.name, redis)
+                request.name_id = result.id
 
         if request.description is not None and request.description_id is None:
-            result = await create_description(conn, request.description, redis)
-            request.description_id = result.id
+            results = await search_descriptions(
+                conn,
+                redis,
+                search=request.description,
+                limit_count=20,
+            )
+            match = next(
+                (
+                    r
+                    for r in results
+                    if r.description is not None
+                    and r.description.lower() == request.description.lower()
+                ),
+                None,
+            )
+            if match and match.id:
+                request.description_id = match.id
+            else:
+                result = await create_description(conn, request.description, redis)
+                request.description_id = result.id
 
         # ── Multi-select compound creatables (merged mode) ────────────────
 
@@ -140,7 +170,12 @@ async def patch_simulation_draft_impl(
     *,
     profile_id: UUID,
     session_id: UUID,
-    request: PatchSimulationDraftApiRequest,
+    request: PatchSimulationDraftApiRequest | None = None,
+    draft_id: UUID | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    **kwargs: Any,
 ) -> PatchSimulationDraftApiResponse:
     """Simulation draft using composable infra functions.
 
@@ -149,10 +184,14 @@ async def patch_simulation_draft_impl(
       2. compute_can_draft → permission check
       3. Value resolution (creatable resources only)
       4. create_simulation_draft entry tool (append-only snapshot)
-      5. Build form state (server is source of truth)
-      6. refresh_simulation_drafts MV
-      7. invalidate_tags
+      5. refresh_simulation_impl canonical refresh + cache invalidation
+      6. Build form state (server is source of truth)
     """
+    # Merge ack fields from request (HTTP) or kwargs (direct callers).
+    if request is not None:
+        idempotency_key = idempotency_key or getattr(request, "idempotency_key", None)
+        if idempotency_key is not None and accept is None:
+            accept = getattr(request, "accept", None)
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -171,11 +210,73 @@ async def patch_simulation_draft_impl(
 
     # ── Step 2: Permission check ───────────────────────────────────────
 
-    if not compute_can_draft(role_level=profile.role_level, role_permissions=profile.role_permissions):
+    if not compute_can_draft(
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
+    ):
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to create or edit simulation drafts.",
         )
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_simulation_draft(
+                        conn,
+                        session_id=session_id,
+                        id=idempotency_key,
+                        soft=False,
+                    )
+            await refresh_simulation_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+            )
+        return PatchSimulationDraftApiResponse(
+            success=True,
+            draft_id=idempotency_key,
+            idempotency_key=idempotency_key,
+            message="Draft accepted" if accept else "Draft rejected",
+            form_state=SimulationDraftFormState(),
+        )
+
+    if request is None:
+        filtered = sanitize_model_kwargs(
+            kwargs,
+            list_fields={
+                "flag_ids",
+                "department_ids",
+                "scenario_ids",
+                "scenario_flag_ids",
+                "scenario_flags",
+                "scenario_position_ids",
+                "scenario_positions",
+                "scenario_rubric_ids",
+                "scenario_rubrics",
+                "scenario_time_limit_ids",
+                "scenario_time_limits",
+            },
+            value_id_pairs=[
+                ("name", "name_id"),
+                ("description", "description_id"),
+            ],
+        )
+        if draft_id is not None:
+            filtered["input_draft_id"] = draft_id
+        request = PatchSimulationDraftApiRequest(**filtered)
+
+    if draft_id is not None and getattr(request, "input_draft_id", None) is None:
+        request.input_draft_id = draft_id
+    if draft_id is not None and getattr(request, "draft_id", None) is None:
+        request.draft_id = draft_id
+    if (
+        getattr(request, "draft_id", None) is not None
+        and getattr(request, "input_draft_id", None) is None
+    ):
+        request.input_draft_id = request.draft_id
 
     # ── Step 3: Value resolution (creatable only) ──────────────────────
 
@@ -193,6 +294,8 @@ async def patch_simulation_draft_impl(
             result = await create_simulation_draft(
                 conn,
                 session_id=session_id,
+                id=idempotency_key,
+                soft=soft,
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id]
                 if request.description_id
@@ -207,11 +310,22 @@ async def patch_simulation_draft_impl(
                 profile_ids=[profile.profiles_id],
             )
 
-    # ── Step 5: Build form state (server is source of truth) ──────────
+    # ── Step 5: Canonical refresh (skipped for soft drafts) ────────────
+
+    if not soft:
+        await refresh_simulation_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+        )
+
+    # ── Step 6: Build form state (server is source of truth) ──────────
 
     form_state = SimulationDraftFormState(
         name_id=request.name_id,
+        name=request.name,
         description_id=request.description_id,
+        description=request.description,
         flag_ids=request.flag_ids or [],
         department_ids=request.department_ids or [],
         scenario_ids=request.scenario_ids or [],
@@ -219,20 +333,15 @@ async def patch_simulation_draft_impl(
         scenario_position_ids=request.scenario_position_ids or [],
         scenario_rubric_ids=request.scenario_rubric_ids or [],
         scenario_time_limit_ids=request.scenario_time_limit_ids or [],
+        pending_ids=request.pending_ids or [],
     )
 
-    # ── Step 6: Refresh MV ─────────────────────────────────────────────
-
-    async with pool.acquire() as conn:
-        await refresh_simulation_drafts(conn)
-
-    # ── Step 7: Invalidate cache ───────────────────────────────────────
-
-    await invalidate_tags(["simulations", "drafts"], redis=redis)
+    response_idempotency_key = idempotency_key or result.id
 
     return PatchSimulationDraftApiResponse(
         success=True,
         draft_id=result.id,
-        message="Draft created successfully",
+        idempotency_key=response_idempotency_key,
+        message="Draft created (pending acceptance)" if soft else "Draft created successfully",
         form_state=form_state,
     )

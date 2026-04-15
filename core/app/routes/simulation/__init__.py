@@ -20,7 +20,7 @@ from app.routes.simulation.refresh import router as refresh_router
 from app.routes.simulation.search import router as search_router
 from app.routes.simulation.update import router as update_router
 
-router = APIRouter(prefix="/simulations", tags=["simulations"])
+router = APIRouter(prefix="/simulation", tags=["simulation"])
 
 # Include all endpoint routers
 router.include_router(get_router)

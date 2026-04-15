@@ -24,7 +24,7 @@ from app.routes.scenario.text import router as text_router
 from app.routes.scenario.update import router as update_router
 from app.routes.scenario.video import router as video_router
 
-router = APIRouter(prefix="/scenarios", tags=["scenarios"])
+router = APIRouter(prefix="/scenario", tags=["scenario"])
 
 # Standard artifact operations
 router.include_router(get_router)

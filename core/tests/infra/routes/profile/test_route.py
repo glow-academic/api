@@ -95,7 +95,7 @@ class TestProfileRoute:
         )
 
         response = await profile_route_client.client.post(
-            "/profiles/create",
+            "/profile/create",
             json={
                 "profiles": [
                     {
@@ -130,7 +130,7 @@ class TestProfileRoute:
         )
 
         response = await profile_route_client.client.post(
-            "/profiles/get",
+            "/profile/get",
             json={"target_profile_id": created["profile_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -158,7 +158,7 @@ class TestProfileRoute:
         )
 
         response = await profile_route_client.client.post(
-            "/profiles/search",
+            "/profile/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(profile_route_actor.department_id)],
@@ -193,7 +193,7 @@ class TestProfileRoute:
         updated = await _create_profile_route_resources(pool, redis_client)
 
         response = await profile_route_client.client.post(
-            "/profiles/update",
+            "/profile/update",
             json={
                 "profiles": [
                     {
@@ -228,7 +228,7 @@ class TestProfileRoute:
         )
 
         response = await profile_route_client.client.post(
-            "/profiles/delete",
+            "/profile/delete",
             json={"profile_ids": [created["profile_id"]]},
         )
 
@@ -252,7 +252,7 @@ class TestProfileRoute:
         )
 
         response = await profile_route_client.client.post(
-            "/profiles/duplicate",
+            "/profile/duplicate",
             json={"target_profile_id": created["profile_id"]},
         )
 
@@ -276,7 +276,7 @@ class TestProfileRoute:
         )
 
         response = await profile_route_client.client.patch(
-            "/profiles/draft",
+            "/profile/draft",
             json={
                 "name_id": str(resources.name_id),
                 "department_ids": [str(profile_route_actor.department_id)],
@@ -307,7 +307,7 @@ class TestProfileRoute:
         )
 
         draft_response = await profile_route_client.client.patch(
-            "/profiles/draft",
+            "/profile/draft",
             json={
                 "name_id": str(resources.name_id),
                 "department_ids": [str(profile_route_actor.department_id)],
@@ -320,7 +320,7 @@ class TestProfileRoute:
         draft_id = draft_response.json()["draft_id"]
 
         response = await profile_route_client.client.post(
-            "/profiles/drafts",
+            "/profile/drafts",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -341,7 +341,7 @@ class TestProfileRoute:
         )
 
         response = await profile_route_client.client.post(
-            "/profiles/docs",
+            "/profile/docs",
             json={},
         )
 
@@ -367,7 +367,7 @@ class TestProfileRoute:
         )
 
         response = await profile_route_client.client.post(
-            "/profiles/export",
+            "/profile/export",
             json={"profile_export_id": created["profile_id"]},
         )
 
@@ -388,7 +388,7 @@ class TestProfileRoute:
         )
 
         response = await profile_route_client.client.post(
-            "/profiles/refresh",
+            "/profile/refresh",
             json={},
         )
 
@@ -506,7 +506,7 @@ class TestProfileRoute:
         )
 
         response = await profile_route_client.client.post(
-            "/profiles/create",
+            "/profile/create",
             json={
                 "profiles": [
                     {

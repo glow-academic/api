@@ -68,7 +68,7 @@ class TestEvalRoute:
         )
 
         response = await eval_route_client.client.post(
-            "/evals/create",
+            "/eval/create",
             json={
                 "evals": [
                     {
@@ -101,7 +101,7 @@ class TestEvalRoute:
         )
 
         response = await eval_route_client.client.post(
-            "/evals/get",
+            "/eval/get",
             json={"eval_id": created["eval_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -132,7 +132,7 @@ class TestEvalRoute:
         )
 
         response = await eval_route_client.client.post(
-            "/evals/search",
+            "/eval/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(eval_route_actor.department_id)],
@@ -166,7 +166,7 @@ class TestEvalRoute:
         updated = await _create_eval_route_resources(pool, redis_client)
 
         response = await eval_route_client.client.post(
-            "/evals/update",
+            "/eval/update",
             json={
                 "evals": [
                     {
@@ -199,7 +199,7 @@ class TestEvalRoute:
         )
 
         response = await eval_route_client.client.post(
-            "/evals/delete",
+            "/eval/delete",
             json={"eval_ids": [created["eval_id"]]},
         )
 
@@ -223,7 +223,7 @@ class TestEvalRoute:
         )
 
         response = await eval_route_client.client.post(
-            "/evals/duplicate",
+            "/eval/duplicate",
             json={"eval_id": created["eval_id"]},
         )
 
@@ -247,7 +247,7 @@ class TestEvalRoute:
         )
 
         response = await eval_route_client.client.patch(
-            "/evals/draft",
+            "/eval/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -276,7 +276,7 @@ class TestEvalRoute:
         )
 
         draft_response = await eval_route_client.client.patch(
-            "/evals/draft",
+            "/eval/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -287,7 +287,7 @@ class TestEvalRoute:
         draft_id = draft_response.json()["draft_id"]
 
         response = await eval_route_client.client.post(
-            "/evals/drafts",
+            "/eval/drafts",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -308,7 +308,7 @@ class TestEvalRoute:
         )
 
         response = await eval_route_client.client.post(
-            "/evals/docs",
+            "/eval/docs",
             json={},
         )
 
@@ -334,7 +334,7 @@ class TestEvalRoute:
         )
 
         response = await eval_route_client.client.post(
-            "/evals/export",
+            "/eval/export",
             json={"eval_id": created["eval_id"]},
         )
 
@@ -355,7 +355,7 @@ class TestEvalRoute:
         )
 
         response = await eval_route_client.client.post(
-            "/evals/refresh",
+            "/eval/refresh",
             json={},
         )
 
@@ -379,7 +379,7 @@ class TestEvalRoute:
         )
 
         response = await eval_route_client.client.post(
-            "/evals/create",
+            "/eval/create",
             json={
                 "evals": [
                     {

@@ -114,7 +114,7 @@ class TestPersonaRoute:
         )
 
         response = await persona_route_client.client.post(
-            "/personas/create",
+            "/persona/create",
             json={
                 "personas": [
                     {
@@ -152,7 +152,7 @@ class TestPersonaRoute:
         )
 
         response = await persona_route_client.client.post(
-            "/personas/get",
+            "/persona/get",
             json={"persona_id": created["persona_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -196,7 +196,7 @@ class TestPersonaRoute:
         )
 
         response = await persona_route_client.client.post(
-            "/personas/search",
+            "/persona/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(persona_route_actor.department_id)],
@@ -244,11 +244,11 @@ class TestPersonaRoute:
         )
 
         first = await persona_route_client.client.post(
-            "/personas/get",
+            "/persona/get",
             json={"persona_id": created["persona_id"]},
         )
         second = await persona_route_client.client.post(
-            "/personas/get",
+            "/persona/get",
             json={"persona_id": created["persona_id"]},
         )
 
@@ -273,7 +273,7 @@ class TestPersonaRoute:
         updated = await _create_persona_route_resources(pool, redis_client)
 
         response = await persona_route_client.client.post(
-            "/personas/update",
+            "/persona/update",
             json={
                 "personas": [
                     {
@@ -296,7 +296,7 @@ class TestPersonaRoute:
         assert payload["results"][0]["id"] == created["persona_id"]
 
         get_response = await persona_route_client.client.post(
-            "/personas/get",
+            "/persona/get",
             json={"persona_id": created["persona_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -330,7 +330,7 @@ class TestPersonaRoute:
         )
 
         response = await persona_route_client.client.post(
-            "/personas/duplicate",
+            "/persona/duplicate",
             json={"id": created["persona_id"]},
         )
 
@@ -356,7 +356,7 @@ class TestPersonaRoute:
         )
 
         response = await persona_route_client.client.post(
-            "/personas/delete",
+            "/persona/delete",
             json={"ids": [created["persona_id"]]},
         )
 
@@ -367,7 +367,7 @@ class TestPersonaRoute:
         assert payload["results"][0]["id"] == created["persona_id"]
 
         search_response = await persona_route_client.client.post(
-            "/personas/search",
+            "/persona/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(persona_route_actor.department_id)],
@@ -399,7 +399,7 @@ class TestPersonaRoute:
         draft_name = f"Draft Persona {unique_tag()}"
 
         response = await persona_route_client.client.patch(
-            "/personas/draft",
+            "/persona/draft",
             json={
                 "name": draft_name,
                 "department_ids": [str(persona_route_actor.department_id)],
@@ -414,7 +414,7 @@ class TestPersonaRoute:
         assert payload["form_state"]["name_id"] is not None
 
         get_response = await persona_route_client.client.post(
-            "/personas/get",
+            "/persona/get",
             json={
                 "persona_id": created["persona_id"],
                 "draft_id": payload["draft_id"],
@@ -451,7 +451,7 @@ class TestPersonaRoute:
             session_id=persona_route_actor.session_id,
         )
         drafts_response = await persona_route_client.client.post(
-            "/personas/drafts",
+            "/persona/drafts",
         )
 
         assert drafts_response.status_code == 200, drafts_response.text
@@ -474,7 +474,7 @@ class TestPersonaRoute:
         )
 
         response = await persona_route_client.client.post(
-            "/personas/docs",
+            "/persona/docs",
             json={"entity_id": created["persona_id"]},
         )
 
@@ -503,7 +503,7 @@ class TestPersonaRoute:
         )
 
         response = await persona_route_client.client.post(
-            "/personas/export",
+            "/persona/export",
             json={"persona_id": created["persona_id"]},
         )
 
@@ -526,7 +526,7 @@ class TestPersonaRoute:
         )
 
         response = await persona_route_client.client.post(
-            "/personas/refresh",
+            "/persona/refresh",
         )
 
         assert response.status_code == 200, response.text
@@ -550,7 +550,7 @@ class TestPersonaRoute:
         )
 
         response = await persona_route_client.client.post(
-            "/personas/create",
+            "/persona/create",
             json={
                 "personas": [
                     {

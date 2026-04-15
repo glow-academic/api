@@ -28,6 +28,9 @@ class SimulationNameResource(BaseModel):
     id: UUID | None = Field(None, description="UUID of the name resource")
     name: str | None = Field(None, description="Display name")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class SimulationDescriptionResource(BaseModel):
@@ -36,6 +39,9 @@ class SimulationDescriptionResource(BaseModel):
     id: UUID | None = Field(None, description="UUID of the description resource")
     description: str | None = Field(None, description="Description text")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class SimulationScenarioFlag(BaseModel):
@@ -48,6 +54,9 @@ class SimulationScenarioFlag(BaseModel):
     description: str | None = Field(None, description="Flag description text")
     icon: str | None = Field(None, description="Icon identifier for the flag")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class SimulationScenarioPosition(BaseModel):
@@ -57,6 +66,9 @@ class SimulationScenarioPosition(BaseModel):
     scenario_id: UUID | None = Field(None, description="UUID of the parent scenario")
     value: int | None = Field(None, description="Position value")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class SimulationScenarioRubric(BaseModel):
@@ -66,6 +78,9 @@ class SimulationScenarioRubric(BaseModel):
     scenario_id: UUID | None = Field(None, description="UUID of the parent scenario")
     rubric_id: UUID | None = Field(None, description="UUID of the rubric resource")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class SimulationScenarioTimeLimit(BaseModel):
@@ -76,6 +91,9 @@ class SimulationScenarioTimeLimit(BaseModel):
     time_limit_seconds: int | None = Field(None, description="Time limit in seconds")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     negative: bool | None = Field(None, description="Whether the time limit is negative")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class SimulationRubric(BaseModel):
@@ -120,6 +138,9 @@ class SimulationFlagConfig(BaseModel):
     show: bool = Field(True, description="Whether to show this flag in the UI")
     required: bool = Field(False, description="Whether this flag is required")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class SimulationDepartment(BaseModel):
@@ -129,6 +150,9 @@ class SimulationDepartment(BaseModel):
     name: str | None = Field(None, description="Department name")
     description: str | None = Field(None, description="Department description text")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class SimulationScenario(BaseModel):
@@ -147,6 +171,9 @@ class SimulationScenario(BaseModel):
     show_copy_paste: bool | None = Field(None, description="Whether to show copy/paste")
     show_images: bool | None = Field(None, description="Whether to show images")
     show_questions: bool | None = Field(None, description="Whether to show questions")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 # =============================================================================
@@ -368,62 +395,40 @@ class SearchScenariosApiResponse(BaseModel):
 # =============================================================================
 
 
+class SectionFilter(BaseModel):
+    """Per-section filter options for GET requests."""
+
+    search: str | None = Field(None, description="Filter options by search text")
+    limit: int | None = Field(None, description="Max options to return")
+    selected: bool | None = Field(None, description="Only return selected items")
+    suggested: bool | None = Field(None, description="Only return suggested items")
+    include: bool | None = Field(None, description="Include this section in response (default true)")
+    parameter_ids: list[str] | None = Field(None, description="Reserved for parity with persona pattern")
+
+
 class GetSimulationApiRequest(BaseModel):
-    """Request for getting a single simulation."""
+    """Request model for get simulation endpoint."""
 
-    simulation_id: UUID | None = Field(None, description="UUID of the simulation to retrieve")
-    draft_id: UUID | None = Field(None, description="UUID of the draft to retrieve")
-    scenario_search: str | None = Field(None, description="Search text to filter scenarios")
-    filter_scenario_ids: list[UUID] | None = Field(None, description="Filter by scenario UUIDs")
-
-
-class SimulationNameSection(BaseResourceSection):
-    resource: SimulationNameResource | None = Field(None, description="Currently selected name resource")
-    resources: list[SimulationNameResource] | None = Field(None, description="Available name resources")
-
-
-class SimulationDescriptionSection(BaseResourceSection):
-    resource: SimulationDescriptionResource | None = Field(None, description="Currently selected description resource")
-    resources: list[SimulationDescriptionResource] | None = Field(None, description="Available description resources")
-
-
-class SimulationFlagSection(BaseResourceSection):
-    current: list[SimulationFlagConfig] | None = Field(None, description="Currently selected flags")
-    resources: list[SimulationFlagConfig] | None = Field(None, description="Available flag configs")
-
-
-class SimulationDepartmentSection(BaseResourceSection):
-    current: list[SimulationDepartment] | None = Field(None, description="Currently selected departments")
-    resources: list[SimulationDepartment] | None = Field(None, description="Available departments")
-
-
-class SimulationScenarioSection(BaseResourceSection):
-    current: list[SimulationScenario] | None = Field(None, description="Currently selected scenarios")
-    resources: list[SimulationScenario] | None = Field(None, description="Available scenarios")
-
-
-class SimulationScenarioFlagSection(BaseResourceSection):
-    current: list[SimulationScenarioFlag] | None = Field(None, description="Currently selected scenario flags")
-    resources: list[SimulationScenarioFlag] | None = Field(None, description="Available scenario flags")
-
-
-class SimulationScenarioPositionSection(BaseResourceSection):
-    current: list[SimulationScenarioPosition] | None = Field(None, description="Currently selected scenario positions")
-    resources: list[SimulationScenarioPosition] | None = Field(None, description="Available scenario positions")
-
-
-class SimulationScenarioRubricSection(BaseResourceSection):
-    current: list[SimulationScenarioRubric] | None = Field(None, description="Currently selected scenario rubrics")
-    resources: list[SimulationScenarioRubric] | None = Field(None, description="Available scenario rubrics")
-
-
-class SimulationScenarioTimeLimitSection(BaseResourceSection):
-    current: list[SimulationScenarioTimeLimit] | None = Field(None, description="Currently selected scenario time limits")
-    resources: list[SimulationScenarioTimeLimit] | None = Field(None, description="Available scenario time limits")
+    id: UUID | None = Field(None, description="UUID of the simulation to retrieve")
+    simulation_id: UUID | None = Field(None, description="Legacy alias for the simulation UUID")
+    draft_id: UUID | None = Field(None, description="UUID of the draft to load instead of published state")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+    names: SectionFilter | None = Field(None, description="Filter options for names section")
+    descriptions: SectionFilter | None = Field(None, description="Filter options for descriptions section")
+    flags: SectionFilter | None = Field(None, description="Filter options for flags section")
+    departments: SectionFilter | None = Field(None, description="Filter options for departments section")
+    scenarios: SectionFilter | None = Field(None, description="Filter options for scenarios section")
+    scenario_flags: SectionFilter | None = Field(None, description="Filter options for scenario flags section")
+    scenario_positions: SectionFilter | None = Field(None, description="Filter options for scenario positions section")
+    scenario_rubrics: SectionFilter | None = Field(None, description="Filter options for scenario rubrics section")
+    scenario_time_limits: SectionFilter | None = Field(None, description="Filter options for scenario time limits section")
+    filter_scenario_ids: list[UUID] | None = Field(None, description="Legacy scenario ID filter for nested scenario resources")
+    scenario_search: str | None = Field(None, description="Legacy search text for scenarios")
+    scenario_show_selected: bool | None = Field(None, description="Legacy selected-only filter for scenarios")
 
 
 class GetSimulationApiResponse(BaseModel):
-    """Section-first response for simulation editor."""
+    """Response model for get simulation endpoint."""
 
     actor_name: str | None = Field(None, description="Display name of the current actor")
     simulation_exists: bool | None = Field(None, description="Whether the simulation exists")
@@ -431,17 +436,18 @@ class GetSimulationApiResponse(BaseModel):
     disabled_reason: str | None = Field(None, description="Reason the simulation is disabled")
     group_id: UUID | None = Field(None, description="UUID of the owning group")
 
-    basic_show_ai_generate: bool | None = Field(None, description="Show AI generate for basic step")
+    show_ai_generate: bool | None = Field(None, description="Whether AI generation is available")
+    basic_show_ai_generate: bool | None = Field(None, description="Legacy basic-step AI generate flag")
 
-    names: SimulationNameSection | None = Field(None, description="Name section data")
-    descriptions: SimulationDescriptionSection | None = Field(None, description="Description section data")
-    flags: SimulationFlagSection | None = Field(None, description="Flag section data")
-    departments: SimulationDepartmentSection | None = Field(None, description="Department section data")
-    scenarios: SimulationScenarioSection | None = Field(None, description="Scenario section data")
-    scenario_flags: SimulationScenarioFlagSection | None = Field(None, description="Scenario flag section data")
-    scenario_positions: SimulationScenarioPositionSection | None = Field(None, description="Scenario position section data")
-    scenario_rubrics: SimulationScenarioRubricSection | None = Field(None, description="Scenario rubric section data")
-    scenario_time_limits: SimulationScenarioTimeLimitSection | None = Field(None, description="Scenario time limit section data")
+    names: list[SimulationNameResource] | None = Field(None, description="Name resources with selected/suggested flags")
+    descriptions: list[SimulationDescriptionResource] | None = Field(None, description="Description resources with selected/suggested flags")
+    flags: list[SimulationFlagConfig] | None = Field(None, description="Flag configs with selected/suggested flags")
+    departments: list[SimulationDepartment] | None = Field(None, description="Department resources with selected/suggested flags")
+    scenarios: list[SimulationScenario] | None = Field(None, description="Scenario resources with selected/suggested flags")
+    scenario_flags: list[SimulationScenarioFlag] | None = Field(None, description="Scenario flag resources with selected/suggested flags")
+    scenario_positions: list[SimulationScenarioPosition] | None = Field(None, description="Scenario position resources with selected/suggested flags")
+    scenario_rubrics: list[SimulationScenarioRubric] | None = Field(None, description="Scenario rubric resources with selected/suggested flags")
+    scenario_time_limits: list[SimulationScenarioTimeLimit] | None = Field(None, description="Scenario time limit resources with selected/suggested flags")
     rubrics: list[SimulationRubric] | None = Field(None, description="Available rubric catalog items")
 
 
@@ -591,12 +597,15 @@ class CreateSimulationApiRequest(BaseModel):
     """Request model for bulk create simulation endpoint."""
 
     simulations: list[CreateSimulationItem] = Field(..., description="List of simulations to create")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateSimulationApiResponse(BaseModel):
     """Response model for bulk create simulation endpoint."""
 
     results: list[SimulationResultItem] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # =============================================================================
@@ -638,12 +647,15 @@ class UpdateSimulationApiRequest(BaseModel):
     """Request model for bulk update simulation endpoint."""
 
     simulations: list[UpdateSimulationItem] = Field(..., description="List of simulations to update")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateSimulationApiResponse(BaseModel):
     """Response model for bulk update simulation endpoint."""
 
     results: list[SimulationResultItem] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 class SaveSimulationFieldError(BaseModel):
@@ -687,6 +699,8 @@ class DeleteSimulationApiRequest(BaseModel):
     """Request model for bulk delete simulation endpoint."""
 
     simulation_ids: list[UUID] = Field(..., description="UUIDs of simulations to delete")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    accept: bool = Field(True, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
 
 
 class DeleteSimulationResult(BaseModel):
@@ -701,6 +715,7 @@ class DeleteSimulationApiResponse(BaseModel):
     """Response model for bulk delete simulation endpoint."""
 
     results: list[DeleteSimulationResult] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # =============================================================================
@@ -712,6 +727,8 @@ class DuplicateSimulationApiRequest(BaseModel):
     """Request for duplicating a simulation."""
 
     simulation_id: UUID = Field(..., description="UUID of the simulation to duplicate")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateSimulationApiResponse(BaseModel):
@@ -720,6 +737,7 @@ class DuplicateSimulationApiResponse(BaseModel):
     success: bool = Field(..., description="Whether the operation succeeded")
     simulation_id: UUID = Field(..., description="UUID of the duplicated simulation")
     message: str = Field(..., description="Human-readable result message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # =============================================================================
@@ -788,7 +806,8 @@ class PatchSimulationDraftApiRequest(ScopedItem):
         "scenario_time_limits": "scenario_time_limits",
     }
 
-    input_draft_id: UUID | None = Field(None, description="UUID of the input draft")
+    draft_id: UUID | None = Field(None, description="Existing draft UUID to patch")
+    input_draft_id: UUID | None = Field(None, description="Legacy alias for the input draft UUID")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Display name value")
@@ -810,16 +829,21 @@ class PatchSimulationDraftApiRequest(ScopedItem):
     scenario_rubrics: list[DraftScenarioRubricValue] | None = Field(None, description="Scenario rubric values to create")
     scenario_time_limit_ids: list[UUID] | None = Field(None, description="Existing scenario time limit UUIDs")
     scenario_time_limits: list[DraftScenarioTimeLimitValue] | None = Field(None, description="Scenario time limit values to create")
+    pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep as pending where supported by the tool layer")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant draft")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
-class SimulationDraftFormState(BaseModel):
+class DraftFormState(BaseModel):
     """Full form state after draft patch — server is source of truth.
 
     Client replaces its local form state with this after every successful patch.
     """
 
     name_id: UUID | None = Field(None, description="UUID of the selected name resource")
+    name: str | None = Field(None, description="Saved name value")
     description_id: UUID | None = Field(None, description="UUID of the selected description resource")
+    description: str | None = Field(None, description="Saved description value")
     flag_ids: list[UUID] = Field([], description="Selected flag UUIDs")
     department_ids: list[UUID] = Field([], description="Selected department UUIDs")
     scenario_ids: list[UUID] = Field([], description="Selected scenario UUIDs")
@@ -827,6 +851,10 @@ class SimulationDraftFormState(BaseModel):
     scenario_position_ids: list[UUID] = Field([], description="Selected scenario position UUIDs")
     scenario_rubric_ids: list[UUID] = Field([], description="Selected scenario rubric UUIDs")
     scenario_time_limit_ids: list[UUID] = Field([], description="Selected scenario time limit UUIDs")
+    pending_ids: list[UUID] = Field([], description="Pending resource UUIDs (empty until tool-layer support exists)")
+
+
+SimulationDraftFormState = DraftFormState
 
 
 class PatchSimulationDraftApiResponse(BaseModel):
@@ -834,8 +862,9 @@ class PatchSimulationDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the operation succeeded")
     draft_id: UUID = Field(..., description="UUID of the saved draft")
+    idempotency_key: UUID = Field(..., description="Idempotency key for this draft operation")
     message: str = Field(..., description="Human-readable result message")
-    form_state: SimulationDraftFormState | None = Field(None, description="Server-authoritative form state")
+    form_state: DraftFormState = Field(..., description="Server-authoritative form state")
 
 
 # =============================================================================
@@ -914,6 +943,8 @@ class ProblemSimulationApiRequest(BaseModel):
 
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemSimulationApiResponse(BaseModel):
@@ -922,3 +953,4 @@ class ProblemSimulationApiResponse(BaseModel):
     problem_id: UUID = Field(..., description="UUID of the created problem")
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")

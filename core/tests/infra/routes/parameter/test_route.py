@@ -81,7 +81,7 @@ class TestParameterRoute:
         )
 
         response = await parameter_route_client.client.post(
-            "/parameters/create",
+            "/parameter/create",
             json={
                 "parameters": [
                     {
@@ -115,7 +115,7 @@ class TestParameterRoute:
         )
 
         response = await parameter_route_client.client.post(
-            "/parameters/get",
+            "/parameter/get",
             json={"parameter_id": created["parameter_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -146,7 +146,7 @@ class TestParameterRoute:
         )
 
         response = await parameter_route_client.client.post(
-            "/parameters/search",
+            "/parameter/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(parameter_route_actor.department_id)],
@@ -181,7 +181,7 @@ class TestParameterRoute:
         updated = await _create_parameter_route_resources(pool, redis_client)
 
         response = await parameter_route_client.client.post(
-            "/parameters/update",
+            "/parameter/update",
             json={
                 "parameters": [
                     {
@@ -215,7 +215,7 @@ class TestParameterRoute:
         )
 
         response = await parameter_route_client.client.post(
-            "/parameters/delete",
+            "/parameter/delete",
             json={"parameter_ids": [created["parameter_id"]]},
         )
 
@@ -239,7 +239,7 @@ class TestParameterRoute:
         )
 
         response = await parameter_route_client.client.post(
-            "/parameters/duplicate",
+            "/parameter/duplicate",
             json={"parameter_id": created["parameter_id"]},
         )
 
@@ -263,7 +263,7 @@ class TestParameterRoute:
         )
 
         response = await parameter_route_client.client.patch(
-            "/parameters/draft",
+            "/parameter/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -293,7 +293,7 @@ class TestParameterRoute:
         )
 
         draft_response = await parameter_route_client.client.patch(
-            "/parameters/draft",
+            "/parameter/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -304,7 +304,7 @@ class TestParameterRoute:
         draft_id = draft_response.json()["draft_id"]
 
         response = await parameter_route_client.client.post(
-            "/parameters/drafts",
+            "/parameter/drafts",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -325,7 +325,7 @@ class TestParameterRoute:
         )
 
         response = await parameter_route_client.client.post(
-            "/parameters/docs",
+            "/parameter/docs",
             json={},
         )
 
@@ -351,7 +351,7 @@ class TestParameterRoute:
         )
 
         response = await parameter_route_client.client.post(
-            "/parameters/export",
+            "/parameter/export",
             json={"parameter_id": created["parameter_id"]},
         )
 
@@ -372,7 +372,7 @@ class TestParameterRoute:
         )
 
         response = await parameter_route_client.client.post(
-            "/parameters/refresh",
+            "/parameter/refresh",
             json={},
         )
 
@@ -396,7 +396,7 @@ class TestParameterRoute:
         )
 
         response = await parameter_route_client.client.post(
-            "/parameters/create",
+            "/parameter/create",
             json={
                 "parameters": [
                     {

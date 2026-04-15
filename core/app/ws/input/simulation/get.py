@@ -9,6 +9,17 @@ from app.infra.simulation.get import get_simulation_impl
 from app.infra.simulation.types import GetSimulationApiRequest
 
 internal_sio = get_internal_sio()
+SECTIONS = (
+    "names",
+    "descriptions",
+    "flags",
+    "departments",
+    "scenarios",
+    "scenario_flags",
+    "scenario_positions",
+    "scenario_rubrics",
+    "scenario_time_limits",
+)
 
 
 @sio.on("simulation.get")  # type: ignore
@@ -46,9 +57,11 @@ async def simulation_get(sid: str, data: dict[str, Any]) -> None:
             redis,
             profile_id=identity.profile_id,
             session_id=identity.session_id,
-            simulation_id=payload.simulation_id,
+            id=payload.id or payload.simulation_id,
             draft_id=payload.draft_id,
+            filters={section: getattr(payload, section) for section in SECTIONS},
             scenario_search=payload.scenario_search,
+            scenario_show_selected=payload.scenario_show_selected,
             filter_scenario_ids=payload.filter_scenario_ids,
         ),
         arguments=payload.model_dump(mode="json"),

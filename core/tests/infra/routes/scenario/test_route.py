@@ -86,7 +86,7 @@ class TestScenarioRoute:
         )
 
         response = await scenario_route_client.client.post(
-            "/scenarios/create",
+            "/scenario/create",
             json={
                 "scenarios": [
                     {
@@ -122,7 +122,7 @@ class TestScenarioRoute:
         )
 
         response = await scenario_route_client.client.post(
-            "/scenarios/get",
+            "/scenario/get",
             json={"scenario_id": created["scenario_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -160,7 +160,7 @@ class TestScenarioRoute:
         )
 
         response = await scenario_route_client.client.post(
-            "/scenarios/search",
+            "/scenario/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(scenario_route_actor.department_id)],
@@ -208,11 +208,11 @@ class TestScenarioRoute:
         )
 
         first = await scenario_route_client.client.post(
-            "/scenarios/get",
+            "/scenario/get",
             json={"scenario_id": created["scenario_id"]},
         )
         second = await scenario_route_client.client.post(
-            "/scenarios/get",
+            "/scenario/get",
             json={"scenario_id": created["scenario_id"]},
         )
 
@@ -237,7 +237,7 @@ class TestScenarioRoute:
         updated = await _create_scenario_route_resources(pool, redis_client)
 
         response = await scenario_route_client.client.post(
-            "/scenarios/update",
+            "/scenario/update",
             json={
                 "scenarios": [
                     {
@@ -258,7 +258,7 @@ class TestScenarioRoute:
         assert payload["results"][0]["scenario_id"] == created["scenario_id"]
 
         get_response = await scenario_route_client.client.post(
-            "/scenarios/get",
+            "/scenario/get",
             json={"scenario_id": created["scenario_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -290,7 +290,7 @@ class TestScenarioRoute:
         )
 
         response = await scenario_route_client.client.post(
-            "/scenarios/duplicate",
+            "/scenario/duplicate",
             json={"scenario_id": created["scenario_id"]},
         )
 
@@ -316,7 +316,7 @@ class TestScenarioRoute:
         )
 
         response = await scenario_route_client.client.post(
-            "/scenarios/delete",
+            "/scenario/delete",
             json={"scenario_ids": [created["scenario_id"]]},
         )
 
@@ -327,7 +327,7 @@ class TestScenarioRoute:
         assert payload["results"][0]["scenario_id"] == created["scenario_id"]
 
         search_response = await scenario_route_client.client.post(
-            "/scenarios/search",
+            "/scenario/search",
             json={
                 "search": created["name"],
                 "filter_department_ids": [str(scenario_route_actor.department_id)],
@@ -359,7 +359,7 @@ class TestScenarioRoute:
         draft_name = f"Draft Scenario {unique_tag()}"
 
         response = await scenario_route_client.client.patch(
-            "/scenarios/draft",
+            "/scenario/draft",
             json={
                 "name": draft_name,
                 "department_ids": [str(scenario_route_actor.department_id)],
@@ -374,7 +374,7 @@ class TestScenarioRoute:
         assert payload["form_state"]["name_id"] is not None
 
         get_response = await scenario_route_client.client.post(
-            "/scenarios/get",
+            "/scenario/get",
             json={
                 "scenario_id": created["scenario_id"],
                 "draft_id": payload["draft_id"],
@@ -411,7 +411,7 @@ class TestScenarioRoute:
             session_id=scenario_route_actor.session_id,
         )
         drafts_response = await scenario_route_client.client.post(
-            "/scenarios/drafts",
+            "/scenario/drafts",
         )
 
         assert drafts_response.status_code == 200, drafts_response.text
@@ -434,7 +434,7 @@ class TestScenarioRoute:
         )
 
         response = await scenario_route_client.client.post(
-            "/scenarios/docs",
+            "/scenario/docs",
             json={"entity_id": created["scenario_id"]},
         )
 
@@ -463,7 +463,7 @@ class TestScenarioRoute:
         )
 
         response = await scenario_route_client.client.post(
-            "/scenarios/export",
+            "/scenario/export",
             json={"scenario_id": created["scenario_id"]},
         )
 
@@ -485,7 +485,7 @@ class TestScenarioRoute:
         )
 
         response = await scenario_route_client.client.post(
-            "/scenarios/refresh",
+            "/scenario/refresh",
         )
 
         assert response.status_code == 200, response.text
@@ -509,7 +509,7 @@ class TestScenarioRoute:
         )
 
         response = await scenario_route_client.client.post(
-            "/scenarios/create",
+            "/scenario/create",
             json={
                 "scenarios": [
                     {

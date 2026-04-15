@@ -67,7 +67,7 @@ class TestSettingRoute:
         )
 
         response = await setting_route_client.client.post(
-            "/settings/create",
+            "/setting/create",
             json={
                 "settings": [
                     {
@@ -100,7 +100,7 @@ class TestSettingRoute:
         )
 
         response = await setting_route_client.client.post(
-            "/settings/get",
+            "/setting/get",
             json={"settings_id": created["setting_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -136,7 +136,7 @@ class TestSettingRoute:
         )
 
         response = await setting_route_client.client.post(
-            "/settings/search",
+            "/setting/search",
             json={},
         )
 
@@ -165,7 +165,7 @@ class TestSettingRoute:
         updated = await _create_setting_route_resources(pool, redis_client)
 
         response = await setting_route_client.client.post(
-            "/settings/update",
+            "/setting/update",
             json={
                 "settings": [
                     {
@@ -184,7 +184,7 @@ class TestSettingRoute:
         assert payload["results"][0]["success"] is True
 
         get_response = await setting_route_client.client.post(
-            "/settings/get",
+            "/setting/get",
             json={"settings_id": created["setting_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -210,7 +210,7 @@ class TestSettingRoute:
         )
 
         response = await setting_route_client.client.post(
-            "/settings/delete",
+            "/setting/delete",
             json={"setting_ids": [created["setting_id"]]},
         )
 
@@ -234,7 +234,7 @@ class TestSettingRoute:
         )
 
         response = await setting_route_client.client.post(
-            "/settings/duplicate",
+            "/setting/duplicate",
             json={"setting_id": created["setting_id"]},
         )
 
@@ -258,7 +258,7 @@ class TestSettingRoute:
         )
 
         response = await setting_route_client.client.patch(
-            "/settings/draft",
+            "/setting/draft",
             json={
                 "name_id": str(resources.name_id),
                 "description_id": str(resources.description_id),
@@ -285,13 +285,13 @@ class TestSettingRoute:
             session_id=setting_route_actor.session_id,
         )
         draft_response = await setting_route_client.client.patch(
-            "/settings/draft",
+            "/setting/draft",
             json={"name_id": str(resources.name_id)},
         )
         assert draft_response.status_code == 200, draft_response.text
 
         response = await setting_route_client.client.post(
-            "/settings/drafts",
+            "/setting/drafts",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -312,7 +312,7 @@ class TestSettingRoute:
         )
 
         response = await setting_route_client.client.post(
-            "/settings/docs",
+            "/setting/docs",
             json={},
         )
 
@@ -338,7 +338,7 @@ class TestSettingRoute:
         )
 
         response = await setting_route_client.client.post(
-            "/settings/export",
+            "/setting/export",
             json={"setting_id": created["setting_id"]},
         )
 
@@ -359,7 +359,7 @@ class TestSettingRoute:
         )
 
         response = await setting_route_client.client.post(
-            "/settings/refresh",
+            "/setting/refresh",
             json={},
         )
 
@@ -388,7 +388,7 @@ class TestSettingRoute:
         )
 
         response = await setting_route_client.client.post(
-            "/settings/decrypt",
+            "/setting/decrypt",
             json={
                 "setting_id": created["setting_id"],
                 "key_id": str(uuid4()),
@@ -412,7 +412,7 @@ class TestSettingRoute:
         )
 
         response = await setting_route_client.client.post(
-            "/settings/create",
+            "/setting/create",
             json={
                 "settings": [
                     {
