@@ -799,6 +799,22 @@ INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("attempt", "stop"): (f"{_I}.attempt.stop", "attempt_stop_internal_impl"),
     ("attempt", "response"): (f"{_I}.attempt.response", "attempt_response_internal_impl"),
     ("attempt", "previous"): (f"{_I}.attempt.previous", "attempt_previous_internal_impl"),
+    # Attempt chat-level operations
+    ("attempt", "chat_get"): (f"{_I}.chat.get", "get_chat_impl"),
+    ("attempt", "chat_create"): (f"{_I}.attempt.chat_create", "create_attempt_chat_impl"),
+    ("attempt", "chat_send"): (f"{_I}.attempt.message", "attempt_message_internal_impl"),
+    ("attempt", "chat_stop"): (f"{_I}.attempt.stop", "attempt_stop_internal_impl"),
+    ("attempt", "chat_end"): (f"{_I}.attempt.end", "attempt_end_internal_impl"),
+    ("attempt", "chat_grade"): (f"{_I}.attempt.grade", "attempt_grade_internal_impl"),
+    ("attempt", "chat_voice"): (f"{_I}.attempt.audio_start", "audio_start_attempt_impl"),
+    ("attempt", "chat_mute"): (f"{_I}.attempt.audio_mute", "audio_mute_attempt_impl"),
+    ("attempt", "chat_silence"): (f"{_I}.attempt.audio_stop", "audio_stop_attempt_impl"),
+    ("attempt", "chat_response"): (f"{_I}.attempt.response", "attempt_response_internal_impl"),
+    ("attempt", "chat_feedback"): None,  # TODO: wire to feedback impl
+    ("attempt", "chat_strengths"): None,  # TODO: wire to strengths impl
+    ("attempt", "chat_improvements"): None,  # TODO: wire to improvements impl
+    ("attempt", "chat_analyses"): None,  # TODO: wire to analyses impl
+    ("attempt", "chat_hints"): None,  # TODO: wire to hints impl
     ("attempt", "audio_start"): (f"{_I}.attempt.audio_start", "audio_start_attempt_impl"),
     ("attempt", "audio_frame"): (f"{_I}.attempt.audio_frame", "audio_frame_attempt_impl"),
     ("attempt", "audio_stop"): (f"{_I}.attempt.audio_stop", "audio_stop_attempt_impl"),

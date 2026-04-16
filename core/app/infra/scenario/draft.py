@@ -174,6 +174,7 @@ async def patch_scenario_draft_impl(
                         session_id=session_id,
                         id=idempotency_key,
                         soft=False,
+                        profile_ids=[profile.profiles_id],
                     )
             await refresh_scenario_impl(
                 pool,
@@ -296,6 +297,7 @@ async def patch_scenario_draft_impl(
                 question_ids=request.question_ids,
                 option_ids=request.option_ids,
                 pending_ids=set(request.pending_ids) if request.pending_ids else None,
+                profile_ids=[profile.profiles_id],
             )
 
     # ── Step 5: Build form state (server is source of truth) ──────────

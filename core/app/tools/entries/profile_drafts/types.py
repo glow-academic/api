@@ -22,5 +22,4 @@ class GetProfileDraftResponse(BaseModel):
     email_ids: list[UUID] = Field(..., description="Associated email UUIDs")
     flag_ids: list[UUID] = Field(..., description="Associated flag UUIDs")
     name_ids: list[UUID] = Field(..., description="Associated name UUIDs")
-    request_limit_ids: list[UUID] = Field(..., description="Associated request limit UUIDs")
     role_ids: list[UUID] = Field(..., description="Associated role UUIDs")

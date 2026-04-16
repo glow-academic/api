@@ -11,7 +11,6 @@ from app.infra.junctions import (
 )
 from app.tools.artifacts.profile.types import CreateProfileResponse
 from app.tools.resources.emails.get import get_emails
-from app.tools.resources.request_limits.get import get_request_limits
 
 OWNER_COL = "profile_id"
 
@@ -60,47 +59,11 @@ async def _insert_profile_emails(
     )
 
 
-async def _lookup_request_limit_value(
-    conn: asyncpg.Connection,
-    request_limit_id: UUID,
-    redis: Redis,
-) -> int:
-    items = await get_request_limits(conn, [request_limit_id], redis, bypass_cache=True)
-    if not items:
-        raise ValueError(f"Unknown request_limit_id: {request_limit_id}")
-    return items[0].limit
-
-
-async def _insert_profile_request_limit(
-    conn: asyncpg.Connection,
-    *,
-    profile_id: UUID,
-    request_limit_id: UUID,
-    redis: Redis,
-    generated: bool,
-    mcp: bool,
-) -> None:
-    requests_per_day = await _lookup_request_limit_value(conn, request_limit_id, redis)
-    await conn.execute(
-        """
-        INSERT INTO profile_request_limits_junction
-            (profile_id, request_limits_id, requests_per_day, generated, mcp)
-        VALUES ($1, $2, $3, $4, $5)
-        """,
-        profile_id,
-        request_limit_id,
-        requests_per_day,
-        generated,
-        mcp,
-    )
-
-
 async def create_profile(
     conn: asyncpg.Connection,
     *,
     id: UUID | None = None,
     name_id: UUID | None = None,
-    request_limit_id: UUID | None = None,
     department_ids: list[UUID] | None = None,
     flag_ids: list[UUID] | None = None,
     email_ids: list[UUID] | None = None,
@@ -139,18 +102,6 @@ async def create_profile(
                 generated=generated,
                 mcp=mcp,
             )
-    if request_limit_id is not None:
-        if redis is None:
-            raise ValueError("redis is required when request_limit_id is provided")
-        await _insert_profile_request_limit(
-            conn,
-            profile_id=profile_id,
-            request_limit_id=request_limit_id,
-            redis=redis,
-            generated=generated,
-            mcp=mcp,
-        )
-
     # Multi-select junctions (simple)
     multi_vals = [
         department_ids,

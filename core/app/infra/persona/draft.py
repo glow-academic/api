@@ -269,6 +269,7 @@ async def patch_persona_draft_impl(
                 async with conn.transaction():
                     result = await create_persona_draft(
                         conn, session_id=session_id, id=idempotency_key, soft=False,
+                        profile_ids=[profile.profiles_id],
                     )
             await refresh_persona_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
@@ -363,6 +364,7 @@ async def patch_persona_draft_impl(
                 example_ids=request.example_ids,
                 voice_ids=request.voice_ids,
                 pending_ids=set(request.pending_ids) if request.pending_ids else None,
+                profile_ids=[profile.profiles_id],
             )
 
     # ── Step 5: Build form state (server is source of truth) ──────────

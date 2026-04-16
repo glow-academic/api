@@ -16,12 +16,6 @@ JUNCTIONS: list[tuple[str, str, str, str]] = [
     ("flags", "profile_flags_junction", "flags_id", "flag_ids"),
     ("emails", "profile_emails_junction", "emails_id", "email_ids"),
     ("profiles", "profile_profiles_junction", "profiles_id", "profile_ids"),
-    (
-        "request_limits",
-        "profile_request_limits_junction",
-        "request_limits_id",
-        "request_limit_ids",
-    ),
     ("roles", "profile_roles_junction", "roles_id", "role_ids"),
 ]
 
@@ -36,7 +30,6 @@ async def get_profiles(
     flags: bool = False,
     emails: bool = False,
     profiles: bool = False,
-    request_limits: bool = False,
     roles: bool = False,
 ) -> list[GetProfilesResponse]:
     """Get profile artifacts by IDs with optional junction ID fetching."""
@@ -49,7 +42,6 @@ async def get_profiles(
         "flags": flags,
         "emails": emails,
         "profiles": profiles,
-        "request_limits": request_limits,
         "roles": roles,
     }
 

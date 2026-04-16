@@ -19,7 +19,6 @@ class GetProfilesResponse(BaseModel):
     flag_ids: list[UUID] | None = Field(None, description="Associated flag junction IDs")
     email_ids: list[UUID] | None = Field(None, description="Associated email junction IDs")
     profile_ids: list[UUID] | None = Field(None, description="Associated profile junction IDs")
-    request_limit_ids: list[UUID] | None = Field(None, description="Associated request limit junction IDs")
     role_ids: list[UUID] | None = Field(None, description="Associated role junction IDs")
 
 

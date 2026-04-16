@@ -134,6 +134,7 @@ async def patch_invocation_draft_impl(
                 pricing_ids=request.pricing_ids,
                 reasoning_level_ids=request.reasoning_level_ids,
                 voice_ids=request.voice_ids,
+                profile_ids=[profile.profiles_id],
             )
 
     # ── Step 4: Build form state (server is source of truth) ──────────

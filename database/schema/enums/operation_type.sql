@@ -55,7 +55,24 @@ CREATE TYPE public.operation_type AS ENUM (
     'name',
     'feedback',
     'generations',
-    'group'
+    'group',
+    'chat_get',
+    'chat_create',
+    'chat_send',
+    'chat_stop',
+    'chat_end',
+    'chat_grade',
+    'chat_voice',
+    'chat_mute',
+    'chat_silence',
+    'chat_response',
+    'chat_feedback',
+    'chat_strengths',
+    'chat_improvements',
+    'chat_analyses',
+    'chat_hints',
+    'join',
+    'leave'
 );
 
 

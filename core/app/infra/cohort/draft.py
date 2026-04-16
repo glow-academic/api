@@ -349,6 +349,7 @@ async def patch_cohort_draft_impl(
                         session_id=session_id,
                         id=idempotency_key,
                         soft=False,
+                        profile_ids=[profile.profiles_id],
                     )
             await refresh_cohort_impl(
                 pool,
@@ -457,7 +458,7 @@ async def patch_cohort_draft_impl(
                 flag_ids=[resolved_flag_id] if resolved_flag_id else None,
                 name_ids=[request.name_id] if request.name_id else None,
                 profile_persona_ids=request.profile_persona_ids,
-                profile_ids=request.profile_ids,
+                profile_ids=list(dict.fromkeys((request.profile_ids or []) + [profile.profiles_id])),
                 simulation_availability_ids=request.simulation_availability_ids,
                 simulation_position_ids=request.simulation_position_ids,
                 simulation_ids=request.simulation_ids,

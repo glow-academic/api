@@ -253,7 +253,7 @@ async def search_field_impl(
 
     parameter_filter = ListFilterSection(
         options=[
-            ListFilterOption(id=str(p.id), name=p.name, count=0)
+            ListFilterOption(id=str(p.parameter_id), name=p.name, count=0)
             for p in parameter_facet
         ],
         selected_ids=[str(pid) for pid in parameter_ids] if parameter_ids else None,

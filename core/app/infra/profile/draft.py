@@ -29,7 +29,6 @@ from app.tools.entries.profile_drafts.create import create_profile_draft
 from app.tools.entries.profile_drafts.refresh import refresh_profile_drafts
 from app.tools.resources.emails.create import create_email
 from app.tools.resources.names.create import create_name
-from app.tools.resources.request_limits.create import create_request_limit
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 # ---------------------------------------------------------------------------
@@ -58,12 +57,6 @@ async def _resolve_creatable_values(
         if request.email_ids is None:
             request.email_ids = []
         request.email_ids.append(result.id)
-
-    if request.request_limit is not None:
-        result = await create_request_limit(conn, request.request_limit, redis)
-        if request.request_limit_ids is None:
-            request.request_limit_ids = []
-        request.request_limit_ids.append(result.id)
 
     return errors
 
@@ -138,7 +131,6 @@ async def patch_profile_draft_impl(
                 department_ids=request.department_ids,
                 email_ids=request.email_ids,
                 role_ids=[request.role_id] if request.role_id else None,
-                request_limit_ids=request.request_limit_ids,
             )
 
     # ── Step 5: Build form state (server is source of truth) ──────────
@@ -149,7 +141,6 @@ async def patch_profile_draft_impl(
         department_ids=request.department_ids or [],
         email_ids=request.email_ids or [],
         role_id=request.role_id,
-        request_limit_ids=request.request_limit_ids or [],
     )
 
     # ── Step 6: Refresh MV ─────────────────────────────────────────────

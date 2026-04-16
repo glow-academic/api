@@ -349,7 +349,6 @@ async def page_context_agent_impl(
             names,
             descriptions,
             models,
-            prompts,
             instructions,
             flags,
             departments,

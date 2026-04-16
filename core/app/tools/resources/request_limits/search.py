@@ -14,7 +14,7 @@ from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
 from app.utils.cache.set_cached import set_cached
 
-JUNCTION_ARTIFACTS = ["profile"]
+JUNCTION_ARTIFACTS: list[str] = []
 
 
 async def search_request_limits(
@@ -25,16 +25,12 @@ async def search_request_limits(
     offset_count: int = 0,
     exclude_ids: list[UUID] | None = None,
     bypass_cache: bool = False,
-    *,
-    profile: bool = False,
 ) -> list[GetRequestLimitResponse]:
-    """Search request limits with optional artifact filters."""
+    """Search request limits."""
     if limit_count <= 0:
         return []
 
-    artifact_filters = {
-        "profile": profile,
-    }
+    artifact_filters: dict[str, bool] = {}
 
     extra_conditions: list[tuple[str, object]] = [
         ("{alias}.active = ${idx}::boolean", True),
@@ -71,7 +67,7 @@ async def search_request_limits(
         exclude_ids=exclude_ids,
         artifact_filters=artifact_filters,
         junction_artifacts=JUNCTION_ARTIFACTS,
-        order_column="requests_per_day",
+        order_column="limit",
         extra_conditions=extra_conditions,
     )
 

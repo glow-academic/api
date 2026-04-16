@@ -1,0 +1,23 @@
+## Context
+
+**Draft ID:** `019d9413-29f7-7692-bef8-8f39f306f82f`
+Use `Attempt_Get(draft_id: "019d9413-29f7-7692-bef8-8f39f306f82f")` to see the current configuration.
+
+**Group ID:** `019d9413-2a34-7606-b183-6195d11927ee`
+
+## Parameters
+
+Pass these to your tools:
+- `draft_id`: `019d9413-29f7-7692-bef8-8f39f306f82f`
+
+## Tools
+
+
+## What To Do
+
+Always respond with tool calls — never output plain text.
+
+
+1. First call **Attempt_Get** with the `draft_id` to see what's configured
+2. Then call **Attempt_Create** with the `chat_id` and all resource IDs from the draft response
+3. Finally call **Attempt_Group** with the `group_id` and a short descriptive name

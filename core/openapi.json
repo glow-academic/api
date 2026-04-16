@@ -2822,7 +2822,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetDocumentApiResponse-Output"
+                  "$ref": "#/components/schemas/GetDocumentApiResponse"
                 }
               }
             }
@@ -34426,7 +34426,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetDocumentApiResponse-Input"
+                "$ref": "#/components/schemas/GetDocumentApiResponse"
               }
             }
           },
@@ -61859,7 +61859,7 @@
       },
       "DocumentDepartmentResource": {
         "properties": {
-          "id": {
+          "department_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -61869,8 +61869,8 @@
                 "type": "null"
               }
             ],
-            "title": "Id",
-            "description": "Unique identifier"
+            "title": "Department Id",
+            "description": "Department UUID"
           },
           "name": {
             "anyOf": [
@@ -61907,47 +61907,29 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "DocumentDepartmentResource",
         "description": "Department resource for document."
-      },
-      "DocumentDepartmentSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/DocumentDepartmentResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected departments"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/DocumentDepartmentResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available departments"
-          }
-        },
-        "type": "object",
-        "title": "DocumentDepartmentSection"
       },
       "DocumentDescriptionResource": {
         "properties": {
@@ -61987,148 +61969,29 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "DocumentDescriptionResource",
         "description": "Description resource for document."
-      },
-      "DocumentDescriptionSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DocumentDescriptionResource"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Currently selected description resource"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/DocumentDescriptionResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available description resources"
-          }
-        },
-        "type": "object",
-        "title": "DocumentDescriptionSection"
-      },
-      "DocumentDraftFormState": {
-        "properties": {
-          "name_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name Id",
-            "description": "Selected name resource UUID"
-          },
-          "description_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description Id",
-            "description": "Selected description resource UUID"
-          },
-          "flag_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Flag Ids",
-            "description": "Selected flag option UUIDs"
-          },
-          "department_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Department Ids",
-            "description": "Selected department UUIDs"
-          },
-          "file_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "File Ids",
-            "description": "Selected file resource UUIDs"
-          },
-          "image_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Image Ids",
-            "description": "Selected image UUIDs"
-          },
-          "text_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Text Ids",
-            "description": "Selected text resource UUIDs"
-          },
-          "parameter_field_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Parameter Field Ids",
-            "description": "Selected parameter field UUIDs"
-          },
-          "parameter_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Parameter Ids",
-            "description": "Selected parameter UUIDs"
-          }
-        },
-        "type": "object",
-        "required": [
-          "flag_ids",
-          "department_ids",
-          "file_ids",
-          "image_ids",
-          "text_ids",
-          "parameter_field_ids",
-          "parameter_ids"
-        ],
-        "title": "DocumentDraftFormState",
-        "description": "Server-authoritative form state returned after draft save."
       },
       "DocumentEntry": {
         "properties": {
@@ -62220,42 +62083,6 @@
         "title": "DocumentFieldError",
         "description": "Per-field error from value resolution."
       },
-      "DocumentFieldSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/DocumentParameterFieldResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected parameter fields"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/DocumentParameterFieldResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available parameter fields"
-          }
-        },
-        "type": "object",
-        "title": "DocumentFieldSection"
-      },
       "DocumentFileResource": {
         "properties": {
           "id": {
@@ -62271,6 +62098,68 @@
             "title": "Id",
             "description": "Unique identifier"
           },
+          "files_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Files Id",
+            "description": "File resource UUID"
+          },
+          "upload_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upload Id",
+            "description": "Upload UUID"
+          },
+          "file_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Path",
+            "description": "Stored file path"
+          },
+          "mime_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mime Type",
+            "description": "File MIME type"
+          },
+          "size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size",
+            "description": "File size in bytes"
+          },
           "generated": {
             "anyOf": [
               {
@@ -62282,6 +62171,24 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
@@ -62348,6 +62255,24 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
@@ -62357,42 +62282,6 @@
         ],
         "title": "DocumentFlagConfig",
         "description": "Enriched flag config for direct client consumption."
-      },
-      "DocumentFlagSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/DocumentFlagConfig"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected flag configs"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/DocumentFlagConfig"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available flag configs"
-          }
-        },
-        "type": "object",
-        "title": "DocumentFlagSection"
       },
       "DocumentImageResource": {
         "properties": {
@@ -62409,6 +62298,92 @@
             "title": "Id",
             "description": "Unique identifier"
           },
+          "image_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Id",
+            "description": "Image resource UUID"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Image name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Image description"
+          },
+          "upload_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upload Id",
+            "description": "Upload UUID"
+          },
+          "file_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Path",
+            "description": "Stored file path"
+          },
+          "mime_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mime Type",
+            "description": "File MIME type"
+          },
+          "size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size",
+            "description": "File size in bytes"
+          },
           "generated": {
             "anyOf": [
               {
@@ -62420,47 +62395,29 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "DocumentImageResource",
         "description": "Image resource for document."
-      },
-      "DocumentImageSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/DocumentImageResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected images"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/DocumentImageResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available images"
-          }
-        },
-        "type": "object",
-        "title": "DocumentImageSection"
       },
       "DocumentNameResource": {
         "properties": {
@@ -62500,43 +62457,29 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "DocumentNameResource",
         "description": "Name resource for document."
-      },
-      "DocumentNameSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DocumentNameResource"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Currently selected name resource"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/DocumentNameResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available name resources"
-          }
-        },
-        "type": "object",
-        "title": "DocumentNameSection"
       },
       "DocumentParameterFieldResource": {
         "properties": {
@@ -62603,6 +62546,18 @@
             "title": "Description",
             "description": "Field description"
           },
+          "conditional_parameter_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conditional Parameter Id",
+            "description": "Conditional parameter UUID for grouping"
+          },
           "generated": {
             "anyOf": [
               {
@@ -62614,34 +62569,87 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "DocumentParameterFieldResource",
         "description": "Parameter field resource for document."
       },
-      "DocumentParameterSection": {
+      "DocumentParameterResource": {
         "properties": {
-          "current": {
+          "parameter_id": {
             "anyOf": [
               {
-                "items": {
-                  "$ref": "#/components/schemas/GetParameterResponse"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently selected parameters"
+            "title": "Parameter Id",
+            "description": "Parameter UUID"
           },
-          "resources": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Parameter name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Parameter description"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Parameter value"
+          },
+          "department_ids": {
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/GetParameterResponse"
+                  "type": "string",
+                  "format": "uuid"
                 },
                 "type": "array"
               },
@@ -62649,12 +62657,107 @@
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available parameters"
+            "title": "Department Ids",
+            "description": "Department UUIDs"
+          },
+          "persona_parameter": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Persona Parameter",
+            "description": "Whether this is a persona parameter"
+          },
+          "document_parameter": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Parameter",
+            "description": "Whether this is a document parameter"
+          },
+          "scenario_parameter": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Parameter",
+            "description": "Whether this is a scenario parameter"
+          },
+          "video_parameter": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Parameter",
+            "description": "Whether this is a video parameter"
+          },
+          "field_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Ids",
+            "description": "Associated field UUIDs"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "DocumentParameterSection"
+        "title": "DocumentParameterResource",
+        "description": "Parameter catalog item exposed to the client."
       },
       "DocumentResultItem": {
         "properties": {
@@ -62720,6 +62823,68 @@
             "title": "Id",
             "description": "Unique identifier"
           },
+          "texts_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Texts Id",
+            "description": "Text resource UUID"
+          },
+          "upload_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upload Id",
+            "description": "Upload UUID"
+          },
+          "file_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Path",
+            "description": "Stored file path"
+          },
+          "mime_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mime Type",
+            "description": "File MIME type"
+          },
+          "content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content",
+            "description": "Optional text content when available"
+          },
           "generated": {
             "anyOf": [
               {
@@ -62731,83 +62896,29 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "DocumentTextResource",
         "description": "Text resource for document."
-      },
-      "DocumentTextSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/DocumentTextResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected text resources"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/DocumentTextResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available text resources"
-          }
-        },
-        "type": "object",
-        "title": "DocumentTextSection"
-      },
-      "DocumentUploadSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/DocumentFileResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected file uploads"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/DocumentFileResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available file uploads"
-          }
-        },
-        "type": "object",
-        "title": "DocumentUploadSection"
       },
       "DraftFileValue": {
         "properties": {
@@ -76766,6 +76877,19 @@
       },
       "GetDocumentApiRequest": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Document UUID to retrieve"
+          },
           "document_id": {
             "anyOf": [
               {
@@ -76777,7 +76901,7 @@
               }
             ],
             "title": "Document Id",
-            "description": "Document UUID to retrieve"
+            "description": "Legacy alias for the document UUID"
           },
           "draft_id": {
             "anyOf": [
@@ -76791,13 +76915,146 @@
             ],
             "title": "Draft Id",
             "description": "Draft UUID to load from"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__document__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for names section"
+          },
+          "descriptions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__document__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for descriptions section"
+          },
+          "flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__document__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags section"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__document__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for departments section"
+          },
+          "parameter_fields": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__document__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for parameter fields section"
+          },
+          "parameters": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__document__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for parameters section"
+          },
+          "files": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__document__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for files section"
+          },
+          "images": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__document__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for images section"
+          },
+          "texts": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__document__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for texts section"
+          },
+          "fields": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__document__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Legacy alias for parameter_fields"
+          },
+          "uploads": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__document__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Legacy alias for files"
           }
         },
         "type": "object",
         "title": "GetDocumentApiRequest",
         "description": "Request model for get document endpoint."
       },
-      "GetDocumentApiResponse-Input": {
+      "GetDocumentApiResponse": {
         "properties": {
           "actor_name": {
             "anyOf": [
@@ -76860,7 +77117,7 @@
             "title": "Group Id",
             "description": "Associated group UUID"
           },
-          "basic_show_ai_generate": {
+          "show_ai_generate": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -76869,187 +77126,8 @@
                 "type": "null"
               }
             ],
-            "title": "Basic Show Ai Generate",
-            "description": "Whether to show AI generate for basic step"
-          },
-          "content_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Content Show Ai Generate",
-            "description": "Whether to show AI generate for content step"
-          },
-          "names": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DocumentNameSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Name section with resource and options"
-          },
-          "descriptions": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DocumentDescriptionSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Description section with resource and options"
-          },
-          "flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DocumentFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Flag section with selections and options"
-          },
-          "departments": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DocumentDepartmentSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Department section with selections and options"
-          },
-          "fields": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DocumentFieldSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Parameter field section"
-          },
-          "parameters": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DocumentParameterSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Parameter section with selections and options"
-          },
-          "uploads": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DocumentUploadSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Upload section with selections and options"
-          },
-          "images": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DocumentImageSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Image section with selections and options"
-          },
-          "texts": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DocumentTextSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Text section with selections and options"
-          }
-        },
-        "type": "object",
-        "title": "GetDocumentApiResponse",
-        "description": "Section-first response for document editor."
-      },
-      "GetDocumentApiResponse-Output": {
-        "properties": {
-          "actor_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Actor Name",
-            "description": "Display name of the current user"
-          },
-          "document_exists": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Document Exists",
-            "description": "Whether the document exists"
-          },
-          "can_edit": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Can Edit",
-            "description": "Whether the current user can edit"
-          },
-          "disabled_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Disabled Reason",
-            "description": "Reason editing is disabled"
-          },
-          "group_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Group Id",
-            "description": "Associated group UUID"
+            "title": "Show Ai Generate",
+            "description": "Whether AI generation is available"
           },
           "basic_show_ai_generate": {
             "anyOf": [
@@ -77075,109 +77153,161 @@
             "title": "Content Show Ai Generate",
             "description": "Whether to show AI generate for content step"
           },
-          "names": {
+          "pending_ids": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/DocumentNameSection"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Name section with resource and options"
+            "title": "Pending Ids",
+            "description": "Pending resource IDs from the draft, when available"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DocumentNameResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Names",
+            "description": "Name resources"
           },
           "descriptions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/DocumentDescriptionSection"
+                "items": {
+                  "$ref": "#/components/schemas/DocumentDescriptionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Description section with resource and options"
+            "title": "Descriptions",
+            "description": "Description resources"
           },
           "flags": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/DocumentFlagSection"
+                "items": {
+                  "$ref": "#/components/schemas/DocumentFlagConfig"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Flag section with selections and options"
+            "title": "Flags",
+            "description": "Flag configs"
           },
           "departments": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/DocumentDepartmentSection"
+                "items": {
+                  "$ref": "#/components/schemas/DocumentDepartmentResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Department section with selections and options"
+            "title": "Departments",
+            "description": "Department resources"
           },
-          "fields": {
+          "parameter_fields": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/DocumentFieldSection"
+                "items": {
+                  "$ref": "#/components/schemas/DocumentParameterFieldResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Parameter field section"
+            "title": "Parameter Fields",
+            "description": "Parameter field resources"
           },
           "parameters": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/DocumentParameterSection"
+                "items": {
+                  "$ref": "#/components/schemas/DocumentParameterResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Parameter section with selections and options"
+            "title": "Parameters",
+            "description": "Parameter catalog resources"
           },
-          "uploads": {
+          "files": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/DocumentUploadSection"
+                "items": {
+                  "$ref": "#/components/schemas/DocumentFileResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Upload section with selections and options"
+            "title": "Files",
+            "description": "File resources"
           },
           "images": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/DocumentImageSection"
+                "items": {
+                  "$ref": "#/components/schemas/DocumentImageResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Image section with selections and options"
+            "title": "Images",
+            "description": "Image resources"
           },
           "texts": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/DocumentTextSection"
+                "items": {
+                  "$ref": "#/components/schemas/DocumentTextResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Text section with selections and options"
+            "title": "Texts",
+            "description": "Text resources"
           }
         },
         "type": "object",
         "title": "GetDocumentApiResponse",
-        "description": "Section-first response for document editor."
+        "description": "Canonical flat composed response for the document editor."
       },
       "GetDocumentDraftResponse": {
         "properties": {
@@ -81980,15 +82110,6 @@
             "title": "Name Ids",
             "description": "Associated name UUIDs"
           },
-          "request_limit_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Request Limit Ids",
-            "description": "Associated request limit UUIDs"
-          },
           "role_ids": {
             "items": {
               "type": "string",
@@ -82012,7 +82133,6 @@
           "email_ids",
           "flag_ids",
           "name_ids",
-          "request_limit_ids",
           "role_ids"
         ],
         "title": "GetProfileDraftResponse"
@@ -102959,6 +103079,19 @@
       },
       "PatchDocumentDraftApiRequest": {
         "properties": {
+          "draft_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Id",
+            "description": "Existing draft UUID to patch"
+          },
           "input_draft_id": {
             "anyOf": [
               {
@@ -102970,7 +103103,7 @@
               }
             ],
             "title": "Input Draft Id",
-            "description": "Existing draft UUID to patch"
+            "description": "Legacy alias for existing draft UUID to patch"
           },
           "name": {
             "anyOf": [
@@ -103084,6 +103217,21 @@
             "title": "Text Ids",
             "description": "Existing text resource UUIDs"
           },
+          "images": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/app__infra__document__types__DraftImageValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Images",
+            "description": "Image values to create resources"
+          },
           "flag_ids": {
             "anyOf": [
               {
@@ -103163,11 +103311,46 @@
             ],
             "title": "Parameter Ids",
             "description": "Parameter UUIDs"
+          },
+          "pending_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Ids",
+            "description": "Resource IDs to keep as pending where supported by the tool layer"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack or retry"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
         "title": "PatchDocumentDraftApiRequest",
-        "description": "Request model for new-style document draft endpoint.\n\nDual-mode for creatable resources only:\n  - name/name_id, description/description_id\n  - files (upload_id) / file_ids\n  - texts (content) / text_ids\nID-only for non-creatable resources:\n  - flag_ids, department_ids, image_ids, parameter_field_ids, parameter_ids\n\nClient always sends full state (append-only \u2014 each write is a new snapshot)."
+        "description": "Request model for the canonical document draft endpoint."
       },
       "PatchDocumentDraftApiResponse": {
         "properties": {
@@ -103182,6 +103365,12 @@
             "title": "Draft Id",
             "description": "Draft UUID"
           },
+          "idempotency_key": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Idempotency Key",
+            "description": "Idempotency key for this draft operation"
+          },
           "message": {
             "type": "string",
             "title": "Message",
@@ -103190,7 +103379,7 @@
           "form_state": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/DocumentDraftFormState"
+                "$ref": "#/components/schemas/app__infra__document__types__DraftFormState"
               },
               {
                 "type": "null"
@@ -103203,6 +103392,7 @@
         "required": [
           "success",
           "draft_id",
+          "idempotency_key",
           "message"
         ],
         "title": "PatchDocumentDraftApiResponse",
@@ -130530,6 +130720,251 @@
             ],
             "title": "Parameter Ids",
             "description": "Reserved for parity with persona pattern"
+          }
+        },
+        "type": "object",
+        "title": "SectionFilter",
+        "description": "Per-section filter options for GET requests."
+      },
+      "app__infra__document__types__DraftFormState": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Echoed unresolved name value"
+          },
+          "name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Id",
+            "description": "Selected name resource UUID"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Echoed unresolved description value"
+          },
+          "description_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description Id",
+            "description": "Selected description resource UUID"
+          },
+          "flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
+          },
+          "department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Department Ids",
+            "description": "Selected department UUIDs"
+          },
+          "file_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "File Ids",
+            "description": "Selected file resource UUIDs"
+          },
+          "image_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Image Ids",
+            "description": "Selected image UUIDs"
+          },
+          "text_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Text Ids",
+            "description": "Selected text resource UUIDs"
+          },
+          "parameter_field_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Parameter Field Ids",
+            "description": "Selected parameter field UUIDs"
+          },
+          "parameter_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Parameter Ids",
+            "description": "Selected parameter UUIDs"
+          },
+          "pending_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Ids",
+            "description": "Pending resource UUIDs where supported"
+          }
+        },
+        "type": "object",
+        "title": "DraftFormState",
+        "description": "Server-authoritative form state returned after draft save."
+      },
+      "app__infra__document__types__DraftImageValue": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Image name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Image description text"
+          },
+          "upload_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upload Id",
+            "description": "Associated upload UUID"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "description"
+        ],
+        "title": "DraftImageValue",
+        "description": "Value for creating an image via the draft endpoint."
+      },
+      "app__infra__document__types__SectionFilter": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Filter options by search text"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Max options to return"
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected",
+            "description": "Only return selected items"
+          },
+          "suggested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested",
+            "description": "Only return suggested items"
+          },
+          "include": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include",
+            "description": "Include this section in response (default true)"
+          },
+          "parameter_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Ids",
+            "description": "Parameter group IDs for parameter field hydration"
           }
         },
         "type": "object",

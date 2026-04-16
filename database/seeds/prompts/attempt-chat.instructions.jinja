@@ -3,7 +3,7 @@
 {% if params %}
 {% if params.draft_id %}
 **Draft ID:** `{{ params.draft_id }}`
-Use `Attempt_Get(draft_id: "{{ params.draft_id }}")` to see the current configuration.
+Use `Attempt_Chat_Get(draft_id: "{{ params.draft_id }}")` to see the current chat configuration.
 {% endif %}
 {% if params.chat_id %}
 **Chat ID:** `{{ params.chat_id }}`
@@ -39,6 +39,6 @@ Always respond with tool calls — never output plain text.
 
 {% set tool_names = tools | map(attribute='name') | list %}
 
-1. First call **Attempt_Get** with the `draft_id` to see what's configured
-2. Then call **Attempt_Create** with the `chat_id` and all resource IDs from the draft response
+1. First call **Attempt_Chat_Get** with the `draft_id` to see the chat configuration (scenarios, personas, objectives, etc.)
+2. Then call **Attempt_Chat_Create** with the `chat_id` and all resource IDs from the response
 3. Finally call **Attempt_Group** with the `group_id` and a short descriptive name

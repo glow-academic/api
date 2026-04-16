@@ -39,7 +39,6 @@ from app.tools.resources.names.get import get_names
 from app.tools.resources.profiles.get import (
     get_profiles as get_profiles_resource,
 )
-from app.tools.resources.request_limits.get import get_request_limits
 from app.tools.resources.roles.get import get_roles
 from app.tools.resources.roles.search import search_roles
 
@@ -140,7 +139,6 @@ async def search_profile_impl(
             departments=True,
             emails=True,
             profiles=True,
-            request_limits=True,
             roles=True,
         )
 
@@ -150,7 +148,6 @@ async def search_profile_impl(
     all_email_ids: list[UUID] = []
     all_department_ids: list[UUID] = []
     all_role_ids: list[UUID] = []
-    all_request_limit_ids: list[UUID] = []
     all_profile_resource_ids: list[UUID] = []
 
     for a in artifacts:
@@ -158,7 +155,6 @@ async def search_profile_impl(
         all_email_ids.extend(a.email_ids or [])
         all_department_ids.extend(a.department_ids or [])
         all_role_ids.extend(a.role_ids or [])
-        all_request_limit_ids.extend(a.request_limit_ids or [])
         all_profile_resource_ids.extend(a.profile_ids or [])
 
     async def _fetch_names() -> list:
@@ -176,10 +172,6 @@ async def search_profile_impl(
     async def _fetch_roles() -> list:
         async with pool.acquire() as conn:
             return await get_roles(conn, all_role_ids, redis)
-
-    async def _fetch_request_limits() -> list:
-        async with pool.acquire() as conn:
-            return await get_request_limits(conn, all_request_limit_ids, redis)
 
     async def _fetch_profiles_resource() -> list:
         async with pool.acquire() as conn:
@@ -202,7 +194,6 @@ async def search_profile_impl(
         emails_data,
         departments_data,
         roles_data,
-        request_limits_data,
         profiles_resource_data,
         department_facet,
         role_facet,
@@ -211,7 +202,6 @@ async def search_profile_impl(
         _fetch_emails() if all_email_ids else _empty_list(),
         _fetch_departments() if all_department_ids else _empty_list(),
         _fetch_roles() if all_role_ids else _empty_list(),
-        _fetch_request_limits() if all_request_limit_ids else _empty_list(),
         _fetch_profiles_resource() if all_profile_resource_ids else _empty_list(),
         _fetch_department_facet(),
         _fetch_role_facet(),

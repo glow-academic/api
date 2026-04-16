@@ -880,6 +880,8 @@ async def get_attempt_impl(
     attempt_id: UUID,
     bypass_cache: bool = False,
     cache_key_path: str,
+    session_id: UUID | None = None,
+    **_kwargs,
 ) -> tuple[GetAttemptDetailResponse, bool]:
     """Resolve the canonical attempt detail response with shared caching."""
     tags = ["attempt"]

@@ -52,8 +52,20 @@ async def get_document(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
+                id=request.id,
                 document_id=request.document_id,
                 draft_id=request.draft_id,
+                filters={
+                    "names": request.names,
+                    "descriptions": request.descriptions,
+                    "flags": request.flags,
+                    "departments": request.departments,
+                    "parameter_fields": request.parameter_fields or request.fields,
+                    "parameters": request.parameters,
+                    "files": request.files or request.uploads,
+                    "images": request.images,
+                    "texts": request.texts,
+                },
                 bypass_cache=bypass_cache,
             )
 

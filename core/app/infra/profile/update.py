@@ -188,9 +188,6 @@ async def update_profile_impl(
                     conn,
                     item.profile_id,
                     name_id=item.name_id if item.name_id else _UNSET,
-                    request_limit_id=item.request_limit_id
-                    if item.request_limit_id
-                    else _UNSET,
                     department_ids=item.department_ids,
                     flag_ids=[item.active_flag_id] if item.active_flag_id else None,
                     email_ids=item.email_ids,

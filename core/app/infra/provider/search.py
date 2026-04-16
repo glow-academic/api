@@ -198,8 +198,8 @@ async def search_provider_impl(
         all_description_ids.extend(a.description_ids or [])
         if a.value_id:
             all_value_ids.append(a.value_id)
-        if a.provider_id:
-            all_provider_resource_ids.append(a.provider_id)
+        if a.provider_ids:
+            all_provider_resource_ids.extend(a.provider_ids)
 
     async def _fetch_names() -> list:
         async with pool.acquire() as conn:
@@ -262,8 +262,8 @@ async def search_provider_impl(
     for m in model_facet:
         if m.provider_id:
             for a in artifacts:
-                if a.provider_id:
-                    pr = provider_resource_map.get(a.provider_id)
+                for pid in (a.provider_ids or []):
+                    pr = provider_resource_map.get(pid)
                     if pr and m.provider_id == pr.id:
                         provider_model_counts[a.id] = (
                             provider_model_counts.get(a.id, 0) + 1

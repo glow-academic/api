@@ -373,7 +373,7 @@ RESOURCE_OUTPUT_SCHEMAS: dict[str, list[dict[str, str]]] = {
         {"field_type": "string", "name": "reasoning_level"},
         {"field_type": "string", "name": "reasoning_level_id"},
     ],
-    "request_limits": [{"field_type": "number", "name": "requests_per_day"}],
+    "request_limits": [{"field_type": "number", "name": "limit"}, {"field_type": "text", "name": "interval"}],
     "rubrics": [{"field_type": "string", "name": "id"}],
     "run_positions": [
         {"field_type": "boolean", "name": "active"},

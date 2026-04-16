@@ -229,6 +229,7 @@ async def patch_simulation_draft_impl(
                         session_id=session_id,
                         id=idempotency_key,
                         soft=False,
+                        profile_ids=[profile.profiles_id],
                     )
             await refresh_simulation_impl(
                 pool,

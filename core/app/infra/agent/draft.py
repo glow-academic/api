@@ -135,6 +135,7 @@ async def patch_agent_draft_impl(
                 temperature_level_ids=request.temperature_level_ids,
                 voice_ids=request.voice_ids,
                 rubric_ids=request.rubric_ids,
+                profile_ids=[profile.profiles_id],
             )
 
     # ── Step 5: Build form state (server is source of truth) ────────────

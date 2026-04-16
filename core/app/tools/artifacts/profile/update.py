@@ -16,7 +16,6 @@ from app.infra.junctions import (
 )
 from app.tools.artifacts.profile.types import UpdateProfileResponse
 from app.tools.resources.emails.get import get_emails
-from app.tools.resources.request_limits.get import get_request_limits
 
 _UNSET: Any = object()
 
@@ -81,62 +80,12 @@ async def _upsert_profile_emails(
     )
 
 
-async def _lookup_request_limit_value(
-    conn: asyncpg.Connection,
-    request_limit_id: UUID,
-    redis: Redis,
-) -> int:
-    items = await get_request_limits(conn, [request_limit_id], redis, bypass_cache=True)
-    if not items:
-        raise ValueError(f"Unknown request_limit_id: {request_limit_id}")
-    return items[0].limit
-
-
-async def _upsert_profile_request_limit(
-    conn: asyncpg.Connection,
-    *,
-    profile_id: UUID,
-    request_limit_id: UUID,
-    redis: Redis,
-    mcp: bool,
-) -> None:
-    requests_per_day = await _lookup_request_limit_value(conn, request_limit_id, redis)
-    updated = await conn.execute(
-        """
-        UPDATE profile_request_limits_junction
-        SET
-            request_limits_id = $2,
-            requests_per_day = $3,
-            active = true,
-            mcp = $4
-        WHERE profile_id = $1
-        """,
-        profile_id,
-        request_limit_id,
-        requests_per_day,
-        mcp,
-    )
-    if updated != "UPDATE 1":
-        await conn.execute(
-            """
-        INSERT INTO profile_request_limits_junction
-            (profile_id, request_limits_id, requests_per_day, mcp)
-        VALUES ($1, $2, $3, $4)
-        """,
-            profile_id,
-            request_limit_id,
-            requests_per_day,
-            mcp,
-        )
-
-
 async def update_profile(
     conn: asyncpg.Connection,
     profile_id: UUID,
     *,
     # Single-select junctions (_UNSET = don't change)
     name_id: UUID | Any = _UNSET,
-    request_limit_id: UUID | Any = _UNSET,
     # Multi-select junctions (None = don't change, [] = remove all)
     department_ids: list[UUID] | None = None,
     flag_ids: list[UUID] | None = None,
@@ -183,27 +132,6 @@ async def update_profile(
                 constraint=constraint,
                 mcp=mcp,
             )
-    if request_limit_id is not _UNSET:
-        if request_limit_id is None:
-            await conn.execute(
-                """
-                UPDATE profile_request_limits_junction
-                SET active = false
-                WHERE profile_id = $1 AND active = true
-                """,
-                profile_id,
-            )
-        else:
-            if redis is None:
-                raise ValueError("redis is required when request_limit_id is provided")
-            await _upsert_profile_request_limit(
-                conn,
-                profile_id=profile_id,
-                request_limit_id=request_limit_id,
-                redis=redis,
-                mcp=mcp,
-            )
-
     # 3. Multi-select junctions (simple)
     multi_vals: list[list[UUID] | None] = [
         department_ids,

@@ -1,7 +1,4 @@
-"""Handcrafted types for document endpoints.
-
-Section-first API responses following the gold standard pattern (REFERENCE.md).
-"""
+"""Handcrafted types for document endpoints."""
 
 from __future__ import annotations
 
@@ -11,7 +8,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import ListFilterSection
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.document_drafts.types import GetDocumentDraftResponse
 from app.tools.resources.parameters.types import GetParameterResponse
@@ -34,6 +31,9 @@ class DocumentNameResource(BaseModel):
     id: UUID | None = Field(None, description="Unique identifier")
     name: str | None = Field(None, description="Display name")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class DocumentDescriptionResource(BaseModel):
@@ -42,15 +42,21 @@ class DocumentDescriptionResource(BaseModel):
     id: UUID | None = Field(None, description="Unique identifier")
     description: str | None = Field(None, description="Description text")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class DocumentDepartmentResource(BaseModel):
     """Department resource for document."""
 
-    id: UUID | None = Field(None, description="Unique identifier")
+    department_id: UUID | None = Field(None, description="Department UUID")
     name: str | None = Field(None, description="Department name")
     description: str | None = Field(None, description="Department description")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class DocumentParameterFieldResource(BaseModel):
@@ -61,28 +67,77 @@ class DocumentParameterFieldResource(BaseModel):
     parameter_id: UUID | None = Field(None, description="Associated parameter UUID")
     name: str | None = Field(None, description="Field name")
     description: str | None = Field(None, description="Field description")
+    conditional_parameter_id: str | None = Field(None, description="Conditional parameter UUID for grouping")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class DocumentParameterResource(BaseModel):
+    """Parameter catalog item exposed to the client."""
+
+    parameter_id: UUID | None = Field(None, description="Parameter UUID")
+    name: str | None = Field(None, description="Parameter name")
+    description: str | None = Field(None, description="Parameter description")
+    value: str | None = Field(None, description="Parameter value")
+    department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
+    persona_parameter: bool | None = Field(None, description="Whether this is a persona parameter")
+    document_parameter: bool | None = Field(None, description="Whether this is a document parameter")
+    scenario_parameter: bool | None = Field(None, description="Whether this is a scenario parameter")
+    video_parameter: bool | None = Field(None, description="Whether this is a video parameter")
+    field_ids: list[UUID] | None = Field(None, description="Associated field UUIDs")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class DocumentFileResource(BaseModel):
     """File (upload) resource for document."""
 
     id: UUID | None = Field(None, description="Unique identifier")
+    files_id: UUID | None = Field(None, description="File resource UUID")
+    upload_id: UUID | None = Field(None, description="Upload UUID")
+    file_path: str | None = Field(None, description="Stored file path")
+    mime_type: str | None = Field(None, description="File MIME type")
+    size: int | None = Field(None, description="File size in bytes")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class DocumentImageResource(BaseModel):
     """Image resource for document."""
 
     id: UUID | None = Field(None, description="Unique identifier")
+    image_id: UUID | None = Field(None, description="Image resource UUID")
+    name: str | None = Field(None, description="Image name")
+    description: str | None = Field(None, description="Image description")
+    upload_id: UUID | None = Field(None, description="Upload UUID")
+    file_path: str | None = Field(None, description="Stored file path")
+    mime_type: str | None = Field(None, description="File MIME type")
+    size: int | None = Field(None, description="File size in bytes")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class DocumentTextResource(BaseModel):
     """Text resource for document."""
 
     id: UUID | None = Field(None, description="Unique identifier")
+    texts_id: UUID | None = Field(None, description="Text resource UUID")
+    upload_id: UUID | None = Field(None, description="Upload UUID")
+    file_path: str | None = Field(None, description="Stored file path")
+    mime_type: str | None = Field(None, description="File MIME type")
+    content: str | None = Field(None, description="Optional text content when available")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class DocumentDraftEntry(BaseModel):
@@ -121,81 +176,64 @@ class DocumentFlagConfig(BaseModel):
     show: bool = Field(True, description="Whether to show this flag in the UI")
     required: bool = Field(False, description="Whether this flag is required")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class SectionFilter(BaseModel):
+    """Per-section filter options for GET requests."""
+
+    search: str | None = Field(None, description="Filter options by search text")
+    limit: int | None = Field(None, description="Max options to return")
+    selected: bool | None = Field(None, description="Only return selected items")
+    suggested: bool | None = Field(None, description="Only return suggested items")
+    include: bool | None = Field(None, description="Include this section in response (default true)")
+    parameter_ids: list[str] | None = Field(None, description="Parameter group IDs for parameter field hydration")
 
 
 class GetDocumentApiRequest(BaseModel):
     """Request model for get document endpoint."""
 
-    document_id: UUID | None = Field(None, description="Document UUID to retrieve")
+    id: UUID | None = Field(None, description="Document UUID to retrieve")
+    document_id: UUID | None = Field(None, description="Legacy alias for the document UUID")
     draft_id: UUID | None = Field(None, description="Draft UUID to load from")
-
-
-class DocumentNameSection(BaseResourceSection):
-    resource: DocumentNameResource | None = Field(None, description="Currently selected name resource")
-    resources: list[DocumentNameResource] | None = Field(None, description="Available name resources")
-
-
-class DocumentDescriptionSection(BaseResourceSection):
-    resource: DocumentDescriptionResource | None = Field(None, description="Currently selected description resource")
-    resources: list[DocumentDescriptionResource] | None = Field(None, description="Available description resources")
-
-
-class DocumentFlagSection(BaseResourceSection):
-    current: list[DocumentFlagConfig] | None = Field(None, description="Currently selected flag configs")
-    resources: list[DocumentFlagConfig] | None = Field(None, description="Available flag configs")
-
-
-class DocumentDepartmentSection(BaseResourceSection):
-    current: list[DocumentDepartmentResource] | None = Field(None, description="Currently selected departments")
-    resources: list[DocumentDepartmentResource] | None = Field(None, description="Available departments")
-
-
-class DocumentFieldSection(BaseResourceSection):
-    current: list[DocumentParameterFieldResource] | None = Field(None, description="Currently selected parameter fields")
-    resources: list[DocumentParameterFieldResource] | None = Field(None, description="Available parameter fields")
-
-
-class DocumentParameterSection(BaseResourceSection):
-    current: list[GetParameterResponse] | None = Field(None, description="Currently selected parameters")
-    resources: list[GetParameterResponse] | None = Field(None, description="Available parameters")
-
-
-class DocumentUploadSection(BaseResourceSection):
-    current: list[DocumentFileResource] | None = Field(None, description="Currently selected file uploads")
-    resources: list[DocumentFileResource] | None = Field(None, description="Available file uploads")
-
-
-class DocumentImageSection(BaseResourceSection):
-    current: list[DocumentImageResource] | None = Field(None, description="Currently selected images")
-    resources: list[DocumentImageResource] | None = Field(None, description="Available images")
-
-
-class DocumentTextSection(BaseResourceSection):
-    current: list[DocumentTextResource] | None = Field(None, description="Currently selected text resources")
-    resources: list[DocumentTextResource] | None = Field(None, description="Available text resources")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+    names: SectionFilter | None = Field(None, description="Filter options for names section")
+    descriptions: SectionFilter | None = Field(None, description="Filter options for descriptions section")
+    flags: SectionFilter | None = Field(None, description="Filter options for flags section")
+    departments: SectionFilter | None = Field(None, description="Filter options for departments section")
+    parameter_fields: SectionFilter | None = Field(None, description="Filter options for parameter fields section")
+    parameters: SectionFilter | None = Field(None, description="Filter options for parameters section")
+    files: SectionFilter | None = Field(None, description="Filter options for files section")
+    images: SectionFilter | None = Field(None, description="Filter options for images section")
+    texts: SectionFilter | None = Field(None, description="Filter options for texts section")
+    fields: SectionFilter | None = Field(None, description="Legacy alias for parameter_fields")
+    uploads: SectionFilter | None = Field(None, description="Legacy alias for files")
 
 
 class GetDocumentApiResponse(BaseModel):
-    """Section-first response for document editor."""
+    """Canonical flat composed response for the document editor."""
 
     actor_name: str | None = Field(None, description="Display name of the current user")
     document_exists: bool | None = Field(None, description="Whether the document exists")
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled")
     group_id: UUID | None = Field(None, description="Associated group UUID")
-
+    show_ai_generate: bool | None = Field(None, description="Whether AI generation is available")
     basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for basic step")
     content_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for content step")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource IDs from the draft, when available")
 
-    names: DocumentNameSection | None = Field(None, description="Name section with resource and options")
-    descriptions: DocumentDescriptionSection | None = Field(None, description="Description section with resource and options")
-    flags: DocumentFlagSection | None = Field(None, description="Flag section with selections and options")
-    departments: DocumentDepartmentSection | None = Field(None, description="Department section with selections and options")
-    fields: DocumentFieldSection | None = Field(None, description="Parameter field section")
-    parameters: DocumentParameterSection | None = Field(None, description="Parameter section with selections and options")
-    uploads: DocumentUploadSection | None = Field(None, description="Upload section with selections and options")
-    images: DocumentImageSection | None = Field(None, description="Image section with selections and options")
-    texts: DocumentTextSection | None = Field(None, description="Text section with selections and options")
+    names: list[DocumentNameResource] | None = Field(None, description="Name resources")
+    descriptions: list[DocumentDescriptionResource] | None = Field(None, description="Description resources")
+    flags: list[DocumentFlagConfig] | None = Field(None, description="Flag configs")
+    departments: list[DocumentDepartmentResource] | None = Field(None, description="Department resources")
+    parameter_fields: list[DocumentParameterFieldResource] | None = Field(None, description="Parameter field resources")
+    parameters: list[DocumentParameterResource] | None = Field(None, description="Parameter catalog resources")
+    files: list[DocumentFileResource] | None = Field(None, description="File resources")
+    images: list[DocumentImageResource] | None = Field(None, description="Image resources")
+    texts: list[DocumentTextResource] | None = Field(None, description="Text resources")
 
 
 # ========== Internal Helper Types (used by get.py intermediate layer) ==========
@@ -453,18 +491,16 @@ class DraftTextValue(BaseModel):
     content: str = Field(..., description="Text content to create")
 
 
+class DraftImageValue(BaseModel):
+    """Value for creating an image via the draft endpoint."""
+
+    name: str = Field(..., description="Image name")
+    description: str = Field(..., description="Image description text")
+    upload_id: UUID | None = Field(None, description="Associated upload UUID")
+
+
 class PatchDocumentDraftApiRequest(ScopedItem):
-    """Request model for new-style document draft endpoint.
-
-    Dual-mode for creatable resources only:
-      - name/name_id, description/description_id
-      - files (upload_id) / file_ids
-      - texts (content) / text_ids
-    ID-only for non-creatable resources:
-      - flag_ids, department_ids, image_ids, parameter_field_ids, parameter_ids
-
-    Client always sends full state (append-only — each write is a new snapshot).
-    """
+    """Request model for the canonical document draft endpoint."""
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
@@ -475,6 +511,7 @@ class PatchDocumentDraftApiRequest(ScopedItem):
         "file_ids": "files",
         "texts": "texts",
         "text_ids": "texts",
+        "images": "images",
         "flag_ids": "flags",
         "department_ids": "departments",
         "image_ids": "images",
@@ -482,7 +519,8 @@ class PatchDocumentDraftApiRequest(ScopedItem):
         "parameter_ids": "parameters",
     }
 
-    input_draft_id: UUID | None = Field(None, description="Existing draft UUID to patch")
+    draft_id: UUID | None = Field(None, description="Existing draft UUID to patch")
+    input_draft_id: UUID | None = Field(None, description="Legacy alias for existing draft UUID to patch")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Name value to create a resource")
@@ -495,6 +533,7 @@ class PatchDocumentDraftApiRequest(ScopedItem):
     file_ids: list[UUID] | None = Field(None, description="Existing file resource UUIDs")
     texts: list[DraftTextValue] | None = Field(None, description="Text values to create resources")
     text_ids: list[UUID] | None = Field(None, description="Existing text resource UUIDs")
+    images: list[DraftImageValue] | None = Field(None, description="Image values to create resources")
 
     # Non-creatable — ID-only
     flag_ids: list[UUID] | None = Field(None, description="Flag option UUIDs")
@@ -502,20 +541,29 @@ class PatchDocumentDraftApiRequest(ScopedItem):
     image_ids: list[UUID] | None = Field(None, description="Image UUIDs")
     parameter_field_ids: list[UUID] | None = Field(None, description="Parameter field UUIDs")
     parameter_ids: list[UUID] | None = Field(None, description="Parameter UUIDs")
+    pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep as pending where supported by the tool layer")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack or retry")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
-class DocumentDraftFormState(BaseModel):
+class DraftFormState(BaseModel):
     """Server-authoritative form state returned after draft save."""
 
+    name: str | None = Field(None, description="Echoed unresolved name value")
     name_id: UUID | None = Field(None, description="Selected name resource UUID")
+    description: str | None = Field(None, description="Echoed unresolved description value")
     description_id: UUID | None = Field(None, description="Selected description resource UUID")
-    flag_ids: list[UUID] = Field(..., description="Selected flag option UUIDs")
-    department_ids: list[UUID] = Field(..., description="Selected department UUIDs")
-    file_ids: list[UUID] = Field(..., description="Selected file resource UUIDs")
-    image_ids: list[UUID] = Field(..., description="Selected image UUIDs")
-    text_ids: list[UUID] = Field(..., description="Selected text resource UUIDs")
-    parameter_field_ids: list[UUID] = Field(..., description="Selected parameter field UUIDs")
-    parameter_ids: list[UUID] = Field(..., description="Selected parameter UUIDs")
+    flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag option UUIDs")
+    department_ids: list[UUID] = Field(default_factory=list, description="Selected department UUIDs")
+    file_ids: list[UUID] = Field(default_factory=list, description="Selected file resource UUIDs")
+    image_ids: list[UUID] = Field(default_factory=list, description="Selected image UUIDs")
+    text_ids: list[UUID] = Field(default_factory=list, description="Selected text resource UUIDs")
+    parameter_field_ids: list[UUID] = Field(default_factory=list, description="Selected parameter field UUIDs")
+    parameter_ids: list[UUID] = Field(default_factory=list, description="Selected parameter UUIDs")
+    pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource UUIDs where supported")
+
+
+DocumentDraftFormState = DraftFormState
 
 
 class PatchDocumentDraftApiResponse(BaseModel):
@@ -523,8 +571,9 @@ class PatchDocumentDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the operation succeeded")
     draft_id: UUID = Field(..., description="Draft UUID")
+    idempotency_key: UUID = Field(..., description="Idempotency key for this draft operation")
     message: str = Field(..., description="Human-readable result message")
-    form_state: DocumentDraftFormState | None = Field(None, description="Server-authoritative form state")
+    form_state: DraftFormState | None = Field(None, description="Server-authoritative form state")
 
 
 # ========== Export Endpoint Types ==========

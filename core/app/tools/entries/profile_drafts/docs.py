@@ -25,9 +25,6 @@ async def get_profile_drafts_docs(conn: asyncpg.Connection) -> DocsResponse:
     emails_connection = await get_table_info(conn, "profile_drafts_emails_connection")
     flags_connection = await get_table_info(conn, "profile_drafts_flags_connection")
     names_connection = await get_table_info(conn, "profile_drafts_names_connection")
-    request_limits_connection = await get_table_info(
-        conn, "profile_drafts_request_limits_connection"
-    )
     roles_connection = await get_table_info(conn, "profile_drafts_roles_connection")
 
     tables = [
@@ -39,7 +36,6 @@ async def get_profile_drafts_docs(conn: asyncpg.Connection) -> DocsResponse:
             emails_connection,
             flags_connection,
             names_connection,
-            request_limits_connection,
             roles_connection,
         ]
         if t is not None
@@ -50,7 +46,7 @@ async def get_profile_drafts_docs(conn: asyncpg.Connection) -> DocsResponse:
         type="entry",
         description=(
             "Profile draft artifacts with support for multiple resource connections. "
-            "Each draft links to owner profiles, departments, emails, flags, names, request limits, and roles "
+            "Each draft links to owner profiles, departments, emails, flags, names, and roles "
             "via connection tables. "
             "Reads are served from the profile_drafts_mv materialized view."
         ),

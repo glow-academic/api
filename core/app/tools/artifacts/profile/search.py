@@ -22,7 +22,6 @@ async def search_profiles(
     email_ids: list[UUID] | None = None,
     flag_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
-    request_limit_ids: list[UUID] | None = None,
     role_ids: list[UUID] | None = None,
     cohort_ids: list[UUID] | None = None,
     exclude_ids: list[UUID] | None = None,
@@ -105,17 +104,6 @@ async def search_profiles(
             owner_col=OWNER_COL,
             resource_col="profiles_id",
             ids=profile_ids,
-        )
-
-    if request_limit_ids:
-        idx = add_junction_filter(
-            conditions,
-            params,
-            idx,
-            junction_table="profile_request_limits_junction",
-            owner_col=OWNER_COL,
-            resource_col="request_limits_id",
-            ids=request_limit_ids,
         )
 
     if role_ids:

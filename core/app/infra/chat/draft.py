@@ -196,6 +196,7 @@ async def patch_chat_draft_impl(
                 scenario_ids=request.scenario_ids,
                 video_ids=request.video_ids,
                 department_ids=request.department_ids,
+                profile_ids=[profile.profiles_id],
             )
 
     # ── Step 4: Build form state (server is source of truth) ──────────

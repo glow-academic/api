@@ -138,11 +138,6 @@ def compute_show_emails(emails_has_tools: bool) -> bool:
     return emails_has_tools
 
 
-def compute_show_request_limit(request_limits_has_tools: bool) -> bool:
-    """Determine if request_limit picker should be shown."""
-    return request_limits_has_tools
-
-
 def compute_show_flag() -> bool:
     """Determine if flag toggle should be shown."""
     return True
@@ -160,11 +155,6 @@ def compute_name_required() -> bool:
 
 def compute_emails_required() -> bool:
     """Determine if emails is required."""
-    return False
-
-
-def compute_request_limit_required() -> bool:
-    """Determine if request_limit is required."""
     return False
 
 
@@ -302,7 +292,6 @@ def compute_can_draft(
 def get_missing_tools(
     names_has_tools: bool,
     emails_has_tools: bool,
-    request_limits_has_tools: bool,
     show_departments: bool,
     departments_has_tools: bool,
 ) -> list[str]:
@@ -313,8 +302,6 @@ def get_missing_tools(
         missing.append("name")
     if not emails_has_tools:
         missing.append("emails")
-    if not request_limits_has_tools:
-        missing.append("request_limits")
     if show_departments and not departments_has_tools:
         missing.append("departments")
 
@@ -327,14 +314,13 @@ def get_missing_tools(
 PROFILE_RESOURCES: set[str] = {
     "names",
     "emails",
-    "request_limits",
     "flags",
     "departments",
     "roles",
 }
 
 # Multi-resource agent definitions for profile
-PROFILE_BASIC_RESOURCES: set[str] = {"names", "emails", "flags", "request_limits"}
+PROFILE_BASIC_RESOURCES: set[str] = {"names", "emails", "flags"}
 PROFILE_GENERAL_RESOURCES: set[str] = PROFILE_RESOURCES  # All resources
 
 # ========== Domain Metadata - for client-side display in modals ==========
@@ -349,11 +335,6 @@ PROFILE_DOMAIN_METADATA: dict[str, dict[str, str | bool]] = {
         "name": "Emails",
         "description": "Email addresses associated with this profile",
         "icon": "mail",
-    },
-    "request_limits": {
-        "name": "Request Limit",
-        "description": "Daily request limit for this profile",
-        "icon": "gauge",
     },
     "flags": {
         "name": "Status",

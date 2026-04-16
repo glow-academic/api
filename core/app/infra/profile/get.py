@@ -27,14 +27,12 @@ from app.infra.profile.permissions import (
     compute_emails_required,
     compute_flag_required,
     compute_name_required,
-    compute_request_limit_required,
     compute_role_options,
     compute_roles_required,
     compute_show_departments,
     compute_show_emails,
     compute_show_flag,
     compute_show_name,
-    compute_show_request_limit,
     compute_show_roles,
     has_access,
 )
@@ -47,7 +45,6 @@ from app.infra.profile.types import (
     ProfileFlagConfig,
     ProfileFlagSection,
     ProfileNameSection,
-    ProfileRequestLimitSection,
     ProfileRoleSection,
 )
 
@@ -187,7 +184,6 @@ async def get_profile_impl(
 
     names_has_tools = scores.has_any.get("names", False)
     emails_has_tools = scores.has_any.get("emails", False)
-    request_limits_has_tools = scores.has_any.get("request_limits", False)
 
     all_departments = dedupe_by_id(
         profile_ctx.resources["departments"].selected
@@ -201,7 +197,6 @@ async def get_profile_impl(
     show_flags_map = {
         "names": compute_show_name(names_has_tools),
         "emails": compute_show_emails(emails_has_tools),
-        "request_limits": compute_show_request_limit(request_limits_has_tools),
         "flags": compute_show_flag(),
         "departments": compute_show_departments(len(all_departments)),
         "roles": compute_show_roles(),
@@ -210,7 +205,6 @@ async def get_profile_impl(
     required_flags_map = {
         "names": compute_name_required(),
         "emails": compute_emails_required(),
-        "request_limits": compute_request_limit_required(),
         "flags": compute_flag_required(),
         "departments": compute_departments_required(),
         "roles": compute_roles_required(),
@@ -261,7 +255,7 @@ async def get_profile_impl(
             generated=f.generated,
         )
 
-    # Names, Emails, Request Limits — all = selected + suggestions deduped
+    # Names, Emails — all = selected + suggestions deduped
     all_names = dedupe_by_id(
         profile_ctx.resources["names"].selected
         + profile_ctx.resources["names"].suggestions
@@ -270,18 +264,11 @@ async def get_profile_impl(
         profile_ctx.resources["emails"].selected
         + profile_ctx.resources["emails"].suggestions
     )
-    all_request_limits = dedupe_by_id(
-        profile_ctx.resources["request_limits"].selected
-        + profile_ctx.resources["request_limits"].suggestions
-    )
 
     # Suggestions maps (IDs only)
     suggestions_map = {
         "names": [n.id for n in profile_ctx.resources["names"].suggestions],
         "emails": [e.id for e in profile_ctx.resources["emails"].suggestions],
-        "request_limits": [
-            r.id for r in profile_ctx.resources["request_limits"].suggestions
-        ],
         "departments": [d.id for d in profile_ctx.resources["departments"].suggestions],
         "roles": [r.id for r in profile_ctx.resources["roles"].suggestions],
     }
@@ -313,15 +300,6 @@ async def get_profile_impl(
             **_section("emails"),
             current=_serialize_models(profile_ctx.resources["emails"].selected) or None,
             resources=_serialize_models(all_emails),
-        ),
-        request_limits=ProfileRequestLimitSection(
-            **_section("request_limits"),
-            resource=_serialize_model(
-                profile_ctx.resources["request_limits"].selected[0]
-            )
-            if profile_ctx.resources["request_limits"].selected
-            else None,
-            resources=_serialize_models(all_request_limits),
         ),
         flags=ProfileFlagSection(
             **_section("flags"),

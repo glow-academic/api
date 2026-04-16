@@ -35,8 +35,6 @@ from app.tools.resources.flags.get import get_flags
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 from app.tools.resources.names.search import search_names
-from app.tools.resources.request_limits.get import get_request_limits
-from app.tools.resources.request_limits.search import search_request_limits
 from app.tools.resources.roles.get import get_roles
 from app.tools.resources.roles.search import search_roles
 
@@ -87,7 +85,6 @@ async def resolve_profile_context(
                 departments=True,
                 flags=True,
                 emails=True,
-                request_limits=True,
                 roles=True,
             )
 
@@ -135,24 +132,6 @@ async def resolve_profile_context(
                 limit_count=20,
                 offset_count=0,
                 exclude_ids=merged.email_ids,
-                bypass_cache=bypass_cache,
-                profile=True,
-            )
-
-    async def _get_request_limits() -> list:
-        async with pool.acquire() as conn:
-            return await get_request_limits(
-                conn, merged.request_limit_ids, redis, bypass_cache
-            )
-
-    async def _search_request_limits() -> list:
-        async with pool.acquire() as conn:
-            return await search_request_limits(
-                conn,
-                redis,
-                limit_count=20,
-                offset_count=0,
-                exclude_ids=merged.request_limit_ids,
                 bypass_cache=bypass_cache,
                 profile=True,
             )
@@ -216,8 +195,6 @@ async def resolve_profile_context(
         names_suggestions,
         emails_selected,
         emails_suggestions,
-        request_limits_selected,
-        request_limits_suggestions,
         flags_selected,
         flags_suggestions,
         departments_selected,
@@ -229,8 +206,6 @@ async def resolve_profile_context(
         _search_names(),
         _get_emails(),
         _search_emails(),
-        _get_request_limits(),
-        _search_request_limits(),
         _get_flags(),
         _search_flags(),
         _get_departments(),
@@ -254,10 +229,6 @@ async def resolve_profile_context(
             ),
             "emails": ResourcePair(
                 selected=emails_selected, suggestions=emails_suggestions
-            ),
-            "request_limits": ResourcePair(
-                selected=request_limits_selected,
-                suggestions=request_limits_suggestions,
             ),
             "flags": ResourcePair(
                 selected=flags_selected, suggestions=flags_suggestions_filtered
@@ -284,7 +255,6 @@ class _MergedIds:
 
     name_ids: list[UUID]
     email_ids: list[UUID]
-    request_limit_ids: list[UUID]
     flag_ids: list[UUID]
     department_ids: list[UUID]
     role_ids: list[UUID]
@@ -294,7 +264,6 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
     """Merge artifact junction IDs with draft overrides."""
     name_ids = list(artifact.name_ids or []) if artifact else []
     email_ids = list(artifact.email_ids or []) if artifact else []
-    request_limit_ids = list(artifact.request_limit_ids or []) if artifact else []
     flag_ids = list(artifact.flag_ids or []) if artifact else []
     department_ids = list(artifact.department_ids or []) if artifact else []
     role_ids = list(artifact.role_ids or []) if artifact else []
@@ -305,8 +274,6 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
             name_ids = list(draft.name_ids)
         if draft.email_ids:
             email_ids = list(draft.email_ids)
-        if draft.request_limit_ids:
-            request_limit_ids = list(draft.request_limit_ids)
         if draft.flag_ids:
             flag_ids = list(draft.flag_ids)
         if draft.department_ids:
@@ -317,7 +284,6 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
     return _MergedIds(
         name_ids=name_ids,
         email_ids=email_ids,
-        request_limit_ids=request_limit_ids,
         flag_ids=flag_ids,
         department_ids=department_ids,
         role_ids=role_ids,

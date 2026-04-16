@@ -240,7 +240,6 @@ RESOURCE_SCHEMAS: dict[str, dict[str, str]] = {
         "role_id": "uuid",
         "emails": "array",
         "primary_email": "text",
-        "requests_per_day": "int",
     },
     "prompts": {
         "system_prompt": "text",
@@ -278,7 +277,8 @@ RESOURCE_SCHEMAS: dict[str, dict[str, str]] = {
         "reasoning_level": "text",
     },
     "request_limits": {
-        "requests_per_day": "int",
+        "limit": "int",
+        "interval": "text",
     },
     "resources": {
         "resource": "enum",
