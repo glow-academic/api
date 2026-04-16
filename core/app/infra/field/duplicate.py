@@ -23,6 +23,7 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.field.types import (
     DuplicateFieldApiResponse,
 )
+from app.infra.field.refresh import refresh_field_impl
 from app.tools.artifacts.field.create import (
     create_field as create_field_artifact,
 )
@@ -30,7 +31,6 @@ from app.tools.artifacts.field.get import get_fields
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def duplicate_field_impl(
@@ -41,6 +41,9 @@ async def duplicate_field_impl(
     field_id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    **_kwargs,
 ) -> DuplicateFieldApiResponse:
     """Field duplicate using composable infra functions.
 
@@ -51,7 +54,7 @@ async def duplicate_field_impl(
       4. create_name("{name} Copy") -> new name resource
       5. search_flags -> find inactive flag (field_active, value=false)
       6. create_field -> new artifact with original IDs + inactive flag
-      7. invalidate_tags
+      7. refresh_field_impl
     """
 
     # -- Step 1: Profile context ------------------------------------------------
@@ -75,6 +78,37 @@ async def duplicate_field_impl(
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to duplicate this field.",
+        )
+
+    # -- ACK short-circuit -----------------------------------------------------
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    result = await create_field_artifact(
+                        conn,
+                        id=idempotency_key,
+                        soft=False,
+                    )
+            await refresh_field_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
+            )
+            return DuplicateFieldApiResponse(
+                success=True,
+                field_id=result.id,
+                idempotency_key=idempotency_key,
+                message="Field duplicate accepted",
+            )
+
+        return DuplicateFieldApiResponse(
+            success=True,
+            field_id=idempotency_key,
+            idempotency_key=idempotency_key,
+            message="Field duplicate rejected",
         )
 
     # -- Step 3: Fetch original field with all junctions ------------------------
@@ -143,12 +177,25 @@ async def duplicate_field_impl(
                 soft=soft,
             )
 
-    # -- Step 7: Invalidate cache -----------------------------------------------
+    # -- Step 7: Refresh via canonical helper ----------------------------------
 
-    await invalidate_tags(["fields"], redis=redis)
+    if not soft:
+        await refresh_field_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or result.id,
+        )
 
     return DuplicateFieldApiResponse(
         success=True,
         field_id=result.id,
-        message=f"Field '{original_name}' duplicated successfully",
+        idempotency_key=idempotency_key,
+        message=(
+            "Field duplicated (pending acceptance)"
+            if soft
+            else f"Field '{original_name}' duplicated successfully"
+        ),
     )

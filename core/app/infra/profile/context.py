@@ -1,11 +1,4 @@
-"""Resolve profile artifact context — merged junctions + hydrated resources.
-
-Given a target_profile_id (and optional draft_id), fetches the published artifact
-and draft entry, merges junction IDs (draft overrides published), then
-hydrates all resources in parallel (selected + suggestions).
-
-Composes existing black-box fetchers — no raw SQL.
-"""
+"""Resolve profile artifact context — merged junctions + hydrated resources."""
 
 from __future__ import annotations
 
@@ -17,17 +10,9 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.types import ArtifactContext, ResourcePair
-
-# Artifact + draft fetchers
-from app.tools.artifacts.profile.get import (
-    get_profiles as get_profile_artifacts,
-)
+from app.tools.artifacts.profile.get import get_profiles as get_profile_artifacts
 from app.tools.entries.profile_drafts.get import get_profile_drafts
-
-# Resource get fetchers (by known IDs)
 from app.tools.resources.departments.get import get_departments
-
-# Resource search fetchers (bounded, paginated)
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.emails.get import get_emails
 from app.tools.resources.emails.search import search_emails
@@ -38,18 +23,44 @@ from app.tools.resources.names.search import search_names
 from app.tools.resources.roles.get import get_roles
 from app.tools.resources.roles.search import search_roles
 
-# ---------------------------------------------------------------------------
-# Types
-# ---------------------------------------------------------------------------
-
-PROFILE_FLAG_TYPES = {
-    "profile_active",
-}
+PROFILE_FLAG_TYPES = {"profile_active"}
 
 
-# ---------------------------------------------------------------------------
-# resolve_profile_context
-# ---------------------------------------------------------------------------
+@dataclass
+class _MergedIds:
+    name_ids: list[UUID]
+    email_ids: list[UUID]
+    flag_ids: list[UUID]
+    department_ids: list[UUID]
+    role_ids: list[UUID]
+
+
+def _merge_junction_ids(artifact, draft) -> _MergedIds:
+    name_ids = list(artifact.name_ids or []) if artifact else []
+    email_ids = list(artifact.email_ids or []) if artifact else []
+    flag_ids = list(artifact.flag_ids or []) if artifact else []
+    department_ids = list(artifact.department_ids or []) if artifact else []
+    role_ids = list(artifact.role_ids or []) if artifact else []
+
+    if draft:
+        if draft.name_ids:
+            name_ids = list(draft.name_ids)
+        if draft.email_ids:
+            email_ids = list(draft.email_ids)
+        if draft.flag_ids:
+            flag_ids = list(draft.flag_ids)
+        if draft.department_ids:
+            department_ids = list(draft.department_ids)
+        if draft.role_ids:
+            role_ids = list(draft.role_ids)
+
+    return _MergedIds(
+        name_ids=name_ids,
+        email_ids=email_ids,
+        flag_ids=flag_ids,
+        department_ids=department_ids,
+        role_ids=role_ids,
+    )
 
 
 async def resolve_profile_context(
@@ -60,20 +71,28 @@ async def resolve_profile_context(
     group_id: UUID,
     draft_id: UUID | None = None,
     user_department_ids: list[UUID] | None = None,
+    names_search: str | None = None,
+    emails_search: str | None = None,
+    flags_search: str | None = None,
+    departments_search: str | None = None,
+    roles_search: str | None = None,
+    names_limit: int | None = None,
+    emails_limit: int | None = None,
+    flags_limit: int | None = None,
+    departments_limit: int | None = None,
+    roles_limit: int | None = None,
+    names_selected_only: bool | None = None,
+    emails_selected_only: bool | None = None,
+    flags_selected_only: bool | None = None,
+    departments_selected_only: bool | None = None,
+    roles_selected_only: bool | None = None,
     bypass_cache: bool = False,
 ) -> ArtifactContext:
-    """Resolve a profile artifact into fully hydrated resources for the GET endpoint.
+    """Resolve a profile artifact into fully hydrated resources."""
 
-    Steps:
-      1. Fetch artifact + draft in parallel → merge IDs
-      2. Parallel hydrate: get (selected) + search (suggestions) per resource
-      3. Assemble ArtifactContext with ResourcePairs
-    """
     user_dept_ids = user_department_ids or []
 
-    # Step 1: fetch artifact + draft in parallel
-
-    async def _fetch_artifacts() -> list:
+    async def _fetch_artifact() -> list:
         if not profile_id:
             return []
         async with pool.acquire() as conn:
@@ -88,22 +107,17 @@ async def resolve_profile_context(
                 roles=True,
             )
 
-    async def _fetch_drafts() -> list:
+    async def _fetch_draft() -> list:
         if not draft_id:
             return []
         async with pool.acquire() as conn:
             return await get_profile_drafts(conn, [draft_id])
 
-    artifacts, drafts = await asyncio.gather(_fetch_artifacts(), _fetch_drafts())
-
+    artifacts, drafts = await asyncio.gather(_fetch_artifact(), _fetch_draft())
     artifact = artifacts[0] if artifacts else None
     draft = drafts[0] if drafts else None
-
-    # Merge IDs: start from published, draft overrides if present
     merged = _merge_junction_ids(artifact, draft)
     active = artifact.active if artifact else True
-
-    # Step 2: parallel hydrate — selected + suggestions for each resource
 
     async def _get_names() -> list:
         async with pool.acquire() as conn:
@@ -114,7 +128,10 @@ async def resolve_profile_context(
             return await search_names(
                 conn,
                 redis,
+                search=names_search,
+                limit_count=names_limit or 20,
                 draft_id=group_id,
+                suggest_source="selected" if names_selected_only else "all",
                 exclude_ids=merged.name_ids,
                 bypass_cache=bypass_cache,
                 profile=True,
@@ -129,8 +146,8 @@ async def resolve_profile_context(
             return await search_emails(
                 conn,
                 redis,
-                limit_count=20,
-                offset_count=0,
+                search=emails_search,
+                limit_count=emails_limit or 20,
                 exclude_ids=merged.email_ids,
                 bypass_cache=bypass_cache,
                 profile=True,
@@ -145,32 +162,31 @@ async def resolve_profile_context(
             return await search_flags(
                 conn,
                 redis,
-                search=None,
-                limit_count=50,
-                offset_count=0,
+                search=flags_search,
+                limit_count=flags_limit or 50,
                 exclude_ids=merged.flag_ids,
+                flag_type="profile_active",
                 bypass_cache=bypass_cache,
                 profile=True,
             )
 
     async def _get_departments() -> list:
         async with pool.acquire() as conn:
-            return await get_departments(
-                conn, merged.department_ids, redis, bypass_cache
-            )
+            return await get_departments(conn, merged.department_ids, redis, bypass_cache)
 
     async def _search_departments() -> list:
         async with pool.acquire() as conn:
             return await search_departments(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
-                offset_count=0,
-                department_ids=user_dept_ids,
-                suggest_source="all" if profile_id is None else "recent",
+                search=departments_search,
+                limit_count=departments_limit or 20,
+                draft_id=group_id,
+                suggest_source="selected" if departments_selected_only else ("all" if profile_id is None else "recent"),
                 exclude_ids=merged.department_ids,
+                department_ids=user_dept_ids,
                 bypass_cache=bypass_cache,
+                profile=True,
             )
 
     async def _get_roles() -> list:
@@ -182,9 +198,10 @@ async def resolve_profile_context(
             return await search_roles(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
-                offset_count=0,
+                search=roles_search,
+                limit_count=roles_limit or 20,
+                draft_id=group_id,
+                suggest_source="selected" if roles_selected_only else "all",
                 exclude_ids=merged.role_ids,
                 bypass_cache=bypass_cache,
                 profile=True,
@@ -214,9 +231,8 @@ async def resolve_profile_context(
         _search_roles(),
     )
 
-    # Filter flags to profile-specific types
-    flags_suggestions_filtered = [
-        f for f in flags_suggestions if getattr(f, "type", None) in PROFILE_FLAG_TYPES
+    filtered_flag_suggestions = [
+        flag for flag in flags_suggestions if getattr(flag, "type", None) in PROFILE_FLAG_TYPES
     ]
 
     return ArtifactContext(
@@ -224,79 +240,17 @@ async def resolve_profile_context(
         active=active,
         group_id=group_id,
         resources={
-            "names": ResourcePair(
-                selected=names_selected, suggestions=names_suggestions
-            ),
-            "emails": ResourcePair(
-                selected=emails_selected, suggestions=emails_suggestions
-            ),
-            "flags": ResourcePair(
-                selected=flags_selected, suggestions=flags_suggestions_filtered
-            ),
+            "names": ResourcePair(selected=names_selected, suggestions=names_suggestions),
+            "emails": ResourcePair(selected=emails_selected, suggestions=emails_suggestions),
+            "flags": ResourcePair(selected=flags_selected, suggestions=filtered_flag_suggestions),
             "departments": ResourcePair(
-                selected=departments_selected, suggestions=departments_suggestions
+                selected=departments_selected,
+                suggestions=departments_suggestions,
             ),
-            "roles": ResourcePair(
-                selected=roles_selected, suggestions=roles_suggestions
-            ),
+            "roles": ResourcePair(selected=roles_selected, suggestions=roles_suggestions),
         },
-        entries={},
+        entries={"pending_ids": set()},
     )
-
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class _MergedIds:
-    """Merged junction IDs from artifact + draft."""
-
-    name_ids: list[UUID]
-    email_ids: list[UUID]
-    flag_ids: list[UUID]
-    department_ids: list[UUID]
-    role_ids: list[UUID]
-
-
-def _merge_junction_ids(artifact, draft) -> _MergedIds:
-    """Merge artifact junction IDs with draft overrides."""
-    name_ids = list(artifact.name_ids or []) if artifact else []
-    email_ids = list(artifact.email_ids or []) if artifact else []
-    flag_ids = list(artifact.flag_ids or []) if artifact else []
-    department_ids = list(artifact.department_ids or []) if artifact else []
-    role_ids = list(artifact.role_ids or []) if artifact else []
-
-    # Draft overrides (if present)
-    if draft:
-        if draft.name_ids:
-            name_ids = list(draft.name_ids)
-        if draft.email_ids:
-            email_ids = list(draft.email_ids)
-        if draft.flag_ids:
-            flag_ids = list(draft.flag_ids)
-        if draft.department_ids:
-            department_ids = list(draft.department_ids)
-        if draft.role_ids:
-            role_ids = list(draft.role_ids)
-
-    return _MergedIds(
-        name_ids=name_ids,
-        email_ids=email_ids,
-        flag_ids=flag_ids,
-        department_ids=department_ids,
-        role_ids=role_ids,
-    )
-
-
-async def _empty() -> list:
-    return []
-
-
-# ---------------------------------------------------------------------------
-# context_profile_impl — POST /context identity + permissions + theme
-# ---------------------------------------------------------------------------
 
 
 async def context_profile_impl(
@@ -309,18 +263,19 @@ async def context_profile_impl(
     is_emulation: bool = False,
     emulation_depth: int = 0,
 ) -> "ProfileContextApiResponse":
-    """Resolve profile identity, permissions, and theme for the context endpoint.
+    """Resolve profile identity, permissions, and theme for the context endpoint."""
 
-    Extracts the business logic previously inline in the route and ws output.
-    """
     from app.infra.identity.settings import resolve_settings_theme
     from app.infra.identity.simulatable import SIMULATABLE_ROLES
-    from app.infra.profile_identity_context import resolve_profile_identity_context
     from app.infra.profile.types import ProfileContextApiResponse, ThemePrimitives
+    from app.infra.profile_identity_context import resolve_profile_identity_context
     from app.infra.shared_types import QGetProfileContextV4RoleResource
 
     identity = await resolve_profile_identity_context(
-        pool, profile_id, redis, bypass_cache=bypass_cache,
+        pool,
+        profile_id,
+        redis,
+        bypass_cache=bypass_cache,
         session_id=session_id,
     )
     if not identity:
@@ -331,14 +286,17 @@ async def context_profile_impl(
     scoped_roles = sorted(SIMULATABLE_ROLES.get(identity.role, set()))
 
     async def _fetch_roles() -> list:
-        async with pool.acquire() as c:
-            return await get_roles(c, None, redis, bypass_cache=bypass_cache)
+        async with pool.acquire() as conn:
+            return await get_roles(conn, None, redis, bypass_cache=bypass_cache)
 
     async def _fetch_theme() -> ThemePrimitives | None:
         if not identity.settings_id:
             return None
         theme = await resolve_settings_theme(
-            pool, redis, identity.settings_id, bypass_cache=bypass_cache
+            pool,
+            redis,
+            identity.settings_id,
+            bypass_cache=bypass_cache,
         )
         if not theme or not theme.is_active or not theme.primary_color:
             return None
@@ -361,13 +319,13 @@ async def context_profile_impl(
 
     role_resources = [
         QGetProfileContextV4RoleResource(
-            role=r.name,
-            name=r.name,
-            description=r.description,
+            role=role.name,
+            name=role.name,
+            description=role.description,
             icon_value=None,
             color_hex=None,
         )
-        for r in roles_raw
+        for role in roles_raw
     ]
 
     return ProfileContextApiResponse(
@@ -377,7 +335,7 @@ async def context_profile_impl(
         active=identity.is_active,
         role_artifacts=identity.role_artifacts,
         scoped_roles=scoped_roles,
-        department_ids=[str(d) for d in identity.department_ids],
+        department_ids=[str(department_id) for department_id in identity.department_ids],
         primary_department_id=str(identity.primary_department_id)
         if identity.primary_department_id
         else None,

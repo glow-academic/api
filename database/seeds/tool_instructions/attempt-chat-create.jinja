@@ -1,1 +1,10 @@
-Create a new chat session within an attempt. Requires attempt_id and chat_id.
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Attempt chat created successfully.
+- **Attempt Chat ID:** `{{ r.attempt_chat_id }}`
+{% if r.idempotency_key %}- **Idempotency Key:** `{{ r.idempotency_key }}`{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error creating attempt chat: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

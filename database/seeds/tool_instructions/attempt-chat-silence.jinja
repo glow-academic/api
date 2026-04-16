@@ -1,1 +1,10 @@
-Silence an attempt chat, suppressing further audio output.
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Voice session ended.
+- **Chat ID:** `{{ r.chat_id }}`
+- **Stopped:** {{ r.stopped }}
+{% elif results and results[0] and results[0].error %}
+Error ending voice session: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

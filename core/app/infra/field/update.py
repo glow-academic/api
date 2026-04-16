@@ -22,13 +22,13 @@ from app.infra.field.permissions_context import (
     resolve_field_values,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.field.refresh import refresh_field_impl
 from app.tools.artifacts.field.update import (
     _UNSET,
 )
 from app.tools.artifacts.field.update import (
     update_field as update_field_artifact,
 )
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 from app.infra.field.types import (
     UpdateFieldApiRequest,
@@ -46,6 +46,8 @@ async def update_field_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> UpdateFieldApiResponse:
     """Field bulk update using composable infra functions.
 
@@ -60,6 +62,10 @@ async def update_field_impl(
     from app.infra.field.types import (
         FieldResultItem,
     )
+
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key is not None and accept is None:
+        accept = request.accept
 
     items = request.fields
 
@@ -100,6 +106,25 @@ async def update_field_impl(
                     detail=f"Item {idx}: You don't have permission to update this field.",
                 )
 
+    # ── ACK short-circuit ──────────────────────────────────────────────
+
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            return UpdateFieldApiResponse(
+                results=[
+                    FieldResultItem(
+                        success=True,
+                        field_id=item.field_id,
+                        message="Field update rejected",
+                    )
+                    for item in items
+                ],
+                idempotency_key=idempotency_key,
+            )
+
+        # ACK promote path reuses the normal update flow with soft=False.
+        soft = False
+
     # ── Step 3: Per-item value resolution ──────────────────────────────
 
     has_errors = False
@@ -121,22 +146,23 @@ async def update_field_impl(
                 error_results.append(FieldResultItem(success=True, message="Validated"))
 
     if has_errors:
-        return UpdateFieldApiResponse(results=error_results)
+        return UpdateFieldApiResponse(results=error_results, idempotency_key=idempotency_key)
 
     # ── Step 4: Single transaction ─────────────────────────────────────
 
     results: list[FieldResultItem] = []
 
     for item in items:
-        # Create denormalized snapshot OUTSIDE transaction (read-only hydration)
-        fields_resource_id = await create_denormalized_snapshot(
-            pool,
-            redis,
-            name_id=item.name_id,
-            description_id=item.description_id,
-            department_ids=item.department_ids,
-            conditional_parameter_ids=item.conditional_parameter_ids,
-        )
+        fields_resource_id = None
+        if not soft:
+            fields_resource_id = await create_denormalized_snapshot(
+                pool,
+                redis,
+                name_id=item.name_id,
+                description_id=item.description_id,
+                department_ids=item.department_ids,
+                conditional_parameter_ids=item.conditional_parameter_ids,
+            )
 
         # Artifact update inside transaction
         async with pool.acquire() as conn:
@@ -158,7 +184,7 @@ async def update_field_impl(
                     department_ids=item.department_ids,
                     flag_ids=combined_flag_ids or None,
                     conditional_parameter_ids=item.conditional_parameter_ids,
-                    field_ids=[fields_resource_id],
+                    field_ids=[fields_resource_id] if fields_resource_id else None,
                     soft=soft,
                 )
 
@@ -166,12 +192,21 @@ async def update_field_impl(
             FieldResultItem(
                 success=True,
                 field_id=item.field_id,
-                message="Field updated successfully",
+                message="Field updated (pending acceptance)" if soft else "Field updated successfully",
             )
         )
 
-    # ── Step 5: Invalidate cache ───────────────────────────────────────
+    if not soft:
+        await refresh_field_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (results[0].field_id if results else None),
+        )
 
-    await invalidate_tags(["fields"], redis=redis)
-
-    return UpdateFieldApiResponse(results=results)
+    return UpdateFieldApiResponse(
+        results=results,
+        idempotency_key=idempotency_key,
+    )

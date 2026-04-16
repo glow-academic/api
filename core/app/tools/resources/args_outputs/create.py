@@ -25,7 +25,7 @@ async def create_args_output(
         """
         INSERT INTO args_outputs_resource (id, args_id, name, template, active, mcp, generated)
         VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, $5)
-        ON CONFLICT (args_id, name) DO UPDATE SET name = EXCLUDED.name
+        ON CONFLICT (args_id, name, template) DO UPDATE SET name = EXCLUDED.name
         RETURNING id
         """,
         args_id,

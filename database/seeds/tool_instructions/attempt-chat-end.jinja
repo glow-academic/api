@@ -1,1 +1,13 @@
-End an attempt chat session. Requires attempt_id and chat_id.
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Chat ended.
+- **Chat ID:** `{{ r.chat_id }}`
+{% if r.is_attempt_finished is not none %}- **Attempt Finished:** {{ r.is_attempt_finished }}{% endif %}
+{% if r.grade_id %}- **Grade ID:** `{{ r.grade_id }}`{% endif %}
+{% if r.score is not none %}- **Score:** {{ r.score }}{% endif %}
+{% if r.passed is not none %}- **Passed:** {{ r.passed }}{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error ending chat: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

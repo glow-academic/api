@@ -10,6 +10,7 @@ from app.tools.entries.field_drafts.types import CreateFieldDraftResponse
 async def create_field_draft(
     conn: asyncpg.Connection,
     session_id: UUID,
+    *,
     id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
@@ -19,12 +20,18 @@ async def create_field_draft(
     flag_ids: list[UUID] | None = None,
     name_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
+    pending_ids: set[UUID] | None = None,
 ) -> CreateFieldDraftResponse:
-    """Create a field_drafts entry with optional connection table links."""
+    """Create a field_drafts entry with optional connection table links.
+
+    pending_ids: resource IDs that should be created with active=false (pending acceptance).
+    soft: when True, ALL connections are active=false (overrides pending_ids).
+    """
     draft_id = await conn.fetchval(
         """
         INSERT INTO field_drafts_entry (id, session_id, active, mcp, generated)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
+        ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         session_id,
@@ -53,12 +60,15 @@ async def create_field_draft(
         ("field_drafts_profiles_connection", "profiles_id", profile_ids or []),
     ]
 
+    _pending = pending_ids or set()
     for table, col, ids in connections:
         for rid in ids:
             await conn.execute(
-                f"INSERT INTO {table} (draft_id, {col}) VALUES ($1, $2)",
+                f"INSERT INTO {table} (draft_id, {col}, active) VALUES ($1, $2, $3) "
+                f"ON CONFLICT (draft_id, {col}) DO UPDATE SET active = EXCLUDED.active",
                 draft_id,
                 rid,
+                False if soft else (rid not in _pending),
             )
 
     return CreateFieldDraftResponse(id=draft_id)

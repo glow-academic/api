@@ -52,8 +52,16 @@ async def get_profile(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
+                id=request.id,
                 target_profile_id=request.target_profile_id,
                 draft_id=request.draft_id,
+                filters={
+                    "names": request.names,
+                    "emails": request.emails,
+                    "flags": request.flags,
+                    "departments": request.departments,
+                    "roles": request.roles,
+                },
                 bypass_cache=bypass_cache,
             )
 

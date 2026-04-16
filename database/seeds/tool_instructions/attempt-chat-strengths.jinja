@@ -1,1 +1,11 @@
-Submit strengths assessment for an attempt chat. Pass chat_id and strengths array.
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Strengths created.
+- **Success:** {{ r.success }}
+{% if r.strength_ids %}- **Strength IDs:** {% for sid in r.strength_ids %}`{{ sid }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
+{% if r.idempotency_key %}- **Idempotency Key:** `{{ r.idempotency_key }}`{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error creating strengths: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

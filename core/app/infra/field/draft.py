@@ -251,8 +251,16 @@ async def patch_field_draft_impl(
                         id=idempotency_key,
                         soft=False,
                         profile_ids=[profile.profiles_id],
+                        pending_ids=set(request.pending_ids) if request.pending_ids else None,
                     )
-            await refresh_field_impl(pool, redis, profile_id=profile_id)
+            await refresh_field_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                targets=["field_drafts_mv"],
+                operation_key=idempotency_key,
+            )
         return PatchFieldDraftApiResponse(
             success=True,
             draft_id=idempotency_key,
@@ -284,6 +292,7 @@ async def patch_field_draft_impl(
                 department_ids=request.department_ids,
                 conditional_parameter_ids=request.conditional_parameter_ids,
                 profile_ids=[profile.profiles_id],
+                pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
     resolved_flag_id = request.active_flag_id or request.flag_id
@@ -300,7 +309,15 @@ async def patch_field_draft_impl(
     )
 
     if not soft:
-        await refresh_field_impl(pool, redis, profile_id=profile_id)
+        await refresh_field_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["field_drafts_mv"],
+            soft=soft,
+            operation_key=result.id,
+        )
 
     return PatchFieldDraftApiResponse(
         success=True,

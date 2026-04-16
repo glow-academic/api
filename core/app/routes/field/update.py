@@ -64,9 +64,7 @@ async def update_field(
             session_id=session_id,
             group_id=group_id,
             operation="update",
-            arguments={
-                "fields": [item.model_dump(mode="json") for item in request.fields]
-            },
+            arguments=request.model_dump(mode="json"),
             response_model=UpdateFieldApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

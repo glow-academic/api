@@ -1,27 +1,31 @@
-"""Field artifact CREATE — tool layer."""
+"""Field artifact CREATE — tool layer.
+
+Idempotent via ON CONFLICT on artifact + upsert_* for junctions.
+Re-calling with the same id promotes a dormant artifact.
+"""
 
 from uuid import UUID
 
 import asyncpg
 
 from app.infra.junctions import (
-    insert_multi,
-    insert_single,
+    upsert_multi,
+    upsert_single,
 )
 from app.tools.artifacts.field.types import CreateFieldResponse
 
 OWNER_COL = "field_id"
 
-# (junction_table, resource_column)
-SINGLE_JUNCTIONS: list[tuple[str, str]] = [
-    ("field_names_junction", "names_id"),
-    ("field_descriptions_junction", "descriptions_id"),
+# (junction_table, resource_column, pk_constraint)
+SINGLE_JUNCTIONS: list[tuple[str, str, str]] = [
+    ("field_names_junction", "names_id", "field_names_pkey"),
+    ("field_descriptions_junction", "descriptions_id", "field_descriptions_pkey"),
 ]
 
-MULTI_JUNCTIONS: list[tuple[str, str]] = [
-    ("field_departments_junction", "departments_id"),
-    ("field_conditional_parameters_junction", "conditional_parameters_id"),
-    ("field_fields_junction", "fields_id"),
+MULTI_JUNCTIONS: list[tuple[str, str, str]] = [
+    ("field_departments_junction", "departments_id", "field_departments_pkey"),
+    ("field_conditional_parameters_junction", "conditional_parameters_id", "field_conditional_parameters_junction_pkey"),
+    ("field_fields_junction", "fields_id", "field_fields_junction_pkey"),
 ]
 
 
@@ -46,6 +50,7 @@ async def create_field(
         """
         INSERT INTO field_artifact (id, active, generated, mcp)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3)
+        ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         is_active,
@@ -56,45 +61,48 @@ async def create_field(
 
     # Single-select junctions
     single_vals = [name_id, description_id]
-    for (table, col), val in zip(SINGLE_JUNCTIONS, single_vals):
+    for (table, col, constraint), val in zip(SINGLE_JUNCTIONS, single_vals):
         if val is not None:
-            await insert_single(
+            await upsert_single(
                 conn,
                 table=table,
                 owner_col=OWNER_COL,
                 owner_id=field_id,
                 resource_col=col,
                 resource_id=val,
-                generated=generated,
+                constraint=constraint,
                 mcp=mcp,
+                soft=soft,
             )
 
     # Multi-select junctions (simple)
     multi_vals = [department_ids, conditional_parameter_ids, field_ids]
-    for (table, col), vals in zip(MULTI_JUNCTIONS, multi_vals):
+    for (table, col, constraint), vals in zip(MULTI_JUNCTIONS, multi_vals):
         if vals:
-            await insert_multi(
+            await upsert_multi(
                 conn,
                 table=table,
                 owner_col=OWNER_COL,
                 owner_id=field_id,
                 resource_col=col,
                 resource_ids=vals,
-                generated=generated,
+                constraint=constraint,
                 mcp=mcp,
+                soft=soft,
             )
 
     # Flags
     if flag_ids:
-        await insert_multi(
+        await upsert_multi(
             conn,
             table="field_flags_junction",
             owner_col=OWNER_COL,
             owner_id=field_id,
             resource_col="flags_id",
             resource_ids=flag_ids,
-            generated=generated,
+            constraint="field_flags_pkey",
             mcp=mcp,
+            soft=soft,
         )
 
     return CreateFieldResponse(id=field_id)

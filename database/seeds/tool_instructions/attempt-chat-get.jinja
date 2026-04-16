@@ -1,1 +1,62 @@
-Get the full configuration for a chat within an attempt. Pass chat_entry_id to see the scenario setup, resource IDs, and flags.
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### Chat Bundle
+- **Chat Entry ID:** `{{ r.chat_entry_id }}`
+- **Group ID:** `{{ r.group_id }}`
+{% if r.attempt_id %}- **Attempt ID:** `{{ r.attempt_id }}`{% endif %}
+
+{% macro render_section(section, label, id_field, display_field, display_truncate) %}
+{% if section and section.show %}
+### {{ label }}{% if section.required %} (required){% endif %}
+
+{% if section.current %}
+**Selected:**
+{% for item in section.current %}- `{{ item[id_field] }}` — {{ item[display_field][:display_truncate] if item[display_field] else '(no text)' }}
+{% endfor %}
+{% else %}
+**Selected:** none
+{% endif %}
+{% if section.resources %}
+**Available:**
+{% for item in section.resources %}- `{{ item[id_field] }}` — {{ item[display_field][:display_truncate] if item[display_field] else '(no text)' }}
+{% endfor %}
+{% endif %}
+{% if section.suggestions %}
+**Suggested IDs:** {% for sid in section.suggestions %}`{{ sid }}`{% if not loop.last %}, {% endif %}{% endfor %}
+
+{% endif %}
+{% endif %}
+{% endmacro %}
+{{ render_section(r.names, 'Names', 'id', 'name', 100) }}
+{{ render_section(r.descriptions, 'Descriptions', 'id', 'description', 120) }}
+{{ render_section(r.personas, 'Personas', 'id', 'name', 100) }}
+{{ render_section(r.scenarios, 'Scenarios', 'id', 'name', 100) }}
+{{ render_section(r.documents, 'Documents', 'id', 'name', 100) }}
+{{ render_section(r.departments, 'Departments', 'id', 'name', 100) }}
+{{ render_section(r.parameter_fields, 'Parameter Fields', 'id', 'name', 100) }}
+{{ render_section(r.fields, 'Fields', 'id', 'name', 100) }}
+{{ render_section(r.problem_statements, 'Problem Statements', 'id', 'problem_statement', 120) }}
+{{ render_section(r.objectives, 'Objectives', 'id', 'objective', 120) }}
+{{ render_section(r.questions, 'Questions', 'id', 'question_text', 120) }}
+{{ render_section(r.options, 'Options', 'id', 'option_text', 100) }}
+{{ render_section(r.videos, 'Videos', 'id', 'name', 100) }}
+{{ render_section(r.images, 'Images', 'id', 'name', 100) }}
+{% if r.flags and r.flags.show %}
+### Flags{% if r.flags.required %} (required){% endif %}
+
+{% if r.flags.current %}
+**Selected:**
+{% for f in r.flags.current %}- `{{ f.id }}` — {{ f.name }}{% if f.description %}: {{ f.description[:80] }}{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.flags.resources %}
+**Available:**
+{% for f in r.flags.resources %}- `{{ f.id }}` — {{ f.name }}{% if f.description %}: {{ f.description[:80] }}{% endif %}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error fetching chat bundle: {{ results[0].error }}
+{% else %}
+No chat data returned.
+{% endif %}

@@ -1,1 +1,11 @@
-Submit improvement suggestions for an attempt chat. Pass chat_id and improvements array.
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Improvements created.
+- **Success:** {{ r.success }}
+{% if r.improvement_ids %}- **Improvement IDs:** {% for iid in r.improvement_ids %}`{{ iid }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
+{% if r.idempotency_key %}- **Idempotency Key:** `{{ r.idempotency_key }}`{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error creating improvements: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

@@ -9,7 +9,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.shared_types import QGetProfileContextV4RoleResource
-from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import ListFilterSection
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.profile_drafts.types import GetProfileDraftResponse
 
@@ -24,6 +24,9 @@ class ProfileNameResource(BaseModel):
     id: UUID | None = Field(None, description="Unique resource identifier")
     name: str | None = Field(None, description="Profile display name")
     generated: bool | None = Field(None, description="Whether the name was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class ProfileEmailResource(BaseModel):
@@ -32,15 +35,21 @@ class ProfileEmailResource(BaseModel):
     id: UUID | None = Field(None, description="Unique resource identifier")
     email: str | None = Field(None, description="Email address")
     generated: bool | None = Field(None, description="Whether the email was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class ProfileDepartmentResource(BaseModel):
     """Department resource for profile."""
 
-    id: UUID | None = Field(None, description="Unique resource identifier")
+    department_id: UUID | None = Field(None, description="Unique resource identifier")
     name: str | None = Field(None, description="Department display name")
     description: str | None = Field(None, description="Department description text")
     generated: bool | None = Field(None, description="Whether the resource was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class ProfileRoleResource(BaseModel):
@@ -50,8 +59,13 @@ class ProfileRoleResource(BaseModel):
     role: str | None = Field(None, description="Role key (e.g. admin, user, viewer)")
     name: str | None = Field(None, description="Role display name")
     description: str | None = Field(None, description="Role description text")
-    icon_value: str | None = Field(None, description="Icon identifier for the role")
-    color_hex: str | None = Field(None, description="Hex color code for the role")
+    icon_id: UUID | None = Field(None, description="Icon identifier for the role")
+    color_id: UUID | None = Field(None, description="Color identifier for the role")
+    level: int | None = Field(None, description="Role level for assignment filtering")
+    generated: bool | None = Field(None, description="Whether the role was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class ProfileFlagConfig(BaseModel):
@@ -65,6 +79,9 @@ class ProfileFlagConfig(BaseModel):
     show: bool = Field(True, description="Whether the flag is visible to the client")
     required: bool = Field(False, description="Whether the flag is required")
     generated: bool | None = Field(None, description="Whether the flag was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class ProfileDraftEntry(BaseModel):
@@ -85,34 +102,14 @@ class ProfileDraftEntry(BaseModel):
     role_ids: list[UUID] | None = Field(None, description="Role resource UUIDs in the draft")
 
 
-# ---------------------------------------------------------------------------
-# Section types
-# ---------------------------------------------------------------------------
+class SectionFilter(BaseModel):
+    """Per-section filter options for GET requests."""
 
-
-class ProfileNameSection(BaseResourceSection):
-    resource: ProfileNameResource | None = Field(None, description="Currently selected name resource")
-    resources: list[ProfileNameResource] | None = Field(None, description="Available name resources")
-
-
-class ProfileFlagSection(BaseResourceSection):
-    current: ProfileFlagConfig | None = Field(None, description="Currently selected flag config")
-    resources: list[ProfileFlagConfig] | None = Field(None, description="Available flag configs")
-
-
-class ProfileEmailSection(BaseResourceSection):
-    current: list[ProfileEmailResource] | None = Field(None, description="Currently assigned emails")
-    resources: list[ProfileEmailResource] | None = Field(None, description="Available email resources")
-
-
-class ProfileDepartmentSection(BaseResourceSection):
-    current: list[ProfileDepartmentResource] | None = Field(None, description="Currently assigned departments")
-    resources: list[ProfileDepartmentResource] | None = Field(None, description="Available department resources")
-
-
-class ProfileRoleSection(BaseResourceSection):
-    current: list[ProfileRoleResource] | None = Field(None, description="Currently assigned roles")
-    resources: list[ProfileRoleResource] | None = Field(None, description="Available role resources")
+    search: str | None = Field(None, description="Filter options by search text")
+    limit: int | None = Field(None, description="Max options to return")
+    selected: bool | None = Field(None, description="Only return selected items")
+    suggested: bool | None = Field(None, description="Only return suggested items")
+    include: bool | None = Field(None, description="Include this section in response (default true)")
 
 
 # ---------------------------------------------------------------------------
@@ -121,8 +118,15 @@ class ProfileRoleSection(BaseResourceSection):
 
 
 class GetProfileApiRequest(BaseModel):
-    target_profile_id: UUID | None = Field(None, description="UUID of the profile to retrieve")
+    id: UUID | None = Field(None, description="UUID of the profile to retrieve")
+    target_profile_id: UUID | None = Field(None, description="Legacy alias for profile UUID")
     draft_id: UUID | None = Field(None, description="UUID of the draft to load")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+    names: SectionFilter | None = Field(None, description="Filter options for names section")
+    emails: SectionFilter | None = Field(None, description="Filter options for emails section")
+    flags: SectionFilter | None = Field(None, description="Filter options for flags section")
+    departments: SectionFilter | None = Field(None, description="Filter options for departments section")
+    roles: SectionFilter | None = Field(None, description="Filter options for roles section")
 
 
 class GetProfileApiResponse(BaseModel):
@@ -132,18 +136,16 @@ class GetProfileApiResponse(BaseModel):
     disabled_reason: str | None = Field(None, description="Reason editing is disabled, if any")
     group_id: UUID | None = Field(None, description="Group UUID for draft collaboration")
     profile_id: UUID | None = Field(None, description="UUID of the profile")
+    show_ai_generate: bool | None = Field(None, description="Whether to show AI generate anywhere")
+    basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate on the basic step")
+    contact_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate on the contact step")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
 
-    role: str | None = Field(None, description="Current role of the profile")
-    role_options: list[str] | None = Field(None, description="Available role options")
-
-    basic_show_ai_generate: bool | None = Field(None, description="Whether to show basic AI generate button")
-    general_show_ai_generate: bool | None = Field(None, description="Whether to show general AI generate button")
-
-    names: ProfileNameSection | None = Field(None, description="Name section with resources")
-    emails: ProfileEmailSection | None = Field(None, description="Email section with resources")
-    flags: ProfileFlagSection | None = Field(None, description="Flag section with configs")
-    departments: ProfileDepartmentSection | None = Field(None, description="Department section with resources")
-    roles: ProfileRoleSection | None = Field(None, description="Role section with resources")
+    names: list[ProfileNameResource] | None = Field(None, description="Name resources")
+    emails: list[ProfileEmailResource] | None = Field(None, description="Email resources")
+    flags: list[ProfileFlagConfig] | None = Field(None, description="Flag configs")
+    departments: list[ProfileDepartmentResource] | None = Field(None, description="Department resources")
+    roles: list[ProfileRoleResource] | None = Field(None, description="Role resources")
 
 
 class GetProfileDraftsApiResponse(BaseModel):
@@ -301,34 +303,53 @@ class PatchProfileDraftApiRequest(ScopedItem):
         "name": "names",
         "name_id": "names",
         "email": "emails",
+        "emails": "emails",
         "active_flag_id": "flags",
         "department_ids": "departments",
+        "departments": "departments",
         "email_ids": "emails",
+        "role": "roles",
         "role_id": "roles",
     }
 
+    draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Name value to resolve or create")
     name_id: UUID | None = Field(None, description="UUID of the name resource")
     email: str | None = Field(None, description="Email value to resolve or create")
+    emails: list[str] | None = Field(None, description="Email values to resolve or create")
 
     # Non-creatable — ID-only
     active_flag_id: UUID | None = Field(None, description="UUID of the flag option")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
+    departments: list[str] | None = Field(None, description="Department names to resolve")
     email_ids: list[UUID] | None = Field(None, description="Email resource UUIDs")
+    role: str | None = Field(None, description="Role name to resolve")
     role_id: UUID | None = Field(None, description="Role resource UUID")
+    pending_ids: list[UUID] | None = Field(None, description="Resources to keep dormant")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key for draft writes")
+    accept: bool = Field(True, description="Whether to accept the pending draft state")
 
 
-class ProfileDraftFormState(BaseModel):
+class DraftFormState(BaseModel):
     """Server-authoritative form state returned after draft save."""
 
     name_id: UUID | None = Field(None, description="Resolved name resource UUID")
+    name: str | None = Field(None, description="Resolved name value")
+    flag_id: UUID | None = Field(None, description="Resolved flag option UUID")
     active_flag_id: UUID | None = Field(None, description="Resolved flag option UUID")
+    departments: list[str] = Field(default_factory=list, description="Resolved department names")
     department_ids: list[UUID] = Field(..., description="Assigned department UUIDs")
+    emails: list[str] = Field(default_factory=list, description="Resolved email values")
     email_ids: list[UUID] = Field(..., description="Assigned email resource UUIDs")
+    role: str | None = Field(None, description="Assigned role name")
     role_id: UUID | None = Field(None, description="Assigned role resource UUID")
+    pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource UUIDs")
+
+
+ProfileDraftFormState = DraftFormState
 
 
 class PatchProfileDraftApiResponse(BaseModel):
@@ -336,8 +357,9 @@ class PatchProfileDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the draft save succeeded")
     draft_id: UUID = Field(..., description="UUID of the saved draft")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key for draft writes")
     message: str = Field(..., description="Result message")
-    form_state: ProfileDraftFormState | None = Field(None, description="Server-authoritative form state")
+    form_state: DraftFormState | None = Field(None, description="Server-authoritative form state")
 
 
 # ========== List Endpoint Types ==========

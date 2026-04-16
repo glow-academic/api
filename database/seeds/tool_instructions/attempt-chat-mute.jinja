@@ -1,1 +1,9 @@
-Toggle mute state for an attempt chat. Pass chat_id and muted boolean.
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Voice muted.
+- **Accepted:** {{ r.accepted }}
+{% elif results and results[0] and results[0].error %}
+Error muting voice: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

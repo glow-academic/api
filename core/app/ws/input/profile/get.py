@@ -46,8 +46,16 @@ async def profile_get(sid: str, data: dict[str, Any]) -> None:
             redis,
             profile_id=identity.profile_id,
             session_id=identity.session_id,
+            id=payload.id,
             target_profile_id=payload.target_profile_id,
             draft_id=payload.draft_id,
+            filters={
+                "names": payload.names,
+                "emails": payload.emails,
+                "flags": payload.flags,
+                "departments": payload.departments,
+                "roles": payload.roles,
+            },
         ),
         arguments=payload.model_dump(mode="json"),
     )

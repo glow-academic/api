@@ -87,6 +87,7 @@ async def update_field(
                 resource_id=val,
                 constraint=constraint,
                 mcp=mcp,
+                soft=soft,
             )
 
     # 3. Multi-select junctions (simple)
@@ -106,6 +107,7 @@ async def update_field(
                 resource_ids=vals,
                 constraint=constraint,
                 mcp=mcp,
+                soft=soft,
             )
 
     # 4. Flags
@@ -119,6 +121,7 @@ async def update_field(
             resource_ids=flag_ids,
             constraint="field_flags_pkey",
             mcp=mcp,
+            soft=soft,
         )
 
     return UpdateFieldResponse(id=field_id)

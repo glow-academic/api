@@ -21,16 +21,13 @@ from app.infra.field.permissions_context import (
     resolve_field_values,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.field.refresh import refresh_field_impl
 from app.tools.artifacts.field.create import (
     create_field as create_field_artifact,
 )
-from app.utils.cache.invalidate_tags import invalidate_tags
-
 
 from app.infra.field.types import (
     CreateFieldApiRequest,
-    CreateFieldItem,
-    FieldFieldError,
     FieldResultItem,
     CreateFieldApiResponse,
 )
@@ -46,6 +43,8 @@ async def create_field_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> CreateFieldApiResponse:
     """Field bulk create using composable infra functions.
 
@@ -54,9 +53,13 @@ async def create_field_impl(
       2. compute_can_create — single check (applies to all items)
       3. Per-item value resolution (raw → ID, required field enforcement)
       4. Single transaction: create_field_artifact + denormalized snapshot per item
-      5. invalidate_tags
+      5. canonical field refresh
     """
     from app.infra.field.permissions import compute_can_create
+
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key is not None and accept is None:
+        accept = request.accept
 
     items = request.fields
 
@@ -90,6 +93,25 @@ async def create_field_impl(
             detail="You don't have permission to create fields.",
         )
 
+    # ── ACK short-circuit ─────────────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept is False:
+            return CreateFieldApiResponse(
+                results=[
+                    FieldResultItem(
+                        success=True,
+                        field_id=idempotency_key,
+                        message="Field rejected",
+                    )
+                ],
+                idempotency_key=idempotency_key,
+            )
+
+        soft = False
+
+        if len(items) == 1 and items[0].id is None:
+            items = [items[0].model_copy(update={"id": idempotency_key})]
+
     # ── Step 3: Per-item value resolution ──────────────────────────────
 
     has_errors = False
@@ -111,56 +133,92 @@ async def create_field_impl(
                 error_results.append(FieldResultItem(success=True, message="Validated"))
 
     if has_errors:
-        return CreateFieldApiResponse(results=error_results)
+        return CreateFieldApiResponse(results=error_results, idempotency_key=idempotency_key)
 
     # ── Step 4: Single transaction ─────────────────────────────────────
 
     results: list[FieldResultItem] = []
 
-    for item in items:
-        # Create denormalized snapshot OUTSIDE transaction (read-only hydration)
-        fields_resource_id = await create_denormalized_snapshot(
+    if not soft:
+        for item in items:
+            fields_resource_id = await create_denormalized_snapshot(
+                pool,
+                redis,
+                id=item.resource_id,
+                name_id=item.name_id,
+                description_id=item.description_id,
+                department_ids=item.department_ids,
+                conditional_parameter_ids=item.conditional_parameter_ids,
+            )
+
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    combined_flag_ids = []
+                    if item.flag_id:
+                        combined_flag_ids.append(item.flag_id)
+                    if item.active_flag_id:
+                        combined_flag_ids.append(item.active_flag_id)
+
+                    result = await create_field_artifact(
+                        conn,
+                        id=item.id,
+                        name_id=item.name_id,
+                        description_id=item.description_id,
+                        department_ids=item.department_ids,
+                        flag_ids=combined_flag_ids or None,
+                        conditional_parameter_ids=item.conditional_parameter_ids,
+                        field_ids=[fields_resource_id],
+                        soft=False,
+                    )
+
+            results.append(
+                FieldResultItem(
+                    success=True,
+                    field_id=result.id,
+                    message=(
+                        "Field accepted"
+                        if accept is not None and idempotency_key is not None
+                        else "Field created successfully"
+                    ),
+                )
+            )
+
+        await refresh_field_impl(
             pool,
             redis,
-            id=item.resource_id,
-            name_id=item.name_id,
-            description_id=item.description_id,
-            department_ids=item.department_ids,
-            conditional_parameter_ids=item.conditional_parameter_ids,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (results[0].field_id if results else None),
         )
+    else:
+        for item in items:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    combined_flag_ids = []
+                    if item.flag_id:
+                        combined_flag_ids.append(item.flag_id)
+                    if item.active_flag_id:
+                        combined_flag_ids.append(item.active_flag_id)
 
-        # Artifact create inside transaction
-        async with pool.acquire() as conn:
-            async with conn.transaction():
-                # Combine existing flag_id with active_flag_id
-                combined_flag_ids = []
-                if item.flag_id:
-                    combined_flag_ids.append(item.flag_id)
-                if item.active_flag_id:
-                    combined_flag_ids.append(item.active_flag_id)
+                    result = await create_field_artifact(
+                        conn,
+                        id=item.id,
+                        name_id=item.name_id,
+                        description_id=item.description_id,
+                        department_ids=item.department_ids,
+                        flag_ids=combined_flag_ids or None,
+                        conditional_parameter_ids=item.conditional_parameter_ids,
+                        field_ids=None,
+                        soft=True,
+                    )
 
-                result = await create_field_artifact(
-                    conn,
-                    id=item.id,
-                    name_id=item.name_id,
-                    description_id=item.description_id,
-                    department_ids=item.department_ids,
-                    flag_ids=combined_flag_ids or None,
-                    conditional_parameter_ids=item.conditional_parameter_ids,
-                    field_ids=[fields_resource_id],
-                    soft=soft,
+            results.append(
+                FieldResultItem(
+                    success=True,
+                    field_id=result.id,
+                    message="Field created (pending acceptance)",
                 )
-
-        results.append(
-            FieldResultItem(
-                success=True,
-                field_id=result.id,
-                message="Field created successfully",
             )
-        )
 
-    # ── Step 5: Invalidate cache ───────────────────────────────────────
-
-    await invalidate_tags(["fields"], redis=redis)
-
-    return CreateFieldApiResponse(results=results)
+    return CreateFieldApiResponse(results=results, idempotency_key=idempotency_key)
