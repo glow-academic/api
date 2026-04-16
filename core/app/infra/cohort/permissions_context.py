@@ -36,8 +36,11 @@ from app.tools.resources.profiles.search import search_profiles
 from app.tools.resources.simulations.search import search_simulations
 
 if TYPE_CHECKING:
-    from app.infra.cohort.create import CohortFieldError, CreateCohortItem
-    from app.infra.cohort.types import UpdateCohortItem
+    from app.infra.cohort.types import (
+        CohortFieldError,
+        CreateCohortItem,
+        UpdateCohortItem,
+    )
 
 
 @dataclass(frozen=True)
@@ -98,7 +101,7 @@ async def resolve_cohort_values(
 
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.cohort.create import CohortFieldError
+    from app.infra.cohort.types import CohortFieldError
 
     errors: list[CohortFieldError] = []
 

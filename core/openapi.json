@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "GLOW API",
-    "description": "Auto-generated OpenAPI schema",
-    "version": "0.1.0"
+    "description": "Auto-generated OpenAPI schema from FastAPI API",
+    "version": "2.12.0"
   },
   "paths": {
     "/persona/get": {
@@ -50,6 +50,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -97,6 +100,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -144,6 +150,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -191,6 +200,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -238,6 +250,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -285,6 +300,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -332,6 +350,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -379,6 +400,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -406,6 +430,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -453,6 +480,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -500,6 +530,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -547,6 +580,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -594,6 +630,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -641,6 +680,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -688,6 +730,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -715,6 +760,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -762,6 +810,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -809,6 +860,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -856,6 +910,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -903,6 +960,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -950,6 +1010,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -997,6 +1060,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1044,6 +1110,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1091,6 +1160,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1118,6 +1190,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1165,6 +1240,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1212,6 +1290,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1259,6 +1340,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1306,6 +1390,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1353,6 +1440,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1400,6 +1490,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1447,6 +1540,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1529,7 +1625,11 @@
               }
             }
           }
-        }
+        },
+        "x-cache-tags": [
+          "scenario",
+          "scenario-image"
+        ]
       }
     },
     "/scenario/image/download": {
@@ -1575,6 +1675,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario",
+          "scenario-image"
         ]
       }
     },
@@ -1657,7 +1761,11 @@
               }
             }
           }
-        }
+        },
+        "x-cache-tags": [
+          "scenario",
+          "scenario-video"
+        ]
       }
     },
     "/scenario/video/download": {
@@ -1703,6 +1811,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario",
+          "scenario-video"
         ]
       }
     },
@@ -1749,6 +1861,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario",
+          "scenario-text"
         ]
       }
     },
@@ -1795,6 +1911,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario",
+          "scenario-file"
         ]
       }
     },
@@ -1841,6 +1961,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario",
+          "scenario-file"
         ]
       }
     },
@@ -1888,6 +2012,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -1935,6 +2062,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -1982,6 +2112,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2029,6 +2162,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2076,6 +2212,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2123,6 +2262,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2170,6 +2312,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2217,6 +2362,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2264,6 +2412,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2291,6 +2442,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2338,6 +2492,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2385,6 +2542,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2432,6 +2592,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2479,6 +2642,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2526,6 +2692,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2573,6 +2742,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2620,6 +2792,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -2667,6 +2842,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -2714,6 +2892,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -2761,6 +2942,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -2808,6 +2992,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -2855,6 +3042,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -2902,6 +3092,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -2929,6 +3122,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -2976,6 +3172,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -3023,6 +3222,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -3070,6 +3272,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -3117,6 +3322,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -3164,6 +3372,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -3191,6 +3402,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -3238,6 +3452,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -3285,6 +3502,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -3333,6 +3553,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document",
+          "document-text"
         ]
       }
     },
@@ -3379,6 +3603,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document",
+          "document-text"
         ]
       }
     },
@@ -3427,6 +3655,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document",
+          "document-file"
         ]
       }
     },
@@ -3473,6 +3705,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document",
+          "document-file"
         ]
       }
     },
@@ -3519,6 +3755,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document",
+          "document-file"
         ]
       }
     },
@@ -3566,6 +3806,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3613,6 +3856,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3660,6 +3906,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3707,6 +3956,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3754,6 +4006,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3801,6 +4056,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3848,6 +4106,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3875,6 +4136,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3922,6 +4186,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3969,6 +4236,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -4016,6 +4286,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -4063,6 +4336,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -4110,6 +4386,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -4157,6 +4436,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -4204,6 +4486,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -4231,6 +4516,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -4278,6 +4566,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4325,6 +4616,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4372,6 +4666,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4419,6 +4716,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4466,6 +4766,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4513,6 +4816,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4560,6 +4866,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4587,6 +4896,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4634,6 +4946,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4681,6 +4996,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4728,6 +5046,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4775,6 +5096,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4822,6 +5146,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4869,6 +5196,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4916,6 +5246,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4963,6 +5296,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -5010,6 +5346,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5057,6 +5396,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5104,6 +5446,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5151,6 +5496,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5198,6 +5546,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5245,6 +5596,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5292,6 +5646,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5339,6 +5696,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5366,6 +5726,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5413,6 +5776,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5460,6 +5826,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5507,6 +5876,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5554,6 +5926,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5601,6 +5976,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5648,6 +6026,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5675,6 +6056,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5722,6 +6106,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -5769,6 +6156,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -5816,6 +6206,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -5863,6 +6256,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -5910,6 +6306,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -5957,6 +6356,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6004,6 +6406,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6051,6 +6456,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6078,6 +6486,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6125,6 +6536,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6172,6 +6586,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6219,6 +6636,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6266,6 +6686,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6313,6 +6736,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6360,6 +6786,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6387,6 +6816,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6434,6 +6866,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6481,6 +6916,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6528,6 +6966,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6575,6 +7016,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6622,6 +7066,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6669,6 +7116,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6716,6 +7166,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6743,6 +7196,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6790,6 +7246,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6837,6 +7296,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6884,6 +7346,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6931,6 +7396,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6978,6 +7446,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -7025,6 +7496,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -7072,6 +7546,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -7099,6 +7576,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -7146,6 +7626,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -7193,6 +7676,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7240,6 +7726,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7287,6 +7776,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7334,6 +7826,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7381,6 +7876,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7428,6 +7926,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7475,6 +7976,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7522,6 +8026,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7569,6 +8076,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7596,6 +8106,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7643,6 +8156,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7690,6 +8206,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7737,6 +8256,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7784,6 +8306,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7831,6 +8356,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7858,6 +8386,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7905,6 +8436,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -7952,6 +8486,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -7999,6 +8536,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8046,6 +8586,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8093,6 +8636,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8140,6 +8686,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8187,6 +8736,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8214,6 +8766,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8261,6 +8816,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8308,6 +8866,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8355,6 +8916,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8402,6 +8966,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8449,6 +9016,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8496,6 +9066,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8543,6 +9116,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8570,6 +9146,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8617,6 +9196,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -8664,6 +9246,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -8711,6 +9296,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -8758,6 +9346,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -8805,6 +9396,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -8852,6 +9446,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -8899,6 +9496,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -8926,6 +9526,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -8973,6 +9576,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9020,6 +9626,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9067,6 +9676,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9094,6 +9706,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9141,6 +9756,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9188,6 +9806,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9235,6 +9856,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9282,6 +9906,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9329,6 +9956,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9376,6 +10006,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9423,6 +10056,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9470,6 +10106,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9517,6 +10156,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9564,6 +10206,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9611,6 +10256,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9658,6 +10306,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9705,6 +10356,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9732,6 +10386,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9779,6 +10436,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9826,6 +10486,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9873,6 +10536,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9920,6 +10586,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9967,6 +10636,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -10014,6 +10686,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -10041,6 +10716,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -10088,6 +10766,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10135,6 +10816,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10182,6 +10866,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10229,6 +10916,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10276,6 +10966,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10323,6 +11016,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10370,6 +11066,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10397,6 +11096,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10444,6 +11146,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10491,6 +11196,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10538,6 +11246,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10585,6 +11296,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10632,6 +11346,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10679,6 +11396,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10726,6 +11446,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10753,6 +11476,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10800,6 +11526,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -10847,6 +11576,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -10894,6 +11626,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -10941,6 +11676,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -10988,6 +11726,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11035,6 +11776,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11062,6 +11806,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11109,6 +11856,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11156,6 +11906,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11203,6 +11956,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11250,6 +12006,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11297,6 +12056,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11344,6 +12106,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11371,6 +12136,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11418,6 +12186,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11466,6 +12237,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile",
+          "profile"
         ]
       }
     },
@@ -11514,6 +12289,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile",
+          "profile"
         ]
       }
     },
@@ -11561,6 +12340,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -11608,6 +12390,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -11655,6 +12440,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -11702,6 +12490,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -11749,6 +12540,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -11796,6 +12590,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -11843,6 +12640,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -11890,6 +12690,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -11917,6 +12720,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -11964,6 +12770,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12011,6 +12820,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12058,6 +12870,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12105,6 +12920,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12152,6 +12970,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12179,6 +13000,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12226,6 +13050,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12273,6 +13100,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12320,6 +13150,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12367,6 +13200,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12414,6 +13250,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12461,6 +13300,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12508,6 +13350,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12535,6 +13380,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12582,6 +13430,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12629,6 +13480,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12676,6 +13530,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12723,6 +13580,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12770,6 +13630,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12817,6 +13680,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12864,6 +13730,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12891,6 +13760,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12938,6 +13810,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -12985,6 +13860,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13032,6 +13910,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13059,6 +13940,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13106,6 +13990,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13153,6 +14040,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13200,6 +14090,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13247,6 +14140,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13294,6 +14190,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13341,6 +14240,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13388,6 +14290,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13435,6 +14340,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13482,6 +14390,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13507,6 +14418,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13554,6 +14468,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13601,6 +14518,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13648,6 +14568,61 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
+        ]
+      }
+    },
+    "/attempt/chat/create": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Create Attempt Chat Endpoint",
+        "description": "Create a chat within an attempt.",
+        "operationId": "create_attempt_chat_endpoint_attempt_chat_create_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAttemptChatApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateAttemptChatApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -13696,6 +14671,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -13744,6 +14723,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -13792,6 +14775,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -13840,6 +14827,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -13888,6 +14879,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -13936,6 +14931,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -13984,6 +14983,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14032,6 +15035,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14080,6 +15087,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14128,6 +15139,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14176,6 +15191,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14224,6 +15243,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14272,6 +15295,250 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/get": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Get",
+        "description": "Get hydrated resources for chat bundle customization.",
+        "operationId": "chat_get_attempt_chat_get_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetChatResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/group": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Group Chat",
+        "description": "Resolve or create a chat group with optional naming.",
+        "operationId": "group_chat_attempt_chat_group_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupChatApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupChatApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/refresh": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Refresh",
+        "description": "Refresh chat materialized views and invalidate caches.",
+        "operationId": "chat_refresh_attempt_chat_refresh_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/export": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Export Chat",
+        "description": "Export a single chat as a clean, denormalized CSV.",
+        "operationId": "export_chat_attempt_chat_export_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportChatApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportChatApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/context": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Get Chat Context",
+        "description": "Get page context for the chat analytics.\n\nReturns docs + profile identity + evaluated permissions in a single call.\nSuperset of /docs \u2014 clients can migrate from /docs to /context incrementally.",
+        "operationId": "get_chat_context_attempt_chat_context_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposedContextResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14319,6 +15586,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -14346,6 +15616,61 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
+        ]
+      }
+    },
+    "/attempt/home/start": {
+      "post": {
+        "tags": [
+          "attempt",
+          "home"
+        ],
+        "summary": "Start Home Attempt",
+        "description": "Create a new attempt from a home entry.",
+        "operationId": "start_home_attempt_attempt_home_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HomeStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptStartResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "home"
         ]
       }
     },
@@ -14394,6 +15719,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "home"
         ]
       }
     },
@@ -14442,6 +15771,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "home"
         ]
       }
     },
@@ -14470,6 +15803,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "home"
         ]
       }
     },
@@ -14498,6 +15835,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "home"
         ]
       }
     },
@@ -14546,6 +15887,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "home"
         ]
       }
     },
@@ -14594,6 +15939,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "home"
         ]
       }
     },
@@ -14642,6 +15991,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "home"
         ]
       }
     },
@@ -14690,6 +16043,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "home"
         ]
       }
     },
@@ -14738,6 +16095,62 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "home"
+        ]
+      }
+    },
+    "/attempt/practice/start": {
+      "post": {
+        "tags": [
+          "attempt",
+          "practice"
+        ],
+        "summary": "Start Practice Attempt",
+        "description": "Create a new attempt from a practice entry.",
+        "operationId": "start_practice_attempt_attempt_practice_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PracticeStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptStartResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "practice"
         ]
       }
     },
@@ -14786,6 +16199,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "practice"
         ]
       }
     },
@@ -14834,6 +16251,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "practice"
         ]
       }
     },
@@ -14862,6 +16283,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "practice"
         ]
       }
     },
@@ -14890,6 +16315,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "practice"
         ]
       }
     },
@@ -14938,6 +16367,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "practice"
         ]
       }
     },
@@ -14986,6 +16419,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "practice"
         ]
       }
     },
@@ -15034,6 +16471,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "practice"
         ]
       }
     },
@@ -15082,6 +16523,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "practice"
         ]
       }
     },
@@ -15130,6 +16575,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "practice"
         ]
       }
     },
@@ -15141,34 +16590,12 @@
         ],
         "summary": "Get Dashboard",
         "operationId": "get_dashboard_attempt_dashboard_get_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DashboardRequest"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DashboardBundleResponse-Output"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": {}
               }
             }
           }
@@ -15177,6 +16604,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "dashboard"
         ]
       }
     },
@@ -15225,6 +16656,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "dashboard"
         ]
       }
     },
@@ -15253,6 +16688,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "dashboard"
         ]
       }
     },
@@ -15281,6 +16720,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "dashboard"
         ]
       }
     },
@@ -15329,6 +16772,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "dashboard"
         ]
       }
     },
@@ -15377,6 +16824,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "dashboard"
         ]
       }
     },
@@ -15425,6 +16876,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "dashboard"
         ]
       }
     },
@@ -15473,6 +16928,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "dashboard"
         ]
       }
     },
@@ -15521,6 +16980,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "dashboard"
         ]
       }
     },
@@ -15568,6 +17031,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "leaderboard"
         ]
       }
     },
@@ -15616,6 +17083,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "leaderboard"
         ]
       }
     },
@@ -15644,6 +17115,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "leaderboard"
         ]
       }
     },
@@ -15672,6 +17147,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "leaderboard"
         ]
       }
     },
@@ -15720,6 +17199,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "leaderboard"
         ]
       }
     },
@@ -15768,6 +17251,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "leaderboard"
         ]
       }
     },
@@ -15816,6 +17303,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "leaderboard"
         ]
       }
     },
@@ -15864,6 +17355,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "leaderboard"
         ]
       }
     },
@@ -15912,6 +17407,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "leaderboard"
         ]
       }
     },
@@ -15960,6 +17459,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "record"
         ]
       }
     },
@@ -16008,6 +17511,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "record"
         ]
       }
     },
@@ -16036,6 +17543,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "record"
         ]
       }
     },
@@ -16084,6 +17595,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "record"
         ]
       }
     },
@@ -16132,6 +17647,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "record"
         ]
       }
     },
@@ -16180,6 +17699,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "record"
         ]
       }
     },
@@ -16228,6 +17751,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "record"
         ]
       }
     },
@@ -16276,6 +17803,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "record"
         ]
       }
     },
@@ -16324,6 +17855,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "record"
         ]
       }
     },
@@ -16352,6 +17887,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "report"
         ]
       }
     },
@@ -16400,6 +17939,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "report"
         ]
       }
     },
@@ -16448,6 +17991,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "report"
         ]
       }
     },
@@ -16496,6 +18043,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "report"
         ]
       }
     },
@@ -16544,6 +18095,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "report"
         ]
       }
     },
@@ -16592,6 +18147,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "report"
         ]
       }
     },
@@ -16620,6 +18179,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "report"
         ]
       }
     },
@@ -16668,6 +18231,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "report"
         ]
       }
     },
@@ -16728,7 +18295,11 @@
               }
             }
           }
-        }
+        },
+        "x-cache-tags": [
+          "attempt",
+          "attempt-audio"
+        ]
       }
     },
     "/attempt/audio/download": {
@@ -16774,6 +18345,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-audio"
         ]
       }
     },
@@ -16820,6 +18395,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-image"
         ]
       }
     },
@@ -16866,6 +18445,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-video"
         ]
       }
     },
@@ -16912,6 +18495,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-text"
         ]
       }
     },
@@ -16958,6 +18545,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-file"
         ]
       }
     },
@@ -17004,6 +18595,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-file"
         ]
       }
     },
@@ -17051,6 +18646,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17098,6 +18696,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17145,6 +18746,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17192,6 +18796,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17219,6 +18826,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17266,6 +18876,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17313,6 +18926,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17360,6 +18976,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17407,6 +19026,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17454,6 +19076,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17501,6 +19126,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17548,6 +19176,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17595,6 +19226,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17644,6 +19278,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17693,6 +19330,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17740,6 +19380,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17787,6 +19430,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17834,6 +19480,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17881,6 +19530,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17926,6 +19578,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -17971,6 +19626,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -18019,6 +19677,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "benchmark"
         ]
       }
     },
@@ -18067,6 +19729,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "benchmark"
         ]
       }
     },
@@ -18095,6 +19761,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "benchmark"
         ]
       }
     },
@@ -18123,6 +19793,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "benchmark"
         ]
       }
     },
@@ -18171,6 +19845,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "benchmark"
         ]
       }
     },
@@ -18219,6 +19897,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "benchmark"
         ]
       }
     },
@@ -18267,6 +19949,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "benchmark"
         ]
       }
     },
@@ -18315,6 +20001,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "benchmark"
         ]
       }
     },
@@ -18363,6 +20053,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "benchmark"
         ]
       }
     },
@@ -18411,6 +20105,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -18459,6 +20157,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -18507,6 +20209,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -18555,6 +20261,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -18603,6 +20313,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -18651,6 +20365,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -18679,6 +20397,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -18707,6 +20429,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -18755,6 +20481,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -18803,6 +20533,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -18851,6 +20585,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -18899,6 +20637,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "session"
         ]
       }
     },
@@ -18927,6 +20669,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "session"
         ]
       }
     },
@@ -18975,6 +20721,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "session"
         ]
       }
     },
@@ -19023,6 +20773,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "session"
         ]
       }
     },
@@ -19071,6 +20825,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "session"
         ]
       }
     },
@@ -19119,6 +20877,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "session"
         ]
       }
     },
@@ -19167,6 +20929,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "session"
         ]
       }
     },
@@ -19215,6 +20981,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "session"
         ]
       }
     },
@@ -19263,6 +21033,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group"
         ]
       }
     },
@@ -19311,6 +21085,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group"
         ]
       }
     },
@@ -19339,6 +21117,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group"
         ]
       }
     },
@@ -19387,6 +21169,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group"
         ]
       }
     },
@@ -19435,6 +21221,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group"
         ]
       }
     },
@@ -19484,6 +21274,11 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group",
+          "group"
         ]
       }
     },
@@ -19532,6 +21327,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group"
         ]
       }
     },
@@ -19580,6 +21379,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group"
         ]
       }
     },
@@ -19628,6 +21431,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group"
         ]
       }
     },
@@ -19676,6 +21483,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group"
         ]
       }
     },
@@ -19723,6 +21534,11 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group",
+          "group-image"
         ]
       }
     },
@@ -19770,6 +21586,11 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group",
+          "group-video"
         ]
       }
     },
@@ -19817,6 +21638,11 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group",
+          "group-text"
         ]
       }
     },
@@ -19864,6 +21690,11 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group",
+          "group-file"
         ]
       }
     },
@@ -19911,6 +21742,11 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group",
+          "group-file"
         ]
       }
     },
@@ -19958,6 +21794,11 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group",
+          "group-audio"
         ]
       }
     },
@@ -20005,6 +21846,11 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group",
+          "group-call"
         ]
       }
     },
@@ -20053,6 +21899,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "health"
         ]
       }
     },
@@ -20101,6 +21951,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "health"
         ]
       }
     },
@@ -20129,6 +21983,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "health"
         ]
       }
     },
@@ -20157,6 +22015,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "health"
         ]
       }
     },
@@ -20205,6 +22067,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "health"
         ]
       }
     },
@@ -20253,6 +22119,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "health"
         ]
       }
     },
@@ -20301,6 +22171,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "health"
         ]
       }
     },
@@ -20349,6 +22223,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "health"
         ]
       }
     },
@@ -20396,6 +22274,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "activity"
         ]
       }
     },
@@ -20444,6 +22326,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "activity"
         ]
       }
     },
@@ -20472,6 +22358,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "activity"
         ]
       }
     },
@@ -20520,6 +22410,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "activity"
         ]
       }
     },
@@ -20548,6 +22442,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "activity"
         ]
       }
     },
@@ -20596,6 +22494,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "activity"
         ]
       }
     },
@@ -20644,6 +22546,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "activity"
         ]
       }
     },
@@ -20692,6 +22598,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "activity"
         ]
       }
     },
@@ -20740,6 +22650,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "activity"
         ]
       }
     },
@@ -20789,6 +22703,11 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "activity",
+          "activity"
         ]
       }
     },
@@ -20837,6 +22756,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "pricing"
         ]
       }
     },
@@ -20885,6 +22808,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "pricing"
         ]
       }
     },
@@ -20913,6 +22840,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "pricing"
         ]
       }
     },
@@ -20941,6 +22872,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "pricing"
         ]
       }
     },
@@ -20989,6 +22924,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "pricing"
         ]
       }
     },
@@ -21037,6 +22976,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "pricing"
         ]
       }
     },
@@ -21085,6 +23028,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "pricing"
         ]
       }
     },
@@ -21133,6 +23080,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "pricing"
         ]
       }
     },
@@ -21181,6 +23132,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "pricing"
         ]
       }
     },
@@ -21398,7 +23353,10 @@
               }
             }
           }
-        }
+        },
+        "x-cache-tags": [
+          "stream"
+        ]
       }
     },
     "/stream/ActivityRequest": {
@@ -21449,6 +23407,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "activity"
         ]
       }
     },
@@ -21500,6 +23462,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "activity"
         ]
       }
     },
@@ -21551,6 +23517,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -21602,6 +23572,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -21653,6 +23627,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -21704,6 +23682,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -21755,6 +23737,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -21806,6 +23792,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -21857,6 +23847,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -21908,6 +23902,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -21959,6 +23957,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22010,6 +24012,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22061,6 +24067,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22112,6 +24122,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22163,6 +24177,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22214,6 +24232,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22265,6 +24287,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22316,6 +24342,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22367,6 +24397,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22418,6 +24452,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22469,6 +24507,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22520,6 +24562,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22571,6 +24617,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22622,6 +24672,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22673,6 +24727,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22724,6 +24782,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22775,6 +24837,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22826,6 +24892,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22877,6 +24947,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22928,6 +25002,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -22979,6 +25057,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -23030,6 +25112,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -23081,6 +25167,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -23132,6 +25222,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -23183,6 +25277,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -23234,6 +25332,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -23285,6 +25387,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "benchmark"
         ]
       }
     },
@@ -23336,6 +25442,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "benchmark"
         ]
       }
     },
@@ -23387,6 +25497,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "session"
         ]
       }
     },
@@ -23438,6 +25552,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -23489,6 +25607,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -23540,6 +25662,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -23591,6 +25717,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -23642,6 +25772,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -23693,6 +25827,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -23744,6 +25882,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -23795,6 +25937,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -23846,6 +25992,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -23897,6 +26047,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -23948,6 +26102,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -23999,6 +26157,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -24050,6 +26212,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -24101,6 +26267,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -24152,6 +26322,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -24203,6 +26377,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -24254,6 +26432,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -24305,6 +26487,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -24356,6 +26542,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -24407,6 +26597,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -24458,6 +26652,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -24509,6 +26707,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -24560,6 +26762,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -24611,6 +26817,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -24662,6 +26872,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -24713,6 +26927,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -24764,6 +26982,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -24815,6 +27037,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -24866,6 +27092,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -24917,6 +27147,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -24968,6 +27202,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -25019,6 +27257,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -25070,6 +27312,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -25121,6 +27367,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -25172,6 +27422,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "dashboard"
         ]
       }
     },
@@ -25223,6 +27477,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "dashboard"
         ]
       }
     },
@@ -25274,6 +27532,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -25325,6 +27587,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -25376,6 +27642,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -25427,6 +27697,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -25478,6 +27752,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -25529,6 +27807,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -25580,6 +27862,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -25631,6 +27917,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -25682,6 +27972,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -25733,6 +28027,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -25784,6 +28082,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -25835,6 +28137,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -25886,6 +28192,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -25937,6 +28247,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -25988,6 +28302,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -26039,6 +28357,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -26090,6 +28412,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -26141,6 +28467,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -26192,6 +28522,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -26243,6 +28577,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -26294,6 +28632,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -26345,6 +28687,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -26396,6 +28742,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -26447,6 +28797,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -26498,6 +28852,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -26549,6 +28907,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -26600,6 +28962,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -26651,6 +29017,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -26702,6 +29072,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -26753,6 +29127,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -26804,6 +29182,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -26855,6 +29237,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -26906,6 +29292,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -26957,6 +29347,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -27008,6 +29402,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -27059,6 +29457,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -27110,6 +29512,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -27161,6 +29567,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -27212,6 +29622,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -27263,6 +29677,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -27314,6 +29732,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -27365,6 +29787,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -27416,6 +29842,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -27467,6 +29897,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -27518,6 +29952,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -27569,6 +30007,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -27620,6 +30062,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -27671,6 +30117,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -27722,6 +30172,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -27773,6 +30227,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -27824,6 +30282,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -27875,6 +30337,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -27926,6 +30392,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -27977,6 +30447,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -28028,6 +30502,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -28079,6 +30557,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -28130,6 +30612,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -28181,6 +30667,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -28232,6 +30722,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -28283,6 +30777,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -28334,6 +30832,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -28385,6 +30887,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -28436,6 +30942,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -28487,6 +30997,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -28538,6 +31052,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -28589,6 +31107,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -28640,6 +31162,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -28691,6 +31217,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -28742,6 +31272,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -28793,6 +31327,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -28844,6 +31382,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -28895,6 +31437,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -28946,6 +31492,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -28997,6 +31547,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -29048,6 +31602,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -29099,6 +31657,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -29150,6 +31712,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -29201,6 +31767,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -29252,6 +31822,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -29303,6 +31877,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -29354,6 +31932,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -29405,6 +31987,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -29456,6 +32042,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -29507,6 +32097,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -29558,6 +32152,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -29609,6 +32207,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -29660,6 +32262,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -29711,6 +32317,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -29762,6 +32372,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -29813,6 +32427,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -29864,6 +32482,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -29915,6 +32537,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -29966,6 +32592,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -30017,6 +32647,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -30068,6 +32702,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -30119,6 +32757,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -30170,6 +32812,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -30221,6 +32867,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -30272,6 +32922,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -30323,6 +32977,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -30374,6 +33032,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -30425,6 +33087,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -30476,6 +33142,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -30527,6 +33197,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -30578,6 +33252,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -30629,6 +33307,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -30680,6 +33362,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -30731,6 +33417,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -30782,6 +33472,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -30833,6 +33527,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -30884,6 +33582,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -30935,6 +33637,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -30986,6 +33692,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -31037,6 +33747,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -31088,6 +33802,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -31139,6 +33857,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -31190,6 +33912,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -31241,6 +33967,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "chat"
         ]
       }
     },
@@ -31292,6 +34022,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "chat"
         ]
       }
     },
@@ -31343,6 +34077,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -31394,6 +34132,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -31445,6 +34187,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -31496,6 +34242,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -31547,6 +34297,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -31598,6 +34352,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -31649,6 +34407,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -31700,6 +34462,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -31751,6 +34517,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -31802,6 +34572,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -31853,6 +34627,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -31904,6 +34682,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -31955,6 +34737,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -32006,6 +34792,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -32057,6 +34847,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -32108,6 +34902,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -32159,6 +34957,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -32210,6 +35012,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "home"
         ]
       }
     },
@@ -32261,6 +35067,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "home"
         ]
       }
     },
@@ -32312,6 +35122,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -32363,6 +35177,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -32414,6 +35232,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -32465,6 +35287,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -32516,6 +35342,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -32567,6 +35397,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -32618,6 +35452,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -32669,6 +35507,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -32720,6 +35562,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -32771,6 +35617,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "practice"
         ]
       }
     },
@@ -32822,6 +35672,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "practice"
         ]
       }
     },
@@ -32873,6 +35727,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -32924,6 +35782,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -32975,6 +35837,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -33026,6 +35892,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -33077,6 +35947,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -33128,6 +36002,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -33179,6 +36057,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -33230,6 +36112,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -33281,6 +36167,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -33332,6 +36222,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -33383,6 +36277,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -33434,6 +36332,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -33485,6 +36387,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "session"
         ]
       }
     },
@@ -33536,6 +36442,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "session"
         ]
       }
     },
@@ -33587,6 +36497,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -33638,6 +36552,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -33689,6 +36607,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -33740,6 +36662,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -33791,6 +36717,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -33842,6 +36772,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -33893,6 +36827,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "invocation"
         ]
       }
     },
@@ -33944,6 +36882,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "invocation"
         ]
       }
     },
@@ -33995,6 +36937,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34046,6 +36992,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34097,6 +37047,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -34148,6 +37102,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -34199,6 +37157,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -34250,6 +37212,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "health"
         ]
       }
     },
@@ -34301,6 +37267,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "health"
         ]
       }
     },
@@ -34352,6 +37322,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "leaderboard"
         ]
       }
     },
@@ -34403,6 +37377,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "leaderboard"
         ]
       }
     },
@@ -34454,6 +37432,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "activity"
         ]
       }
     },
@@ -34505,6 +37487,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -34556,6 +37542,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -34607,6 +37597,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -34658,6 +37652,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -34709,6 +37707,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -34760,6 +37762,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -34811,6 +37817,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -34862,6 +37872,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -34913,6 +37927,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -34964,6 +37982,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -35015,6 +38037,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -35066,6 +38092,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -35117,6 +38147,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -35168,6 +38202,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -35219,6 +38257,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -35270,6 +38312,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -35321,6 +38367,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -35372,6 +38422,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -35423,6 +38477,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -35474,6 +38532,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -35525,6 +38587,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -35576,6 +38642,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -35627,6 +38697,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -35678,6 +38752,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -35729,6 +38807,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -35780,6 +38862,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -35831,6 +38917,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -35882,6 +38972,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -35933,6 +39027,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -35984,6 +39082,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -36035,6 +39137,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -36086,6 +39192,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -36137,6 +39247,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -36188,6 +39302,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -36239,6 +39357,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -36290,6 +39412,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "pricing"
         ]
       }
     },
@@ -36341,6 +39467,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "pricing"
         ]
       }
     },
@@ -36392,6 +39522,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -36443,6 +39577,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "record"
         ]
       }
     },
@@ -36494,6 +39632,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -36545,6 +39687,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -36596,6 +39742,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -36647,6 +39797,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -36698,6 +39852,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -36749,6 +39907,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -36800,6 +39962,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -36851,6 +40017,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -36902,6 +40072,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -36953,6 +40127,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -37004,6 +40182,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -37055,6 +40237,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -37106,6 +40292,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -37157,6 +40347,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -37208,6 +40402,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -37259,6 +40457,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -37310,6 +40512,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -37361,6 +40567,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -37412,6 +40622,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -37463,6 +40677,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -37514,6 +40732,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -37565,6 +40787,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -37616,6 +40842,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -37667,6 +40897,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -37718,6 +40952,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -37769,6 +41007,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -37820,6 +41062,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -37871,6 +41117,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -37922,6 +41172,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -37973,6 +41227,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -38024,6 +41282,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -38075,6 +41337,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -38126,6 +41392,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -38177,6 +41447,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -38228,6 +41502,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -38279,6 +41557,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -38330,6 +41612,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -38381,6 +41667,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -38432,6 +41722,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -38483,6 +41777,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -38534,6 +41832,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -38585,6 +41887,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -38636,6 +41942,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -38687,6 +41997,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -38738,6 +42052,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -38789,6 +42107,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -38840,6 +42162,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -38891,6 +42217,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -38942,6 +42272,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -38993,6 +42327,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -39044,6 +42382,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -39095,6 +42437,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -39685,7 +43031,10 @@
               }
             }
           }
-        }
+        },
+        "x-cache-tags": [
+          "docs-proxy"
+        ]
       }
     }
   },
@@ -42954,6 +46303,26 @@
         "type": "object",
         "title": "AttemptStartPayload",
         "description": "Client-to-server: create a new attempt."
+      },
+      "AttemptStartResponse": {
+        "properties": {
+          "attempt_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Attempt Id"
+          },
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "attempt_id",
+          "chat_id"
+        ],
+        "title": "AttemptStartResponse"
       },
       "AttemptStartedEvent": {
         "properties": {
@@ -49410,6 +52779,441 @@
         "type": "object",
         "title": "CreateAgentItem",
         "description": "Single agent item for create \u2014 no agent_id.\n\nRequired fields (name): provide ID or value."
+      },
+      "CreateAttemptChatApiRequest": {
+        "properties": {
+          "attempt_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Attempt Id"
+          },
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "default": ""
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position",
+            "default": 0
+          },
+          "time_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Limit"
+          },
+          "negative_time": {
+            "type": "boolean",
+            "title": "Negative Time",
+            "default": false
+          },
+          "audio_enabled": {
+            "type": "boolean",
+            "title": "Audio Enabled",
+            "default": false
+          },
+          "text_enabled": {
+            "type": "boolean",
+            "title": "Text Enabled",
+            "default": true
+          },
+          "hints_enabled": {
+            "type": "boolean",
+            "title": "Hints Enabled",
+            "default": false
+          },
+          "copy_paste_allowed": {
+            "type": "boolean",
+            "title": "Copy Paste Allowed",
+            "default": true
+          },
+          "show_images": {
+            "type": "boolean",
+            "title": "Show Images",
+            "default": false
+          },
+          "show_objectives": {
+            "type": "boolean",
+            "title": "Show Objectives",
+            "default": false
+          },
+          "show_problem_statement": {
+            "type": "boolean",
+            "title": "Show Problem Statement",
+            "default": false
+          },
+          "analyses_enabled": {
+            "type": "boolean",
+            "title": "Analyses Enabled",
+            "default": false
+          },
+          "improvements_enabled": {
+            "type": "boolean",
+            "title": "Improvements Enabled",
+            "default": false
+          },
+          "replacements_enabled": {
+            "type": "boolean",
+            "title": "Replacements Enabled",
+            "default": false
+          },
+          "strengths_enabled": {
+            "type": "boolean",
+            "title": "Strengths Enabled",
+            "default": false
+          },
+          "use_custom": {
+            "type": "boolean",
+            "title": "Use Custom",
+            "default": false
+          },
+          "use_previous": {
+            "type": "boolean",
+            "title": "Use Previous",
+            "default": false
+          },
+          "problem_statement_enabled": {
+            "type": "boolean",
+            "title": "Problem Statement Enabled",
+            "default": false
+          },
+          "objectives_enabled": {
+            "type": "boolean",
+            "title": "Objectives Enabled",
+            "default": false
+          },
+          "video_enabled": {
+            "type": "boolean",
+            "title": "Video Enabled",
+            "default": false
+          },
+          "images_enabled": {
+            "type": "boolean",
+            "title": "Images Enabled",
+            "default": false
+          },
+          "questions_enabled": {
+            "type": "boolean",
+            "title": "Questions Enabled",
+            "default": false
+          },
+          "assistant_persona_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assistant Persona Ids"
+          },
+          "rubrics_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubrics Ids"
+          },
+          "standards_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Standards Ids"
+          },
+          "standard_groups_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Standard Groups Ids"
+          },
+          "departments_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departments Ids"
+          },
+          "personas_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Personas Ids"
+          },
+          "problem_statements_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Statements Ids"
+          },
+          "objectives_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objectives Ids"
+          },
+          "questions_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questions Ids"
+          },
+          "options_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options Ids"
+          },
+          "videos_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Videos Ids"
+          },
+          "images_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Images Ids"
+          },
+          "documents_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Documents Ids"
+          },
+          "parameter_fields_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Fields Ids"
+          },
+          "names_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Names Ids"
+          },
+          "descriptions_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descriptions Ids"
+          },
+          "parameters_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameters Ids"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "attempt_id",
+          "chat_id"
+        ],
+        "title": "CreateAttemptChatApiRequest",
+        "description": "Create an attempt_chat from a chat template + resource IDs."
+      },
+      "CreateAttemptChatApiResponse": {
+        "properties": {
+          "attempt_chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Attempt Chat Id"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "attempt_chat_id"
+        ],
+        "title": "CreateAttemptChatApiResponse"
       },
       "CreateAuthApiRequest": {
         "properties": {
@@ -61314,6 +65118,78 @@
         ],
         "title": "ExportBenchmarkApiResponse",
         "description": "Response model for benchmark export."
+      },
+      "ExportChatApiRequest": {
+        "properties": {
+          "chat_entry_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Entry Id"
+          },
+          "attempt_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attempt Id"
+          },
+          "draft_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_entry_id"
+        ],
+        "title": "ExportChatApiRequest",
+        "description": "Request model for chat export."
+      },
+      "ExportChatApiResponse": {
+        "properties": {
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "Exported file content"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Name of the exported file"
+          },
+          "mime_type": {
+            "type": "string",
+            "title": "Mime Type",
+            "description": "MIME type of the exported file"
+          },
+          "row_count": {
+            "type": "integer",
+            "title": "Row Count",
+            "description": "Number of rows in the export"
+          }
+        },
+        "type": "object",
+        "required": [
+          "content",
+          "file_name",
+          "mime_type",
+          "row_count"
+        ],
+        "title": "ExportChatApiResponse",
+        "description": "Response model for chat export."
       },
       "ExportCohortApiResponse": {
         "properties": {
@@ -84034,6 +87910,79 @@
         "title": "GroupCall",
         "description": "Tool call within a message."
       },
+      "GroupChatApiRequest": {
+        "properties": {
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id",
+            "description": "Existing group UUID (omit to create or reuse via time window)"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Optional name for the group"
+          }
+        },
+        "type": "object",
+        "title": "GroupChatApiRequest",
+        "description": "Request model for chat group endpoint."
+      },
+      "GroupChatApiResponse": {
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Group Id",
+            "description": "Resolved or newly created group UUID"
+          },
+          "group_name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Name Id",
+            "description": "UUID of the created group_names entry (if name was provided)"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "The name that was set (if provided)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "group_id"
+        ],
+        "title": "GroupChatApiResponse",
+        "description": "Response model for chat group endpoint."
+      },
       "GroupCohortApiRequest": {
         "properties": {
           "group_id": {
@@ -87383,6 +91332,20 @@
         "type": "object",
         "title": "HistoryResponse",
         "description": "Paginated attempt history list."
+      },
+      "HomeStartRequest": {
+        "properties": {
+          "home_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Home Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "home_id"
+        ],
+        "title": "HomeStartRequest"
       },
       "ImageDownloadAttemptApiRequest": {
         "properties": {
@@ -103673,6 +107636,25 @@
         "type": "object",
         "title": "PersonaVoiceResource",
         "description": "Voice resource for persona."
+      },
+      "PracticeStartRequest": {
+        "properties": {
+          "practice_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Practice Id"
+          },
+          "infinite_mode": {
+            "type": "boolean",
+            "title": "Infinite Mode",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "practice_id"
+        ],
+        "title": "PracticeStartRequest"
       },
       "PreviousAttemptApiResponse": {
         "properties": {

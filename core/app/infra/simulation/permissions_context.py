@@ -36,8 +36,11 @@ from app.tools.resources.simulations.create import (
 )
 
 if TYPE_CHECKING:
-    from app.infra.simulation.create import CreateSimulationItem, SimulationFieldError
-    from app.infra.simulation.types import UpdateSimulationItem
+    from app.infra.simulation.types import (
+        CreateSimulationItem,
+        SimulationFieldError,
+        UpdateSimulationItem,
+    )
 
 
 @dataclass(frozen=True)
@@ -115,7 +118,7 @@ async def resolve_simulation_values(
 
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.simulation.create import SimulationFieldError
+    from app.infra.simulation.types import SimulationFieldError
 
     errors: list[SimulationFieldError] = []
 

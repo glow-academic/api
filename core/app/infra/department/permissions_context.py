@@ -34,11 +34,9 @@ from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
 
 if TYPE_CHECKING:
-    from app.infra.department.create import (
+    from app.infra.department.types import (
         CreateDepartmentItem,
         DepartmentFieldError,
-    )
-    from app.infra.department.types import (
         UpdateDepartmentItem,
     )
 
@@ -108,7 +106,7 @@ async def resolve_department_values(
 
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.department.create import DepartmentFieldError
+    from app.infra.department.types import DepartmentFieldError
 
     errors: list[DepartmentFieldError] = []
 

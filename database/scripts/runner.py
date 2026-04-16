@@ -454,8 +454,8 @@ async def _run_provider_module_seeds(
     redis: Redis,
 ) -> None:
     """Module 02 — Create providers via _impl."""
-    from app.infra.provider.create import CreateProviderItem, create_provider_impl
-    from app.infra.provider.types import CreateProviderApiRequest
+    from app.infra.provider.create import create_provider_impl
+    from app.infra.provider.types import CreateProviderApiRequest, CreateProviderItem
     from database.seeds.providers import providers
 
     items = [CreateProviderItem(**d) for d in providers]
@@ -473,8 +473,8 @@ async def _run_model_module_seeds(
     redis: Redis,
 ) -> None:
     """Module 03 — Create models via _impl."""
-    from app.infra.model.create import CreateModelItem, create_model_impl
-    from app.infra.model.types import CreateModelApiRequest
+    from app.infra.model.create import create_model_impl
+    from app.infra.model.types import CreateModelApiRequest, CreateModelItem
     from database.seeds.models import models
 
     items = [CreateModelItem(**d) for d in models]
@@ -521,8 +521,8 @@ async def _run_agent_module_seeds(
     redis: Redis,
 ) -> None:
     """Module 04 — Create agents via _impl."""
-    from app.infra.agent.create import CreateAgentItem, create_agent_impl
-    from app.infra.agent.types import CreateAgentApiRequest
+    from app.infra.agent.create import create_agent_impl
+    from app.infra.agent.types import CreateAgentApiRequest, CreateAgentItem
     from database.seeds.agents import agents
 
     items = [CreateAgentItem(**d) for d in agents]
@@ -540,8 +540,8 @@ async def _run_auth_module_seeds(
     redis: Redis,
 ) -> None:
     """Module 06 — Create auths via _impl."""
-    from app.infra.auth.create import CreateAuthItem, create_auth_impl
-    from app.infra.auth.types import CreateAuthApiRequest
+    from app.infra.auth.create import create_auth_impl
+    from app.infra.auth.types import CreateAuthApiRequest, CreateAuthItem
     from database.seeds.auths import auths
 
     items = [CreateAuthItem(**d) for d in auths]
@@ -559,8 +559,8 @@ async def _run_eval_module_seeds(
     redis: Redis,
 ) -> None:
     """Module 08 — Create evals via _impl."""
-    from app.infra.eval.create import CreateEvalItem, create_eval_impl
-    from app.infra.eval.types import CreateEvalApiRequest
+    from app.infra.eval.create import create_eval_impl
+    from app.infra.eval.types import CreateEvalApiRequest, CreateEvalItem
     from database.seeds.evals import evals
 
     items = [CreateEvalItem(**d) for d in evals]
@@ -593,8 +593,8 @@ async def _run_rubric_module_seeds(
     redis: Redis,
 ) -> None:
     """Module 07 — Create rubrics via _impl."""
-    from app.infra.rubric.create import CreateRubricItem, create_rubric_impl
-    from app.infra.rubric.types import CreateRubricApiRequest
+    from app.infra.rubric.create import create_rubric_impl
+    from app.infra.rubric.types import CreateRubricApiRequest, CreateRubricItem
     from database.seeds.rubrics import rubrics
 
     items = [CreateRubricItem(**d) for d in rubrics]
@@ -623,8 +623,8 @@ async def _run_document_seeds(
     document_defs: list[dict],
 ) -> list[UUID]:
     """Run document seed definitions through create_document_impl."""
-    from app.infra.document.create import CreateDocumentItem, create_document_impl
-    from app.infra.document.types import CreateDocumentApiRequest
+    from app.infra.document.create import create_document_impl
+    from app.infra.document.types import CreateDocumentApiRequest, CreateDocumentItem
 
     items = [CreateDocumentItem(**d) for d in document_defs]
 
@@ -656,11 +656,8 @@ async def _run_department_seeds(
     department_defs: list[dict],
 ) -> list[UUID]:
     """Run department seed definitions through create_department_impl."""
-    from app.infra.department.create import (
-        CreateDepartmentItem,
-        create_department_impl,
-    )
-    from app.infra.department.types import CreateDepartmentApiRequest
+    from app.infra.department.create import create_department_impl
+    from app.infra.department.types import CreateDepartmentApiRequest, CreateDepartmentItem
 
     items = [CreateDepartmentItem(**d) for d in department_defs]
 
@@ -692,8 +689,8 @@ async def _run_persona_seeds(
     persona_defs: list[dict],
 ) -> list[UUID]:
     """Run persona seed definitions through create_persona_impl."""
-    from app.infra.persona.create import CreatePersonaItem, create_persona_impl
-    from app.infra.persona.types import CreatePersonaApiRequest
+    from app.infra.persona.create import create_persona_impl
+    from app.infra.persona.types import CreatePersonaApiRequest, CreatePersonaItem
 
     items = [CreatePersonaItem(**p) for p in persona_defs]
 
@@ -726,8 +723,8 @@ async def _run_scenario_seeds(
     scenario_defs: list[dict],
 ) -> list[UUID]:
     """Run scenario seed definitions through create_scenario_impl."""
-    from app.infra.scenario.create import CreateScenarioItem, create_scenario_impl
-    from app.infra.scenario.types import CreateScenarioApiRequest
+    from app.infra.scenario.create import create_scenario_impl
+    from app.infra.scenario.types import CreateScenarioApiRequest, CreateScenarioItem
 
     items = [CreateScenarioItem(**s) for s in scenario_defs]
 
@@ -759,11 +756,8 @@ async def _run_simulation_seeds(
     simulation_defs: list[dict],
 ) -> list[UUID]:
     """Run simulation seed definitions through create_simulation_impl."""
-    from app.infra.simulation.create import (
-        CreateSimulationItem,
-        create_simulation_impl,
-    )
-    from app.infra.simulation.types import CreateSimulationApiRequest
+    from app.infra.simulation.create import create_simulation_impl
+    from app.infra.simulation.types import CreateSimulationApiRequest, CreateSimulationItem
 
     items = [CreateSimulationItem(**s) for s in simulation_defs]
 
@@ -821,8 +815,8 @@ async def _run_field_seeds(
     field_defs: list[dict],
 ) -> list[UUID]:
     """Run field seed definitions through create_field_impl."""
-    from app.infra.field.create import CreateFieldItem, create_field_impl
-    from app.infra.field.types import CreateFieldApiRequest
+    from app.infra.field.create import create_field_impl
+    from app.infra.field.types import CreateFieldApiRequest, CreateFieldItem
 
     items = [CreateFieldItem(**f) for f in field_defs]
 
@@ -899,11 +893,8 @@ async def _run_parameter_seeds(
     parameter_defs: list[dict],
 ) -> list[UUID]:
     """Run parameter seed definitions through create_parameter_impl."""
-    from app.infra.parameter.create import (
-        CreateParameterItem,
-        create_parameter_impl,
-    )
-    from app.infra.parameter.types import CreateParameterApiRequest
+    from app.infra.parameter.create import create_parameter_impl
+    from app.infra.parameter.types import CreateParameterApiRequest, CreateParameterItem
 
     items = [CreateParameterItem(**p) for p in parameter_defs]
 
@@ -1007,8 +998,8 @@ async def _run_rubric_seeds(
     rubric_defs: list[dict],
 ) -> list[UUID]:
     """Run rubric seed definitions through create_rubric_impl."""
-    from app.infra.rubric.create import CreateRubricItem, create_rubric_impl
-    from app.infra.rubric.types import CreateRubricApiRequest
+    from app.infra.rubric.create import create_rubric_impl
+    from app.infra.rubric.types import CreateRubricApiRequest, CreateRubricItem
 
     items = [CreateRubricItem(**r) for r in rubric_defs]
 
@@ -1040,8 +1031,8 @@ async def _run_profile_seeds(
     profile_defs: list[dict],
 ) -> list[UUID]:
     """Run profile seed definitions through create_profile_impl."""
-    from app.infra.profile.create import CreateProfileItem, create_profile_impl
-    from app.infra.profile.types import CreateProfileApiRequest
+    from app.infra.profile.create import create_profile_impl
+    from app.infra.profile.types import CreateProfileApiRequest, CreateProfileItem
     from app.tools.resources.emails.create import create_email
 
     # Resolve email string → email_ids before creation
@@ -1117,8 +1108,8 @@ async def _run_setting_seeds(
     setting_defs: list[dict],
 ) -> list[UUID]:
     """Run setting seed definitions through create_setting_impl."""
-    from app.infra.setting.create import CreateSettingItem, create_setting_impl
-    from app.infra.setting.types import CreateSettingApiRequest
+    from app.infra.setting.create import create_setting_impl
+    from app.infra.setting.types import CreateSettingApiRequest, CreateSettingItem
 
     items = [CreateSettingItem(**s) for s in setting_defs]
 
@@ -1364,8 +1355,8 @@ async def _run_cohort_seeds(
     cohort_defs: list[dict],
 ) -> list[UUID]:
     """Run cohort seed definitions through create_cohort_impl."""
-    from app.infra.cohort.create import CreateCohortItem, create_cohort_impl
-    from app.infra.cohort.types import CreateCohortApiRequest
+    from app.infra.cohort.create import create_cohort_impl
+    from app.infra.cohort.types import CreateCohortApiRequest, CreateCohortItem
 
     items = [CreateCohortItem(**c) for c in cohort_defs]
 
@@ -1447,8 +1438,8 @@ async def _run_tool_module_seeds(
     redis: Redis,
 ) -> None:
     """Create tools from static definitions in tools_data.py."""
-    from app.infra.tool.create import CreateToolItem, create_tool_impl
-    from app.infra.tool.types import CreateToolApiRequest
+    from app.infra.tool.create import create_tool_impl
+    from app.infra.tool.types import CreateToolApiRequest, CreateToolItem
     from database.seeds.resources.args import SHARED_ARGS
     from database.seeds.resources.args_outputs import SHARED_ARGS_OUTPUTS
     from database.seeds.tools import tools

@@ -34,8 +34,9 @@ from app.tools.resources.rubrics.create import (
 )
 
 if TYPE_CHECKING:
-    from app.infra.rubric.create import CreateRubricItem, RubricFieldError
     from app.infra.rubric.types import (
+        CreateRubricItem,
+        RubricFieldError,
         UpdateRubricItem,
     )
 
@@ -127,7 +128,7 @@ async def resolve_rubric_values(
 
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.rubric.create import RubricFieldError
+    from app.infra.rubric.types import RubricFieldError
 
     errors: list[RubricFieldError] = []
 

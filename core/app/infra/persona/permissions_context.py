@@ -49,9 +49,10 @@ from app.tools.resources.personas.create import (
 from app.tools.resources.voices.search import search_voices
 
 if TYPE_CHECKING:
-    from app.infra.persona.create import CreatePersonaItem, PersonaFieldError
     from app.infra.persona.types import (
+        CreatePersonaItem,
         PatchPersonaDraftApiRequest,
+        PersonaFieldError,
         UpdatePersonaItem,
     )
 
@@ -133,7 +134,7 @@ async def resolve_persona_values(
     Sequential tool calls — each acquires its own connection.
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.persona.create import PersonaFieldError
+    from app.infra.persona.types import PersonaFieldError
 
     errors: list[PersonaFieldError] = []
 

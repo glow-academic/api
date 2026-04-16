@@ -35,8 +35,9 @@ from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
 
 if TYPE_CHECKING:
-    from app.infra.field.create import CreateFieldItem, FieldFieldError
     from app.infra.field.types import (
+        CreateFieldItem,
+        FieldFieldError,
         UpdateFieldItem,
     )
 
@@ -116,7 +117,7 @@ async def resolve_field_values(
 
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.field.create import FieldFieldError
+    from app.infra.field.types import FieldFieldError
 
     errors: list[FieldFieldError] = []
 

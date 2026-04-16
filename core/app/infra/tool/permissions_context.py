@@ -34,8 +34,9 @@ from app.tools.resources.tools.create import (
 )
 
 if TYPE_CHECKING:
-    from app.infra.tool.create import CreateToolItem, ToolFieldError
     from app.infra.tool.types import (
+        CreateToolItem,
+        ToolFieldError,
         UpdateToolItem,
     )
 
@@ -97,7 +98,7 @@ async def resolve_tool_values(
 
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.tool.create import ToolFieldError
+    from app.infra.tool.types import ToolFieldError
 
     errors: list[ToolFieldError] = []
 

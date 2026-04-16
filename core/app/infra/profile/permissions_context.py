@@ -31,8 +31,9 @@ from app.tools.resources.profiles.create import (
 )
 
 if TYPE_CHECKING:
-    from app.infra.profile.create import CreateProfileItem, ProfileFieldError
     from app.infra.profile.types import (
+        CreateProfileItem,
+        ProfileFieldError,
         UpdateProfileItem,
     )
 
@@ -115,7 +116,7 @@ async def resolve_profile_values(
 
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.profile.create import ProfileFieldError
+    from app.infra.profile.types import ProfileFieldError
 
     errors: list[ProfileFieldError] = []
 

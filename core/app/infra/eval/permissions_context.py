@@ -32,8 +32,9 @@ from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 
 if TYPE_CHECKING:
-    from app.infra.eval.create import CreateEvalItem, EvalFieldError
     from app.infra.eval.types import (
+        CreateEvalItem,
+        EvalFieldError,
         UpdateEvalItem,
     )
 
@@ -96,7 +97,7 @@ async def resolve_eval_values(
 
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.eval.create import EvalFieldError
+    from app.infra.eval.types import EvalFieldError
 
     errors: list[EvalFieldError] = []
 

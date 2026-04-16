@@ -34,8 +34,11 @@ from app.tools.resources.parameters.create import (
 )
 
 if TYPE_CHECKING:
-    from app.infra.parameter.create import CreateParameterItem, ParameterFieldError
-    from app.infra.parameter.types import UpdateParameterItem
+    from app.infra.parameter.types import (
+        CreateParameterItem,
+        ParameterFieldError,
+        UpdateParameterItem,
+    )
 
 
 @dataclass(frozen=True)
@@ -107,7 +110,7 @@ async def resolve_parameter_values(
 
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.parameter.create import ParameterFieldError
+    from app.infra.parameter.types import ParameterFieldError
 
     errors: list[ParameterFieldError] = []
 

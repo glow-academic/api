@@ -33,8 +33,9 @@ from app.tools.resources.settings.create import (
 )
 
 if TYPE_CHECKING:
-    from app.infra.setting.create import CreateSettingItem, SettingFieldError
     from app.infra.setting.types import (
+        CreateSettingItem,
+        SettingFieldError,
         UpdateSettingItem,
     )
 
@@ -97,7 +98,7 @@ async def resolve_setting_values(
 
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.setting.create import SettingFieldError
+    from app.infra.setting.types import SettingFieldError
 
     errors: list[SettingFieldError] = []
 

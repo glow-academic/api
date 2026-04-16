@@ -35,8 +35,9 @@ from app.tools.resources.providers.create import (
 )
 
 if TYPE_CHECKING:
-    from app.infra.provider.create import CreateProviderItem, ProviderFieldError
     from app.infra.provider.types import (
+        CreateProviderItem,
+        ProviderFieldError,
         UpdateProviderItem,
     )
 
@@ -110,7 +111,7 @@ async def resolve_provider_values(
 
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.provider.create import ProviderFieldError
+    from app.infra.provider.types import ProviderFieldError
 
     errors: list[ProviderFieldError] = []
 

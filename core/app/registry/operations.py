@@ -789,6 +789,7 @@ INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("attempt", "export"): (f"{_I}.attempt.export", "export_attempt_impl"),
     ("attempt", "refresh"): (f"{_I}.attempt.refresh", "refresh_attempt_impl"),
     ("attempt", "context"): (f"{_I}.attempt.page_context", "page_context_attempt_impl"),
+    ("attempt", "generate"): (f"{_I}.attempt.generate", "generate_attempt_impl"),
     ("attempt", "start"): (f"{_I}.attempt.start", "attempt_start_internal_impl"),
     ("attempt", "end"): (f"{_I}.attempt.end", "attempt_end_internal_impl"),
     ("attempt", "end_all"): (f"{_I}.attempt.end_all", "attempt_end_all_internal_impl"),

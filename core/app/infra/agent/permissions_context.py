@@ -35,8 +35,9 @@ from app.tools.resources.names.get import get_names
 from app.tools.resources.voices.get import get_voices
 
 if TYPE_CHECKING:
-    from app.infra.agent.create import AgentFieldError, CreateAgentItem
     from app.infra.agent.types import (
+        AgentFieldError,
+        CreateAgentItem,
         UpdateAgentItem,
     )
 
@@ -99,7 +100,7 @@ async def resolve_agent_values(
 
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.agent.create import AgentFieldError
+    from app.infra.agent.types import AgentFieldError
 
     errors: list[AgentFieldError] = []
 

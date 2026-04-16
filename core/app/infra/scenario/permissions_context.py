@@ -49,8 +49,9 @@ from app.tools.resources.scenarios.create import (
 from app.tools.resources.videos.search import search_videos
 
 if TYPE_CHECKING:
-    from app.infra.scenario.create import CreateScenarioItem, ScenarioFieldError
     from app.infra.scenario.types import (
+        CreateScenarioItem,
+        ScenarioFieldError,
         UpdateScenarioItem,
     )
 
@@ -131,7 +132,7 @@ async def resolve_scenario_values(
 
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.scenario.create import ScenarioFieldError
+    from app.infra.scenario.types import ScenarioFieldError
 
     errors: list[ScenarioFieldError] = []
 

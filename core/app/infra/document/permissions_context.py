@@ -35,8 +35,9 @@ from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
 
 if TYPE_CHECKING:
-    from app.infra.document.create import CreateDocumentItem, DocumentFieldError
     from app.infra.document.types import (
+        CreateDocumentItem,
+        DocumentFieldError,
         UpdateDocumentItem,
     )
 
@@ -116,7 +117,7 @@ async def resolve_document_values(
 
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.document.create import DocumentFieldError
+    from app.infra.document.types import DocumentFieldError
 
     errors: list[DocumentFieldError] = []
 

@@ -40,8 +40,9 @@ from app.tools.resources.slugs.create import create_slug
 from app.tools.resources.slugs.get import get_slugs
 
 if TYPE_CHECKING:
-    from app.infra.auth.create import AuthFieldError, CreateAuthItem
     from app.infra.auth.types import (
+        AuthFieldError,
+        CreateAuthItem,
         UpdateAuthItem,
     )
 
@@ -121,7 +122,7 @@ async def resolve_auth_values(
 
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.auth.create import AuthFieldError
+    from app.infra.auth.types import AuthFieldError
 
     errors: list[AuthFieldError] = []
 

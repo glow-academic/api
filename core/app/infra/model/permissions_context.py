@@ -36,8 +36,9 @@ from app.tools.resources.names.get import get_names
 from app.tools.resources.values.get import get_values
 
 if TYPE_CHECKING:
-    from app.infra.model.create import CreateModelItem, ModelFieldError
     from app.infra.model.types import (
+        CreateModelItem,
+        ModelFieldError,
         UpdateModelItem,
     )
 
@@ -117,7 +118,7 @@ async def resolve_model_values(
 
     Returns a list of errors (empty if all resolved).
     """
-    from app.infra.model.create import ModelFieldError
+    from app.infra.model.types import ModelFieldError
 
     errors: list[ModelFieldError] = []
 
