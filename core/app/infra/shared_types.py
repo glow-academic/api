@@ -238,7 +238,7 @@ class QGetProfilesV4Item(BaseModel):
     description: str | None = None
     emails: list[str] | None = None
     primary_email: str | None = None
-    requests_per_day: int | None = None
+    request_limit: int | None = None
 
 
 # ---------------------------------------------------------------------------

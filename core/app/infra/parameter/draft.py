@@ -1,16 +1,8 @@
-"""Parameter draft logic — composable infra architecture.
-
-Core draft function that composes existing black-box tools:
-  1. resolve_profile_identity_context — profile (role, departments)
-  2. compute_can_draft — permission check
-  3. Value resolution (creatable resources only) — raw value → ID
-  4. create_parameter_draft — entry tool (append-only snapshot)
-  5. refresh_parameter_drafts — MV refresh
-  6. invalidate_tags — cache invalidation
-"""
+"""Parameter draft logic — canonical surface over existing draft tools."""
 
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
 import asyncpg
@@ -18,52 +10,156 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.parameter.permissions import compute_can_draft
-from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.parameter.refresh import refresh_parameter_impl
 from app.infra.parameter.types import (
-    ParameterDraftFormState,
+    DraftFormState,
     PatchParameterDraftApiRequest,
     PatchParameterDraftApiResponse,
     SaveParameterFieldError,
 )
+from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.parameter_drafts.create import create_parameter_draft
-from app.tools.entries.parameter_drafts.refresh import (
-    refresh_parameter_drafts,
-)
+from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
+from app.tools.resources.descriptions.search import search_descriptions
+from app.tools.resources.fields.get import get_fields
 from app.tools.resources.names.create import create_name
-from app.utils.cache.invalidate_tags import invalidate_tags
+from app.tools.resources.names.search import search_names
+from app.tools.resources.parameter_fields.search import search_parameter_fields
 
-# ---------------------------------------------------------------------------
-# Value resolution — creatable resources only
-# ---------------------------------------------------------------------------
+
+def _exact_match_id(results: list[Any], raw_value: str, *, attr: str = "name") -> UUID | None:
+    needle = raw_value.strip().lower()
+    for item in results:
+        value = getattr(item, attr, None)
+        item_id = getattr(item, "id", None)
+        if isinstance(value, str) and item_id and value.lower() == needle:
+            return item_id
+    return None
+
+
+def _merge_unique(existing: list[UUID] | None, new_ids: list[UUID]) -> list[UUID]:
+    merged: list[UUID] = list(existing or [])
+    seen = set(merged)
+    for item_id in new_ids:
+        if item_id not in seen:
+            seen.add(item_id)
+            merged.append(item_id)
+    return merged
+
+
+async def _resolve_parameter_field_ids(
+    conn: asyncpg.Connection,
+    redis: Redis,
+    raw_values: list[str],
+) -> tuple[list[UUID] | None, list[SaveParameterFieldError]]:
+    results = await search_parameter_fields(
+        conn,
+        redis,
+        limit_count=1000,
+    )
+    field_ids = [item.field_id for item in results if getattr(item, "field_id", None)]
+    fields = await get_fields(conn, field_ids, redis, bypass_cache=False) if field_ids else []
+    name_to_resource_id: dict[str, UUID] = {}
+    field_lookup = {field.id: field for field in fields if getattr(field, "id", None)}
+
+    for item in results:
+        field = field_lookup.get(getattr(item, "field_id", None))
+        if field is None or not getattr(item, "id", None):
+            continue
+        field_name = getattr(field, "name", None)
+        if isinstance(field_name, str):
+            name_to_resource_id.setdefault(field_name.strip().lower(), item.id)
+
+    resolved_ids: list[UUID] = []
+    errors: list[SaveParameterFieldError] = []
+    for raw_value in raw_values:
+        item_id = name_to_resource_id.get(raw_value.strip().lower())
+        if item_id is None:
+            errors.append(
+                SaveParameterFieldError(
+                    field="parameter_fields",
+                    message=f'Parameter field "{raw_value}" not found',
+                )
+            )
+            continue
+        resolved_ids.append(item_id)
+
+    if errors:
+        return None, errors
+    return resolved_ids, []
 
 
 async def _resolve_creatable_values(
-    conn: asyncpg.Connection | asyncpg.Pool,
+    conn: asyncpg.Connection,
     redis: Redis,
     request: PatchParameterDraftApiRequest,
 ) -> list[SaveParameterFieldError]:
-    """Resolve raw value fields to resource IDs (mutates request in place).
+    """Resolve raw value fields to resource IDs (mutates request in place)."""
 
-    Only handles creatable resources: name, description.
-    Returns a list of errors (empty if all resolved).
-    """
     errors: list[SaveParameterFieldError] = []
 
     if request.name is not None and request.name_id is None:
-        result = await create_name(conn, request.name, redis)
-        request.name_id = result.id
+        results = await search_names(
+            conn,
+            redis,
+            search=request.name,
+            limit_count=20,
+            parameter=True,
+        )
+        match_id = _exact_match_id(results, request.name)
+        if match_id is None:
+            match_id = (await create_name(conn, request.name, redis)).id
+        request.name_id = match_id
 
     if request.description is not None and request.description_id is None:
-        result = await create_description(conn, request.description, redis)
-        request.description_id = result.id
+        results = await search_descriptions(
+            conn,
+            redis,
+            search=request.description,
+            limit_count=20,
+            parameter=True,
+        )
+        match_id = _exact_match_id(results, request.description, attr="description")
+        if match_id is None:
+            match_id = (await create_description(conn, request.description, redis)).id
+        request.description_id = match_id
+
+    if request.departments:
+        results = await search_departments(
+            conn,
+            redis,
+            search=None,
+            limit_count=1000,
+            parameter=True,
+        )
+        resolved_ids: list[UUID] = []
+        for raw_value in request.departments:
+            item_id = _exact_match_id(results, raw_value, attr="name")
+            if item_id is None:
+                errors.append(
+                    SaveParameterFieldError(
+                        field="departments",
+                        message=f'Department "{raw_value}" not found',
+                    )
+                )
+                continue
+            resolved_ids.append(item_id)
+        if not errors:
+            request.department_ids = _merge_unique(request.department_ids, resolved_ids)
+
+    if request.parameter_fields:
+        resolved_ids, field_errors = await _resolve_parameter_field_ids(
+            conn,
+            redis,
+            request.parameter_fields,
+        )
+        errors.extend(field_errors)
+        if resolved_ids is not None:
+            request.field_ids = _merge_unique(request.field_ids, resolved_ids)
 
     return errors
-
-
-# ---------------------------------------------------------------------------
-# patch_parameter_draft_impl — composable infra architecture
-# ---------------------------------------------------------------------------
 
 
 async def patch_parameter_draft_impl(
@@ -72,20 +168,44 @@ async def patch_parameter_draft_impl(
     *,
     profile_id: UUID,
     session_id: UUID,
-    request: PatchParameterDraftApiRequest,
+    request: PatchParameterDraftApiRequest | None = None,
+    draft_id: UUID | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    **kwargs: Any,
 ) -> PatchParameterDraftApiResponse:
-    """Parameter draft using composable infra functions.
+    """Parameter draft using the canonical request/response contract."""
 
-    Flow:
-      1. resolve_profile_identity_context -> role
-      2. compute_can_draft -> permission check
-      3. Value resolution (creatable resources only)
-      4. create_parameter_draft entry tool (append-only snapshot)
-      5. refresh_parameter_drafts MV
-      6. invalidate_tags
-    """
+    if request is None:
+        filtered = sanitize_model_kwargs(
+            kwargs,
+            list_fields={
+                "flag_ids",
+                "department_ids",
+                "field_ids",
+                "departments",
+                "parameter_fields",
+                "pending_ids",
+            },
+            value_id_pairs=[
+                ("name", "name_id"),
+                ("description", "description_id"),
+            ],
+        )
+        if draft_id is not None:
+            filtered["draft_id"] = draft_id
+            filtered["input_draft_id"] = draft_id
+        request = PatchParameterDraftApiRequest(**filtered)
 
-    # -- Step 1: Profile context ------------------------------------------------
+    if draft_id is not None and request.draft_id is None:
+        request.draft_id = draft_id
+    if draft_id is not None and request.input_draft_id is None:
+        request.input_draft_id = draft_id
+
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key is not None and accept is None:
+        accept = request.accept
 
     profile = await resolve_profile_identity_context(
         pool,
@@ -93,39 +213,56 @@ async def patch_parameter_draft_impl(
         redis,
         session_id=session_id,
     )
-
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    # -- Step 2: Permission check -----------------------------------------------
-
-    if not compute_can_draft(role_level=profile.role_level, role_permissions=profile.role_permissions):
+    if not compute_can_draft(
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
+    ):
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to create or edit parameter drafts.",
         )
 
-    # -- Step 3: Value resolution (creatable only) ------------------------------
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_parameter_draft(
+                        conn,
+                        session_id=session_id,
+                        id=idempotency_key,
+                        soft=False,
+                        profile_ids=[profile.profiles_id],
+                    )
+            await refresh_parameter_impl(pool, redis, profile_id=profile_id)
+        return PatchParameterDraftApiResponse(
+            success=True,
+            draft_id=idempotency_key,
+            idempotency_key=idempotency_key,
+            message="Draft accepted" if accept else "Draft rejected",
+            form_state=DraftFormState(),
+        )
 
     async with pool.acquire() as conn:
         errors = await _resolve_creatable_values(conn, redis, request)
     if errors:
         raise HTTPException(
             status_code=400,
-            detail=[e.model_dump() for e in errors],
+            detail=[error.model_dump() for error in errors],
         )
-
-    # -- Step 4: Create draft entry (append-only snapshot) ----------------------
 
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_parameter_draft(
                 conn,
                 session_id=session_id,
-                profile_ids=[profile.profiles_id],
+                id=idempotency_key,
+                soft=soft,
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id]
                 if request.description_id
@@ -133,30 +270,27 @@ async def patch_parameter_draft_impl(
                 flag_ids=request.flag_ids,
                 department_ids=request.department_ids,
                 field_ids=request.field_ids,
+                profile_ids=[profile.profiles_id],
             )
 
-    # -- Step 5: Build form state (server is source of truth) -------------------
-
-    form_state = ParameterDraftFormState(
+    form_state = DraftFormState(
         name_id=request.name_id,
+        name=request.name,
         description_id=request.description_id,
+        description=request.description,
         flag_ids=request.flag_ids or [],
         department_ids=request.department_ids or [],
         field_ids=request.field_ids or [],
+        pending_ids=request.pending_ids or [],
     )
 
-    # -- Step 6: Refresh MV -----------------------------------------------------
-
-    async with pool.acquire() as conn:
-        await refresh_parameter_drafts(conn)
-
-    # -- Step 7: Invalidate cache -----------------------------------------------
-
-    await invalidate_tags(["parameters", "drafts"], redis=redis)
+    if not soft:
+        await refresh_parameter_impl(pool, redis, profile_id=profile_id)
 
     return PatchParameterDraftApiResponse(
         success=True,
         draft_id=result.id,
-        message="Draft created successfully",
+        idempotency_key=result.id,
+        message="Draft created (pending acceptance)" if soft else "Draft created successfully",
         form_state=form_state,
     )

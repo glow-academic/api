@@ -1,6 +1,6 @@
 """Rate limit gate (new) — pure business logic with emit: EmitFn.
 
-Uses requests_per_day from profile context + resolve_runs_context
+Uses request_limit from profile context (derived from role) + resolve_runs_context
 for rate limiting. Forwards to generate_prepare on success.
 """
 
@@ -23,10 +23,10 @@ logger = get_logger(__name__)
 async def generate_new_impl(
     data: dict[str, Any], *, emit: EmitFn, pool: asyncpg.Pool
 ) -> None:
-    """Rate limit gate — uses requests_per_day from profile context.
+    """Rate limit gate — uses request_limit from profile context (role-based).
 
     Expects identity context already in data (resolved by client handler):
-      profile_id, profiles_id, session_id, group_id, requests_per_day
+      profile_id, profiles_id, session_id, group_id, request_limit
     """
     sid = data.get("sid", "")
     if not sid:
@@ -73,16 +73,16 @@ async def generate_new_impl(
         return
 
     # --- Rate limit check ---
-    requests_per_day = data.get("requests_per_day")
-    if requests_per_day is not None:
+    request_limit = data.get("request_limit")
+    if request_limit is not None:
         try:
             runs_ctx = await resolve_runs_context(pool, profile_id=profile_id)
 
             runs_today = runs_ctx.total_count if runs_ctx else 0
-            if runs_today >= requests_per_day:
+            if runs_today >= request_limit:
                 error_msg = (
                     f"Rate limit exceeded ({runs_today}/"
-                    f"{requests_per_day} requests today)"
+                    f"{request_limit} requests today)"
                 )
                 logger.error(
                     f"{artifact_type.capitalize()} generation rate limit exceeded - "

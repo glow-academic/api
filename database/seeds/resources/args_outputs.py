@@ -683,6 +683,18 @@ SHARED_ARGS_OUTPUTS = {
         name="operation",
         template="audio_mute",
     ),
+    "operation_chat_create": dict(
+        id=sid("args_output/operation_chat_create"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="chat_create",
+    ),
+    "operation_chat_get": dict(
+        id=sid("args_output/operation_chat_get"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="chat_get",
+    ),
     # --- Routing: additional hardcoded artifacts ---
     "artifact_attempt": dict(
         id=sid("args_output/artifact_attempt"),
@@ -3516,6 +3528,164 @@ SHARED_ARGS_OUTPUTS = {
         args_id=sid("arg/warning_threshold"),
         name="warning_threshold",
         template="{{ warning_threshold }}",
+    ),
+
+    # --- Attempt Chat payload fields ---
+    "analyses_enabled": dict(
+        id=sid("args_output/analyses_enabled"),
+        args_id=sid("arg/analyses_enabled"),
+        name="analyses_enabled",
+        template="{{ analyses_enabled }}",
+    ),
+    "audio_enabled": dict(
+        id=sid("args_output/audio_enabled"),
+        args_id=sid("arg/audio_enabled"),
+        name="audio_enabled",
+        template="{{ audio_enabled }}",
+    ),
+    "departments_ids": dict(
+        id=sid("args_output/departments_ids"),
+        args_id=sid("arg/departments_ids"),
+        name="departments_ids",
+        template="{{ departments_ids }}",
+    ),
+    "descriptions_ids": dict(
+        id=sid("args_output/descriptions_ids"),
+        args_id=sid("arg/descriptions_ids"),
+        name="descriptions_ids",
+        template="{{ descriptions_ids }}",
+    ),
+    "documents_ids": dict(
+        id=sid("args_output/documents_ids"),
+        args_id=sid("arg/documents_ids"),
+        name="documents_ids",
+        template="{{ documents_ids }}",
+    ),
+    "hints_enabled": dict(
+        id=sid("args_output/hints_enabled"),
+        args_id=sid("arg/hints_enabled"),
+        name="hints_enabled",
+        template="{{ hints_enabled }}",
+    ),
+    "images_ids": dict(
+        id=sid("args_output/images_ids"),
+        args_id=sid("arg/images_ids"),
+        name="images_ids",
+        template="{{ images_ids }}",
+    ),
+    "improvements_enabled": dict(
+        id=sid("args_output/improvements_enabled"),
+        args_id=sid("arg/improvements_enabled"),
+        name="improvements_enabled",
+        template="{{ improvements_enabled }}",
+    ),
+    "names_ids": dict(
+        id=sid("args_output/names_ids"),
+        args_id=sid("arg/names_ids"),
+        name="names_ids",
+        template="{{ names_ids }}",
+    ),
+    "objectives_ids": dict(
+        id=sid("args_output/objectives_ids"),
+        args_id=sid("arg/objectives_ids"),
+        name="objectives_ids",
+        template="{{ objectives_ids }}",
+    ),
+    "options_ids": dict(
+        id=sid("args_output/options_ids"),
+        args_id=sid("arg/options_ids"),
+        name="options_ids",
+        template="{{ options_ids }}",
+    ),
+    "parameter_fields_ids": dict(
+        id=sid("args_output/parameter_fields_ids"),
+        args_id=sid("arg/parameter_fields_ids"),
+        name="parameter_fields_ids",
+        template="{{ parameter_fields_ids }}",
+    ),
+    "parameters_ids": dict(
+        id=sid("args_output/parameters_ids"),
+        args_id=sid("arg/parameters_ids"),
+        name="parameters_ids",
+        template="{{ parameters_ids }}",
+    ),
+    "personas_ids": dict(
+        id=sid("args_output/personas_ids"),
+        args_id=sid("arg/personas_ids"),
+        name="personas_ids",
+        template="{{ personas_ids }}",
+    ),
+    "position": dict(
+        id=sid("args_output/position"),
+        args_id=sid("arg/position"),
+        name="position",
+        template="{{ position }}",
+    ),
+    "problem_statements_ids": dict(
+        id=sid("args_output/problem_statements_ids"),
+        args_id=sid("arg/problem_statements_ids"),
+        name="problem_statements_ids",
+        template="{{ problem_statements_ids }}",
+    ),
+    "questions_ids": dict(
+        id=sid("args_output/questions_ids"),
+        args_id=sid("arg/questions_ids"),
+        name="questions_ids",
+        template="{{ questions_ids }}",
+    ),
+    "replacements_enabled": dict(
+        id=sid("args_output/replacements_enabled"),
+        args_id=sid("arg/replacements_enabled"),
+        name="replacements_enabled",
+        template="{{ replacements_enabled }}",
+    ),
+    "rubrics_ids": dict(
+        id=sid("args_output/rubrics_ids"),
+        args_id=sid("arg/rubrics_ids"),
+        name="rubrics_ids",
+        template="{{ rubrics_ids }}",
+    ),
+    "standard_groups_ids": dict(
+        id=sid("args_output/standard_groups_ids"),
+        args_id=sid("arg/standard_groups_ids"),
+        name="standard_groups_ids",
+        template="{{ standard_groups_ids }}",
+    ),
+    "standards_ids": dict(
+        id=sid("args_output/standards_ids"),
+        args_id=sid("arg/standards_ids"),
+        name="standards_ids",
+        template="{{ standards_ids }}",
+    ),
+    "strengths_enabled": dict(
+        id=sid("args_output/strengths_enabled"),
+        args_id=sid("arg/strengths_enabled"),
+        name="strengths_enabled",
+        template="{{ strengths_enabled }}",
+    ),
+    "text_enabled": dict(
+        id=sid("args_output/text_enabled"),
+        args_id=sid("arg/text_enabled"),
+        name="text_enabled",
+        template="{{ text_enabled }}",
+    ),
+    "time_limit": dict(
+        id=sid("args_output/time_limit"),
+        args_id=sid("arg/time_limit"),
+        name="time_limit",
+        template="{{ time_limit }}",
+    ),
+    "title": dict(
+        id=sid("args_output/title"),
+        args_id=sid("arg/title"),
+        name="title",
+        template="{{ title }}",
+    ),
+    "videos_ids": dict(
+        id=sid("args_output/videos_ids"),
+        args_id=sid("arg/videos_ids"),
+        name="videos_ids",
+        template="{{ videos_ids }}",
     ),
 }
 

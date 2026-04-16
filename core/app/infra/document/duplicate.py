@@ -7,7 +7,7 @@ Core duplicate function that composes existing black-box tools:
   4. create_name — new name resource ("{name} Copy")
   5. search_flags — find inactive flag (document_active, value=false)
   6. create_document — new artifact with original's IDs + new name + inactive flag
-  7. invalidate_tags — cache invalidation
+  7. canonical document refresh
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.document.types import (
     DuplicateDocumentApiResponse,
 )
+from app.infra.document.refresh import refresh_document_impl
 from app.tools.artifacts.document.create import (
     create_document as create_document_artifact,
 )
@@ -30,7 +31,6 @@ from app.tools.artifacts.document.get import get_documents
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def duplicate_document_impl(
@@ -41,6 +41,8 @@ async def duplicate_document_impl(
     document_id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> DuplicateDocumentApiResponse:
     """Document duplicate using composable infra functions.
 
@@ -51,8 +53,35 @@ async def duplicate_document_impl(
       4. create_name("{name} Copy") -> new name resource
       5. search_flags -> find inactive flag (document_active, value=false)
       6. create_document -> new artifact with original IDs + inactive flag
-      7. invalidate_tags
+      7. canonical document refresh
     """
+
+    # -- Short-circuit: ack path ------------------------------------------------
+
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_document_artifact(
+                        conn,
+                        id=idempotency_key,
+                        soft=False,
+                    )
+
+            await refresh_document_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
+            )
+
+        return DuplicateDocumentApiResponse(
+            success=True,
+            document_id=idempotency_key,
+            message="Duplicate accepted" if accept else "Duplicate rejected",
+            idempotency_key=idempotency_key,
+        )
 
     # -- Step 1: Profile context ------------------------------------------------
 
@@ -149,12 +178,24 @@ async def duplicate_document_impl(
                 soft=soft,
             )
 
-    # -- Step 7: Invalidate cache -----------------------------------------------
+    # -- Step 7: Refresh via canonical document refresh -------------------------
 
-    await invalidate_tags(["documents"], redis=redis)
+    await refresh_document_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or result.id,
+    )
 
     return DuplicateDocumentApiResponse(
         success=True,
         document_id=result.id,
-        message=f"Document '{original_name}' duplicated successfully",
+        message=(
+            "Document duplicated (pending acceptance)"
+            if soft
+            else f"Document '{original_name}' duplicated successfully"
+        ),
+        idempotency_key=idempotency_key,
     )

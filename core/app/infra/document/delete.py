@@ -5,7 +5,7 @@ Core delete function that composes existing black-box tools:
   2. resolve_document_permissions_context — per-item exists, departments, usage
   3. compute_can_delete — permission check
   4. delete_documents — bulk delete tool
-  5. invalidate_tags — cache invalidation
+  5. refresh_document_impl — canonical refresh
 """
 
 from __future__ import annotations
@@ -21,6 +21,8 @@ from app.infra.document.permissions_context import (
     resolve_document_permissions_context,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.delete.delete_artifact import restore_artifacts
+from app.infra.document.refresh import refresh_document_impl
 from app.infra.document.types import (
     DeleteDocumentApiResponse,
     DeleteDocumentResult,
@@ -28,7 +30,6 @@ from app.infra.document.types import (
 from app.tools.artifacts.document.delete import delete_documents
 from app.tools.artifacts.document.get import get_documents
 from app.tools.resources.names.get import get_names
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def delete_document_impl(
@@ -39,6 +40,8 @@ async def delete_document_impl(
     document_ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> DeleteDocumentApiResponse:
     """Document bulk delete using composable infra functions.
 
@@ -48,7 +51,7 @@ async def delete_document_impl(
       3. Per-item: compute_can_delete -> permission check (fail fast)
       4. Fetch names for result messages
       5. Single transaction: delete_documents -> bulk delete
-      6. invalidate_tags
+      6. refresh_document_impl -> canonical refresh
     """
 
     # -- Step 1: Profile context --------------------------------------------------
@@ -88,6 +91,42 @@ async def delete_document_impl(
                     detail=f"Item {idx}: You don't have permission to delete this document.",
                 )
 
+    # -- Short-circuit: ack path -------------------------------------------------
+
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await restore_artifacts(
+                        conn,
+                        table="document_artifact",
+                        ids=document_ids,
+                    )
+
+        await refresh_document_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key or (document_ids[0] if document_ids else None),
+        )
+
+        return DeleteDocumentApiResponse(
+            results=[
+                DeleteDocumentResult(
+                    success=True,
+                    document_id=document_id,
+                    message=(
+                        "Delete confirmed"
+                        if accept
+                        else "Delete rejected — document restored"
+                    ),
+                )
+                for document_id in document_ids
+            ],
+            idempotency_key=idempotency_key,
+        )
+
     # -- Step 4: Fetch names for result messages ----------------------------------
 
     async with pool.acquire() as conn:
@@ -107,17 +146,28 @@ async def delete_document_impl(
         async with conn.transaction():
             result = await delete_documents(conn, document_ids, soft=soft)
 
-    # -- Step 6: Invalidate cache -------------------------------------------------
+    # -- Step 6: Canonical refresh ------------------------------------------------
 
-    await invalidate_tags(["documents"], redis=redis)
+    await refresh_document_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
+    )
 
     results = [
         DeleteDocumentResult(
             success=True,
             document_id=pid,
-            message=f"Document '{name_map.get(pid, 'Unknown')}' deleted successfully",
+            message=(
+                f"Document '{name_map.get(pid, 'Unknown')}' deleted (pending acceptance)"
+                if soft
+                else f"Document '{name_map.get(pid, 'Unknown')}' deleted successfully"
+            ),
         )
         for pid in result.deleted_ids
     ]
 
-    return DeleteDocumentApiResponse(results=results)
+    return DeleteDocumentApiResponse(results=results, idempotency_key=idempotency_key)

@@ -34,14 +34,6 @@ class ProfileEmailResource(BaseModel):
     generated: bool | None = Field(None, description="Whether the email was AI-generated")
 
 
-class ProfileRequestLimitResource(BaseModel):
-    """Request limit resource for profile."""
-
-    id: UUID | None = Field(None, description="Unique resource identifier")
-    requests_per_day: int | None = Field(None, description="Maximum requests allowed per day")
-    generated: bool | None = Field(None, description="Whether the limit was AI-generated")
-
-
 class ProfileDepartmentResource(BaseModel):
     """Department resource for profile."""
 
@@ -90,7 +82,6 @@ class ProfileDraftEntry(BaseModel):
     email_ids: list[UUID] | None = Field(None, description="Email resource UUIDs in the draft")
     flag_ids: list[UUID] | None = Field(None, description="Flag option UUIDs in the draft")
     name_ids: list[UUID] | None = Field(None, description="Name resource UUIDs in the draft")
-    request_limit_ids: list[UUID] | None = Field(None, description="Request limit resource UUIDs in the draft")
     role_ids: list[UUID] | None = Field(None, description="Role resource UUIDs in the draft")
 
 
@@ -102,11 +93,6 @@ class ProfileDraftEntry(BaseModel):
 class ProfileNameSection(BaseResourceSection):
     resource: ProfileNameResource | None = Field(None, description="Currently selected name resource")
     resources: list[ProfileNameResource] | None = Field(None, description="Available name resources")
-
-
-class ProfileRequestLimitSection(BaseResourceSection):
-    resource: ProfileRequestLimitResource | None = Field(None, description="Currently selected request limit")
-    resources: list[ProfileRequestLimitResource] | None = Field(None, description="Available request limit resources")
 
 
 class ProfileFlagSection(BaseResourceSection):
@@ -155,7 +141,6 @@ class GetProfileApiResponse(BaseModel):
 
     names: ProfileNameSection | None = Field(None, description="Name section with resources")
     emails: ProfileEmailSection | None = Field(None, description="Email section with resources")
-    request_limits: ProfileRequestLimitSection | None = Field(None, description="Request limit section with resources")
     flags: ProfileFlagSection | None = Field(None, description="Flag section with configs")
     departments: ProfileDepartmentSection | None = Field(None, description="Department section with resources")
     roles: ProfileRoleSection | None = Field(None, description="Role section with resources")
@@ -195,7 +180,6 @@ class CreateProfileItem(ScopedItem):
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name_id": "names",
         "name": "names",
-        "request_limit_id": "request_limits",
         "active_flag_id": "flags",
         "department_ids": "departments",
         "departments": "departments",
@@ -210,7 +194,6 @@ class CreateProfileItem(ScopedItem):
     name_id: UUID | None = Field(None, description="UUID of the name resource")
     name: str | None = Field(None, description="Name value to resolve or create")
     # Optional single-select — provide IDs only
-    request_limit_id: UUID | None = Field(None, description="UUID of the request limit resource")
     active_flag_id: UUID | None = Field(None, description="UUID of the flag option")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
@@ -243,7 +226,6 @@ class UpdateProfileItem(ScopedItem):
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
     name: str | None = Field(None, description="Name value to resolve or create")
-    request_limit_id: UUID | None = Field(None, description="UUID of the request limit resource")
     active_flag_id: UUID | None = Field(None, description="UUID of the flag option")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
@@ -310,7 +292,7 @@ class PatchProfileDraftApiRequest(ScopedItem):
     Dual-mode for creatable resources only:
       - name/name_id
     ID-only for non-creatable resources:
-      - active_flag_id, department_ids, email_ids, role_id, request_limit_ids
+      - active_flag_id, department_ids, email_ids, role_id
 
     Client always sends full state (append-only — each write is a new snapshot).
     """
@@ -319,12 +301,10 @@ class PatchProfileDraftApiRequest(ScopedItem):
         "name": "names",
         "name_id": "names",
         "email": "emails",
-        "request_limit": "request_limits",
         "active_flag_id": "flags",
         "department_ids": "departments",
         "email_ids": "emails",
         "role_id": "roles",
-        "request_limit_ids": "request_limits",
     }
 
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
@@ -333,14 +313,12 @@ class PatchProfileDraftApiRequest(ScopedItem):
     name: str | None = Field(None, description="Name value to resolve or create")
     name_id: UUID | None = Field(None, description="UUID of the name resource")
     email: str | None = Field(None, description="Email value to resolve or create")
-    request_limit: int | None = Field(None, description="Request limit value to resolve or create")
 
     # Non-creatable — ID-only
     active_flag_id: UUID | None = Field(None, description="UUID of the flag option")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     email_ids: list[UUID] | None = Field(None, description="Email resource UUIDs")
     role_id: UUID | None = Field(None, description="Role resource UUID")
-    request_limit_ids: list[UUID] | None = Field(None, description="Request limit resource UUIDs")
 
 
 class ProfileDraftFormState(BaseModel):
@@ -351,7 +329,6 @@ class ProfileDraftFormState(BaseModel):
     department_ids: list[UUID] = Field(..., description="Assigned department UUIDs")
     email_ids: list[UUID] = Field(..., description="Assigned email resource UUIDs")
     role_id: UUID | None = Field(None, description="Assigned role resource UUID")
-    request_limit_ids: list[UUID] = Field(..., description="Assigned request limit UUIDs")
 
 
 class PatchProfileDraftApiResponse(BaseModel):
@@ -431,7 +408,6 @@ class ListProfilesApiProfile(BaseModel):
     initials: str | None = Field(None, description="User initials for avatar display")
     department_ids: list[str] | None = Field(None, description="Associated department IDs")
     primary_department_id: str | None = Field(None, description="Primary department ID")
-    requests_per_day: int | None = Field(None, description="Maximum requests allowed per day")
     # Computed in Python
     can_edit: bool | None = Field(None, description="Whether the actor can edit this profile")
     can_duplicate: bool | None = Field(None, description="Whether the actor can duplicate this profile")

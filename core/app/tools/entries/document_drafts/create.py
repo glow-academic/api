@@ -12,6 +12,7 @@ from app.tools.entries.document_drafts.types import (
 async def create_document_draft(
     conn: asyncpg.Connection,
     session_id: UUID,
+    *,
     id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
@@ -25,12 +26,18 @@ async def create_document_draft(
     parameter_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
     text_ids: list[UUID] | None = None,
+    pending_ids: set[UUID] | None = None,
 ) -> CreateDocumentDraftResponse:
-    """Create a document_drafts entry with optional connection table links."""
+    """Create a document_drafts entry with optional connection table links.
+
+    pending_ids: resource IDs that should be created with active=false (pending acceptance).
+    soft: when True, ALL connections are active=false (overrides pending_ids).
+    """
     draft_id = await conn.fetchval(
         """
         INSERT INTO document_drafts_entry (id, session_id, active, mcp, generated)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
+        ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         session_id,
@@ -67,12 +74,15 @@ async def create_document_draft(
         ("document_drafts_texts_connection", "texts_id", text_ids or []),
     ]
 
+    _pending = pending_ids or set()
     for table, col, ids in connections:
         for rid in ids:
             await conn.execute(
-                f"INSERT INTO {table} (draft_id, {col}) VALUES ($1, $2)",
+                f"INSERT INTO {table} (draft_id, {col}, active) VALUES ($1, $2, $3) "
+                f"ON CONFLICT (draft_id, {col}) DO UPDATE SET active = EXCLUDED.active",
                 draft_id,
                 rid,
+                False if soft else (rid not in _pending),
             )
 
     return CreateDocumentDraftResponse(id=draft_id)

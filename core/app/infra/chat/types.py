@@ -612,7 +612,7 @@ class ChatStartWebsocketResources(BaseModel):
     provider_id: UUID | None = Field(None, description="UUID of the AI provider")
     provider_name: str | None = Field(None, description="Name of the AI provider")
     has_api_key: bool = Field(False, description="Whether an API key is configured")
-    requests_per_day: int | None = Field(None, description="Rate limit for requests per day")
+    request_limit: int | None = Field(None, description="Rate limit from role")
     runs_today: int = Field(0, description="Number of runs used today")
     simulation_exists: bool = Field(False, description="Whether the simulation exists")
     simulation_is_active: bool = Field(False, description="Whether the simulation is active")

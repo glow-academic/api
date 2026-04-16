@@ -92,7 +92,7 @@ async def generate(sid: str, data: dict[str, Any]) -> None:
                 "profiles_id": str(profile_ctx.profiles_id),
                 "session_id": session_id_str,
                 "group_id": group_id,
-                "requests_per_day": profile_ctx.requests_per_day,
+                "request_limit": profile_ctx.request_limit,
                 **payload.model_dump(mode="json"),
             },
         )

@@ -46,8 +46,16 @@ async def parameter_get(sid: str, data: dict[str, Any]) -> None:
             redis,
             profile_id=identity.profile_id,
             session_id=identity.session_id,
+            id=payload.id,
             parameter_id=payload.parameter_id,
             draft_id=payload.draft_id,
+            filters={
+                "names": payload.names,
+                "descriptions": payload.descriptions,
+                "flags": payload.flags,
+                "departments": payload.departments,
+                "parameter_fields": payload.parameter_fields or payload.fields,
+            },
         ),
         arguments=payload.model_dump(mode="json"),
     )

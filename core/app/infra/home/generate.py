@@ -98,7 +98,7 @@ async def generate_home_impl(
             "profiles_id": str(profile.profiles_id),
             "session_id": str(session_id),
             "group_id": str(group_id),
-            "requests_per_day": profile.requests_per_day,
+            "request_limit": profile.request_limit,
             **payload.model_dump(mode="json"),
         },
     )

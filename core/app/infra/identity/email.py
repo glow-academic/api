@@ -32,7 +32,7 @@ class ProfileByEmailResult:
     primary_email: str | None
     role: str
     active: bool
-    req_per_day: int | None
+    request_limit: int | None
     primary_department_id: UUID | None
     actor_name: str | None
 
@@ -95,7 +95,7 @@ async def resolve_profile_by_email(
         primary_email=identity.primary_email,
         role=identity.role,
         active=identity.is_active,
-        req_per_day=identity.requests_per_day,
+        request_limit=identity.request_limit,
         primary_department_id=identity.primary_department_id,
         actor_name=actor_name,
     )

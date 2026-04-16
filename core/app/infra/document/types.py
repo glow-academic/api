@@ -368,12 +368,15 @@ class CreateDocumentApiRequest(BaseModel):
     """Request model for bulk create document endpoint."""
 
     documents: list[CreateDocumentItem] = Field(..., description="List of documents to create")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateDocumentApiResponse(BaseModel):
     """Response model for bulk create document endpoint."""
 
     results: list[DocumentResultItem] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Update Endpoint Types ==========
@@ -413,12 +416,15 @@ class UpdateDocumentApiRequest(BaseModel):
     """Request model for bulk update document endpoint."""
 
     documents: list[UpdateDocumentItem] = Field(..., description="List of documents to update")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateDocumentApiResponse(BaseModel):
     """Response model for bulk update document endpoint."""
 
     results: list[DocumentResultItem] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 class SaveDocumentFieldError(BaseModel):
@@ -435,6 +441,8 @@ class DeleteDocumentApiRequest(BaseModel):
     """Request model for bulk delete document endpoint."""
 
     document_ids: list[UUID] = Field(..., description="Document UUIDs to delete")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    accept: bool = Field(True, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
 
 
 class DeleteDocumentResult(BaseModel):
@@ -449,6 +457,7 @@ class DeleteDocumentApiResponse(BaseModel):
     """Response model for bulk delete document endpoint."""
 
     results: list[DeleteDocumentResult] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Duplicate Endpoint Types ==========
@@ -458,6 +467,8 @@ class DuplicateDocumentApiRequest(BaseModel):
     """Request model for duplicate document endpoint."""
 
     document_id: UUID = Field(..., description="Document UUID to duplicate")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateDocumentApiResponse(BaseModel):
@@ -466,6 +477,7 @@ class DuplicateDocumentApiResponse(BaseModel):
     success: bool = Field(..., description="Whether the operation succeeded")
     document_id: UUID = Field(..., description="Newly created document UUID")
     message: str = Field(..., description="Human-readable result message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Draft Endpoint Types ==========
@@ -704,6 +716,8 @@ class ProblemDocumentApiRequest(BaseModel):
 
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemDocumentApiResponse(BaseModel):
@@ -712,3 +726,4 @@ class ProblemDocumentApiResponse(BaseModel):
     problem_id: UUID = Field(..., description="UUID of the created problem")
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")

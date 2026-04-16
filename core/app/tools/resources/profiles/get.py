@@ -35,7 +35,7 @@ async def get_profiles(
     rows = await conn.fetch(
         """
         SELECT id, name, description, department_ids,
-               role_id, emails, primary_email, requests_per_day,
+               role_id, emails, primary_email,
                last_login, created_at, active, mcp, generated
         FROM profiles_resource
         WHERE id = ANY($1)
@@ -53,7 +53,6 @@ async def get_profiles(
             role_id=r["role_id"],
             emails=r["emails"] or [],
             primary_email=r["primary_email"],
-            requests_per_day=r["requests_per_day"],
             last_login=r["last_login"],
             created_at=r["created_at"],
             active=r["active"],

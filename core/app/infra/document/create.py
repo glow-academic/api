@@ -21,16 +21,14 @@ from app.infra.document.permissions_context import (
     resolve_document_values,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.document.refresh import refresh_document_impl
 from app.tools.artifacts.document.create import (
     create_document as create_document_artifact,
 )
-from app.utils.cache.invalidate_tags import invalidate_tags
-
-
+from app.tools.artifacts.document.get import get_documents
+from app.tools.resources.flags.get import get_flags
 from app.infra.document.types import (
     CreateDocumentApiRequest,
-    CreateDocumentItem,
-    DocumentFieldError,
     DocumentResultItem,
     CreateDocumentApiResponse,
 )
@@ -46,6 +44,8 @@ async def create_document_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> CreateDocumentApiResponse:
     """Document bulk create using composable infra functions.
 
@@ -53,10 +53,16 @@ async def create_document_impl(
       1. resolve_profile_identity_context → role, department_ids
       2. compute_can_create — single check (applies to all items)
       3. Per-item value resolution (raw → ID, required field enforcement)
-      4. Single transaction: create_document_artifact + denormalized snapshot per item
-      5. invalidate_tags
+      4. ACK short-circuit for dormant create promotion/rejection
+      5. Per-item value resolution (raw → ID, required field enforcement)
+      6. Single transaction: create_document_artifact + denormalized snapshot per item
+      7. Refresh via canonical document refresh
     """
     from app.infra.document.permissions import compute_can_create
+
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key and accept is None:
+        accept = request.accept
 
     items = request.documents
 
@@ -88,6 +94,73 @@ async def create_document_impl(
             detail="You don't have permission to create documents.",
         )
 
+    # ── Short-circuit: ack path ───────────────────────────────────────
+
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_document_artifact(
+                        conn,
+                        id=idempotency_key,
+                        soft=False,
+                    )
+
+            async with pool.acquire() as conn:
+                artifacts = await get_documents(
+                    conn,
+                    [idempotency_key],
+                    names=True,
+                    descriptions=True,
+                    departments=True,
+                    flags=True,
+                    images=True,
+                    parameter_fields=True,
+                )
+            if artifacts:
+                artifact = artifacts[0]
+                template = False
+                if artifact.flag_ids:
+                    async with pool.acquire() as conn:
+                        flag_artifacts = await get_flags(
+                            conn,
+                            list(artifact.flag_ids),
+                            redis,
+                            bypass_cache=True,
+                        )
+                    template = any(flag.type == "template" for flag in flag_artifacts)
+
+                await create_denormalized_snapshot(
+                    pool,
+                    redis,
+                    id=artifact.id,
+                    name_id=artifact.name_ids[0] if artifact.name_ids else None,
+                    description_id=artifact.description_ids[0] if artifact.description_ids else None,
+                    department_ids=artifact.department_ids or None,
+                    image_ids=artifact.images_ids or None,
+                    parameter_field_ids=artifact.parameter_field_ids or None,
+                    template=template,
+                )
+
+            await refresh_document_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
+            )
+
+        return CreateDocumentApiResponse(
+            results=[
+                DocumentResultItem(
+                    success=True,
+                    document_id=idempotency_key,
+                    message="Document accepted" if accept else "Document rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
+
     # ── Step 3: Per-item value resolution ──────────────────────────────
 
     has_errors = False
@@ -113,30 +186,32 @@ async def create_document_impl(
                 )
 
     if has_errors:
-        return CreateDocumentApiResponse(results=error_results)
+        return CreateDocumentApiResponse(results=error_results, idempotency_key=idempotency_key)
 
     # ── Step 4: Single transaction ─────────────────────────────────────
 
     results: list[DocumentResultItem] = []
 
-    for item in items:
-        # Create denormalized snapshot OUTSIDE transaction (read-only hydration)
-        documents_resource_id = await create_denormalized_snapshot(
-            pool,
-            redis,
-            id=item.resource_id,
-            name_id=item.name_id,
-            description_id=item.description_id,
-            department_ids=item.department_ids,
-            image_ids=item.image_ids,
-            parameter_field_ids=item.parameter_field_ids,
-            template=bool(item.template_flag_id),
-        )
+    snapshot_ids: list[UUID] = []
+    if not soft:
+        for item in items:
+            documents_resource_id = await create_denormalized_snapshot(
+                pool,
+                redis,
+                id=item.resource_id,
+                name_id=item.name_id,
+                description_id=item.description_id,
+                department_ids=item.department_ids,
+                image_ids=item.image_ids,
+                parameter_field_ids=item.parameter_field_ids,
+                template=bool(item.template_flag_id),
+            )
+            snapshot_ids.append(documents_resource_id)
 
+    for idx, item in enumerate(items):
         combined_flag_ids = [fid for fid in [item.active_flag_id, item.template_flag_id] if fid]
         flag_ids = combined_flag_ids if combined_flag_ids else None
 
-        # Artifact create inside transaction
         async with pool.acquire() as conn:
             async with conn.transaction():
                 result = await create_document_artifact(
@@ -150,7 +225,7 @@ async def create_document_impl(
                     image_ids=item.image_ids,
                     parameter_field_ids=item.parameter_field_ids,
                     text_ids=item.text_ids,
-                    document_ids=[documents_resource_id],
+                    document_ids=[snapshot_ids[idx]] if snapshot_ids else None,
                     soft=soft,
                 )
 
@@ -158,12 +233,24 @@ async def create_document_impl(
             DocumentResultItem(
                 success=True,
                 document_id=result.id,
-                message="Document created successfully",
+                message="Document created (pending acceptance)"
+                if soft
+                else "Document created successfully",
             )
         )
 
-    # ── Step 5: Invalidate cache ───────────────────────────────────────
+    # ── Step 5: Canonical refresh ─────────────────────────────────────
 
-    await invalidate_tags(["documents"], redis=redis)
+    await refresh_document_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or (results[0].document_id if results else None),
+    )
 
-    return CreateDocumentApiResponse(results=results)
+    return CreateDocumentApiResponse(
+        results=results,
+        idempotency_key=idempotency_key,
+    )

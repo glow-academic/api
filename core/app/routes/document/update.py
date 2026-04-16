@@ -64,11 +64,7 @@ async def update_document(
             session_id=session_id,
             group_id=group_id,
             operation="update",
-            arguments={
-                "documents": [
-                    item.model_dump(mode="json") for item in request.documents
-                ]
-            },
+            arguments=request.model_dump(mode="json"),
             response_model=UpdateDocumentApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

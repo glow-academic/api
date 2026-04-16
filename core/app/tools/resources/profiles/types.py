@@ -14,7 +14,6 @@ class GetProfileResponse(BaseModel):
     role_id: UUID | None
     emails: list[str]
     primary_email: str | None
-    requests_per_day: int | None
     last_login: datetime
     created_at: datetime
     active: bool

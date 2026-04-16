@@ -1,12 +1,4 @@
-"""Parameter GET endpoint — composable infra architecture.
-
-Uses composable infra layers:
-  1. resolve_common_context — profile + tool graph + runs
-  2. resolve_parameter_permissions_context — fail-fast 404/403
-  3. resolve_parameter_context — artifact + draft → merged + hydrated resources
-  4. score_tools — tool graph + artifact resources → per-resource tool picks
-  5. Pure Python — permissions, show/required flags, response assembly
-"""
+"""Canonical shared parameter GET operation."""
 
 from __future__ import annotations
 
@@ -23,58 +15,68 @@ from app.infra.parameter.permissions import (
     PARAMETER_BASIC_RESOURCES,
     PARAMETER_FIELDS_RESOURCES,
     PARAMETER_RESOURCES,
+    compute_can_draft,
     compute_can_edit,
-    compute_departments_required,
-    compute_description_required,
     compute_disabled_reason,
-    compute_fields_required,
-    compute_flag_required,
-    compute_name_required,
-    compute_show_departments,
-    compute_show_description,
-    compute_show_fields,
-    compute_show_flag,
-    compute_show_name,
     has_access,
 )
 from app.infra.parameter.permissions_context import (
     resolve_parameter_permissions_context,
 )
-from app.infra.tool_graph import score_tools
 from app.infra.parameter.types import (
     GetParameterApiResponse,
-    ParameterDepartmentSection,
-    ParameterDescriptionSection,
-    ParameterFieldSection,
+    ParameterDepartmentResource,
+    ParameterDescriptionResource,
+    ParameterFieldResource,
     ParameterFlagConfig,
-    ParameterFlagSection,
-    ParameterNameSection,
+    ParameterNameResource,
+    SectionFilter,
 )
+from app.infra.tool_graph import score_tools
 
-# ---------------------------------------------------------------------------
-# get_parameter_client — composable infra architecture
-# ---------------------------------------------------------------------------
+SECTIONS = ["names", "descriptions", "flags", "departments", "parameter_fields"]
 
 
-def derive_flag_key_and_label(name: str | None) -> tuple[str, str]:
-    """Derive key and label from flag name like 'parameter_active' -> ('active', 'Active')"""
+def _sf(
+    filters: dict[str, SectionFilter | None],
+    section: str,
+    attr: str,
+    default=None,
+):
+    section_filter = filters.get(section)
+    if section_filter is None:
+        return default
+    return getattr(section_filter, attr, default)
+
+
+def _filter_items(
+    items: list | None,
+    section: str,
+    *,
+    selected_only: dict[str, bool],
+    suggested_only: dict[str, bool],
+):
+    if items is None:
+        return None
+    result = items
+    if selected_only.get(section):
+        result = [item for item in result if getattr(item, "selected", False)]
+    if suggested_only.get(section):
+        result = [item for item in result if getattr(item, "suggested", False)]
+    return result
+
+
+def _text_match(value: str | None, needle: str | None) -> bool:
+    if not needle:
+        return True
+    return needle.lower() in (value or "").lower()
+
+
+def _derive_flag_key_and_label(name: str | None) -> tuple[str, str]:
     if not name:
         return ("unknown", "Unknown")
     key = name.replace("parameter_", "")
-    label = key.replace("_", " ").title()
-    return (key, label)
-
-
-def _serialize_model(item):
-    if item is None:
-        return None
-    if hasattr(item, "model_dump"):
-        return item.model_dump(mode="json")
-    return item
-
-
-def _serialize_models(items: list) -> list:
-    return [_serialize_model(item) for item in items]
+    return (key, key.replace("_", " ").title())
 
 
 async def get_parameter_impl(
@@ -83,23 +85,27 @@ async def get_parameter_impl(
     *,
     profile_id: UUID,
     session_id: UUID | None = None,
-    parameter_id: UUID | None,
+    id: UUID | None = None,
+    parameter_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    filters: dict[str, SectionFilter | None] | None = None,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> GetParameterApiResponse:
-    """Parameter GET using composable infra functions.
+    """Resolve the canonical parameter artifact bundle for any surface."""
 
-    Flow:
-      1. resolve_common_context(profile_id) → profile, tool_graph, runs
-      2. resolve_parameter_permissions_context → access check (404, 403, fail fast)
-      3. resolve_parameter_context(parameter_id, draft_id, ...) → hydrated resources
-      4. score_tools(tool_graph, PARAMETER_RESOURCES) → per-resource tool picks
-      5. Pure Python: permissions, show/required/AI flags, response assembly
-    """
+    resolved_filters = dict(filters or {})
+    if "parameter_fields" not in resolved_filters and resolved_filters.get("fields") is not None:
+        resolved_filters["parameter_fields"] = resolved_filters["fields"]
 
-    # ── Step 1: Common context (profile → tool_graph + runs) ──────────────
+    parameter_id = id or parameter_id
+
+    raw_parameter_ids = _sf(resolved_filters, "parameter_fields", "parameter_ids")
+    parameter_field_parameter_ids = [
+        UUID(value) if isinstance(value, str) else value
+        for value in (raw_parameter_ids or [])
+    ] or None
 
     common = await resolve_common_context(
         pool,
@@ -111,208 +117,265 @@ async def get_parameter_impl(
         artifact_type="parameter",
         bypass_cache=bypass_cache,
     )
-
     if common is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    group_id = group_id or common.profile.group_id
     profile = common.profile
-
-    # ── Step 2: Permissions check (fail fast before full hydration) ──────
+    effective_group_id = group_id or profile.group_id
 
     perms = None
     if parameter_id is not None:
         async with pool.acquire() as conn:
             perms = await resolve_parameter_permissions_context(conn, parameter_id)
-
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
                 detail=f"Parameter {parameter_id} not found",
             )
-
         if not has_access(profile.role_level, profile.department_ids, perms.department_ids):
             raise HTTPException(
                 status_code=403,
                 detail="You don't have access to this parameter. It may be restricted to other departments.",
             )
 
-    # ── Step 3: Parameter artifact context ─────────────────────────────────
-
-    param_ctx = await resolve_parameter_context(
+    parameter = await resolve_parameter_context(
         pool,
         redis,
         parameter_id=parameter_id,
-        group_id=group_id,
+        group_id=effective_group_id,
         draft_id=draft_id,
         user_department_ids=profile.department_ids,
+        parameter_field_parameter_ids=parameter_field_parameter_ids,
+        names_search=_sf(resolved_filters, "names", "search"),
+        descriptions_search=_sf(resolved_filters, "descriptions", "search"),
+        flags_search=_sf(resolved_filters, "flags", "search"),
+        departments_search=_sf(resolved_filters, "departments", "search"),
+        parameter_fields_search=_sf(resolved_filters, "parameter_fields", "search"),
+        names_limit=_sf(resolved_filters, "names", "limit"),
+        descriptions_limit=_sf(resolved_filters, "descriptions", "limit"),
+        flags_limit=_sf(resolved_filters, "flags", "limit"),
+        departments_limit=_sf(resolved_filters, "departments", "limit"),
+        parameter_fields_limit=_sf(resolved_filters, "parameter_fields", "limit"),
         bypass_cache=bypass_cache,
     )
 
-    # ── Step 4: Tool scoring ─────────────────────────────────────────────
-
     scores = score_tools(common.tool_graph, PARAMETER_RESOURCES)
-
-    agent_ids: dict[str, UUID | None] = {
-        r: (scores.best[r].agent_id if scores.best.get(r) else None)
-        for r in PARAMETER_RESOURCES
-    }
-
-
-    # ── Step 5: Permissions ──────────────────────────────────────────────
-
-    perms_department_ids = perms.department_ids if perms else []
-    active_scenario_count = perms.active_scenario_count if perms else 0
+    include = {section: _sf(resolved_filters, section, "include") is not False for section in SECTIONS}
+    selected_only = {section: bool(_sf(resolved_filters, section, "selected")) for section in SECTIONS}
+    suggested_only = {section: bool(_sf(resolved_filters, section, "suggested")) for section in SECTIONS}
 
     can_edit = compute_can_edit(
-        role_level=profile.role_level, role_permissions=profile.role_permissions,
-        parameter_department_ids=perms_department_ids,
-        active_scenario_count=active_scenario_count,
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
+        parameter_department_ids=perms.department_ids if perms else [],
+        active_scenario_count=perms.active_scenario_count if perms else 0,
         user_department_ids=profile.department_ids,
     )
-
     disabled_reason = compute_disabled_reason(
-        role_level=profile.role_level, role_permissions=profile.role_permissions,
-        parameter_department_ids=perms_department_ids,
-        active_scenario_count=active_scenario_count,
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
+        parameter_department_ids=perms.department_ids if perms else [],
+        active_scenario_count=perms.active_scenario_count if perms else 0,
         user_department_ids=profile.department_ids,
     )
 
-    # ── Step 6: Show / Required / AI flags ───────────────────────────────
-
-    names_has_tools = scores.has_any.get("names", False)
-
-    all_departments = dedupe_by_id(
-        param_ctx.resources["departments"].selected
-        + param_ctx.resources["departments"].suggestions
+    can_draft = compute_can_draft(
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
     )
-    all_fields = dedupe_by_id(
-        param_ctx.resources["fields"].selected
-        + param_ctx.resources["fields"].suggestions,
-        id_attr="field_id",
+    basic_show_ai_generate = can_draft and any(
+        scores.has_any.get(resource, False) for resource in PARAMETER_BASIC_RESOURCES
+    )
+    fields_step_show_ai_generate = can_draft and any(
+        scores.has_any.get(resource, False) for resource in PARAMETER_FIELDS_RESOURCES
     )
 
-    show_flags_map = {
-        "names": compute_show_name(names_has_tools),
-        "descriptions": compute_show_description(),
-        "flags": compute_show_flag(),
-        "departments": compute_show_departments(len(all_departments)),
-        "fields": compute_show_fields(len(all_fields)),
+    pending_ids: set[UUID] = parameter.entries.get("pending_ids", set())
+
+    names_selected = parameter.resources["names"].selected
+    names_suggestions = parameter.resources["names"].suggestions
+    descriptions_selected = parameter.resources["descriptions"].selected
+    descriptions_suggestions = parameter.resources["descriptions"].suggestions
+    flags_selected = parameter.resources["flags"].selected
+    flags_suggestions = parameter.resources["flags"].suggestions
+    departments_selected = parameter.resources["departments"].selected
+    departments_suggestions = parameter.resources["departments"].suggestions
+    parameter_fields_selected = parameter.resources["parameter_fields"].selected
+    parameter_fields_suggestions = parameter.resources["parameter_fields"].suggestions
+
+    all_names = dedupe_by_id(names_selected + names_suggestions)
+    all_descriptions = dedupe_by_id(descriptions_selected + descriptions_suggestions)
+    all_flags = dedupe_by_id(flags_selected + flags_suggestions)
+    all_departments = dedupe_by_id(departments_selected + departments_suggestions)
+    all_parameter_fields = dedupe_by_id(
+        parameter_fields_selected + parameter_fields_suggestions
+    )
+
+    selected_ids = {
+        "names": {item.id for item in names_selected if item.id},
+        "descriptions": {item.id for item in descriptions_selected if item.id},
+        "flags": {item.id for item in flags_selected if item.id},
+        "departments": {item.id for item in departments_selected if item.id},
+        "parameter_fields": {item.id for item in parameter_fields_selected if item.id},
+    }
+    suggested_ids = {
+        "names": {item.id for item in names_suggestions if item.id},
+        "descriptions": {item.id for item in descriptions_suggestions if item.id},
+        "flags": {item.id for item in flags_suggestions if item.id},
+        "departments": {item.id for item in departments_suggestions if item.id},
+        "parameter_fields": {item.id for item in parameter_fields_suggestions if item.id},
     }
 
-    required_flags_map = {
-        "names": compute_name_required(),
-        "descriptions": compute_description_required(),
-        "flags": compute_flag_required(),
-        "departments": compute_departments_required(),
-        "fields": compute_fields_required(),
-    }
+    field_lookup = parameter.entries.get("field_map", {})
 
-    # ── Step 7: Validation ───────────────────────────────────────────────
+    def _decorate_common(item_id: UUID | None, section: str) -> tuple[bool, bool, bool]:
+        return (
+            bool(item_id and item_id in suggested_ids[section]),
+            bool(item_id and item_id in selected_ids[section]),
+            bool(item_id and item_id in pending_ids),
+        )
 
-    if parameter_id is None:
-        if not all_departments:
-            raise HTTPException(
-                status_code=400, detail="No accessible departments found for user"
+    def _names() -> list[ParameterNameResource]:
+        items: list[ParameterNameResource] = []
+        for item in all_names:
+            suggested, selected, pending = _decorate_common(item.id, "names")
+            items.append(
+                ParameterNameResource(
+                    id=item.id,
+                    name=item.name,
+                    generated=item.generated,
+                    suggested=suggested,
+                    selected=selected,
+                    pending=pending,
+                )
             )
+        return items
 
-    # ── Step 8: Response assembly ────────────────────────────────────────
+    def _descriptions() -> list[ParameterDescriptionResource]:
+        items: list[ParameterDescriptionResource] = []
+        for item in all_descriptions:
+            suggested, selected, pending = _decorate_common(item.id, "descriptions")
+            items.append(
+                ParameterDescriptionResource(
+                    id=item.id,
+                    description=item.description,
+                    generated=item.generated,
+                    suggested=suggested,
+                    selected=selected,
+                    pending=pending,
+                )
+            )
+        return items
 
-    # Flags — enriched format
-    all_flags = dedupe_by_id(
-        param_ctx.resources["flags"].selected + param_ctx.resources["flags"].suggestions
-    )
-    parameter_flags = [
-        ParameterFlagConfig(
-            key=derive_flag_key_and_label(flag.name)[0],
-            label=derive_flag_key_and_label(flag.name)[1],
-            description=flag.description,
-            icon_id=flag.icon,
-            flag_option_id=flag.id,
-            show=show_flags_map.get("flags", True),
-            required=required_flags_map.get("flags", False),
-            generated=flag.generated,
-        )
-        for flag in all_flags
-        if flag.id
-    ]
+    def _flags() -> list[ParameterFlagConfig]:
+        items: list[ParameterFlagConfig] = []
+        for item in all_flags:
+            suggested, selected, pending = _decorate_common(item.id, "flags")
+            key, label = _derive_flag_key_and_label(item.name)
+            items.append(
+                ParameterFlagConfig(
+                    key=key,
+                    label=label,
+                    description=item.description,
+                    icon_id=str(item.icon) if getattr(item, "icon", None) else None,
+                    flag_option_id=item.id,
+                    show=True,
+                    required=False,
+                    generated=item.generated,
+                    suggested=suggested,
+                    selected=selected,
+                    pending=pending,
+                )
+            )
+        return items
 
-    current_flags = [
-        ParameterFlagConfig(
-            key=derive_flag_key_and_label(f.name)[0],
-            label=derive_flag_key_and_label(f.name)[1],
-            description=f.description,
-            icon_id=f.icon,
-            flag_option_id=f.id,
-            show=show_flags_map.get("flags", True),
-            required=required_flags_map.get("flags", False),
-            generated=f.generated,
-        )
-        for f in param_ctx.resources["flags"].selected
-        if f.id
-    ]
+    def _departments() -> list[ParameterDepartmentResource]:
+        items: list[ParameterDepartmentResource] = []
+        for item in all_departments:
+            suggested, selected, pending = _decorate_common(item.id, "departments")
+            items.append(
+                ParameterDepartmentResource(
+                    department_id=item.id,
+                    name=item.name,
+                    description=item.description,
+                    generated=item.generated,
+                    suggested=suggested,
+                    selected=selected,
+                    pending=pending,
+                )
+            )
+        return items
 
-    # Names, Descriptions — all = selected + suggestions deduped
-    all_names = dedupe_by_id(
-        param_ctx.resources["names"].selected + param_ctx.resources["names"].suggestions
-    )
-    all_descriptions = dedupe_by_id(
-        param_ctx.resources["descriptions"].selected
-        + param_ctx.resources["descriptions"].suggestions
-    )
+    def _parameter_fields() -> list[ParameterFieldResource]:
+        items: list[ParameterFieldResource] = []
+        needle = _sf(resolved_filters, "parameter_fields", "search")
+        for item in all_parameter_fields:
+            field = field_lookup.get(item.field_id)
+            if needle and not (
+                _text_match(getattr(field, "name", None), needle)
+                or _text_match(getattr(field, "description", None), needle)
+            ):
+                continue
 
-    # Suggestions maps (IDs only)
-    suggestions_map = {
-        "names": [n.id for n in param_ctx.resources["names"].suggestions],
-        "descriptions": [d.id for d in param_ctx.resources["descriptions"].suggestions],
-        "departments": [d.id for d in param_ctx.resources["departments"].suggestions],
-        "fields": [f.id for f in param_ctx.resources["fields"].suggestions],
-    }
-
-    def _section(resource_key: str) -> dict:
-        return {
-            "show": show_flags_map.get(resource_key, False),
-            "required": required_flags_map.get(resource_key, False),
-            "suggestions": suggestions_map.get(resource_key, []),
-        }
+            conditional_ids = list(getattr(field, "conditional_parameter_ids", []) or [])
+            suggested, selected, pending = _decorate_common(item.id, "parameter_fields")
+            items.append(
+                ParameterFieldResource(
+                    id=item.id,
+                    field_id=item.field_id,
+                    parameter_id=item.parameter_id,
+                    name=getattr(field, "name", None),
+                    description=getattr(field, "description", None),
+                    conditional_parameter_id=conditional_ids[0] if conditional_ids else None,
+                    generated=item.generated,
+                    suggested=suggested,
+                    selected=selected,
+                    pending=pending,
+                )
+            )
+        return items
 
     return GetParameterApiResponse(
         actor_name=profile.name,
-        parameter_exists=param_ctx.artifact_id is not None,
+        parameter_exists=parameter.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        group_id=group_id,
-        names=ParameterNameSection(
-            **_section("names"),
-            resource=_serialize_model(param_ctx.resources["names"].selected[0])
-            if param_ctx.resources["names"].selected
-            else None,
-            resources=_serialize_models(all_names),
-        ),
-        descriptions=ParameterDescriptionSection(
-            **_section("descriptions"),
-            resource=_serialize_model(param_ctx.resources["descriptions"].selected[0])
-            if param_ctx.resources["descriptions"].selected
-            else None,
-            resources=_serialize_models(all_descriptions),
-        ),
-        flags=ParameterFlagSection(
-            **_section("flags"),
-            current=current_flags or None,
-            resources=parameter_flags,
-        ),
-        departments=ParameterDepartmentSection(
-            **_section("departments"),
-            current=_serialize_models(param_ctx.resources["departments"].selected)
-            or None,
-            resources=_serialize_models(all_departments),
-        ),
-        fields=ParameterFieldSection(
-            **_section("fields"),
-            current=_serialize_models(param_ctx.resources["fields"].selected) or None,
-            resources=_serialize_models(all_fields),
-        ),
+        group_id=effective_group_id,
+        show_ai_generate=basic_show_ai_generate or fields_step_show_ai_generate,
+        basic_show_ai_generate=basic_show_ai_generate,
+        fields_step_show_ai_generate=fields_step_show_ai_generate,
+        pending_ids=list(pending_ids) or None,
+        names=_filter_items(
+            _names(),
+            "names",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        ) if include["names"] else None,
+        descriptions=_filter_items(
+            _descriptions(),
+            "descriptions",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        ) if include["descriptions"] else None,
+        flags=_filter_items(
+            _flags(),
+            "flags",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        ) if include["flags"] else None,
+        departments=_filter_items(
+            _departments(),
+            "departments",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        ) if include["departments"] else None,
+        parameter_fields=_filter_items(
+            _parameter_fields(),
+            "parameter_fields",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        ) if include["parameter_fields"] else None,
     )

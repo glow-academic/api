@@ -5,10 +5,11 @@ Per-artifact, Redis-backed sliding window. Also supports explicit
 group naming, replacing the need for the centralized group/name.py.
 
 Flow:
-  1. resolve_profile_identity_context -> profile
-  2. Resolve group: existing (by group_id or Redis window) or create fresh
-  3. Optional: create group_names_entry
-  4. Refresh MVs + invalidate cache (only when something was written)
+  1. Resolve request/ack fields
+  2. Resolve profile context
+  3. Resolve group: existing (by group_id or Redis window) or create fresh
+  4. Optional: create group_names_entry
+  5. Canonical refresh when something was written
 """
 
 from __future__ import annotations
@@ -20,12 +21,10 @@ from fastapi import HTTPException
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
+from app.infra.group.refresh import refresh_group_impl
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.group_names.create import create_group_name
-from app.tools.entries.group_names.refresh import refresh_group_names
 from app.tools.entries.groups.create import create_group
-from app.tools.entries.groups.refresh import refresh_groups
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 ARTIFACT_TYPE = "document"
 DEFAULT_WINDOW_SECONDS = 60
@@ -48,6 +47,14 @@ class GroupDocumentApiRequest(BaseModel):
         description="Existing group UUID (omit to create or reuse via time window)",
     )
     name: str | None = Field(None, description="Optional name for the group")
+    idempotency_key: UUID | None = Field(
+        None,
+        description="Operation key for ack - promotes or rejects a dormant group",
+    )
+    accept: bool = Field(
+        True,
+        description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+    )
 
 
 class GroupDocumentApiResponse(BaseModel):
@@ -62,6 +69,9 @@ class GroupDocumentApiResponse(BaseModel):
     )
     name: str | None = Field(
         None, description="The name that was set (if provided)"
+    )
+    idempotency_key: UUID | None = Field(
+        None, description="Idempotency key echoed back for client correlation"
     )
 
 
@@ -80,6 +90,10 @@ async def group_document_impl(
     group_id: UUID | None = None,
     name: str | None = None,
     window_seconds: int = DEFAULT_WINDOW_SECONDS,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    **_kwargs,
 ) -> GroupDocumentApiResponse:
     """Resolve or create a document group with optional naming.
 
@@ -95,6 +109,34 @@ async def group_document_impl(
     if request is not None:
         group_id = request.group_id
         name = request.name
+        idempotency_key = idempotency_key or request.idempotency_key
+        if idempotency_key and accept is None:
+            accept = request.accept
+
+    # -- Short-circuit: ack path -------------------------------------------
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            # Promote: re-call create with soft=False -> ON CONFLICT activates
+            async with pool.acquire() as conn:
+                await create_group(
+                    conn,
+                    session_id=session_id,
+                    artifact_type=ARTIFACT_TYPE,
+                    id=idempotency_key,
+                    soft=False,
+                )
+            await refresh_group_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+            )
+        return GroupDocumentApiResponse(
+            group_id=idempotency_key,
+            group_name_id=None,
+            name=name,
+            idempotency_key=idempotency_key,
+        )
 
     # -- Step 1: Profile context ------------------------------------------------
 
@@ -129,7 +171,12 @@ async def group_document_impl(
             await redis.expire(key, window_seconds)
         else:
             async with pool.acquire() as conn:
-                result = await create_group(conn, session_id=session_id, artifact_type=ARTIFACT_TYPE)
+                result = await create_group(
+                    conn,
+                    session_id=session_id,
+                    artifact_type=ARTIFACT_TYPE,
+                    soft=soft,
+                )
             resolved_group_id = result.id
             await redis.setex(key, window_seconds, str(resolved_group_id))
             created_new = True
@@ -147,18 +194,19 @@ async def group_document_impl(
             )
             group_name_id = name_result.id
 
-        # Refresh MVs
-        async with pool.acquire() as conn:
-            await refresh_group_names(conn)
-            await refresh_groups(conn)
-
-    # -- Step 4: Invalidate cache (only if we wrote something) ------------------
+    # -- Step 4: Canonical refresh (only if we wrote something) ------------------
 
     if created_new or group_name_id:
-        await invalidate_tags(["groups"], redis=redis)
+        await refresh_group_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+        )
 
     return GroupDocumentApiResponse(
         group_id=resolved_group_id,
         group_name_id=group_name_id,
         name=name,
+        idempotency_key=idempotency_key,
     )

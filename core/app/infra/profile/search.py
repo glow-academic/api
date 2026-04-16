@@ -212,7 +212,6 @@ async def search_profile_impl(
     email_map = {e.id: e for e in emails_data}
     dept_map = {d.id: d for d in departments_data}
     role_map = {r.id: r for r in roles_data}
-    request_limit_map = {rl.id: rl for rl in request_limits_data}
     profile_resource_map = {p.id: p for p in profiles_resource_data}
 
     # -- Step 6: Build profile list with permissions --
@@ -252,13 +251,6 @@ async def search_profile_impl(
                 dept_ids_str.append(str(dept.id))
                 if dept.is_primary:
                     primary_department_id = str(dept.id)
-
-        # Resolve requests_per_day from profiles_resource
-        requests_per_day: int | None = None
-        if a.profile_ids:
-            prof_resource = profile_resource_map.get(a.profile_ids[0])
-            if prof_resource:
-                requests_per_day = prof_resource.requests_per_day
 
         # Compute initials from name
         initials: str | None = None
@@ -303,7 +295,6 @@ async def search_profile_impl(
                 initials=initials,
                 department_ids=dept_ids_str if dept_ids_str else None,
                 primary_department_id=primary_department_id,
-                requests_per_day=requests_per_day,
                 can_edit=can_edit,
                 can_duplicate=can_duplicate,
                 can_delete=can_delete,

@@ -3386,6 +3386,16 @@
         "summary": "Document Refresh",
         "description": "Refresh document materialized views and invalidate caches.",
         "operationId": "document_refresh_document_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshDocumentApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -3393,6 +3403,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -9986,7 +10006,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetParameterApiResponse-Output"
+                  "$ref": "#/components/schemas/GetParameterApiResponse"
                 }
               }
             }
@@ -35306,7 +35326,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetParameterApiResponse-Input"
+                "$ref": "#/components/schemas/GetParameterApiResponse"
               }
             }
           },
@@ -54063,6 +54083,25 @@
             "type": "array",
             "title": "Documents",
             "description": "List of documents to create"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -54081,6 +54120,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -54099,6 +54151,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -56116,19 +56181,6 @@
             ],
             "title": "Name",
             "description": "Name value to resolve or create"
-          },
-          "request_limit_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Request Limit Id",
-            "description": "UUID of the request limit resource"
           },
           "active_flag_id": {
             "anyOf": [
@@ -60450,6 +60502,25 @@
             "type": "array",
             "title": "Document Ids",
             "description": "Document UUIDs to delete"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -60468,6 +60539,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -63334,6 +63418,25 @@
             "format": "uuid",
             "title": "Document Id",
             "description": "Document UUID to duplicate"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -63360,6 +63463,19 @@
             "type": "string",
             "title": "Message",
             "description": "Human-readable result message"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -80176,6 +80292,19 @@
       },
       "GetParameterApiRequest": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Parameter unique identifier"
+          },
           "parameter_id": {
             "anyOf": [
               {
@@ -80187,7 +80316,7 @@
               }
             ],
             "title": "Parameter Id",
-            "description": "Parameter unique identifier"
+            "description": "Legacy alias for parameter unique identifier"
           },
           "draft_id": {
             "anyOf": [
@@ -80201,13 +80330,91 @@
             ],
             "title": "Draft Id",
             "description": "Draft unique identifier"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__parameter__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for names section"
+          },
+          "descriptions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__parameter__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for descriptions section"
+          },
+          "flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__parameter__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags section"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__parameter__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for departments section"
+          },
+          "parameter_fields": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__parameter__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for parameter fields section"
+          },
+          "fields": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__parameter__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Legacy alias for parameter_fields"
           }
         },
         "type": "object",
         "title": "GetParameterApiRequest",
         "description": "Request model for get parameter endpoint."
       },
-      "GetParameterApiResponse-Input": {
+      "GetParameterApiResponse": {
         "properties": {
           "actor_name": {
             "anyOf": [
@@ -80270,7 +80477,7 @@
             "title": "Group Id",
             "description": "Group identifier for the parameter"
           },
-          "basic_show_ai_generate": {
+          "show_ai_generate": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -80279,143 +80486,8 @@
                 "type": "null"
               }
             ],
-            "title": "Basic Show Ai Generate",
-            "description": "Show AI generate for basic step"
-          },
-          "fields_step_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Fields Step Show Ai Generate",
-            "description": "Show AI generate for fields step"
-          },
-          "names": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ParameterNameSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Name section with resources"
-          },
-          "descriptions": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ParameterDescriptionSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Description section with resources"
-          },
-          "flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ParameterFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Flag section with configs"
-          },
-          "departments": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ParameterDepartmentSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Department section with resources"
-          },
-          "fields": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ParameterFieldSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Field section with resources"
-          }
-        },
-        "type": "object",
-        "title": "GetParameterApiResponse",
-        "description": "Section-first client response for get parameter endpoint."
-      },
-      "GetParameterApiResponse-Output": {
-        "properties": {
-          "actor_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Actor Name",
-            "description": "Display name of the current actor"
-          },
-          "parameter_exists": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parameter Exists",
-            "description": "Whether the parameter exists"
-          },
-          "can_edit": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Can Edit",
-            "description": "Whether the current user can edit"
-          },
-          "disabled_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Disabled Reason",
-            "description": "Reason editing is disabled"
-          },
-          "group_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Group Id",
-            "description": "Group identifier for the parameter"
+            "title": "Show Ai Generate",
+            "description": "Show AI generate if any resource supports it"
           },
           "basic_show_ai_generate": {
             "anyOf": [
@@ -80441,65 +80513,101 @@
             "title": "Fields Step Show Ai Generate",
             "description": "Show AI generate for fields step"
           },
-          "names": {
+          "pending_ids": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ParameterNameSection"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Name section with resources"
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers when available"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ParameterNameResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Names",
+            "description": "Name resources"
           },
           "descriptions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ParameterDescriptionSection"
+                "items": {
+                  "$ref": "#/components/schemas/ParameterDescriptionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Description section with resources"
+            "title": "Descriptions",
+            "description": "Description resources"
           },
           "flags": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ParameterFlagSection"
+                "items": {
+                  "$ref": "#/components/schemas/ParameterFlagConfig"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Flag section with configs"
+            "title": "Flags",
+            "description": "Flag configs"
           },
           "departments": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ParameterDepartmentSection"
+                "items": {
+                  "$ref": "#/components/schemas/ParameterDepartmentResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Department section with resources"
+            "title": "Departments",
+            "description": "Department resources"
           },
-          "fields": {
+          "parameter_fields": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ParameterFieldSection"
+                "items": {
+                  "$ref": "#/components/schemas/ParameterFieldResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Field section with resources"
+            "title": "Parameter Fields",
+            "description": "Parameter field resources"
           }
         },
         "type": "object",
         "title": "GetParameterApiResponse",
-        "description": "Section-first client response for get parameter endpoint."
+        "description": "Canonical flat composed response for the parameter editor."
       },
       "GetParameterDraftResponse": {
         "properties": {
@@ -81785,17 +81893,6 @@
             ],
             "description": "Email section with resources"
           },
-          "request_limits": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProfileRequestLimitSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Request limit section with resources"
-          },
           "flags": {
             "anyOf": [
               {
@@ -81981,17 +82078,6 @@
               }
             ],
             "description": "Email section with resources"
-          },
-          "request_limits": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProfileRequestLimitSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Request limit section with resources"
           },
           "flags": {
             "anyOf": [
@@ -88733,6 +88819,25 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack - promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -88771,6 +88876,19 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -96528,18 +96646,6 @@
             "title": "Primary Department Id",
             "description": "Primary department ID"
           },
-          "requests_per_day": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Requests Per Day",
-            "description": "Maximum requests allowed per day"
-          },
           "can_edit": {
             "anyOf": [
               {
@@ -100485,7 +100591,7 @@
       },
       "ParameterDepartmentResource": {
         "properties": {
-          "id": {
+          "department_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -100495,8 +100601,8 @@
                 "type": "null"
               }
             ],
-            "title": "Id",
-            "description": "Unique identifier"
+            "title": "Department Id",
+            "description": "Department identifier"
           },
           "name": {
             "anyOf": [
@@ -100533,47 +100639,29 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "ParameterDepartmentResource",
         "description": "Department resource for parameter."
-      },
-      "ParameterDepartmentSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ParameterDepartmentResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned departments"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ParameterDepartmentResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available departments"
-          }
-        },
-        "type": "object",
-        "title": "ParameterDepartmentSection"
       },
       "ParameterDescriptionResource": {
         "properties": {
@@ -100613,108 +100701,29 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "ParameterDescriptionResource",
         "description": "Description resource for parameter."
-      },
-      "ParameterDescriptionSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ParameterDescriptionResource"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Currently selected description resource"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ParameterDescriptionResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available description resources"
-          }
-        },
-        "type": "object",
-        "title": "ParameterDescriptionSection"
-      },
-      "ParameterDraftFormState": {
-        "properties": {
-          "name_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name Id",
-            "description": "Resolved name resource identifier"
-          },
-          "description_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description Id",
-            "description": "Resolved description resource identifier"
-          },
-          "flag_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Flag Ids",
-            "description": "Flag option identifiers"
-          },
-          "department_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Department Ids",
-            "description": "Department identifiers"
-          },
-          "field_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Field Ids",
-            "description": "Field identifiers"
-          }
-        },
-        "type": "object",
-        "required": [
-          "flag_ids",
-          "department_ids",
-          "field_ids"
-        ],
-        "title": "ParameterDraftFormState",
-        "description": "Server-authoritative form state returned after draft save."
       },
       "ParameterFieldError": {
         "properties": {
@@ -100790,6 +100799,31 @@
             "title": "Name",
             "description": "Field display name"
           },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Field description"
+          },
+          "conditional_parameter_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conditional Parameter Id",
+            "description": "Conditional parameter identifier"
+          },
           "generated": {
             "anyOf": [
               {
@@ -100801,47 +100835,29 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "ParameterFieldResource",
         "description": "Parameter field resource for parameter."
-      },
-      "ParameterFieldSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ParameterFieldResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned fields"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ParameterFieldResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available fields"
-          }
-        },
-        "type": "object",
-        "title": "ParameterFieldSection"
       },
       "ParameterFlagConfig": {
         "properties": {
@@ -100915,6 +100931,24 @@
             ],
             "title": "Generated",
             "description": "Whether this flag was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
@@ -100924,42 +100958,6 @@
         ],
         "title": "ParameterFlagConfig",
         "description": "Enriched flag config for direct client consumption."
-      },
-      "ParameterFlagSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ParameterFlagConfig"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently active flag configs"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ParameterFlagConfig"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available flag configs"
-          }
-        },
-        "type": "object",
-        "title": "ParameterFlagSection"
       },
       "ParameterNameResource": {
         "properties": {
@@ -100999,43 +100997,29 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "ParameterNameResource",
         "description": "Name resource for parameter."
-      },
-      "ParameterNameSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ParameterNameResource"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Currently selected name resource"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ParameterNameResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available name resources"
-          }
-        },
-        "type": "object",
-        "title": "ParameterNameSection"
       },
       "ParameterResultItem": {
         "properties": {
@@ -104246,6 +104230,19 @@
       },
       "PatchParameterDraftApiRequest": {
         "properties": {
+          "draft_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Id",
+            "description": "Existing draft ID to update"
+          },
           "input_draft_id": {
             "anyOf": [
               {
@@ -104257,7 +104254,7 @@
               }
             ],
             "title": "Input Draft Id",
-            "description": "Existing draft ID to update"
+            "description": "Legacy alias for existing draft ID to update"
           },
           "name": {
             "anyOf": [
@@ -104356,6 +104353,71 @@
             ],
             "title": "Field Ids",
             "description": "Field identifiers"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departments",
+            "description": "Department names to resolve"
+          },
+          "parameter_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Fields",
+            "description": "Parameter field names to resolve"
+          },
+          "pending_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Ids",
+            "description": "Resource IDs to keep pending where supported"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack or retry"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject dormant state",
+            "default": true
           }
         },
         "type": "object",
@@ -104375,6 +104437,12 @@
             "title": "Draft Id",
             "description": "Draft unique identifier"
           },
+          "idempotency_key": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Idempotency Key",
+            "description": "Idempotency key for this draft operation"
+          },
           "message": {
             "type": "string",
             "title": "Message",
@@ -104383,7 +104451,7 @@
           "form_state": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ParameterDraftFormState"
+                "$ref": "#/components/schemas/app__infra__parameter__types__DraftFormState"
               },
               {
                 "type": "null"
@@ -104396,6 +104464,7 @@
         "required": [
           "success",
           "draft_id",
+          "idempotency_key",
           "message"
         ],
         "title": "PatchParameterDraftApiResponse",
@@ -104822,18 +104891,6 @@
             "title": "Email",
             "description": "Email value to resolve or create"
           },
-          "request_limit": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Request Limit",
-            "description": "Request limit value to resolve or create"
-          },
           "active_flag_id": {
             "anyOf": [
               {
@@ -104891,27 +104948,11 @@
             ],
             "title": "Role Id",
             "description": "Role resource UUID"
-          },
-          "request_limit_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Request Limit Ids",
-            "description": "Request limit resource UUIDs"
           }
         },
         "type": "object",
         "title": "PatchProfileDraftApiRequest",
-        "description": "Request model for new-style profile draft endpoint.\n\nDual-mode for creatable resources only:\n  - name/name_id\nID-only for non-creatable resources:\n  - active_flag_id, department_ids, email_ids, role_id, request_limit_ids\n\nClient always sends full state (append-only \u2014 each write is a new snapshot)."
+        "description": "Request model for new-style profile draft endpoint.\n\nDual-mode for creatable resources only:\n  - name/name_id\nID-only for non-creatable resources:\n  - active_flag_id, department_ids, email_ids, role_id\n\nClient always sends full state (append-only \u2014 each write is a new snapshot)."
       },
       "PatchProfileDraftApiResponse": {
         "properties": {
@@ -108992,6 +109033,25 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -109021,6 +109081,19 @@
             "title": "Message",
             "description": "Status message",
             "default": "Problem created successfully"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -110668,22 +110741,12 @@
             ],
             "title": "Role Id",
             "description": "Assigned role resource UUID"
-          },
-          "request_limit_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Request Limit Ids",
-            "description": "Assigned request limit UUIDs"
           }
         },
         "type": "object",
         "required": [
           "department_ids",
-          "email_ids",
-          "request_limit_ids"
+          "email_ids"
         ],
         "title": "ProfileDraftFormState",
         "description": "Server-authoritative form state returned after draft save."
@@ -110978,82 +111041,6 @@
         },
         "type": "object",
         "title": "ProfileNameSection"
-      },
-      "ProfileRequestLimitResource": {
-        "properties": {
-          "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id",
-            "description": "Unique resource identifier"
-          },
-          "requests_per_day": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Requests Per Day",
-            "description": "Maximum requests allowed per day"
-          },
-          "generated": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Generated",
-            "description": "Whether the limit was AI-generated"
-          }
-        },
-        "type": "object",
-        "title": "ProfileRequestLimitResource",
-        "description": "Request limit resource for profile."
-      },
-      "ProfileRequestLimitSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProfileRequestLimitResource"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Currently selected request limit"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ProfileRequestLimitResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available request limit resources"
-          }
-        },
-        "type": "object",
-        "title": "ProfileRequestLimitSection"
       },
       "ProfileResultItem": {
         "properties": {
@@ -112451,6 +112438,47 @@
         "type": "object",
         "title": "RefreshCohortApiRequest",
         "description": "Request model for cohort refresh endpoint."
+      },
+      "RefreshDocumentApiRequest": {
+        "properties": {
+          "targets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targets",
+            "description": "MV targets to refresh (omit for all). Options: document_drafts_mv, runs_mv, messages_mv, calls_mv, groups_mv, group_names_mv"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject. Only meaningful with idempotency_key",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "RefreshDocumentApiRequest",
+        "description": "Request model for document refresh endpoint."
       },
       "RefreshResponse": {
         "properties": {
@@ -126201,6 +126229,25 @@
             "type": "array",
             "title": "Documents",
             "description": "List of documents to update"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -126219,6 +126266,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -126237,6 +126297,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -127935,19 +128008,6 @@
             ],
             "title": "Name",
             "description": "Name value to resolve or create"
-          },
-          "request_limit_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Request Limit Id",
-            "description": "UUID of the request limit resource"
           },
           "active_flag_id": {
             "anyOf": [
@@ -130965,6 +131025,186 @@
             ],
             "title": "Parameter Ids",
             "description": "Parameter group IDs for parameter field hydration"
+          }
+        },
+        "type": "object",
+        "title": "SectionFilter",
+        "description": "Per-section filter options for GET requests."
+      },
+      "app__infra__parameter__types__DraftFormState": {
+        "properties": {
+          "name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Id",
+            "description": "Resolved name resource identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Echoed name value"
+          },
+          "description_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description Id",
+            "description": "Resolved description resource identifier"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Echoed description value"
+          },
+          "flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Flag Ids",
+            "description": "Flag option identifiers"
+          },
+          "department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Department Ids",
+            "description": "Department identifiers"
+          },
+          "field_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Field Ids",
+            "description": "Field identifiers"
+          },
+          "pending_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "flag_ids",
+          "department_ids",
+          "field_ids"
+        ],
+        "title": "DraftFormState",
+        "description": "Server-authoritative form state returned after draft save."
+      },
+      "app__infra__parameter__types__SectionFilter": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Filter options by search text"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Max options to return"
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected",
+            "description": "Only return selected items"
+          },
+          "suggested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested",
+            "description": "Only return suggested items"
+          },
+          "include": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include",
+            "description": "Include this section in response (default true)"
+          },
+          "parameter_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Ids",
+            "description": "Parameter group IDs to filter by (parameter_fields section only)"
           }
         },
         "type": "object",

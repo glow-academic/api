@@ -20,6 +20,7 @@ async def upsert_single(
     resource_col: str,
     resource_id: UUID,
     constraint: str,
+    generated: bool = False,
     mcp: bool = False,
     soft: bool = False,
 ) -> None:
@@ -40,12 +41,13 @@ async def upsert_single(
         )
     is_active = not soft
     await conn.execute(
-        f"INSERT INTO {table} ({owner_col}, {resource_col}, active, mcp) VALUES ($1, $2, $3, $4) "
+        f"INSERT INTO {table} ({owner_col}, {resource_col}, active, generated, mcp) VALUES ($1, $2, $3, $4, $5) "
         f"ON CONFLICT ON CONSTRAINT {constraint} "
-        f"DO UPDATE SET active = EXCLUDED.active, mcp = EXCLUDED.mcp",
+        f"DO UPDATE SET active = EXCLUDED.active, generated = EXCLUDED.generated, mcp = EXCLUDED.mcp",
         owner_id,
         resource_id,
         is_active,
+        generated,
         mcp,
     )
 
@@ -59,6 +61,7 @@ async def upsert_multi(
     resource_col: str,
     resource_ids: list[UUID],
     constraint: str,
+    generated: bool = False,
     mcp: bool = False,
     soft: bool = False,
 ) -> None:
@@ -89,13 +92,14 @@ async def upsert_multi(
         )
     is_active = not soft
     await conn.execute(
-        f"INSERT INTO {table} ({owner_col}, {resource_col}, active, mcp) "
-        f"SELECT $1, unnest($2::uuid[]), $3, $4 "
+        f"INSERT INTO {table} ({owner_col}, {resource_col}, active, generated, mcp) "
+        f"SELECT $1, unnest($2::uuid[]), $3, $4, $5 "
         f"ON CONFLICT ON CONSTRAINT {constraint} "
-        f"DO UPDATE SET active = EXCLUDED.active, mcp = EXCLUDED.mcp",
+        f"DO UPDATE SET active = EXCLUDED.active, generated = EXCLUDED.generated, mcp = EXCLUDED.mcp",
         owner_id,
         resource_ids,
         is_active,
+        generated,
         mcp,
     )
 

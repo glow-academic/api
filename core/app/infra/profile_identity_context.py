@@ -25,6 +25,7 @@ from app.tools.resources.emails.get import get_emails
 from app.tools.resources.names.get import get_names
 from app.tools.resources.permissions.get import get_permissions
 from app.tools.resources.profiles.get import get_profiles
+from app.tools.resources.request_limits.get import get_request_limits
 from app.tools.resources.roles.get import get_roles
 
 # ---------------------------------------------------------------------------
@@ -47,7 +48,8 @@ class ProfileIdentityContext:
     primary_department_id: UUID | None
     department_ids: list[UUID]  # all department IDs
     settings_id: UUID | None  # from primary department's setting_ids[0]
-    requests_per_day: int | None  # rate limit from profiles_resource
+    request_limit: int | None  # rate limit from role's request_limit_ids
+    request_limit_interval: str | None  # interval (e.g. "1 day") from request_limits_resource
     is_active: bool
     # Fields with defaults must come after fields without defaults
     role_level: int = 99  # hierarchy level (0 = highest privilege)
@@ -184,6 +186,18 @@ async def resolve_profile_identity_context(
             # Derive unique artifact strings for sidebar visibility
             role_artifacts = list(dict.fromkeys(p.artifact for p in perms))
 
+    # Rate limit from role's request_limit_ids
+    request_limit: int | None = None
+    request_limit_interval: str | None = None
+    if roles_res:
+        rl_ids = roles_res[0].request_limit_ids or []
+        if rl_ids:
+            async with pool.acquire() as conn:
+                rl_items = await get_request_limits(conn, rl_ids, redis, bypass_cache)
+            if rl_items:
+                request_limit = rl_items[0].limit
+                request_limit_interval = rl_items[0].interval
+
     # Primary department: find the one with is_primary=True on the resource
     primary_department_id: UUID | None = None
     settings_id: UUID | None = None
@@ -203,9 +217,6 @@ async def resolve_profile_identity_context(
 
     all_emails = [e.email for e in emails_res]
     all_department_ids = [d.id for d in depts_res]
-
-    # Rate limit from profiles_resource
-    requests_per_day = profiles_res[0].requests_per_day if profiles_res else None
 
     # is_active: check if profile has an active "profile_active" flag
     # The artifact's active field reflects this
@@ -238,7 +249,8 @@ async def resolve_profile_identity_context(
         primary_department_id=primary_department_id,
         department_ids=all_department_ids,
         settings_id=settings_id,
-        requests_per_day=requests_per_day,
+        request_limit=request_limit,
+        request_limit_interval=request_limit_interval,
         is_active=is_active,
         session_id=session_id,
         group_id=resolved_group_id,

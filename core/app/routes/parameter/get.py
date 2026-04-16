@@ -52,8 +52,16 @@ async def get_parameter(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
+                id=request.id,
                 parameter_id=request.parameter_id,
                 draft_id=request.draft_id,
+                filters={
+                    "names": request.names,
+                    "descriptions": request.descriptions,
+                    "flags": request.flags,
+                    "departments": request.departments,
+                    "parameter_fields": request.parameter_fields or request.fields,
+                },
                 bypass_cache=bypass_cache,
             )
 

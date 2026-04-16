@@ -77,7 +77,7 @@ async def generate(
             "profiles_id": str(profile_ctx.profiles_id),
             "session_id": str(session_id),
             "group_id": str(group_id),
-            "requests_per_day": profile_ctx.requests_per_day,
+            "request_limit": profile_ctx.request_limit,
             **request.model_dump(mode="json"),
         },
     )

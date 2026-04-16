@@ -179,41 +179,6 @@ async def patch_document_draft_impl(
 ) -> PatchDocumentDraftApiResponse:
     """Document draft using the canonical request/response contract."""
 
-    if request is not None:
-        idempotency_key = idempotency_key or request.idempotency_key
-        if idempotency_key is not None and accept is None:
-            accept = request.accept
-
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
-    if profile is None:
-        raise HTTPException(status_code=401, detail="Profile not found. Please sign in again.")
-
-    if not compute_can_draft(
-        role_level=profile.role_level,
-        role_permissions=profile.role_permissions,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create or edit document drafts.",
-        )
-
-    # The current document draft entry tool does not support persona-style
-    # ON CONFLICT promotion or connection-level active=false state. Keep the
-    # ack contract for the client, but make it a no-op server-side.
-    if accept is not None and idempotency_key is not None:
-        return PatchDocumentDraftApiResponse(
-            success=True,
-            draft_id=idempotency_key,
-            idempotency_key=idempotency_key,
-            message="Draft accepted" if accept else "Draft rejected",
-            form_state=DraftFormState(),
-        )
-
     if request is None:
         filtered = sanitize_model_kwargs(
             kwargs,
@@ -239,6 +204,69 @@ async def patch_document_draft_impl(
             filtered["draft_id"] = draft_id
             filtered["input_draft_id"] = draft_id
         request = PatchDocumentDraftApiRequest(**filtered)
+
+    if request is not None:
+        idempotency_key = idempotency_key or request.idempotency_key
+        if idempotency_key is not None and accept is None:
+            accept = request.accept
+
+    profile = await resolve_profile_identity_context(
+        pool,
+        profile_id,
+        redis,
+        session_id=session_id,
+    )
+    if profile is None:
+        raise HTTPException(status_code=401, detail="Profile not found. Please sign in again.")
+
+    if not compute_can_draft(
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to create or edit document drafts.",
+        )
+
+    # ── Step 3: ACK short-circuit ──────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_document_draft(
+                        conn,
+                        session_id=session_id,
+                        id=idempotency_key,
+                        soft=False,
+                        name_ids=[request.name_id] if request.name_id else None,
+                        description_ids=[request.description_id]
+                        if request.description_id
+                        else None,
+                        flag_ids=request.flag_ids,
+                        department_ids=request.department_ids,
+                        file_ids=request.file_ids,
+                        image_ids=request.image_ids,
+                        text_ids=request.text_ids,
+                        parameter_field_ids=request.parameter_field_ids,
+                        parameter_ids=request.parameter_ids,
+                        pending_ids=set(request.pending_ids) if request.pending_ids else None,
+                        profile_ids=[profile.profiles_id],
+                    )
+            await refresh_document_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                targets=["document_drafts_mv"],
+                operation_key=idempotency_key,
+            )
+        return PatchDocumentDraftApiResponse(
+            success=True,
+            draft_id=idempotency_key,
+            idempotency_key=idempotency_key,
+            message="Draft accepted" if accept else "Draft rejected",
+            form_state=DraftFormState(),
+        )
 
     if draft_id is not None and request.draft_id is None:
         request.draft_id = draft_id
@@ -268,6 +296,7 @@ async def patch_document_draft_impl(
                 text_ids=request.text_ids,
                 parameter_field_ids=request.parameter_field_ids,
                 parameter_ids=request.parameter_ids,
+                pending_ids=set(request.pending_ids) if request.pending_ids else None,
                 profile_ids=[profile.profiles_id],
             )
 
@@ -286,17 +315,22 @@ async def patch_document_draft_impl(
         pending_ids=request.pending_ids or [],
     )
 
-    if not soft:
-        await refresh_document_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-        )
+    await refresh_document_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        targets=["document_drafts_mv"],
+        soft=soft,
+        operation_key=idempotency_key or result.id,
+    )
+
+    response_idempotency_key = idempotency_key or result.id
 
     return PatchDocumentDraftApiResponse(
         success=True,
         draft_id=result.id,
-        idempotency_key=operation_key,
-        message="Draft created successfully",
+        idempotency_key=response_idempotency_key,
+        message="Draft created (pending acceptance)" if soft else "Draft created successfully",
         form_state=form_state,
     )
