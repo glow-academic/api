@@ -208,12 +208,12 @@ _register(ArtifactGenerateConfig(
 
 _register(ArtifactGenerateConfig(
     artifact_type="attempt",
-    valid_resource_types=["scenarios", "personas", "documents", "images", "videos", "objectives", "questions", "options", "problem_statements", "rubrics", "standard_groups", "standards"],
-    prepare_sql_path="app/sql/queries/generate/persona/prepare_persona_generation_complete.sql",
-    draft_view_key="draft_attempt",
+    valid_resource_types=[],  # Not used — operations-based dispatch
+    prepare_sql_path="",  # Not used — prepare_generation handles context
+    draft_view_key="",
     requires_draft=False,
-    entry_types=["contents", "hints", "feedbacks", "strengths", "improvements", "analyses", "highlights", "replacements", "problems", "messages"],
-    fetcher_id_kwarg="attempt_id",
+    fetcher_id_kwarg="",
+    entry_types=[],
 ))
 
 _register(ArtifactGenerateConfig(

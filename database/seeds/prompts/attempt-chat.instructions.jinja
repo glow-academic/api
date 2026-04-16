@@ -1,37 +1,44 @@
 ## Context
 
-{% set draft = views.draft_attempt_chat if views and views.draft_attempt_chat else None %}
-
-{% if draft %}
-### Current State
-{% if draft.scenario_name is defined %}
-**Scenario:** {{ draft.scenario_name }}
+{% if params %}
+{% if params.draft_id %}
+**Draft ID:** `{{ params.draft_id }}`
+Use `Attempt_Get(draft_id: "{{ params.draft_id }}")` to see the current configuration.
 {% endif %}
-{% if draft.persona_name is defined %}
-**Persona:** {{ draft.persona_name }}
+{% if params.chat_id %}
+**Chat ID:** `{{ params.chat_id }}`
 {% endif %}
-{% if draft.rubric_name is defined %}
-**Rubric:** {{ draft.rubric_name }}
-{% endif %}
-{% if draft.department_ids is defined and draft.department_ids and draft.department_ids|length > 0 %}
-**Departments:** {% for id in draft.department_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% if params.attempt_id %}
+**Attempt ID:** `{{ params.attempt_id }}`
 {% endif %}
 {% endif %}
 
-{% if standard_groups and standard_groups|length > 0 %}
-### Rubric Standard Groups
-{% for sg in standard_groups %}
-- id: {{ sg.id }} | name: {{ sg.name }}{% if sg.description is defined %} | {{ sg.description[:50] }}{% endif %}
+{% if group_id %}
+**Group ID:** `{{ group_id }}`
+{% endif %}
+
+## Parameters
+
+{% if params %}
+Pass these to your tools:
+{% for key, value in params.items() %}
+- `{{ key }}`: `{{ value }}`
 {% endfor %}
 {% endif %}
 
-{% if standards and standards|length > 0 %}
-### Rubric Standards
-{% for s in standards %}
-- id: {{ s.id }} | description: {{ s.description[:80] if s.description is defined else s.id }}
+## Tools
+
+{% for tool in tools %}
+- **{{ tool.name }}**({{ tool.args | join(', ') }}){% if tool.description %} — {{ tool.description }}{% endif %}
+
 {% endfor %}
-{% endif %}
 
-## Tool Usage
+## What To Do
 
-Use the tools listed in the system prompt to generate structured output. Each tool call produces one entry.
+Always respond with tool calls — never output plain text.
+
+{% set tool_names = tools | map(attribute='name') | list %}
+
+1. First call **Attempt_Get** with the `draft_id` to see what's configured
+2. Then call **Attempt_Create** with the `chat_id` and all resource IDs from the draft response
+3. Finally call **Attempt_Group** with the `group_id` and a short descriptive name

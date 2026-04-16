@@ -36,6 +36,8 @@ GROUP_NAME_TOOL = sid("tool-resource/group/name")
 
 ACTIVITY_AGENT = sid("agent/activity")
 AGENT_AGENT = sid("agent/agent")
+ATTEMPT_AGENT = sid("agent/attempt")
+# TODO: Remove after cleanup
 ATTEMPT_CHAT_AGENT = sid("agent/attempt-chat")
 ATTEMPT_CHAT_AGENT_2 = sid("agent/attempt-chat-2")
 ATTEMPT_GRADE_AGENT = sid("agent/attempt-grade")
@@ -80,6 +82,8 @@ COMPOSER_AGENT = sid("agent/composer")
 
 ACTIVITY_AGENT_RESOURCE = sid("agent-resource/activity")
 AGENT_AGENT_RESOURCE = sid("agent-resource/agent")
+ATTEMPT_AGENT_RESOURCE = sid("agent-resource/attempt")
+# TODO: Remove after cleanup
 ATTEMPT_CHAT_AGENT_RESOURCE = sid("agent-resource/attempt-chat")
 ATTEMPT_CHAT_AGENT_2_RESOURCE = sid("agent-resource/attempt-chat-2")
 ATTEMPT_GRADE_AGENT_RESOURCE = sid("agent-resource/attempt-grade")
@@ -163,21 +167,31 @@ agents = [
         prompt_id=_prompt_id("Agent"),
         instruction_ids=[_instruction_id("Agent")],
     ),
+    # Unified attempt agent — replaces separate chat + grade agents
     dict(
-        id=ATTEMPT_CHAT_AGENT,
-        resource_id=ATTEMPT_CHAT_AGENT_RESOURCE,
-        name="Attempt Chat",
-        description="Conversational AI agent for conducting training dialogues as personas",
+        id=ATTEMPT_AGENT,
+        resource_id=ATTEMPT_AGENT_RESOURCE,
+        name="Attempt",
+        description="AI agent for training attempts — chat, grading, and all attempt operations",
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
             sid("tool-resource/attempt/archive"),
+            sid("tool-resource/attempt/context"),
+            sid("tool-resource/attempt/create"),
+            sid("tool-resource/attempt/draft"),
+            sid("tool-resource/attempt/drafts"),
             sid("tool-resource/attempt/end"),
             sid("tool-resource/attempt/end-all"),
             sid("tool-resource/attempt/export"),
+            sid("tool-resource/attempt/generate"),
+            sid("tool-resource/attempt/generations"),
             sid("tool-resource/attempt/get"),
+            sid("tool-resource/attempt/grade"),
+            sid("tool-resource/attempt/group"),
             sid("tool-resource/attempt/message"),
             sid("tool-resource/attempt/next"),
+            sid("tool-resource/attempt/problem"),
             sid("tool-resource/attempt/refresh"),
             sid("tool-resource/attempt/response"),
             sid("tool-resource/attempt/search"),
@@ -191,21 +205,8 @@ agents = [
             sid("tool-resource/attempt-audio/stop"),
             sid("tool-resource/attempt-audio/mute"),
         ],
-        prompt_id=_prompt_id("Attempt Chat"),
-        instruction_ids=[_instruction_id("Attempt Chat")],
-    ),
-    dict(
-        id=ATTEMPT_GRADE_AGENT,
-        resource_id=ATTEMPT_GRADE_AGENT_RESOURCE,
-        name="Attempt Grade",
-        description="Grading and evaluation agent for analyzing training attempt performance",
-        flag_ids=[AGENT_ACTIVE_FLAG],
-        model_id=_role_model("grader"),
-        tool_ids=[
-            sid("tool-resource/attempt/grade"),
-        ],
-        prompt_id=_prompt_id("Attempt Grade"),
-        instruction_ids=[_instruction_id("Attempt Grade")],
+        prompt_id=_prompt_id("Attempt Chat"),  # TODO: Create dedicated "Attempt" prompt
+        instruction_ids=[_instruction_id("Attempt Chat")],  # TODO: Create dedicated "Attempt" instruction
     ),
     dict(
         id=AUTH_AGENT,

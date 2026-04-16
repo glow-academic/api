@@ -1,1 +1,14 @@
-{# Attempt Get response template #}
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### Attempt State
+{% if r.draft_id is defined %}- **Draft ID:** `{{ r.draft_id }}`{% endif %}
+{% if r.chat_id is defined %}- **Chat ID:** `{{ r.chat_id }}`{% endif %}
+{% if r.attempt_id is defined %}- **Attempt ID:** `{{ r.attempt_id }}`{% endif %}
+{% if r.scenario_name is defined %}- **Scenario:** {{ r.scenario_name }}{% endif %}
+{% if r.persona_name is defined %}- **Persona:** {{ r.persona_name }}{% endif %}
+{% if r.rubric_name is defined %}- **Rubric:** {{ r.rubric_name }}{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error fetching attempt: {{ results[0].error }}
+{% else %}
+No attempt data returned.
+{% endif %}
