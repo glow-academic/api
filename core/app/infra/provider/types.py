@@ -8,9 +8,67 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import ListFilterSection
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.provider_drafts.types import GetProviderDraftResponse
+
+
+class ProviderNameResource(BaseModel):
+    id: UUID | None = Field(None, description="Name resource identifier")
+    name: str | None = Field(None, description="Provider display name")
+    generated: bool | None = Field(None, description="Whether the name was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class ProviderDescriptionResource(BaseModel):
+    id: UUID | None = Field(None, description="Description resource identifier")
+    description: str | None = Field(None, description="Provider description")
+    generated: bool | None = Field(None, description="Whether the description was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class ProviderDepartmentResource(BaseModel):
+    department_id: UUID | None = Field(None, description="Department identifier")
+    name: str | None = Field(None, description="Department name")
+    description: str | None = Field(None, description="Department description")
+    generated: bool | None = Field(None, description="Whether the department was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class ProviderValueResource(BaseModel):
+    id: UUID | None = Field(None, description="Value resource identifier")
+    value: str | None = Field(None, description="Provider value")
+    value_type: str | None = Field(None, description="Stored value type")
+    generated: bool | None = Field(None, description="Whether the value was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class ProviderEndpointResource(BaseModel):
+    id: UUID | None = Field(None, description="Endpoint resource identifier")
+    base_url: str | None = Field(None, description="Endpoint base URL")
+    generated: bool | None = Field(None, description="Whether the endpoint was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class ProviderKeyResource(BaseModel):
+    id: UUID | None = Field(None, description="Key resource identifier")
+    key: str | None = Field(None, description="Provider key value")
+    name: str | None = Field(None, description="Key display name")
+    description: str | None = Field(None, description="Key description")
+    generated: bool | None = Field(None, description="Whether the key was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
 class ProviderFlagConfig(BaseModel):
@@ -24,69 +82,57 @@ class ProviderFlagConfig(BaseModel):
     show: bool = Field(True, description="Whether to display this flag in the UI")
     required: bool = Field(False, description="Whether this flag is required")
     generated: bool | None = Field(None, description="Whether this flag was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
-class ProviderNameSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected name resource")
-    resources: list[Any] | None = Field(None, description="Available name resources")
-
-
-class ProviderDescriptionSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected description resource")
-    resources: list[Any] | None = Field(None, description="Available description resources")
-
-
-class ProviderFlagSection(BaseResourceSection):
-    current: list[ProviderFlagConfig] | None = Field(None, description="Currently active flag configs")
-    resources: list[ProviderFlagConfig] | None = Field(None, description="Available flag configs")
-
-
-class ProviderDepartmentSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently assigned departments")
-    resources: list[Any] | None = Field(None, description="Available departments")
-
-
-class ProviderValueSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected value resource")
-    resources: list[Any] | None = Field(None, description="Available value resources")
-
-
-class ProviderEndpointSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected endpoint resource")
-    resources: list[Any] | None = Field(None, description="Available endpoint resources")
-
-
-class ProviderKeySection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected key resource")
-    resources: list[Any] | None = Field(None, description="Available key resources")
+class SectionFilter(BaseModel):
+    search: str | None = Field(None, description="Filter options by search text")
+    limit: int | None = Field(None, description="Max options to return")
+    selected: bool | None = Field(None, description="Only return selected items")
+    suggested: bool | None = Field(None, description="Only return suggested items")
+    include: bool | None = Field(None, description="Include this section in response (default true)")
 
 
 class GetProviderApiRequest(BaseModel):
     """Request model for get provider endpoint."""
 
-    provider_id: UUID | None = Field(None, description="Provider unique identifier")
+    id: UUID | None = Field(None, description="Provider unique identifier")
+    provider_id: UUID | None = Field(None, description="Legacy alias for provider unique identifier")
     draft_id: UUID | None = Field(None, description="Draft unique identifier")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+    names: SectionFilter | None = Field(None, description="Filter options for names")
+    descriptions: SectionFilter | None = Field(None, description="Filter options for descriptions")
+    flags: SectionFilter | None = Field(None, description="Filter options for flags")
+    departments: SectionFilter | None = Field(None, description="Filter options for departments")
+    values: SectionFilter | None = Field(None, description="Filter options for values")
+    endpoints: SectionFilter | None = Field(None, description="Filter options for endpoints")
+    keys: SectionFilter | None = Field(None, description="Filter options for keys")
 
 
 class GetProviderApiResponse(BaseModel):
-    """Section-first response for provider editor."""
+    """Canonical composed response for provider editor."""
 
     actor_name: str | None = Field(None, description="Display name of the current actor")
     provider_exists: bool | None = Field(None, description="Whether the provider exists")
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled")
     group_id: UUID | None = Field(None, description="Group identifier for the provider")
+    provider_id: UUID | None = Field(None, description="Provider identifier")
+    show_ai_generate: bool | None = Field(None, description="Whether any step should show AI generate")
 
     basic_show_ai_generate: bool | None = Field(None, description="Show AI generate for basic step")
     integrations_show_ai_generate: bool | None = Field(None, description="Show AI generate for integrations step")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
 
-    names: ProviderNameSection | None = Field(None, description="Name section with resources")
-    descriptions: ProviderDescriptionSection | None = Field(None, description="Description section with resources")
-    flags: ProviderFlagSection | None = Field(None, description="Flag section with configs")
-    departments: ProviderDepartmentSection | None = Field(None, description="Department section with resources")
-    values: ProviderValueSection | None = Field(None, description="Value section with resources")
-    endpoints: ProviderEndpointSection | None = Field(None, description="Endpoint section with resources")
-    keys: ProviderKeySection | None = Field(None, description="Key section with resources")
+    names: list[ProviderNameResource] | None = Field(None, description="Name resources")
+    descriptions: list[ProviderDescriptionResource] | None = Field(None, description="Description resources")
+    flags: list[ProviderFlagConfig] | None = Field(None, description="Flag configs")
+    departments: list[ProviderDepartmentResource] | None = Field(None, description="Department resources")
+    values: list[ProviderValueResource] | None = Field(None, description="Value resources")
+    endpoints: list[ProviderEndpointResource] | None = Field(None, description="Endpoint resources")
+    keys: list[ProviderKeyResource] | None = Field(None, description="Key resources")
 
 
 class ListProviderApiProvider(BaseModel):
@@ -278,7 +324,8 @@ class PatchProviderDraftApiRequest(ScopedItem):
     Client always sends full state (append-only — each write is a new snapshot).
     """
 
-    input_draft_id: UUID | None = Field(None, description="Existing draft ID to update")
+    draft_id: UUID | None = Field(None, description="Existing draft ID to update")
+    input_draft_id: UUID | None = Field(None, description="Legacy alias for existing draft ID to update")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Display name value")
@@ -286,36 +333,74 @@ class PatchProviderDraftApiRequest(ScopedItem):
     description: str | None = Field(None, description="Description text value")
     description_id: UUID | None = Field(None, description="Description resource identifier")
 
-    # Non-creatable — ID-only
-    flag_id: UUID | None = Field(None, description="Flag option identifier")
+    # Resource-backed values — provide raw values or IDs
+    active_flag: bool | None = Field(None, description="Whether the provider is active")
+    active_flag_id: UUID | None = Field(None, description="Flag option identifier")
+    flag_id: UUID | None = Field(None, description="Legacy alias for flag option identifier")
+    departments: list[str] | None = Field(None, description="Department names to match")
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
+    endpoint: str | None = Field(None, description="Provider endpoint URL")
+    endpoint_id: UUID | None = Field(None, description="Endpoint resource identifier")
     endpoint_ids: list[UUID] | None = Field(None, description="Endpoint resource identifiers")
+    key: str | None = Field(None, description="Provider key value")
+    key_name: str | None = Field(None, description="Provider key display name")
+    key_description: str | None = Field(None, description="Provider key description")
+    key_id: UUID | None = Field(None, description="Key resource identifier")
     key_ids: list[UUID] | None = Field(None, description="API key resource identifiers")
+    value: str | None = Field(None, description="Provider identifier value")
     value_id: UUID | None = Field(None, description="Value resource identifier")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers to preserve")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack semantics")
+    accept: bool = Field(True, description="Accept or reject acknowledgement when idempotency_key is supplied")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
+        "active_flag": "flags",
+        "active_flag_id": "flags",
         "flag_id": "flags",
+        "departments": "departments",
         "department_ids": "departments",
+        "endpoint": "endpoints",
+        "endpoint_id": "endpoints",
         "endpoint_ids": "endpoints",
+        "key": "keys",
+        "key_name": "keys",
+        "key_description": "keys",
+        "key_id": "keys",
         "key_ids": "keys",
+        "value": "values",
         "value_id": "values",
     }
 
 
-class ProviderDraftFormState(BaseModel):
+class DraftFormState(BaseModel):
     """Server-authoritative form state returned after draft save."""
 
     name_id: UUID | None = Field(None, description="Resolved name resource identifier")
+    name: str | None = Field(None, description="Resolved name value")
     description_id: UUID | None = Field(None, description="Resolved description resource identifier")
-    flag_id: UUID | None = Field(None, description="Flag option identifier")
+    description: str | None = Field(None, description="Resolved description value")
+    flag_id: UUID | None = Field(None, description="Legacy flag option identifier")
+    active_flag_id: UUID | None = Field(None, description="Flag option identifier")
+    departments: list[str] = Field(default_factory=list, description="Resolved department names")
     department_ids: list[UUID] = Field(..., description="Department identifiers")
+    endpoint: str | None = Field(None, description="Resolved endpoint value")
+    endpoint_id: UUID | None = Field(None, description="Resolved endpoint resource identifier")
     endpoint_ids: list[UUID] = Field(..., description="Endpoint resource identifiers")
+    key: str | None = Field(None, description="Resolved key value")
+    key_name: str | None = Field(None, description="Resolved key display name")
+    key_description: str | None = Field(None, description="Resolved key description")
+    key_id: UUID | None = Field(None, description="Resolved key resource identifier")
     key_ids: list[UUID] = Field(..., description="API key resource identifiers")
+    value: str | None = Field(None, description="Resolved value")
     value_id: UUID | None = Field(None, description="Value resource identifier")
+    pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
+
+
+ProviderDraftFormState = DraftFormState
 
 
 class PatchProviderDraftApiResponse(BaseModel):
@@ -323,8 +408,9 @@ class PatchProviderDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the draft save succeeded")
     draft_id: UUID = Field(..., description="Draft unique identifier")
+    idempotency_key: UUID | None = Field(None, description="Operation key echoed back for client correlation")
     message: str = Field(..., description="Result message")
-    form_state: ProviderDraftFormState | None = Field(None, description="Server-authoritative form state")
+    form_state: DraftFormState | None = Field(None, description="Server-authoritative form state")
 
 
 class GetProviderDraftsApiResponse(BaseModel):

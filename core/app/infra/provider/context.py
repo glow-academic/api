@@ -64,6 +64,27 @@ async def resolve_provider_context(
     group_id: UUID,
     draft_id: UUID | None = None,
     user_department_ids: list[UUID] | None = None,
+    names_search: str | None = None,
+    descriptions_search: str | None = None,
+    flags_search: str | None = None,
+    departments_search: str | None = None,
+    values_search: str | None = None,
+    endpoints_search: str | None = None,
+    keys_search: str | None = None,
+    names_limit: int | None = None,
+    descriptions_limit: int | None = None,
+    flags_limit: int | None = None,
+    departments_limit: int | None = None,
+    values_limit: int | None = None,
+    endpoints_limit: int | None = None,
+    keys_limit: int | None = None,
+    names_selected_only: bool | None = None,
+    descriptions_selected_only: bool | None = None,
+    flags_selected_only: bool | None = None,
+    departments_selected_only: bool | None = None,
+    values_selected_only: bool | None = None,
+    endpoints_selected_only: bool | None = None,
+    keys_selected_only: bool | None = None,
     bypass_cache: bool = False,
 ) -> ArtifactContext:
     """Resolve a provider artifact into fully hydrated resources for the GET endpoint.
@@ -116,10 +137,14 @@ async def resolve_provider_context(
             return await get_names(conn, merged.name_ids, redis, bypass_cache)
 
     async def _search_names() -> list:
+        if names_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_names(
                 conn,
                 redis,
+                search=names_search,
+                limit_count=names_limit or 20,
                 draft_id=group_id,
                 exclude_ids=merged.name_ids,
                 bypass_cache=bypass_cache,
@@ -133,10 +158,14 @@ async def resolve_provider_context(
             )
 
     async def _search_descriptions() -> list:
+        if descriptions_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_descriptions(
                 conn,
                 redis,
+                search=descriptions_search,
+                limit_count=descriptions_limit or 20,
                 draft_id=group_id,
                 exclude_ids=merged.description_ids,
                 bypass_cache=bypass_cache,
@@ -148,12 +177,14 @@ async def resolve_provider_context(
             return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
 
     async def _search_flags() -> list:
+        if flags_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_flags(
                 conn,
                 redis,
-                search=None,
-                limit_count=50,
+                search=flags_search,
+                limit_count=flags_limit or 50,
                 offset_count=0,
                 exclude_ids=merged.flag_ids,
                 bypass_cache=bypass_cache,
@@ -167,12 +198,14 @@ async def resolve_provider_context(
             )
 
     async def _search_departments() -> list:
+        if departments_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_departments(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
+                search=departments_search,
+                limit_count=departments_limit or 20,
                 offset_count=0,
                 department_ids=user_dept_ids,
                 suggest_source="all",
@@ -185,10 +218,14 @@ async def resolve_provider_context(
             return await get_values(conn, [merged.value_id], redis, bypass_cache) if merged.value_id else []
 
     async def _search_values() -> list:
+        if values_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_values(
                 conn,
                 redis,
+                search=values_search,
+                limit_count=values_limit or 20,
                 suggest_source="recent",
                 exclude_ids=[merged.value_id] if merged.value_id else [],
                 bypass_cache=bypass_cache,
@@ -200,10 +237,14 @@ async def resolve_provider_context(
             return await get_endpoints(conn, merged.endpoint_ids, redis, bypass_cache)
 
     async def _search_endpoints() -> list:
+        if endpoints_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_endpoints(
                 conn,
                 redis,
+                search=endpoints_search,
+                limit_count=endpoints_limit or 20,
                 exclude_ids=merged.endpoint_ids,
                 bypass_cache=bypass_cache,
                 provider=True,
@@ -214,10 +255,14 @@ async def resolve_provider_context(
             return await get_keys(conn, merged.key_ids, redis, bypass_cache)
 
     async def _search_keys() -> list:
+        if keys_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_keys(
                 conn,
                 redis,
+                search=keys_search,
+                limit_count=keys_limit or 20,
                 exclude_ids=merged.key_ids,
                 bypass_cache=bypass_cache,
                 provider=True,
@@ -285,7 +330,7 @@ async def resolve_provider_context(
             ),
             "keys": ResourcePair(selected=keys_selected, suggestions=keys_suggestions),
         },
-        entries={},
+        entries={"pending_ids": set()},
     )
 
 

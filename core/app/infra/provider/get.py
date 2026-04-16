@@ -1,12 +1,4 @@
-"""Canonical shared provider get operation.
-
-Uses composable infra layers:
-  1. resolve_common_context — profile + tool graph + runs
-  2. resolve_provider_permissions_context — fail-fast 404/403
-  3. resolve_provider_context — artifact + draft → merged + hydrated resources
-  4. score_tools — tool graph + artifact resources → per-resource tool picks
-  5. Pure Python — permissions, show/required flags, response assembly
-"""
+"""Canonical shared provider GET operation."""
 
 from __future__ import annotations
 
@@ -43,34 +35,57 @@ from app.infra.provider.permissions import (
 from app.infra.provider.permissions_context import (
     resolve_provider_permissions_context,
 )
-from app.infra.tool_graph import score_tools
 from app.infra.provider.types import (
     GetProviderApiResponse,
-    ProviderDepartmentSection,
-    ProviderDescriptionSection,
-    ProviderEndpointSection,
+    ProviderDepartmentResource,
+    ProviderDescriptionResource,
+    ProviderEndpointResource,
     ProviderFlagConfig,
-    ProviderFlagSection,
-    ProviderKeySection,
-    ProviderNameSection,
-    ProviderValueSection,
+    ProviderKeyResource,
+    ProviderNameResource,
+    ProviderValueResource,
+    SectionFilter,
 )
+from app.infra.tool_graph import score_tools
 
+SECTIONS = ["names", "descriptions", "flags", "departments", "values", "endpoints", "keys"]
 PROVIDER_INTEGRATIONS_RESOURCES: set[str] = {"values", "endpoints"}
 
 
-# ---------------------------------------------------------------------------
-# get_provider_impl — composable infra architecture
-# ---------------------------------------------------------------------------
+def _sf(
+    filters: dict[str, SectionFilter | None],
+    section: str,
+    attr: str,
+    default=None,
+):
+    section_filter = filters.get(section)
+    if section_filter is None:
+        return default
+    return getattr(section_filter, attr, default)
+
+
+def _filter_items(
+    items: list | None,
+    section: str,
+    *,
+    selected_only: dict[str, bool],
+    suggested_only: dict[str, bool],
+):
+    if items is None:
+        return None
+    result = items
+    if selected_only.get(section):
+        result = [item for item in result if getattr(item, "selected", False)]
+    if suggested_only.get(section):
+        result = [item for item in result if getattr(item, "suggested", False)]
+    return result
 
 
 def derive_flag_key_and_label(name: str | None) -> tuple[str, str]:
-    """Derive key and label from flag name like 'provider_active' -> ('active', 'Active')"""
     if not name:
         return ("unknown", "Unknown")
     key = name.replace("provider_", "")
-    label = key.replace("_", " ").title()
-    return (key, label)
+    return (key, key.replace("_", " ").title())
 
 
 async def get_provider_impl(
@@ -79,23 +94,18 @@ async def get_provider_impl(
     *,
     profile_id: UUID,
     session_id: UUID | None = None,
-    provider_id: UUID | None,
+    id: UUID | None = None,
+    provider_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    filters: dict[str, SectionFilter | None] | None = None,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> GetProviderApiResponse:
-    """Provider GET using composable infra functions.
+    """Resolve the canonical provider artifact bundle for any surface."""
 
-    Flow:
-      1. resolve_common_context(profile_id) → profile, tool_graph, runs
-      2. resolve_provider_permissions_context → access check (404, 403, fail fast)
-      3. resolve_provider_context(provider_id, draft_id, ...) → hydrated resources
-      4. score_tools(tool_graph, PROVIDER_RESOURCES) → per-resource tool picks
-      5. Pure Python: permissions, show/required/AI flags, response assembly
-    """
-
-    # ── Step 1: Common context (profile → tool_graph + runs) ──────────────
+    resolved_filters = dict(filters or {})
+    provider_id = id or provider_id
 
     common = await resolve_common_context(
         pool,
@@ -107,86 +117,95 @@ async def get_provider_impl(
         artifact_type="provider",
         bypass_cache=bypass_cache,
     )
-
     if common is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    group_id = group_id or common.profile.group_id
-    profile = common.profile
-
-    # ── Step 2: Permissions check (fail fast before full hydration) ──────
+    actor = common.profile
+    effective_group_id = group_id or actor.group_id
 
     perms = None
     if provider_id is not None:
         async with pool.acquire() as conn:
             perms = await resolve_provider_permissions_context(conn, provider_id)
-
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
                 detail=f"Provider {provider_id} not found",
             )
-
-        if not has_access(profile.role_level, profile.department_ids, perms.department_ids):
+        if not has_access(actor.role_level, actor.department_ids, perms.department_ids):
             raise HTTPException(
                 status_code=403,
                 detail="You don't have access to this provider. It may be restricted to other departments.",
             )
 
-    # ── Step 3: Provider artifact context ─────────────────────────────────
-
-    prov_ctx = await resolve_provider_context(
+    provider_ctx = await resolve_provider_context(
         pool,
         redis,
         provider_id=provider_id,
-        group_id=group_id,
+        group_id=effective_group_id,
         draft_id=draft_id,
-        user_department_ids=profile.department_ids,
+        user_department_ids=actor.department_ids,
+        names_search=_sf(resolved_filters, "names", "search"),
+        descriptions_search=_sf(resolved_filters, "descriptions", "search"),
+        flags_search=_sf(resolved_filters, "flags", "search"),
+        departments_search=_sf(resolved_filters, "departments", "search"),
+        values_search=_sf(resolved_filters, "values", "search"),
+        endpoints_search=_sf(resolved_filters, "endpoints", "search"),
+        keys_search=_sf(resolved_filters, "keys", "search"),
+        names_limit=_sf(resolved_filters, "names", "limit"),
+        descriptions_limit=_sf(resolved_filters, "descriptions", "limit"),
+        flags_limit=_sf(resolved_filters, "flags", "limit"),
+        departments_limit=_sf(resolved_filters, "departments", "limit"),
+        values_limit=_sf(resolved_filters, "values", "limit"),
+        endpoints_limit=_sf(resolved_filters, "endpoints", "limit"),
+        keys_limit=_sf(resolved_filters, "keys", "limit"),
+        names_selected_only=_sf(resolved_filters, "names", "selected"),
+        descriptions_selected_only=_sf(resolved_filters, "descriptions", "selected"),
+        flags_selected_only=_sf(resolved_filters, "flags", "selected"),
+        departments_selected_only=_sf(resolved_filters, "departments", "selected"),
+        values_selected_only=_sf(resolved_filters, "values", "selected"),
+        endpoints_selected_only=_sf(resolved_filters, "endpoints", "selected"),
+        keys_selected_only=_sf(resolved_filters, "keys", "selected"),
         bypass_cache=bypass_cache,
     )
 
-    # ── Step 4: Tool scoring ─────────────────────────────────────────────
-
     scores = score_tools(common.tool_graph, PROVIDER_RESOURCES)
-
-    agent_ids: dict[str, UUID | None] = {
-        r: (scores.best[r].agent_id if scores.best.get(r) else None)
-        for r in PROVIDER_RESOURCES
-    }
-
-
-    # ── Step 5: Permissions ──────────────────────────────────────────────
+    include = {section: _sf(resolved_filters, section, "include") is not False for section in SECTIONS}
+    selected_only = {section: bool(_sf(resolved_filters, section, "selected")) for section in SECTIONS}
+    suggested_only = {section: bool(_sf(resolved_filters, section, "suggested")) for section in SECTIONS}
 
     perms_department_ids = perms.department_ids if perms else []
     active_model_count = perms.active_model_count if perms else 0
 
     can_edit = compute_can_edit(
-        role_level=profile.role_level, role_permissions=profile.role_permissions,
+        role_level=actor.role_level,
+        role_permissions=actor.role_permissions,
         provider_department_ids=perms_department_ids,
         active_model_count=active_model_count,
-        user_department_ids=profile.department_ids,
+        user_department_ids=actor.department_ids,
     )
-
     disabled_reason = compute_disabled_reason(
-        role_level=profile.role_level, role_permissions=profile.role_permissions,
+        role_level=actor.role_level,
+        role_permissions=actor.role_permissions,
         provider_department_ids=perms_department_ids,
         active_model_count=active_model_count,
     )
-
-    # ── Step 6: Show / Required / AI flags ───────────────────────────────
-
-    names_has_tools = scores.has_any.get("names", False)
 
     all_departments = dedupe_by_id(
-        prov_ctx.resources["departments"].selected
-        + prov_ctx.resources["departments"].suggestions
+        provider_ctx.resources["departments"].selected
+        + provider_ctx.resources["departments"].suggestions
     )
+    if provider_id is None and not all_departments:
+        raise HTTPException(
+            status_code=400,
+            detail="No accessible departments found for user",
+        )
 
     show_flags_map = {
-        "names": compute_show_name(names_has_tools),
+        "names": compute_show_name(scores.has_any.get("names", False)),
         "descriptions": compute_show_description(),
         "flags": compute_show_flag(),
         "departments": compute_show_departments(len(all_departments)),
@@ -194,7 +213,6 @@ async def get_provider_impl(
         "endpoints": compute_show_endpoint(),
         "keys": compute_show_key(),
     }
-
     required_flags_map = {
         "names": compute_name_required(),
         "descriptions": compute_description_required(),
@@ -205,135 +223,197 @@ async def get_provider_impl(
         "keys": compute_key_required(),
     }
 
-    # ── Step 7: Validation ───────────────────────────────────────────────
+    names_selected = provider_ctx.resources["names"].selected
+    names_suggestions = provider_ctx.resources["names"].suggestions
+    descriptions_selected = provider_ctx.resources["descriptions"].selected
+    descriptions_suggestions = provider_ctx.resources["descriptions"].suggestions
+    flags_selected = provider_ctx.resources["flags"].selected
+    flags_suggestions = provider_ctx.resources["flags"].suggestions
+    departments_selected = provider_ctx.resources["departments"].selected
+    departments_suggestions = provider_ctx.resources["departments"].suggestions
+    values_selected = provider_ctx.resources["values"].selected
+    values_suggestions = provider_ctx.resources["values"].suggestions
+    endpoints_selected = provider_ctx.resources["endpoints"].selected
+    endpoints_suggestions = provider_ctx.resources["endpoints"].suggestions
+    keys_selected = provider_ctx.resources["keys"].selected
+    keys_suggestions = provider_ctx.resources["keys"].suggestions
 
-    if provider_id is None:
-        if not all_departments:
-            raise HTTPException(
-                status_code=400, detail="No accessible departments found for user"
-            )
+    all_names = dedupe_by_id(names_selected + names_suggestions)
+    all_descriptions = dedupe_by_id(descriptions_selected + descriptions_suggestions)
+    all_flags = dedupe_by_id(flags_selected + flags_suggestions)
+    all_departments = dedupe_by_id(departments_selected + departments_suggestions)
+    all_values = dedupe_by_id(values_selected + values_suggestions)
+    all_endpoints = dedupe_by_id(endpoints_selected + endpoints_suggestions)
+    all_keys = dedupe_by_id(keys_selected + keys_suggestions)
 
-    # ── Step 8: Response assembly ────────────────────────────────────────
-
-    # Flags — enriched format
-    all_flags = dedupe_by_id(
-        prov_ctx.resources["flags"].selected + prov_ctx.resources["flags"].suggestions
-    )
-    provider_flags = [
-        ProviderFlagConfig(
-            key=derive_flag_key_and_label(flag.name)[0],
-            label=derive_flag_key_and_label(flag.name)[1],
-            description=flag.description,
-            icon_id=flag.icon,
-            flag_option_id=flag.id,
-            show=show_flags_map.get("flags", True),
-            required=required_flags_map.get("flags", False),
-            generated=flag.generated,
-        )
-        for flag in all_flags
-        if flag.id
-    ]
-
-    current_flags = [
-        ProviderFlagConfig(
-            key=derive_flag_key_and_label(f.name)[0],
-            label=derive_flag_key_and_label(f.name)[1],
-            description=f.description,
-            icon_id=f.icon,
-            flag_option_id=f.id,
-            show=show_flags_map.get("flags", True),
-            required=required_flags_map.get("flags", False),
-            generated=f.generated,
-        )
-        for f in prov_ctx.resources["flags"].selected
-        if f.id
-    ]
-
-    # Names, Descriptions — all = selected + suggestions deduped
-    all_names = dedupe_by_id(
-        prov_ctx.resources["names"].selected + prov_ctx.resources["names"].suggestions
-    )
-    all_descriptions = dedupe_by_id(
-        prov_ctx.resources["descriptions"].selected
-        + prov_ctx.resources["descriptions"].suggestions
-    )
-    all_values = dedupe_by_id(
-        prov_ctx.resources["values"].selected + prov_ctx.resources["values"].suggestions
-    )
-    all_endpoints = dedupe_by_id(
-        prov_ctx.resources["endpoints"].selected
-        + prov_ctx.resources["endpoints"].suggestions
-    )
-    all_keys = dedupe_by_id(
-        prov_ctx.resources["keys"].selected + prov_ctx.resources["keys"].suggestions
-    )
-
-    # Suggestions maps (IDs only)
-    suggestions_map = {
-        "names": [n.id for n in prov_ctx.resources["names"].suggestions],
-        "descriptions": [d.id for d in prov_ctx.resources["descriptions"].suggestions],
-        "departments": [d.id for d in prov_ctx.resources["departments"].suggestions],
-        "values": [v.id for v in prov_ctx.resources["values"].suggestions],
-        "endpoints": [e.id for e in prov_ctx.resources["endpoints"].suggestions],
-        "keys": [k.id for k in prov_ctx.resources["keys"].suggestions],
+    selected_ids = {
+        "names": {item.id for item in names_selected if item.id},
+        "descriptions": {item.id for item in descriptions_selected if item.id},
+        "flags": {item.id for item in flags_selected if item.id},
+        "departments": {item.id for item in departments_selected if item.id},
+        "values": {item.id for item in values_selected if item.id},
+        "endpoints": {item.id for item in endpoints_selected if item.id},
+        "keys": {item.id for item in keys_selected if item.id},
     }
+    suggested_ids = {
+        "names": {item.id for item in names_suggestions if item.id},
+        "descriptions": {item.id for item in descriptions_suggestions if item.id},
+        "flags": {item.id for item in flags_suggestions if item.id},
+        "departments": {item.id for item in departments_suggestions if item.id},
+        "values": {item.id for item in values_suggestions if item.id},
+        "endpoints": {item.id for item in endpoints_suggestions if item.id},
+        "keys": {item.id for item in keys_suggestions if item.id},
+    }
+    pending_ids: set[UUID] = provider_ctx.entries.get("pending_ids", set())
 
-    def _section(resource_key: str) -> dict:
-        return {
-            "show": show_flags_map.get(resource_key, False),
-            "required": required_flags_map.get(resource_key, False),
-            "suggestions": suggestions_map.get(resource_key, []),
-        }
+    def _decorate(item_id: UUID | None, section: str) -> tuple[bool, bool, bool]:
+        return (
+            bool(item_id and item_id in suggested_ids[section]),
+            bool(item_id and item_id in selected_ids[section]),
+            bool(item_id and item_id in pending_ids),
+        )
+
+    names = [
+        ProviderNameResource(
+            id=item.id,
+            name=item.name,
+            generated=item.generated,
+            suggested=_decorate(item.id, "names")[0],
+            selected=_decorate(item.id, "names")[1],
+            pending=_decorate(item.id, "names")[2],
+        )
+        for item in all_names
+    ]
+    descriptions = [
+        ProviderDescriptionResource(
+            id=item.id,
+            description=item.description,
+            generated=item.generated,
+            suggested=_decorate(item.id, "descriptions")[0],
+            selected=_decorate(item.id, "descriptions")[1],
+            pending=_decorate(item.id, "descriptions")[2],
+        )
+        for item in all_descriptions
+    ]
+    flags = [
+        ProviderFlagConfig(
+            key=derive_flag_key_and_label(item.name)[0],
+            label=derive_flag_key_and_label(item.name)[1],
+            description=item.description,
+            icon_id=item.icon,
+            flag_option_id=item.id,
+            show=show_flags_map["flags"],
+            required=required_flags_map["flags"],
+            generated=item.generated,
+            suggested=_decorate(item.id, "flags")[0],
+            selected=_decorate(item.id, "flags")[1],
+            pending=_decorate(item.id, "flags")[2],
+        )
+        for item in all_flags
+    ]
+    departments = [
+        ProviderDepartmentResource(
+            department_id=item.id,
+            name=item.name,
+            description=item.description,
+            generated=item.generated,
+            suggested=_decorate(item.id, "departments")[0],
+            selected=_decorate(item.id, "departments")[1],
+            pending=_decorate(item.id, "departments")[2],
+        )
+        for item in all_departments
+    ]
+    values = [
+        ProviderValueResource(
+            id=item.id,
+            value=item.value,
+            value_type=item.type,
+            generated=item.generated,
+            suggested=_decorate(item.id, "values")[0],
+            selected=_decorate(item.id, "values")[1],
+            pending=_decorate(item.id, "values")[2],
+        )
+        for item in all_values
+    ]
+    endpoints = [
+        ProviderEndpointResource(
+            id=item.id,
+            base_url=item.base_url,
+            generated=item.generated,
+            suggested=_decorate(item.id, "endpoints")[0],
+            selected=_decorate(item.id, "endpoints")[1],
+            pending=_decorate(item.id, "endpoints")[2],
+        )
+        for item in all_endpoints
+    ]
+    keys = [
+        ProviderKeyResource(
+            id=item.id,
+            key=item.key,
+            name=item.name,
+            description=item.description,
+            generated=item.generated,
+            suggested=_decorate(item.id, "keys")[0],
+            selected=_decorate(item.id, "keys")[1],
+            pending=_decorate(item.id, "keys")[2],
+        )
+        for item in all_keys
+    ]
 
     return GetProviderApiResponse(
-        actor_name=profile.name,
-        provider_exists=prov_ctx.artifact_id is not None,
+        actor_name=actor.name,
+        provider_exists=provider_ctx.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        group_id=group_id,
-        names=ProviderNameSection(
-            **_section("names"),
-            resource=prov_ctx.resources["names"].selected[0]
-            if prov_ctx.resources["names"].selected
-            else None,
-            resources=all_names,
+        group_id=provider_ctx.group_id,
+        provider_id=provider_ctx.artifact_id,
+        show_ai_generate=any(
+            scores.has_any.get(resource, False)
+            for resource in PROVIDER_BASIC_RESOURCES | PROVIDER_INTEGRATIONS_RESOURCES
         ),
-        descriptions=ProviderDescriptionSection(
-            **_section("descriptions"),
-            resource=prov_ctx.resources["descriptions"].selected[0]
-            if prov_ctx.resources["descriptions"].selected
-            else None,
-            resources=all_descriptions,
+        basic_show_ai_generate=any(
+            scores.has_any.get(resource, False)
+            for resource in PROVIDER_BASIC_RESOURCES
         ),
-        flags=ProviderFlagSection(
-            **_section("flags"),
-            current=current_flags or None,
-            resources=provider_flags,
+        integrations_show_ai_generate=any(
+            scores.has_any.get(resource, False)
+            for resource in PROVIDER_INTEGRATIONS_RESOURCES
         ),
-        departments=ProviderDepartmentSection(
-            **_section("departments"),
-            current=prov_ctx.resources["departments"].selected or None,
-            resources=all_departments,
-        ),
-        values=ProviderValueSection(
-            **_section("values"),
-            resource=prov_ctx.resources["values"].selected[0]
-            if prov_ctx.resources["values"].selected
-            else None,
-            resources=all_values,
-        ),
-        endpoints=ProviderEndpointSection(
-            **_section("endpoints"),
-            resource=prov_ctx.resources["endpoints"].selected[0]
-            if prov_ctx.resources["endpoints"].selected
-            else None,
-            resources=all_endpoints,
-        ),
-        keys=ProviderKeySection(
-            **_section("keys"),
-            resource=prov_ctx.resources["keys"].selected[0]
-            if prov_ctx.resources["keys"].selected
-            else None,
-            resources=all_keys,
-        ),
+        pending_ids=sorted(pending_ids),
+        names=_filter_items(names, "names", selected_only=selected_only, suggested_only=suggested_only)
+        if include["names"]
+        else None,
+        descriptions=_filter_items(
+            descriptions,
+            "descriptions",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        )
+        if include["descriptions"]
+        else None,
+        flags=_filter_items(flags, "flags", selected_only=selected_only, suggested_only=suggested_only)
+        if include["flags"]
+        else None,
+        departments=_filter_items(
+            departments,
+            "departments",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        )
+        if include["departments"]
+        else None,
+        values=_filter_items(values, "values", selected_only=selected_only, suggested_only=suggested_only)
+        if include["values"]
+        else None,
+        endpoints=_filter_items(
+            endpoints,
+            "endpoints",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        )
+        if include["endpoints"]
+        else None,
+        keys=_filter_items(keys, "keys", selected_only=selected_only, suggested_only=suggested_only)
+        if include["keys"]
+        else None,
     )

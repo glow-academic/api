@@ -9246,7 +9246,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetProviderApiResponse-Output"
+                  "$ref": "#/components/schemas/GetProviderApiResponse"
                 }
               }
             }
@@ -35991,7 +35991,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetProviderApiResponse-Input"
+                "$ref": "#/components/schemas/GetProviderApiResponse"
               }
             }
           },
@@ -82504,6 +82504,19 @@
       },
       "GetProviderApiRequest": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Provider unique identifier"
+          },
           "provider_id": {
             "anyOf": [
               {
@@ -82515,7 +82528,7 @@
               }
             ],
             "title": "Provider Id",
-            "description": "Provider unique identifier"
+            "description": "Legacy alias for provider unique identifier"
           },
           "draft_id": {
             "anyOf": [
@@ -82529,13 +82542,102 @@
             ],
             "title": "Draft Id",
             "description": "Draft unique identifier"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__provider__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for names"
+          },
+          "descriptions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__provider__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for descriptions"
+          },
+          "flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__provider__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__provider__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for departments"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__provider__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for values"
+          },
+          "endpoints": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__provider__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for endpoints"
+          },
+          "keys": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__provider__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for keys"
           }
         },
         "type": "object",
         "title": "GetProviderApiRequest",
         "description": "Request model for get provider endpoint."
       },
-      "GetProviderApiResponse-Input": {
+      "GetProviderApiResponse": {
         "properties": {
           "actor_name": {
             "anyOf": [
@@ -82598,163 +82700,7 @@
             "title": "Group Id",
             "description": "Group identifier for the provider"
           },
-          "basic_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Basic Show Ai Generate",
-            "description": "Show AI generate for basic step"
-          },
-          "integrations_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Integrations Show Ai Generate",
-            "description": "Show AI generate for integrations step"
-          },
-          "names": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProviderNameSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Name section with resources"
-          },
-          "descriptions": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProviderDescriptionSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Description section with resources"
-          },
-          "flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProviderFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Flag section with configs"
-          },
-          "departments": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProviderDepartmentSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Department section with resources"
-          },
-          "values": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProviderValueSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Value section with resources"
-          },
-          "endpoints": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProviderEndpointSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Endpoint section with resources"
-          },
-          "keys": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProviderKeySection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Key section with resources"
-          }
-        },
-        "type": "object",
-        "title": "GetProviderApiResponse",
-        "description": "Section-first response for provider editor."
-      },
-      "GetProviderApiResponse-Output": {
-        "properties": {
-          "actor_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Actor Name",
-            "description": "Display name of the current actor"
-          },
-          "provider_exists": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Exists",
-            "description": "Whether the provider exists"
-          },
-          "can_edit": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Can Edit",
-            "description": "Whether the current user can edit"
-          },
-          "disabled_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Disabled Reason",
-            "description": "Reason editing is disabled"
-          },
-          "group_id": {
+          "provider_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -82764,8 +82710,20 @@
                 "type": "null"
               }
             ],
-            "title": "Group Id",
-            "description": "Group identifier for the provider"
+            "title": "Provider Id",
+            "description": "Provider identifier"
+          },
+          "show_ai_generate": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show Ai Generate",
+            "description": "Whether any step should show AI generate"
           },
           "basic_show_ai_generate": {
             "anyOf": [
@@ -82791,87 +82749,131 @@
             "title": "Integrations Show Ai Generate",
             "description": "Show AI generate for integrations step"
           },
-          "names": {
+          "pending_ids": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ProviderNameSection"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Name section with resources"
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers when available"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ProviderNameResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Names",
+            "description": "Name resources"
           },
           "descriptions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ProviderDescriptionSection"
+                "items": {
+                  "$ref": "#/components/schemas/ProviderDescriptionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Description section with resources"
+            "title": "Descriptions",
+            "description": "Description resources"
           },
           "flags": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ProviderFlagSection"
+                "items": {
+                  "$ref": "#/components/schemas/ProviderFlagConfig"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Flag section with configs"
+            "title": "Flags",
+            "description": "Flag configs"
           },
           "departments": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ProviderDepartmentSection"
+                "items": {
+                  "$ref": "#/components/schemas/ProviderDepartmentResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Department section with resources"
+            "title": "Departments",
+            "description": "Department resources"
           },
           "values": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ProviderValueSection"
+                "items": {
+                  "$ref": "#/components/schemas/ProviderValueResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Value section with resources"
+            "title": "Values",
+            "description": "Value resources"
           },
           "endpoints": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ProviderEndpointSection"
+                "items": {
+                  "$ref": "#/components/schemas/ProviderEndpointResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Endpoint section with resources"
+            "title": "Endpoints",
+            "description": "Endpoint resources"
           },
           "keys": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ProviderKeySection"
+                "items": {
+                  "$ref": "#/components/schemas/ProviderKeyResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Key section with resources"
+            "title": "Keys",
+            "description": "Key resources"
           }
         },
         "type": "object",
         "title": "GetProviderApiResponse",
-        "description": "Section-first response for provider editor."
+        "description": "Canonical composed response for provider editor."
       },
       "GetProviderDraftResponse": {
         "properties": {
@@ -105561,6 +105563,19 @@
       },
       "PatchProviderDraftApiRequest": {
         "properties": {
+          "draft_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Id",
+            "description": "Existing draft ID to update"
+          },
           "input_draft_id": {
             "anyOf": [
               {
@@ -105572,7 +105587,7 @@
               }
             ],
             "title": "Input Draft Id",
-            "description": "Existing draft ID to update"
+            "description": "Legacy alias for existing draft ID to update"
           },
           "name": {
             "anyOf": [
@@ -105624,6 +105639,31 @@
             "title": "Description Id",
             "description": "Description resource identifier"
           },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether the provider is active"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Flag option identifier"
+          },
           "flag_id": {
             "anyOf": [
               {
@@ -105635,7 +105675,22 @@
               }
             ],
             "title": "Flag Id",
-            "description": "Flag option identifier"
+            "description": "Legacy alias for flag option identifier"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departments",
+            "description": "Department names to match"
           },
           "department_ids": {
             "anyOf": [
@@ -105653,6 +105708,31 @@
             "title": "Department Ids",
             "description": "Department identifiers"
           },
+          "endpoint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endpoint",
+            "description": "Provider endpoint URL"
+          },
+          "endpoint_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endpoint Id",
+            "description": "Endpoint resource identifier"
+          },
           "endpoint_ids": {
             "anyOf": [
               {
@@ -105668,6 +105748,55 @@
             ],
             "title": "Endpoint Ids",
             "description": "Endpoint resource identifiers"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key",
+            "description": "Provider key value"
+          },
+          "key_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Name",
+            "description": "Provider key display name"
+          },
+          "key_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Description",
+            "description": "Provider key description"
+          },
+          "key_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Id",
+            "description": "Key resource identifier"
           },
           "key_ids": {
             "anyOf": [
@@ -105685,6 +105814,18 @@
             "title": "Key Ids",
             "description": "API key resource identifiers"
           },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Provider identifier value"
+          },
           "value_id": {
             "anyOf": [
               {
@@ -105697,6 +105838,41 @@
             ],
             "title": "Value Id",
             "description": "Value resource identifier"
+          },
+          "pending_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers to preserve"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack semantics"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject acknowledgement when idempotency_key is supplied",
+            "default": true
           }
         },
         "type": "object",
@@ -105716,6 +105892,19 @@
             "title": "Draft Id",
             "description": "Draft unique identifier"
           },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key echoed back for client correlation"
+          },
           "message": {
             "type": "string",
             "title": "Message",
@@ -105724,7 +105913,7 @@
           "form_state": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ProviderDraftFormState"
+                "$ref": "#/components/schemas/app__infra__provider__types__DraftFormState"
               },
               {
                 "type": "null"
@@ -111945,70 +112134,143 @@
         "title": "ProfileSummaryItem",
         "description": "Per-profile aggregate stats for the summary card."
       },
-      "ProviderDepartmentSection": {
+      "ProviderDepartmentResource": {
         "properties": {
-          "current": {
+          "department_id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently assigned departments"
+            "title": "Department Id",
+            "description": "Department identifier"
           },
-          "resources": {
+          "name": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available departments"
+            "title": "Name",
+            "description": "Department name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Department description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the department was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ProviderDepartmentSection"
+        "title": "ProviderDepartmentResource"
       },
-      "ProviderDescriptionSection": {
+      "ProviderDescriptionResource": {
         "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected description resource"
-          },
-          "resources": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available description resources"
+            "title": "Id",
+            "description": "Description resource identifier"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Provider description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the description was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ProviderDescriptionSection"
+        "title": "ProviderDescriptionResource"
       },
-      "ProviderDraftFormState": {
+      "ProviderEndpointResource": {
         "properties": {
-          "name_id": {
+          "id": {
             "anyOf": [
               {
                 "type": "string",
@@ -112018,113 +112280,54 @@
                 "type": "null"
               }
             ],
-            "title": "Name Id",
-            "description": "Resolved name resource identifier"
+            "title": "Id",
+            "description": "Endpoint resource identifier"
           },
-          "description_id": {
+          "base_url": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Description Id",
-            "description": "Resolved description resource identifier"
+            "title": "Base Url",
+            "description": "Endpoint base URL"
           },
-          "flag_id": {
+          "generated": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Flag Id",
-            "description": "Flag option identifier"
+            "title": "Generated",
+            "description": "Whether the endpoint was AI-generated"
           },
-          "department_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Department Ids",
-            "description": "Department identifiers"
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
           },
-          "endpoint_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Endpoint Ids",
-            "description": "Endpoint resource identifiers"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
           },
-          "key_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Key Ids",
-            "description": "API key resource identifiers"
-          },
-          "value_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value Id",
-            "description": "Value resource identifier"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "required": [
-          "department_ids",
-          "endpoint_ids",
-          "key_ids"
-        ],
-        "title": "ProviderDraftFormState",
-        "description": "Server-authoritative form state returned after draft save."
-      },
-      "ProviderEndpointSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected endpoint resource"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available endpoint resources"
-          }
-        },
-        "type": "object",
-        "title": "ProviderEndpointSection"
+        "title": "ProviderEndpointResource"
       },
       "ProviderFieldError": {
         "properties": {
@@ -112219,6 +112422,24 @@
             ],
             "title": "Generated",
             "description": "Whether this flag was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
@@ -112229,99 +112450,151 @@
         "title": "ProviderFlagConfig",
         "description": "Enriched flag config for direct client consumption."
       },
-      "ProviderFlagSection": {
+      "ProviderKeyResource": {
         "properties": {
-          "current": {
+          "id": {
             "anyOf": [
               {
-                "items": {
-                  "$ref": "#/components/schemas/ProviderFlagConfig"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently active flag configs"
+            "title": "Id",
+            "description": "Key resource identifier"
           },
-          "resources": {
+          "key": {
             "anyOf": [
               {
-                "items": {
-                  "$ref": "#/components/schemas/ProviderFlagConfig"
-                },
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available flag configs"
+            "title": "Key",
+            "description": "Provider key value"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Key display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Key description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the key was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ProviderFlagSection"
+        "title": "ProviderKeyResource"
       },
-      "ProviderKeySection": {
+      "ProviderNameResource": {
         "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected key resource"
-          },
-          "resources": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available key resources"
-          }
-        },
-        "type": "object",
-        "title": "ProviderKeySection"
-      },
-      "ProviderNameSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected name resource"
+            "title": "Id",
+            "description": "Name resource identifier"
           },
-          "resources": {
+          "name": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available name resources"
+            "title": "Name",
+            "description": "Provider display name"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the name was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ProviderNameSection"
+        "title": "ProviderNameResource"
       },
       "ProviderResultItem": {
         "properties": {
@@ -112372,34 +112645,78 @@
         "title": "ProviderResultItem",
         "description": "Per-item result within a bulk create/update response."
       },
-      "ProviderValueSection": {
+      "ProviderValueResource": {
         "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected value resource"
-          },
-          "resources": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available value resources"
+            "title": "Id",
+            "description": "Value resource identifier"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Provider value"
+          },
+          "value_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Type",
+            "description": "Stored value type"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the value was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ProviderValueSection"
+        "title": "ProviderValueResource"
       },
       "QGetProfileContextV4RoleResource": {
         "properties": {
@@ -132662,6 +132979,303 @@
         "type": "object",
         "title": "SectionFilter",
         "description": "Per-section filter options for GET requests."
+      },
+      "app__infra__provider__types__DraftFormState": {
+        "properties": {
+          "name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Id",
+            "description": "Resolved name resource identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Resolved name value"
+          },
+          "description_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description Id",
+            "description": "Resolved description resource identifier"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Resolved description value"
+          },
+          "flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Id",
+            "description": "Legacy flag option identifier"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Flag option identifier"
+          },
+          "departments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Departments",
+            "description": "Resolved department names"
+          },
+          "department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Department Ids",
+            "description": "Department identifiers"
+          },
+          "endpoint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endpoint",
+            "description": "Resolved endpoint value"
+          },
+          "endpoint_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endpoint Id",
+            "description": "Resolved endpoint resource identifier"
+          },
+          "endpoint_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Endpoint Ids",
+            "description": "Endpoint resource identifiers"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key",
+            "description": "Resolved key value"
+          },
+          "key_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Name",
+            "description": "Resolved key display name"
+          },
+          "key_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Description",
+            "description": "Resolved key description"
+          },
+          "key_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Id",
+            "description": "Resolved key resource identifier"
+          },
+          "key_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Key Ids",
+            "description": "API key resource identifiers"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Resolved value"
+          },
+          "value_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Id",
+            "description": "Value resource identifier"
+          },
+          "pending_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "department_ids",
+          "endpoint_ids",
+          "key_ids"
+        ],
+        "title": "DraftFormState",
+        "description": "Server-authoritative form state returned after draft save."
+      },
+      "app__infra__provider__types__SectionFilter": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Filter options by search text"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Max options to return"
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected",
+            "description": "Only return selected items"
+          },
+          "suggested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested",
+            "description": "Only return suggested items"
+          },
+          "include": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include",
+            "description": "Include this section in response (default true)"
+          }
+        },
+        "type": "object",
+        "title": "SectionFilter"
       },
       "app__infra__scenario__types__DraftImageValue": {
         "properties": {

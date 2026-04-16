@@ -46,8 +46,18 @@ async def provider_get(sid: str, data: dict[str, Any]) -> None:
             redis,
             profile_id=identity.profile_id,
             session_id=identity.session_id,
+            id=payload.id,
             provider_id=payload.provider_id,
             draft_id=payload.draft_id,
+            filters={
+                "names": payload.names,
+                "descriptions": payload.descriptions,
+                "flags": payload.flags,
+                "departments": payload.departments,
+                "values": payload.values,
+                "endpoints": payload.endpoints,
+                "keys": payload.keys,
+            },
         ),
         arguments=payload.model_dump(mode="json"),
     )

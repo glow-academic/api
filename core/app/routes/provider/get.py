@@ -52,8 +52,18 @@ async def get_provider(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
+                id=request.id,
                 provider_id=request.provider_id,
                 draft_id=request.draft_id,
+                filters={
+                    "names": request.names,
+                    "descriptions": request.descriptions,
+                    "flags": request.flags,
+                    "departments": request.departments,
+                    "values": request.values,
+                    "endpoints": request.endpoints,
+                    "keys": request.keys,
+                },
                 bypass_cache=bypass_cache,
             )
 
