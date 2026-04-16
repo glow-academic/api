@@ -21,12 +21,10 @@ from app.infra.tool.permissions_context import (
     create_denormalized_snapshot,
     resolve_tool_values,
 )
+from app.infra.tool.refresh import refresh_tool_impl
 from app.tools.artifacts.tool.create import (
     create_tool as create_tool_artifact,
 )
-from app.utils.cache.invalidate_tags import invalidate_tags
-
-
 from app.infra.tool.types import (
     CreateToolApiRequest,
     CreateToolItem,
@@ -34,7 +32,6 @@ from app.infra.tool.types import (
     ToolResultItem,
     CreateToolApiResponse,
 )
-
 
 async def create_tool_impl(
     pool: asyncpg.Pool,
@@ -46,6 +43,8 @@ async def create_tool_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> CreateToolApiResponse:
     """Tool bulk create using composable infra functions.
 
@@ -54,11 +53,17 @@ async def create_tool_impl(
       2. compute_can_create — single check (applies to all items)
       3. Per-item value resolution (raw → ID, required field enforcement)
       4. Single transaction: create_tool_artifact + denormalized snapshot per item
-      5. invalidate_tags
+      5. canonical refresh
     """
     from app.infra.tool.permissions import compute_can_create
 
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key is not None and accept is None:
+        accept = request.accept
+
     items = request.tools
+    if idempotency_key is not None and len(items) == 1 and items[0].id is None:
+        items = [items[0].model_copy(update={"id": idempotency_key})]
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -84,6 +89,20 @@ async def create_tool_impl(
             detail="You don't have permission to create tools.",
         )
 
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            return CreateToolApiResponse(
+                results=[
+                    ToolResultItem(
+                        success=True,
+                        tool_id=idempotency_key,
+                        message="Tool rejected",
+                    )
+                ],
+                idempotency_key=idempotency_key,
+            )
+        soft = False
+
     # ── Step 3: Per-item value resolution ──────────────────────────────
 
     has_errors = False
@@ -105,36 +124,43 @@ async def create_tool_impl(
                 error_results.append(ToolResultItem(success=True, message="Validated"))
 
     if has_errors:
-        return CreateToolApiResponse(results=error_results)
-
-    # ── Step 4: Single transaction ─────────────────────────────────────
-
-    results: list[ToolResultItem] = []
-
-    for item in items:
-        # Create denormalized snapshot OUTSIDE transaction (read-only hydration)
-        tools_resource_id = await create_denormalized_snapshot(
-            pool,
-            redis,
-            id=item.resource_id,
-            name_id=item.name_id,
-            description_id=item.description_id,
-            department_ids=item.department_ids,
-            args_ids=item.args_ids,
-            args_output_ids=item.args_outputs_ids,
-            permission_ids=item.permission_ids,
-            instruction_id=item.instruction_id,
-            agent_id=item.agent_id,
+        return CreateToolApiResponse(
+            results=error_results,
+            idempotency_key=idempotency_key,
         )
 
-        # Combine active_flag_id with any other flag_ids
-        combined_flag_ids = list(item.flag_ids or [])
-        if item.active_flag_id:
-            combined_flag_ids.append(item.active_flag_id)
+    # ── Step 4: Denormalized snapshots (skip when soft — dormant artifact) ─
 
-        # Artifact create inside transaction
-        async with pool.acquire() as conn:
-            async with conn.transaction():
+    results: list[ToolResultItem] = []
+    snapshot_ids: list[UUID] = []
+
+    if not soft:
+        for item in items:
+            tools_resource_id = await create_denormalized_snapshot(
+                pool,
+                redis,
+                id=item.resource_id,
+                name_id=item.name_id,
+                description_id=item.description_id,
+                department_ids=item.department_ids,
+                args_ids=item.args_ids,
+                args_output_ids=item.args_outputs_ids,
+                permission_ids=item.permission_ids,
+                instruction_id=item.instruction_id,
+                agent_id=item.agent_id,
+            )
+            snapshot_ids.append(tools_resource_id)
+
+    # ── Step 5: Single transaction — artifact writes ───────────────────
+
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            for idx, item in enumerate(items):
+                # Combine active_flag_id with any other flag_ids
+                combined_flag_ids = list(item.flag_ids or [])
+                if item.active_flag_id:
+                    combined_flag_ids.append(item.active_flag_id)
+
                 result = await create_tool_artifact(
                     conn,
                     id=item.id,
@@ -146,20 +172,36 @@ async def create_tool_impl(
                     args_ids=item.args_ids,
                     args_outputs_ids=item.args_outputs_ids,
                     permission_ids=item.permission_ids,
-                    tool_ids=[tools_resource_id],
+                    tool_ids=[snapshot_ids[idx]] if snapshot_ids else None,
                     soft=soft,
                 )
 
-        results.append(
-            ToolResultItem(
-                success=True,
-                tool_id=result.id,
-                message="Tool created successfully",
-            )
+                results.append(
+                    ToolResultItem(
+                        success=True,
+                        tool_id=result.id,
+                        message=(
+                            "Tool accepted"
+                            if accept is not None and idempotency_key is not None
+                            else
+                            "Tool created (pending acceptance)"
+                            if soft
+                            else "Tool created successfully"
+                        ),
+                    )
+                )
+
+    if not soft:
+        await refresh_tool_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (results[0].tool_id if results else None),
         )
 
-    # ── Step 5: Invalidate cache ───────────────────────────────────────
-
-    await invalidate_tags(["tools"], redis=redis)
-
-    return CreateToolApiResponse(results=results)
+    return CreateToolApiResponse(
+        results=results,
+        idempotency_key=idempotency_key,
+    )

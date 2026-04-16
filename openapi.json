@@ -12353,7 +12353,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetToolApiResponse-Output"
+                  "$ref": "#/components/schemas/GetToolApiResponse"
                 }
               }
             }
@@ -12975,6 +12975,16 @@
         "summary": "Tool Refresh",
         "description": "Refresh tool materialized views and invalidate caches.",
         "operationId": "tool_refresh_tool_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshToolApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -12982,6 +12992,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -34554,7 +34574,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetToolApiResponse-Input"
+                "$ref": "#/components/schemas/GetToolApiResponse"
               }
             }
           },
@@ -43408,6 +43428,18 @@
             "type": "string",
             "format": "uuid",
             "title": "Chat Id"
+          },
+          "department_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Id"
           }
         },
         "type": "object",
@@ -55458,6 +55490,25 @@
             "type": "array",
             "title": "Tools",
             "description": "List of tools to create"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -55476,6 +55527,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -55494,6 +55558,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -58801,6 +58878,25 @@
             "type": "array",
             "title": "Tool Ids",
             "description": "List of tool IDs to delete"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -58819,6 +58915,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of deletion results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -61573,6 +61682,25 @@
             "format": "uuid",
             "title": "Tool Id",
             "description": "Tool identifier to duplicate"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -61598,6 +61726,19 @@
             "type": "string",
             "title": "Message",
             "description": "Result message"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -84163,6 +84304,19 @@
       },
       "GetToolApiRequest": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Tool unique identifier"
+          },
           "tool_id": {
             "anyOf": [
               {
@@ -84174,7 +84328,7 @@
               }
             ],
             "title": "Tool Id",
-            "description": "Tool unique identifier"
+            "description": "Legacy alias for tool unique identifier"
           },
           "draft_id": {
             "anyOf": [
@@ -84188,12 +84342,101 @@
             ],
             "title": "Draft Id",
             "description": "Draft unique identifier"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__tool__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for names"
+          },
+          "descriptions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__tool__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for descriptions"
+          },
+          "flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__tool__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags"
+          },
+          "args": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__tool__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for args"
+          },
+          "arg_positions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__tool__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for arg positions"
+          },
+          "args_outputs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__tool__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for arg outputs"
+          },
+          "permissions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__tool__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for permissions"
           }
         },
         "type": "object",
         "title": "GetToolApiRequest"
       },
-      "GetToolApiResponse-Input": {
+      "GetToolApiResponse": {
         "properties": {
           "actor_name": {
             "anyOf": [
@@ -84256,186 +84499,7 @@
             "title": "Group Id",
             "description": "Group identifier for the tool"
           },
-          "basic_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Basic Show Ai Generate",
-            "description": "Show AI generate for basic step"
-          },
-          "args_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Args Show Ai Generate",
-            "description": "Show AI generate for args step"
-          },
-          "arg_positions_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Arg Positions Show Ai Generate",
-            "description": "Show AI generate for arg positions step"
-          },
-          "args_outputs_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Args Outputs Show Ai Generate",
-            "description": "Show AI generate for args outputs step"
-          },
-          "names": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ToolNameSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Name section with resources"
-          },
-          "descriptions": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ToolDescriptionSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Description section with resources"
-          },
-          "flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ToolFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Flag section with configs"
-          },
-          "args": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ToolArgSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Argument section with resources"
-          },
-          "arg_positions": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ToolArgPositionSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Argument position section"
-          },
-          "args_outputs": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ToolArgOutputSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Argument output section"
-          },
-          "permissions": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ToolPermissionSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Permission section with resources"
-          }
-        },
-        "type": "object",
-        "title": "GetToolApiResponse"
-      },
-      "GetToolApiResponse-Output": {
-        "properties": {
-          "actor_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Actor Name",
-            "description": "Display name of the current actor"
-          },
-          "tool_exists": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tool Exists",
-            "description": "Whether the tool exists"
-          },
-          "can_edit": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Can Edit",
-            "description": "Whether the current user can edit"
-          },
-          "disabled_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Disabled Reason",
-            "description": "Reason editing is disabled"
-          },
-          "group_id": {
+          "tool_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -84445,8 +84509,20 @@
                 "type": "null"
               }
             ],
-            "title": "Group Id",
-            "description": "Group identifier for the tool"
+            "title": "Tool Id",
+            "description": "Tool identifier"
+          },
+          "show_ai_generate": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show Ai Generate",
+            "description": "Whether AI generation is available"
           },
           "basic_show_ai_generate": {
             "anyOf": [
@@ -84472,7 +84548,7 @@
             "title": "Args Show Ai Generate",
             "description": "Show AI generate for args step"
           },
-          "arg_positions_show_ai_generate": {
+          "permissions_show_ai_generate": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -84481,97 +84557,129 @@
                 "type": "null"
               }
             ],
-            "title": "Arg Positions Show Ai Generate",
-            "description": "Show AI generate for arg positions step"
+            "title": "Permissions Show Ai Generate",
+            "description": "Show AI generate for permissions step"
           },
-          "args_outputs_show_ai_generate": {
+          "pending_ids": {
             "anyOf": [
               {
-                "type": "boolean"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Args Outputs Show Ai Generate",
-            "description": "Show AI generate for args outputs step"
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers when available"
           },
           "names": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ToolNameSection"
+                "items": {
+                  "$ref": "#/components/schemas/ToolNameResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Name section with resources"
+            "title": "Names",
+            "description": "Name resources"
           },
           "descriptions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ToolDescriptionSection"
+                "items": {
+                  "$ref": "#/components/schemas/ToolDescriptionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Description section with resources"
+            "title": "Descriptions",
+            "description": "Description resources"
           },
           "flags": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ToolFlagSection"
+                "items": {
+                  "$ref": "#/components/schemas/ToolFlagConfig"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Flag section with configs"
+            "title": "Flags",
+            "description": "Flag configs"
           },
           "args": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ToolArgSection"
+                "items": {
+                  "$ref": "#/components/schemas/ToolArgResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Argument section with resources"
+            "title": "Args",
+            "description": "Argument resources"
           },
           "arg_positions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ToolArgPositionSection"
+                "items": {
+                  "$ref": "#/components/schemas/ToolArgPositionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Argument position section"
+            "title": "Arg Positions",
+            "description": "Argument position resources"
           },
           "args_outputs": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ToolArgOutputSection"
+                "items": {
+                  "$ref": "#/components/schemas/ToolArgOutputResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Argument output section"
+            "title": "Args Outputs",
+            "description": "Argument output resources"
           },
           "permissions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ToolPermissionSection"
+                "items": {
+                  "$ref": "#/components/schemas/ToolPermissionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Permission section with resources"
+            "title": "Permissions",
+            "description": "Permission resources"
           }
         },
         "type": "object",
@@ -88436,6 +88544,25 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -88474,6 +88601,19 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -104242,6 +104382,19 @@
       },
       "PatchToolDraftApiRequest": {
         "properties": {
+          "draft_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Id",
+            "description": "Existing draft ID to update"
+          },
           "input_draft_id": {
             "anyOf": [
               {
@@ -104304,6 +104457,31 @@
             ],
             "title": "Description Id",
             "description": "Description resource identifier"
+          },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether the tool is active"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Tool active flag identifier"
           },
           "flag_ids": {
             "anyOf": [
@@ -104385,6 +104563,22 @@
             "title": "Args Output Ids",
             "description": "Argument output identifiers"
           },
+          "args_outputs_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Args Outputs Ids",
+            "description": "Legacy alias for argument output identifiers"
+          },
           "permission_ids": {
             "anyOf": [
               {
@@ -104413,11 +104607,46 @@
             ],
             "title": "Agent Id",
             "description": "Delegate agent for tool execution"
+          },
+          "pending_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers to preserve"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack semantics"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject acknowledgement when idempotency_key is supplied",
+            "default": true
           }
         },
         "type": "object",
         "title": "PatchToolDraftApiRequest",
-        "description": "Request model for new-style tool draft endpoint.\n\nDual-mode for creatable resources only:\n  - name/name_id, description/description_id\nID-only for non-creatable resources:\n  - flag_ids, department_ids, arg_ids, arg_position_ids, args_output_ids\n\nClient always sends full state (append-only \u2014 each write is a new snapshot)."
+        "description": "Request model for canonical tool draft endpoint."
       },
       "PatchToolDraftApiResponse": {
         "properties": {
@@ -104432,6 +104661,19 @@
             "title": "Draft Id",
             "description": "Draft unique identifier"
           },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key echoed back for client correlation"
+          },
           "message": {
             "type": "string",
             "title": "Message",
@@ -104440,7 +104682,7 @@
           "form_state": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ToolDraftFormState"
+                "$ref": "#/components/schemas/app__infra__tool__types__DraftFormState"
               },
               {
                 "type": "null"
@@ -108389,6 +108631,25 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -108418,6 +108679,19 @@
             "title": "Message",
             "description": "Status message",
             "default": "Problem created successfully"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -110809,6 +111083,47 @@
         "type": "object",
         "title": "RefreshSimulationApiRequest",
         "description": "Request model for simulation refresh endpoint."
+      },
+      "RefreshToolApiRequest": {
+        "properties": {
+          "targets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targets",
+            "description": "MV targets to refresh (omit for all). Options: tool_drafts_mv"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject. Only meaningful with idempotency_key",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "RefreshToolApiRequest",
+        "description": "Request model for tool refresh endpoint."
       },
       "ReplacementEntry": {
         "properties": {
@@ -122838,134 +123153,9 @@
         "title": "TimerData",
         "description": "Timer information."
       },
-      "ToolArgOutputSection": {
+      "ToolArgOutputResource": {
         "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned argument outputs"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available argument outputs"
-          }
-        },
-        "type": "object",
-        "title": "ToolArgOutputSection"
-      },
-      "ToolArgPositionSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned argument positions"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available argument positions"
-          }
-        },
-        "type": "object",
-        "title": "ToolArgPositionSection"
-      },
-      "ToolArgSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned arguments"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available arguments"
-          }
-        },
-        "type": "object",
-        "title": "ToolArgSection"
-      },
-      "ToolDescriptionSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected description resource"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available description resources"
-          }
-        },
-        "type": "object",
-        "title": "ToolDescriptionSection"
-      },
-      "ToolDraftFormState": {
-        "properties": {
-          "name_id": {
+          "id": {
             "anyOf": [
               {
                 "type": "string",
@@ -122975,10 +123165,10 @@
                 "type": "null"
               }
             ],
-            "title": "Name Id",
-            "description": "Resolved name resource identifier"
+            "title": "Id",
+            "description": "Argument output resource identifier"
           },
-          "description_id": {
+          "args_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -122988,88 +123178,310 @@
                 "type": "null"
               }
             ],
-            "title": "Description Id",
-            "description": "Resolved description resource identifier"
+            "title": "Args Id",
+            "description": "Associated argument identifier"
           },
-          "flag_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Flag Ids",
-            "description": "Flag option identifiers"
-          },
-          "department_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Department Ids",
-            "description": "Department identifiers"
-          },
-          "arg_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Arg Ids",
-            "description": "Argument identifiers"
-          },
-          "arg_position_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Arg Position Ids",
-            "description": "Argument position identifiers"
-          },
-          "args_output_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Args Output Ids",
-            "description": "Argument output identifiers"
-          },
-          "permission_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Permission Ids",
-            "description": "Permission identifiers"
-          },
-          "agent_id": {
+          "name": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Agent Id",
-            "description": "Delegate agent identifier"
+            "title": "Name",
+            "description": "Output template name"
+          },
+          "template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template",
+            "description": "Output template body"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the output template was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "required": [
-          "flag_ids",
-          "department_ids",
-          "arg_ids",
-          "arg_position_ids",
-          "args_output_ids",
-          "permission_ids"
-        ],
-        "title": "ToolDraftFormState",
-        "description": "Server-authoritative form state returned after draft save."
+        "title": "ToolArgOutputResource"
+      },
+      "ToolArgPositionResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Argument position resource identifier"
+          },
+          "args_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Args Id",
+            "description": "Associated argument identifier"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Position value"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the argument position was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ToolArgPositionResource"
+      },
+      "ToolArgResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Argument resource identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Argument name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Argument description"
+          },
+          "field_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Type",
+            "description": "Argument field type"
+          },
+          "required": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required",
+            "description": "Whether the argument is required"
+          },
+          "default_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Value",
+            "description": "Argument default value"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the argument was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ToolArgResource"
+      },
+      "ToolDescriptionResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Description resource identifier"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Tool description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the description was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ToolDescriptionResource"
       },
       "ToolFieldError": {
         "properties": {
@@ -123164,6 +123576,24 @@
             ],
             "title": "Generated",
             "description": "Whether this flag was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
@@ -123174,98 +123604,163 @@
         "title": "ToolFlagConfig",
         "description": "Enriched flag config for direct client consumption."
       },
-      "ToolFlagSection": {
+      "ToolNameResource": {
         "properties": {
-          "current": {
+          "id": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ToolFlagConfig"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Currently active flag config"
+            "title": "Id",
+            "description": "Name resource identifier"
           },
-          "resources": {
+          "name": {
             "anyOf": [
               {
-                "items": {
-                  "$ref": "#/components/schemas/ToolFlagConfig"
-                },
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available flag configs"
+            "title": "Name",
+            "description": "Tool display name"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the name was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ToolFlagSection"
+        "title": "ToolNameResource"
       },
-      "ToolNameSection": {
+      "ToolPermissionResource": {
         "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected name resource"
-          },
-          "resources": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available name resources"
+            "title": "Id",
+            "description": "Permission resource identifier"
+          },
+          "artifact": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifact",
+            "description": "Permission artifact type"
+          },
+          "operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operation",
+            "description": "Permission operation"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Permission display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Permission description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the permission was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ToolNameSection"
-      },
-      "ToolPermissionSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned permissions"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available permissions"
-          }
-        },
-        "type": "object",
-        "title": "ToolPermissionSection"
+        "title": "ToolPermissionResource"
       },
       "ToolResultItem": {
         "properties": {
@@ -128275,6 +128770,25 @@
             "type": "array",
             "title": "Tools",
             "description": "List of tools to update"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -128293,6 +128807,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -128311,6 +128838,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -130896,6 +131436,236 @@
         "type": "object",
         "title": "SectionFilter",
         "description": "Per-section filter options for GET requests."
+      },
+      "app__infra__tool__types__DraftFormState": {
+        "properties": {
+          "name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Id",
+            "description": "Resolved name resource identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Resolved name value"
+          },
+          "description_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description Id",
+            "description": "Resolved description resource identifier"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Resolved description value"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Flag option identifier"
+          },
+          "flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Flag Ids",
+            "description": "Flag option identifiers"
+          },
+          "department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Department Ids",
+            "description": "Department identifiers"
+          },
+          "arg_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Arg Ids",
+            "description": "Argument identifiers"
+          },
+          "arg_position_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Arg Position Ids",
+            "description": "Argument position identifiers"
+          },
+          "args_output_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Args Output Ids",
+            "description": "Argument output identifiers"
+          },
+          "args_outputs_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Args Outputs Ids",
+            "description": "Legacy alias for argument output identifiers"
+          },
+          "permission_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Permission Ids",
+            "description": "Permission identifiers"
+          },
+          "agent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Id",
+            "description": "Delegate agent identifier"
+          },
+          "pending_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "flag_ids",
+          "department_ids",
+          "arg_ids",
+          "arg_position_ids",
+          "args_output_ids",
+          "args_outputs_ids",
+          "permission_ids"
+        ],
+        "title": "DraftFormState",
+        "description": "Server-authoritative form state returned after draft save."
+      },
+      "app__infra__tool__types__SectionFilter": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Filter options by search text"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Max options to return"
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected",
+            "description": "Only return selected items"
+          },
+          "suggested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested",
+            "description": "Only return suggested items"
+          },
+          "include": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include",
+            "description": "Include this section in response (default true)"
+          }
+        },
+        "type": "object",
+        "title": "SectionFilter"
       },
       "app__routes__cohort__export__ExportCohortApiRequest": {
         "properties": {

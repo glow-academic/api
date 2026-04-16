@@ -5,7 +5,7 @@ Core delete function that composes existing black-box tools:
   2. resolve_tool_permissions_context — per-item exists, usage
   3. compute_can_delete — permission check
   4. delete_tools — bulk delete tool
-  5. invalidate_tags — cache invalidation
+  5. canonical refresh
 """
 
 from __future__ import annotations
@@ -16,9 +16,11 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.delete.delete_artifact import restore_artifacts
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.tool.permissions import compute_can_delete
 from app.infra.tool.permissions_context import resolve_tool_permissions_context
+from app.infra.tool.refresh import refresh_tool_impl
 from app.infra.tool.types import (
     DeleteToolApiResponse,
     DeleteToolResult,
@@ -26,7 +28,6 @@ from app.infra.tool.types import (
 from app.tools.artifacts.tool.delete import delete_tools
 from app.tools.artifacts.tool.get import get_tools
 from app.tools.resources.names.get import get_names
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def delete_tool_impl(
@@ -37,6 +38,8 @@ async def delete_tool_impl(
     tool_ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> DeleteToolApiResponse:
     """Tool bulk delete using composable infra functions.
 
@@ -46,7 +49,7 @@ async def delete_tool_impl(
       3. Per-item: compute_can_delete -> permission check (fail fast)
       4. Fetch names for result messages
       5. Single transaction: delete_tools -> bulk delete
-      6. invalidate_tags
+      6. canonical refresh
     """
 
     # -- Step 1: Profile context -----------------------------------------------
@@ -85,7 +88,45 @@ async def delete_tool_impl(
                     detail=f"Item {idx}: You don't have permission to delete this tool.",
                 )
 
-    # -- Step 4: Fetch names for result messages -------------------------------
+    # -- Step 4: Ack short-circuit ---------------------------------------------
+
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            # Confirm deletion: no-op (already deactivated by soft delete)
+            pass
+        else:
+            # Reject: restore the soft-deleted artifact
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await restore_artifacts(
+                        conn,
+                        table="tool_artifact",
+                        ids=tool_ids,
+                    )
+        await refresh_tool_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
+        return DeleteToolApiResponse(
+            results=[
+                DeleteToolResult(
+                    success=True,
+                    tool_id=tool_id,
+                    message=(
+                        "Delete confirmed"
+                        if accept
+                        else "Delete rejected — tool restored"
+                    ),
+                )
+                for tool_id in tool_ids
+            ],
+            idempotency_key=idempotency_key,
+        )
+
+    # -- Step 5: Fetch names for result messages -------------------------------
 
     async with pool.acquire() as conn:
         name_map: dict[UUID, str] = {}
@@ -98,23 +139,34 @@ async def delete_tool_impl(
                     name = name_resources[0].name or "Unknown"
             name_map[artifact.id] = name
 
-    # -- Step 5: Single transaction -- bulk delete -----------------------------
+    # -- Step 6: Single transaction -- bulk delete -----------------------------
 
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_tools(conn, tool_ids, soft=soft)
 
-    # -- Step 6: Invalidate cache ----------------------------------------------
+    # -- Step 7: Canonical refresh ---------------------------------------------
 
-    await invalidate_tags(["tools"], redis=redis)
+    await refresh_tool_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
+    )
 
     results = [
         DeleteToolResult(
             success=True,
             tool_id=pid,
-            message=f"Tool '{name_map.get(pid, 'Unknown')}' deleted successfully",
+            message=(
+                f"Tool '{name_map.get(pid, 'Unknown')}' deleted (pending confirmation)"
+                if soft
+                else f"Tool '{name_map.get(pid, 'Unknown')}' deleted successfully"
+            ),
         )
         for pid in result.deleted_ids
     ]
 
-    return DeleteToolApiResponse(results=results)
+    return DeleteToolApiResponse(results=results, idempotency_key=idempotency_key)

@@ -64,9 +64,7 @@ async def create_tool(
             session_id=session_id,
             group_id=group_id,
             operation="create",
-            arguments={
-                "tools": [item.model_dump(mode="json") for item in request.tools]
-            },
+            arguments=request.model_dump(mode="json"),
             response_model=CreateToolApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

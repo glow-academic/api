@@ -1,11 +1,4 @@
-"""Resolve model artifact context — merged junctions + hydrated resources.
-
-Given a model_id (and optional draft_id), fetches the published artifact
-and draft entry, merges junction IDs (draft overrides published), then
-hydrates all resources in parallel (selected + suggestions).
-
-Composes existing black-box fetchers — no raw SQL.
-"""
+"""Resolve model artifact context — merged junctions + hydrated resources."""
 
 from __future__ import annotations
 
@@ -17,17 +10,9 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.types import ArtifactContext, ResourcePair
-
-# Artifact + draft fetchers
-from app.tools.artifacts.model.get import (
-    get_models as get_model_artifacts,
-)
+from app.tools.artifacts.model.get import get_models as get_model_artifacts
 from app.tools.entries.model_drafts.get import get_model_drafts
-
-# Resource get fetchers (by known IDs)
 from app.tools.resources.departments.get import get_departments
-
-# Resource search fetchers (bounded, paginated)
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.descriptions.search import search_descriptions
@@ -44,21 +29,13 @@ from app.tools.resources.providers.search import search_providers
 from app.tools.resources.qualities.get import get_qualities
 from app.tools.resources.qualities.search import search_qualities
 from app.tools.resources.reasoning_levels.get import get_reasoning_levels
-from app.tools.resources.reasoning_levels.search import (
-    search_reasoning_levels,
-)
+from app.tools.resources.reasoning_levels.search import search_reasoning_levels
 from app.tools.resources.temperature_levels.get import get_temperature_levels
-from app.tools.resources.temperature_levels.search import (
-    search_temperature_levels,
-)
+from app.tools.resources.temperature_levels.search import search_temperature_levels
 from app.tools.resources.values.get import get_values
 from app.tools.resources.values.search import search_values
 from app.tools.resources.voices.get import get_voices
 from app.tools.resources.voices.search import search_voices
-
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
 
 MODEL_FLAG_NAMES = {
     "model_active",
@@ -71,11 +48,6 @@ MODEL_FLAG_NAMES = {
 }
 
 
-# ---------------------------------------------------------------------------
-# resolve_model_context
-# ---------------------------------------------------------------------------
-
-
 async def resolve_model_context(
     pool: asyncpg.Pool,
     redis: Redis,
@@ -84,18 +56,48 @@ async def resolve_model_context(
     group_id: UUID,
     draft_id: UUID | None = None,
     user_department_ids: list[UUID] | None = None,
+    names_search: str | None = None,
+    descriptions_search: str | None = None,
+    values_search: str | None = None,
+    providers_search: str | None = None,
+    flags_search: str | None = None,
+    departments_search: str | None = None,
+    modalities_search: str | None = None,
+    temperature_levels_search: str | None = None,
+    pricing_search: str | None = None,
+    reasoning_levels_search: str | None = None,
+    qualities_search: str | None = None,
+    voices_search: str | None = None,
+    names_limit: int | None = None,
+    descriptions_limit: int | None = None,
+    values_limit: int | None = None,
+    providers_limit: int | None = None,
+    flags_limit: int | None = None,
+    departments_limit: int | None = None,
+    modalities_limit: int | None = None,
+    temperature_levels_limit: int | None = None,
+    pricing_limit: int | None = None,
+    reasoning_levels_limit: int | None = None,
+    qualities_limit: int | None = None,
+    voices_limit: int | None = None,
+    names_selected_only: bool | None = None,
+    descriptions_selected_only: bool | None = None,
+    values_selected_only: bool | None = None,
+    providers_selected_only: bool | None = None,
+    flags_selected_only: bool | None = None,
+    departments_selected_only: bool | None = None,
+    modalities_selected_only: bool | None = None,
+    temperature_levels_selected_only: bool | None = None,
+    pricing_selected_only: bool | None = None,
+    reasoning_levels_selected_only: bool | None = None,
+    qualities_selected_only: bool | None = None,
+    voices_selected_only: bool | None = None,
     bypass_cache: bool = False,
 ) -> ArtifactContext:
-    """Resolve a model artifact into fully hydrated resources for the GET endpoint.
+    """Resolve a model artifact into hydrated selected + suggested resources."""
 
-    Steps:
-      1. Fetch artifact + draft in parallel -> merge IDs
-      2. Parallel hydrate: get (selected) + search (suggestions) per resource
-      3. Assemble ArtifactContext with ResourcePairs
-    """
     user_dept_ids = user_department_ids or []
 
-    # Step 1: fetch artifact + draft in parallel
     async def _fetch_artifact() -> list:
         if not model_id:
             return []
@@ -125,25 +127,24 @@ async def resolve_model_context(
             return await get_model_drafts(conn, [draft_id])
 
     artifacts, drafts = await asyncio.gather(_fetch_artifact(), _fetch_draft())
-
     artifact = artifacts[0] if artifacts else None
     draft = drafts[0] if drafts else None
-
-    # Merge IDs: start from published, draft overrides if present
     merged = _merge_junction_ids(artifact, draft)
     active = artifact.active if artifact else True
-
-    # Step 2: parallel hydrate — selected + suggestions for each resource
 
     async def _get_names() -> list:
         async with pool.acquire() as conn:
             return await get_names(conn, merged.name_ids, redis, bypass_cache)
 
     async def _search_names() -> list:
+        if names_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_names(
                 conn,
                 redis,
+                search=names_search,
+                limit_count=names_limit or 20,
                 draft_id=group_id,
                 exclude_ids=merged.name_ids,
                 bypass_cache=bypass_cache,
@@ -152,15 +153,17 @@ async def resolve_model_context(
 
     async def _get_descriptions() -> list:
         async with pool.acquire() as conn:
-            return await get_descriptions(
-                conn, merged.description_ids, redis, bypass_cache
-            )
+            return await get_descriptions(conn, merged.description_ids, redis, bypass_cache)
 
     async def _search_descriptions() -> list:
+        if descriptions_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_descriptions(
                 conn,
                 redis,
+                search=descriptions_search,
+                limit_count=descriptions_limit or 20,
                 draft_id=group_id,
                 exclude_ids=merged.description_ids,
                 bypass_cache=bypass_cache,
@@ -172,12 +175,14 @@ async def resolve_model_context(
             return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
 
     async def _search_flags() -> list:
+        if flags_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_flags(
                 conn,
                 redis,
-                search=None,
-                limit_count=50,
+                search=flags_search,
+                limit_count=flags_limit or 50,
                 offset_count=0,
                 exclude_ids=merged.flag_ids,
                 bypass_cache=bypass_cache,
@@ -186,17 +191,17 @@ async def resolve_model_context(
 
     async def _get_departments() -> list:
         async with pool.acquire() as conn:
-            return await get_departments(
-                conn, merged.department_ids, redis, bypass_cache
-            )
+            return await get_departments(conn, merged.department_ids, redis, bypass_cache)
 
     async def _search_departments() -> list:
+        if departments_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_departments(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
+                search=departments_search,
+                limit_count=departments_limit or 20,
                 offset_count=0,
                 department_ids=user_dept_ids,
                 suggest_source="all" if model_id is None else "recent",
@@ -205,39 +210,46 @@ async def resolve_model_context(
             )
 
     async def _get_values() -> list:
+        if not merged.value_id:
+            return []
         async with pool.acquire() as conn:
-            return await get_values(conn, [merged.value_id], redis, bypass_cache) if merged.value_id else []
+            return await get_values(conn, [merged.value_id], redis, bypass_cache)
 
     async def _search_values() -> list:
+        if values_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_values(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
-                offset_count=0,
+                search=values_search,
+                limit_count=values_limit or 20,
+                suggest_source="recent",
                 exclude_ids=[merged.value_id] if merged.value_id else [],
                 bypass_cache=bypass_cache,
+                model=True,
             )
 
     async def _get_providers() -> list:
         if not merged.provider_id:
             return []
         async with pool.acquire() as conn:
-            return await get_providers(
-                conn, [merged.provider_id], redis, bypass_cache=bypass_cache
-            )
+            return await get_providers(conn, [merged.provider_id], redis, bypass_cache=bypass_cache)
 
     async def _search_providers() -> list:
+        if providers_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_providers(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
+                search=providers_search,
+                limit_count=providers_limit or 20,
                 offset_count=0,
                 exclude_ids=[merged.provider_id] if merged.provider_id else [],
+                department_ids=user_dept_ids,
                 bypass_cache=bypass_cache,
+                model=True,
             )
 
     async def _get_modalities() -> list:
@@ -245,12 +257,14 @@ async def resolve_model_context(
             return await get_modalities(conn, merged.modality_ids, redis, bypass_cache)
 
     async def _search_modalities() -> list:
+        if modalities_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_modalities(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
+                search=modalities_search,
+                limit_count=modalities_limit or 20,
                 offset_count=0,
                 exclude_ids=merged.modality_ids,
                 bypass_cache=bypass_cache,
@@ -259,16 +273,21 @@ async def resolve_model_context(
     async def _get_temperature_levels() -> list:
         async with pool.acquire() as conn:
             return await get_temperature_levels(
-                conn, merged.temperature_level_ids, redis, bypass_cache
+                conn,
+                merged.temperature_level_ids,
+                redis,
+                bypass_cache,
             )
 
     async def _search_temperature_levels() -> list:
+        if temperature_levels_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_temperature_levels(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
+                search=temperature_levels_search,
+                limit_count=temperature_levels_limit or 20,
                 offset_count=0,
                 exclude_ids=merged.temperature_level_ids,
                 bypass_cache=bypass_cache,
@@ -279,30 +298,33 @@ async def resolve_model_context(
             return await get_pricing(conn, merged.pricing_ids, redis, bypass_cache)
 
     async def _search_pricing() -> list:
+        if pricing_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_pricing(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
+                search=pricing_search,
+                limit_count=pricing_limit or 20,
                 offset_count=0,
                 exclude_ids=merged.pricing_ids,
                 bypass_cache=bypass_cache,
+                model=True,
             )
 
     async def _get_reasoning_levels() -> list:
         async with pool.acquire() as conn:
-            return await get_reasoning_levels(
-                conn, merged.reasoning_level_ids, redis, bypass_cache
-            )
+            return await get_reasoning_levels(conn, merged.reasoning_level_ids, redis, bypass_cache)
 
     async def _search_reasoning_levels() -> list:
+        if reasoning_levels_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_reasoning_levels(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
+                search=reasoning_levels_search,
+                limit_count=reasoning_levels_limit or 20,
                 offset_count=0,
                 exclude_ids=merged.reasoning_level_ids,
                 bypass_cache=bypass_cache,
@@ -313,12 +335,14 @@ async def resolve_model_context(
             return await get_qualities(conn, merged.quality_ids, redis, bypass_cache)
 
     async def _search_qualities() -> list:
+        if qualities_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_qualities(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
+                search=qualities_search,
+                limit_count=qualities_limit or 20,
                 offset_count=0,
                 exclude_ids=merged.quality_ids,
                 bypass_cache=bypass_cache,
@@ -329,15 +353,18 @@ async def resolve_model_context(
             return await get_voices(conn, merged.voice_ids, redis, bypass_cache)
 
     async def _search_voices() -> list:
+        if voices_selected_only:
+            return []
         async with pool.acquire() as conn:
             return await search_voices(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
+                search=voices_search,
+                limit_count=voices_limit or 20,
                 offset_count=0,
                 exclude_ids=merged.voice_ids,
                 bypass_cache=bypass_cache,
+                model=True,
             )
 
     (
@@ -392,9 +419,8 @@ async def resolve_model_context(
         _search_voices(),
     )
 
-    # Filter flags to model-specific types
     flags_suggestions_filtered = [
-        f for f in flags_suggestions if getattr(f, "name", None) in MODEL_FLAG_NAMES
+        item for item in flags_suggestions if getattr(item, "name", None) in MODEL_FLAG_NAMES
     ]
 
     return ArtifactContext(
@@ -402,58 +428,31 @@ async def resolve_model_context(
         active=active,
         group_id=group_id,
         resources={
-            "names": ResourcePair(
-                selected=names_selected, suggestions=names_suggestions
-            ),
-            "descriptions": ResourcePair(
-                selected=descriptions_selected, suggestions=descriptions_suggestions
-            ),
-            "flags": ResourcePair(
-                selected=flags_selected, suggestions=flags_suggestions_filtered
-            ),
-            "departments": ResourcePair(
-                selected=departments_selected, suggestions=departments_suggestions
-            ),
-            "values": ResourcePair(
-                selected=values_selected, suggestions=values_suggestions
-            ),
-            "providers": ResourcePair(
-                selected=providers_selected, suggestions=providers_suggestions
-            ),
-            "modalities": ResourcePair(
-                selected=modalities_selected, suggestions=modalities_suggestions
-            ),
+            "names": ResourcePair(selected=names_selected, suggestions=names_suggestions),
+            "descriptions": ResourcePair(selected=descriptions_selected, suggestions=descriptions_suggestions),
+            "flags": ResourcePair(selected=flags_selected, suggestions=flags_suggestions_filtered),
+            "departments": ResourcePair(selected=departments_selected, suggestions=departments_suggestions),
+            "values": ResourcePair(selected=values_selected, suggestions=values_suggestions),
+            "providers": ResourcePair(selected=providers_selected, suggestions=providers_suggestions),
+            "modalities": ResourcePair(selected=modalities_selected, suggestions=modalities_suggestions),
             "temperature_levels": ResourcePair(
                 selected=temperature_levels_selected,
                 suggestions=temperature_levels_suggestions,
             ),
-            "pricing": ResourcePair(
-                selected=pricing_selected, suggestions=pricing_suggestions
-            ),
+            "pricing": ResourcePair(selected=pricing_selected, suggestions=pricing_suggestions),
             "reasoning_levels": ResourcePair(
                 selected=reasoning_levels_selected,
                 suggestions=reasoning_levels_suggestions,
             ),
-            "qualities": ResourcePair(
-                selected=qualities_selected, suggestions=qualities_suggestions
-            ),
-            "voices": ResourcePair(
-                selected=voices_selected, suggestions=voices_suggestions
-            ),
+            "qualities": ResourcePair(selected=qualities_selected, suggestions=qualities_suggestions),
+            "voices": ResourcePair(selected=voices_selected, suggestions=voices_suggestions),
         },
-        entries={},
+        entries={"pending_ids": set()},
     )
-
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
 
 
 @dataclass
 class _MergedIds:
-    """Merged junction IDs from artifact + draft."""
-
     name_ids: list[UUID]
     description_ids: list[UUID]
     flag_ids: list[UUID]
@@ -469,7 +468,8 @@ class _MergedIds:
 
 
 def _merge_junction_ids(artifact, draft) -> _MergedIds:
-    """Merge artifact junction IDs with draft overrides."""
+    """Merge published artifact junction IDs with draft overrides."""
+
     name_ids = list(artifact.name_ids or []) if artifact else []
     description_ids = list(artifact.description_ids or []) if artifact else []
     flag_ids = list(artifact.flag_ids or []) if artifact else []
@@ -477,15 +477,12 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
     value_id = artifact.value_id if artifact else None
     provider_id = artifact.provider_id if artifact else None
     modality_ids = list(artifact.modality_ids or []) if artifact else []
-    temperature_level_ids = (
-        list(artifact.temperature_level_ids or []) if artifact else []
-    )
+    temperature_level_ids = list(artifact.temperature_level_ids or []) if artifact else []
     pricing_ids = list(artifact.pricing_ids or []) if artifact else []
     reasoning_level_ids = list(artifact.reasoning_level_ids or []) if artifact else []
     quality_ids = list(artifact.quality_ids or []) if artifact else []
     voice_ids = list(artifact.voice_ids or []) if artifact else []
 
-    # Draft overrides (if present) — ignore profile_ids from draft
     if draft:
         if draft.name_ids:
             name_ids = list(draft.name_ids)
@@ -526,7 +523,3 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
         quality_ids=quality_ids,
         voice_ids=voice_ids,
     )
-
-
-async def _empty() -> list:
-    return []

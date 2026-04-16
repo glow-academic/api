@@ -1,12 +1,4 @@
-"""Model GET endpoint — composable infra architecture.
-
-Uses composable infra layers:
-  1. resolve_common_context — profile + tool graph + runs
-  2. resolve_model_permissions_context — fail-fast 404/403
-  3. resolve_model_context — artifact + draft → merged + hydrated resources
-  4. score_tools — tool graph + artifact resources → per-resource tool picks
-  5. Pure Python — permissions, show/required flags, response assembly
-"""
+"""Canonical shared model GET operation."""
 
 from __future__ import annotations
 
@@ -54,27 +46,56 @@ from app.infra.model.permissions import (
     has_access,
 )
 from app.infra.model.permissions_context import resolve_model_permissions_context
-from app.infra.tool_graph import score_tools
 from app.infra.model.types import (
     GetModelApiResponse,
-    ModelDepartmentSection,
-    ModelDescriptionSection,
+    ModelDepartmentResource,
+    ModelDescriptionResource,
     ModelFlagConfig,
-    ModelFlagSection,
-    ModelModalitySection,
-    ModelNameSection,
-    ModelPricingSection,
-    ModelProviderSection,
-    ModelQualitySection,
-    ModelReasoningLevelSection,
-    ModelTemperatureLevelSection,
-    ModelValueSection,
-    ModelVoiceSection,
+    ModelModalityResource,
+    ModelNameResource,
+    ModelPricingResource,
+    ModelProviderResource,
+    ModelQualityResource,
+    ModelReasoningLevelResource,
+    ModelTemperatureLevelResource,
+    ModelValueResource,
+    ModelVoiceResource,
+    SectionFilter,
 )
+from app.infra.tool_graph import score_tools
 
-# ---------------------------------------------------------------------------
-# get_model_client — composable infra architecture
-# ---------------------------------------------------------------------------
+SECTIONS = [
+    "names",
+    "descriptions",
+    "values",
+    "providers",
+    "flags",
+    "departments",
+    "modalities",
+    "temperature_levels",
+    "pricing",
+    "reasoning_levels",
+    "qualities",
+    "voices",
+]
+
+
+def _sf(filters: dict[str, SectionFilter | None], section: str, attr: str, default=None):
+    section_filter = filters.get(section)
+    if section_filter is None:
+        return default
+    return getattr(section_filter, attr, default)
+
+
+def _filter_items(items: list | None, section: str, *, selected_only: dict[str, bool], suggested_only: dict[str, bool]):
+    if items is None:
+        return None
+    result = items
+    if selected_only.get(section):
+        result = [item for item in result if getattr(item, "selected", False)]
+    if suggested_only.get(section):
+        result = [item for item in result if getattr(item, "suggested", False)]
+    return result
 
 
 async def get_model_impl(
@@ -83,23 +104,18 @@ async def get_model_impl(
     *,
     profile_id: UUID,
     session_id: UUID | None = None,
-    model_id: UUID | None,
+    id: UUID | None = None,
+    model_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    filters: dict[str, SectionFilter | None] | None = None,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> GetModelApiResponse:
-    """Model GET using composable infra functions.
+    """Resolve the canonical model artifact bundle for any surface."""
 
-    Flow:
-      1. resolve_common_context(profile_id) → profile, tool_graph, runs
-      2. resolve_model_permissions_context → access check (404, 403, fail fast)
-      3. resolve_model_context(model_id, draft_id, ...) → hydrated resources
-      4. score_tools(tool_graph, MODEL_RESOURCES) → per-resource tool picks
-      5. Pure Python: permissions, show/required/AI flags, response assembly
-    """
-
-    # ── Step 1: Common context (profile → tool_graph + runs) ──────────────
+    resolved_filters = dict(filters or {})
+    model_id = id or model_id
 
     common = await resolve_common_context(
         pool,
@@ -111,89 +127,104 @@ async def get_model_impl(
         artifact_type="model",
         bypass_cache=bypass_cache,
     )
-
     if common is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    group_id = group_id or common.profile.group_id
-    profile = common.profile
-
-    # ── Step 2: Permissions check (fail fast before full hydration) ──────
+    actor = common.profile
+    effective_group_id = group_id or actor.group_id
 
     perms = None
     if model_id is not None:
         async with pool.acquire() as conn:
             perms = await resolve_model_permissions_context(conn, model_id)
-
         if not perms.exists:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Model {model_id} not found",
-            )
-
-        if not has_access(profile.role_level, profile.department_ids, perms.department_ids):
+            raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
+        if not has_access(actor.role_level, actor.department_ids, perms.department_ids):
             raise HTTPException(
                 status_code=403,
                 detail="You don't have access to this model. It may be restricted to other departments.",
             )
 
-    # ── Step 3: Model artifact context ────────────────────────────────────
-
     model_ctx = await resolve_model_context(
         pool,
         redis,
         model_id=model_id,
-        group_id=group_id,
+        group_id=effective_group_id,
         draft_id=draft_id,
-        user_department_ids=profile.department_ids,
+        user_department_ids=actor.department_ids,
+        names_search=_sf(resolved_filters, "names", "search"),
+        descriptions_search=_sf(resolved_filters, "descriptions", "search"),
+        values_search=_sf(resolved_filters, "values", "search"),
+        providers_search=_sf(resolved_filters, "providers", "search"),
+        flags_search=_sf(resolved_filters, "flags", "search"),
+        departments_search=_sf(resolved_filters, "departments", "search"),
+        modalities_search=_sf(resolved_filters, "modalities", "search"),
+        temperature_levels_search=_sf(resolved_filters, "temperature_levels", "search"),
+        pricing_search=_sf(resolved_filters, "pricing", "search"),
+        reasoning_levels_search=_sf(resolved_filters, "reasoning_levels", "search"),
+        qualities_search=_sf(resolved_filters, "qualities", "search"),
+        voices_search=_sf(resolved_filters, "voices", "search"),
+        names_limit=_sf(resolved_filters, "names", "limit"),
+        descriptions_limit=_sf(resolved_filters, "descriptions", "limit"),
+        values_limit=_sf(resolved_filters, "values", "limit"),
+        providers_limit=_sf(resolved_filters, "providers", "limit"),
+        flags_limit=_sf(resolved_filters, "flags", "limit"),
+        departments_limit=_sf(resolved_filters, "departments", "limit"),
+        modalities_limit=_sf(resolved_filters, "modalities", "limit"),
+        temperature_levels_limit=_sf(resolved_filters, "temperature_levels", "limit"),
+        pricing_limit=_sf(resolved_filters, "pricing", "limit"),
+        reasoning_levels_limit=_sf(resolved_filters, "reasoning_levels", "limit"),
+        qualities_limit=_sf(resolved_filters, "qualities", "limit"),
+        voices_limit=_sf(resolved_filters, "voices", "limit"),
+        names_selected_only=_sf(resolved_filters, "names", "selected"),
+        descriptions_selected_only=_sf(resolved_filters, "descriptions", "selected"),
+        values_selected_only=_sf(resolved_filters, "values", "selected"),
+        providers_selected_only=_sf(resolved_filters, "providers", "selected"),
+        flags_selected_only=_sf(resolved_filters, "flags", "selected"),
+        departments_selected_only=_sf(resolved_filters, "departments", "selected"),
+        modalities_selected_only=_sf(resolved_filters, "modalities", "selected"),
+        temperature_levels_selected_only=_sf(resolved_filters, "temperature_levels", "selected"),
+        pricing_selected_only=_sf(resolved_filters, "pricing", "selected"),
+        reasoning_levels_selected_only=_sf(resolved_filters, "reasoning_levels", "selected"),
+        qualities_selected_only=_sf(resolved_filters, "qualities", "selected"),
+        voices_selected_only=_sf(resolved_filters, "voices", "selected"),
         bypass_cache=bypass_cache,
     )
 
-    # ── Step 4: Tool scoring ──────────────────────────────────────────────
-
     scores = score_tools(common.tool_graph, MODEL_RESOURCES)
-
-    agent_ids: dict[str, UUID | None] = {
-        r: (scores.best[r].agent_id if scores.best.get(r) else None)
-        for r in MODEL_RESOURCES
-    }
-
-
-    # ── Step 5: Permissions ───────────────────────────────────────────────
+    include = {section: _sf(resolved_filters, section, "include") is not False for section in SECTIONS}
+    selected_only = {section: bool(_sf(resolved_filters, section, "selected")) for section in SECTIONS}
+    suggested_only = {section: bool(_sf(resolved_filters, section, "suggested")) for section in SECTIONS}
 
     perms_department_ids = perms.department_ids if perms else []
     active_agent_count = perms.active_agent_count if perms else 0
-
     can_edit = compute_can_edit(
-        role_level=profile.role_level, role_permissions=profile.role_permissions,
+        role_level=actor.role_level,
+        role_permissions=actor.role_permissions,
         model_department_ids=perms_department_ids,
         active_agent_count=active_agent_count,
-        user_department_ids=profile.department_ids,
+        user_department_ids=actor.department_ids,
     )
-
     disabled_reason = compute_disabled_reason(
-        role_level=profile.role_level, role_permissions=profile.role_permissions,
+        role_level=actor.role_level,
+        role_permissions=actor.role_permissions,
         model_department_ids=perms_department_ids,
         active_agent_count=active_agent_count,
     )
-
-    # ── Step 6: Show / Required / AI flags ────────────────────────────────
-
-    names_has_tools = scores.has_any.get("names", False)
-    values_has_tools = scores.has_any.get("values", False)
 
     all_departments = dedupe_by_id(
-        model_ctx.resources["departments"].selected
-        + model_ctx.resources["departments"].suggestions
+        model_ctx.resources["departments"].selected + model_ctx.resources["departments"].suggestions
     )
+    if model_id is None and not all_departments:
+        raise HTTPException(status_code=400, detail="No accessible departments found for user")
 
     show_flags_map = {
-        "names": compute_show_name(names_has_tools),
+        "names": compute_show_name(scores.has_any.get("names", False)),
         "descriptions": compute_show_description(),
-        "values": compute_show_value(values_has_tools),
+        "values": compute_show_value(scores.has_any.get("values", False)),
         "providers": compute_show_provider(),
         "flags": compute_show_flag(),
         "departments": compute_show_departments(len(all_departments)),
@@ -204,7 +235,6 @@ async def get_model_impl(
         "qualities": compute_show_qualities(),
         "voices": compute_show_voices(),
     }
-
     required_flags_map = {
         "names": compute_name_required(),
         "descriptions": compute_description_required(),
@@ -220,188 +250,255 @@ async def get_model_impl(
         "voices": compute_voices_required(),
     }
 
-    # ── Step 7: Validation ────────────────────────────────────────────────
+    basic_show_ai_generate = any(scores.has_any.get(resource, False) for resource in MODEL_BASIC_RESOURCES)
+    provider_show_ai_generate = any(scores.has_any.get(resource, False) for resource in MODEL_PROVIDER_RESOURCES)
+    features_show_ai_generate = any(scores.has_any.get(resource, False) for resource in MODEL_FEATURES_RESOURCES)
 
-    if model_id is None:
-        if not all_departments:
-            raise HTTPException(
-                status_code=400, detail="No accessible departments found for user"
-            )
+    names_selected = model_ctx.resources["names"].selected
+    names_suggestions = model_ctx.resources["names"].suggestions
+    descriptions_selected = model_ctx.resources["descriptions"].selected
+    descriptions_suggestions = model_ctx.resources["descriptions"].suggestions
+    values_selected = model_ctx.resources["values"].selected
+    values_suggestions = model_ctx.resources["values"].suggestions
+    providers_selected = model_ctx.resources["providers"].selected
+    providers_suggestions = model_ctx.resources["providers"].suggestions
+    flags_selected = model_ctx.resources["flags"].selected
+    flags_suggestions = model_ctx.resources["flags"].suggestions
+    departments_selected = model_ctx.resources["departments"].selected
+    departments_suggestions = model_ctx.resources["departments"].suggestions
+    modalities_selected = model_ctx.resources["modalities"].selected
+    modalities_suggestions = model_ctx.resources["modalities"].suggestions
+    temperature_levels_selected = model_ctx.resources["temperature_levels"].selected
+    temperature_levels_suggestions = model_ctx.resources["temperature_levels"].suggestions
+    pricing_selected = model_ctx.resources["pricing"].selected
+    pricing_suggestions = model_ctx.resources["pricing"].suggestions
+    reasoning_levels_selected = model_ctx.resources["reasoning_levels"].selected
+    reasoning_levels_suggestions = model_ctx.resources["reasoning_levels"].suggestions
+    qualities_selected = model_ctx.resources["qualities"].selected
+    qualities_suggestions = model_ctx.resources["qualities"].suggestions
+    voices_selected = model_ctx.resources["voices"].selected
+    voices_suggestions = model_ctx.resources["voices"].suggestions
 
-    # ── Step 8: Response assembly ─────────────────────────────────────────
+    all_names = dedupe_by_id(names_selected + names_suggestions)
+    all_descriptions = dedupe_by_id(descriptions_selected + descriptions_suggestions)
+    all_values = dedupe_by_id(values_selected + values_suggestions)
+    all_providers = dedupe_by_id(providers_selected + providers_suggestions)
+    all_flags = dedupe_by_id(flags_selected + flags_suggestions)
+    all_departments = dedupe_by_id(departments_selected + departments_suggestions)
+    all_modalities = dedupe_by_id(modalities_selected + modalities_suggestions)
+    all_temperature_levels = dedupe_by_id(temperature_levels_selected + temperature_levels_suggestions)
+    all_pricing = dedupe_by_id(pricing_selected + pricing_suggestions)
+    all_reasoning_levels = dedupe_by_id(reasoning_levels_selected + reasoning_levels_suggestions)
+    all_qualities = dedupe_by_id(qualities_selected + qualities_suggestions)
+    all_voices = dedupe_by_id(voices_selected + voices_suggestions)
 
-    # Flags — enriched format
-    all_flags = dedupe_by_id(
-        model_ctx.resources["flags"].selected + model_ctx.resources["flags"].suggestions
-    )
-    model_flags = [
-        ModelFlagConfig(
-            key=derive_flag_key_and_label(flag.name)[0],
-            label=derive_flag_key_and_label(flag.name)[1],
-            description=flag.description,
-            icon_id=flag.icon,
-            flag_option_id=flag.id,
-            show=show_flags_map.get("flags", True),
-            required=required_flags_map.get("flags", False),
-            generated=flag.generated,
-        )
-        for flag in all_flags
-        if flag.id
-    ]
-
-    current_flags = [
-        ModelFlagConfig(
-            key=derive_flag_key_and_label(f.name)[0],
-            label=derive_flag_key_and_label(f.name)[1],
-            description=f.description,
-            icon_id=f.icon,
-            flag_option_id=f.id,
-            show=show_flags_map.get("flags", True),
-            required=required_flags_map.get("flags", False),
-            generated=f.generated,
-        )
-        for f in model_ctx.resources["flags"].selected
-        if f.id
-    ]
-
-    # Dedupe all resources
-    all_names = dedupe_by_id(
-        model_ctx.resources["names"].selected + model_ctx.resources["names"].suggestions
-    )
-    all_descriptions = dedupe_by_id(
-        model_ctx.resources["descriptions"].selected
-        + model_ctx.resources["descriptions"].suggestions
-    )
-    all_values = dedupe_by_id(
-        model_ctx.resources["values"].selected
-        + model_ctx.resources["values"].suggestions
-    )
-    all_providers = dedupe_by_id(
-        model_ctx.resources["providers"].selected
-        + model_ctx.resources["providers"].suggestions
-    )
-    all_modalities = dedupe_by_id(
-        model_ctx.resources["modalities"].selected
-        + model_ctx.resources["modalities"].suggestions
-    )
-    all_temperature_levels = dedupe_by_id(
-        model_ctx.resources["temperature_levels"].selected
-        + model_ctx.resources["temperature_levels"].suggestions
-    )
-    all_pricing = dedupe_by_id(
-        model_ctx.resources["pricing"].selected
-        + model_ctx.resources["pricing"].suggestions
-    )
-    all_reasoning_levels = dedupe_by_id(
-        model_ctx.resources["reasoning_levels"].selected
-        + model_ctx.resources["reasoning_levels"].suggestions
-    )
-    all_qualities = dedupe_by_id(
-        model_ctx.resources["qualities"].selected
-        + model_ctx.resources["qualities"].suggestions
-    )
-    all_voices = dedupe_by_id(
-        model_ctx.resources["voices"].selected
-        + model_ctx.resources["voices"].suggestions
-    )
-
-    # Suggestions maps (IDs only)
-    suggestions_map = {
-        "names": [n.id for n in model_ctx.resources["names"].suggestions],
-        "descriptions": [d.id for d in model_ctx.resources["descriptions"].suggestions],
-        "values": [v.id for v in model_ctx.resources["values"].suggestions],
-        "departments": [d.id for d in model_ctx.resources["departments"].suggestions],
-        "modalities": [m.id for m in model_ctx.resources["modalities"].suggestions],
-        "temperature_levels": [
-            t.id for t in model_ctx.resources["temperature_levels"].suggestions
-        ],
-        "pricing": [p.id for p in model_ctx.resources["pricing"].suggestions],
-        "reasoning_levels": [
-            r.id for r in model_ctx.resources["reasoning_levels"].suggestions
-        ],
-        "qualities": [q.id for q in model_ctx.resources["qualities"].suggestions],
-        "voices": [v.id for v in model_ctx.resources["voices"].suggestions],
+    selected_ids = {
+        "names": {item.id for item in names_selected if item.id},
+        "descriptions": {item.id for item in descriptions_selected if item.id},
+        "values": {item.id for item in values_selected if item.id},
+        "providers": {item.id for item in providers_selected if item.id},
+        "flags": {item.id for item in flags_selected if item.id},
+        "departments": {item.id for item in departments_selected if item.id},
+        "modalities": {item.id for item in modalities_selected if item.id},
+        "temperature_levels": {item.id for item in temperature_levels_selected if item.id},
+        "pricing": {item.id for item in pricing_selected if item.id},
+        "reasoning_levels": {item.id for item in reasoning_levels_selected if item.id},
+        "qualities": {item.id for item in qualities_selected if item.id},
+        "voices": {item.id for item in voices_selected if item.id},
     }
+    suggested_ids = {
+        "names": {item.id for item in names_suggestions if item.id},
+        "descriptions": {item.id for item in descriptions_suggestions if item.id},
+        "values": {item.id for item in values_suggestions if item.id},
+        "providers": {item.id for item in providers_suggestions if item.id},
+        "flags": {item.id for item in flags_suggestions if item.id},
+        "departments": {item.id for item in departments_suggestions if item.id},
+        "modalities": {item.id for item in modalities_suggestions if item.id},
+        "temperature_levels": {item.id for item in temperature_levels_suggestions if item.id},
+        "pricing": {item.id for item in pricing_suggestions if item.id},
+        "reasoning_levels": {item.id for item in reasoning_levels_suggestions if item.id},
+        "qualities": {item.id for item in qualities_suggestions if item.id},
+        "voices": {item.id for item in voices_suggestions if item.id},
+    }
+    pending_ids: set[UUID] = model_ctx.entries.get("pending_ids", set())
 
-    def _section(resource_key: str) -> dict:
-        return {
-            "show": show_flags_map.get(resource_key, False),
-            "required": required_flags_map.get(resource_key, False),
-            "suggestions": suggestions_map.get(resource_key, []),
-        }
+    def _decorate(item_id: UUID | None, section: str) -> tuple[bool, bool, bool]:
+        return (
+            bool(item_id and item_id in suggested_ids[section]),
+            bool(item_id and item_id in selected_ids[section]),
+            bool(item_id and item_id in pending_ids),
+        )
+
+    names = [
+        ModelNameResource(
+            id=item.id,
+            name=item.name,
+            generated=item.generated,
+            suggested=_decorate(item.id, "names")[0],
+            selected=_decorate(item.id, "names")[1],
+            pending=_decorate(item.id, "names")[2],
+        )
+        for item in all_names
+    ]
+    descriptions = [
+        ModelDescriptionResource(
+            id=item.id,
+            description=item.description,
+            generated=item.generated,
+            suggested=_decorate(item.id, "descriptions")[0],
+            selected=_decorate(item.id, "descriptions")[1],
+            pending=_decorate(item.id, "descriptions")[2],
+        )
+        for item in all_descriptions
+    ]
+    values = [
+        ModelValueResource(
+            id=item.id,
+            value=item.value,
+            value_type=getattr(item, "type", None),
+            generated=item.generated,
+            suggested=_decorate(item.id, "values")[0],
+            selected=_decorate(item.id, "values")[1],
+            pending=_decorate(item.id, "values")[2],
+        )
+        for item in all_values
+    ]
+    providers = [
+        ModelProviderResource(
+            id=item.id,
+            name=item.name,
+            description=item.description,
+            value=getattr(item, "value", None),
+            base_url=getattr(item, "base_url", None),
+            generated=item.generated,
+            suggested=_decorate(item.id, "providers")[0],
+            selected=_decorate(item.id, "providers")[1],
+            pending=_decorate(item.id, "providers")[2],
+        )
+        for item in all_providers
+    ]
+    flags = [
+        ModelFlagConfig(
+            key=derive_flag_key_and_label(item.name)[0],
+            label=derive_flag_key_and_label(item.name)[1],
+            description=item.description,
+            icon_id=item.icon,
+            flag_option_id=item.id,
+            show=show_flags_map["flags"],
+            required=required_flags_map["flags"],
+            generated=item.generated,
+            suggested=_decorate(item.id, "flags")[0],
+            selected=_decorate(item.id, "flags")[1],
+            pending=_decorate(item.id, "flags")[2],
+        )
+        for item in all_flags
+    ]
+    departments = [
+        ModelDepartmentResource(
+            department_id=item.id,
+            name=item.name,
+            description=item.description,
+            generated=item.generated,
+            suggested=_decorate(item.id, "departments")[0],
+            selected=_decorate(item.id, "departments")[1],
+            pending=_decorate(item.id, "departments")[2],
+        )
+        for item in all_departments
+    ]
+    modalities = [
+        ModelModalityResource(
+            id=item.id,
+            modality=item.modality,
+            is_input=item.is_input,
+            generated=item.generated,
+            suggested=_decorate(item.id, "modalities")[0],
+            selected=_decorate(item.id, "modalities")[1],
+            pending=_decorate(item.id, "modalities")[2],
+        )
+        for item in all_modalities
+    ]
+    temperature_levels = [
+        ModelTemperatureLevelResource(
+            id=item.id,
+            temperature=str(item.temperature) if item.temperature is not None else None,
+            generated=item.generated,
+            suggested=_decorate(item.id, "temperature_levels")[0],
+            selected=_decorate(item.id, "temperature_levels")[1],
+            pending=_decorate(item.id, "temperature_levels")[2],
+        )
+        for item in all_temperature_levels
+    ]
+    pricing = [
+        ModelPricingResource(
+            id=item.id,
+            pricing_type=item.pricing_type,
+            price=float(item.price) if item.price is not None else None,
+            unit_name=item.unit_name,
+            unit_category=item.unit_category,
+            unit_value=float(item.unit_value) if item.unit_value is not None else None,
+            generated=item.generated,
+            suggested=_decorate(item.id, "pricing")[0],
+            selected=_decorate(item.id, "pricing")[1],
+            pending=_decorate(item.id, "pricing")[2],
+        )
+        for item in all_pricing
+    ]
+    reasoning_levels = [
+        ModelReasoningLevelResource(
+            id=item.id,
+            reasoning_level=item.reasoning_level,
+            generated=item.generated,
+            suggested=_decorate(item.id, "reasoning_levels")[0],
+            selected=_decorate(item.id, "reasoning_levels")[1],
+            pending=_decorate(item.id, "reasoning_levels")[2],
+        )
+        for item in all_reasoning_levels
+    ]
+    qualities = [
+        ModelQualityResource(
+            id=item.id,
+            quality=item.quality,
+            generated=item.generated,
+            suggested=_decorate(item.id, "qualities")[0],
+            selected=_decorate(item.id, "qualities")[1],
+            pending=_decorate(item.id, "qualities")[2],
+        )
+        for item in all_qualities
+    ]
+    voices = [
+        ModelVoiceResource(
+            id=item.id,
+            voice=item.voice,
+            generated=item.generated,
+            suggested=_decorate(item.id, "voices")[0],
+            selected=_decorate(item.id, "voices")[1],
+            pending=_decorate(item.id, "voices")[2],
+        )
+        for item in all_voices
+    ]
 
     return GetModelApiResponse(
-        actor_name=profile.name,
-        model_exists=model_ctx.artifact_id is not None,
+        actor_name=actor.display_name,
+        model_exists=perms.exists if perms else (model_id is None),
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        group_id=group_id,
-        names=ModelNameSection(
-            **_section("names"),
-            resource=model_ctx.resources["names"].selected[0]
-            if model_ctx.resources["names"].selected
-            else None,
-            resources=all_names,
-        ),
-        descriptions=ModelDescriptionSection(
-            **_section("descriptions"),
-            resource=model_ctx.resources["descriptions"].selected[0]
-            if model_ctx.resources["descriptions"].selected
-            else None,
-            resources=all_descriptions,
-        ),
-        values=ModelValueSection(
-            **_section("values"),
-            resource=model_ctx.resources["values"].selected[0]
-            if model_ctx.resources["values"].selected
-            else None,
-            resources=all_values,
-        ),
-        providers=ModelProviderSection(
-            **_section("providers"),
-            resource=model_ctx.resources["providers"].selected[0]
-            if model_ctx.resources["providers"].selected
-            else None,
-            resources=all_providers,
-        ),
-        flags=ModelFlagSection(
-            **_section("flags"),
-            current=current_flags or None,
-            resources=model_flags,
-        ),
-        departments=ModelDepartmentSection(
-            **_section("departments"),
-            current=model_ctx.resources["departments"].selected or None,
-            resources=all_departments,
-        ),
-        modalities=ModelModalitySection(
-            **_section("modalities"),
-            current=model_ctx.resources["modalities"].selected or None,
-            resources=all_modalities,
-        ),
-        temperature_levels=ModelTemperatureLevelSection(
-            **_section("temperature_levels"),
-            current=model_ctx.resources["temperature_levels"].selected or None,
-            resources=all_temperature_levels,
-        ),
-        pricing=ModelPricingSection(
-            **_section("pricing"),
-            current=model_ctx.resources["pricing"].selected or None,
-            resources=all_pricing,
-        ),
-        reasoning_levels=ModelReasoningLevelSection(
-            **_section("reasoning_levels"),
-            current=model_ctx.resources["reasoning_levels"].selected or None,
-            resources=all_reasoning_levels,
-        ),
-        qualities=ModelQualitySection(
-            **_section("qualities"),
-            current=model_ctx.resources["qualities"].selected or None,
-            resources=all_qualities,
-        ),
-        voices=ModelVoiceSection(
-            **_section("voices"),
-            current=model_ctx.resources["voices"].selected or None,
-            resources=all_voices,
-        ),
+        group_id=model_ctx.group_id,
+        model_id=model_ctx.artifact_id or model_id,
+        show_ai_generate=basic_show_ai_generate or provider_show_ai_generate or features_show_ai_generate,
+        basic_show_ai_generate=basic_show_ai_generate,
+        provider_show_ai_generate=provider_show_ai_generate,
+        features_show_ai_generate=features_show_ai_generate,
+        pending_ids=sorted(pending_ids) if pending_ids else [],
+        names=_filter_items(names, "names", selected_only=selected_only, suggested_only=suggested_only) if include["names"] else None,
+        descriptions=_filter_items(descriptions, "descriptions", selected_only=selected_only, suggested_only=suggested_only) if include["descriptions"] else None,
+        values=_filter_items(values, "values", selected_only=selected_only, suggested_only=suggested_only) if include["values"] else None,
+        providers=_filter_items(providers, "providers", selected_only=selected_only, suggested_only=suggested_only) if include["providers"] else None,
+        flags=_filter_items(flags, "flags", selected_only=selected_only, suggested_only=suggested_only) if include["flags"] else None,
+        departments=_filter_items(departments, "departments", selected_only=selected_only, suggested_only=suggested_only) if include["departments"] else None,
+        modalities=_filter_items(modalities, "modalities", selected_only=selected_only, suggested_only=suggested_only) if include["modalities"] else None,
+        temperature_levels=_filter_items(temperature_levels, "temperature_levels", selected_only=selected_only, suggested_only=suggested_only) if include["temperature_levels"] else None,
+        pricing=_filter_items(pricing, "pricing", selected_only=selected_only, suggested_only=suggested_only) if include["pricing"] else None,
+        reasoning_levels=_filter_items(reasoning_levels, "reasoning_levels", selected_only=selected_only, suggested_only=suggested_only) if include["reasoning_levels"] else None,
+        qualities=_filter_items(qualities, "qualities", selected_only=selected_only, suggested_only=suggested_only) if include["qualities"] else None,
+        voices=_filter_items(voices, "voices", selected_only=selected_only, suggested_only=suggested_only) if include["voices"] else None,
     )

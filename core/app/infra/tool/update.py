@@ -22,6 +22,7 @@ from app.infra.tool.permissions_context import (
     resolve_tool_permissions_context,
     resolve_tool_values,
 )
+from app.infra.tool.refresh import refresh_tool_impl
 from app.tools.artifacts.tool.update import (
     _UNSET,
 )
@@ -32,7 +33,6 @@ from app.infra.tool.types import (
     UpdateToolApiRequest,
     UpdateToolApiResponse,
 )
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def update_tool_impl(
@@ -45,6 +45,8 @@ async def update_tool_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> UpdateToolApiResponse:
     """Tool bulk update using composable infra functions.
 
@@ -59,6 +61,10 @@ async def update_tool_impl(
     from app.infra.tool.types import (
         ToolResultItem,
     )
+
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key and accept is None:
+        accept = request.accept
 
     items = request.tools
 
@@ -97,6 +103,23 @@ async def update_tool_impl(
                     detail=f"Item {idx}: You don't have permission to update this tool.",
                 )
 
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            return UpdateToolApiResponse(
+                results=[
+                    ToolResultItem(
+                        success=True,
+                        tool_id=item.tool_id,
+                        message="Update rejected",
+                    )
+                    for item in items
+                ],
+                idempotency_key=idempotency_key,
+            )
+
+        soft = False
+
     # ── Step 3: Per-item value resolution ──────────────────────────────
 
     has_errors = False
@@ -118,24 +141,26 @@ async def update_tool_impl(
                 error_results.append(ToolResultItem(success=True, message="Validated"))
 
     if has_errors:
-        return UpdateToolApiResponse(results=error_results)
+        return UpdateToolApiResponse(results=error_results, idempotency_key=idempotency_key)
 
     # ── Step 4: Single transaction ─────────────────────────────────────
 
     results: list[ToolResultItem] = []
 
     for item in items:
-        # Create denormalized snapshot OUTSIDE transaction (read-only hydration)
-        tools_resource_id = await create_denormalized_snapshot(
-            pool,
-            redis,
-            name_id=item.name_id,
-            description_id=item.description_id,
-            department_ids=item.department_ids,
-            args_ids=item.args_ids,
-            args_output_ids=item.args_outputs_ids,
-            permission_ids=item.permission_ids,
-        )
+        # Create denormalized snapshot OUTSIDE transaction (skip when soft).
+        tools_resource_id = None
+        if not soft:
+            tools_resource_id = await create_denormalized_snapshot(
+                pool,
+                redis,
+                name_id=item.name_id,
+                description_id=item.description_id,
+                department_ids=item.department_ids,
+                args_ids=item.args_ids,
+                args_output_ids=item.args_outputs_ids,
+                permission_ids=item.permission_ids,
+            )
 
         # Combine active_flag_id with any other flag_ids
         combined_flag_ids = list(item.flag_ids or [])
@@ -158,7 +183,7 @@ async def update_tool_impl(
                     args_ids=item.args_ids,
                     args_outputs_ids=item.args_outputs_ids,
                     permission_ids=item.permission_ids,
-                    tool_ids=[tools_resource_id],
+                    tool_ids=[tools_resource_id] if tools_resource_id else None,
                     soft=soft,
                 )
 
@@ -166,12 +191,29 @@ async def update_tool_impl(
             ToolResultItem(
                 success=True,
                 tool_id=item.tool_id,
-                message="Tool updated successfully",
+                message=(
+                    "Tool update accepted"
+                    if accept is not None and idempotency_key is not None
+                    else "Tool updated (pending acceptance)"
+                    if soft
+                    else "Tool updated successfully"
+                ),
             )
         )
 
-    # ── Step 5: Invalidate cache ───────────────────────────────────────
+    # ── Step 5: Refresh via canonical helper ────────────────────────────
 
-    await invalidate_tags(["tools"], redis=redis)
+    if not soft:
+        await refresh_tool_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (results[0].tool_id if results else None),
+        )
 
-    return UpdateToolApiResponse(results=results)
+    return UpdateToolApiResponse(
+        results=results,
+        idempotency_key=idempotency_key,
+    )

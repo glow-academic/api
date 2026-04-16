@@ -50,28 +50,14 @@ def _build_chat_section(
     *,
     context: ArtifactContext,
     scores: ArtifactToolScores,
-    attempt_mode: bool = False,
-    scenario_flags: dict[str, bool] | None = None,
 ) -> BaseChatSection:
     cls = _SECTION_CLASSES[resource_key]
 
-    # In attempt mode, hide sections that are disabled or auto-resolved
-    if attempt_mode:
-        # Departments are auto-resolved — never shown to the model
-        if resource_key == "departments":
-            return cls(show=False, required=False)
-        # Check scenario flag gating for flag-controlled sections
-        if scenario_flags:
-            from app.infra.chat.permissions import compute_bundle_section_show
-            if not compute_bundle_section_show(resource_key, scenario_flags):
-                return cls(show=False, required=False)
-            # Options follow questions flag
-            if resource_key == "options" and not scenario_flags.get("questions_enabled", True):
-                return cls(show=False, required=False)
-
+    # Section absent from context → disabled (hidden)
     pair = context.resources.get(resource_key)
-    if not pair:
-        return cls(show=True, required=False)
+    if pair is None:
+        return cls(show=False, required=False)
+
     return cls(
         show=True,
         required=False,
@@ -88,12 +74,9 @@ def build_chat_get_result(
     group_id: UUID,
     chat_entry_id: UUID | None,
     attempt_id: UUID | None,
-    attempt_mode: bool = False,
-    scenario_flags: dict[str, bool] | None = None,
 ) -> GetChatResponse:
     """Build the canonical chat bundle payload from resolved context."""
-    kw = dict(context=context, scores=scores,
-              attempt_mode=attempt_mode, scenario_flags=scenario_flags)
+    kw = dict(context=context, scores=scores)
     return GetChatResponse(
         chat_entry_id=chat_entry_id or group_id,
         attempt_id=attempt_id,

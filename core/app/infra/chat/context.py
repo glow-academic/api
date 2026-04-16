@@ -1,7 +1,13 @@
-"""Resolve chat artifact context — draft-only hydrated resources.
+"""Resolve chat artifact context — template-aware hydrated resources.
 
 Chat is entry-based (no artifact table) and draft-only: if a draft exists,
 use its IDs; otherwise all resource lists are empty.
+
+When a chat_entry_id (template) is provided, constraints are derived internally:
+  - Scenario flags gate which sections are enabled
+  - Pre-set template IDs lock sections (selected only, no search)
+  - Department is auto-resolved from user + template intersection
+  - Scenarios and departments are never available for selection
 
 Composes existing black-box fetchers — no raw SQL.
 """
@@ -16,8 +22,17 @@ from redis.asyncio import Redis
 
 from app.infra.types import ArtifactContext, ResourcePair
 
+# Template fetcher
+from app.tools.entries.chat.get import get_chats
+
 # Draft fetcher
 from app.tools.entries.chat_drafts.get import get_chat_drafts
+
+# Department resolution
+from app.infra.attempt.department import resolve_attempt_department
+
+# Profile type
+from app.infra.profile_identity_context import ProfileIdentityContext
 
 # Resource get fetchers (by known IDs)
 from app.tools.resources.departments.get import get_departments
@@ -74,8 +89,9 @@ async def resolve_chat_context(
     redis: Redis,
     *,
     group_id: UUID,
+    chat_entry_id: UUID | None = None,
     draft_id: UUID | None = None,
-    user_department_ids: list[UUID] | None = None,
+    profile: ProfileIdentityContext | None = None,
     # Search filters
     description_search: str | None = None,
     persona_search: str | None = None,
@@ -89,34 +105,79 @@ async def resolve_chat_context(
     persona_show_selected: bool | None = None,
     document_show_selected: bool | None = None,
     bypass_cache: bool = False,
-    # Attempt-mode scoping
-    attempt_mode: bool = False,
-    scenario_flags: dict[str, bool] | None = None,
-    resolved_department_ids: list[UUID] | None = None,
 ) -> ArtifactContext:
     """Resolve a chat entry into fully hydrated resources for the GET endpoint.
 
-    Draft-only pattern: if draft exists, use its IDs. If no draft, all ID
-    lists are empty (no published fallback).
-
-    When attempt_mode is True:
-      - Sections disabled by scenario_flags are skipped entirely
-      - Sections with pre-set IDs (from draft) are locked (get only, no search)
-      - Scenarios are locked (always from template)
-      - Departments are hidden (auto-resolved)
-      - Suggestion searches are scoped by resolved_department_ids
+    All constraints are derived internally from the chat template
+    (chat_entry_id) — no external flags needed.
 
     Steps:
-      1. Fetch draft (if draft_id provided)
-      2. Extract IDs directly from draft (no merge)
-      3. Parallel hydrate: get (selected) + search (suggestions) per resource
-      4. Assemble ArtifactContext with ResourcePairs
+      1. Fetch chat template (if chat_entry_id provided)
+      2. Derive: enabled sections, locked sections, scoped department
+      3. Fetch draft (if draft_id provided)
+      4. Parallel hydrate: get (selected) + search (suggestions) per resource
+      5. Assemble ArtifactContext with ResourcePairs (only enabled sections)
     """
-    user_dept_ids = user_department_ids or []
-    sf = scenario_flags or {}
-    scope_dept_ids = resolved_department_ids if attempt_mode else user_dept_ids
+    user_dept_ids = profile.department_ids if profile else []
+    user_primary_dept_id = profile.primary_department_id if profile else None
 
-    # Step 1: fetch draft
+    # ── Step 1: Fetch chat template ───────────────────────────────────────────
+    template = None
+    if chat_entry_id:
+        async with pool.acquire() as conn:
+            templates = await get_chats(conn, [chat_entry_id])
+            template = templates[0] if templates else None
+
+    # ── Step 2: Derive constraints from template ──────────────────────────────
+    has_template = template is not None
+
+    # Determine which sections are enabled
+    enabled: dict[str, bool] = {
+        "names": True,                            # selectable
+        "descriptions": True,                     # selectable
+        "flags": not has_template,                # config flags — set by template
+        "departments": not has_template,          # auto-resolved when template exists
+        "personas": True,
+        "documents": True,
+        "scenarios": not has_template,            # from template, never selectable
+        "fields": True,                           # context — shown for selection
+        "parameter_fields": True,                 # selectable
+        "questions": (template.questions_enabled or False) if has_template else True,
+        "options": (template.questions_enabled or False) if has_template else True,
+        "videos": (template.video_enabled or False) if has_template else True,
+        "images": (template.images_enabled or False) if has_template else True,
+        "problem_statements": (template.problem_statement_enabled or False) if has_template else True,
+        "objectives": (template.objectives_enabled or False) if has_template else True,
+    }
+
+    # Determine which sections are pre-satisfied (locked — template has IDs)
+    locked: dict[str, bool] = {}
+    if has_template:
+        locked = {
+            "names": bool(template.name_ids),
+            "descriptions": bool(template.description_ids),
+            "personas": bool(template.persona_ids),
+            "documents": bool(template.document_ids),
+            "questions": bool(template.question_ids),
+            "options": bool(template.option_ids),
+            "videos": bool(template.video_ids),
+            "images": bool(template.image_ids),
+            "problem_statements": bool(template.problem_statement_ids),
+            "objectives": bool(template.objective_ids),
+        }
+
+    # Resolve department — intersect user + template departments
+    scope_dept_ids = user_dept_ids
+    if has_template and template.department_ids:
+        dept_id = resolve_attempt_department(
+            user_department_ids=user_dept_ids,
+            user_primary_department_id=user_primary_dept_id,
+            chat_department_ids=template.department_ids,
+        )
+        if dept_id:
+            scope_dept_ids = [dept_id]
+
+    # ── Step 3: Fetch draft ───────────────────────────────────────────────────
     if draft_id:
         async with pool.acquire() as conn:
             drafts = await get_chat_drafts(conn, [draft_id])
@@ -124,7 +185,7 @@ async def resolve_chat_context(
         drafts = []
     draft = drafts[0] if drafts else None
 
-    # Step 2: extract IDs directly from draft (draft-only — no merge)
+    # Extract IDs from draft (draft-only — no merge with published)
     name_ids = list(draft.name_ids) if draft and draft.name_ids else []
     description_ids = (
         list(draft.description_ids) if draft and draft.description_ids else []
@@ -151,342 +212,279 @@ async def resolve_chat_context(
     )
     objective_ids = list(draft.objective_ids) if draft and draft.objective_ids else []
 
-    # Step 3: parallel hydrate — selected + suggestions for each resource
-    # Each call acquires its own connection from the pool for true parallelism.
-    #
-    # Attempt-mode helpers:
-    #   _flag_off(key)  — True when scenario flag disables this section
-    #   _locked(ids)    — True when section is pre-satisfied (draft has IDs)
+    # ── Step 4: Parallel hydrate ──────────────────────────────────────────────
+    # Each closure acquires its own connection for true parallelism.
+    # Sections that are disabled or locked short-circuit to empty lists.
 
-    def _flag_off(flag_key: str) -> bool:
-        """Return True if attempt_mode is on and the scenario flag is disabled."""
-        return attempt_mode and not sf.get(flag_key, True)
-
-    def _locked(ids: list) -> bool:
-        """Return True if attempt_mode is on and the section is pre-satisfied."""
-        return attempt_mode and bool(ids)
+    def _is_locked(key: str) -> bool:
+        return locked.get(key, False)
 
     # --- Names ----------------------------------------------------------------
 
     async def _get_names() -> list:
+        if not enabled["names"]:
+            return []
         async with pool.acquire() as c:
             return await get_names(c, name_ids, redis, bypass_cache)
 
     async def _search_names() -> list:
-        if _locked(name_ids):
+        if not enabled["names"] or _is_locked("names"):
             return []
         async with pool.acquire() as c:
             return await search_names(
-                c,
-                redis,
-                draft_id=group_id,
-                exclude_ids=name_ids,
-                bypass_cache=bypass_cache,
+                c, redis, draft_id=group_id,
+                exclude_ids=name_ids, bypass_cache=bypass_cache,
             )
 
     # --- Descriptions ---------------------------------------------------------
 
     async def _get_descriptions() -> list:
+        if not enabled["descriptions"]:
+            return []
         async with pool.acquire() as c:
             return await get_descriptions(c, description_ids, redis, bypass_cache)
 
     async def _search_descriptions() -> list:
-        if _locked(description_ids):
+        if not enabled["descriptions"] or _is_locked("descriptions"):
             return []
         async with pool.acquire() as c:
             return await search_descriptions(
-                c,
-                redis,
-                search=description_search,
-                draft_id=group_id,
-                exclude_ids=description_ids,
-                bypass_cache=bypass_cache,
+                c, redis, search=description_search, draft_id=group_id,
+                exclude_ids=description_ids, bypass_cache=bypass_cache,
             )
 
     # --- Flags ----------------------------------------------------------------
 
     async def _get_flags() -> list:
+        if not enabled["flags"]:
+            return []
         async with pool.acquire() as c:
             return await get_flags(c, flag_ids, redis, bypass_cache)
 
     async def _search_flags() -> list:
-        if _locked(flag_ids):
+        if not enabled["flags"] or _is_locked("flags"):
             return []
         async with pool.acquire() as c:
             return await search_flags(
-                c,
-                redis,
-                search=None,
-                limit_count=50,
-                offset_count=0,
-                exclude_ids=flag_ids,
-                bypass_cache=bypass_cache,
+                c, redis, search=None, limit_count=50, offset_count=0,
+                exclude_ids=flag_ids, bypass_cache=bypass_cache,
             )
 
-    # --- Departments (auto-resolved in attempt mode) --------------------------
+    # --- Departments ----------------------------------------------------------
 
     async def _get_departments() -> list:
-        if attempt_mode:
-            return []  # auto-resolved, not shown
+        if not enabled["departments"]:
+            return []
         async with pool.acquire() as c:
             return await get_departments(c, department_ids, redis, bypass_cache)
 
     async def _search_departments() -> list:
-        if attempt_mode:
-            return []  # auto-resolved, not shown
+        if not enabled["departments"]:
+            return []
         async with pool.acquire() as c:
             return await search_departments(
-                c,
-                redis,
-                search=None,
-                limit_count=20,
-                offset_count=0,
-                department_ids=user_dept_ids,
-                suggest_source="recent",
-                exclude_ids=department_ids,
-                bypass_cache=bypass_cache,
+                c, redis, search=None, limit_count=20, offset_count=0,
+                department_ids=user_dept_ids, suggest_source="recent",
+                exclude_ids=department_ids, bypass_cache=bypass_cache,
             )
 
     # --- Personas -------------------------------------------------------------
 
     async def _get_personas() -> list:
+        if not enabled["personas"]:
+            return []
         async with pool.acquire() as c:
             return await get_personas(c, persona_ids, redis, bypass_cache)
 
     async def _search_personas() -> list:
-        if _locked(persona_ids):
+        if not enabled["personas"] or _is_locked("personas"):
             return []
         async with pool.acquire() as c:
             return await search_personas(
-                c,
-                redis,
-                search=persona_search,
-                limit_count=20,
-                offset_count=0,
-                department_ids=scope_dept_ids,
-                draft_id=group_id,
+                c, redis, search=persona_search, limit_count=20, offset_count=0,
+                department_ids=scope_dept_ids, draft_id=group_id,
                 suggest_source="selected" if persona_show_selected else None,
-                exclude_ids=persona_ids,
-                bypass_cache=bypass_cache,
+                exclude_ids=persona_ids, bypass_cache=bypass_cache,
             )
 
     # --- Documents ------------------------------------------------------------
 
     async def _get_documents() -> list:
+        if not enabled["documents"]:
+            return []
         async with pool.acquire() as c:
             return await get_documents(c, document_ids, redis, bypass_cache)
 
     async def _search_documents() -> list:
-        if _locked(document_ids):
+        if not enabled["documents"] or _is_locked("documents"):
             return []
         async with pool.acquire() as c:
             return await search_documents(
-                c,
-                redis,
-                search=document_search,
-                limit_count=20,
-                offset_count=0,
-                department_ids=scope_dept_ids,
-                draft_id=group_id,
+                c, redis, search=document_search, limit_count=20, offset_count=0,
+                department_ids=scope_dept_ids, draft_id=group_id,
                 suggest_source="selected" if document_show_selected else None,
-                exclude_ids=document_ids,
-                bypass_cache=bypass_cache,
+                exclude_ids=document_ids, bypass_cache=bypass_cache,
             )
 
-    # --- Scenarios (locked in attempt mode — always from template) ------------
+    # --- Scenarios ------------------------------------------------------------
 
     async def _get_scenarios() -> list:
+        if not enabled["scenarios"]:
+            return []
         async with pool.acquire() as c:
             return await get_scenarios(c, scenario_ids, redis, bypass_cache)
 
     async def _search_scenarios() -> list:
-        if attempt_mode:
-            return []  # always from template
+        if not enabled["scenarios"]:
+            return []
         async with pool.acquire() as c:
             return await search_scenarios(
-                c,
-                redis,
-                search=None,
-                limit_count=20,
-                offset_count=0,
-                exclude_ids=scenario_ids,
-                bypass_cache=bypass_cache,
+                c, redis, search=None, limit_count=20, offset_count=0,
+                exclude_ids=scenario_ids, bypass_cache=bypass_cache,
             )
 
     # --- Fields ---------------------------------------------------------------
 
     async def _get_fields() -> list:
+        if not enabled["fields"]:
+            return []
         async with pool.acquire() as c:
             return await get_fields(c, field_ids, redis, bypass_cache)
 
     async def _search_fields() -> list:
-        if _locked(field_ids):
+        if not enabled["fields"]:
             return []
         async with pool.acquire() as c:
             return await search_fields(
-                c,
-                redis,
-                search=None,
-                limit_count=20,
-                offset_count=0,
-                exclude_ids=field_ids,
-                bypass_cache=bypass_cache,
+                c, redis, search=None, limit_count=20, offset_count=0,
+                exclude_ids=field_ids, bypass_cache=bypass_cache,
             )
 
     # --- Parameter Fields -----------------------------------------------------
 
     async def _get_parameter_fields() -> list:
+        if not enabled["parameter_fields"]:
+            return []
         async with pool.acquire() as c:
             return await get_parameter_fields(
-                c, parameter_field_ids, redis, bypass_cache
+                c, parameter_field_ids, redis, bypass_cache,
             )
 
     async def _search_parameter_fields() -> list:
-        if _locked(parameter_field_ids):
+        if not enabled["parameter_fields"]:
             return []
         async with pool.acquire() as c:
             return await search_parameter_fields(
-                c,
-                redis,
-                limit_count=20,
-                offset_count=0,
-                exclude_ids=parameter_field_ids,
-                bypass_cache=bypass_cache,
+                c, redis, limit_count=20, offset_count=0,
+                exclude_ids=parameter_field_ids, bypass_cache=bypass_cache,
             )
 
-    # --- Questions (flag-gated by questions_enabled) --------------------------
+    # --- Questions ------------------------------------------------------------
 
     async def _get_questions() -> list:
-        if _flag_off("questions_enabled"):
+        if not enabled["questions"]:
             return []
         async with pool.acquire() as c:
             return await get_questions(c, question_ids, redis, bypass_cache)
 
     async def _search_questions() -> list:
-        if _flag_off("questions_enabled") or _locked(question_ids):
+        if not enabled["questions"] or _is_locked("questions"):
             return []
         async with pool.acquire() as c:
             return await search_questions(
-                c,
-                redis,
-                search=question_search,
-                limit_count=20,
-                offset_count=0,
-                exclude_ids=question_ids,
-                bypass_cache=bypass_cache,
+                c, redis, search=question_search, limit_count=20, offset_count=0,
+                exclude_ids=question_ids, bypass_cache=bypass_cache,
             )
 
-    # --- Options (flag-gated by questions_enabled) ----------------------------
+    # --- Options --------------------------------------------------------------
 
     async def _get_options() -> list:
-        if _flag_off("questions_enabled"):
+        if not enabled["options"]:
             return []
         async with pool.acquire() as c:
             return await get_options(c, option_ids, redis, bypass_cache)
 
     async def _search_options() -> list:
-        if _flag_off("questions_enabled") or _locked(option_ids):
+        if not enabled["options"] or _is_locked("options"):
             return []
         async with pool.acquire() as c:
             return await search_options(
-                c,
-                redis,
-                search=option_search,
-                limit_count=20,
-                offset_count=0,
-                exclude_ids=option_ids,
-                bypass_cache=bypass_cache,
+                c, redis, search=option_search, limit_count=20, offset_count=0,
+                exclude_ids=option_ids, bypass_cache=bypass_cache,
             )
 
-    # --- Videos (flag-gated by video_enabled) ---------------------------------
+    # --- Videos ---------------------------------------------------------------
 
     async def _get_videos() -> list:
-        if _flag_off("video_enabled"):
+        if not enabled["videos"]:
             return []
         async with pool.acquire() as c:
             return await get_videos(c, video_ids, redis, bypass_cache)
 
     async def _search_videos() -> list:
-        if _flag_off("video_enabled") or _locked(video_ids):
+        if not enabled["videos"] or _is_locked("videos"):
             return []
         async with pool.acquire() as c:
             return await search_videos(
-                c,
-                redis,
-                search=video_search,
-                limit_count=20,
-                offset_count=0,
-                exclude_ids=video_ids,
-                bypass_cache=bypass_cache,
+                c, redis, search=video_search, limit_count=20, offset_count=0,
+                exclude_ids=video_ids, bypass_cache=bypass_cache,
             )
 
-    # --- Images (flag-gated by images_enabled) --------------------------------
+    # --- Images ---------------------------------------------------------------
 
     async def _get_images() -> list:
-        if _flag_off("images_enabled"):
+        if not enabled["images"]:
             return []
         async with pool.acquire() as c:
             return await get_images(c, image_ids, redis, bypass_cache)
 
     async def _search_images() -> list:
-        if _flag_off("images_enabled") or _locked(image_ids):
+        if not enabled["images"] or _is_locked("images"):
             return []
         async with pool.acquire() as c:
             return await search_images(
-                c,
-                redis,
-                search=image_search,
-                limit_count=20,
-                offset_count=0,
-                exclude_ids=image_ids,
-                bypass_cache=bypass_cache,
+                c, redis, search=image_search, limit_count=20, offset_count=0,
+                exclude_ids=image_ids, bypass_cache=bypass_cache,
             )
 
-    # --- Problem Statements (flag-gated by problem_statement_enabled) ---------
+    # --- Problem Statements ---------------------------------------------------
 
     async def _get_problem_statements() -> list:
-        if _flag_off("problem_statement_enabled"):
+        if not enabled["problem_statements"]:
             return []
         async with pool.acquire() as c:
             return await get_problem_statements(
-                c, problem_statement_ids, redis, bypass_cache
+                c, problem_statement_ids, redis, bypass_cache,
             )
 
     async def _search_problem_statements() -> list:
-        if _flag_off("problem_statement_enabled") or _locked(problem_statement_ids):
+        if not enabled["problem_statements"] or _is_locked("problem_statements"):
             return []
         async with pool.acquire() as c:
             return await search_problem_statements(
-                c,
-                redis,
-                search=problem_statement_search,
-                limit_count=20,
-                offset_count=0,
-                exclude_ids=problem_statement_ids,
+                c, redis, search=problem_statement_search, limit_count=20,
+                offset_count=0, exclude_ids=problem_statement_ids,
                 bypass_cache=bypass_cache,
             )
 
-    # --- Objectives (flag-gated by objectives_enabled) ------------------------
+    # --- Objectives -----------------------------------------------------------
 
     async def _get_objectives() -> list:
-        if _flag_off("objectives_enabled"):
+        if not enabled["objectives"]:
             return []
         async with pool.acquire() as c:
             return await get_objectives(c, objective_ids, redis, bypass_cache)
 
     async def _search_objectives() -> list:
-        if _flag_off("objectives_enabled") or _locked(objective_ids):
+        if not enabled["objectives"] or _is_locked("objectives"):
             return []
         async with pool.acquire() as c:
             return await search_objectives(
-                c,
-                redis,
-                search=None,
-                limit_count=20,
-                offset_count=0,
-                exclude_ids=objective_ids,
-                bypass_cache=bypass_cache,
+                c, redis, search=None, limit_count=20, offset_count=0,
+                exclude_ids=objective_ids, bypass_cache=bypass_cache,
             )
+
+    # ── Gather all in parallel ────────────────────────────────────────────────
 
     (
         names_selected,
@@ -557,58 +555,34 @@ async def resolve_chat_context(
         f for f in flags_suggestions if getattr(f, "name", None) in CHAT_FLAG_NAMES
     ]
 
+    # ── Step 5: Assemble — only include enabled sections ──────────────────────
+
+    resources: dict[str, ResourcePair] = {}
+
+    def _add(key: str, selected: list, suggestions: list) -> None:
+        if enabled.get(key, True):
+            resources[key] = ResourcePair(selected=selected, suggestions=suggestions)
+
+    _add("names", names_selected, names_suggestions)
+    _add("descriptions", descriptions_selected, descriptions_suggestions)
+    _add("flags", flags_selected, flags_suggestions_filtered)
+    _add("departments", departments_selected, departments_suggestions)
+    _add("personas", personas_selected, personas_suggestions)
+    _add("documents", documents_selected, documents_suggestions)
+    _add("scenarios", scenarios_selected, scenarios_suggestions)
+    _add("fields", fields_selected, fields_suggestions)
+    _add("parameter_fields", parameter_fields_selected, parameter_fields_suggestions)
+    _add("questions", questions_selected, questions_suggestions)
+    _add("options", options_selected, options_suggestions)
+    _add("videos", videos_selected, videos_suggestions)
+    _add("images", images_selected, images_suggestions)
+    _add("problem_statements", problem_statements_selected, problem_statements_suggestions)
+    _add("objectives", objectives_selected, objectives_suggestions)
+
     return ArtifactContext(
         artifact_id=None,
         active=True,
         group_id=group_id,
-        resources={
-            "names": ResourcePair(
-                selected=names_selected, suggestions=names_suggestions
-            ),
-            "descriptions": ResourcePair(
-                selected=descriptions_selected, suggestions=descriptions_suggestions
-            ),
-            "flags": ResourcePair(
-                selected=flags_selected, suggestions=flags_suggestions_filtered
-            ),
-            "departments": ResourcePair(
-                selected=departments_selected, suggestions=departments_suggestions
-            ),
-            "personas": ResourcePair(
-                selected=personas_selected, suggestions=personas_suggestions
-            ),
-            "documents": ResourcePair(
-                selected=documents_selected, suggestions=documents_suggestions
-            ),
-            "scenarios": ResourcePair(
-                selected=scenarios_selected, suggestions=scenarios_suggestions
-            ),
-            "fields": ResourcePair(
-                selected=fields_selected, suggestions=fields_suggestions
-            ),
-            "parameter_fields": ResourcePair(
-                selected=parameter_fields_selected,
-                suggestions=parameter_fields_suggestions,
-            ),
-            "questions": ResourcePair(
-                selected=questions_selected, suggestions=questions_suggestions
-            ),
-            "options": ResourcePair(
-                selected=options_selected, suggestions=options_suggestions
-            ),
-            "videos": ResourcePair(
-                selected=videos_selected, suggestions=videos_suggestions
-            ),
-            "images": ResourcePair(
-                selected=images_selected, suggestions=images_suggestions
-            ),
-            "problem_statements": ResourcePair(
-                selected=problem_statements_selected,
-                suggestions=problem_statements_suggestions,
-            ),
-            "objectives": ResourcePair(
-                selected=objectives_selected, suggestions=objectives_suggestions
-            ),
-        },
+        resources=resources,
         entries={},
     )

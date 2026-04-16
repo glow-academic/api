@@ -1,9 +1,4 @@
-"""Handcrafted types for model artifact endpoints.
-
-Section-first API following the gold-standard pattern (REFERENCE.md).
-Resources: names, descriptions, values, providers, flags, departments,
-modalities, temperature_levels, pricing, reasoning_levels, qualities, voices.
-"""
+"""Handcrafted types for model artifact endpoints."""
 
 from __future__ import annotations
 
@@ -13,7 +8,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import ListFilterSection
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.model_drafts.types import GetModelDraftResponse
 
@@ -36,104 +31,171 @@ class ModelFlagConfig(BaseModel):
 
 
 # =============================================================================
-# GET Endpoint Types — Section-first API
+# GET Endpoint Types — canonical composed API
 # =============================================================================
 
 
+class ModelNameResource(BaseModel):
+    id: UUID | None = Field(None, description="Name resource identifier")
+    name: str | None = Field(None, description="Model display name")
+    generated: bool | None = Field(None, description="Whether the name was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class ModelDescriptionResource(BaseModel):
+    id: UUID | None = Field(None, description="Description resource identifier")
+    description: str | None = Field(None, description="Model description")
+    generated: bool | None = Field(None, description="Whether the description was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class ModelValueResource(BaseModel):
+    id: UUID | None = Field(None, description="Value resource identifier")
+    value: str | None = Field(None, description="Model value")
+    value_type: str | None = Field(None, description="Stored value type")
+    generated: bool | None = Field(None, description="Whether the value was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class ModelProviderResource(BaseModel):
+    id: UUID | None = Field(None, description="Provider resource identifier")
+    name: str | None = Field(None, description="Provider display name")
+    description: str | None = Field(None, description="Provider description")
+    value: str | None = Field(None, description="Provider value")
+    base_url: str | None = Field(None, description="Provider endpoint")
+    generated: bool | None = Field(None, description="Whether the provider was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class ModelDepartmentResource(BaseModel):
+    department_id: UUID | None = Field(None, description="Department identifier")
+    name: str | None = Field(None, description="Department name")
+    description: str | None = Field(None, description="Department description")
+    generated: bool | None = Field(None, description="Whether the department was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class ModelModalityResource(BaseModel):
+    id: UUID | None = Field(None, description="Modality resource identifier")
+    modality: str | None = Field(None, description="Modality name")
+    is_input: bool | None = Field(None, description="Whether this is an input modality")
+    generated: bool | None = Field(None, description="Whether the modality was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class ModelTemperatureLevelResource(BaseModel):
+    id: UUID | None = Field(None, description="Temperature level resource identifier")
+    temperature: str | None = Field(None, description="Temperature level label")
+    generated: bool | None = Field(None, description="Whether the temperature level was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class ModelPricingResource(BaseModel):
+    id: UUID | None = Field(None, description="Pricing resource identifier")
+    pricing_type: str | None = Field(None, description="Pricing type")
+    price: float | None = Field(None, description="Pricing amount")
+    unit_name: str | None = Field(None, description="Pricing unit name")
+    unit_category: str | None = Field(None, description="Pricing unit category")
+    unit_value: float | None = Field(None, description="Pricing unit value")
+    generated: bool | None = Field(None, description="Whether the pricing resource was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class ModelReasoningLevelResource(BaseModel):
+    id: UUID | None = Field(None, description="Reasoning level resource identifier")
+    reasoning_level: str | None = Field(None, description="Reasoning level label")
+    generated: bool | None = Field(None, description="Whether the reasoning level was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class ModelQualityResource(BaseModel):
+    id: UUID | None = Field(None, description="Quality resource identifier")
+    quality: str | None = Field(None, description="Quality label")
+    generated: bool | None = Field(None, description="Whether the quality was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class ModelVoiceResource(BaseModel):
+    id: UUID | None = Field(None, description="Voice resource identifier")
+    voice: str | None = Field(None, description="Voice label")
+    generated: bool | None = Field(None, description="Whether the voice was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class SectionFilter(BaseModel):
+    search: str | None = Field(None, description="Filter options by search text")
+    limit: int | None = Field(None, description="Max options to return")
+    selected: bool | None = Field(None, description="Only return selected items")
+    suggested: bool | None = Field(None, description="Only return suggested items")
+    include: bool | None = Field(None, description="Include this section in response (default true)")
+
+
 class GetModelApiRequest(BaseModel):
-    """Request model for get model endpoint."""
-
-    model_id: UUID | None = Field(None, description="Model unique identifier")
+    id: UUID | None = Field(None, description="Model unique identifier")
+    model_id: UUID | None = Field(None, description="Legacy alias for model unique identifier")
     draft_id: UUID | None = Field(None, description="Draft unique identifier")
-
-
-class ModelNameSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected name resource")
-    resources: list[Any] | None = Field(None, description="Available name resources")
-
-
-class ModelDescriptionSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected description resource")
-    resources: list[Any] | None = Field(None, description="Available description resources")
-
-
-class ModelValueSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected value resource")
-    resources: list[Any] | None = Field(None, description="Available value resources")
-
-
-class ModelProviderSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected provider resource")
-    resources: list[Any] | None = Field(None, description="Available provider resources")
-
-
-class ModelFlagSection(BaseResourceSection):
-    current: list[ModelFlagConfig] | None = Field(None, description="Currently active flag configs")
-    resources: list[ModelFlagConfig] | None = Field(None, description="Available flag configs")
-
-
-class ModelDepartmentSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently assigned departments")
-    resources: list[Any] | None = Field(None, description="Available departments")
-
-
-class ModelModalitySection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently assigned modalities")
-    resources: list[Any] | None = Field(None, description="Available modalities")
-
-
-class ModelTemperatureLevelSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently assigned temperature levels")
-    resources: list[Any] | None = Field(None, description="Available temperature levels")
-
-
-class ModelReasoningLevelSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently assigned reasoning levels")
-    resources: list[Any] | None = Field(None, description="Available reasoning levels")
-
-
-class ModelPricingSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently assigned pricing tiers")
-    resources: list[Any] | None = Field(None, description="Available pricing tiers")
-
-
-class ModelQualitySection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently assigned quality levels")
-    resources: list[Any] | None = Field(None, description="Available quality levels")
-
-
-class ModelVoiceSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently assigned voices")
-    resources: list[Any] | None = Field(None, description="Available voices")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+    names: SectionFilter | None = Field(None, description="Filter options for names")
+    descriptions: SectionFilter | None = Field(None, description="Filter options for descriptions")
+    values: SectionFilter | None = Field(None, description="Filter options for values")
+    providers: SectionFilter | None = Field(None, description="Filter options for providers")
+    flags: SectionFilter | None = Field(None, description="Filter options for flags")
+    departments: SectionFilter | None = Field(None, description="Filter options for departments")
+    modalities: SectionFilter | None = Field(None, description="Filter options for modalities")
+    temperature_levels: SectionFilter | None = Field(None, description="Filter options for temperature levels")
+    pricing: SectionFilter | None = Field(None, description="Filter options for pricing")
+    reasoning_levels: SectionFilter | None = Field(None, description="Filter options for reasoning levels")
+    qualities: SectionFilter | None = Field(None, description="Filter options for qualities")
+    voices: SectionFilter | None = Field(None, description="Filter options for voices")
 
 
 class GetModelApiResponse(BaseModel):
-    """Section-first response for model editor."""
-
     actor_name: str | None = Field(None, description="Display name of the current actor")
     model_exists: bool | None = Field(None, description="Whether the model exists")
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled")
     group_id: UUID | None = Field(None, description="Group identifier for the model")
-
-    # Step-level AI generation flags
+    model_id: UUID | None = Field(None, description="Model identifier")
+    show_ai_generate: bool | None = Field(None, description="Whether any step should show AI generate")
     basic_show_ai_generate: bool | None = Field(None, description="Show AI generate for basic step")
     provider_show_ai_generate: bool | None = Field(None, description="Show AI generate for provider step")
     features_show_ai_generate: bool | None = Field(None, description="Show AI generate for features step")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
 
-    # Section-first resources
-    names: ModelNameSection | None = Field(None, description="Name section with resources")
-    descriptions: ModelDescriptionSection | None = Field(None, description="Description section with resources")
-    values: ModelValueSection | None = Field(None, description="Value section with resources")
-    providers: ModelProviderSection | None = Field(None, description="Provider section with resources")
-    flags: ModelFlagSection | None = Field(None, description="Flag section with configs")
-    departments: ModelDepartmentSection | None = Field(None, description="Department section with resources")
-    modalities: ModelModalitySection | None = Field(None, description="Modality section with resources")
-    temperature_levels: ModelTemperatureLevelSection | None = Field(None, description="Temperature level section")
-    pricing: ModelPricingSection | None = Field(None, description="Pricing section with resources")
-    reasoning_levels: ModelReasoningLevelSection | None = Field(None, description="Reasoning level section")
-    qualities: ModelQualitySection | None = Field(None, description="Quality section with resources")
-    voices: ModelVoiceSection | None = Field(None, description="Voice section with resources")
+    names: list[ModelNameResource] | None = Field(None, description="Name resources")
+    descriptions: list[ModelDescriptionResource] | None = Field(None, description="Description resources")
+    values: list[ModelValueResource] | None = Field(None, description="Value resources")
+    providers: list[ModelProviderResource] | None = Field(None, description="Provider resources")
+    flags: list[ModelFlagConfig] | None = Field(None, description="Flag configs")
+    departments: list[ModelDepartmentResource] | None = Field(None, description="Department resources")
+    modalities: list[ModelModalityResource] | None = Field(None, description="Modality resources")
+    temperature_levels: list[ModelTemperatureLevelResource] | None = Field(None, description="Temperature level resources")
+    pricing: list[ModelPricingResource] | None = Field(None, description="Pricing resources")
+    reasoning_levels: list[ModelReasoningLevelResource] | None = Field(None, description="Reasoning level resources")
+    qualities: list[ModelQualityResource] | None = Field(None, description="Quality resources")
+    voices: list[ModelVoiceResource] | None = Field(None, description="Voice resources")
 
 
 # =============================================================================
@@ -373,70 +435,113 @@ class DuplicateModelApiResponse(BaseModel):
 
 
 class PatchModelDraftApiRequest(ScopedItem):
-    """Request model for new-style model draft endpoint.
-
-    Dual-mode for creatable resources only:
-      - name/name_id, description/description_id
-    ID-only for non-creatable resources:
-      - flag_ids, department_ids, modality_ids, pricing_ids, provider_id,
-        quality_ids, reasoning_level_ids, temperature_level_ids, value_id, voice_ids
-
-    Client always sends full state (append-only — each write is a new snapshot).
-    """
+    """Request model for canonical model draft endpoint."""
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
+        "value": "values",
+        "value_id": "values",
+        "provider": "providers",
+        "provider_id": "providers",
+        "departments": "departments",
         "flag_ids": "flags",
         "department_ids": "departments",
+        "active_flag": "flags",
+        "active_flag_id": "flags",
+        "modalities_enabled_flag_id": "flags",
+        "temperature_enabled_flag_id": "flags",
+        "pricing_enabled_flag_id": "flags",
+        "voices_enabled_flag_id": "flags",
+        "reasoning_levels_enabled_flag_id": "flags",
+        "qualities_enabled_flag_id": "flags",
+        "modalities": "modalities",
         "modality_ids": "modalities",
+        "pricing": "pricing",
         "pricing_ids": "pricing",
+        "qualities": "qualities",
+        "reasoning_levels": "reasoning_levels",
+        "temperature_levels": "temperature_levels",
+        "voices": "voices",
         "provider_id": "providers",
         "quality_ids": "qualities",
         "reasoning_level_ids": "reasoning_levels",
         "temperature_level_ids": "temperature_levels",
-        "value_id": "values",
         "voice_ids": "voices",
     }
 
+    draft_id: UUID | None = Field(None, description="Existing draft ID to update")
     input_draft_id: UUID | None = Field(None, description="Existing draft ID to update")
+    idempotency_key: UUID | None = Field(None, description="Operation key for accept/reject style ack")
+    accept: bool = Field(True, description="Accept or reject when idempotency_key is supplied")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Display name value")
     name_id: UUID | None = Field(None, description="Name resource identifier")
     description: str | None = Field(None, description="Description text value")
     description_id: UUID | None = Field(None, description="Description resource identifier")
-
-    # Non-creatable — ID-only
-    flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
-    department_ids: list[UUID] | None = Field(None, description="Department identifiers")
-    modality_ids: list[UUID] | None = Field(None, description="Modality identifiers")
-    pricing_ids: list[UUID] | None = Field(None, description="Pricing tier identifiers")
-    provider_id: UUID | None = Field(None, description="Provider identifier")
-    quality_ids: list[UUID] | None = Field(None, description="Quality level identifiers")
-    reasoning_level_ids: list[UUID] | None = Field(None, description="Reasoning level identifiers")
-    temperature_level_ids: list[UUID] | None = Field(None, description="Temperature level identifiers")
+    value: str | None = Field(None, description="Direct model value")
     value_id: UUID | None = Field(None, description="Value resource identifier")
+    provider: str | None = Field(None, description="Provider name to match")
+    provider_id: UUID | None = Field(None, description="Provider identifier")
+
+    # Matchable / multi-select
+    flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
+    active_flag: bool | None = Field(None, description="Whether the model is active")
+    active_flag_id: UUID | None = Field(None, description="Active flag resource identifier")
+    modalities_enabled_flag_id: UUID | None = Field(None, description="Modalities enabled flag resource identifier")
+    temperature_enabled_flag_id: UUID | None = Field(None, description="Temperature enabled flag resource identifier")
+    pricing_enabled_flag_id: UUID | None = Field(None, description="Pricing enabled flag resource identifier")
+    voices_enabled_flag_id: UUID | None = Field(None, description="Voices enabled flag resource identifier")
+    reasoning_levels_enabled_flag_id: UUID | None = Field(None, description="Reasoning levels enabled flag resource identifier")
+    qualities_enabled_flag_id: UUID | None = Field(None, description="Qualities enabled flag resource identifier")
+    departments: list[str] | None = Field(None, description="Department names to match")
+    department_ids: list[UUID] | None = Field(None, description="Department identifiers")
+    modalities: list[str] | None = Field(None, description="Modality labels to match")
+    modality_ids: list[UUID] | None = Field(None, description="Modality identifiers")
+    pricing: list[str] | None = Field(None, description="Pricing types to match")
+    pricing_ids: list[UUID] | None = Field(None, description="Pricing tier identifiers")
+    qualities: list[str] | None = Field(None, description="Quality labels to match")
+    quality_ids: list[UUID] | None = Field(None, description="Quality level identifiers")
+    reasoning_levels: list[str] | None = Field(None, description="Reasoning level labels to match")
+    reasoning_level_ids: list[UUID] | None = Field(None, description="Reasoning level identifiers")
+    temperature_levels: list[str] | None = Field(None, description="Temperature level labels to match")
+    temperature_level_ids: list[UUID] | None = Field(None, description="Temperature level identifiers")
+    voices: list[str] | None = Field(None, description="Voice labels to create or match")
     voice_ids: list[UUID] | None = Field(None, description="Voice identifiers")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers")
 
 
-class ModelDraftFormState(BaseModel):
-    """Server-authoritative form state returned after draft save."""
-
+class DraftFormState(BaseModel):
     name_id: UUID | None = Field(None, description="Resolved name resource identifier")
+    name: str | None = Field(None, description="Resolved name value")
     description_id: UUID | None = Field(None, description="Resolved description resource identifier")
+    description: str | None = Field(None, description="Resolved description value")
+    value_id: UUID | None = Field(None, description="Resolved value resource identifier")
+    value: str | None = Field(None, description="Resolved model value")
+    provider_id: UUID | None = Field(None, description="Resolved provider identifier")
+    provider: str | None = Field(None, description="Resolved provider name")
     flag_ids: list[UUID] = Field(..., description="Flag option identifiers")
+    active_flag_id: UUID | None = Field(None, description="Resolved active flag identifier")
+    modalities_enabled_flag_id: UUID | None = Field(None, description="Resolved modalities enabled flag identifier")
+    temperature_enabled_flag_id: UUID | None = Field(None, description="Resolved temperature enabled flag identifier")
+    pricing_enabled_flag_id: UUID | None = Field(None, description="Resolved pricing enabled flag identifier")
+    voices_enabled_flag_id: UUID | None = Field(None, description="Resolved voices enabled flag identifier")
+    reasoning_levels_enabled_flag_id: UUID | None = Field(None, description="Resolved reasoning levels enabled flag identifier")
+    qualities_enabled_flag_id: UUID | None = Field(None, description="Resolved qualities enabled flag identifier")
     department_ids: list[UUID] = Field(..., description="Department identifiers")
     modality_ids: list[UUID] = Field(..., description="Modality identifiers")
     pricing_ids: list[UUID] = Field(..., description="Pricing tier identifiers")
-    provider_id: UUID | None = Field(None, description="Provider identifier")
     quality_ids: list[UUID] = Field(..., description="Quality level identifiers")
     reasoning_level_ids: list[UUID] = Field(..., description="Reasoning level identifiers")
     temperature_level_ids: list[UUID] = Field(..., description="Temperature level identifiers")
-    value_id: UUID | None = Field(None, description="Value resource identifier")
     voice_ids: list[UUID] = Field(..., description="Voice identifiers")
+    pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
+
+
+ModelDraftFormState = DraftFormState
 
 
 class PatchModelDraftApiResponse(BaseModel):
@@ -444,8 +549,9 @@ class PatchModelDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the draft save succeeded")
     draft_id: UUID = Field(..., description="Draft unique identifier")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
     message: str = Field(..., description="Result message")
-    form_state: ModelDraftFormState | None = Field(None, description="Server-authoritative form state")
+    form_state: DraftFormState | None = Field(None, description="Server-authoritative form state")
 
 
 class GetModelDraftsApiResponse(BaseModel):

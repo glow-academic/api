@@ -73,7 +73,7 @@ async def patch_model_draft(
             artifact="model",
             profile_id=profile_id,
             session_id=session_id,
-            draft_id=request.input_draft_id,
+            draft_id=request.draft_id or request.input_draft_id,
             group_id=group_id,
             operation="draft",
             arguments=request.model_dump(mode="json"),

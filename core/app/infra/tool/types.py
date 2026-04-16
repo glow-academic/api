@@ -228,12 +228,15 @@ class CreateToolApiRequest(BaseModel):
     """Request model for bulk create tool endpoint."""
 
     tools: list[CreateToolItem] = Field(..., description="List of tools to create")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateToolApiResponse(BaseModel):
     """Response model for bulk create tool endpoint."""
 
     results: list[ToolResultItem] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Update Endpoint Types ==========
@@ -271,12 +274,15 @@ class UpdateToolApiRequest(BaseModel):
     """Request model for bulk update tool endpoint."""
 
     tools: list[UpdateToolItem] = Field(..., description="List of tools to update")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateToolApiResponse(BaseModel):
     """Response model for bulk update tool endpoint."""
 
     results: list[ToolResultItem] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 class SaveToolFieldError(BaseModel):
@@ -290,6 +296,8 @@ class DeleteToolApiRequest(BaseModel):
     """Request model for bulk delete tool endpoint."""
 
     tool_ids: list[UUID] = Field(..., description="List of tool IDs to delete")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DeleteToolResult(BaseModel):
@@ -304,16 +312,20 @@ class DeleteToolApiResponse(BaseModel):
     """Response model for bulk delete tool endpoint."""
 
     results: list[DeleteToolResult] = Field(..., description="List of deletion results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 class DuplicateToolApiRequest(BaseModel):
     tool_id: UUID = Field(..., description="Tool identifier to duplicate")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateToolApiResponse(BaseModel):
     success: bool = Field(..., description="Whether the duplication succeeded")
     tool_id: UUID = Field(..., description="New duplicated tool identifier")
     message: str = Field(..., description="Result message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 class PatchToolDraftApiRequest(ScopedItem):
@@ -459,6 +471,8 @@ class ProblemToolApiRequest(BaseModel):
 
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemToolApiResponse(BaseModel):
@@ -467,3 +481,4 @@ class ProblemToolApiResponse(BaseModel):
     problem_id: UUID = Field(..., description="UUID of the created problem")
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")

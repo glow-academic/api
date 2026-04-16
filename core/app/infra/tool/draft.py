@@ -158,15 +158,6 @@ async def patch_tool_draft_impl(
     if idempotency_key and accept is None:
         accept = request.accept
 
-    if accept is not None and idempotency_key is not None:
-        return PatchToolDraftApiResponse(
-            success=True,
-            draft_id=idempotency_key,
-            idempotency_key=idempotency_key,
-            message="Draft accepted" if accept else "Draft rejected",
-            form_state=DraftFormState(),
-        )
-
     profile = await resolve_profile_identity_context(
         pool,
         profile_id,
@@ -188,6 +179,34 @@ async def patch_tool_draft_impl(
             detail="You don't have permission to create or edit tool drafts.",
         )
 
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_tool_draft(
+                        conn,
+                        session_id=session_id,
+                        id=idempotency_key,
+                        soft=False,
+                        profile_ids=[profile.profiles_id],
+                        pending_ids=set(request.pending_ids) if request.pending_ids else None,
+                    )
+            await refresh_tool_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                targets=["tool_drafts_mv"],
+                operation_key=idempotency_key,
+            )
+        return PatchToolDraftApiResponse(
+            success=True,
+            draft_id=idempotency_key,
+            idempotency_key=idempotency_key,
+            message="Draft accepted" if accept else "Draft rejected",
+            form_state=DraftFormState(),
+        )
+
     errors = await _resolve_creatable_values(pool, redis, request)
     if errors:
         raise HTTPException(
@@ -204,6 +223,7 @@ async def patch_tool_draft_impl(
             result = await create_tool_draft(
                 conn,
                 session_id=session_id,
+                id=idempotency_key,
                 soft=soft,
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id] if request.description_id else None,
@@ -215,6 +235,7 @@ async def patch_tool_draft_impl(
                 permission_ids=request.permission_ids,
                 profile_ids=[profile.profiles_id],
                 agent_ids=[request.agent_id] if request.agent_id else None,
+                pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
     resolved_name = request.name
@@ -256,6 +277,9 @@ async def patch_tool_draft_impl(
             pool,
             redis,
             profile_id=profile_id,
+            session_id=session_id,
+            targets=["tool_drafts_mv"],
+            operation_key=result.id,
         )
 
     return PatchToolDraftApiResponse(

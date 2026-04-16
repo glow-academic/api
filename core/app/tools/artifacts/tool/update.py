@@ -93,6 +93,7 @@ async def update_tool(
                 resource_id=val,
                 constraint=constraint,
                 mcp=mcp,
+                soft=soft,
             )
 
     # 3. Multi-select junctions (simple)
@@ -115,6 +116,7 @@ async def update_tool(
                 resource_ids=vals,
                 constraint=constraint,
                 mcp=mcp,
+                soft=soft,
             )
 
     # 4. Flags
@@ -128,6 +130,7 @@ async def update_tool(
             resource_ids=flag_ids,
             constraint="tool_flags_pkey",
             mcp=mcp,
+            soft=soft,
         )
 
     return UpdateToolResponse(id=tool_id)

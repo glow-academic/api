@@ -64,9 +64,7 @@ async def update_tool(
             session_id=session_id,
             group_id=group_id,
             operation="update",
-            arguments={
-                "tools": [item.model_dump(mode="json") for item in request.tools]
-            },
+            arguments=request.model_dump(mode="json"),
             response_model=UpdateToolApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

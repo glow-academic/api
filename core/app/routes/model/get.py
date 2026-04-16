@@ -49,8 +49,23 @@ async def get_model(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
+                id=request.id,
                 model_id=request.model_id,
                 draft_id=request.draft_id,
+                filters={
+                    "names": request.names,
+                    "descriptions": request.descriptions,
+                    "values": request.values,
+                    "providers": request.providers,
+                    "flags": request.flags,
+                    "departments": request.departments,
+                    "modalities": request.modalities,
+                    "temperature_levels": request.temperature_levels,
+                    "pricing": request.pricing,
+                    "reasoning_levels": request.reasoning_levels,
+                    "qualities": request.qualities,
+                    "voices": request.voices,
+                },
                 bypass_cache=bypass_cache,
             )
 

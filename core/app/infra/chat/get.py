@@ -78,41 +78,13 @@ async def get_chat_impl(
     if group_id is None:
         raise HTTPException(status_code=400, detail="Failed to resolve group context.")
 
-    # --- Attempt-mode scoping -------------------------------------------------
-    # When attempt_id is set, fetch the chat template to get scenario flags and
-    # pre-set resource IDs, then resolve the department automatically.
-    _attempt_mode = attempt_id is not None
-    _scenario_flags: dict[str, bool] | None = None
-    _resolved_dept_ids: list[UUID] | None = None
-
-    if _attempt_mode and chat_entry_id:
-        from app.infra.attempt.department import resolve_attempt_department
-        from app.tools.entries.chat.get import get_chats as get_chat_entries
-
-        async with pool.acquire() as conn:
-            _templates = await get_chat_entries(conn, [chat_entry_id])
-        if _templates:
-            _tmpl = _templates[0]
-            _scenario_flags = {
-                "video_enabled": _tmpl.video_enabled or False,
-                "problem_statement_enabled": _tmpl.problem_statement_enabled or False,
-                "objectives_enabled": _tmpl.objectives_enabled or False,
-                "images_enabled": _tmpl.images_enabled or False,
-                "questions_enabled": _tmpl.questions_enabled or False,
-            }
-            _dept_id = resolve_attempt_department(
-                user_department_ids=common.profile.department_ids,
-                user_primary_department_id=common.profile.primary_department_id,
-                chat_department_ids=_tmpl.department_ids,
-            )
-            _resolved_dept_ids = [_dept_id] if _dept_id else []
-
     context = await resolve_chat_context(
         pool,
         redis,
         group_id=group_id,
+        chat_entry_id=chat_entry_id,
         draft_id=draft_id,
-        user_department_ids=common.profile.department_ids,
+        profile=common.profile,
         description_search=description_search,
         persona_search=persona_search,
         document_search=document_search,
@@ -124,9 +96,6 @@ async def get_chat_impl(
         persona_show_selected=persona_show_selected,
         document_show_selected=document_show_selected,
         bypass_cache=bypass_cache,
-        attempt_mode=_attempt_mode,
-        scenario_flags=_scenario_flags,
-        resolved_department_ids=_resolved_dept_ids,
     )
 
     scores = score_tools(common.tool_graph, CHAT_BUNDLE_RESOURCES)
@@ -136,6 +105,4 @@ async def get_chat_impl(
         group_id=group_id,
         chat_entry_id=chat_entry_id,
         attempt_id=attempt_id,
-        attempt_mode=_attempt_mode,
-        scenario_flags=_scenario_flags,
     )

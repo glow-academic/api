@@ -5,12 +5,42 @@
 - **Group ID:** `{{ r.group_id }}`
 {% if r.attempt_id %}- **Attempt ID:** `{{ r.attempt_id }}`{% endif %}
 
+{% macro section_status(section) %}{% if not section or not section.show %}disabled{% elif section.current and not section.resources %}locked{% elif section.resources %}needs_input{% else %}empty{% endif %}{% endmacro %}
+
+### Setup Summary
+
+{% set sections = [
+  (r.names, 'names_ids', 'Names'),
+  (r.descriptions, 'descriptions_ids', 'Descriptions'),
+  (r.personas, 'personas_ids', 'Personas'),
+  (r.documents, 'documents_ids', 'Documents'),
+  (r.fields, 'field_ids', 'Fields'),
+  (r.parameter_fields, 'parameter_fields_ids', 'Parameter Fields'),
+  (r.problem_statements, 'problem_statements_ids', 'Problem Statements'),
+  (r.objectives, 'objectives_ids', 'Objectives'),
+  (r.questions, 'questions_ids', 'Questions'),
+  (r.options, 'options_ids', 'Options'),
+  (r.videos, 'videos_ids', 'Videos'),
+  (r.images, 'images_ids', 'Images'),
+] %}
+**Needs input (pass IDs to create):**
+{% for sec, arg, label in sections %}{% if section_status(sec) == 'needs_input' %}- {{ label }} → `{{ arg }}`
+{% endif %}{% endfor %}
+**Locked (already set — do NOT pass):**
+{% for sec, arg, label in sections %}{% if section_status(sec) == 'locked' %}- {{ label }}
+{% endif %}{% endfor %}
+**Disabled (not enabled — do NOT pass):**
+{% for sec, arg, label in sections %}{% if section_status(sec) == 'disabled' %}- {{ label }}
+{% endif %}{% endfor %}
+**Auto-configured (never pass):** departments, scenarios
+
+---
+
 {% macro render_section(section, label, id_field, display_field, display_truncate) %}
 {% if section and section.show %}
-### {{ label }}{% if section.required %} (required){% endif %}
+### {{ label }}{% if section.current and not section.resources %} (locked){% endif %}
 
 {% if section.current and not section.resources %}
-**Selected (locked):**
 {% for item in section.current %}- `{{ item[id_field] }}` — {{ item[display_field][:display_truncate] if item[display_field] else '(no text)' }}
 {% endfor %}
 {% elif section.current %}
@@ -19,47 +49,24 @@
 {% endfor %}
 {% endif %}
 {% if section.resources %}
-**Available:**
+**Available — pick from these:**
 {% for item in section.resources %}- `{{ item[id_field] }}` — {{ item[display_field][:display_truncate] if item[display_field] else '(no text)' }}
 {% endfor %}
-{% endif %}
-{% if section.suggestions %}
-**Suggested IDs:** {% for sid in section.suggestions %}`{{ sid }}`{% if not loop.last %}, {% endif %}{% endfor %}
-
 {% endif %}
 {% endif %}
 {% endmacro %}
 {{ render_section(r.names, 'Names', 'id', 'name', 100) }}
 {{ render_section(r.descriptions, 'Descriptions', 'id', 'description', 120) }}
 {{ render_section(r.personas, 'Personas', 'id', 'name', 100) }}
-{{ render_section(r.scenarios, 'Scenarios', 'id', 'name', 100) }}
 {{ render_section(r.documents, 'Documents', 'id', 'name', 100) }}
-{{ render_section(r.parameter_fields, 'Parameter Fields', 'id', 'name', 100) }}
 {{ render_section(r.fields, 'Fields', 'id', 'name', 100) }}
+{{ render_section(r.parameter_fields, 'Parameter Fields', 'id', 'name', 100) }}
 {{ render_section(r.problem_statements, 'Problem Statements', 'id', 'problem_statement', 120) }}
 {{ render_section(r.objectives, 'Objectives', 'id', 'objective', 120) }}
 {{ render_section(r.questions, 'Questions', 'id', 'question_text', 120) }}
 {{ render_section(r.options, 'Options', 'id', 'option_text', 100) }}
 {{ render_section(r.videos, 'Videos', 'id', 'name', 100) }}
 {{ render_section(r.images, 'Images', 'id', 'name', 100) }}
-{% if r.flags and r.flags.show %}
-### Flags{% if r.flags.required %} (required){% endif %}
-
-{% if r.flags.current and not r.flags.resources %}
-**Selected (locked):**
-{% for f in r.flags.current %}- `{{ f.id }}` — {{ f.name }}{% if f.description %}: {{ f.description[:80] }}{% endif %}
-{% endfor %}
-{% elif r.flags.current %}
-**Selected:**
-{% for f in r.flags.current %}- `{{ f.id }}` — {{ f.name }}{% if f.description %}: {{ f.description[:80] }}{% endif %}
-{% endfor %}
-{% endif %}
-{% if r.flags.resources %}
-**Available:**
-{% for f in r.flags.resources %}- `{{ f.id }}` — {{ f.name }}{% if f.description %}: {{ f.description[:80] }}{% endif %}
-{% endfor %}
-{% endif %}
-{% endif %}
 {% elif results and results[0] and results[0].error %}
 Error fetching chat bundle: {{ results[0].error }}
 {% else %}
