@@ -45,7 +45,8 @@ def _profile_context(
         primary_department_id=department_ids[0] if department_ids else None,
         department_ids=department_ids,
         settings_id=None,
-        requests_per_day=100,
+        request_limit=100,
+        request_limit_interval=None,
         is_active=True,
         role_level=0,
     )

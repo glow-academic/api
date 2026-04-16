@@ -55381,6 +55381,25 @@
             "type": "array",
             "title": "Parameters",
             "description": "List of parameters to create"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -55399,6 +55418,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -55417,6 +55449,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -60794,6 +60839,25 @@
             "type": "array",
             "title": "Parameter Ids",
             "description": "List of parameter IDs to delete"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -60812,6 +60876,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of deletion results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -63624,6 +63701,25 @@
             "format": "uuid",
             "title": "Parameter Id",
             "description": "Parameter identifier to duplicate"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -63649,6 +63745,19 @@
             "type": "string",
             "title": "Message",
             "description": "Result message"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -109538,6 +109647,25 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -109567,6 +109695,19 @@
             "title": "Message",
             "description": "Status message",
             "default": "Problem created successfully"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -127359,6 +127500,25 @@
             "type": "array",
             "title": "Parameters",
             "description": "List of parameters to update"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -127377,6 +127537,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -127395,6 +127568,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",

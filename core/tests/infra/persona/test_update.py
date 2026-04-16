@@ -27,7 +27,8 @@ class _FakeProfile:
     primary_department_id = None
     department_ids = []
     settings_id = None
-    requests_per_day = None
+    request_limit = None
+    request_limit_interval = None
     is_active = True
     session_id = None
     group_id = uuid4()

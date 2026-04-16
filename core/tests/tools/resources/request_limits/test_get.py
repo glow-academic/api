@@ -16,7 +16,7 @@ async def test_gets_created_request_limit(conn, redis_client):
 
     assert len(items) == 1
     assert items[0].id == created.id
-    assert items[0].requests_per_day == 100
+    assert items[0].limit == 100
     assert items[0].active is True
 
 
@@ -42,7 +42,7 @@ async def test_cache_hit_skips_db(conn, redis_client):
     # Second call serves from cache
     items2 = await get_request_limits(conn, [created.id], redis_client)
     assert len(items2) == 1
-    assert items2[0].requests_per_day == 200
+    assert items2[0].limit == 200
 
 
 async def test_bypass_cache_skips_read_and_write(conn, redis_client):

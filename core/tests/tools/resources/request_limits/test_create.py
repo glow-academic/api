@@ -11,7 +11,7 @@ pytestmark = pytest.mark.asyncio
 async def test_creates_new_request_limit(conn, redis_client):
     result = await create_request_limit(conn, 100, redis_client)
 
-    assert result.requests_per_day == 100
+    assert result.limit == 100
     assert result.active is True
     assert result.mcp is False
 
@@ -23,7 +23,7 @@ async def test_visible_via_get(conn, redis_client):
 
     assert len(items) == 1
     assert items[0].id == result.id
-    assert items[0].requests_per_day == 250
+    assert items[0].limit == 250
 
 
 async def test_no_conflict_creates_different_rows(conn, redis_client):
@@ -31,7 +31,7 @@ async def test_no_conflict_creates_different_rows(conn, redis_client):
     second = await create_request_limit(conn, 1000, redis_client)
 
     assert first.id != second.id
-    assert second.requests_per_day == 1000
+    assert second.limit == 1000
 
 
 async def test_sets_mcp_flag(conn, redis_client):

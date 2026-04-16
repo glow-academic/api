@@ -117,7 +117,7 @@ class TestGenerateNewImpl:
             _base_data(
                 profile_id=str(profile.id),
                 session_id=str(session.id),
-                requests_per_day=1,
+                request_limit=1,
             ),
             emit=emit,
             pool=pool,
@@ -138,7 +138,7 @@ class TestGenerateNewImpl:
             _base_data(
                 profile_id=str(profile.id),
                 session_id=str(session.id),
-                requests_per_day=5,
+                request_limit=5,
             ),
             emit=emit,
             pool=pool,
@@ -176,7 +176,7 @@ class TestGenerateNewImpl:
                 profile_id=str(profile.id),
                 session_id=str(session.id),
                 group_id=str(group.id),
-                requests_per_day=1,
+                request_limit=1,
             ),
             emit=emit,
             pool=pool,

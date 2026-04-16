@@ -69,7 +69,7 @@ class TestResolveProfileIdentityContext:
         assert result.primary_department_id is None
         assert len(result.department_ids) == len(profile.departments)
         assert result.settings_id is None
-        assert result.requests_per_day is None
+        assert result.request_limit is None
         assert result.is_active is True
         assert result.session_id is None
         assert result.group_id is None

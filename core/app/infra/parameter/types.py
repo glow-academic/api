@@ -247,12 +247,15 @@ class CreateParameterApiRequest(BaseModel):
     """Request model for bulk create parameter endpoint."""
 
     parameters: list[CreateParameterItem] = Field(..., description="List of parameters to create")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateParameterApiResponse(BaseModel):
     """Response model for bulk create parameter endpoint."""
 
     results: list[ParameterResultItem] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Update Endpoint Types ==========
@@ -280,12 +283,15 @@ class UpdateParameterApiRequest(BaseModel):
     """Request model for bulk update parameter endpoint."""
 
     parameters: list[UpdateParameterItem] = Field(..., description="List of parameters to update")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateParameterApiResponse(BaseModel):
     """Response model for bulk update parameter endpoint."""
 
     results: list[ParameterResultItem] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 class SaveParameterFieldError(BaseModel):
@@ -374,6 +380,8 @@ class DeleteParameterApiRequest(BaseModel):
     """Request model for bulk delete parameter endpoint."""
 
     parameter_ids: list[UUID] = Field(..., description="List of parameter IDs to delete")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    accept: bool = Field(True, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
 
 
 class DeleteParameterResult(BaseModel):
@@ -388,6 +396,7 @@ class DeleteParameterApiResponse(BaseModel):
     """Response model for bulk delete parameter endpoint."""
 
     results: list[DeleteParameterResult] = Field(..., description="List of deletion results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Duplicate Endpoint Types ==========
@@ -395,12 +404,15 @@ class DeleteParameterApiResponse(BaseModel):
 
 class DuplicateParameterApiRequest(BaseModel):
     parameter_id: UUID = Field(..., description="Parameter identifier to duplicate")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateParameterApiResponse(BaseModel):
     success: bool = Field(..., description="Whether the duplication succeeded")
     parameter_id: UUID = Field(..., description="New duplicated parameter identifier")
     message: str = Field(..., description="Result message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Export Endpoint Types ==========
@@ -463,6 +475,8 @@ class ProblemParameterApiRequest(BaseModel):
 
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemParameterApiResponse(BaseModel):
@@ -471,3 +485,4 @@ class ProblemParameterApiResponse(BaseModel):
     problem_id: UUID = Field(..., description="UUID of the created problem")
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")

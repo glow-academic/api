@@ -21,7 +21,6 @@ class ProfileRouteResources:
     email_id: UUID
     email: str
     request_limit_id: UUID
-    requests_per_day: int
     role_id: UUID
     department_id: UUID
 

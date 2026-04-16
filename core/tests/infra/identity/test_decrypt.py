@@ -27,7 +27,8 @@ def _identity(*, name: str = "Alice") -> ProfileIdentityContext:
         primary_department_id=uuid4(),
         department_ids=[uuid4()],
         settings_id=uuid4(),
-        requests_per_day=100,
+        request_limit=100,
+        request_limit_interval=None,
         is_active=True,
         role_level=1,
     )
