@@ -64,9 +64,7 @@ async def update_profile(
             session_id=session_id,
             group_id=group_id,
             operation="update",
-            arguments={
-                "profiles": [item.model_dump(mode="json") for item in request.profiles]
-            },
+            arguments=request.model_dump(mode="json"),
             response_model=UpdateProfileApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

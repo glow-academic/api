@@ -49,8 +49,11 @@ async def _upsert_profile_emails(
     email_ids: list[UUID],
     redis: Redis,
     mcp: bool,
+    soft: bool,
 ) -> None:
     if not email_ids:
+        if soft:
+            return
         await conn.execute(
             "UPDATE profile_emails_junction SET active = false WHERE profile_id = $1 AND active = true",
             profile_id,
@@ -59,24 +62,28 @@ async def _upsert_profile_emails(
 
     values = await _lookup_email_values(conn, email_ids, redis)
     new_ids = [email_id for email_id, _ in values]
-    await conn.execute(
-        """
-        UPDATE profile_emails_junction
-        SET active = false
-        WHERE profile_id = $1 AND active = true AND emails_id != ALL($2::uuid[])
-        """,
-        profile_id,
-        new_ids,
-    )
+    if not soft:
+        await conn.execute(
+            """
+            UPDATE profile_emails_junction
+            SET active = false
+            WHERE profile_id = $1 AND active = true AND emails_id != ALL($2::uuid[])
+            """,
+            profile_id,
+            new_ids,
+        )
     await conn.executemany(
         """
         INSERT INTO profile_emails_junction
-            (profile_id, emails_id, email, mcp)
-        VALUES ($1, $2, $3, $4)
+            (profile_id, emails_id, email, mcp, active)
+        VALUES ($1, $2, $3, $4, $5)
         ON CONFLICT ON CONSTRAINT profile_emails_pkey
-        DO UPDATE SET email = EXCLUDED.email, active = true, mcp = EXCLUDED.mcp
+        DO UPDATE SET email = EXCLUDED.email, active = EXCLUDED.active, mcp = EXCLUDED.mcp
         """,
-        [(profile_id, email_id, email_value, mcp) for email_id, email_value in values],
+        [
+            (profile_id, email_id, email_value, mcp, not soft)
+            for email_id, email_value in values
+        ],
     )
 
 
@@ -131,6 +138,7 @@ async def update_profile(
                 resource_id=val,
                 constraint=constraint,
                 mcp=mcp,
+                soft=soft,
             )
     # 3. Multi-select junctions (simple)
     multi_vals: list[list[UUID] | None] = [
@@ -149,6 +157,7 @@ async def update_profile(
                 resource_ids=vals,
                 constraint=constraint,
                 mcp=mcp,
+                soft=soft,
             )
     if email_ids is not None:
         if redis is None:
@@ -159,6 +168,7 @@ async def update_profile(
             email_ids=email_ids,
             redis=redis,
             mcp=mcp,
+            soft=soft,
         )
 
     # 4. Flags
@@ -172,6 +182,7 @@ async def update_profile(
             resource_ids=flag_ids,
             constraint="profile_flags_pkey",
             mcp=mcp,
+            soft=soft,
         )
 
     return UpdateProfileResponse(id=profile_id)

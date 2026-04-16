@@ -1,0 +1,36 @@
+## Context
+
+**Draft ID:** `019d96ef-7527-7ee8-9e13-b133738dcbc4`
+**Chat ID:** `019d96ec-1321-7019-b2ef-ec34af001a02`
+**Attempt ID:** `019d96ef-7453-798e-a5f8-ee11870922bc`
+
+**Group ID:** `019d96ef-7553-7605-a733-1e8001ad1a66`
+
+## Tools
+
+
+## Steps
+
+1. Call **Attempt_Chat_Get**(chat_entry_id: "019d96ec-1321-7019-b2ef-ec34af001a02", draft_id: "019d96ef-7527-7ee8-9e13-b133738dcbc4")
+2. From the response, collect ALL resource IDs from the **Available** sections:
+   - `scenarios_ids` — all scenario IDs
+   - `personas_ids` — all persona IDs
+   - `objectives_ids` — all objective IDs
+   - `problem_statements_ids` — all problem statement IDs
+   - `questions_ids` — all question IDs
+   - `documents_ids` — all document IDs
+   - `departments_ids` — all department IDs
+   - `images_ids` — all image IDs (if any)
+   - `videos_ids` — all video IDs (if any)
+   - `options_ids` — all option IDs (if any)
+3. Call **Attempt_Chat_Create** with:
+   - `attempt_id`: `"019d96ef-7453-798e-a5f8-ee11870922bc"`
+   - `chat_id`: `"019d96ec-1321-7019-b2ef-ec34af001a02"`
+   - `text_enabled`: `true`
+   - All the resource IDs collected in step 2
+4. Call **Attempt_Group**(group_id: "019d96ef-7553-7605-a733-1e8001ad1a66", name: "short descriptive name")
+
+**IMPORTANT:**
+- Use `chat_id: "019d96ec-1321-7019-b2ef-ec34af001a02"` and `attempt_id: "019d96ef-7453-798e-a5f8-ee11870922bc"` exactly — do NOT substitute the draft_id
+- Pass ALL available resource IDs to Attempt_Chat_Create — do not leave them empty
+- If a resource section has no Available items, omit that field

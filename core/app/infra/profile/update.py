@@ -1,12 +1,4 @@
-"""Profile update logic — composable infra architecture.
-
-Composes existing black-box tools:
-  1. resolve_profile_identity_context — profile (role, departments)
-  2. resolve_profile_permissions_context — per-item access + edit check
-  3. resolve_profile_values — raw value → ID resolution
-  4. update_profile_artifact — junction writes (partial update)
-  5. create_denormalized_snapshot — profiles_resource snapshot
-"""
+"""Profile update logic — composable infra architecture."""
 
 from __future__ import annotations
 
@@ -21,21 +13,18 @@ from app.infra.profile.permissions_context import (
     resolve_profile_permissions_context,
     resolve_profile_values,
 )
+from app.infra.profile.refresh import refresh_profile_impl
+from app.infra.profile.types import (
+    UpdateProfileApiRequest,
+    UpdateProfileApiResponse,
+)
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.profile.get import (
     get_profiles as get_profile_artifacts,
 )
-from app.tools.artifacts.profile.update import (
-    _UNSET,
-)
+from app.tools.artifacts.profile.update import _UNSET
 from app.tools.artifacts.profile.update import (
     update_profile as update_profile_artifact,
-)
-from app.utils.cache.invalidate_tags import invalidate_tags
-
-from app.infra.profile.types import (
-    UpdateProfileApiRequest,
-    UpdateProfileApiResponse,
 )
 
 
@@ -49,24 +38,18 @@ async def update_profile_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> UpdateProfileApiResponse:
-    """Profile bulk update using composable infra functions.
-
-    Flow:
-      1. resolve_profile_identity_context → role, department_ids
-      2. Per-item: resolve_profile_permissions_context → exists + compute_can_edit
-      3. Per-item value resolution (raw → ID, no required field enforcement)
-      4. Single transaction: update_profile_artifact + denormalized snapshot per item
-      5. invalidate_tags
-    """
+    """Profile bulk update using composable infra functions."""
     from app.infra.profile.permissions import compute_can_edit
-    from app.infra.profile.types import (
-        ProfileResultItem,
-    )
+    from app.infra.profile.types import ProfileResultItem
+
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key is not None and accept is None:
+        accept = request.accept
 
     items = request.profiles
-
-    # ── Step 1: Profile context ────────────────────────────────────────
 
     profile = await resolve_profile_identity_context(
         pool,
@@ -75,14 +58,11 @@ async def update_profile_impl(
         session_id=session_id,
         draft_id=draft_id,
     )
-
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
-
-    # ── Step 2: Per-item permission check ──────────────────────────────
 
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
@@ -94,7 +74,8 @@ async def update_profile_impl(
                     detail=f"Item {idx}: Profile {item.profile_id} not found.",
                 )
             if not compute_can_edit(
-                role_level=profile.role_level, role_permissions=profile.role_permissions,
+                role_level=profile.role_level,
+                role_permissions=profile.role_permissions,
                 target_is_self=target_is_self,
                 target_department_ids=perms.department_ids,
                 user_department_ids=profile.department_ids,
@@ -104,7 +85,20 @@ async def update_profile_impl(
                     detail=f"Item {idx}: You don't have permission to update this profile.",
                 )
 
-    # ── Step 3: Per-item value resolution ──────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            return UpdateProfileApiResponse(
+                results=[
+                    ProfileResultItem(
+                        success=True,
+                        profile_id=item.profile_id,
+                        message="Update rejected",
+                    )
+                    for item in items
+                ],
+                idempotency_key=idempotency_key,
+            )
+        soft = False
 
     has_errors = False
     error_results: list[ProfileResultItem] = []
@@ -112,7 +106,10 @@ async def update_profile_impl(
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_profile_values(
-                conn, redis, item, is_create=False
+                conn,
+                redis,
+                item,
+                is_create=False,
             )
             if item_errors:
                 has_errors = True
@@ -124,19 +121,17 @@ async def update_profile_impl(
                     )
                 )
             else:
-                error_results.append(
-                    ProfileResultItem(success=True, message="Validated")
-                )
+                error_results.append(ProfileResultItem(success=True, message="Validated"))
 
     if has_errors:
-        return UpdateProfileApiResponse(results=error_results)
-
-    # ── Step 4: Single transaction ─────────────────────────────────────
+        return UpdateProfileApiResponse(
+            results=error_results,
+            idempotency_key=idempotency_key,
+        )
 
     results: list[ProfileResultItem] = []
 
     for item in items:
-        # Fetch existing junction IDs so snapshot is always complete
         async with pool.acquire() as conn:
             existing = await get_profile_artifacts(
                 conn,
@@ -146,23 +141,24 @@ async def update_profile_impl(
                 roles=True,
                 emails=True,
             )
+
         if existing:
-            art = existing[0]
-            eff_name_id = item.name_id or (art.name_ids[0] if art.name_ids else None)
+            artifact = existing[0]
+            eff_name_id = item.name_id or (artifact.name_ids[0] if artifact.name_ids else None)
             eff_department_ids = (
                 item.department_ids
                 if item.department_ids is not None
-                else list(art.department_ids or [])
+                else list(artifact.department_ids or [])
             )
             eff_role_id = (
                 item.role_id
                 if item.role_id is not None
-                else (art.role_ids[0] if art.role_ids else None)
+                else (artifact.role_ids[0] if artifact.role_ids else None)
             )
             eff_email_ids = (
                 item.email_ids
                 if item.email_ids is not None
-                else list(art.email_ids or [])
+                else list(artifact.email_ids or [])
             )
         else:
             eff_name_id = item.name_id
@@ -170,18 +166,18 @@ async def update_profile_impl(
             eff_role_id = item.role_id
             eff_email_ids = item.email_ids
 
-        # Create denormalized snapshot OUTSIDE transaction (read-only hydration)
-        async with pool.acquire() as conn:
-            profiles_resource_id = await create_denormalized_snapshot(
-                conn,
-                redis,
-                name_id=eff_name_id,
-                department_ids=eff_department_ids,
-                email_ids=eff_email_ids,
-                role_id=eff_role_id,
-            )
+        profiles_resource_id = None
+        if not soft:
+            async with pool.acquire() as conn:
+                profiles_resource_id = await create_denormalized_snapshot(
+                    conn,
+                    redis,
+                    name_id=eff_name_id,
+                    department_ids=eff_department_ids,
+                    email_ids=eff_email_ids,
+                    role_id=eff_role_id,
+                )
 
-        # Artifact update inside transaction
         async with pool.acquire() as conn:
             async with conn.transaction():
                 await update_profile_artifact(
@@ -192,7 +188,7 @@ async def update_profile_impl(
                     flag_ids=[item.active_flag_id] if item.active_flag_id else None,
                     email_ids=item.email_ids,
                     role_ids=[item.role_id] if item.role_id else None,
-                    profile_ids=[profiles_resource_id],
+                    profile_ids=[profiles_resource_id] if profiles_resource_id else None,
                     redis=redis,
                     soft=soft,
                 )
@@ -201,12 +197,21 @@ async def update_profile_impl(
             ProfileResultItem(
                 success=True,
                 profile_id=item.profile_id,
-                message="Profile updated successfully",
+                message="Profile updated (pending acceptance)" if soft else "Profile updated successfully",
             )
         )
 
-    # ── Step 5: Invalidate cache ───────────────────────────────────────
+    if not soft:
+        await refresh_profile_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (results[0].profile_id if results else None),
+        )
 
-    await invalidate_tags(["profiles"], redis=redis)
-
-    return UpdateProfileApiResponse(results=results)
+    return UpdateProfileApiResponse(
+        results=results,
+        idempotency_key=idempotency_key,
+    )

@@ -1,0 +1,7 @@
+INPUT:
+  attempt_id: 019d96e8-c21b-7504-b078-d60c426398f6
+  chat_id: 019d96e5-e37c-73bb-a127-aaf8210ca8c9
+
+OUTPUT:
+Attempt chat created successfully.
+- **Attempt Chat ID:** `019d96e8-d2c3-72a1-9f19-bdc715765bee`

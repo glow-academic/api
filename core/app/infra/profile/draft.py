@@ -207,7 +207,24 @@ async def patch_profile_draft_impl(
 
     if accept is not None and idempotency_key is not None:
         if accept:
-            await refresh_profile_impl(pool, redis, profile_id=profile_id)
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_profile_draft(
+                        conn,
+                        session_id=session_id,
+                        id=idempotency_key,
+                        soft=False,
+                        profile_ids=[profile.profiles_id],
+                        pending_ids=set(request.pending_ids) if request.pending_ids else None,
+                    )
+            await refresh_profile_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                targets=["profile_drafts_mv"],
+                operation_key=idempotency_key,
+            )
         return PatchProfileDraftApiResponse(
             success=True,
             draft_id=idempotency_key,
@@ -236,6 +253,7 @@ async def patch_profile_draft_impl(
                 department_ids=request.department_ids,
                 email_ids=request.email_ids,
                 role_ids=[request.role_id] if request.role_id else None,
+                pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
     resolved_emails: list[str] = []
@@ -295,13 +313,20 @@ async def patch_profile_draft_impl(
     )
 
     if not soft:
-        await refresh_profile_impl(pool, redis, profile_id=profile_id)
+        await refresh_profile_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["profile_drafts_mv"],
+            operation_key=result.id,
+        )
 
     return PatchProfileDraftApiResponse(
         success=True,
         draft_id=result.id,
         idempotency_key=result.id,
-        message="Draft created successfully",
+        message="Draft created (pending acceptance)" if soft else "Draft created successfully",
         form_state=form_state,
     )
 

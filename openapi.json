@@ -10840,7 +10840,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetProfileApiResponse-Output"
+                  "$ref": "#/components/schemas/GetProfileApiResponse"
                 }
               }
             }
@@ -11415,6 +11415,16 @@
         "summary": "Profile Refresh",
         "description": "Refresh profile materialized views and invalidate caches.",
         "operationId": "profile_refresh_profile_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshProfileApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -11422,6 +11432,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -33290,7 +33310,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetProfileApiResponse-Input"
+                "$ref": "#/components/schemas/GetProfileApiResponse"
               }
             }
           },
@@ -53207,6 +53227,25 @@
             "type": "array",
             "title": "Profiles",
             "description": "List of profiles to create"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -53225,6 +53264,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item creation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -53243,6 +53295,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item creation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -58143,6 +58208,25 @@
             "type": "array",
             "title": "Profile Ids",
             "description": "UUIDs of profiles to delete"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -58161,6 +58245,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item deletion results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -60993,6 +61090,25 @@
             "format": "uuid",
             "title": "Target Profile Id",
             "description": "UUID of the profile to duplicate"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -61018,6 +61134,19 @@
             "type": "string",
             "title": "Message",
             "description": "Result message"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -78920,6 +79049,19 @@
       },
       "GetProfileApiRequest": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "UUID of the profile to retrieve"
+          },
           "target_profile_id": {
             "anyOf": [
               {
@@ -78931,7 +79073,7 @@
               }
             ],
             "title": "Target Profile Id",
-            "description": "UUID of the profile to retrieve"
+            "description": "Legacy alias for profile UUID"
           },
           "draft_id": {
             "anyOf": [
@@ -78945,12 +79087,79 @@
             ],
             "title": "Draft Id",
             "description": "UUID of the draft to load"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__profile__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for names section"
+          },
+          "emails": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__profile__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for emails section"
+          },
+          "flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__profile__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags section"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__profile__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for departments section"
+          },
+          "roles": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__profile__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for roles section"
           }
         },
         "type": "object",
         "title": "GetProfileApiRequest"
       },
-      "GetProfileApiResponse-Input": {
+      "GetProfileApiResponse": {
         "properties": {
           "actor_name": {
             "anyOf": [
@@ -79026,32 +79235,17 @@
             "title": "Profile Id",
             "description": "UUID of the profile"
           },
-          "role": {
+          "show_ai_generate": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Role",
-            "description": "Current role of the profile"
-          },
-          "role_options": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Role Options",
-            "description": "Available role options"
+            "title": "Show Ai Generate",
+            "description": "Whether to show AI generate anywhere"
           },
           "basic_show_ai_generate": {
             "anyOf": [
@@ -79063,9 +79257,9 @@
               }
             ],
             "title": "Basic Show Ai Generate",
-            "description": "Whether to show basic AI generate button"
+            "description": "Whether to show AI generate on the basic step"
           },
-          "general_show_ai_generate": {
+          "contact_show_ai_generate": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -79074,161 +79268,15 @@
                 "type": "null"
               }
             ],
-            "title": "General Show Ai Generate",
-            "description": "Whether to show general AI generate button"
+            "title": "Contact Show Ai Generate",
+            "description": "Whether to show AI generate on the contact step"
           },
-          "names": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProfileNameSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Name section with resources"
-          },
-          "emails": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProfileEmailSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Email section with resources"
-          },
-          "flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProfileFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Flag section with configs"
-          },
-          "departments": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProfileDepartmentSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Department section with resources"
-          },
-          "roles": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProfileRoleSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Role section with resources"
-          }
-        },
-        "type": "object",
-        "title": "GetProfileApiResponse"
-      },
-      "GetProfileApiResponse-Output": {
-        "properties": {
-          "actor_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Actor Name",
-            "description": "Display name of the acting user"
-          },
-          "profile_exists": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Profile Exists",
-            "description": "Whether the profile exists"
-          },
-          "can_edit": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Can Edit",
-            "description": "Whether the actor can edit this profile"
-          },
-          "disabled_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Disabled Reason",
-            "description": "Reason editing is disabled, if any"
-          },
-          "group_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Group Id",
-            "description": "Group UUID for draft collaboration"
-          },
-          "profile_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Profile Id",
-            "description": "UUID of the profile"
-          },
-          "role": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Role",
-            "description": "Current role of the profile"
-          },
-          "role_options": {
+          "pending_ids": {
             "anyOf": [
               {
                 "items": {
-                  "type": "string"
+                  "type": "string",
+                  "format": "uuid"
                 },
                 "type": "array"
               },
@@ -79236,87 +79284,83 @@
                 "type": "null"
               }
             ],
-            "title": "Role Options",
-            "description": "Available role options"
-          },
-          "basic_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Basic Show Ai Generate",
-            "description": "Whether to show basic AI generate button"
-          },
-          "general_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "General Show Ai Generate",
-            "description": "Whether to show general AI generate button"
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers when available"
           },
           "names": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ProfileNameSection"
+                "items": {
+                  "$ref": "#/components/schemas/ProfileNameResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Name section with resources"
+            "title": "Names",
+            "description": "Name resources"
           },
           "emails": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ProfileEmailSection"
+                "items": {
+                  "$ref": "#/components/schemas/ProfileEmailResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Email section with resources"
+            "title": "Emails",
+            "description": "Email resources"
           },
           "flags": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ProfileFlagSection"
+                "items": {
+                  "$ref": "#/components/schemas/ProfileFlagConfig"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Flag section with configs"
+            "title": "Flags",
+            "description": "Flag configs"
           },
           "departments": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ProfileDepartmentSection"
+                "items": {
+                  "$ref": "#/components/schemas/ProfileDepartmentResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Department section with resources"
+            "title": "Departments",
+            "description": "Department resources"
           },
           "roles": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ProfileRoleSection"
+                "items": {
+                  "$ref": "#/components/schemas/ProfileRoleResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Role section with resources"
+            "title": "Roles",
+            "description": "Role resources"
           }
         },
         "type": "object",
@@ -87369,6 +87413,25 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -87407,6 +87470,19 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -102221,6 +102297,19 @@
       },
       "PatchProfileDraftApiRequest": {
         "properties": {
+          "draft_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Id",
+            "description": "Existing draft UUID to update"
+          },
           "input_draft_id": {
             "anyOf": [
               {
@@ -102271,6 +102360,21 @@
             "title": "Email",
             "description": "Email value to resolve or create"
           },
+          "emails": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emails",
+            "description": "Email values to resolve or create"
+          },
           "active_flag_id": {
             "anyOf": [
               {
@@ -102300,6 +102404,21 @@
             "title": "Department Ids",
             "description": "Department UUIDs to assign"
           },
+          "departments": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departments",
+            "description": "Department names to resolve"
+          },
           "email_ids": {
             "anyOf": [
               {
@@ -102316,6 +102435,18 @@
             "title": "Email Ids",
             "description": "Email resource UUIDs"
           },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role",
+            "description": "Role name to resolve"
+          },
           "role_id": {
             "anyOf": [
               {
@@ -102328,6 +102459,41 @@
             ],
             "title": "Role Id",
             "description": "Role resource UUID"
+          },
+          "pending_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Ids",
+            "description": "Resources to keep dormant"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key for draft writes"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Whether to accept the pending draft state",
+            "default": true
           }
         },
         "type": "object",
@@ -102347,6 +102513,19 @@
             "title": "Draft Id",
             "description": "UUID of the saved draft"
           },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key for draft writes"
+          },
           "message": {
             "type": "string",
             "title": "Message",
@@ -102355,7 +102534,7 @@
           "form_state": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ProfileDraftFormState"
+                "$ref": "#/components/schemas/app__infra__profile__types__DraftFormState"
               },
               {
                 "type": "null"
@@ -107210,6 +107389,25 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -107239,6 +107437,19 @@
             "title": "Message",
             "description": "Status message",
             "default": "Problem created successfully"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -108037,7 +108248,7 @@
       },
       "ProfileDepartmentResource": {
         "properties": {
-          "id": {
+          "department_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -108047,7 +108258,7 @@
                 "type": "null"
               }
             ],
-            "title": "Id",
+            "title": "Department Id",
             "description": "Unique resource identifier"
           },
           "name": {
@@ -108085,115 +108296,29 @@
             ],
             "title": "Generated",
             "description": "Whether the resource was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "ProfileDepartmentResource",
         "description": "Department resource for profile."
-      },
-      "ProfileDepartmentSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ProfileDepartmentResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned departments"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ProfileDepartmentResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available department resources"
-          }
-        },
-        "type": "object",
-        "title": "ProfileDepartmentSection"
-      },
-      "ProfileDraftFormState": {
-        "properties": {
-          "name_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name Id",
-            "description": "Resolved name resource UUID"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Resolved flag option UUID"
-          },
-          "department_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Department Ids",
-            "description": "Assigned department UUIDs"
-          },
-          "email_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Email Ids",
-            "description": "Assigned email resource UUIDs"
-          },
-          "role_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Role Id",
-            "description": "Assigned role resource UUID"
-          }
-        },
-        "type": "object",
-        "required": [
-          "department_ids",
-          "email_ids"
-        ],
-        "title": "ProfileDraftFormState",
-        "description": "Server-authoritative form state returned after draft save."
       },
       "ProfileEmailResource": {
         "properties": {
@@ -108233,47 +108358,29 @@
             ],
             "title": "Generated",
             "description": "Whether the email was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "ProfileEmailResource",
         "description": "Email resource for profile."
-      },
-      "ProfileEmailSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ProfileEmailResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned emails"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ProfileEmailResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available email resources"
-          }
-        },
-        "type": "object",
-        "title": "ProfileEmailSection"
       },
       "ProfileFieldError": {
         "properties": {
@@ -108368,6 +108475,24 @@
             ],
             "title": "Generated",
             "description": "Whether the flag was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
@@ -108377,38 +108502,6 @@
         ],
         "title": "ProfileFlagConfig",
         "description": "Enriched profile flag config for direct client consumption."
-      },
-      "ProfileFlagSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProfileFlagConfig"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Currently selected flag config"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ProfileFlagConfig"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available flag configs"
-          }
-        },
-        "type": "object",
-        "title": "ProfileFlagSection"
       },
       "ProfileNameResource": {
         "properties": {
@@ -108448,43 +108541,29 @@
             ],
             "title": "Generated",
             "description": "Whether the name was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "ProfileNameResource",
         "description": "Name resource for profile."
-      },
-      "ProfileNameSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProfileNameResource"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Currently selected name resource"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ProfileNameResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available name resources"
-          }
-        },
-        "type": "object",
-        "title": "ProfileNameSection"
       },
       "ProfileResultItem": {
         "properties": {
@@ -108586,70 +108665,78 @@
             "title": "Description",
             "description": "Role description text"
           },
-          "icon_value": {
+          "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Icon Value",
+            "title": "Icon Id",
             "description": "Icon identifier for the role"
           },
-          "color_hex": {
+          "color_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Color Hex",
-            "description": "Hex color code for the role"
+            "title": "Color Id",
+            "description": "Color identifier for the role"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level",
+            "description": "Role level for assignment filtering"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the role was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "ProfileRoleResource",
         "description": "Role resource for profile."
-      },
-      "ProfileRoleSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ProfileRoleResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned roles"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ProfileRoleResource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available role resources"
-          }
-        },
-        "type": "object",
-        "title": "ProfileRoleSection"
       },
       "ProfileSummary": {
         "properties": {
@@ -110005,6 +110092,47 @@
         "type": "object",
         "title": "RefreshParameterApiRequest",
         "description": "Request model for parameter refresh endpoint."
+      },
+      "RefreshProfileApiRequest": {
+        "properties": {
+          "targets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targets",
+            "description": "MV targets to refresh (omit for all). Options: profile_drafts_mv"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject. Only meaningful with idempotency_key",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "RefreshProfileApiRequest",
+        "description": "Request model for profile refresh endpoint."
       },
       "RefreshResponse": {
         "properties": {
@@ -125547,6 +125675,25 @@
             "type": "array",
             "title": "Profiles",
             "description": "List of profiles to update"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -125565,6 +125712,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item update results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -125583,6 +125743,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item update results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -129280,6 +129453,203 @@
             ],
             "title": "Parameter Ids",
             "description": "Parameter group IDs to filter by (parameter_fields section only)"
+          }
+        },
+        "type": "object",
+        "title": "SectionFilter",
+        "description": "Per-section filter options for GET requests."
+      },
+      "app__infra__profile__types__DraftFormState": {
+        "properties": {
+          "name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Id",
+            "description": "Resolved name resource UUID"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Resolved name value"
+          },
+          "flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Id",
+            "description": "Resolved flag option UUID"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Resolved flag option UUID"
+          },
+          "departments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Departments",
+            "description": "Resolved department names"
+          },
+          "department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Department Ids",
+            "description": "Assigned department UUIDs"
+          },
+          "emails": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Emails",
+            "description": "Resolved email values"
+          },
+          "email_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Email Ids",
+            "description": "Assigned email resource UUIDs"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role",
+            "description": "Assigned role name"
+          },
+          "role_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Id",
+            "description": "Assigned role resource UUID"
+          },
+          "pending_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Ids",
+            "description": "Pending resource UUIDs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "department_ids",
+          "email_ids"
+        ],
+        "title": "DraftFormState",
+        "description": "Server-authoritative form state returned after draft save."
+      },
+      "app__infra__profile__types__SectionFilter": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Filter options by search text"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Max options to return"
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected",
+            "description": "Only return selected items"
+          },
+          "suggested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested",
+            "description": "Only return suggested items"
+          },
+          "include": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include",
+            "description": "Include this section in response (default true)"
           }
         },
         "type": "object",

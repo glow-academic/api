@@ -1,0 +1,8 @@
+INPUT:
+  chat_entry_id: 019d96bf-947f-7e05-aea0-c0bc64e9e361
+  draft_id: 019d96bf-947f-7e05-aea0-c0bc64e9e361
+
+OUTPUT:
+### Chat Bundle
+- **Chat Entry ID:** ``
+- **Group ID:** ``

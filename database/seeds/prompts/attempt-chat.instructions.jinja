@@ -3,7 +3,6 @@
 {% if params %}
 {% if params.draft_id %}
 **Draft ID:** `{{ params.draft_id }}`
-Use `Attempt_Chat_Get(draft_id: "{{ params.draft_id }}")` to see the current chat configuration.
 {% endif %}
 {% if params.chat_id %}
 **Chat ID:** `{{ params.chat_id }}`
@@ -17,15 +16,6 @@ Use `Attempt_Chat_Get(draft_id: "{{ params.draft_id }}")` to see the current cha
 **Group ID:** `{{ group_id }}`
 {% endif %}
 
-## Parameters
-
-{% if params %}
-Pass these to your tools:
-{% for key, value in params.items() %}
-- `{{ key }}`: `{{ value }}`
-{% endfor %}
-{% endif %}
-
 ## Tools
 
 {% for tool in tools %}
@@ -33,12 +23,28 @@ Pass these to your tools:
 
 {% endfor %}
 
-## What To Do
+## Steps
 
-Always respond with tool calls — never output plain text.
+1. Call **Attempt_Chat_Get**(chat_entry_id: "{{ params.chat_id }}", draft_id: "{{ params.draft_id }}")
+2. From the response, collect ALL resource IDs from the **Available** sections:
+   - `scenarios_ids` — all scenario IDs
+   - `personas_ids` — all persona IDs
+   - `objectives_ids` — all objective IDs
+   - `problem_statements_ids` — all problem statement IDs
+   - `questions_ids` — all question IDs
+   - `documents_ids` — all document IDs
+   - `departments_ids` — all department IDs
+   - `images_ids` — all image IDs (if any)
+   - `videos_ids` — all video IDs (if any)
+   - `options_ids` — all option IDs (if any)
+3. Call **Attempt_Chat_Create** with:
+   - `attempt_id`: `"{{ params.attempt_id }}"`
+   - `chat_id`: `"{{ params.chat_id }}"`
+   - `text_enabled`: `true`
+   - All the resource IDs collected in step 2
+4. Call **Attempt_Group**(group_id: "{{ group_id }}", name: "short descriptive name")
 
-{% set tool_names = tools | map(attribute='name') | list %}
-
-1. First call **Attempt_Chat_Get** with the `draft_id` to see the chat configuration (scenarios, personas, objectives, etc.)
-2. Then call **Attempt_Chat_Create** with the `chat_id` and all resource IDs from the response
-3. Finally call **Attempt_Group** with the `group_id` and a short descriptive name
+**IMPORTANT:**
+- Use `chat_id: "{{ params.chat_id }}"` and `attempt_id: "{{ params.attempt_id }}"` exactly — do NOT substitute the draft_id
+- Pass ALL available resource IDs to Attempt_Chat_Create — do not leave them empty
+- If a resource section has no Available items, omit that field

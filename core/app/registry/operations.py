@@ -869,6 +869,8 @@ def _item_types(
 
 
 INFRA_ITEM_TYPES: dict[tuple[str, str], tuple[str, str]] = {
+    # Attempt chat create uses its own request type (flat, not wrapped)
+    ("attempt", "chat_create"): (f"{_IT}.attempt.chat_create", "CreateAttemptChatApiRequest"),
     **_item_types("agent", "Agent"),
     **_item_types("auth", "Auth"),
     **_item_types("cohort", "Cohort"),

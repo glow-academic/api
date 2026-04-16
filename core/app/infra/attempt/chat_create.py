@@ -101,6 +101,7 @@ async def create_attempt_chat_impl(
     session_id: UUID,
     request: CreateAttemptChatApiRequest,
     soft: bool = False,
+    **_kwargs,
 ) -> CreateAttemptChatApiResponse:
     """Create an attempt_chat entry within an attempt."""
 

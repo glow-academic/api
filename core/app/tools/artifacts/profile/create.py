@@ -1,4 +1,8 @@
-"""Profile artifact CREATE — tool layer."""
+"""Profile artifact CREATE — tool layer.
+
+Idempotent via ON CONFLICT on artifact + upsert_* for junctions.
+Re-calling with the same id promotes a dormant artifact.
+"""
 
 from uuid import UUID
 
@@ -6,21 +10,23 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.junctions import (
-    insert_multi,
-    insert_single,
+    upsert_multi,
+    upsert_single,
 )
 from app.tools.artifacts.profile.types import CreateProfileResponse
 from app.tools.resources.emails.get import get_emails
 
 OWNER_COL = "profile_id"
 
-# (junction_table, resource_column)
-SINGLE_JUNCTIONS: list[tuple[str, str]] = [("profile_names_junction", "names_id")]
+# (junction_table, resource_column, pk_constraint)
+SINGLE_JUNCTIONS: list[tuple[str, str, str]] = [
+    ("profile_names_junction", "names_id", "profile_names_pkey"),
+]
 
-MULTI_JUNCTIONS: list[tuple[str, str]] = [
-    ("profile_departments_junction", "departments_id"),
-    ("profile_roles_junction", "roles_id"),
-    ("profile_profiles_junction", "profiles_id"),
+MULTI_JUNCTIONS: list[tuple[str, str, str]] = [
+    ("profile_departments_junction", "departments_id", "profile_departments_pkey"),
+    ("profile_roles_junction", "roles_id", "profile_roles_pkey"),
+    ("profile_profiles_junction", "profiles_id", "profile_profiles_junction_pkey"),
 ]
 
 
@@ -41,6 +47,7 @@ async def _insert_profile_emails(
     redis: Redis,
     generated: bool,
     mcp: bool,
+    soft: bool,
 ) -> None:
     if not email_ids:
         return
@@ -49,11 +56,17 @@ async def _insert_profile_emails(
     await conn.executemany(
         """
         INSERT INTO profile_emails_junction
-            (profile_id, emails_id, email, generated, mcp)
-        VALUES ($1, $2, $3, $4, $5)
+            (profile_id, emails_id, email, generated, mcp, active)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT ON CONSTRAINT profile_emails_pkey
+        DO UPDATE SET
+            email = EXCLUDED.email,
+            generated = EXCLUDED.generated,
+            mcp = EXCLUDED.mcp,
+            active = EXCLUDED.active
         """,
         [
-            (profile_id, email_id, email_value, generated, mcp)
+            (profile_id, email_id, email_value, generated, mcp, not soft)
             for email_id, email_value in values
         ],
     )
@@ -81,6 +94,7 @@ async def create_profile(
         """
         INSERT INTO profile_artifact (id, active, generated, mcp)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3)
+        ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         is_active,
@@ -90,17 +104,19 @@ async def create_profile(
     )
 
     # Single-select junctions
-    for (table, col), val in zip(SINGLE_JUNCTIONS, [name_id]):
+    for (table, col, constraint), val in zip(SINGLE_JUNCTIONS, [name_id]):
         if val is not None:
-            await insert_single(
+            await upsert_single(
                 conn,
                 table=table,
                 owner_col=OWNER_COL,
                 owner_id=profile_id,
                 resource_col=col,
                 resource_id=val,
+                constraint=constraint,
                 generated=generated,
                 mcp=mcp,
+                soft=soft,
             )
     # Multi-select junctions (simple)
     multi_vals = [
@@ -108,17 +124,19 @@ async def create_profile(
         role_ids,
         profile_ids,
     ]
-    for (table, col), vals in zip(MULTI_JUNCTIONS, multi_vals):
+    for (table, col, constraint), vals in zip(MULTI_JUNCTIONS, multi_vals):
         if vals:
-            await insert_multi(
+            await upsert_multi(
                 conn,
                 table=table,
                 owner_col=OWNER_COL,
                 owner_id=profile_id,
                 resource_col=col,
                 resource_ids=vals,
+                constraint=constraint,
                 generated=generated,
                 mcp=mcp,
+                soft=soft,
             )
     if email_ids:
         if redis is None:
@@ -130,19 +148,22 @@ async def create_profile(
             redis=redis,
             generated=generated,
             mcp=mcp,
+            soft=soft,
         )
 
     # Flags
     if flag_ids:
-        await insert_multi(
+        await upsert_multi(
             conn,
             table="profile_flags_junction",
             owner_col=OWNER_COL,
             owner_id=profile_id,
             resource_col="flags_id",
             resource_ids=flag_ids,
+            constraint="profile_flags_pkey",
             generated=generated,
             mcp=mcp,
+            soft=soft,
         )
 
     return CreateProfileResponse(id=profile_id)

@@ -1,0 +1,23 @@
+## Context
+
+**Draft ID:** `019d96bf-947f-7e05-aea0-c0bc64e9e361`
+Use `Attempt_Chat_Get(draft_id: "019d96bf-947f-7e05-aea0-c0bc64e9e361")` to see the current chat configuration.
+
+**Group ID:** `019d96bf-94bb-7705-aee7-bd2e4dc949de`
+
+## Parameters
+
+Pass these to your tools:
+- `draft_id`: `019d96bf-947f-7e05-aea0-c0bc64e9e361`
+
+## Tools
+
+
+## What To Do
+
+Always respond with tool calls — never output plain text.
+
+
+1. First call **Attempt_Chat_Get** with the `draft_id` to see the chat configuration (scenarios, personas, objectives, etc.)
+2. Then call **Attempt_Chat_Create** with the `chat_id` and all resource IDs from the response
+3. Finally call **Attempt_Group** with the `group_id` and a short descriptive name

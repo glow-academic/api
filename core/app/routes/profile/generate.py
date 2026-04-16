@@ -9,11 +9,13 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request
 
 from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.profile.group import group_profile_impl
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.profile.generate import generate_profile_impl
 from app.infra.websocket.generation_types import (
     ArtifactGenerateRequest,
     ArtifactGenerateResponse,
+    GenerateConfig,
 )
 from app.utils.error.handle_route_error import handle_route_error
 
@@ -42,6 +44,21 @@ async def generate_profile(
 
         pool = get_pool()
         redis = get_redis_client()
+        group_id = None
+        if session_id:
+            group_result = await group_profile_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+            )
+            group_id = group_result.group_id
+
+        current_config = request.config or GenerateConfig()
+        if not current_config.group_id and group_id:
+            request = request.model_copy(
+                update={"config": current_config.model_copy(update={"group_id": str(group_id)})}
+            )
 
         async def _runner() -> ArtifactGenerateResponse:
             return await generate_profile_impl(
@@ -59,6 +76,7 @@ async def generate_profile(
             profile_id=profile_id,
             session_id=session_id,
             operation="generate",
+            group_id=group_id,
             arguments=request.model_dump(mode="json"),
             response_model=ArtifactGenerateResponse,
             runner=_runner,
