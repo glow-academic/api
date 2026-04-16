@@ -46,6 +46,8 @@ async def provider_delete(sid: str, data: dict[str, Any]) -> None:
             profile_id=identity.profile_id,
             provider_ids=payload.provider_ids,
             session_id=identity.session_id,
+            accept=payload.accept,
+            idempotency_key=payload.idempotency_key,
         ),
         arguments=payload.model_dump(mode="json"),
     )

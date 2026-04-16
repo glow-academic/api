@@ -49,8 +49,18 @@ async def get_tool(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
+                id=request.id,
                 tool_id=request.tool_id,
                 draft_id=request.draft_id,
+                filters={
+                    "names": request.names,
+                    "descriptions": request.descriptions,
+                    "flags": request.flags,
+                    "args": request.args,
+                    "arg_positions": request.arg_positions,
+                    "args_outputs": request.args_outputs,
+                    "permissions": request.permissions,
+                },
                 bypass_cache=bypass_cache,
             )
 

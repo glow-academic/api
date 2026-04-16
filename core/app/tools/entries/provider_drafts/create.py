@@ -12,6 +12,7 @@ from app.tools.entries.provider_drafts.types import (
 async def create_provider_draft(
     conn: asyncpg.Connection,
     session_id: UUID,
+    *,
     id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
@@ -23,12 +24,18 @@ async def create_provider_draft(
     name_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
     value_id: UUID | None = None,
+    pending_ids: set[UUID] | None = None,
 ) -> CreateProviderDraftResponse:
-    """Create a provider_drafts entry with optional connection table links."""
+    """Create a provider_drafts entry with optional connection table links.
+
+    pending_ids: resource IDs that should be created with active=false.
+    soft: when True, all entry + connection rows are active=false.
+    """
     draft_id = await conn.fetchval(
         """
         INSERT INTO provider_drafts_entry (id, session_id, active, mcp, generated)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
+        ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         session_id,
@@ -59,12 +66,15 @@ async def create_provider_draft(
         ("provider_drafts_values_connection", "values_id", [value_id] if value_id else []),
     ]
 
+    _pending = pending_ids or set()
     for table, col, ids in connections:
         for rid in ids:
             await conn.execute(
-                f"INSERT INTO {table} (draft_id, {col}) VALUES ($1, $2)",
+                f"INSERT INTO {table} (draft_id, {col}, active) VALUES ($1, $2, $3) "
+                f"ON CONFLICT (draft_id, {col}) DO UPDATE SET active = EXCLUDED.active",
                 draft_id,
                 rid,
+                False if soft else (rid not in _pending),
             )
 
     return CreateProviderDraftResponse(id=draft_id)

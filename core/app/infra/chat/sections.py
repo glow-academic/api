@@ -50,8 +50,25 @@ def _build_chat_section(
     *,
     context: ArtifactContext,
     scores: ArtifactToolScores,
+    attempt_mode: bool = False,
+    scenario_flags: dict[str, bool] | None = None,
 ) -> BaseChatSection:
     cls = _SECTION_CLASSES[resource_key]
+
+    # In attempt mode, hide sections that are disabled or auto-resolved
+    if attempt_mode:
+        # Departments are auto-resolved — never shown to the model
+        if resource_key == "departments":
+            return cls(show=False, required=False)
+        # Check scenario flag gating for flag-controlled sections
+        if scenario_flags:
+            from app.infra.chat.permissions import compute_bundle_section_show
+            if not compute_bundle_section_show(resource_key, scenario_flags):
+                return cls(show=False, required=False)
+            # Options follow questions flag
+            if resource_key == "options" and not scenario_flags.get("questions_enabled", True):
+                return cls(show=False, required=False)
+
     pair = context.resources.get(resource_key)
     if not pair:
         return cls(show=True, required=False)
@@ -71,31 +88,29 @@ def build_chat_get_result(
     group_id: UUID,
     chat_entry_id: UUID | None,
     attempt_id: UUID | None,
+    attempt_mode: bool = False,
+    scenario_flags: dict[str, bool] | None = None,
 ) -> GetChatResponse:
     """Build the canonical chat bundle payload from resolved context."""
+    kw = dict(context=context, scores=scores,
+              attempt_mode=attempt_mode, scenario_flags=scenario_flags)
     return GetChatResponse(
         chat_entry_id=chat_entry_id or group_id,
         attempt_id=attempt_id,
         group_id=group_id,
-        names=_build_chat_section("names", context=context, scores=scores),
-        descriptions=_build_chat_section(
-            "descriptions", context=context, scores=scores
-        ),
-        flags=_build_chat_section("flags", context=context, scores=scores),
-        departments=_build_chat_section("departments", context=context, scores=scores),
-        personas=_build_chat_section("personas", context=context, scores=scores),
-        documents=_build_chat_section("documents", context=context, scores=scores),
-        parameter_fields=_build_chat_section(
-            "parameter_fields", context=context, scores=scores
-        ),
-        scenarios=_build_chat_section("scenarios", context=context, scores=scores),
-        fields=_build_chat_section("fields", context=context, scores=scores),
-        questions=_build_chat_section("questions", context=context, scores=scores),
-        options=_build_chat_section("options", context=context, scores=scores),
-        videos=_build_chat_section("videos", context=context, scores=scores),
-        images=_build_chat_section("images", context=context, scores=scores),
-        problem_statements=_build_chat_section(
-            "problem_statements", context=context, scores=scores
-        ),
-        objectives=_build_chat_section("objectives", context=context, scores=scores),
+        names=_build_chat_section("names", **kw),
+        descriptions=_build_chat_section("descriptions", **kw),
+        flags=_build_chat_section("flags", **kw),
+        departments=_build_chat_section("departments", **kw),
+        personas=_build_chat_section("personas", **kw),
+        documents=_build_chat_section("documents", **kw),
+        parameter_fields=_build_chat_section("parameter_fields", **kw),
+        scenarios=_build_chat_section("scenarios", **kw),
+        fields=_build_chat_section("fields", **kw),
+        questions=_build_chat_section("questions", **kw),
+        options=_build_chat_section("options", **kw),
+        videos=_build_chat_section("videos", **kw),
+        images=_build_chat_section("images", **kw),
+        problem_statements=_build_chat_section("problem_statements", **kw),
+        objectives=_build_chat_section("objectives", **kw),
     )

@@ -1,8 +1,4 @@
-"""Provider problem logic — per-artifact diagnostic entry point.
-
-Creates a problem entry scoped to the provider artifact type.
-Follows the same group -> run -> call -> problem chain as activity/problem.
-"""
+"""Provider problem logic — per-artifact diagnostic entry point."""
 
 from __future__ import annotations
 
@@ -13,16 +9,12 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.permissions_helpers import has_permission
+from app.infra.provider.refresh import refresh_provider_impl
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.provider.types import ProblemProviderApiResponse
-from app.tools.entries.calls.create import create_call
-from app.tools.entries.groups.create import create_group
 from app.tools.entries.problems.create import create_problem as create_problem_entry
-from app.tools.entries.runs.create import create_run
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 ARTIFACT_TYPE = "provider"
-PROBLEM_TAGS = ["problems", "views", "providers"]
 VALID_PROBLEM_TYPES = ("feature", "bug", "question", "other")
 
 
@@ -34,18 +26,12 @@ async def problem_provider_impl(
     session_id: UUID,
     type: str,
     message: str,
+    call_id: UUID | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    **_kwargs,
 ) -> ProblemProviderApiResponse:
-    """Create a problem entry for the provider artifact.
-
-    Flow:
-      1. Validate type and message
-      2. Resolve profile identity context
-      3. Permission check -- provider:problem
-      4. Create group -> run -> call -> problem chain
-      5. Invalidate cache tags
-    """
-    # -- Step 1: Validation ─────────────────────────────────────────────
-
     if type not in VALID_PROBLEM_TYPES:
         raise HTTPException(
             status_code=400,
@@ -61,8 +47,6 @@ async def problem_provider_impl(
             detail="Message must be less than 1000 characters",
         )
 
-    # -- Step 2: Profile context ────────────────────────────────────────
-
     identity = await resolve_profile_identity_context(pool, profile_id, redis)
     if identity is None:
         raise HTTPException(
@@ -70,40 +54,67 @@ async def problem_provider_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    # -- Step 3: Permission check ───────────────────────────────────────
-
     if not has_permission(identity.role_permissions, ARTIFACT_TYPE, "problem"):
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to report provider problems.",
         )
 
-    # -- Step 4: Create entry chain ─────────────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                await create_problem_entry(
+                    conn,
+                    session_id=session_id,
+                    call_id=call_id or UUID(int=0),
+                    type=type,
+                    artifact_type=ARTIFACT_TYPE,
+                    message=message,
+                    id=idempotency_key,
+                    profile_id=identity.profiles_id,
+                    soft=False,
+                )
+
+            await refresh_provider_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
+            )
+
+        return ProblemProviderApiResponse(
+            problem_id=idempotency_key,
+            success=True,
+            message="Problem accepted" if accept else "Problem rejected",
+            idempotency_key=idempotency_key,
+        )
 
     async with pool.acquire() as conn:
-        group_result = await create_group(conn, session_id=session_id, artifact_type=ARTIFACT_TYPE)
-        run_result = await create_run(
-            conn, group_id=group_result.id, session_id=session_id
-        )
-        call_result = await create_call(
-            conn, run_id=run_result.id, session_id=session_id
-        )
         problem_result = await create_problem_entry(
             conn,
             session_id=session_id,
-            call_id=call_result.id,
+            call_id=call_id or UUID(int=0),
             type=type,
             artifact_type=ARTIFACT_TYPE,
             message=message,
+            id=idempotency_key,
             profile_id=identity.profiles_id,
+            soft=soft,
         )
 
-    # -- Step 5: Invalidate cache ───────────────────────────────────────
-
-    await invalidate_tags(PROBLEM_TAGS, redis=redis)
+    await refresh_provider_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or problem_result.id,
+    )
 
     return ProblemProviderApiResponse(
         problem_id=problem_result.id,
         success=True,
-        message="Problem created successfully",
+        message="Problem created (pending acceptance)" if soft else "Problem created successfully",
+        idempotency_key=idempotency_key or problem_result.id,
     )

@@ -40,6 +40,7 @@ class PracticeStartRequest(BaseModel):
 class AttemptStartResponse(BaseModel):
     attempt_id: UUID
     chat_id: UUID
+    department_id: UUID | None = None
 
 
 async def practice_start_impl(
@@ -175,6 +176,20 @@ async def practice_start_impl(
     num_chats = len(chat_entries)
     first_chat_id = chat_entries[0].chat_id
 
+    # Resolve department from user + chat template intersection
+    from app.infra.attempt.department import resolve_attempt_department
+    from app.tools.entries.chat.get import get_chats as get_chat_entries_fn
+
+    _resolved_department_id: UUID | None = None
+    async with pool.acquire() as conn:
+        _chat_templates = await get_chat_entries_fn(conn, [first_chat_id])
+    if _chat_templates:
+        _resolved_department_id = resolve_attempt_department(
+            user_department_ids=identity.department_ids,
+            user_primary_department_id=identity.primary_department_id,
+            chat_department_ids=_chat_templates[0].department_ids,
+        )
+
     sim_name = None
     sim_desc = None
     if simulation_ids:
@@ -220,4 +235,5 @@ async def practice_start_impl(
     return AttemptStartResponse(
         attempt_id=attempt_result.id,
         chat_id=first_chat_id,
+        department_id=_resolved_department_id,
     )

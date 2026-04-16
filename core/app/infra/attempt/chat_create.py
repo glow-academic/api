@@ -122,7 +122,86 @@ async def create_attempt_chat_impl(
             detail="You don't have permission to create attempt chats.",
         )
 
-    # Steps 3-5: Create run, call, attempt_chat, bridge in a transaction
+    # Step 3: Fetch chat template for validation & auto-resolution
+    from app.infra.attempt.department import resolve_attempt_department
+    from app.tools.entries.chat.get import get_chats as get_chat_entries
+
+    async with pool.acquire() as conn:
+        templates = await get_chat_entries(conn, [request.chat_id])
+    if not templates:
+        raise HTTPException(status_code=404, detail="Chat template not found.")
+    tmpl = templates[0]
+
+    # Step 4: Auto-resolve department
+    department_id = resolve_attempt_department(
+        user_department_ids=profile.department_ids,
+        user_primary_department_id=profile.primary_department_id,
+        chat_department_ids=tmpl.department_ids,
+    )
+
+    # Step 5: Reject model-supplied departments (auto-resolved)
+    if request.departments_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="departments_ids cannot be set — auto-resolved from user profile.",
+        )
+
+    # Step 6: Config flag gating — reject resources for disabled sections
+    if not (tmpl.questions_enabled or False) and (request.questions_ids or request.options_ids):
+        raise HTTPException(status_code=400, detail="Questions are not enabled for this chat.")
+    if not (tmpl.video_enabled or False) and request.videos_ids:
+        raise HTTPException(status_code=400, detail="Video is not enabled for this chat.")
+    if not (tmpl.images_enabled or False) and request.images_ids:
+        raise HTTPException(status_code=400, detail="Images are not enabled for this chat.")
+    if not (tmpl.problem_statement_enabled or False) and request.problem_statements_ids:
+        raise HTTPException(status_code=400, detail="Problem statements are not enabled for this chat.")
+    if not (tmpl.objectives_enabled or False) and request.objectives_ids:
+        raise HTTPException(status_code=400, detail="Objectives are not enabled for this chat.")
+
+    # Step 7: Pre-satisfied locking — reject if template already has resources
+    if tmpl.persona_ids and request.personas_ids:
+        raise HTTPException(status_code=400, detail="Personas are already configured on the chat template.")
+    if tmpl.document_ids and request.documents_ids:
+        raise HTTPException(status_code=400, detail="Documents are already configured on the chat template.")
+    if tmpl.problem_statement_ids and request.problem_statements_ids:
+        raise HTTPException(status_code=400, detail="Problem statements are already configured on the chat template.")
+    if tmpl.objective_ids and request.objectives_ids:
+        raise HTTPException(status_code=400, detail="Objectives are already configured on the chat template.")
+    if tmpl.question_ids and request.questions_ids:
+        raise HTTPException(status_code=400, detail="Questions are already configured on the chat template.")
+    if tmpl.option_ids and request.options_ids:
+        raise HTTPException(status_code=400, detail="Options are already configured on the chat template.")
+    if tmpl.video_ids and request.videos_ids:
+        raise HTTPException(status_code=400, detail="Videos are already configured on the chat template.")
+    if tmpl.image_ids and request.images_ids:
+        raise HTTPException(status_code=400, detail="Images are already configured on the chat template.")
+
+    # Step 8: Cardinality enforcement
+    if (tmpl.problem_statement_enabled or False) and not tmpl.problem_statement_ids:
+        if not request.problem_statements_ids or len(request.problem_statements_ids) != 1:
+            raise HTTPException(status_code=400, detail="Exactly 1 problem statement is required.")
+    if (tmpl.video_enabled or False) and not tmpl.video_ids:
+        if request.videos_ids and len(request.videos_ids) > 1:
+            raise HTTPException(status_code=400, detail="At most 1 video allowed.")
+    if (tmpl.images_enabled or False) and not tmpl.image_ids:
+        if request.images_ids and len(request.images_ids) > 1:
+            raise HTTPException(status_code=400, detail="At most 1 image allowed.")
+
+    # Step 9: Merge — template pre-set + model selections + auto department
+    final_departments_ids = [department_id] if department_id else []
+    final_personas_ids = list(tmpl.persona_ids) if tmpl.persona_ids else (request.personas_ids or None)
+    final_documents_ids = list(tmpl.document_ids) if tmpl.document_ids else (request.documents_ids or None)
+    final_problem_statements_ids = list(tmpl.problem_statement_ids) if tmpl.problem_statement_ids else (request.problem_statements_ids or None)
+    final_objectives_ids = list(tmpl.objective_ids) if tmpl.objective_ids else (request.objectives_ids or None)
+    final_questions_ids = list(tmpl.question_ids) if tmpl.question_ids else (request.questions_ids or None)
+    final_options_ids = list(tmpl.option_ids) if tmpl.option_ids else (request.options_ids or None)
+    final_videos_ids = list(tmpl.video_ids) if tmpl.video_ids else (request.videos_ids or None)
+    final_images_ids = list(tmpl.image_ids) if tmpl.image_ids else (request.images_ids or None)
+    final_parameter_fields_ids = list(tmpl.parameter_field_ids) if tmpl.parameter_field_ids else (request.parameter_fields_ids or None)
+    final_names_ids = list(tmpl.name_ids) if tmpl.name_ids else (request.names_ids or None)
+    final_descriptions_ids = list(tmpl.description_ids) if tmpl.description_ids else (request.descriptions_ids or None)
+
+    # Steps 10-12: Create run, call, attempt_chat, bridge in a transaction
     async with pool.acquire() as conn:
         async with conn.transaction():
             run_result = await create_run(
@@ -167,18 +246,18 @@ async def create_attempt_chat_impl(
                 rubrics_ids=request.rubrics_ids,
                 standards_ids=request.standards_ids,
                 standard_groups_ids=request.standard_groups_ids,
-                departments_ids=request.departments_ids,
-                personas_ids=request.personas_ids,
-                problem_statements_ids=request.problem_statements_ids,
-                objectives_ids=request.objectives_ids,
-                questions_ids=request.questions_ids,
-                options_ids=request.options_ids,
-                videos_ids=request.videos_ids,
-                images_ids=request.images_ids,
-                documents_ids=request.documents_ids,
-                parameter_fields_ids=request.parameter_fields_ids,
-                names_ids=request.names_ids,
-                descriptions_ids=request.descriptions_ids,
+                departments_ids=final_departments_ids,
+                personas_ids=final_personas_ids,
+                problem_statements_ids=final_problem_statements_ids,
+                objectives_ids=final_objectives_ids,
+                questions_ids=final_questions_ids,
+                options_ids=final_options_ids,
+                videos_ids=final_videos_ids,
+                images_ids=final_images_ids,
+                documents_ids=final_documents_ids,
+                parameter_fields_ids=final_parameter_fields_ids,
+                names_ids=final_names_ids,
+                descriptions_ids=final_descriptions_ids,
                 parameters_ids=request.parameters_ids,
                 soft=soft,
             )
@@ -191,12 +270,12 @@ async def create_attempt_chat_impl(
                 soft=soft,
             )
 
-    # Step 6: Refresh MVs
+    # Step 13: Refresh MVs
     async with pool.acquire() as conn:
         await refresh_attempt_chat(conn)
         await refresh_attempt_chat_bridge(conn)
 
-    # Step 7: Return
+    # Step 14: Return
     return CreateAttemptChatApiResponse(
         attempt_chat_id=result.id,
         idempotency_key=request.idempotency_key,

@@ -25,26 +25,27 @@
 
 ## Steps
 
-1. Call **Attempt_Chat_Get**(chat_entry_id: "{{ params.chat_id }}", draft_id: "{{ params.draft_id }}")
-2. From the response, collect ALL resource IDs from the **Available** sections:
-   - `scenarios_ids` — all scenario IDs
-   - `personas_ids` — all persona IDs
-   - `objectives_ids` — all objective IDs
-   - `problem_statements_ids` — all problem statement IDs
-   - `questions_ids` — all question IDs
-   - `documents_ids` — all document IDs
-   - `departments_ids` — all department IDs
-   - `images_ids` — all image IDs (if any)
-   - `videos_ids` — all video IDs (if any)
-   - `options_ids` — all option IDs (if any)
+1. Call **Attempt_Chat_Get**(chat_entry_id: "{{ params.chat_id }}", draft_id: "{{ params.draft_id }}", attempt_id: "{{ params.attempt_id }}")
+2. From the response, collect resource IDs from **Available** sections only:
+   - `personas_ids` — all available persona IDs
+   - `objectives_ids` — all available objective IDs (if section shown)
+   - `problem_statements_ids` — exactly 1 problem statement ID (if section shown)
+   - `questions_ids` — all available question IDs (if section shown)
+   - `documents_ids` — all available document IDs
+   - `images_ids` — at most 1 image ID (if section shown)
+   - `videos_ids` — at most 1 video ID (if section shown)
+   - `options_ids` — all available option IDs (if section shown)
+   - **Skip** any section marked "Selected (locked)" — those are already set
+   - **Skip** any section not shown — it's disabled
+   - **Never pass** `scenarios_ids` or `departments_ids` — they are auto-configured
 3. Call **Attempt_Chat_Create** with:
    - `attempt_id`: `"{{ params.attempt_id }}"`
    - `chat_id`: `"{{ params.chat_id }}"`
    - `text_enabled`: `true`
-   - All the resource IDs collected in step 2
+   - All the resource IDs collected in step 2 (only from Available sections)
 4. Call **Attempt_Group**(group_id: "{{ group_id }}", name: "short descriptive name")
 
 **IMPORTANT:**
 - Use `chat_id: "{{ params.chat_id }}"` and `attempt_id: "{{ params.attempt_id }}"` exactly — do NOT substitute the draft_id
-- Pass ALL available resource IDs to Attempt_Chat_Create — do not leave them empty
+- Only pass IDs from **Available** sections — locked and hidden sections are handled automatically
 - If a resource section has no Available items, omit that field

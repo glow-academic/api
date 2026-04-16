@@ -8,7 +8,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import ListFilterSection
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.tool_drafts.types import GetToolDraftResponse
 
@@ -25,45 +25,95 @@ class ToolFlagConfig(BaseModel):
     required: bool = Field(False, description="Whether this flag is required")
     generated: bool | None = Field(None, description="Whether this flag was AI-generated")
 
-
-class ToolNameSection(BaseResourceSection):
-    resource: object | None = Field(None, description="Currently selected name resource")
-    resources: list | None = Field(None, description="Available name resources")
-
-
-class ToolDescriptionSection(BaseResourceSection):
-    resource: object | None = Field(None, description="Currently selected description resource")
-    resources: list | None = Field(None, description="Available description resources")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
-class ToolFlagSection(BaseResourceSection):
-    current: ToolFlagConfig | None = Field(None, description="Currently active flag config")
-    resources: list[ToolFlagConfig] | None = Field(None, description="Available flag configs")
+class ToolNameResource(BaseModel):
+    id: UUID | None = Field(None, description="Name resource identifier")
+    name: str | None = Field(None, description="Tool display name")
+    generated: bool | None = Field(None, description="Whether the name was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
-class ToolArgSection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned arguments")
-    resources: list | None = Field(None, description="Available arguments")
+class ToolDescriptionResource(BaseModel):
+    id: UUID | None = Field(None, description="Description resource identifier")
+    description: str | None = Field(None, description="Tool description")
+    generated: bool | None = Field(None, description="Whether the description was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
-class ToolArgOutputSection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned argument outputs")
-    resources: list | None = Field(None, description="Available argument outputs")
+class ToolArgResource(BaseModel):
+    id: UUID | None = Field(None, description="Argument resource identifier")
+    name: str | None = Field(None, description="Argument name")
+    description: str | None = Field(None, description="Argument description")
+    field_type: str | None = Field(None, description="Argument field type")
+    required: bool | None = Field(None, description="Whether the argument is required")
+    default_value: str | None = Field(None, description="Argument default value")
+    generated: bool | None = Field(None, description="Whether the argument was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
-class ToolArgPositionSection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned argument positions")
-    resources: list | None = Field(None, description="Available argument positions")
+class ToolArgPositionResource(BaseModel):
+    id: UUID | None = Field(None, description="Argument position resource identifier")
+    args_id: UUID | None = Field(None, description="Associated argument identifier")
+    value: int | None = Field(None, description="Position value")
+    generated: bool | None = Field(None, description="Whether the argument position was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
-class ToolPermissionSection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned permissions")
-    resources: list | None = Field(None, description="Available permissions")
+class ToolArgOutputResource(BaseModel):
+    id: UUID | None = Field(None, description="Argument output resource identifier")
+    args_id: UUID | None = Field(None, description="Associated argument identifier")
+    name: str | None = Field(None, description="Output template name")
+    template: str | None = Field(None, description="Output template body")
+    generated: bool | None = Field(None, description="Whether the output template was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class ToolPermissionResource(BaseModel):
+    id: UUID | None = Field(None, description="Permission resource identifier")
+    artifact: str | None = Field(None, description="Permission artifact type")
+    operation: str | None = Field(None, description="Permission operation")
+    name: str | None = Field(None, description="Permission display name")
+    description: str | None = Field(None, description="Permission description")
+    generated: bool | None = Field(None, description="Whether the permission was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class SectionFilter(BaseModel):
+    search: str | None = Field(None, description="Filter options by search text")
+    limit: int | None = Field(None, description="Max options to return")
+    selected: bool | None = Field(None, description="Only return selected items")
+    suggested: bool | None = Field(None, description="Only return suggested items")
+    include: bool | None = Field(None, description="Include this section in response (default true)")
 
 
 class GetToolApiRequest(BaseModel):
-    tool_id: UUID | None = Field(None, description="Tool unique identifier")
+    id: UUID | None = Field(None, description="Tool unique identifier")
+    tool_id: UUID | None = Field(None, description="Legacy alias for tool unique identifier")
     draft_id: UUID | None = Field(None, description="Draft unique identifier")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+    names: SectionFilter | None = Field(None, description="Filter options for names")
+    descriptions: SectionFilter | None = Field(None, description="Filter options for descriptions")
+    flags: SectionFilter | None = Field(None, description="Filter options for flags")
+    args: SectionFilter | None = Field(None, description="Filter options for args")
+    arg_positions: SectionFilter | None = Field(None, description="Filter options for arg positions")
+    args_outputs: SectionFilter | None = Field(None, description="Filter options for arg outputs")
+    permissions: SectionFilter | None = Field(None, description="Filter options for permissions")
 
 
 class GetToolApiResponse(BaseModel):
@@ -72,19 +122,20 @@ class GetToolApiResponse(BaseModel):
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled")
     group_id: UUID | None = Field(None, description="Group identifier for the tool")
-
+    tool_id: UUID | None = Field(None, description="Tool identifier")
+    show_ai_generate: bool | None = Field(None, description="Whether AI generation is available")
     basic_show_ai_generate: bool | None = Field(None, description="Show AI generate for basic step")
     args_show_ai_generate: bool | None = Field(None, description="Show AI generate for args step")
-    arg_positions_show_ai_generate: bool | None = Field(None, description="Show AI generate for arg positions step")
-    args_outputs_show_ai_generate: bool | None = Field(None, description="Show AI generate for args outputs step")
+    permissions_show_ai_generate: bool | None = Field(None, description="Show AI generate for permissions step")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
 
-    names: ToolNameSection | None = Field(None, description="Name section with resources")
-    descriptions: ToolDescriptionSection | None = Field(None, description="Description section with resources")
-    flags: ToolFlagSection | None = Field(None, description="Flag section with configs")
-    args: ToolArgSection | None = Field(None, description="Argument section with resources")
-    arg_positions: ToolArgPositionSection | None = Field(None, description="Argument position section")
-    args_outputs: ToolArgOutputSection | None = Field(None, description="Argument output section")
-    permissions: ToolPermissionSection | None = Field(None, description="Permission section with resources")
+    names: list[ToolNameResource] | None = Field(None, description="Name resources")
+    descriptions: list[ToolDescriptionResource] | None = Field(None, description="Description resources")
+    flags: list[ToolFlagConfig] | None = Field(None, description="Flag configs")
+    args: list[ToolArgResource] | None = Field(None, description="Argument resources")
+    arg_positions: list[ToolArgPositionResource] | None = Field(None, description="Argument position resources")
+    args_outputs: list[ToolArgOutputResource] | None = Field(None, description="Argument output resources")
+    permissions: list[ToolPermissionResource] | None = Field(None, description="Permission resources")
 
 
 class ListToolApiTool(BaseModel):
@@ -266,16 +317,9 @@ class DuplicateToolApiResponse(BaseModel):
 
 
 class PatchToolDraftApiRequest(ScopedItem):
-    """Request model for new-style tool draft endpoint.
+    """Request model for canonical tool draft endpoint."""
 
-    Dual-mode for creatable resources only:
-      - name/name_id, description/description_id
-    ID-only for non-creatable resources:
-      - flag_ids, department_ids, arg_ids, arg_position_ids, args_output_ids
-
-    Client always sends full state (append-only — each write is a new snapshot).
-    """
-
+    draft_id: UUID | None = Field(None, description="Existing draft ID to update")
     input_draft_id: UUID | None = Field(None, description="Existing draft ID to update")
 
     # Creatable single-select — provide value or ID
@@ -284,42 +328,59 @@ class PatchToolDraftApiRequest(ScopedItem):
     description: str | None = Field(None, description="Description text value")
     description_id: UUID | None = Field(None, description="Description resource identifier")
 
-    # Non-creatable — ID-only
+    # Match / ID-backed fields
+    active_flag: bool | None = Field(None, description="Whether the tool is active")
+    active_flag_id: UUID | None = Field(None, description="Tool active flag identifier")
     flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     arg_ids: list[UUID] | None = Field(None, description="Argument identifiers")
     arg_position_ids: list[UUID] | None = Field(None, description="Argument position identifiers")
     args_output_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
+    args_outputs_ids: list[UUID] | None = Field(None, description="Legacy alias for argument output identifiers")
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
     agent_id: UUID | None = Field(None, description="Delegate agent for tool execution")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers to preserve")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack semantics")
+    accept: bool = Field(True, description="Accept or reject acknowledgement when idempotency_key is supplied")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
+        "active_flag": "flags",
+        "active_flag_id": "flags",
         "flag_ids": "flags",
         "department_ids": "departments",
         "arg_ids": "args",
         "arg_position_ids": "arg_positions",
         "args_output_ids": "args_outputs",
+        "args_outputs_ids": "args_outputs",
         "permission_ids": "permissions",
         "agent_id": "agents",
     }
 
 
-class ToolDraftFormState(BaseModel):
+class DraftFormState(BaseModel):
     """Server-authoritative form state returned after draft save."""
 
     name_id: UUID | None = Field(None, description="Resolved name resource identifier")
+    name: str | None = Field(None, description="Resolved name value")
     description_id: UUID | None = Field(None, description="Resolved description resource identifier")
+    description: str | None = Field(None, description="Resolved description value")
+    active_flag_id: UUID | None = Field(None, description="Flag option identifier")
     flag_ids: list[UUID] = Field(..., description="Flag option identifiers")
     department_ids: list[UUID] = Field(..., description="Department identifiers")
     arg_ids: list[UUID] = Field(..., description="Argument identifiers")
     arg_position_ids: list[UUID] = Field(..., description="Argument position identifiers")
     args_output_ids: list[UUID] = Field(..., description="Argument output identifiers")
+    args_outputs_ids: list[UUID] = Field(..., description="Legacy alias for argument output identifiers")
     permission_ids: list[UUID] = Field(..., description="Permission identifiers")
     agent_id: UUID | None = Field(None, description="Delegate agent identifier")
+    pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
+
+
+ToolDraftFormState = DraftFormState
 
 
 class PatchToolDraftApiResponse(BaseModel):
@@ -327,8 +388,9 @@ class PatchToolDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the draft save succeeded")
     draft_id: UUID = Field(..., description="Draft unique identifier")
+    idempotency_key: UUID | None = Field(None, description="Operation key echoed back for client correlation")
     message: str = Field(..., description="Result message")
-    form_state: ToolDraftFormState | None = Field(None, description="Server-authoritative form state")
+    form_state: DraftFormState | None = Field(None, description="Server-authoritative form state")
 
 
 class GetToolDraftsApiResponse(BaseModel):

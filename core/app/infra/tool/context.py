@@ -1,11 +1,4 @@
-"""Resolve tool artifact context — merged junctions + hydrated resources.
-
-Given a tool_id (and optional draft_id), fetches the published artifact
-and draft entry, merges junction IDs (draft overrides published), then
-hydrates all resources in parallel (selected + suggestions).
-
-Composes existing black-box fetchers — no raw SQL.
-"""
+"""Resolve tool artifact context — merged junctions + hydrated resources."""
 
 from __future__ import annotations
 
@@ -16,18 +9,11 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.helpers import dedupe_by_id
 from app.infra.types import ArtifactContext, ResourcePair
-
-# Artifact + draft fetchers
-from app.tools.artifacts.tool.get import (
-    get_tools as get_tool_artifacts,
-)
+from app.tools.artifacts.tool.get import get_tools as get_tool_artifacts
 from app.tools.entries.tool_drafts.get import get_tool_drafts
-
-# Resource get fetchers (by known IDs)
 from app.tools.resources.arg_positions.get import get_arg_positions
-
-# Resource search fetchers (bounded, paginated)
 from app.tools.resources.arg_positions.search import search_arg_positions
 from app.tools.resources.args.get import get_args
 from app.tools.resources.args.search import search_args
@@ -42,38 +28,87 @@ from app.tools.resources.names.search import search_names
 from app.tools.resources.permissions.get import get_permissions
 from app.tools.resources.permissions.search import search_permissions
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
-TOOL_FLAG_NAMES = {
-    "tool_active",
-}
+TOOL_FLAG_TYPES = {"tool_active"}
 
 
-# ---------------------------------------------------------------------------
-# resolve_tool_artifact_context
-# ---------------------------------------------------------------------------
+@dataclass
+class _MergedIds:
+    name_ids: list[UUID]
+    description_ids: list[UUID]
+    flag_ids: list[UUID]
+    args_ids: list[UUID]
+    arg_position_ids: list[UUID]
+    args_output_ids: list[UUID]
+    permission_ids: list[UUID]
 
 
-async def resolve_tool_artifact_context(
+def _merge_junction_ids(artifact, draft) -> _MergedIds:
+    name_ids = list(artifact.name_ids or []) if artifact else []
+    description_ids = list(artifact.description_ids or []) if artifact else []
+    flag_ids = list(artifact.flag_ids or []) if artifact else []
+    args_ids = list(artifact.args_ids or []) if artifact else []
+    arg_position_ids = list(artifact.arg_positions_ids or []) if artifact else []
+    args_output_ids = list(artifact.args_outputs_ids or []) if artifact else []
+    permission_ids = list(artifact.permission_ids or []) if artifact else []
+
+    if draft:
+        if draft.name_ids:
+            name_ids = list(draft.name_ids)
+        if draft.description_ids:
+            description_ids = list(draft.description_ids)
+        if draft.flag_ids:
+            flag_ids = list(draft.flag_ids)
+        if draft.arg_ids:
+            args_ids = list(draft.arg_ids)
+        if draft.arg_position_ids:
+            arg_position_ids = list(draft.arg_position_ids)
+        if draft.args_output_ids:
+            args_output_ids = list(draft.args_output_ids)
+        if draft.permission_ids:
+            permission_ids = list(draft.permission_ids)
+
+    return _MergedIds(
+        name_ids=name_ids,
+        description_ids=description_ids,
+        flag_ids=flag_ids,
+        args_ids=args_ids,
+        arg_position_ids=arg_position_ids,
+        args_output_ids=args_output_ids,
+        permission_ids=permission_ids,
+    )
+
+
+async def resolve_tool_context(
     pool: asyncpg.Pool,
     redis: Redis,
     *,
     tool_id: UUID | None,
     group_id: UUID,
     draft_id: UUID | None = None,
+    names_search: str | None = None,
+    descriptions_search: str | None = None,
+    flags_search: str | None = None,
+    args_search: str | None = None,
+    arg_positions_search: str | None = None,
+    args_outputs_search: str | None = None,
+    permissions_search: str | None = None,
+    names_limit: int | None = None,
+    descriptions_limit: int | None = None,
+    flags_limit: int | None = None,
+    args_limit: int | None = None,
+    arg_positions_limit: int | None = None,
+    args_outputs_limit: int | None = None,
+    permissions_limit: int | None = None,
+    names_selected_only: bool | None = None,
+    descriptions_selected_only: bool | None = None,
+    flags_selected_only: bool | None = None,
+    args_selected_only: bool | None = None,
+    arg_positions_selected_only: bool | None = None,
+    args_outputs_selected_only: bool | None = None,
+    permissions_selected_only: bool | None = None,
     bypass_cache: bool = False,
 ) -> ArtifactContext:
-    """Resolve a tool artifact into fully hydrated resources for the GET endpoint.
-
-    Steps:
-      1. Fetch artifact + draft in parallel -> merge IDs
-      2. Parallel hydrate: get (selected) + search (suggestions) per resource
-      3. Assemble ArtifactContext with ResourcePairs
-    """
-
-    # Step 1: fetch artifact + draft in parallel
+    """Resolve a tool artifact into fully hydrated resources."""
 
     async def _fetch_artifact() -> list:
         if not tool_id:
@@ -99,15 +134,10 @@ async def resolve_tool_artifact_context(
             return await get_tool_drafts(conn, [draft_id])
 
     artifacts, drafts = await asyncio.gather(_fetch_artifact(), _fetch_draft())
-
     artifact = artifacts[0] if artifacts else None
     draft = drafts[0] if drafts else None
-
-    # Merge IDs: start from published, draft overrides if present
     merged = _merge_junction_ids(artifact, draft)
     active = artifact.active if artifact else True
-
-    # Step 2: parallel hydrate — selected + suggestions for each resource
 
     async def _get_names() -> list:
         async with pool.acquire() as conn:
@@ -118,7 +148,10 @@ async def resolve_tool_artifact_context(
             return await search_names(
                 conn,
                 redis,
+                search=names_search,
+                limit_count=names_limit or 20,
                 draft_id=group_id,
+                suggest_source="selected" if names_selected_only else "all",
                 exclude_ids=merged.name_ids,
                 bypass_cache=bypass_cache,
                 tool=True,
@@ -126,16 +159,17 @@ async def resolve_tool_artifact_context(
 
     async def _get_descriptions() -> list:
         async with pool.acquire() as conn:
-            return await get_descriptions(
-                conn, merged.description_ids, redis, bypass_cache
-            )
+            return await get_descriptions(conn, merged.description_ids, redis, bypass_cache)
 
     async def _search_descriptions() -> list:
         async with pool.acquire() as conn:
             return await search_descriptions(
                 conn,
                 redis,
+                search=descriptions_search,
+                limit_count=descriptions_limit or 20,
                 draft_id=group_id,
+                suggest_source="selected" if descriptions_selected_only else "all",
                 exclude_ids=merged.description_ids,
                 bypass_cache=bypass_cache,
                 tool=True,
@@ -147,29 +181,30 @@ async def resolve_tool_artifact_context(
 
     async def _search_flags() -> list:
         async with pool.acquire() as conn:
-            return await search_flags(
+            results = await search_flags(
                 conn,
                 redis,
-                search=None,
-                limit_count=50,
-                offset_count=0,
+                search=flags_search,
+                limit_count=flags_limit or 50,
                 exclude_ids=merged.flag_ids,
                 bypass_cache=bypass_cache,
                 tool=True,
             )
+        return [flag for flag in results if getattr(flag, "type", None) in TOOL_FLAG_TYPES]
 
     async def _get_args() -> list:
         async with pool.acquire() as conn:
-            return await get_args(
-                conn, merged.args_ids, redis, bypass_cache=bypass_cache
-            )
+            return await get_args(conn, merged.args_ids, redis, bypass_cache=bypass_cache)
 
     async def _search_args() -> list:
         async with pool.acquire() as conn:
             return await search_args(
                 conn,
                 redis,
-                suggest_source="linked",
+                search=args_search,
+                limit_count=args_limit or 20,
+                draft_id=group_id,
+                suggest_source="selected" if args_selected_only else "all",
                 exclude_ids=merged.args_ids,
                 bypass_cache=bypass_cache,
                 tool=True,
@@ -178,18 +213,22 @@ async def resolve_tool_artifact_context(
     async def _get_arg_positions() -> list:
         async with pool.acquire() as conn:
             return await get_arg_positions(
-                conn, merged.arg_position_ids, redis, bypass_cache=bypass_cache
+                conn,
+                merged.arg_position_ids,
+                redis,
+                bypass_cache=bypass_cache,
             )
 
     async def _search_arg_positions() -> list:
+        if arg_positions_search:
+            return []
         async with pool.acquire() as conn:
             return await search_arg_positions(
                 conn,
                 redis,
-                limit_count=100,
-                offset_count=0,
+                limit_count=arg_positions_limit or 100,
                 exclude_ids=merged.arg_position_ids,
-                args_ids=merged.args_ids,
+                args_ids=merged.args_ids if arg_positions_selected_only else None,
                 bypass_cache=bypass_cache,
                 tool=True,
             )
@@ -197,7 +236,10 @@ async def resolve_tool_artifact_context(
     async def _get_args_outputs() -> list:
         async with pool.acquire() as conn:
             return await get_args_outputs(
-                conn, merged.args_outputs_ids, redis, bypass_cache=bypass_cache
+                conn,
+                merged.args_output_ids,
+                redis,
+                bypass_cache=bypass_cache,
             )
 
     async def _search_args_outputs() -> list:
@@ -205,8 +247,12 @@ async def resolve_tool_artifact_context(
             return await search_args_outputs(
                 conn,
                 redis,
-                suggest_source="linked",
-                exclude_ids=merged.args_outputs_ids,
+                search=args_outputs_search,
+                limit_count=args_outputs_limit or 20,
+                draft_id=group_id,
+                suggest_source="selected" if args_outputs_selected_only else "all",
+                exclude_ids=merged.args_output_ids,
+                args_ids=merged.args_ids if merged.args_ids else None,
                 bypass_cache=bypass_cache,
                 tool=True,
             )
@@ -217,11 +263,15 @@ async def resolve_tool_artifact_context(
 
     async def _search_permissions() -> list:
         async with pool.acquire() as conn:
-            return await search_permissions(
+            results = await search_permissions(
                 conn,
                 redis,
+                search=permissions_search,
+                limit_count=permissions_limit or 100,
                 bypass_cache=bypass_cache,
             )
+        selected_ids = set(merged.permission_ids)
+        return [item for item in results if item.id not in selected_ids]
 
     (
         names_selected,
@@ -255,95 +305,42 @@ async def resolve_tool_artifact_context(
         _search_permissions(),
     )
 
-    # Filter flags to tool-specific types
-    flags_suggestions_filtered = [
-        f for f in flags_suggestions if getattr(f, "name", None) in TOOL_FLAG_NAMES
-    ]
-
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,
         active=active,
         group_id=group_id,
         resources={
             "names": ResourcePair(
-                selected=names_selected, suggestions=names_suggestions
+                selected=dedupe_by_id(names_selected),
+                suggestions=dedupe_by_id(names_suggestions),
             ),
             "descriptions": ResourcePair(
-                selected=descriptions_selected, suggestions=descriptions_suggestions
+                selected=dedupe_by_id(descriptions_selected),
+                suggestions=dedupe_by_id(descriptions_suggestions),
             ),
             "flags": ResourcePair(
-                selected=flags_selected, suggestions=flags_suggestions_filtered
+                selected=dedupe_by_id(flags_selected),
+                suggestions=dedupe_by_id(flags_suggestions),
             ),
-            "args": ResourcePair(selected=args_selected, suggestions=args_suggestions),
+            "args": ResourcePair(
+                selected=dedupe_by_id(args_selected),
+                suggestions=dedupe_by_id(args_suggestions),
+            ),
             "arg_positions": ResourcePair(
-                selected=arg_positions_selected, suggestions=arg_positions_suggestions
+                selected=dedupe_by_id(arg_positions_selected),
+                suggestions=dedupe_by_id(arg_positions_suggestions),
             ),
             "args_outputs": ResourcePair(
-                selected=args_outputs_selected, suggestions=args_outputs_suggestions
+                selected=dedupe_by_id(args_outputs_selected),
+                suggestions=dedupe_by_id(args_outputs_suggestions),
             ),
             "permissions": ResourcePair(
-                selected=permissions_selected, suggestions=permissions_suggestions
+                selected=dedupe_by_id(permissions_selected),
+                suggestions=dedupe_by_id(permissions_suggestions),
             ),
         },
-        entries={},
+        entries={"pending_ids": set()},
     )
 
 
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class _MergedIds:
-    """Merged junction IDs from artifact + draft."""
-
-    name_ids: list[UUID]
-    description_ids: list[UUID]
-    flag_ids: list[UUID]
-    args_ids: list[UUID]
-    arg_position_ids: list[UUID]
-    args_outputs_ids: list[UUID]
-    permission_ids: list[UUID]
-
-
-def _merge_junction_ids(artifact, draft) -> _MergedIds:
-    """Merge artifact junction IDs with draft overrides."""
-    name_ids = list(artifact.name_ids or []) if artifact else []
-    description_ids = list(artifact.description_ids or []) if artifact else []
-    flag_ids = list(artifact.flag_ids or []) if artifact else []
-    args_ids = list(artifact.args_ids or []) if artifact else []
-    arg_position_ids = list(artifact.arg_positions_ids or []) if artifact else []
-    args_outputs_ids = list(artifact.args_outputs_ids or []) if artifact else []
-    permission_ids = list(artifact.permission_ids or []) if artifact else []
-
-    # Draft overrides (if present) — ignore profile_ids from draft
-    if draft:
-        if draft.name_ids:
-            name_ids = list(draft.name_ids)
-        if draft.description_ids:
-            description_ids = list(draft.description_ids)
-        if draft.flag_ids:
-            flag_ids = list(draft.flag_ids)
-        if draft.arg_ids:
-            args_ids = list(draft.arg_ids)
-        if draft.arg_position_ids:
-            arg_position_ids = list(draft.arg_position_ids)
-        if draft.args_output_ids:
-            args_outputs_ids = list(draft.args_output_ids)
-        if draft.permission_ids:
-            permission_ids = list(draft.permission_ids)
-
-    return _MergedIds(
-        name_ids=name_ids,
-        description_ids=description_ids,
-        flag_ids=flag_ids,
-        args_ids=args_ids,
-        arg_position_ids=arg_position_ids,
-        args_outputs_ids=args_outputs_ids,
-        permission_ids=permission_ids,
-    )
-
-
-async def _empty() -> list:
-    return []
+resolve_tool_artifact_context = resolve_tool_context

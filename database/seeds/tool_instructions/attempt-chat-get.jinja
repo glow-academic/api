@@ -9,12 +9,14 @@
 {% if section and section.show %}
 ### {{ label }}{% if section.required %} (required){% endif %}
 
-{% if section.current %}
+{% if section.current and not section.resources %}
+**Selected (locked):**
+{% for item in section.current %}- `{{ item[id_field] }}` — {{ item[display_field][:display_truncate] if item[display_field] else '(no text)' }}
+{% endfor %}
+{% elif section.current %}
 **Selected:**
 {% for item in section.current %}- `{{ item[id_field] }}` — {{ item[display_field][:display_truncate] if item[display_field] else '(no text)' }}
 {% endfor %}
-{% else %}
-**Selected:** none
 {% endif %}
 {% if section.resources %}
 **Available:**
@@ -32,7 +34,6 @@
 {{ render_section(r.personas, 'Personas', 'id', 'name', 100) }}
 {{ render_section(r.scenarios, 'Scenarios', 'id', 'name', 100) }}
 {{ render_section(r.documents, 'Documents', 'id', 'name', 100) }}
-{{ render_section(r.departments, 'Departments', 'id', 'name', 100) }}
 {{ render_section(r.parameter_fields, 'Parameter Fields', 'id', 'name', 100) }}
 {{ render_section(r.fields, 'Fields', 'id', 'name', 100) }}
 {{ render_section(r.problem_statements, 'Problem Statements', 'id', 'problem_statement', 120) }}
@@ -44,7 +45,11 @@
 {% if r.flags and r.flags.show %}
 ### Flags{% if r.flags.required %} (required){% endif %}
 
-{% if r.flags.current %}
+{% if r.flags.current and not r.flags.resources %}
+**Selected (locked):**
+{% for f in r.flags.current %}- `{{ f.id }}` — {{ f.name }}{% if f.description %}: {{ f.description[:80] }}{% endif %}
+{% endfor %}
+{% elif r.flags.current %}
 **Selected:**
 {% for f in r.flags.current %}- `{{ f.id }}` — {{ f.name }}{% if f.description %}: {{ f.description[:80] }}{% endif %}
 {% endfor %}

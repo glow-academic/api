@@ -11,6 +11,7 @@ from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.provider.permissions import compute_can_draft
+from app.infra.provider.refresh import refresh_provider_impl
 from app.infra.provider.types import (
     DraftFormState,
     PatchProviderDraftApiRequest,
@@ -19,7 +20,6 @@ from app.infra.provider.types import (
 )
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.provider_drafts.create import create_provider_draft
-from app.tools.entries.provider_drafts.refresh import refresh_provider_drafts
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.get import get_descriptions
@@ -37,7 +37,6 @@ from app.tools.resources.names.search import search_names
 from app.tools.resources.values.create import create_value
 from app.tools.resources.values.get import get_values
 from app.tools.resources.values.search import search_values
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def _resolve_creatable_values(
@@ -305,6 +304,25 @@ async def patch_provider_draft_impl(
         )
 
     if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_provider_draft(
+                        conn,
+                        session_id=session_id,
+                        id=idempotency_key,
+                        soft=False,
+                        profile_ids=[profile.profiles_id],
+                        pending_ids=set(request.pending_ids) if request.pending_ids else None,
+                    )
+            await refresh_provider_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                targets=["provider_drafts_mv"],
+                operation_key=idempotency_key,
+            )
         return PatchProviderDraftApiResponse(
             success=True,
             draft_id=idempotency_key,
@@ -335,6 +353,7 @@ async def patch_provider_draft_impl(
                 endpoint_ids=request.endpoint_ids,
                 key_ids=request.key_ids,
                 value_id=request.value_id,
+                pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
     resolved_name = request.name
@@ -434,15 +453,20 @@ async def patch_provider_draft_impl(
         pending_ids=request.pending_ids or [],
     )
 
-    async with pool.acquire() as conn:
-        await refresh_provider_drafts(conn)
-
-    await invalidate_tags(["providers", "drafts"], redis=redis)
+    if not soft:
+        await refresh_provider_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["provider_drafts_mv"],
+            operation_key=result.id,
+        )
 
     return PatchProviderDraftApiResponse(
         success=True,
         draft_id=result.id,
-        idempotency_key=idempotency_key,
-        message="Draft created successfully",
+        idempotency_key=result.id,
+        message="Draft created (pending acceptance)" if soft else "Draft created successfully",
         form_state=form_state,
     )

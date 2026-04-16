@@ -46,8 +46,18 @@ async def tool_get(sid: str, data: dict[str, Any]) -> None:
             redis,
             profile_id=identity.profile_id,
             session_id=identity.session_id,
+            id=payload.id,
             tool_id=payload.tool_id,
             draft_id=payload.draft_id,
+            filters={
+                "names": payload.names,
+                "descriptions": payload.descriptions,
+                "flags": payload.flags,
+                "args": payload.args,
+                "arg_positions": payload.arg_positions,
+                "args_outputs": payload.args_outputs,
+                "permissions": payload.permissions,
+            },
         ),
         arguments=payload.model_dump(mode="json"),
     )

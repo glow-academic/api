@@ -3,8 +3,16 @@
 Attempt chat created successfully.
 - **Attempt Chat ID:** `{{ r.attempt_chat_id }}`
 {% if r.idempotency_key %}- **Idempotency Key:** `{{ r.idempotency_key }}`{% endif %}
+
+Departments were auto-resolved. Pre-set resources from the chat template were merged automatically.
 {% elif results and results[0] and results[0].error %}
 Error creating attempt chat: {{ results[0].error }}
+
+**Common causes:**
+- Passing `departments_ids` (auto-resolved, do not pass)
+- Passing IDs for a locked/pre-satisfied section
+- Passing IDs for a disabled section (check scenario flags)
+- Wrong cardinality (problem statement requires exactly 1, video/image at most 1)
 {% else %}
 No result returned.
 {% endif %}

@@ -64,11 +64,7 @@ async def create_provider(
             session_id=session_id,
             group_id=group_id,
             operation="create",
-            arguments={
-                "providers": [
-                    item.model_dump(mode="json") for item in request.providers
-                ]
-            },
+            arguments=request.model_dump(mode="json"),
             response_model=CreateProviderApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

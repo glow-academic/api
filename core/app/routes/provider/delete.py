@@ -56,6 +56,8 @@ async def delete_provider(
                 profile_id=profile_id,
                 provider_ids=request.provider_ids,
                 session_id=session_id,
+                accept=request.accept,
+                idempotency_key=request.idempotency_key,
             )
 
         result = await run_artifact_operation_with_audit(
