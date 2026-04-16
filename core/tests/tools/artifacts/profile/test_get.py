@@ -85,7 +85,6 @@ async def test_no_junctions_when_all_false(conn, redis_client):
         "flag_ids",
         "email_ids",
         "profile_ids",
-        "request_limit_ids",
         "role_ids",
     ]:
         assert getattr(p, field) is None

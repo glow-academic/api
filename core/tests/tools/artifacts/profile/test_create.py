@@ -9,7 +9,6 @@ from app.tools.resources.departments.create import create_department
 from app.tools.resources.emails.create import create_email
 from app.tools.resources.flags.create import create_flag
 from app.tools.resources.names.create import create_name
-from app.tools.resources.request_limits.create import create_request_limit
 
 pytestmark = pytest.mark.asyncio
 
@@ -65,19 +64,6 @@ async def test_links_email_junctions_via_resource_get(conn, redis_client):
     assert set(items[0].email_ids) == {e1.id, e2.id}
 
 
-async def test_links_request_limit_junction_via_resource_get(conn, redis_client):
-    limit = await create_request_limit(conn, 42, redis_client)
-
-    result = await create_profile(
-        conn,
-        request_limit_id=limit.id,
-        redis=redis_client,
-    )
-
-    items = await get_profiles(conn, [result.id], request_limits=True)
-    assert items[0].request_limit_ids == [limit.id]
-
-
 async def test_links_flags_with_value(conn, redis_client):
     f1 = await create_flag(conn, f"f-{_u()}", "desc", "icon", redis_client)
     f2 = await create_flag(conn, f"f-{_u()}", "desc", "icon", redis_client)
@@ -99,7 +85,6 @@ async def test_no_junctions_when_none_provided(conn, redis_client):
         flags=True,
         emails=True,
         profiles=True,
-        request_limits=True,
         roles=True,
     )
     p = items[0]
@@ -108,5 +93,4 @@ async def test_no_junctions_when_none_provided(conn, redis_client):
     assert p.flag_ids == []
     assert p.email_ids == []
     assert p.profile_ids == []
-    assert p.request_limit_ids == []
     assert p.role_ids == []

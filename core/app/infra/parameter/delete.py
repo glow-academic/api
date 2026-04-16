@@ -5,7 +5,7 @@ Core delete function that composes existing black-box tools:
   2. resolve_parameter_permissions_context — per-item exists, departments, usage
   3. compute_can_delete — permission check
   4. delete_parameters — bulk delete tool
-  5. invalidate_tags — cache invalidation
+  5. refresh_parameter_impl — canonical refresh
 """
 
 from __future__ import annotations
@@ -20,7 +20,9 @@ from app.infra.parameter.permissions import compute_can_delete
 from app.infra.parameter.permissions_context import (
     resolve_parameter_permissions_context,
 )
+from app.infra.delete.delete_artifact import restore_artifacts
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.parameter.refresh import refresh_parameter_impl
 from app.infra.parameter.types import (
     DeleteParameterApiResponse,
     DeleteParameterResult,
@@ -28,7 +30,6 @@ from app.infra.parameter.types import (
 from app.tools.artifacts.parameter.delete import delete_parameters
 from app.tools.artifacts.parameter.get import get_parameters
 from app.tools.resources.names.get import get_names
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def delete_parameter_impl(
@@ -39,6 +40,8 @@ async def delete_parameter_impl(
     parameter_ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> DeleteParameterApiResponse:
     """Parameter bulk delete using composable infra functions.
 
@@ -88,6 +91,45 @@ async def delete_parameter_impl(
                     detail=f"Item {idx}: You don't have permission to delete this parameter.",
                 )
 
+    # -- Short-circuit: ack path ----------------------------------------------
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            # Confirm deletion: no-op (already deactivated by soft delete)
+            pass
+        else:
+            # Reject: restore soft-deleted artifacts
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await restore_artifacts(
+                        conn,
+                        table="parameter_artifact",
+                        ids=parameter_ids,
+                    )
+
+        await refresh_parameter_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key or (parameter_ids[0] if parameter_ids else None),
+        )
+
+        return DeleteParameterApiResponse(
+            results=[
+                DeleteParameterResult(
+                    success=True,
+                    parameter_id=parameter_id,
+                    message=(
+                        "Delete confirmed"
+                        if accept
+                        else "Delete rejected — parameter restored"
+                    ),
+                )
+                for parameter_id in parameter_ids
+            ],
+            idempotency_key=idempotency_key,
+        )
+
     # -- Step 4: Fetch names for result messages -------------------------------
 
     async with pool.acquire() as conn:
@@ -107,17 +149,28 @@ async def delete_parameter_impl(
         async with conn.transaction():
             result = await delete_parameters(conn, parameter_ids, soft=soft)
 
-    # -- Step 6: Invalidate cache ----------------------------------------------
+    # -- Step 6: Canonical refresh --------------------------------------------
 
-    await invalidate_tags(["parameters"], redis=redis)
+    await refresh_parameter_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
+    )
 
     results = [
         DeleteParameterResult(
             success=True,
             parameter_id=pid,
-            message=f"Parameter '{name_map.get(pid, 'Unknown')}' deleted successfully",
+            message=(
+                f"Parameter '{name_map.get(pid, 'Unknown')}' deleted (pending confirmation)"
+                if soft
+                else f"Parameter '{name_map.get(pid, 'Unknown')}' deleted successfully"
+            ),
         )
         for pid in result.deleted_ids
     ]
 
-    return DeleteParameterApiResponse(results=results)
+    return DeleteParameterApiResponse(results=results, idempotency_key=idempotency_key)

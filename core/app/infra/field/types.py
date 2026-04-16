@@ -1,4 +1,4 @@
-"""Handcrafted types for field artifact endpoints (section-first parity)."""
+"""Handcrafted types for field artifact endpoints."""
 
 from __future__ import annotations
 
@@ -8,16 +8,61 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import ListFilterSection
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.field_drafts.types import GetFieldDraftResponse
-from app.tools.resources.parameters.types import GetParameterResponse
 
 
 class GetFieldDraftsApiResponse(BaseModel):
     """Response model for field drafts list endpoint."""
 
     entries: list[GetFieldDraftResponse] | None = Field(None, description="List of field draft entries")
+
+
+class FieldNameResource(BaseModel):
+    """Name resource for field."""
+
+    id: UUID | None = Field(None, description="Unique identifier")
+    name: str | None = Field(None, description="Display name")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class FieldDescriptionResource(BaseModel):
+    """Description resource for field."""
+
+    id: UUID | None = Field(None, description="Unique identifier")
+    description: str | None = Field(None, description="Description text")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class FieldDepartmentResource(BaseModel):
+    """Department resource for field."""
+
+    department_id: UUID | None = Field(None, description="Department identifier")
+    name: str | None = Field(None, description="Department name")
+    description: str | None = Field(None, description="Department description")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class FieldConditionalParameterResource(BaseModel):
+    """Conditional parameter resource for field."""
+
+    parameter_id: UUID | None = Field(None, description="Parameter identifier")
+    name: str | None = Field(None, description="Parameter display name")
+    description: str | None = Field(None, description="Parameter description")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class FieldFlagConfig(BaseModel):
@@ -31,59 +76,57 @@ class FieldFlagConfig(BaseModel):
     show: bool = Field(True, description="Whether the flag is visible to the client")
     required: bool = Field(False, description="Whether the flag is required")
     generated: bool | None = Field(None, description="Whether the flag was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
+class SectionFilter(BaseModel):
+    """Per-section filter options for GET requests."""
 
-class FieldNameSection(BaseResourceSection):
-    resource: object | None = Field(None, description="Currently selected name resource")
-    resources: list | None = Field(None, description="Available name resources")
-
-
-class FieldDescriptionSection(BaseResourceSection):
-    resource: object | None = Field(None, description="Currently selected description resource")
-    resources: list | None = Field(None, description="Available description resources")
-
-
-class FieldFlagSection(BaseResourceSection):
-    resource: FieldFlagConfig | None = Field(None, description="Currently selected flag config")
-    resources: list[FieldFlagConfig] | None = Field(None, description="Available flag configs")
-
-
-class FieldDepartmentSection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned departments")
-    resources: list | None = Field(None, description="Available department resources")
-
-
-class FieldConditionalParameterSection(BaseResourceSection):
-    current: list[GetParameterResponse] | None = Field(None, description="Currently assigned conditional parameters")
-    resources: list[GetParameterResponse] | None = Field(None, description="Available conditional parameter resources")
+    search: str | None = Field(None, description="Filter options by search text")
+    limit: int | None = Field(None, description="Max options to return")
+    selected: bool | None = Field(None, description="Only return selected items")
+    suggested: bool | None = Field(None, description="Only return suggested items")
+    include: bool | None = Field(None, description="Include this section in response (default true)")
+    parameter_ids: list[str] | None = Field(
+        None,
+        description="Parameter group IDs to filter by where relevant",
+    )
 
 
 class GetFieldApiRequest(BaseModel):
     """Request model for get field endpoint."""
 
+    id: UUID | None = Field(None, description="Field UUID to retrieve")
     field_id: UUID | None = Field(None, description="UUID of the field to retrieve")
     draft_id: UUID | None = Field(None, description="UUID of the draft to load")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+    names: SectionFilter | None = Field(None, description="Filter options for names section")
+    descriptions: SectionFilter | None = Field(None, description="Filter options for descriptions section")
+    flags: SectionFilter | None = Field(None, description="Filter options for flags section")
+    departments: SectionFilter | None = Field(None, description="Filter options for departments section")
+    conditional_parameters: SectionFilter | None = Field(None, description="Filter options for conditional parameters section")
     descriptions_search: str | None = Field(None, description="Search query for description resources")
     conditional_parameter_search: str | None = Field(None, description="Search query for conditional parameters")
     conditional_parameter_show_selected: bool | None = Field(None, description="Whether to show only selected parameters")
 
 
 class GetFieldApiResponse(BaseModel):
-    """Section-first client response for get field endpoint."""
+    """Canonical flat composed response for the field editor."""
 
     actor_name: str | None = Field(None, description="Display name of the acting user")
     field_exists: bool | None = Field(None, description="Whether the field exists")
     can_edit: bool | None = Field(None, description="Whether the actor can edit this field")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled, if any")
     group_id: UUID | None = Field(None, description="Group UUID for draft collaboration")
-
+    show_ai_generate: bool | None = Field(None, description="Whether to show AI generate button anywhere")
     basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate button")
-
-    names: FieldNameSection | None = Field(None, description="Name section with resources")
-    descriptions: FieldDescriptionSection | None = Field(None, description="Description section with resources")
-    flags: FieldFlagSection | None = Field(None, description="Flag section with configs")
-    departments: FieldDepartmentSection | None = Field(None, description="Department section with resources")
-    conditional_parameters: FieldConditionalParameterSection | None = Field(None, description="Conditional parameter section")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
+    names: list[FieldNameResource] | None = Field(None, description="Name resources")
+    descriptions: list[FieldDescriptionResource] | None = Field(None, description="Description resources")
+    flags: list[FieldFlagConfig] | None = Field(None, description="Flag configs")
+    departments: list[FieldDepartmentResource] | None = Field(None, description="Department resources")
+    conditional_parameters: list[FieldConditionalParameterResource] | None = Field(None, description="Conditional parameter resources")
 
 
 # ========== List Endpoint Types ==========
@@ -254,11 +297,16 @@ class PatchFieldDraftApiRequest(ScopedItem):
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
+        "active_flag": "flags",
+        "active_flag_id": "flags",
         "flag_id": "flags",
         "department_ids": "departments",
+        "departments": "departments",
+        "conditional_parameters": "conditional_parameters",
         "conditional_parameter_ids": "conditional_parameters",
     }
 
+    draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
 
     # Creatable single-select — provide value or ID
@@ -267,20 +315,34 @@ class PatchFieldDraftApiRequest(ScopedItem):
     description: str | None = Field(None, description="Description value to resolve or create")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
 
+    active_flag: bool | None = Field(None, description="Whether the field is active")
+    active_flag_id: UUID | None = Field(None, description="UUID of the active flag resource")
     # Non-creatable — ID-only
     flag_id: UUID | None = Field(None, description="UUID of the flag option")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
+    departments: list[str] | None = Field(None, description="Department names to resolve")
     conditional_parameter_ids: list[UUID] | None = Field(None, description="Conditional parameter UUIDs")
+    conditional_parameters: list[str] | None = Field(None, description="Conditional parameter names to resolve")
+    pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep pending where supported")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack or retry")
+    accept: bool = Field(True, description="Accept or reject dormant state")
 
 
-class FieldDraftFormState(BaseModel):
+class DraftFormState(BaseModel):
     """Server-authoritative form state returned after draft save."""
 
     name_id: UUID | None = Field(None, description="Resolved name resource UUID")
+    name: str | None = Field(None, description="Echoed name value")
     description_id: UUID | None = Field(None, description="Resolved description resource UUID")
+    description: str | None = Field(None, description="Echoed description value")
     flag_id: UUID | None = Field(None, description="Resolved flag option UUID")
+    active_flag_id: UUID | None = Field(None, description="Resolved active flag option UUID")
     department_ids: list[UUID] = Field(..., description="Assigned department UUIDs")
     conditional_parameter_ids: list[UUID] = Field(..., description="Assigned conditional parameter UUIDs")
+    pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
+
+
+FieldDraftFormState = DraftFormState
 
 
 class PatchFieldDraftApiResponse(BaseModel):
@@ -288,8 +350,9 @@ class PatchFieldDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the draft save succeeded")
     draft_id: UUID = Field(..., description="UUID of the saved draft")
+    idempotency_key: UUID = Field(..., description="Idempotency key for this draft operation")
     message: str = Field(..., description="Result message")
-    form_state: FieldDraftFormState | None = Field(None, description="Server-authoritative form state")
+    form_state: DraftFormState | None = Field(None, description="Server-authoritative form state")
 
 
 # ========== Delete Endpoint Types ==========

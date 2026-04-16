@@ -1,7 +1,13 @@
 """Parameter problem logic — per-artifact diagnostic entry point.
 
 Creates a problem entry scoped to the parameter artifact type.
-Follows the same group → run → call → problem chain as activity/problem.
+Follows the canonical persona/simulation problem flow:
+  1. Validate type and message
+  2. Resolve profile identity context
+  3. Permission check — parameter:problem
+  4. Ack short-circuit for dormant problem promotion/rejection
+  5. Create problem entry
+  6. Canonical parameter refresh
 """
 
 from __future__ import annotations
@@ -14,15 +20,11 @@ from redis.asyncio import Redis
 
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.parameter.refresh import refresh_parameter_impl
 from app.infra.parameter.types import ProblemParameterApiResponse
-from app.tools.entries.calls.create import create_call
-from app.tools.entries.groups.create import create_group
 from app.tools.entries.problems.create import create_problem as create_problem_entry
-from app.tools.entries.runs.create import create_run
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 ARTIFACT_TYPE = "parameter"
-PROBLEM_TAGS = ["problems", "views", "parameters"]
 VALID_PROBLEM_TYPES = ("feature", "bug", "question", "other")
 
 
@@ -34,6 +36,11 @@ async def problem_parameter_impl(
     session_id: UUID,
     type: str,
     message: str,
+    call_id: UUID | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    **_kwargs,
 ) -> ProblemParameterApiResponse:
     """Create a problem entry for the parameter artifact.
 
@@ -41,8 +48,9 @@ async def problem_parameter_impl(
       1. Validate type and message
       2. Resolve profile identity context
       3. Permission check — parameter:problem
-      4. Create group → run → call → problem chain
-      5. Invalidate cache tags
+      4. Ack short-circuit for dormant problem promotion/rejection
+      5. Create problem entry
+      6. Canonical parameter refresh
     """
     # ── Step 1: Validation ─────────────────────────────────────────────
 
@@ -78,32 +86,65 @@ async def problem_parameter_impl(
             detail="You don't have permission to report parameter problems.",
         )
 
-    # ── Step 4: Create entry chain ─────────────────────────────────────
+    # ── Step 4: Ack short-circuit ──────────────────────────────────────
+
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                await create_problem_entry(
+                    conn,
+                    session_id=session_id,
+                    call_id=call_id or UUID(int=0),
+                    type=type,
+                    artifact_type=ARTIFACT_TYPE,
+                    message=message,
+                    id=idempotency_key,
+                    profile_id=identity.profiles_id,
+                    soft=False,
+                )
+            await refresh_parameter_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
+            )
+        return ProblemParameterApiResponse(
+            problem_id=idempotency_key,
+            success=True,
+            message="Problem accepted" if accept else "Problem rejected",
+            idempotency_key=idempotency_key,
+        )
+
+    # ── Step 5: Create problem entry ───────────────────────────────────
 
     async with pool.acquire() as conn:
-        group_result = await create_group(conn, session_id=session_id, artifact_type=ARTIFACT_TYPE)
-        run_result = await create_run(
-            conn, group_id=group_result.id, session_id=session_id
-        )
-        call_result = await create_call(
-            conn, run_id=run_result.id, session_id=session_id
-        )
         problem_result = await create_problem_entry(
             conn,
             session_id=session_id,
-            call_id=call_result.id,
+            call_id=call_id or UUID(int=0),
             type=type,
             artifact_type=ARTIFACT_TYPE,
             message=message,
+            id=idempotency_key,
             profile_id=identity.profiles_id,
+            soft=soft,
         )
 
-    # ── Step 5: Invalidate cache ───────────────────────────────────────
+    # ── Step 6: Canonical refresh ──────────────────────────────────────
 
-    await invalidate_tags(PROBLEM_TAGS, redis=redis)
+    await refresh_parameter_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or problem_result.id,
+    )
 
     return ProblemParameterApiResponse(
         problem_id=problem_result.id,
         success=True,
-        message="Problem created successfully",
+        message="Problem created (pending acceptance)" if soft else "Problem created successfully",
+        idempotency_key=idempotency_key,
     )

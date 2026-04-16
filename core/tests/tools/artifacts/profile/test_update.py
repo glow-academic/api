@@ -10,7 +10,6 @@ from app.tools.resources.departments.create import create_department
 from app.tools.resources.emails.create import create_email
 from app.tools.resources.flags.create import create_flag
 from app.tools.resources.names.create import create_name
-from app.tools.resources.request_limits.create import create_request_limit
 
 pytestmark = pytest.mark.asyncio
 
@@ -124,21 +123,3 @@ async def test_updates_email_junctions_via_resource_get(conn, redis_client):
     assert items[0].email_ids == [e2.id]
 
 
-async def test_updates_request_limit_junction_via_resource_get(conn, redis_client):
-    limit_a = await create_request_limit(conn, 10, redis_client)
-    limit_b = await create_request_limit(conn, 25, redis_client)
-    result = await create_profile(
-        conn,
-        request_limit_id=limit_a.id,
-        redis=redis_client,
-    )
-
-    await update_profile(
-        conn,
-        result.id,
-        request_limit_id=limit_b.id,
-        redis=redis_client,
-    )
-
-    items = await get_profiles(conn, [result.id], request_limits=True)
-    assert items[0].request_limit_ids == [limit_b.id]

@@ -6,7 +6,7 @@ Core duplicate function that composes existing black-box tools:
   3. get_parameters — fetch original with all junction IDs
   4. create_name — new name resource ("{name} Copy")
   5. create_parameter — new artifact with original's IDs + new name
-  6. invalidate_tags — cache invalidation
+  6. refresh_parameter_impl — canonical refresh
 
 Note: No flag search for parameter — there is no parameter_active flag type.
 """
@@ -24,13 +24,14 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.parameter.types import (
     DuplicateParameterApiResponse,
 )
+from app.infra.parameter.refresh import refresh_parameter_impl
 from app.tools.artifacts.parameter.create import (
     create_parameter as create_parameter_artifact,
 )
 from app.tools.artifacts.parameter.get import get_parameters
+from app.tools.resources.parameters.get import get_parameters as get_parameter_resources
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def duplicate_parameter_impl(
@@ -41,6 +42,8 @@ async def duplicate_parameter_impl(
     parameter_id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> DuplicateParameterApiResponse:
     """Parameter duplicate using composable infra functions.
 
@@ -50,7 +53,7 @@ async def duplicate_parameter_impl(
       3. get_parameters -> fetch original with all junctions
       4. create_name("{name} Copy") -> new name resource
       5. create_parameter -> new artifact with original IDs (no flag)
-      6. invalidate_tags
+      6. refresh_parameter_impl -> canonical refresh
     """
 
     # -- Step 1: Profile context ------------------------------------------------
@@ -74,6 +77,65 @@ async def duplicate_parameter_impl(
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to duplicate this parameter.",
+        )
+
+    # -- Short-circuit: ack path ----------------------------------------------
+
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_parameter_artifact(
+                        conn,
+                        id=idempotency_key,
+                        soft=False,
+                    )
+            async with pool.acquire() as conn:
+                artifacts = await get_parameters(
+                    conn,
+                    [idempotency_key],
+                    names=True,
+                    descriptions=True,
+                    departments=True,
+                    fields=True,
+                    parameters=True,
+                )
+                parameter_resources = await get_parameter_resources(
+                    conn,
+                    artifacts[0].parameter_ids[:1] if artifacts and artifacts[0].parameter_ids else [],
+                    redis,
+                    bypass_cache=True,
+                )
+            if artifacts:
+                artifact = artifacts[0]
+                parameter_resource = parameter_resources[0] if parameter_resources else None
+                from app.infra.parameter.permissions_context import create_denormalized_snapshot
+
+                await create_denormalized_snapshot(
+                    pool,
+                    redis,
+                    id=artifact.id,
+                    name_id=artifact.name_ids[0] if artifact.name_ids else None,
+                    description_id=artifact.description_ids[0] if artifact.description_ids else None,
+                    department_ids=artifact.department_ids,
+                    field_ids=artifact.field_ids,
+                    persona_parameter=parameter_resource.persona_parameter if parameter_resource else False,
+                    document_parameter=parameter_resource.document_parameter if parameter_resource else False,
+                    scenario_parameter=parameter_resource.scenario_parameter if parameter_resource else False,
+                    video_parameter=parameter_resource.video_parameter if parameter_resource else False,
+                )
+            await refresh_parameter_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
+            )
+        return DuplicateParameterApiResponse(
+            success=True,
+            parameter_id=idempotency_key,
+            message="Duplicate accepted" if accept else "Duplicate rejected",
+            idempotency_key=idempotency_key,
         )
 
     # -- Step 3: Fetch original parameter with all junctions --------------------
@@ -114,6 +176,7 @@ async def duplicate_parameter_impl(
         async with conn.transaction():
             result = await create_parameter_artifact(
                 conn,
+                id=idempotency_key,
                 name_id=new_name_resource.id,
                 description_id=original.description_ids[0]
                 if original.description_ids
@@ -125,12 +188,23 @@ async def duplicate_parameter_impl(
                 soft=soft,
             )
 
-    # -- Step 6: Invalidate cache -----------------------------------------------
+    # -- Step 6: Refresh --------------------------------------------------------
 
-    await invalidate_tags(["parameters"], redis=redis)
+    if not soft:
+        await refresh_parameter_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or result.id,
+        )
 
     return DuplicateParameterApiResponse(
         success=True,
         parameter_id=result.id,
-        message=f"Parameter '{original_name}' duplicated successfully",
+        message="Parameter duplicated (pending acceptance)"
+        if soft
+        else f"Parameter '{original_name}' duplicated successfully",
+        idempotency_key=idempotency_key,
     )

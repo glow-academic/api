@@ -17,8 +17,7 @@ CREATE TABLE public.profiles_resource (
     department_ids uuid[] DEFAULT ARRAY[]::uuid[],
     role_id uuid,
     emails text[] DEFAULT ARRAY[]::text[],
-    primary_email text,
-    requests_per_day integer
+    primary_email text
 );
 
 

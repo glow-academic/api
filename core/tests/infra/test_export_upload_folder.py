@@ -129,7 +129,6 @@ async def test_export_profile_impl_returns_inline_csv_content(
     from app.tools.artifacts.profile.create import create_profile
     from app.tools.resources.emails.create import create_email
     from app.tools.resources.names.create import create_name
-    from app.tools.resources.request_limits.create import create_request_limit
     from app.tools.resources.roles.create import create_role
 
     actor = await create_admin_route_actor(
@@ -147,7 +146,6 @@ async def test_export_profile_impl_returns_inline_csv_content(
         email = await create_email(
             conn, f"profile-export-{tag}@example.com", redis_client
         )
-        request_limit = await create_request_limit(conn, 42, redis_client)
         role = await create_role(
             conn,
             redis_client,
@@ -158,7 +156,6 @@ async def test_export_profile_impl_returns_inline_csv_content(
             conn,
             name_id=name.id,
             email_ids=[email.id],
-            request_limit_id=request_limit.id,
             department_ids=[actor.department_id],
             role_ids=[role.id],
             redis=redis_client,

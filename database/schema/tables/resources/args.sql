@@ -38,11 +38,11 @@ CREATE TABLE public.args_resource (
 
 --
 
--- Name: args_outputs_resource args_outputs_resource_args_id_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: args_outputs_resource args_outputs_resource_args_id_name_template_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.args_outputs_resource
-    ADD CONSTRAINT args_outputs_resource_args_id_name_key UNIQUE (args_id, name);
+    ADD CONSTRAINT args_outputs_resource_args_id_name_template_key UNIQUE (args_id, name, template);
 
 
 --

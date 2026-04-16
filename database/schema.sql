@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ipbSlMsnNTpgbOKqPwCRidwaPgDpngqpviaFjKefFBGjgQ4HEXtxOpIf0GcKswj
+\restrict YEHaODmX6q8x8vempifAH4FhUw0TAAgZeTLgTBAqlfAuk3FOwi0O38BEc4X3PAY
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -302,7 +302,24 @@ CREATE TYPE public.operation_type AS ENUM (
     'name',
     'feedback',
     'generations',
-    'group'
+    'group',
+    'chat_get',
+    'chat_create',
+    'chat_send',
+    'chat_stop',
+    'chat_end',
+    'chat_grade',
+    'chat_voice',
+    'chat_mute',
+    'chat_silence',
+    'chat_response',
+    'chat_feedback',
+    'chat_strengths',
+    'chat_improvements',
+    'chat_analyses',
+    'chat_hints',
+    'join',
+    'leave'
 );
 
 
@@ -9373,8 +9390,7 @@ CREATE TABLE public.profiles_resource (
     department_ids uuid[] DEFAULT ARRAY[]::uuid[],
     role_id uuid,
     emails text[] DEFAULT ARRAY[]::text[],
-    primary_email text,
-    requests_per_day integer
+    primary_email text
 );
 
 
@@ -14056,11 +14072,11 @@ ALTER TABLE ONLY public.arg_positions_resource
 
 
 --
--- Name: args_outputs_resource args_outputs_resource_args_id_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: args_outputs_resource args_outputs_resource_args_id_name_template_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.args_outputs_resource
-    ADD CONSTRAINT args_outputs_resource_args_id_name_key UNIQUE (args_id, name);
+    ADD CONSTRAINT args_outputs_resource_args_id_name_template_key UNIQUE (args_id, name, template);
 
 
 --
@@ -30299,14 +30315,6 @@ ALTER TABLE ONLY public.agent_tools_junction
 
 
 --
--- Name: agent_tools_junction agent_tools_tool_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.agent_tools_junction
-    ADD CONSTRAINT agent_tools_tool_id_fkey FOREIGN KEY (tools_id) REFERENCES public.tools_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: agent_voices_junction agent_voices_junction_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -39534,5 +39542,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ipbSlMsnNTpgbOKqPwCRidwaPgDpngqpviaFjKefFBGjgQ4HEXtxOpIf0GcKswj
+\unrestrict YEHaODmX6q8x8vempifAH4FhUw0TAAgZeTLgTBAqlfAuk3FOwi0O38BEc4X3PAY
 

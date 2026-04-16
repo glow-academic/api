@@ -49,8 +49,19 @@ async def get_field(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
+                id=request.id,
                 field_id=request.field_id,
                 draft_id=request.draft_id,
+                filters={
+                    "names": request.names,
+                    "descriptions": request.descriptions,
+                    "flags": request.flags,
+                    "departments": request.departments,
+                    "conditional_parameters": request.conditional_parameters,
+                },
+                descriptions_search=request.descriptions_search,
+                conditional_parameter_search=request.conditional_parameter_search,
+                conditional_parameter_show_selected=request.conditional_parameter_show_selected,
                 bypass_cache=bypass_cache,
             )
 

@@ -162,6 +162,38 @@ async def _resolve_creatable_values(
     return errors
 
 
+async def _refresh_parameter_drafts(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    session_id: UUID,
+    operation_key: UUID | None,
+    soft: bool = False,
+) -> None:
+    """Refresh parameter draft state using the canonical call shape when available.
+
+    The refreshed parameter helper in this branch still exposes the older
+    signature, so we prefer the canonical session/targets/operation key form
+    and fall back to the legacy call only when needed.
+    """
+
+    try:
+        await refresh_parameter_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["parameter_drafts_mv"],
+            soft=soft,
+            operation_key=operation_key,
+        )
+    except TypeError as exc:
+        if "unexpected keyword argument" not in str(exc):
+            raise
+        await refresh_parameter_impl(pool, redis, profile_id=profile_id)
+
+
 async def patch_parameter_draft_impl(
     pool: asyncpg.Pool,
     redis: Redis,
@@ -177,35 +209,10 @@ async def patch_parameter_draft_impl(
 ) -> PatchParameterDraftApiResponse:
     """Parameter draft using the canonical request/response contract."""
 
-    if request is None:
-        filtered = sanitize_model_kwargs(
-            kwargs,
-            list_fields={
-                "flag_ids",
-                "department_ids",
-                "field_ids",
-                "departments",
-                "parameter_fields",
-                "pending_ids",
-            },
-            value_id_pairs=[
-                ("name", "name_id"),
-                ("description", "description_id"),
-            ],
-        )
-        if draft_id is not None:
-            filtered["draft_id"] = draft_id
-            filtered["input_draft_id"] = draft_id
-        request = PatchParameterDraftApiRequest(**filtered)
-
-    if draft_id is not None and request.draft_id is None:
-        request.draft_id = draft_id
-    if draft_id is not None and request.input_draft_id is None:
-        request.input_draft_id = draft_id
-
-    idempotency_key = idempotency_key or request.idempotency_key
-    if idempotency_key is not None and accept is None:
-        accept = request.accept
+    if request is not None:
+        idempotency_key = idempotency_key or request.idempotency_key
+        if idempotency_key is not None and accept is None:
+            accept = request.accept
 
     profile = await resolve_profile_identity_context(
         pool,
@@ -238,8 +245,15 @@ async def patch_parameter_draft_impl(
                         id=idempotency_key,
                         soft=False,
                         profile_ids=[profile.profiles_id],
+                        pending_ids=set(request.pending_ids) if request and request.pending_ids else None,
                     )
-            await refresh_parameter_impl(pool, redis, profile_id=profile_id)
+            await _refresh_parameter_drafts(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
+            )
         return PatchParameterDraftApiResponse(
             success=True,
             draft_id=idempotency_key,
@@ -247,6 +261,37 @@ async def patch_parameter_draft_impl(
             message="Draft accepted" if accept else "Draft rejected",
             form_state=DraftFormState(),
         )
+
+    if request is None:
+        filtered = sanitize_model_kwargs(
+            kwargs,
+            list_fields={
+                "flag_ids",
+                "department_ids",
+                "field_ids",
+                "departments",
+                "parameter_fields",
+                "pending_ids",
+            },
+            value_id_pairs=[
+                ("name", "name_id"),
+                ("description", "description_id"),
+            ],
+        )
+        if draft_id is not None:
+            filtered["draft_id"] = draft_id
+            filtered["input_draft_id"] = draft_id
+        request = PatchParameterDraftApiRequest(**filtered)
+
+    if draft_id is not None and request.draft_id is None:
+        request.draft_id = draft_id
+    if draft_id is not None and request.input_draft_id is None:
+        request.input_draft_id = draft_id
+    if (
+        request.draft_id is not None
+        and request.input_draft_id is None
+    ):
+        request.input_draft_id = request.draft_id
 
     async with pool.acquire() as conn:
         errors = await _resolve_creatable_values(conn, redis, request)
@@ -271,6 +316,7 @@ async def patch_parameter_draft_impl(
                 department_ids=request.department_ids,
                 field_ids=request.field_ids,
                 profile_ids=[profile.profiles_id],
+                pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
     form_state = DraftFormState(
@@ -285,12 +331,20 @@ async def patch_parameter_draft_impl(
     )
 
     if not soft:
-        await refresh_parameter_impl(pool, redis, profile_id=profile_id)
+        await _refresh_parameter_drafts(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key or result.id,
+        )
+
+    response_idempotency_key = idempotency_key or result.id
 
     return PatchParameterDraftApiResponse(
         success=True,
         draft_id=result.id,
-        idempotency_key=result.id,
+        idempotency_key=response_idempotency_key,
         message="Draft created (pending acceptance)" if soft else "Draft created successfully",
         form_state=form_state,
     )

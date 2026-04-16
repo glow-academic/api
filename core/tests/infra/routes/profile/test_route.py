@@ -20,7 +20,6 @@ class ProfileRouteResources:
     name: str
     email_id: UUID
     email: str
-    request_limit_id: UUID
     role_id: UUID
     department_id: UUID
 
@@ -29,22 +28,14 @@ async def _create_profile_route_resources(pool, redis_client) -> ProfileRouteRes
     from app.tools.resources.departments.create import create_department
     from app.tools.resources.emails.create import create_email
     from app.tools.resources.names.create import create_name
-    from app.tools.resources.request_limits.create import create_request_limit
     from app.tools.resources.roles.create import create_role
 
     tag = unique_tag()
     name = f"Route Profile {tag}"
     email = f"profile-route-{tag}@example.com"
-    requests_per_day = 100
-
     async with pool.acquire() as conn:
         name_res = await create_name(conn, name, redis_client)
         email_res = await create_email(conn, email, redis_client)
-        request_limit_res = await create_request_limit(
-            conn,
-            requests_per_day,
-            redis_client,
-        )
         role_res = await create_role(
             conn,
             redis_client,
@@ -58,8 +49,6 @@ async def _create_profile_route_resources(pool, redis_client) -> ProfileRouteRes
         name=name_res.name,
         email_id=email_res.id,
         email=email_res.email,
-        request_limit_id=request_limit_res.id,
-        requests_per_day=request_limit_res.requests_per_day,
         role_id=role_res.id,
         department_id=department_res.id,
     )
@@ -99,7 +88,6 @@ class TestProfileRoute:
                 "profiles": [
                     {
                         "name_id": str(resources.name_id),
-                        "request_limit_id": str(resources.request_limit_id),
                         "department_ids": [str(profile_route_actor.department_id)],
                         "email_ids": [str(resources.email_id)],
                         "role_ids": [str(resources.role_id)],
@@ -198,7 +186,6 @@ class TestProfileRoute:
                     {
                         "profile_id": created["profile_id"],
                         "name_id": str(updated.name_id),
-                        "request_limit_id": str(updated.request_limit_id),
                         "department_ids": [str(profile_route_actor.department_id)],
                         "email_ids": [str(updated.email_id)],
                         "role_ids": [str(updated.role_id)],
@@ -281,7 +268,6 @@ class TestProfileRoute:
                 "department_ids": [str(profile_route_actor.department_id)],
                 "email_ids": [str(resources.email_id)],
                 "role_ids": [str(resources.role_id)],
-                "request_limit_ids": [str(resources.request_limit_id)],
             },
         )
 
@@ -312,7 +298,6 @@ class TestProfileRoute:
                 "department_ids": [str(profile_route_actor.department_id)],
                 "email_ids": [str(resources.email_id)],
                 "role_ids": [str(resources.role_id)],
-                "request_limit_ids": [str(resources.request_limit_id)],
             },
         )
         assert draft_response.status_code == 200, draft_response.text
@@ -510,7 +495,6 @@ class TestProfileRoute:
                 "profiles": [
                     {
                         "name_id": str(resources.name_id),
-                        "request_limit_id": str(resources.request_limit_id),
                         "department_ids": [str(profile_route_actor.department_id)],
                         "email_ids": [str(resources.email_id)],
                         "role_ids": [str(resources.role_id)],

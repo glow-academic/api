@@ -1,12 +1,4 @@
-"""Field GET endpoint — composable infra architecture.
-
-Uses composable infra layers:
-  1. resolve_common_context — profile + tool graph + runs
-  2. resolve_field_permissions_context — access check (404, 403, fail fast)
-  3. resolve_field_context — artifact + draft → merged + hydrated resources
-  4. score_tools — tool graph + artifact resources → per-resource tool picks
-  5. Pure Python — permissions, show/required flags, response assembly
-"""
+"""Canonical shared field GET operation."""
 
 from __future__ import annotations
 
@@ -21,39 +13,57 @@ from app.infra.field.context import resolve_field_context
 from app.infra.field.permissions import (
     FIELD_BASIC_RESOURCES,
     FIELD_RESOURCES,
+    compute_can_draft,
     compute_can_edit,
-    compute_conditional_parameters_required,
-    compute_departments_required,
-    compute_description_required,
     compute_disabled_reason,
-    compute_flag_required,
-    compute_name_required,
-    compute_show_conditional_parameters,
-    compute_show_departments,
-    compute_show_description,
-    compute_show_flag,
-    compute_show_name,
     has_access,
 )
 from app.infra.field.permissions_context import resolve_field_permissions_context
 from app.infra.helpers import dedupe_by_id
 from app.infra.tool_graph import score_tools
 from app.infra.field.types import (
-    FieldConditionalParameterSection,
-    FieldDepartmentSection,
-    FieldDescriptionSection,
+    FieldConditionalParameterResource,
+    FieldDepartmentResource,
+    FieldDescriptionResource,
     FieldFlagConfig,
-    FieldFlagSection,
-    FieldNameSection,
+    FieldNameResource,
     GetFieldApiResponse,
+    SectionFilter,
 )
 
-# ---------------------------------------------------------------------------
-# get_field_client — composable infra architecture
-# ---------------------------------------------------------------------------
+SECTIONS = ["names", "descriptions", "flags", "departments", "conditional_parameters"]
 
 
-def derive_flag_key_and_label(name: str | None) -> tuple[str, str]:
+def _sf(
+    filters: dict[str, SectionFilter | None],
+    section: str,
+    attr: str,
+    default=None,
+):
+    section_filter = filters.get(section)
+    if section_filter is None:
+        return default
+    return getattr(section_filter, attr, default)
+
+
+def _filter_items(
+    items: list | None,
+    section: str,
+    *,
+    selected_only: dict[str, bool],
+    suggested_only: dict[str, bool],
+):
+    if items is None:
+        return None
+    result = items
+    if selected_only.get(section):
+        result = [item for item in result if getattr(item, "selected", False)]
+    if suggested_only.get(section):
+        result = [item for item in result if getattr(item, "suggested", False)]
+    return result
+
+
+def _derive_flag_key_and_label(name: str | None) -> tuple[str, str]:
     if not name:
         return ("unknown", "Unknown")
     key = name.replace("field_", "")
@@ -66,26 +76,31 @@ async def get_field_impl(
     *,
     profile_id: UUID,
     session_id: UUID | None = None,
-    field_id: UUID | None,
+    id: UUID | None = None,
+    field_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
-    descriptions_search: str | None = None,
-    conditional_parameter_search: str | None = None,
-    conditional_parameter_show_selected: bool | None = None,
+    filters: dict[str, SectionFilter | None] | None = None,
     bypass_cache: bool = False,
-    **_kwargs,
+    **legacy_kwargs,
 ) -> GetFieldApiResponse:
-    """Field GET using composable infra functions.
+    """Resolve the canonical field artifact bundle for any surface."""
 
-    Flow:
-      1. resolve_common_context(profile_id) → profile, tool_graph, runs
-      2. resolve_field_permissions_context → access check (404, 403, fail fast)
-      3. resolve_field_context(field_id, draft_id, ...) → hydrated resources
-      4. score_tools(tool_graph, FIELD_RESOURCES) → per-resource tool picks
-      5. Pure Python: permissions, show/required/AI flags, response assembly
-    """
+    resolved_filters = dict(filters or {})
+    if "descriptions" not in resolved_filters and legacy_kwargs.get("descriptions_search") is not None:
+        resolved_filters["descriptions"] = SectionFilter(
+            search=legacy_kwargs["descriptions_search"]
+        )
+    if "conditional_parameters" not in resolved_filters and (
+        legacy_kwargs.get("conditional_parameter_search") is not None
+        or legacy_kwargs.get("conditional_parameter_show_selected") is not None
+    ):
+        resolved_filters["conditional_parameters"] = SectionFilter(
+            search=legacy_kwargs.get("conditional_parameter_search"),
+            selected=legacy_kwargs.get("conditional_parameter_show_selected"),
+        )
 
-    # ── Step 1: Common context (profile → tool_graph + runs) ──────────────
+    field_id = id or field_id
 
     common = await resolve_common_context(
         pool,
@@ -97,198 +112,257 @@ async def get_field_impl(
         artifact_type="field",
         bypass_cache=bypass_cache,
     )
-
     if common is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    group_id = group_id or common.profile.group_id
     profile = common.profile
-
-    # ── Step 2: Permissions check (fail fast before full hydration) ────────
+    effective_group_id = group_id or profile.group_id
 
     perms = None
     if field_id is not None:
         async with pool.acquire() as conn:
             perms = await resolve_field_permissions_context(conn, field_id)
-
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
                 detail=f"Field {field_id} not found",
             )
-
         if not has_access(profile.role_level, profile.department_ids, perms.department_ids):
             raise HTTPException(
                 status_code=403,
-                detail="You don't have access to this field. "
-                "It may be restricted to other departments.",
+                detail="You don't have access to this field. It may be restricted to other departments.",
             )
-
-    # ── Step 3: Field artifact context ─────────────────────────────────
 
     field = await resolve_field_context(
         pool,
         redis,
         field_id=field_id,
-        group_id=group_id,
+        group_id=effective_group_id,
         draft_id=draft_id,
         user_department_ids=profile.department_ids,
-        descriptions_search=descriptions_search,
-        conditional_parameter_search=conditional_parameter_search,
-        conditional_parameter_show_selected=conditional_parameter_show_selected,
+        names_search=_sf(resolved_filters, "names", "search"),
+        descriptions_search=_sf(resolved_filters, "descriptions", "search"),
+        flags_search=_sf(resolved_filters, "flags", "search"),
+        departments_search=_sf(resolved_filters, "departments", "search"),
+        conditional_parameters_search=_sf(
+            resolved_filters,
+            "conditional_parameters",
+            "search",
+        ),
+        names_limit=_sf(resolved_filters, "names", "limit"),
+        descriptions_limit=_sf(resolved_filters, "descriptions", "limit"),
+        flags_limit=_sf(resolved_filters, "flags", "limit"),
+        departments_limit=_sf(resolved_filters, "departments", "limit"),
+        conditional_parameters_limit=_sf(
+            resolved_filters,
+            "conditional_parameters",
+            "limit",
+        ),
         bypass_cache=bypass_cache,
     )
 
-    # ── Step 4: Tool scoring ──────────────────────────────────────────────
-
     scores = score_tools(common.tool_graph, FIELD_RESOURCES)
-
-
-    # ── Step 5: Permissions ───────────────────────────────────────────────
-
-    field_department_ids = [
-        d.id for d in field.resources["departments"].selected if d.id
-    ]
+    include = {section: _sf(resolved_filters, section, "include") is not False for section in SECTIONS}
+    selected_only = {section: bool(_sf(resolved_filters, section, "selected")) for section in SECTIONS}
+    suggested_only = {section: bool(_sf(resolved_filters, section, "suggested")) for section in SECTIONS}
 
     can_edit = compute_can_edit(
-        role_level=profile.role_level, role_permissions=profile.role_permissions,
-        field_department_ids=field_department_ids,
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
+        field_department_ids=perms.department_ids if perms else [],
+        active_parameter_count=perms.active_parameter_count if perms else 0,
         user_department_ids=profile.department_ids,
     )
-
     disabled_reason = compute_disabled_reason(
-        role_level=profile.role_level, role_permissions=profile.role_permissions,
-        field_department_ids=field_department_ids,
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
+        field_department_ids=perms.department_ids if perms else [],
+        active_parameter_count=perms.active_parameter_count if perms else 0,
         user_department_ids=profile.department_ids,
     )
 
-    # ── Step 6: Show / Required / AI flags ────────────────────────────────
+    basic_show_ai_generate = compute_can_draft(
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
+    ) and any(scores.has_any.get(resource, False) for resource in FIELD_BASIC_RESOURCES)
 
-    all_departments = dedupe_by_id(
-        field.resources["departments"].selected
-        + field.resources["departments"].suggestions
-    )
+    pending_ids: set[UUID] = field.entries.get("pending_ids", set())
+
+    names_selected = field.resources["names"].selected
+    names_suggestions = field.resources["names"].suggestions
+    descriptions_selected = field.resources["descriptions"].selected
+    descriptions_suggestions = field.resources["descriptions"].suggestions
+    flags_selected = field.resources["flags"].selected
+    flags_suggestions = field.resources["flags"].suggestions
+    departments_selected = field.resources["departments"].selected
+    departments_suggestions = field.resources["departments"].suggestions
+    conditional_parameters_selected = field.resources["conditional_parameters"].selected
+    conditional_parameters_suggestions = field.resources["conditional_parameters"].suggestions
+
+    all_names = dedupe_by_id(names_selected + names_suggestions)
+    all_descriptions = dedupe_by_id(descriptions_selected + descriptions_suggestions)
+    all_flags = dedupe_by_id(flags_selected + flags_suggestions)
+    all_departments = dedupe_by_id(departments_selected + departments_suggestions)
     all_conditional_parameters = dedupe_by_id(
-        field.resources["conditional_parameters"].selected
-        + field.resources["conditional_parameters"].suggestions,
+        conditional_parameters_selected + conditional_parameters_suggestions,
         id_attr="parameter_id",
     )
 
-    # Validate new mode
-    if field_id is None and not all_departments:
-        raise HTTPException(
-            status_code=400, detail="No accessible departments found for user"
+    selected_ids = {
+        "names": {item.id for item in names_selected if item.id},
+        "descriptions": {item.id for item in descriptions_selected if item.id},
+        "flags": {item.id for item in flags_selected if item.id},
+        "departments": {item.id for item in departments_selected if item.id},
+        "conditional_parameters": {
+            item.parameter_id
+            for item in conditional_parameters_selected
+            if item.parameter_id
+        },
+    }
+    suggested_ids = {
+        "names": {item.id for item in names_suggestions if item.id},
+        "descriptions": {item.id for item in descriptions_suggestions if item.id},
+        "flags": {item.id for item in flags_suggestions if item.id},
+        "departments": {item.id for item in departments_suggestions if item.id},
+        "conditional_parameters": {
+            item.parameter_id
+            for item in conditional_parameters_suggestions
+            if item.parameter_id
+        },
+    }
+
+    def _decorate_common(item_id: UUID | None, section: str) -> tuple[bool, bool, bool]:
+        return (
+            bool(item_id and item_id in suggested_ids[section]),
+            bool(item_id and item_id in selected_ids[section]),
+            bool(item_id and item_id in pending_ids),
         )
 
-    names_has_tools = scores.has_any.get("names", False)
+    def _names() -> list[FieldNameResource]:
+        return [
+            FieldNameResource(
+                id=item.id,
+                name=item.name,
+                generated=item.generated,
+                suggested=_decorate_common(item.id, "names")[0],
+                selected=_decorate_common(item.id, "names")[1],
+                pending=_decorate_common(item.id, "names")[2],
+            )
+            for item in all_names
+        ]
 
-    show_flags_map = {
-        "names": compute_show_name(names_has_tools),
-        "descriptions": compute_show_description(),
-        "flags": compute_show_flag(),
-        "departments": compute_show_departments(len(all_departments)),
-        "conditional_parameters": compute_show_conditional_parameters(
-            len(all_conditional_parameters)
-        ),
-    }
+    def _descriptions() -> list[FieldDescriptionResource]:
+        return [
+            FieldDescriptionResource(
+                id=item.id,
+                description=item.description,
+                generated=item.generated,
+                suggested=_decorate_common(item.id, "descriptions")[0],
+                selected=_decorate_common(item.id, "descriptions")[1],
+                pending=_decorate_common(item.id, "descriptions")[2],
+            )
+            for item in all_descriptions
+        ]
 
-    required_flags_map = {
-        "names": compute_name_required(),
-        "descriptions": compute_description_required(),
-        "flags": compute_flag_required(),
-        "departments": compute_departments_required(),
-        "conditional_parameters": compute_conditional_parameters_required(),
-    }
+    def _flags() -> list[FieldFlagConfig]:
+        items: list[FieldFlagConfig] = []
+        for item in all_flags:
+            suggested, selected, pending = _decorate_common(item.id, "flags")
+            key, label = _derive_flag_key_and_label(item.name)
+            items.append(
+                FieldFlagConfig(
+                    key=key,
+                    label=label,
+                    description=item.description,
+                    icon_id=str(item.icon) if getattr(item, "icon", None) else None,
+                    flag_option_id=item.id,
+                    show=True,
+                    required=False,
+                    generated=item.generated,
+                    suggested=suggested,
+                    selected=selected,
+                    pending=pending,
+                )
+            )
+        return items
 
-    suggestions_map: dict[str, list[UUID]] = {
-        "names": [n.id for n in field.resources["names"].suggestions],
-        "descriptions": [d.id for d in field.resources["descriptions"].suggestions],
-        "departments": [d.id for d in field.resources["departments"].suggestions],
-        "conditional_parameters": [
-            p.parameter_id for p in field.resources["conditional_parameters"].suggestions if p.parameter_id
-        ],
-    }
+    def _departments() -> list[FieldDepartmentResource]:
+        items: list[FieldDepartmentResource] = []
+        for item in all_departments:
+            suggested, selected, pending = _decorate_common(item.id, "departments")
+            items.append(
+                FieldDepartmentResource(
+                    department_id=item.id,
+                    name=item.name,
+                    description=item.description,
+                    generated=item.generated,
+                    suggested=suggested,
+                    selected=selected,
+                    pending=pending,
+                )
+            )
+        return items
 
-    def _section(resource_key: str) -> dict:
-        return {
-            "show": show_flags_map.get(resource_key, False),
-            "required": required_flags_map.get(resource_key, False),
-            "suggestions": suggestions_map.get(resource_key),
-        }
-
-    # ── Step 7: Resource conversion + response assembly ───────────────────
-
-    # Names + Descriptions
-    all_names = dedupe_by_id(
-        field.resources["names"].selected + field.resources["names"].suggestions
-    )
-    all_descriptions = dedupe_by_id(
-        field.resources["descriptions"].selected
-        + field.resources["descriptions"].suggestions
-    )
-
-    # Flags — enriched format
-    all_flags_raw = dedupe_by_id(
-        field.resources["flags"].selected + field.resources["flags"].suggestions
-    )
-    all_flags = [
-        FieldFlagConfig(
-            key=derive_flag_key_and_label(f.name)[0],
-            label=derive_flag_key_and_label(f.name)[1],
-            description=f.description,
-            icon_id=f.icon,
-            flag_option_id=f.id,
-            show=show_flags_map["flags"],
-            required=required_flags_map["flags"],
-            generated=f.generated,
-        )
-        for f in all_flags_raw
-        if f.id
-    ]
-
-    flag_ids_set = {f.id for f in field.resources["flags"].selected}
-    selected_flag = next(
-        (f for f in all_flags if f.flag_option_id in flag_ids_set), None
-    )
+    def _conditional_parameters() -> list[FieldConditionalParameterResource]:
+        items: list[FieldConditionalParameterResource] = []
+        for item in all_conditional_parameters:
+            suggested, selected, pending = _decorate_common(
+                item.parameter_id,
+                "conditional_parameters",
+            )
+            items.append(
+                FieldConditionalParameterResource(
+                    parameter_id=item.parameter_id,
+                    name=item.name,
+                    description=item.description,
+                    generated=item.generated,
+                    suggested=suggested,
+                    selected=selected,
+                    pending=pending,
+                )
+            )
+        return items
 
     return GetFieldApiResponse(
-        # Context
         actor_name=profile.name,
         field_exists=field.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        group_id=group_id,
-        # Per-resource sections
-        names=FieldNameSection(
-            **_section("names"),
-            resource=field.resources["names"].selected[0]
-            if field.resources["names"].selected
-            else None,
-            resources=all_names,
-        ),
-        descriptions=FieldDescriptionSection(
-            **_section("descriptions"),
-            resource=field.resources["descriptions"].selected[0]
-            if field.resources["descriptions"].selected
-            else None,
-            resources=all_descriptions,
-        ),
-        flags=FieldFlagSection(
-            **_section("flags"),
-            resource=selected_flag,
-            resources=all_flags,
-        ),
-        departments=FieldDepartmentSection(
-            **_section("departments"),
-            current=[d for d in field.resources["departments"].selected],
-            resources=all_departments,
-        ),
-        conditional_parameters=FieldConditionalParameterSection(
-            **_section("conditional_parameters"),
-            current=field.resources["conditional_parameters"].selected,
-            resources=all_conditional_parameters,
-        ),
+        group_id=effective_group_id,
+        show_ai_generate=basic_show_ai_generate,
+        basic_show_ai_generate=basic_show_ai_generate,
+        pending_ids=list(pending_ids) or None,
+        names=_filter_items(
+            _names(),
+            "names",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        ) if include["names"] else None,
+        descriptions=_filter_items(
+            _descriptions(),
+            "descriptions",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        ) if include["descriptions"] else None,
+        flags=_filter_items(
+            _flags(),
+            "flags",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        ) if include["flags"] else None,
+        departments=_filter_items(
+            _departments(),
+            "departments",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        ) if include["departments"] else None,
+        conditional_parameters=_filter_items(
+            _conditional_parameters(),
+            "conditional_parameters",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        ) if include["conditional_parameters"] else None,
     )

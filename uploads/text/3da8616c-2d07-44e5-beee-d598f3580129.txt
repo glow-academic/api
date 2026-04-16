@@ -1,0 +1,6 @@
+INPUT:
+  attempt_id: 019d9672-4d9b-79ba-b11b-c01cf6c6b0e2
+  chat_id: 019d9672-4d9b-79ba-b11b-c01cf6c6b0e2
+
+OUTPUT:
+Create a new chat session within an attempt. Requires attempt_id and chat_id.

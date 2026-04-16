@@ -182,15 +182,6 @@ ALTER TABLE ONLY public.agent_tools_junction
 
 --
 
--- Name: agent_tools_junction agent_tools_tool_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.agent_tools_junction
-    ADD CONSTRAINT agent_tools_tool_id_fkey FOREIGN KEY (tools_id) REFERENCES public.tools_resource(id) ON DELETE CASCADE;
-
-
---
-
 -- Name: agent_voices_junction agent_voices_junction_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 

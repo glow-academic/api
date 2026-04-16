@@ -51,7 +51,6 @@ async def test_create_without_connections_returns_empty_lists(conn, profile_id):
     assert items[0].email_ids == []
     assert items[0].flag_ids == []
     assert items[0].name_ids == []
-    assert items[0].request_limit_ids == []
     assert items[0].role_ids == []
 
 

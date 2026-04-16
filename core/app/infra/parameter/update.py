@@ -22,13 +22,15 @@ from app.infra.parameter.permissions_context import (
     resolve_parameter_values,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.parameter.refresh import refresh_parameter_impl
+from app.tools.artifacts.parameter.get import get_parameters as get_parameter_artifacts
+from app.tools.resources.parameters.get import get_parameters as get_parameter_resources
 from app.tools.artifacts.parameter.update import (
     _UNSET,
 )
 from app.tools.artifacts.parameter.update import (
     update_parameter as update_parameter_artifact,
 )
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 from app.infra.parameter.types import (
     UpdateParameterApiRequest,
@@ -46,6 +48,8 @@ async def update_parameter_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> UpdateParameterApiResponse:
     """Parameter bulk update using composable infra functions.
 
@@ -60,6 +64,11 @@ async def update_parameter_impl(
     from app.infra.parameter.types import (
         ParameterResultItem,
     )
+
+    # Merge ack fields from request (HTTP) or params (generation pipeline)
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key and accept is None:
+        accept = request.accept
 
     items = request.parameters
 
@@ -100,6 +109,70 @@ async def update_parameter_impl(
                     detail=f"Item {idx}: You don't have permission to update this parameter.",
                 )
 
+    # ── ACK short-circuit / promotion ─────────────────────────────────
+
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await update_parameter_artifact(
+                        conn,
+                        idempotency_key,
+                        soft=False,
+                    )
+
+            async with pool.acquire() as conn:
+                artifacts = await get_parameter_artifacts(
+                    conn,
+                    [idempotency_key],
+                    names=True,
+                    descriptions=True,
+                    departments=True,
+                    flags=True,
+                    fields=True,
+                    parameters=True,
+                )
+                parameter_resources = await get_parameter_resources(
+                    conn,
+                    artifacts[0].parameter_ids[:1] if artifacts and artifacts[0].parameter_ids else [],
+                    redis,
+                    bypass_cache=True,
+                )
+            if artifacts:
+                artifact = artifacts[0]
+                parameter_resource = parameter_resources[0] if parameter_resources else None
+                await create_denormalized_snapshot(
+                    pool,
+                    redis,
+                    name_id=artifact.name_ids[0] if artifact.name_ids else None,
+                    description_id=artifact.description_ids[0] if artifact.description_ids else None,
+                    department_ids=artifact.department_ids,
+                    field_ids=artifact.field_ids,
+                    persona_parameter=parameter_resource.persona_parameter if parameter_resource else False,
+                    document_parameter=parameter_resource.document_parameter if parameter_resource else False,
+                    scenario_parameter=parameter_resource.scenario_parameter if parameter_resource else False,
+                    video_parameter=parameter_resource.video_parameter if parameter_resource else False,
+                )
+
+            await refresh_parameter_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
+            )
+
+        return UpdateParameterApiResponse(
+            results=[
+                ParameterResultItem(
+                    success=True,
+                    parameter_id=idempotency_key,
+                    message="Update accepted" if accept else "Update rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
+
     # ── Step 3: Per-item value resolution ──────────────────────────────
 
     has_errors = False
@@ -125,22 +198,27 @@ async def update_parameter_impl(
                 )
 
     if has_errors:
-        return UpdateParameterApiResponse(results=error_results)
+        return UpdateParameterApiResponse(
+            results=error_results,
+            idempotency_key=idempotency_key,
+        )
 
     # ── Step 4: Single transaction ─────────────────────────────────────
 
     results: list[ParameterResultItem] = []
 
     for item in items:
-        # Create denormalized snapshot OUTSIDE transaction (read-only hydration)
-        parameters_resource_id = await create_denormalized_snapshot(
-            pool,
-            redis,
-            name_id=item.name_id,
-            description_id=item.description_id,
-            department_ids=item.department_ids,
-            field_ids=item.field_ids,
-        )
+        # Create denormalized snapshot only for the live path.
+        parameters_resource_id = None
+        if not soft:
+            parameters_resource_id = await create_denormalized_snapshot(
+                pool,
+                redis,
+                name_id=item.name_id,
+                description_id=item.description_id,
+                department_ids=item.department_ids,
+                field_ids=item.field_ids,
+            )
 
         # Artifact update inside transaction
         async with pool.acquire() as conn:
@@ -163,12 +241,26 @@ async def update_parameter_impl(
             ParameterResultItem(
                 success=True,
                 parameter_id=item.parameter_id,
-                message="Parameter updated successfully",
+                message=(
+                    "Parameter updated (pending acceptance)"
+                    if soft
+                    else "Parameter updated successfully"
+                ),
             )
         )
 
-    # ── Step 5: Invalidate cache ───────────────────────────────────────
+    # ── Step 5: Canonical refresh ──────────────────────────────────────
 
-    await invalidate_tags(["parameters"], redis=redis)
+    await refresh_parameter_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or (results[0].parameter_id if results else None),
+    )
 
-    return UpdateParameterApiResponse(results=results)
+    return UpdateParameterApiResponse(
+        results=results,
+        idempotency_key=idempotency_key,
+    )
