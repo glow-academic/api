@@ -1,4 +1,4 @@
-"""Handcrafted types for agent endpoints (section-first contracts)."""
+"""Handcrafted types for agent endpoints."""
 
 from __future__ import annotations
 
@@ -25,6 +25,151 @@ class AgentFlagConfig(BaseModel):
     show: bool = Field(True, description="Whether to show this flag in the UI")
     required: bool = Field(False, description="Whether this flag is required")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class AgentNameResource(BaseModel):
+    id: UUID | None = Field(None, description="Name resource identifier")
+    name: str | None = Field(None, description="Agent name")
+    generated: bool | None = Field(None, description="Whether the name was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class AgentDescriptionResource(BaseModel):
+    id: UUID | None = Field(None, description="Description resource identifier")
+    description: str | None = Field(None, description="Agent description")
+    generated: bool | None = Field(None, description="Whether the description was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class AgentModelResource(BaseModel):
+    id: UUID | None = Field(None, description="Model resource identifier")
+    name: str | None = Field(None, description="Model name")
+    description: str | None = Field(None, description="Model description")
+    value: str | None = Field(None, description="Model value")
+    provider_id: UUID | None = Field(None, description="Provider identifier")
+    department_ids: list[UUID] | None = Field(None, description="Associated department identifiers")
+    temperature_level_ids: list[UUID] | None = Field(None, description="Associated temperature level identifiers")
+    reasoning_level_ids: list[UUID] | None = Field(None, description="Associated reasoning level identifiers")
+    quality_ids: list[UUID] | None = Field(None, description="Associated quality identifiers")
+    voice_ids: list[UUID] | None = Field(None, description="Associated voice identifiers")
+    modality_ids: list[UUID] | None = Field(None, description="Associated modality identifiers")
+    generated: bool | None = Field(None, description="Whether the model was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class AgentPromptResource(BaseModel):
+    id: UUID | None = Field(None, description="Prompt resource identifier")
+    system_prompt: str | None = Field(None, description="Prompt system text")
+    name: str | None = Field(None, description="Prompt name")
+    description: str | None = Field(None, description="Prompt description")
+    generated: bool | None = Field(None, description="Whether the prompt was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class AgentInstructionResource(BaseModel):
+    id: UUID | None = Field(None, description="Instruction resource identifier")
+    template: str | None = Field(None, description="Instruction template")
+    generated: bool | None = Field(None, description="Whether the instruction was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class AgentDepartmentResource(BaseModel):
+    department_id: UUID | None = Field(None, description="Department identifier")
+    name: str | None = Field(None, description="Department name")
+    description: str | None = Field(None, description="Department description")
+    generated: bool | None = Field(None, description="Whether the department was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class AgentToolResource(BaseModel):
+    id: UUID | None = Field(None, description="Tool resource identifier")
+    name: str | None = Field(None, description="Tool name")
+    description: str | None = Field(None, description="Tool description")
+    permission_ids: list[UUID] | None = Field(None, description="Associated permission identifiers")
+    department_ids: list[UUID] | None = Field(None, description="Associated department identifiers")
+    args_ids: list[UUID] | None = Field(None, description="Associated arg identifiers")
+    args_output_ids: list[UUID] | None = Field(None, description="Associated arg output identifiers")
+    instruction_id: UUID | None = Field(None, description="Associated instruction identifier")
+    agent_id: UUID | None = Field(None, description="Associated denormalized agent identifier")
+    generated: bool | None = Field(None, description="Whether the tool was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class AgentTemperatureLevelResource(BaseModel):
+    id: UUID | None = Field(None, description="Temperature level resource identifier")
+    temperature: float | None = Field(None, description="Temperature value")
+    generated: bool | None = Field(None, description="Whether the temperature level was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class AgentReasoningLevelResource(BaseModel):
+    id: UUID | None = Field(None, description="Reasoning level resource identifier")
+    reasoning_level: str | None = Field(None, description="Reasoning level value")
+    generated: bool | None = Field(None, description="Whether the reasoning level was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class AgentVoiceResource(BaseModel):
+    id: UUID | None = Field(None, description="Voice resource identifier")
+    voice: str | None = Field(None, description="Voice value")
+    generated: bool | None = Field(None, description="Whether the voice was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class AgentQualityResource(BaseModel):
+    id: UUID | None = Field(None, description="Quality resource identifier")
+    quality: str | None = Field(None, description="Quality value")
+    generated: bool | None = Field(None, description="Whether the quality was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class AgentRubricResource(BaseModel):
+    id: UUID | None = Field(None, description="Rubric resource identifier")
+    name: str | None = Field(None, description="Rubric name")
+    description: str | None = Field(None, description="Rubric description")
+    department_ids: list[UUID] | None = Field(None, description="Associated department identifiers")
+    total_points: int | None = Field(None, description="Total points")
+    pass_points: int | None = Field(None, description="Passing points")
+    simulation_rubric: bool | None = Field(None, description="Whether this rubric is for simulation")
+    video_rubric: bool | None = Field(None, description="Whether this rubric is for video")
+    standard_group_ids: list[UUID] | None = Field(None, description="Associated standard group identifiers")
+    generated: bool | None = Field(None, description="Whether the rubric was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class SectionFilter(BaseModel):
+    search: str | None = Field(None, description="Filter options by search text")
+    limit: int | None = Field(None, description="Max options to return")
+    selected: bool | None = Field(None, description="Only return selected items")
+    suggested: bool | None = Field(None, description="Only return suggested items")
+    include: bool | None = Field(None, description="Include this section in response (default true)")
 
 
 class AgentNameSection(BaseResourceSection):
@@ -95,35 +240,52 @@ class AgentRubricSection(BaseResourceSection):
 class GetAgentApiRequest(BaseModel):
     """Request model for get agent endpoint."""
 
-    agent_id: UUID | None = Field(None, description="UUID of the agent to retrieve")
+    id: UUID | None = Field(None, description="UUID of the agent to retrieve")
+    agent_id: UUID | None = Field(None, description="Legacy alias for the agent identifier")
     draft_id: UUID | None = Field(None, description="UUID of the draft to retrieve")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+    names: SectionFilter | None = Field(None, description="Filter options for names")
+    descriptions: SectionFilter | None = Field(None, description="Filter options for descriptions")
+    models: SectionFilter | None = Field(None, description="Filter options for models")
+    prompts: SectionFilter | None = Field(None, description="Filter options for prompts")
+    instructions: SectionFilter | None = Field(None, description="Filter options for instructions")
+    flags: SectionFilter | None = Field(None, description="Filter options for flags")
+    departments: SectionFilter | None = Field(None, description="Filter options for departments")
+    tools: SectionFilter | None = Field(None, description="Filter options for tools")
+    temperature_levels: SectionFilter | None = Field(None, description="Filter options for temperature levels")
+    reasoning_levels: SectionFilter | None = Field(None, description="Filter options for reasoning levels")
+    voices: SectionFilter | None = Field(None, description="Filter options for voices")
+    qualities: SectionFilter | None = Field(None, description="Filter options for qualities")
+    rubrics: SectionFilter | None = Field(None, description="Filter options for rubrics")
 
 
 class GetAgentApiResponse(BaseModel):
-    """Section-first response model for get agent endpoint."""
+    """Canonical composed response model for get agent endpoint."""
 
     actor_name: str | None = Field(None, description="Display name of the current actor")
     agent_exists: bool | None = Field(None, description="Whether the agent exists")
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason the agent is disabled")
     group_id: UUID | None = Field(None, description="UUID of the owning group")
-
+    agent_id: UUID | None = Field(None, description="UUID of the selected agent")
+    show_ai_generate: bool | None = Field(None, description="Whether any step should show AI generate")
     basic_show_ai_generate: bool | None = Field(None, description="Show AI generate for basic step")
     general_show_ai_generate: bool | None = Field(None, description="Show AI generate for general step")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
 
-    names: AgentNameSection | None = Field(None, description="Name section data")
-    descriptions: AgentDescriptionSection | None = Field(None, description="Description section data")
-    models: AgentModelSection | None = Field(None, description="Model section data")
-    prompts: AgentPromptSection | None = Field(None, description="Prompt section data")
-    instructions: AgentInstructionSection | None = Field(None, description="Instruction section data")
-    flags: AgentFlagSection | None = Field(None, description="Flag section data")
-    departments: AgentDepartmentSection | None = Field(None, description="Department section data")
-    tools: AgentToolSection | None = Field(None, description="Tool section data")
-    temperature_levels: AgentTemperatureLevelSection | None = Field(None, description="Temperature level section data")
-    reasoning_levels: AgentReasoningLevelSection | None = Field(None, description="Reasoning level section data")
-    voices: AgentVoiceSection | None = Field(None, description="Voice section data")
-    qualities: AgentQualitySection | None = Field(None, description="Quality section data")
-    rubrics: AgentRubricSection | None = Field(None, description="Rubric section data")
+    names: list[AgentNameResource] | None = Field(None, description="Name resources")
+    descriptions: list[AgentDescriptionResource] | None = Field(None, description="Description resources")
+    models: list[AgentModelResource] | None = Field(None, description="Model resources")
+    prompts: list[AgentPromptResource] | None = Field(None, description="Prompt resources")
+    instructions: list[AgentInstructionResource] | None = Field(None, description="Instruction resources")
+    flags: list[AgentFlagConfig] | None = Field(None, description="Flag resources")
+    departments: list[AgentDepartmentResource] | None = Field(None, description="Department resources")
+    tools: list[AgentToolResource] | None = Field(None, description="Tool resources")
+    temperature_levels: list[AgentTemperatureLevelResource] | None = Field(None, description="Temperature level resources")
+    reasoning_levels: list[AgentReasoningLevelResource] | None = Field(None, description="Reasoning level resources")
+    voices: list[AgentVoiceResource] | None = Field(None, description="Voice resources")
+    qualities: list[AgentQualityResource] | None = Field(None, description="Quality resources")
+    rubrics: list[AgentRubricResource] | None = Field(None, description="Rubric resources")
 
 
 # ========== Shared Create/Update Types ==========
@@ -313,18 +475,27 @@ class PatchAgentDraftApiRequest(ScopedItem):
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
+        "active_flag": "flags",
+        "active_flag_id": "flags",
         "flag_ids": "flags",
         "department_ids": "departments",
         "model_id": "models",
         "tool_ids": "tools",
-        "reasoning_level_ids": "reasoning_levels",
-        "temperature_level_ids": "temperature_levels",
+        "reasoning_level_id": "reasoning_levels",
+        "temperature_level_id": "temperature_levels",
         "voice_ids": "voices",
+        "quality_ids": "qualities",
         "rubric_ids": "rubrics",
+        "prompt_id": "prompts",
+        "instruction_id": "instructions",
+        "instructions_id": "instructions",
     }
 
+    draft_id: UUID | None = Field(None, description="UUID of the draft to update")
     group_id: UUID | None = Field(None, description="UUID of the owning group")
     input_draft_id: UUID | None = Field(None, description="UUID of the input draft")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key for accept/reject acknowledgement")
+    accept: bool = Field(True, description="Whether pending changes should be accepted")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Display name value")
@@ -332,30 +503,52 @@ class PatchAgentDraftApiRequest(ScopedItem):
     description: str | None = Field(None, description="Description text value")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
 
-    # Non-creatable — ID-only
+    # Matchable / ID-only
+    active_flag: bool | None = Field(None, description="Whether the agent is active")
+    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
     flag_ids: list[UUID] | None = Field(None, description="Associated flag UUIDs")
+    departments: list[str] | None = Field(None, description="Department names for matching")
     department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
     model_id: UUID | None = Field(None, description="Associated model UUID")
     tool_ids: list[UUID] | None = Field(None, description="Associated tool UUIDs")
-    reasoning_level_ids: list[UUID] | None = Field(None, description="Associated reasoning level UUIDs")
-    temperature_level_ids: list[UUID] | None = Field(None, description="Associated temperature level UUIDs")
+    reasoning_level: str | None = Field(None, description="Reasoning level label to match")
+    reasoning_level_id: UUID | None = Field(None, description="Associated reasoning level UUID")
+    temperature_level: str | None = Field(None, description="Temperature level label to match")
+    temperature_level_id: UUID | None = Field(None, description="Associated temperature level UUID")
+    voices: list[str] | None = Field(None, description="Voice names for matching or creation")
     voice_ids: list[UUID] | None = Field(None, description="Associated voice UUIDs")
+    qualities: list[str] | None = Field(None, description="Quality labels for matching")
+    quality_ids: list[UUID] | None = Field(None, description="Associated quality UUIDs")
+    prompt_id: UUID | None = Field(None, description="Associated prompt UUID")
+    instruction_id: UUID | None = Field(None, description="Associated instruction UUID")
+    instructions_id: UUID | None = Field(None, description="Legacy alias for associated instruction UUID")
     rubric_ids: list[UUID] | None = Field(None, description="Associated rubric UUIDs")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers")
 
 
-class AgentDraftFormState(BaseModel):
+class DraftFormState(BaseModel):
     """Server-authoritative form state returned after draft save."""
 
     name_id: UUID | None = Field(None, description="UUID of the selected name resource")
+    name: str | None = Field(None, description="Resolved name value")
     description_id: UUID | None = Field(None, description="UUID of the selected description resource")
+    description: str | None = Field(None, description="Resolved description value")
     flag_ids: list[UUID] = Field(..., description="Selected flag UUIDs")
+    active_flag_id: UUID | None = Field(None, description="Selected active flag UUID")
     department_ids: list[UUID] = Field(..., description="Selected department UUIDs")
     model_id: UUID | None = Field(None, description="Selected model UUID")
     tool_ids: list[UUID] = Field(..., description="Selected tool UUIDs")
-    reasoning_level_ids: list[UUID] = Field(..., description="Selected reasoning level UUIDs")
-    temperature_level_ids: list[UUID] = Field(..., description="Selected temperature level UUIDs")
+    reasoning_level_id: UUID | None = Field(None, description="Selected reasoning level UUID")
+    temperature_level_id: UUID | None = Field(None, description="Selected temperature level UUID")
     voice_ids: list[UUID] = Field(..., description="Selected voice UUIDs")
+    quality_ids: list[UUID] = Field(..., description="Selected quality UUIDs")
     rubric_ids: list[UUID] = Field(..., description="Selected rubric UUIDs")
+    prompt_id: UUID | None = Field(None, description="Selected prompt UUID when provided")
+    instruction_id: UUID | None = Field(None, description="Selected instruction UUID when provided")
+    pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
+
+
+AgentDraftFormState = DraftFormState
 
 
 class PatchAgentDraftApiResponse(BaseModel):
@@ -363,8 +556,9 @@ class PatchAgentDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the operation succeeded")
     draft_id: UUID = Field(..., description="UUID of the saved draft")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key for accept/reject acknowledgement")
     message: str = Field(..., description="Human-readable result message")
-    form_state: AgentDraftFormState | None = Field(None, description="Server-authoritative form state")
+    form_state: DraftFormState | None = Field(None, description="Server-authoritative form state")
 
 
 class GetAgentDraftsApiResponse(BaseModel):

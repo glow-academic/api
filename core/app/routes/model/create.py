@@ -64,9 +64,7 @@ async def create_model(
             session_id=session_id,
             group_id=group_id,
             operation="create",
-            arguments={
-                "models": [item.model_dump(mode="json") for item in request.models]
-            },
+            arguments=request.model_dump(mode="json"),
             response_model=CreateModelApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

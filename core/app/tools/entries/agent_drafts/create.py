@@ -23,6 +23,7 @@ async def create_agent_draft(
     reasoning_level_ids: list[UUID] | None = None,
     temperature_level_ids: list[UUID] | None = None,
     voice_ids: list[UUID] | None = None,
+    quality_ids: list[UUID] | None = None,
     rubric_ids: list[UUID] | None = None,
 ) -> CreateAgentDraftResponse:
     """Create an agent_drafts entry with optional connection table links."""
@@ -64,6 +65,7 @@ async def create_agent_draft(
             temperature_level_ids or [],
         ),
         ("agent_drafts_voices_connection", "voices_id", voice_ids or []),
+        ("agent_drafts_qualities_connection", "qualities_id", quality_ids or []),
         ("agent_drafts_rubrics_connection", "rubrics_id", rubric_ids or []),
     ]
 

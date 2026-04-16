@@ -1,12 +1,4 @@
-"""Model update logic — composable infra architecture.
-
-Composes existing black-box tools:
-  1. resolve_profile_identity_context — profile (role, departments)
-  2. resolve_model_permissions_context — per-item access + edit check
-  3. resolve_model_values — raw value → ID resolution
-  4. update_model_artifact — junction writes (partial update)
-  5. create_denormalized_snapshot — models_resource snapshot
-"""
+"""Model update logic — composable infra architecture."""
 
 from __future__ import annotations
 
@@ -21,18 +13,16 @@ from app.infra.model.permissions_context import (
     resolve_model_permissions_context,
     resolve_model_values,
 )
-from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.tools.artifacts.model.update import (
-    _UNSET,
-)
-from app.tools.artifacts.model.update import (
-    update_model as update_model_artifact,
-)
-from app.utils.cache.invalidate_tags import invalidate_tags
-
+from app.infra.model.refresh import refresh_model_impl
 from app.infra.model.types import (
+    ModelResultItem,
     UpdateModelApiRequest,
     UpdateModelApiResponse,
+)
+from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.tools.artifacts.model.update import _UNSET
+from app.tools.artifacts.model.update import (
+    update_model as update_model_artifact,
 )
 
 
@@ -46,24 +36,17 @@ async def update_model_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> UpdateModelApiResponse:
-    """Model bulk update using composable infra functions.
-
-    Flow:
-      1. resolve_profile_identity_context → role, department_ids
-      2. Per-item: resolve_model_permissions_context → exists + compute_can_edit
-      3. Per-item value resolution (raw → ID, no required field enforcement)
-      4. Single transaction: update_model_artifact + denormalized snapshot per item
-      5. invalidate_tags
-    """
+    """Model bulk update using composable infra functions."""
     from app.infra.model.permissions import compute_can_edit
-    from app.infra.model.types import (
-        ModelResultItem,
-    )
+
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key is not None and accept is None:
+        accept = request.accept
 
     items = request.models
-
-    # ── Step 1: Profile context ────────────────────────────────────────
 
     profile = await resolve_profile_identity_context(
         pool,
@@ -72,14 +55,11 @@ async def update_model_impl(
         session_id=session_id,
         draft_id=draft_id,
     )
-
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
-
-    # ── Step 2: Per-item permission check ──────────────────────────────
 
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
@@ -90,7 +70,8 @@ async def update_model_impl(
                     detail=f"Item {idx}: Model {item.model_id} not found.",
                 )
             if not compute_can_edit(
-                role_level=profile.role_level, role_permissions=profile.role_permissions,
+                role_level=profile.role_level,
+                role_permissions=profile.role_permissions,
                 model_department_ids=perms.department_ids,
                 active_agent_count=perms.active_agent_count,
                 user_department_ids=profile.department_ids,
@@ -100,7 +81,20 @@ async def update_model_impl(
                     detail=f"Item {idx}: You don't have permission to update this model.",
                 )
 
-    # ── Step 3: Per-item value resolution ──────────────────────────────
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            return UpdateModelApiResponse(
+                results=[
+                    ModelResultItem(
+                        success=True,
+                        model_id=item.model_id,
+                        message="Update rejected",
+                    )
+                    for item in items
+                ],
+                idempotency_key=idempotency_key,
+            )
+        soft = False
 
     has_errors = False
     error_results: list[ModelResultItem] = []
@@ -121,48 +115,46 @@ async def update_model_impl(
                 error_results.append(ModelResultItem(success=True, message="Validated"))
 
     if has_errors:
-        return UpdateModelApiResponse(results=error_results)
-
-    # ── Step 4: Single transaction ─────────────────────────────────────
+        return UpdateModelApiResponse(
+            results=error_results,
+            idempotency_key=idempotency_key,
+        )
 
     results: list[ModelResultItem] = []
 
     for item in items:
-        # Create denormalized snapshot OUTSIDE transaction (read-only hydration)
-        models_resource_id = await create_denormalized_snapshot(
-            pool,
-            redis,
-            name_id=item.name_id,
-            description_id=item.description_id,
-            department_ids=item.department_ids,
-            provider_id=item.provider_id,
-            temperature_level_ids=item.temperature_level_ids,
-            reasoning_level_ids=item.reasoning_level_ids,
-            quality_ids=item.quality_ids,
-            voice_ids=item.voice_ids,
-            modality_ids=item.modality_ids,
-            value_id=item.value_id,
-        )
+        models_resource_id = None
+        if not soft:
+            models_resource_id = await create_denormalized_snapshot(
+                pool,
+                redis,
+                name_id=item.name_id,
+                description_id=item.description_id,
+                department_ids=item.department_ids,
+                provider_id=item.provider_id,
+                temperature_level_ids=item.temperature_level_ids,
+                reasoning_level_ids=item.reasoning_level_ids,
+                quality_ids=item.quality_ids,
+                voice_ids=item.voice_ids,
+                modality_ids=item.modality_ids,
+                value_id=item.value_id,
+            )
 
-        # Artifact update inside transaction
+        combined_flag_ids = list(item.flag_ids or [])
+        if item.active_flag_id:
+            combined_flag_ids.append(item.active_flag_id)
+
         async with pool.acquire() as conn:
             async with conn.transaction():
-                # Combine existing flag_ids with active_flag_id
-                combined_flag_ids = list(item.flag_ids or [])
-                if item.active_flag_id:
-                    combined_flag_ids.append(item.active_flag_id)
-
                 await update_model_artifact(
                     conn,
                     item.model_id,
                     name_id=item.name_id if item.name_id else _UNSET,
-                    description_id=item.description_id
-                    if item.description_id
-                    else _UNSET,
+                    description_id=item.description_id if item.description_id else _UNSET,
                     department_ids=item.department_ids,
                     flag_ids=combined_flag_ids or None,
                     modality_ids=item.modality_ids,
-                    model_ids=[models_resource_id],
+                    model_ids=[models_resource_id] if models_resource_id else None,
                     pricing_ids=item.pricing_ids,
                     provider_id=item.provider_id,
                     quality_ids=item.quality_ids,
@@ -177,12 +169,27 @@ async def update_model_impl(
             ModelResultItem(
                 success=True,
                 model_id=item.model_id,
-                message="Model updated successfully",
+                message=(
+                    "Model update accepted"
+                    if accept is not None and idempotency_key is not None
+                    else "Model updated (pending acceptance)"
+                    if soft
+                    else "Model updated successfully"
+                ),
             )
         )
 
-    # ── Step 5: Invalidate cache ───────────────────────────────────────
+    if not soft:
+        await refresh_model_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (results[0].model_id if results else None),
+        )
 
-    await invalidate_tags(["models"], redis=redis)
-
-    return UpdateModelApiResponse(results=results)
+    return UpdateModelApiResponse(
+        results=results,
+        idempotency_key=idempotency_key,
+    )

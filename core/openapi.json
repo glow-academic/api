@@ -7726,7 +7726,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetAgentApiResponse-Output"
+                  "$ref": "#/components/schemas/GetAgentApiResponse"
                 }
               }
             }
@@ -9150,6 +9150,16 @@
         "summary": "Model Refresh",
         "description": "Refresh model materialized views and invalidate caches.",
         "operationId": "model_refresh_model_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshModelApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -9157,6 +9167,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -33666,7 +33686,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetAgentApiResponse-Input"
+                "$ref": "#/components/schemas/GetAgentApiResponse"
               }
             }
           },
@@ -43333,184 +43353,139 @@
         "title": "ActivityResponse",
         "description": "Response with activity data (top cards)."
       },
-      "AgentDepartmentSection": {
+      "AgentDepartmentResource": {
         "properties": {
-          "current": {
+          "department_id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently selected departments"
+            "title": "Department Id",
+            "description": "Department identifier"
           },
-          "resources": {
+          "name": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available department resources"
+            "title": "Name",
+            "description": "Department name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Department description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the department was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "AgentDepartmentSection"
+        "title": "AgentDepartmentResource"
       },
-      "AgentDescriptionSection": {
+      "AgentDescriptionResource": {
         "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected description resource"
-          },
-          "resources": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available description resources"
+            "title": "Id",
+            "description": "Description resource identifier"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Agent description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the description was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "AgentDescriptionSection"
-      },
-      "AgentDraftFormState": {
-        "properties": {
-          "name_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name Id",
-            "description": "UUID of the selected name resource"
-          },
-          "description_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description Id",
-            "description": "UUID of the selected description resource"
-          },
-          "flag_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Flag Ids",
-            "description": "Selected flag UUIDs"
-          },
-          "department_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Department Ids",
-            "description": "Selected department UUIDs"
-          },
-          "model_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Model Id",
-            "description": "Selected model UUID"
-          },
-          "tool_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Tool Ids",
-            "description": "Selected tool UUIDs"
-          },
-          "reasoning_level_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Reasoning Level Ids",
-            "description": "Selected reasoning level UUIDs"
-          },
-          "temperature_level_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Temperature Level Ids",
-            "description": "Selected temperature level UUIDs"
-          },
-          "voice_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Voice Ids",
-            "description": "Selected voice UUIDs"
-          },
-          "rubric_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Rubric Ids",
-            "description": "Selected rubric UUIDs"
-          }
-        },
-        "type": "object",
-        "required": [
-          "flag_ids",
-          "department_ids",
-          "tool_ids",
-          "reasoning_level_ids",
-          "temperature_level_ids",
-          "voice_ids",
-          "rubric_ids"
-        ],
-        "title": "AgentDraftFormState",
-        "description": "Server-authoritative form state returned after draft save."
+        "title": "AgentDescriptionResource"
       },
       "AgentFieldError": {
         "properties": {
@@ -43605,6 +43580,24 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
@@ -43615,13 +43608,137 @@
         "title": "AgentFlagConfig",
         "description": "Enriched flag config for direct client consumption."
       },
-      "AgentFlagSection": {
+      "AgentInstructionResource": {
         "properties": {
-          "current": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Instruction resource identifier"
+          },
+          "template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template",
+            "description": "Instruction template"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the instruction was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "AgentInstructionResource"
+      },
+      "AgentModelResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Model resource identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Model name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Model description"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Model value"
+          },
+          "provider_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Id",
+            "description": "Provider identifier"
+          },
+          "department_ids": {
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/AgentFlagConfig"
+                  "type": "string",
+                  "format": "uuid"
                 },
                 "type": "array"
               },
@@ -43629,14 +43746,15 @@
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently selected flags"
+            "title": "Department Ids",
+            "description": "Associated department identifiers"
           },
-          "resources": {
+          "temperature_level_ids": {
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/AgentFlagConfig"
+                  "type": "string",
+                  "format": "uuid"
                 },
                 "type": "array"
               },
@@ -43644,189 +43762,374 @@
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available flag configs"
-          }
-        },
-        "type": "object",
-        "title": "AgentFlagSection"
-      },
-      "AgentInstructionSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected instruction resource"
+            "title": "Temperature Level Ids",
+            "description": "Associated temperature level identifiers"
           },
-          "resources": {
+          "reasoning_level_ids": {
             "anyOf": [
               {
-                "items": {},
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
                 "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available instruction resources"
-          }
-        },
-        "type": "object",
-        "title": "AgentInstructionSection"
-      },
-      "AgentModelSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected model resource"
+            "title": "Reasoning Level Ids",
+            "description": "Associated reasoning level identifiers"
           },
-          "resources": {
+          "quality_ids": {
             "anyOf": [
               {
-                "items": {},
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
                 "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available model resources"
-          }
-        },
-        "type": "object",
-        "title": "AgentModelSection"
-      },
-      "AgentNameSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected name resource"
+            "title": "Quality Ids",
+            "description": "Associated quality identifiers"
           },
-          "resources": {
+          "voice_ids": {
             "anyOf": [
               {
-                "items": {},
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
                 "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available name resources"
-          }
-        },
-        "type": "object",
-        "title": "AgentNameSection"
-      },
-      "AgentPromptSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected prompt resource"
+            "title": "Voice Ids",
+            "description": "Associated voice identifiers"
           },
-          "resources": {
+          "modality_ids": {
             "anyOf": [
               {
-                "items": {},
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
                 "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available prompt resources"
-          }
-        },
-        "type": "object",
-        "title": "AgentPromptSection"
-      },
-      "AgentQualitySection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected qualities"
+            "title": "Modality Ids",
+            "description": "Associated modality identifiers"
           },
-          "resources": {
+          "generated": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available quality resources"
-          }
-        },
-        "type": "object",
-        "title": "AgentQualitySection"
-      },
-      "AgentReasoningLevelSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected reasoning level"
+            "title": "Generated",
+            "description": "Whether the model was AI-generated"
           },
-          "resources": {
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "AgentModelResource"
+      },
+      "AgentNameResource": {
+        "properties": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available reasoning levels"
+            "title": "Id",
+            "description": "Name resource identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Agent name"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the name was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "AgentReasoningLevelSection"
+        "title": "AgentNameResource"
+      },
+      "AgentPromptResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Prompt resource identifier"
+          },
+          "system_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System Prompt",
+            "description": "Prompt system text"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Prompt name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Prompt description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the prompt was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "AgentPromptResource"
+      },
+      "AgentQualityResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Quality resource identifier"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality",
+            "description": "Quality value"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the quality was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "AgentQualityResource"
+      },
+      "AgentReasoningLevelResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Reasoning level resource identifier"
+          },
+          "reasoning_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Level",
+            "description": "Reasoning level value"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the reasoning level was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "AgentReasoningLevelResource"
       },
       "AgentResultItem": {
         "properties": {
@@ -43877,130 +44180,443 @@
         "title": "AgentResultItem",
         "description": "Per-item result within a bulk create/update response."
       },
-      "AgentRubricSection": {
+      "AgentRubricResource": {
         "properties": {
-          "current": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently selected rubrics"
+            "title": "Id",
+            "description": "Rubric resource identifier"
           },
-          "resources": {
+          "name": {
             "anyOf": [
               {
-                "items": {},
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Rubric name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Rubric description"
+          },
+          "department_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
                 "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available rubric resources"
+            "title": "Department Ids",
+            "description": "Associated department identifiers"
+          },
+          "total_points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Points",
+            "description": "Total points"
+          },
+          "pass_points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Points",
+            "description": "Passing points"
+          },
+          "simulation_rubric": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Rubric",
+            "description": "Whether this rubric is for simulation"
+          },
+          "video_rubric": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Rubric",
+            "description": "Whether this rubric is for video"
+          },
+          "standard_group_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Standard Group Ids",
+            "description": "Associated standard group identifiers"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the rubric was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "AgentRubricSection"
+        "title": "AgentRubricResource"
       },
-      "AgentTemperatureLevelSection": {
+      "AgentTemperatureLevelResource": {
         "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected temperature level"
-          },
-          "resources": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available temperature levels"
+            "title": "Id",
+            "description": "Temperature level resource identifier"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature",
+            "description": "Temperature value"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the temperature level was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "AgentTemperatureLevelSection"
+        "title": "AgentTemperatureLevelResource"
       },
-      "AgentToolSection": {
+      "AgentToolResource": {
         "properties": {
-          "current": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently selected tools"
+            "title": "Id",
+            "description": "Tool resource identifier"
           },
-          "resources": {
+          "name": {
             "anyOf": [
               {
-                "items": {},
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Tool name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Tool description"
+          },
+          "permission_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
                 "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available tool resources"
+            "title": "Permission Ids",
+            "description": "Associated permission identifiers"
+          },
+          "department_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Ids",
+            "description": "Associated department identifiers"
+          },
+          "args_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Args Ids",
+            "description": "Associated arg identifiers"
+          },
+          "args_output_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Args Output Ids",
+            "description": "Associated arg output identifiers"
+          },
+          "instruction_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instruction Id",
+            "description": "Associated instruction identifier"
+          },
+          "agent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Id",
+            "description": "Associated denormalized agent identifier"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the tool was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "AgentToolSection"
+        "title": "AgentToolResource"
       },
-      "AgentVoiceSection": {
+      "AgentVoiceResource": {
         "properties": {
-          "current": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently selected voices"
+            "title": "Id",
+            "description": "Voice resource identifier"
           },
-          "resources": {
+          "voice": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available voice resources"
+            "title": "Voice",
+            "description": "Voice value"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the voice was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "AgentVoiceSection"
+        "title": "AgentVoiceResource"
       },
       "AggregatedResults": {
         "properties": {
@@ -45926,6 +46542,58 @@
         ],
         "title": "AttemptNextPayload",
         "description": "Client-to-server: proceed to the next scenario in an existing attempt."
+      },
+      "AttemptOptionValue": {
+        "properties": {
+          "option_text": {
+            "type": "string",
+            "title": "Option Text"
+          },
+          "is_correct": {
+            "type": "boolean",
+            "title": "Is Correct",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "option_text"
+        ],
+        "title": "AttemptOptionValue",
+        "description": "Inline option value \u2014 nested under a question."
+      },
+      "AttemptQuestionValue": {
+        "properties": {
+          "question_text": {
+            "type": "string",
+            "title": "Question Text"
+          },
+          "allow_multiple": {
+            "type": "boolean",
+            "title": "Allow Multiple",
+            "default": false
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AttemptOptionValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_text"
+        ],
+        "title": "AttemptQuestionValue",
+        "description": "Inline question value with optional nested options."
       },
       "AttemptResources-Input": {
         "properties": {
@@ -52924,196 +53592,98 @@
             "format": "uuid",
             "title": "Chat Id"
           },
-          "title": {
-            "type": "string",
-            "title": "Title",
-            "default": ""
-          },
-          "position": {
-            "type": "integer",
-            "title": "Position",
-            "default": 0
-          },
-          "time_limit": {
+          "name_id": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Time Limit"
+            "title": "Name Id"
           },
-          "negative_time": {
-            "type": "boolean",
-            "title": "Negative Time",
-            "default": false
-          },
-          "audio_enabled": {
-            "type": "boolean",
-            "title": "Audio Enabled",
-            "default": false
-          },
-          "text_enabled": {
-            "type": "boolean",
-            "title": "Text Enabled",
-            "default": true
-          },
-          "hints_enabled": {
-            "type": "boolean",
-            "title": "Hints Enabled",
-            "default": false
-          },
-          "copy_paste_allowed": {
-            "type": "boolean",
-            "title": "Copy Paste Allowed",
-            "default": true
-          },
-          "show_images": {
-            "type": "boolean",
-            "title": "Show Images",
-            "default": false
-          },
-          "show_objectives": {
-            "type": "boolean",
-            "title": "Show Objectives",
-            "default": false
-          },
-          "show_problem_statement": {
-            "type": "boolean",
-            "title": "Show Problem Statement",
-            "default": false
-          },
-          "analyses_enabled": {
-            "type": "boolean",
-            "title": "Analyses Enabled",
-            "default": false
-          },
-          "improvements_enabled": {
-            "type": "boolean",
-            "title": "Improvements Enabled",
-            "default": false
-          },
-          "replacements_enabled": {
-            "type": "boolean",
-            "title": "Replacements Enabled",
-            "default": false
-          },
-          "strengths_enabled": {
-            "type": "boolean",
-            "title": "Strengths Enabled",
-            "default": false
-          },
-          "use_custom": {
-            "type": "boolean",
-            "title": "Use Custom",
-            "default": false
-          },
-          "use_previous": {
-            "type": "boolean",
-            "title": "Use Previous",
-            "default": false
-          },
-          "problem_statement_enabled": {
-            "type": "boolean",
-            "title": "Problem Statement Enabled",
-            "default": false
-          },
-          "objectives_enabled": {
-            "type": "boolean",
-            "title": "Objectives Enabled",
-            "default": false
-          },
-          "video_enabled": {
-            "type": "boolean",
-            "title": "Video Enabled",
-            "default": false
-          },
-          "images_enabled": {
-            "type": "boolean",
-            "title": "Images Enabled",
-            "default": false
-          },
-          "questions_enabled": {
-            "type": "boolean",
-            "title": "Questions Enabled",
-            "default": false
-          },
-          "assistant_persona_ids": {
+          "name": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Assistant Persona Ids"
+            "title": "Name"
           },
-          "rubrics_ids": {
+          "description_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Rubrics Ids"
+            "title": "Description Id"
           },
-          "standards_ids": {
+          "description": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Standards Ids"
+            "title": "Description"
           },
-          "standard_groups_ids": {
+          "problem_statement_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Standard Groups Ids"
+            "title": "Problem Statement Id"
           },
-          "departments_ids": {
+          "problem_statement": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Departments Ids"
+            "title": "Problem Statement"
+          },
+          "video_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Id"
+          },
+          "image_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Id"
           },
           "personas_ids": {
             "anyOf": [
@@ -53130,12 +53700,11 @@
             ],
             "title": "Personas Ids"
           },
-          "problem_statements_ids": {
+          "personas": {
             "anyOf": [
               {
                 "items": {
-                  "type": "string",
-                  "format": "uuid"
+                  "type": "string"
                 },
                 "type": "array"
               },
@@ -53143,82 +53712,7 @@
                 "type": "null"
               }
             ],
-            "title": "Problem Statements Ids"
-          },
-          "objectives_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Objectives Ids"
-          },
-          "questions_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Questions Ids"
-          },
-          "options_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Options Ids"
-          },
-          "videos_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Videos Ids"
-          },
-          "images_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Images Ids"
+            "title": "Personas"
           },
           "documents_ids": {
             "anyOf": [
@@ -53235,6 +53729,20 @@
             ],
             "title": "Documents Ids"
           },
+          "documents": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Documents"
+          },
           "parameter_fields_ids": {
             "anyOf": [
               {
@@ -53250,7 +53758,7 @@
             ],
             "title": "Parameter Fields Ids"
           },
-          "names_ids": {
+          "objectives_ids": {
             "anyOf": [
               {
                 "items": {
@@ -53263,14 +53771,13 @@
                 "type": "null"
               }
             ],
-            "title": "Names Ids"
+            "title": "Objectives Ids"
           },
-          "descriptions_ids": {
+          "objectives": {
             "anyOf": [
               {
                 "items": {
-                  "type": "string",
-                  "format": "uuid"
+                  "type": "string"
                 },
                 "type": "array"
               },
@@ -53278,9 +53785,9 @@
                 "type": "null"
               }
             ],
-            "title": "Descriptions Ids"
+            "title": "Objectives"
           },
-          "parameters_ids": {
+          "questions_ids": {
             "anyOf": [
               {
                 "items": {
@@ -53293,7 +53800,36 @@
                 "type": "null"
               }
             ],
-            "title": "Parameters Ids"
+            "title": "Questions Ids"
+          },
+          "questions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AttemptQuestionValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questions"
+          },
+          "options_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options Ids"
           },
           "idempotency_key": {
             "anyOf": [
@@ -53319,7 +53855,7 @@
           "chat_id"
         ],
         "title": "CreateAttemptChatApiRequest",
-        "description": "Create an attempt_chat from a chat template + resource IDs."
+        "description": "Create an attempt_chat from a chat template + resource selections.\n\nFollows the persona pattern: singular fields enforce single-select,\nplural fields enforce multi-select. Each field supports either an ID\n(lookup by UUID) or a value (lookup by text / create if not found).\n\nConfig flags, rubrics, standards, departments, and scenarios are all\nderived from the chat template \u2014 never passed by the model."
       },
       "CreateAttemptChatApiResponse": {
         "properties": {
@@ -55179,6 +55715,25 @@
             "type": "array",
             "title": "Models",
             "description": "List of models to create"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -55197,6 +55752,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -55215,6 +55783,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -61098,6 +61679,25 @@
             "type": "array",
             "title": "Model Ids",
             "description": "List of model IDs to delete"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -61116,6 +61716,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of deletion results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -64109,6 +64722,25 @@
             "format": "uuid",
             "title": "Model Id",
             "description": "Model identifier to duplicate"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -64135,6 +64767,19 @@
             "type": "string",
             "title": "Message",
             "description": "Result message"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -74193,6 +74838,19 @@
       },
       "GetAgentApiRequest": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "UUID of the agent to retrieve"
+          },
           "agent_id": {
             "anyOf": [
               {
@@ -74204,7 +74862,7 @@
               }
             ],
             "title": "Agent Id",
-            "description": "UUID of the agent to retrieve"
+            "description": "Legacy alias for the agent identifier"
           },
           "draft_id": {
             "anyOf": [
@@ -74218,13 +74876,168 @@
             ],
             "title": "Draft Id",
             "description": "UUID of the draft to retrieve"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__agent__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for names"
+          },
+          "descriptions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__agent__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for descriptions"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__agent__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for models"
+          },
+          "prompts": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__agent__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for prompts"
+          },
+          "instructions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__agent__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for instructions"
+          },
+          "flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__agent__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__agent__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for departments"
+          },
+          "tools": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__agent__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for tools"
+          },
+          "temperature_levels": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__agent__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for temperature levels"
+          },
+          "reasoning_levels": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__agent__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for reasoning levels"
+          },
+          "voices": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__agent__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for voices"
+          },
+          "qualities": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__agent__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for qualities"
+          },
+          "rubrics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__agent__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for rubrics"
           }
         },
         "type": "object",
         "title": "GetAgentApiRequest",
         "description": "Request model for get agent endpoint."
       },
-      "GetAgentApiResponse-Input": {
+      "GetAgentApiResponse": {
         "properties": {
           "actor_name": {
             "anyOf": [
@@ -74287,229 +75100,7 @@
             "title": "Group Id",
             "description": "UUID of the owning group"
           },
-          "basic_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Basic Show Ai Generate",
-            "description": "Show AI generate for basic step"
-          },
-          "general_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "General Show Ai Generate",
-            "description": "Show AI generate for general step"
-          },
-          "names": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentNameSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Name section data"
-          },
-          "descriptions": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentDescriptionSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Description section data"
-          },
-          "models": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentModelSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Model section data"
-          },
-          "prompts": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentPromptSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Prompt section data"
-          },
-          "instructions": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentInstructionSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Instruction section data"
-          },
-          "flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Flag section data"
-          },
-          "departments": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentDepartmentSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Department section data"
-          },
-          "tools": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentToolSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Tool section data"
-          },
-          "temperature_levels": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentTemperatureLevelSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Temperature level section data"
-          },
-          "reasoning_levels": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentReasoningLevelSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Reasoning level section data"
-          },
-          "voices": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentVoiceSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Voice section data"
-          },
-          "qualities": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentQualitySection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Quality section data"
-          },
-          "rubrics": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentRubricSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Rubric section data"
-          }
-        },
-        "type": "object",
-        "title": "GetAgentApiResponse",
-        "description": "Section-first response model for get agent endpoint."
-      },
-      "GetAgentApiResponse-Output": {
-        "properties": {
-          "actor_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Actor Name",
-            "description": "Display name of the current actor"
-          },
-          "agent_exists": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Agent Exists",
-            "description": "Whether the agent exists"
-          },
-          "can_edit": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Can Edit",
-            "description": "Whether the current user can edit"
-          },
-          "disabled_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Disabled Reason",
-            "description": "Reason the agent is disabled"
-          },
-          "group_id": {
+          "agent_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -74519,8 +75110,20 @@
                 "type": "null"
               }
             ],
-            "title": "Group Id",
-            "description": "UUID of the owning group"
+            "title": "Agent Id",
+            "description": "UUID of the selected agent"
+          },
+          "show_ai_generate": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show Ai Generate",
+            "description": "Whether any step should show AI generate"
           },
           "basic_show_ai_generate": {
             "anyOf": [
@@ -74546,153 +75149,221 @@
             "title": "General Show Ai Generate",
             "description": "Show AI generate for general step"
           },
-          "names": {
+          "pending_ids": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentNameSection"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Name section data"
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers when available"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AgentNameResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Names",
+            "description": "Name resources"
           },
           "descriptions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentDescriptionSection"
+                "items": {
+                  "$ref": "#/components/schemas/AgentDescriptionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Description section data"
+            "title": "Descriptions",
+            "description": "Description resources"
           },
           "models": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentModelSection"
+                "items": {
+                  "$ref": "#/components/schemas/AgentModelResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Model section data"
+            "title": "Models",
+            "description": "Model resources"
           },
           "prompts": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentPromptSection"
+                "items": {
+                  "$ref": "#/components/schemas/AgentPromptResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Prompt section data"
+            "title": "Prompts",
+            "description": "Prompt resources"
           },
           "instructions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentInstructionSection"
+                "items": {
+                  "$ref": "#/components/schemas/AgentInstructionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Instruction section data"
+            "title": "Instructions",
+            "description": "Instruction resources"
           },
           "flags": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentFlagSection"
+                "items": {
+                  "$ref": "#/components/schemas/AgentFlagConfig"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Flag section data"
+            "title": "Flags",
+            "description": "Flag resources"
           },
           "departments": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentDepartmentSection"
+                "items": {
+                  "$ref": "#/components/schemas/AgentDepartmentResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Department section data"
+            "title": "Departments",
+            "description": "Department resources"
           },
           "tools": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentToolSection"
+                "items": {
+                  "$ref": "#/components/schemas/AgentToolResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Tool section data"
+            "title": "Tools",
+            "description": "Tool resources"
           },
           "temperature_levels": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentTemperatureLevelSection"
+                "items": {
+                  "$ref": "#/components/schemas/AgentTemperatureLevelResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Temperature level section data"
+            "title": "Temperature Levels",
+            "description": "Temperature level resources"
           },
           "reasoning_levels": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentReasoningLevelSection"
+                "items": {
+                  "$ref": "#/components/schemas/AgentReasoningLevelResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Reasoning level section data"
+            "title": "Reasoning Levels",
+            "description": "Reasoning level resources"
           },
           "voices": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentVoiceSection"
+                "items": {
+                  "$ref": "#/components/schemas/AgentVoiceResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Voice section data"
+            "title": "Voices",
+            "description": "Voice resources"
           },
           "qualities": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentQualitySection"
+                "items": {
+                  "$ref": "#/components/schemas/AgentQualityResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Quality section data"
+            "title": "Qualities",
+            "description": "Quality resources"
           },
           "rubrics": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentRubricSection"
+                "items": {
+                  "$ref": "#/components/schemas/AgentRubricResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Rubric section data"
+            "title": "Rubrics",
+            "description": "Rubric resources"
           }
         },
         "type": "object",
         "title": "GetAgentApiResponse",
-        "description": "Section-first response model for get agent endpoint."
+        "description": "Canonical composed response model for get agent endpoint."
       },
       "GetAgentDraftResponse": {
         "properties": {
@@ -90223,6 +90894,25 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -90261,6 +90951,19 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -102558,6 +103261,19 @@
       },
       "PatchAgentDraftApiRequest": {
         "properties": {
+          "draft_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Id",
+            "description": "UUID of the draft to update"
+          },
           "group_id": {
             "anyOf": [
               {
@@ -102583,6 +103299,25 @@
             ],
             "title": "Input Draft Id",
             "description": "UUID of the input draft"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key for accept/reject acknowledgement"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Whether pending changes should be accepted",
+            "default": true
           },
           "name": {
             "anyOf": [
@@ -102634,6 +103369,31 @@
             "title": "Description Id",
             "description": "UUID of the description resource"
           },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether the agent is active"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Active flag resource UUID"
+          },
           "flag_ids": {
             "anyOf": [
               {
@@ -102649,6 +103409,21 @@
             ],
             "title": "Flag Ids",
             "description": "Associated flag UUIDs"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departments",
+            "description": "Department names for matching"
           },
           "department_ids": {
             "anyOf": [
@@ -102695,28 +103470,61 @@
             "title": "Tool Ids",
             "description": "Associated tool UUIDs"
           },
-          "reasoning_level_ids": {
+          "reasoning_level": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Reasoning Level Ids",
-            "description": "Associated reasoning level UUIDs"
+            "title": "Reasoning Level",
+            "description": "Reasoning level label to match"
           },
-          "temperature_level_ids": {
+          "reasoning_level_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Level Id",
+            "description": "Associated reasoning level UUID"
+          },
+          "temperature_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature Level",
+            "description": "Temperature level label to match"
+          },
+          "temperature_level_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature Level Id",
+            "description": "Associated temperature level UUID"
+          },
+          "voices": {
             "anyOf": [
               {
                 "items": {
-                  "type": "string",
-                  "format": "uuid"
+                  "type": "string"
                 },
                 "type": "array"
               },
@@ -102724,8 +103532,8 @@
                 "type": "null"
               }
             ],
-            "title": "Temperature Level Ids",
-            "description": "Associated temperature level UUIDs"
+            "title": "Voices",
+            "description": "Voice names for matching or creation"
           },
           "voice_ids": {
             "anyOf": [
@@ -102743,6 +103551,76 @@
             "title": "Voice Ids",
             "description": "Associated voice UUIDs"
           },
+          "qualities": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualities",
+            "description": "Quality labels for matching"
+          },
+          "quality_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Ids",
+            "description": "Associated quality UUIDs"
+          },
+          "prompt_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Id",
+            "description": "Associated prompt UUID"
+          },
+          "instruction_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instruction Id",
+            "description": "Associated instruction UUID"
+          },
+          "instructions_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instructions Id",
+            "description": "Legacy alias for associated instruction UUID"
+          },
           "rubric_ids": {
             "anyOf": [
               {
@@ -102758,6 +103636,22 @@
             ],
             "title": "Rubric Ids",
             "description": "Associated rubric UUIDs"
+          },
+          "pending_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers"
           }
         },
         "type": "object",
@@ -102777,6 +103671,19 @@
             "title": "Draft Id",
             "description": "UUID of the saved draft"
           },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key for accept/reject acknowledgement"
+          },
           "message": {
             "type": "string",
             "title": "Message",
@@ -102785,7 +103692,7 @@
           "form_state": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AgentDraftFormState"
+                "$ref": "#/components/schemas/app__infra__agent__types__DraftFormState"
               },
               {
                 "type": "null"
@@ -111254,6 +112161,25 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -111283,6 +112209,19 @@
             "title": "Message",
             "description": "Status message",
             "default": "Problem created successfully"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -114417,6 +115356,47 @@
         "type": "object",
         "title": "RefreshFieldApiRequest",
         "description": "Request model for field refresh endpoint."
+      },
+      "RefreshModelApiRequest": {
+        "properties": {
+          "targets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targets",
+            "description": "MV targets to refresh (omit for all). Options: model_drafts_mv"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject. Only meaningful with idempotency_key",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "RefreshModelApiRequest",
+        "description": "Request model for model refresh endpoint."
       },
       "RefreshParameterApiRequest": {
         "properties": {
@@ -129356,6 +130336,25 @@
             "type": "array",
             "title": "Models",
             "description": "List of models to update"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -129374,6 +130373,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -129392,6 +130404,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -132805,6 +133830,278 @@
         ],
         "title": "VideoUploadScenarioApiResponse",
         "description": "Response model for scenario video upload endpoint."
+      },
+      "app__infra__agent__types__DraftFormState": {
+        "properties": {
+          "name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Id",
+            "description": "UUID of the selected name resource"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Resolved name value"
+          },
+          "description_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description Id",
+            "description": "UUID of the selected description resource"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Resolved description value"
+          },
+          "flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Flag Ids",
+            "description": "Selected flag UUIDs"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Selected active flag UUID"
+          },
+          "department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Department Ids",
+            "description": "Selected department UUIDs"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id",
+            "description": "Selected model UUID"
+          },
+          "tool_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Tool Ids",
+            "description": "Selected tool UUIDs"
+          },
+          "reasoning_level_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Level Id",
+            "description": "Selected reasoning level UUID"
+          },
+          "temperature_level_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature Level Id",
+            "description": "Selected temperature level UUID"
+          },
+          "voice_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Voice Ids",
+            "description": "Selected voice UUIDs"
+          },
+          "quality_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Quality Ids",
+            "description": "Selected quality UUIDs"
+          },
+          "rubric_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Rubric Ids",
+            "description": "Selected rubric UUIDs"
+          },
+          "prompt_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Id",
+            "description": "Selected prompt UUID when provided"
+          },
+          "instruction_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instruction Id",
+            "description": "Selected instruction UUID when provided"
+          },
+          "pending_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "flag_ids",
+          "department_ids",
+          "tool_ids",
+          "voice_ids",
+          "quality_ids",
+          "rubric_ids"
+        ],
+        "title": "DraftFormState",
+        "description": "Server-authoritative form state returned after draft save."
+      },
+      "app__infra__agent__types__SectionFilter": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Filter options by search text"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Max options to return"
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected",
+            "description": "Only return selected items"
+          },
+          "suggested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested",
+            "description": "Only return suggested items"
+          },
+          "include": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include",
+            "description": "Include this section in response (default true)"
+          }
+        },
+        "type": "object",
+        "title": "SectionFilter"
       },
       "app__infra__chat__types__DraftImageValue": {
         "properties": {

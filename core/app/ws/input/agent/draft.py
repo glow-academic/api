@@ -38,6 +38,7 @@ async def agent_draft(sid: str, data: dict[str, Any]) -> None:
         operation="draft",
         profile_id=identity.profile_id,
         session_id=identity.session_id,
+        draft_id=payload.draft_id or payload.input_draft_id,
         sid=sid,
         rooms=[sid],
         runner=lambda: patch_agent_draft_impl(

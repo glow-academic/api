@@ -12,7 +12,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
-from app.infra.model.create import CreateModelItem
+from app.infra.model.types import CreateModelItem
 from app.infra.model.search import MODEL_IMPORT_FIELDS
 from app.infra.globals import UPLOAD_FOLDER, get_pool
 from app.tools.entries.uploads.create import create_upload

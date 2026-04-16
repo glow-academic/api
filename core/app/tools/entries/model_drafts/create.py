@@ -26,12 +26,14 @@ async def create_model_draft(
     temperature_level_ids: list[UUID] | None = None,
     value_id: UUID | None = None,
     voice_ids: list[UUID] | None = None,
+    pending_ids: set[UUID] | None = None,
 ) -> CreateModelDraftResponse:
     """Create a model_drafts entry with optional connection table links."""
     draft_id = await conn.fetchval(
         """
         INSERT INTO model_drafts_entry (id, session_id, active, mcp, generated)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
+        ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         session_id,
@@ -71,12 +73,15 @@ async def create_model_draft(
         ("model_drafts_voices_connection", "voices_id", voice_ids or []),
     ]
 
+    _pending = pending_ids or set()
     for table, col, ids in connections:
         for rid in ids:
             await conn.execute(
-                f"INSERT INTO {table} (draft_id, {col}) VALUES ($1, $2)",
+                f"INSERT INTO {table} (draft_id, {col}, active) VALUES ($1, $2, $3) "
+                f"ON CONFLICT (draft_id, {col}) DO UPDATE SET active = EXCLUDED.active",
                 draft_id,
                 rid,
+                False if soft else (rid not in _pending),
             )
 
     return CreateModelDraftResponse(id=draft_id)

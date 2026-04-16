@@ -5,7 +5,7 @@ from typing import Any
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
-from app.infra.model.refresh import refresh_model_impl
+from app.infra.model.refresh import RefreshModelApiRequest, refresh_model_impl
 
 
 @sio.on("model.refresh")  # type: ignore
@@ -13,6 +13,8 @@ async def model_refresh(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:
         return
+
+    payload = RefreshModelApiRequest(**data)
 
     pool = get_pool()
     redis = get_redis_client()
@@ -29,6 +31,8 @@ async def model_refresh(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
+            session_id=identity.session_id,
+            request=payload,
         ),
-        arguments={},
+        arguments=payload.model_dump(mode="json"),
     )

@@ -46,6 +46,8 @@ async def model_delete(sid: str, data: dict[str, Any]) -> None:
             profile_id=identity.profile_id,
             model_ids=payload.model_ids,
             session_id=identity.session_id,
+            accept=payload.accept,
+            idempotency_key=payload.idempotency_key,
         ),
         arguments=payload.model_dump(mode="json"),
     )

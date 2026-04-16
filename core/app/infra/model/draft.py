@@ -369,6 +369,25 @@ async def patch_model_draft_impl(
         )
 
     if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_model_draft(
+                        conn,
+                        session_id=session_id,
+                        id=idempotency_key,
+                        soft=False,
+                        profile_ids=[profile.profiles_id],
+                        pending_ids=set(request.pending_ids) if request.pending_ids else None,
+                    )
+            await refresh_model_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                targets=["model_drafts_mv"],
+                operation_key=idempotency_key,
+            )
         return PatchModelDraftApiResponse(
             success=True,
             draft_id=idempotency_key,
@@ -410,6 +429,7 @@ async def patch_model_draft_impl(
                 temperature_level_ids=request.temperature_level_ids,
                 value_id=request.value_id,
                 voice_ids=request.voice_ids,
+                pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
     resolved_name = request.name
@@ -464,12 +484,19 @@ async def patch_model_draft_impl(
     )
 
     if not soft:
-        await refresh_model_impl(pool, redis, profile_id=profile_id)
+        await refresh_model_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["model_drafts_mv"],
+            operation_key=result.id,
+        )
 
     return PatchModelDraftApiResponse(
         success=True,
         draft_id=result.id,
-        idempotency_key=idempotency_key,
-        message="Draft saved successfully",
+        idempotency_key=result.id,
+        message="Draft created (pending acceptance)" if soft else "Draft created successfully",
         form_state=form_state,
     )

@@ -18,16 +18,18 @@ async def create_option(
     mcp: bool = False,
     soft: bool = False,
     question_id: UUID | None = None,
+    is_correct: bool = False,
 ) -> GetOptionResponse:
     """Create an option resource (plain INSERT, no unique constraint)."""
     option_id = await conn.fetchval(
         """
-        INSERT INTO options_resource (id, option_text, question_id, active, mcp, generated)
-        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, $4)
+        INSERT INTO options_resource (id, option_text, question_id, is_correct, active, mcp, generated)
+        VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, $5)
         RETURNING id
         """,
         option_text,
         question_id,
+        is_correct,
         not soft,
         mcp,
         id,

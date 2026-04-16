@@ -7905,7 +7905,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetModelApiResponse-Output"
+                  "$ref": "#/components/schemas/GetModelApiResponse"
                 }
               }
             }
@@ -8574,6 +8574,16 @@
         "summary": "Model Refresh",
         "description": "Refresh model materialized views and invalidate caches.",
         "operationId": "model_refresh_model_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshModelApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -8581,6 +8591,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -32789,7 +32809,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetModelApiResponse-Input"
+                "$ref": "#/components/schemas/GetModelApiResponse"
               }
             }
           },
@@ -52172,6 +52192,25 @@
             "type": "array",
             "title": "Models",
             "description": "List of models to create"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -52190,6 +52229,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -52208,6 +52260,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -58091,6 +58156,25 @@
             "type": "array",
             "title": "Model Ids",
             "description": "List of model IDs to delete"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -58109,6 +58193,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of deletion results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -61102,6 +61199,25 @@
             "format": "uuid",
             "title": "Model Id",
             "description": "Model identifier to duplicate"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -61128,6 +61244,19 @@
             "type": "string",
             "title": "Message",
             "description": "Result message"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -77292,6 +77421,19 @@
       },
       "GetModelApiRequest": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Model unique identifier"
+          },
           "model_id": {
             "anyOf": [
               {
@@ -77303,7 +77445,7 @@
               }
             ],
             "title": "Model Id",
-            "description": "Model unique identifier"
+            "description": "Legacy alias for model unique identifier"
           },
           "draft_id": {
             "anyOf": [
@@ -77317,13 +77459,156 @@
             ],
             "title": "Draft Id",
             "description": "Draft unique identifier"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__model__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for names"
+          },
+          "descriptions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__model__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for descriptions"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__model__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for values"
+          },
+          "providers": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__model__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for providers"
+          },
+          "flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__model__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__model__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for departments"
+          },
+          "modalities": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__model__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for modalities"
+          },
+          "temperature_levels": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__model__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for temperature levels"
+          },
+          "pricing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__model__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for pricing"
+          },
+          "reasoning_levels": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__model__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for reasoning levels"
+          },
+          "qualities": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__model__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for qualities"
+          },
+          "voices": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__model__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for voices"
           }
         },
         "type": "object",
-        "title": "GetModelApiRequest",
-        "description": "Request model for get model endpoint."
+        "title": "GetModelApiRequest"
       },
-      "GetModelApiResponse-Input": {
+      "GetModelApiResponse": {
         "properties": {
           "actor_name": {
             "anyOf": [
@@ -77386,230 +77671,7 @@
             "title": "Group Id",
             "description": "Group identifier for the model"
           },
-          "basic_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Basic Show Ai Generate",
-            "description": "Show AI generate for basic step"
-          },
-          "provider_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Show Ai Generate",
-            "description": "Show AI generate for provider step"
-          },
-          "features_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Features Show Ai Generate",
-            "description": "Show AI generate for features step"
-          },
-          "names": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ModelNameSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Name section with resources"
-          },
-          "descriptions": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ModelDescriptionSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Description section with resources"
-          },
-          "values": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ModelValueSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Value section with resources"
-          },
-          "providers": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ModelProviderSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Provider section with resources"
-          },
-          "flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ModelFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Flag section with configs"
-          },
-          "departments": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ModelDepartmentSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Department section with resources"
-          },
-          "modalities": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ModelModalitySection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Modality section with resources"
-          },
-          "temperature_levels": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ModelTemperatureLevelSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Temperature level section"
-          },
-          "pricing": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ModelPricingSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Pricing section with resources"
-          },
-          "reasoning_levels": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ModelReasoningLevelSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Reasoning level section"
-          },
-          "qualities": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ModelQualitySection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Quality section with resources"
-          },
-          "voices": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ModelVoiceSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Voice section with resources"
-          }
-        },
-        "type": "object",
-        "title": "GetModelApiResponse",
-        "description": "Section-first response for model editor."
-      },
-      "GetModelApiResponse-Output": {
-        "properties": {
-          "actor_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Actor Name",
-            "description": "Display name of the current actor"
-          },
-          "model_exists": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Model Exists",
-            "description": "Whether the model exists"
-          },
-          "can_edit": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Can Edit",
-            "description": "Whether the current user can edit"
-          },
-          "disabled_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Disabled Reason",
-            "description": "Reason editing is disabled"
-          },
-          "group_id": {
+          "model_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -77619,8 +77681,20 @@
                 "type": "null"
               }
             ],
-            "title": "Group Id",
-            "description": "Group identifier for the model"
+            "title": "Model Id",
+            "description": "Model identifier"
+          },
+          "show_ai_generate": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show Ai Generate",
+            "description": "Whether any step should show AI generate"
           },
           "basic_show_ai_generate": {
             "anyOf": [
@@ -77658,142 +77732,205 @@
             "title": "Features Show Ai Generate",
             "description": "Show AI generate for features step"
           },
-          "names": {
+          "pending_ids": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ModelNameSection"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Name section with resources"
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers when available"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ModelNameResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Names",
+            "description": "Name resources"
           },
           "descriptions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ModelDescriptionSection"
+                "items": {
+                  "$ref": "#/components/schemas/ModelDescriptionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Description section with resources"
+            "title": "Descriptions",
+            "description": "Description resources"
           },
           "values": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ModelValueSection"
+                "items": {
+                  "$ref": "#/components/schemas/ModelValueResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Value section with resources"
+            "title": "Values",
+            "description": "Value resources"
           },
           "providers": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ModelProviderSection"
+                "items": {
+                  "$ref": "#/components/schemas/ModelProviderResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Provider section with resources"
+            "title": "Providers",
+            "description": "Provider resources"
           },
           "flags": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ModelFlagSection"
+                "items": {
+                  "$ref": "#/components/schemas/ModelFlagConfig"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Flag section with configs"
+            "title": "Flags",
+            "description": "Flag configs"
           },
           "departments": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ModelDepartmentSection"
+                "items": {
+                  "$ref": "#/components/schemas/ModelDepartmentResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Department section with resources"
+            "title": "Departments",
+            "description": "Department resources"
           },
           "modalities": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ModelModalitySection"
+                "items": {
+                  "$ref": "#/components/schemas/ModelModalityResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Modality section with resources"
+            "title": "Modalities",
+            "description": "Modality resources"
           },
           "temperature_levels": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ModelTemperatureLevelSection"
+                "items": {
+                  "$ref": "#/components/schemas/ModelTemperatureLevelResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Temperature level section"
+            "title": "Temperature Levels",
+            "description": "Temperature level resources"
           },
           "pricing": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ModelPricingSection"
+                "items": {
+                  "$ref": "#/components/schemas/ModelPricingResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Pricing section with resources"
+            "title": "Pricing",
+            "description": "Pricing resources"
           },
           "reasoning_levels": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ModelReasoningLevelSection"
+                "items": {
+                  "$ref": "#/components/schemas/ModelReasoningLevelResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Reasoning level section"
+            "title": "Reasoning Levels",
+            "description": "Reasoning level resources"
           },
           "qualities": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ModelQualitySection"
+                "items": {
+                  "$ref": "#/components/schemas/ModelQualityResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Quality section with resources"
+            "title": "Qualities",
+            "description": "Quality resources"
           },
           "voices": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ModelVoiceSection"
+                "items": {
+                  "$ref": "#/components/schemas/ModelVoiceResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Voice section with resources"
+            "title": "Voices",
+            "description": "Voice resources"
           }
         },
         "type": "object",
-        "title": "GetModelApiResponse",
-        "description": "Section-first response for model editor."
+        "title": "GetModelApiResponse"
       },
       "GetModelDraftResponse": {
         "properties": {
@@ -87208,6 +87345,25 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -87246,6 +87402,19 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -97194,207 +97363,139 @@
         "title": "MessageFeedbackEntry",
         "description": "Unified feedback entry for messages (strength or improvement).\n\nCombines strengths and improvements into a single type with a `type` field.\n- type=\"strength\": has highlights (sections to highlight as good)\n- type=\"improvement\": has replaces (sections to replace with suggestions)"
       },
-      "ModelDepartmentSection": {
+      "ModelDepartmentResource": {
         "properties": {
-          "current": {
+          "department_id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently assigned departments"
+            "title": "Department Id",
+            "description": "Department identifier"
           },
-          "resources": {
+          "name": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available departments"
+            "title": "Name",
+            "description": "Department name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Department description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the department was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ModelDepartmentSection"
+        "title": "ModelDepartmentResource"
       },
-      "ModelDescriptionSection": {
+      "ModelDescriptionResource": {
         "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected description resource"
-          },
-          "resources": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available description resources"
+            "title": "Id",
+            "description": "Description resource identifier"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Model description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the description was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ModelDescriptionSection"
-      },
-      "ModelDraftFormState": {
-        "properties": {
-          "name_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name Id",
-            "description": "Resolved name resource identifier"
-          },
-          "description_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description Id",
-            "description": "Resolved description resource identifier"
-          },
-          "flag_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Flag Ids",
-            "description": "Flag option identifiers"
-          },
-          "department_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Department Ids",
-            "description": "Department identifiers"
-          },
-          "modality_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Modality Ids",
-            "description": "Modality identifiers"
-          },
-          "pricing_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Pricing Ids",
-            "description": "Pricing tier identifiers"
-          },
-          "provider_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Id",
-            "description": "Provider identifier"
-          },
-          "quality_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Quality Ids",
-            "description": "Quality level identifiers"
-          },
-          "reasoning_level_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Reasoning Level Ids",
-            "description": "Reasoning level identifiers"
-          },
-          "temperature_level_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Temperature Level Ids",
-            "description": "Temperature level identifiers"
-          },
-          "value_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value Id",
-            "description": "Value resource identifier"
-          },
-          "voice_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Voice Ids",
-            "description": "Voice identifiers"
-          }
-        },
-        "type": "object",
-        "required": [
-          "flag_ids",
-          "department_ids",
-          "modality_ids",
-          "pricing_ids",
-          "quality_ids",
-          "reasoning_level_ids",
-          "temperature_level_ids",
-          "voice_ids"
-        ],
-        "title": "ModelDraftFormState",
-        "description": "Server-authoritative form state returned after draft save."
+        "title": "ModelDescriptionResource"
       },
       "ModelFieldError": {
         "properties": {
@@ -97499,227 +97600,467 @@
         "title": "ModelFlagConfig",
         "description": "Enriched flag config for direct client consumption."
       },
-      "ModelFlagSection": {
+      "ModelModalityResource": {
         "properties": {
-          "current": {
+          "id": {
             "anyOf": [
               {
-                "items": {
-                  "$ref": "#/components/schemas/ModelFlagConfig"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently active flag configs"
+            "title": "Id",
+            "description": "Modality resource identifier"
           },
-          "resources": {
+          "modality": {
             "anyOf": [
               {
-                "items": {
-                  "$ref": "#/components/schemas/ModelFlagConfig"
-                },
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available flag configs"
+            "title": "Modality",
+            "description": "Modality name"
+          },
+          "is_input": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Input",
+            "description": "Whether this is an input modality"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the modality was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ModelFlagSection"
+        "title": "ModelModalityResource"
       },
-      "ModelModalitySection": {
+      "ModelNameResource": {
         "properties": {
-          "current": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently assigned modalities"
+            "title": "Id",
+            "description": "Name resource identifier"
           },
-          "resources": {
+          "name": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available modalities"
+            "title": "Name",
+            "description": "Model display name"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the name was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ModelModalitySection"
+        "title": "ModelNameResource"
       },
-      "ModelNameSection": {
+      "ModelPricingResource": {
         "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected name resource"
-          },
-          "resources": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available name resources"
+            "title": "Id",
+            "description": "Pricing resource identifier"
+          },
+          "pricing_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pricing Type",
+            "description": "Pricing type"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price",
+            "description": "Pricing amount"
+          },
+          "unit_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Name",
+            "description": "Pricing unit name"
+          },
+          "unit_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Category",
+            "description": "Pricing unit category"
+          },
+          "unit_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Value",
+            "description": "Pricing unit value"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the pricing resource was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ModelNameSection"
+        "title": "ModelPricingResource"
       },
-      "ModelPricingSection": {
+      "ModelProviderResource": {
         "properties": {
-          "current": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently assigned pricing tiers"
+            "title": "Id",
+            "description": "Provider resource identifier"
           },
-          "resources": {
+          "name": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available pricing tiers"
+            "title": "Name",
+            "description": "Provider display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Provider description"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Provider value"
+          },
+          "base_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url",
+            "description": "Provider endpoint"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the provider was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ModelPricingSection"
+        "title": "ModelProviderResource"
       },
-      "ModelProviderSection": {
+      "ModelQualityResource": {
         "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected provider resource"
-          },
-          "resources": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available provider resources"
+            "title": "Id",
+            "description": "Quality resource identifier"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality",
+            "description": "Quality label"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the quality was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ModelProviderSection"
+        "title": "ModelQualityResource"
       },
-      "ModelQualitySection": {
+      "ModelReasoningLevelResource": {
         "properties": {
-          "current": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently assigned quality levels"
+            "title": "Id",
+            "description": "Reasoning level resource identifier"
           },
-          "resources": {
+          "reasoning_level": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available quality levels"
+            "title": "Reasoning Level",
+            "description": "Reasoning level label"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the reasoning level was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ModelQualitySection"
-      },
-      "ModelReasoningLevelSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned reasoning levels"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available reasoning levels"
-          }
-        },
-        "type": "object",
-        "title": "ModelReasoningLevelSection"
+        "title": "ModelReasoningLevelResource"
       },
       "ModelResultItem": {
         "properties": {
@@ -97770,98 +98111,200 @@
         "title": "ModelResultItem",
         "description": "Per-item result within a bulk create/update response."
       },
-      "ModelTemperatureLevelSection": {
+      "ModelTemperatureLevelResource": {
         "properties": {
-          "current": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently assigned temperature levels"
+            "title": "Id",
+            "description": "Temperature level resource identifier"
           },
-          "resources": {
+          "temperature": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available temperature levels"
+            "title": "Temperature",
+            "description": "Temperature level label"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the temperature level was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ModelTemperatureLevelSection"
+        "title": "ModelTemperatureLevelResource"
       },
-      "ModelValueSection": {
+      "ModelValueResource": {
         "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected value resource"
-          },
-          "resources": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available value resources"
+            "title": "Id",
+            "description": "Value resource identifier"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Model value"
+          },
+          "value_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Type",
+            "description": "Stored value type"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the value was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ModelValueSection"
+        "title": "ModelValueResource"
       },
-      "ModelVoiceSection": {
+      "ModelVoiceResource": {
         "properties": {
-          "current": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently assigned voices"
+            "title": "Id",
+            "description": "Voice resource identifier"
           },
-          "resources": {
+          "voice": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available voices"
+            "title": "Voice",
+            "description": "Voice label"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the voice was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ModelVoiceSection"
+        "title": "ModelVoiceResource"
       },
       "MvInfo": {
         "properties": {
@@ -101726,6 +102169,19 @@
       },
       "PatchModelDraftApiRequest": {
         "properties": {
+          "draft_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Id",
+            "description": "Existing draft ID to update"
+          },
           "input_draft_id": {
             "anyOf": [
               {
@@ -101738,6 +102194,25 @@
             ],
             "title": "Input Draft Id",
             "description": "Existing draft ID to update"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for accept/reject style ack"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject when idempotency_key is supplied",
+            "default": true
           },
           "name": {
             "anyOf": [
@@ -101789,6 +102264,56 @@
             "title": "Description Id",
             "description": "Description resource identifier"
           },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Direct model value"
+          },
+          "value_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Id",
+            "description": "Value resource identifier"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider",
+            "description": "Provider name to match"
+          },
+          "provider_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Id",
+            "description": "Provider identifier"
+          },
           "flag_ids": {
             "anyOf": [
               {
@@ -101804,6 +102329,124 @@
             ],
             "title": "Flag Ids",
             "description": "Flag option identifiers"
+          },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether the model is active"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Active flag resource identifier"
+          },
+          "modalities_enabled_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modalities Enabled Flag Id",
+            "description": "Modalities enabled flag resource identifier"
+          },
+          "temperature_enabled_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature Enabled Flag Id",
+            "description": "Temperature enabled flag resource identifier"
+          },
+          "pricing_enabled_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pricing Enabled Flag Id",
+            "description": "Pricing enabled flag resource identifier"
+          },
+          "voices_enabled_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voices Enabled Flag Id",
+            "description": "Voices enabled flag resource identifier"
+          },
+          "reasoning_levels_enabled_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Levels Enabled Flag Id",
+            "description": "Reasoning levels enabled flag resource identifier"
+          },
+          "qualities_enabled_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualities Enabled Flag Id",
+            "description": "Qualities enabled flag resource identifier"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departments",
+            "description": "Department names to match"
           },
           "department_ids": {
             "anyOf": [
@@ -101821,6 +102464,21 @@
             "title": "Department Ids",
             "description": "Department identifiers"
           },
+          "modalities": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modalities",
+            "description": "Modality labels to match"
+          },
           "modality_ids": {
             "anyOf": [
               {
@@ -101836,6 +102494,21 @@
             ],
             "title": "Modality Ids",
             "description": "Modality identifiers"
+          },
+          "pricing": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pricing",
+            "description": "Pricing types to match"
           },
           "pricing_ids": {
             "anyOf": [
@@ -101853,18 +102526,20 @@
             "title": "Pricing Ids",
             "description": "Pricing tier identifiers"
           },
-          "provider_id": {
+          "qualities": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Provider Id",
-            "description": "Provider identifier"
+            "title": "Qualities",
+            "description": "Quality labels to match"
           },
           "quality_ids": {
             "anyOf": [
@@ -101882,6 +102557,21 @@
             "title": "Quality Ids",
             "description": "Quality level identifiers"
           },
+          "reasoning_levels": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Levels",
+            "description": "Reasoning level labels to match"
+          },
           "reasoning_level_ids": {
             "anyOf": [
               {
@@ -101897,6 +102587,21 @@
             ],
             "title": "Reasoning Level Ids",
             "description": "Reasoning level identifiers"
+          },
+          "temperature_levels": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature Levels",
+            "description": "Temperature level labels to match"
           },
           "temperature_level_ids": {
             "anyOf": [
@@ -101914,18 +102619,20 @@
             "title": "Temperature Level Ids",
             "description": "Temperature level identifiers"
           },
-          "value_id": {
+          "voices": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Value Id",
-            "description": "Value resource identifier"
+            "title": "Voices",
+            "description": "Voice labels to create or match"
           },
           "voice_ids": {
             "anyOf": [
@@ -101942,11 +102649,27 @@
             ],
             "title": "Voice Ids",
             "description": "Voice identifiers"
+          },
+          "pending_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers"
           }
         },
         "type": "object",
         "title": "PatchModelDraftApiRequest",
-        "description": "Request model for new-style model draft endpoint.\n\nDual-mode for creatable resources only:\n  - name/name_id, description/description_id\nID-only for non-creatable resources:\n  - flag_ids, department_ids, modality_ids, pricing_ids, provider_id,\n    quality_ids, reasoning_level_ids, temperature_level_ids, value_id, voice_ids\n\nClient always sends full state (append-only \u2014 each write is a new snapshot)."
+        "description": "Request model for canonical model draft endpoint."
       },
       "PatchModelDraftApiResponse": {
         "properties": {
@@ -101961,6 +102684,19 @@
             "title": "Draft Id",
             "description": "Draft unique identifier"
           },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
+          },
           "message": {
             "type": "string",
             "title": "Message",
@@ -101969,7 +102705,7 @@
           "form_state": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ModelDraftFormState"
+                "$ref": "#/components/schemas/app__infra__model__types__DraftFormState"
               },
               {
                 "type": "null"
@@ -107672,6 +108408,25 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -107701,6 +108456,19 @@
             "title": "Message",
             "description": "Status message",
             "default": "Problem created successfully"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -110835,6 +111603,47 @@
         "type": "object",
         "title": "RefreshFieldApiRequest",
         "description": "Request model for field refresh endpoint."
+      },
+      "RefreshModelApiRequest": {
+        "properties": {
+          "targets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targets",
+            "description": "MV targets to refresh (omit for all). Options: model_drafts_mv"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject. Only meaningful with idempotency_key",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "RefreshModelApiRequest",
+        "description": "Request model for model refresh endpoint."
       },
       "RefreshParameterApiRequest": {
         "properties": {
@@ -125774,6 +126583,25 @@
             "type": "array",
             "title": "Models",
             "description": "List of models to update"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -125792,6 +126620,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -125810,6 +126651,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -130151,6 +131005,360 @@
         "type": "object",
         "title": "SectionFilter",
         "description": "Per-section filter options for GET requests."
+      },
+      "app__infra__model__types__DraftFormState": {
+        "properties": {
+          "name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Id",
+            "description": "Resolved name resource identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Resolved name value"
+          },
+          "description_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description Id",
+            "description": "Resolved description resource identifier"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Resolved description value"
+          },
+          "value_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Id",
+            "description": "Resolved value resource identifier"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Resolved model value"
+          },
+          "provider_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Id",
+            "description": "Resolved provider identifier"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider",
+            "description": "Resolved provider name"
+          },
+          "flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Flag Ids",
+            "description": "Flag option identifiers"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Resolved active flag identifier"
+          },
+          "modalities_enabled_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modalities Enabled Flag Id",
+            "description": "Resolved modalities enabled flag identifier"
+          },
+          "temperature_enabled_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature Enabled Flag Id",
+            "description": "Resolved temperature enabled flag identifier"
+          },
+          "pricing_enabled_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pricing Enabled Flag Id",
+            "description": "Resolved pricing enabled flag identifier"
+          },
+          "voices_enabled_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voices Enabled Flag Id",
+            "description": "Resolved voices enabled flag identifier"
+          },
+          "reasoning_levels_enabled_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Levels Enabled Flag Id",
+            "description": "Resolved reasoning levels enabled flag identifier"
+          },
+          "qualities_enabled_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualities Enabled Flag Id",
+            "description": "Resolved qualities enabled flag identifier"
+          },
+          "department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Department Ids",
+            "description": "Department identifiers"
+          },
+          "modality_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Modality Ids",
+            "description": "Modality identifiers"
+          },
+          "pricing_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pricing Ids",
+            "description": "Pricing tier identifiers"
+          },
+          "quality_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Quality Ids",
+            "description": "Quality level identifiers"
+          },
+          "reasoning_level_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Reasoning Level Ids",
+            "description": "Reasoning level identifiers"
+          },
+          "temperature_level_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Temperature Level Ids",
+            "description": "Temperature level identifiers"
+          },
+          "voice_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Voice Ids",
+            "description": "Voice identifiers"
+          },
+          "pending_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "flag_ids",
+          "department_ids",
+          "modality_ids",
+          "pricing_ids",
+          "quality_ids",
+          "reasoning_level_ids",
+          "temperature_level_ids",
+          "voice_ids"
+        ],
+        "title": "DraftFormState"
+      },
+      "app__infra__model__types__SectionFilter": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Filter options by search text"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Max options to return"
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected",
+            "description": "Only return selected items"
+          },
+          "suggested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested",
+            "description": "Only return suggested items"
+          },
+          "include": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include",
+            "description": "Include this section in response (default true)"
+          }
+        },
+        "type": "object",
+        "title": "SectionFilter"
       },
       "app__infra__parameter__types__DraftFormState": {
         "properties": {
