@@ -52,8 +52,14 @@ async def get_department(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
-                department_id=request.department_id,
+                id=request.id or request.department_id,
                 draft_id=request.draft_id,
+                filters={
+                    "names": request.names,
+                    "descriptions": request.descriptions,
+                    "flags": request.flags,
+                    "settings": request.settings,
+                },
                 bypass_cache=bypass_cache,
             )
 

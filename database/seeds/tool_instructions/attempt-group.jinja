@@ -1,3 +1,11 @@
-Resolve or create an attempt group. Call this after completing a task with the group_id from context and a short descriptive name (3-5 words, title case).
-
-Example: Attempt_Group(group_id: "uuid", name: "FERPA Training Setup")
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Group resolved.
+- **Group ID:** `{{ r.group_id }}`
+{% if r.group_name_id %}- **Group Name ID:** `{{ r.group_name_id }}`{% endif %}
+{% if r.name %}- **Name:** {{ r.name }}{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error resolving group: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

@@ -10,6 +10,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.agent.permissions import compute_can_draft
+from app.infra.agent.permissions_context import create_denormalized_snapshot
 from app.infra.agent.refresh import refresh_agent_impl
 from app.infra.agent.types import (
     DraftFormState,
@@ -196,20 +197,6 @@ async def patch_agent_draft_impl(
 ) -> PatchAgentDraftApiResponse:
     """Agent draft using canonical draft and DraftFormState flow."""
 
-    if request is not None:
-        idempotency_key = idempotency_key or request.idempotency_key
-        if accept is None and idempotency_key is not None:
-            accept = request.accept
-
-    if accept is not None and idempotency_key is not None:
-        return PatchAgentDraftApiResponse(
-            success=True,
-            draft_id=idempotency_key,
-            idempotency_key=idempotency_key,
-            message="Draft accepted" if accept else "Draft rejected",
-            form_state=DraftFormState(),
-        )
-
     if request is None:
         filtered = sanitize_model_kwargs(
             kwargs,
@@ -223,6 +210,7 @@ async def patch_agent_draft_impl(
                 "qualities",
                 "rubric_ids",
                 "flag_ids",
+                "pending_ids",
             },
             bool_fields={"active_flag"},
             drop_false_bools={"active_flag"},
@@ -235,6 +223,12 @@ async def patch_agent_draft_impl(
             filtered["draft_id"] = draft_id
             filtered["input_draft_id"] = draft_id
         request = PatchAgentDraftApiRequest(**filtered)
+
+    request.draft_id = request.draft_id or request.input_draft_id or draft_id
+    request.input_draft_id = request.input_draft_id or request.draft_id
+    idempotency_key = idempotency_key or request.idempotency_key
+    if accept is None and idempotency_key is not None:
+        accept = request.accept
 
     request.instructions_id = request.instructions_id or request.instruction_id
     request.instruction_id = request.instructions_id or request.instruction_id
@@ -255,6 +249,42 @@ async def patch_agent_draft_impl(
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to create or edit agent drafts.",
+        )
+
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_agent_draft(
+                        conn,
+                        session_id=session_id,
+                        id=idempotency_key,
+                        soft=False,
+                        profile_ids=[profile.profiles_id],
+                        pending_ids=set(request.pending_ids) if request.pending_ids else None,
+                    )
+            await refresh_agent_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                targets=["agent_drafts_mv"],
+                operation_key=idempotency_key,
+            )
+        return PatchAgentDraftApiResponse(
+            success=True,
+            draft_id=idempotency_key,
+            idempotency_key=idempotency_key,
+            message="Draft accepted" if accept else "Draft rejected",
+            form_state=DraftFormState(
+                flag_ids=[],
+                department_ids=[],
+                tool_ids=[],
+                voice_ids=[],
+                quality_ids=[],
+                rubric_ids=[],
+                pending_ids=[],
+            ),
         )
 
     errors = await _resolve_creatable_values(pool, redis, request)
@@ -286,14 +316,38 @@ async def patch_agent_draft_impl(
         if active_flag and active_flag.id:
             request.active_flag_id = active_flag.id
 
-    draft_entry_id = request.draft_id or request.input_draft_id or draft_id
-
     async with pool.acquire() as conn:
         async with conn.transaction():
+            snapshot_id: UUID | None = None
+            if any(
+                [
+                    request.prompt_id,
+                    request.instruction_id or request.instructions_id,
+                    request.model_id,
+                    request.tool_ids,
+                    request.rubric_ids,
+                    request.voice_ids,
+                ]
+            ):
+                snapshot_id = await create_denormalized_snapshot(
+                    pool,
+                    redis,
+                    name_id=request.name_id,
+                    description_id=request.description_id,
+                    department_ids=request.department_ids,
+                    model_id=request.model_id,
+                    prompt_id=request.prompt_id,
+                    rubric_id=(request.rubric_ids or [None])[0],
+                    tool_ids=request.tool_ids,
+                    instruction_ids=[request.instruction_id or request.instructions_id]
+                    if (request.instruction_id or request.instructions_id)
+                    else None,
+                    voice_ids=request.voice_ids,
+                )
             result = await create_agent_draft(
                 conn,
                 session_id=session_id,
-                id=draft_entry_id,
+                id=idempotency_key or request.draft_id,
                 soft=soft,
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id] if request.description_id else None,
@@ -307,6 +361,8 @@ async def patch_agent_draft_impl(
                 voice_ids=request.voice_ids,
                 quality_ids=request.quality_ids,
                 rubric_ids=request.rubric_ids,
+                agent_ids=[snapshot_id] if snapshot_id else None,
+                pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
     form_state = DraftFormState(
@@ -330,12 +386,19 @@ async def patch_agent_draft_impl(
     )
 
     if not soft:
-        await refresh_agent_impl(pool, redis, profile_id=profile_id)
+        await refresh_agent_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["agent_drafts_mv"],
+            operation_key=result.id,
+        )
 
     return PatchAgentDraftApiResponse(
         success=True,
         draft_id=result.id,
         idempotency_key=result.id,
-        message="Draft created successfully",
+        message="Draft created (pending acceptance)" if soft else "Draft created successfully",
         form_state=form_state,
     )

@@ -158,7 +158,14 @@ async def _resolve_multi_search(
             department_ids=department_ids, bypass_cache=True,
         )
         if not results:
-            raise HTTPException(400, f'{label} not found: "{v}"')
+            # Fetch available names for a helpful error message
+            all_results = await search_fn(
+                conn, redis, limit_count=20,
+                department_ids=department_ids, bypass_cache=True,
+            )
+            available = [getattr(r, "name", None) or str(r.id) for r in all_results]
+            hint = f"Available: {', '.join(available)}" if available else "No items available"
+            raise HTTPException(400, f'{label} not found: "{v}". {hint}')
         resolved.append(results[0].id)
     return resolved
 
@@ -354,13 +361,29 @@ async def create_attempt_chat_impl(
 
     # ── Step 4: Validate ──────────────────────────────────────────────────────
 
-    # Flag gating — reject resources for disabled sections
-    if not questions_enabled and (resolved_questions_ids or resolved_options_ids):
-        raise HTTPException(400, "Questions are not enabled for this chat.")
-    if not video_enabled and request.video_id:
-        raise HTTPException(400, "Video is not enabled for this chat.")
-    if not images_enabled and request.image_id:
-        raise HTTPException(400, "Images are not enabled for this chat.")
+    has_questions = bool(resolved_questions_ids or request.questions)
+    has_options = bool(resolved_options_ids)
+    has_video = bool(request.video_id or t_video_ids)
+
+    # Mode gating — video_enabled is the master toggle
+    if video_enabled:
+        # Video mode: video → questions → options
+        if request.image_id:
+            raise HTTPException(400, "Images are for chat mode (non-video). Use video_id instead.")
+        if has_questions and not has_video:
+            raise HTTPException(400, "Questions require a video — pass video_id.")
+        if has_options and not has_questions and not t_question_ids:
+            raise HTTPException(400, "Options require questions — pass questions or questions_ids first.")
+    else:
+        # Chat mode: no video/questions/options
+        if request.video_id:
+            raise HTTPException(400, "Video is not enabled for this chat (chat mode).")
+        if has_questions:
+            raise HTTPException(400, "Questions require video mode (video_enabled must be true).")
+        if has_options:
+            raise HTTPException(400, "Options require video mode (video_enabled must be true).")
+
+    # Independent flag gating
     if not problem_statement_enabled and (resolved_problem_statement_id or request.problem_statement_id):
         raise HTTPException(400, "Problem statements are not enabled for this chat.")
     if not objectives_enabled and resolved_objectives_ids:
@@ -382,10 +405,7 @@ async def create_attempt_chat_impl(
     if t_video_ids and request.video_id:
         raise HTTPException(400, "Video is already configured on the chat template.")
     if t_image_ids and request.image_id:
-        raise HTTPException(400, "Images are already configured on the chat template.")
-
-    # Cardinality (enforced by singular field names, but double-check)
-    # problem_statement_id, video_id, image_id are already singular — at most 1
+        raise HTTPException(400, "Image is already configured on the chat template.")
 
     # ── Step 5: Merge — template pre-set + model selections + auto ────────────
 

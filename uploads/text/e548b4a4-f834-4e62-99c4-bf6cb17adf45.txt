@@ -1,0 +1,34 @@
+## Context
+
+**Draft ID:** `019d9934-e156-7949-ad69-f93215ace465`
+**Chat ID:** `019d98e0-4ad6-7a16-a60f-451d9c3f1984`
+**Attempt ID:** `019d9934-e045-793c-87ac-803c7315bafe`
+
+**Group ID:** `019d9934-e197-7b5d-8f30-7bbaae4e6433`
+
+## Tools
+
+
+## Steps
+
+1. Call **Attempt_Chat_Get**(chat_entry_id: "019d98e0-4ad6-7a16-a60f-451d9c3f1984", draft_id: "019d9934-e156-7949-ad69-f93215ace465", attempt_id: "019d9934-e045-793c-87ac-803c7315bafe")
+2. Read the **Setup Summary** to see which sections need input, are locked, or are disabled
+3. For each section that **needs input**, collect values from the **Available** list:
+   - Singular fields (`name`, `description`, `problem_statement`) — pick exactly 1, pass text or ID
+   - `video_id`, `image_id` — pick exactly 1, pass ID
+   - Plural fields (`personas`, `documents`, `objectives`) — pick all available, pass names/texts or IDs
+   - `questions` — pass structured values with nested options, or `questions_ids` for existing ones
+   - `options_ids` — pass IDs for standalone existing options
+   - `parameter_fields_ids` — pass IDs
+4. Call **Attempt_Chat_Create** with:
+   - `attempt_id`: `"019d9934-e045-793c-87ac-803c7315bafe"`
+   - `chat_id`: `"019d98e0-4ad6-7a16-a60f-451d9c3f1984"`
+   - All collected resource selections from step 3
+5. Call **Attempt_Group**(group_id: "019d9934-e197-7b5d-8f30-7bbaae4e6433", name: "short descriptive name")
+
+**IMPORTANT:**
+- Use `chat_id: "019d98e0-4ad6-7a16-a60f-451d9c3f1984"` and `attempt_id: "019d9934-e045-793c-87ac-803c7315bafe"` exactly
+- Skip **locked** sections — those are already set
+- Skip **disabled** sections — those are not enabled
+- Never pass `departments`, `scenarios`, config flags, or rubrics — auto-configured
+- You can pass text values instead of UUIDs for convenience

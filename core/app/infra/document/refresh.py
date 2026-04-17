@@ -65,14 +65,14 @@ class RefreshDocumentApiRequest(BaseModel):
     )
 
 
-async def _execute_refreshes(pool: asyncpg.Pool, targets: list[str]) -> None:
+async def _execute_refreshes(pool: asyncpg.Pool, targets: list[str], redis: Redis | None = None) -> None:
     """Execute MV refreshes in parallel for the given targets."""
 
     async def _refresh(target: str) -> None:
         fn = _REFRESH_FNS.get(target)
         if fn is not None:
             async with pool.acquire() as conn:
-                await fn(conn)
+                await fn(conn, redis=redis)
 
     await asyncio.gather(*[_refresh(target) for target in targets])
 
@@ -129,7 +129,7 @@ async def refresh_document_impl(
 
     if accept is not None and idempotency_key is not None:
         if accept:
-            await _execute_refreshes(pool, effective_targets)
+            await _execute_refreshes(pool, effective_targets, redis=redis)
             if session_id is not None and effective_operation_key is not None:
                 await _record_refreshes(
                     pool,
@@ -163,7 +163,7 @@ async def refresh_document_impl(
             idempotency_key=effective_operation_key,
         )
 
-    await _execute_refreshes(pool, effective_targets)
+    await _execute_refreshes(pool, effective_targets, redis=redis)
 
     if session_id is not None and effective_operation_key is not None:
         await _record_refreshes(

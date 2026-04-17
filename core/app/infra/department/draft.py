@@ -1,16 +1,8 @@
-"""Department draft logic — composable infra architecture.
-
-Core draft function that composes existing black-box tools:
-  1. resolve_profile_identity_context — profile (role, departments)
-  2. compute_can_draft — permission check
-  3. Value resolution (creatable resources only) — raw value → ID
-  4. create_department_draft — entry tool (append-only snapshot)
-  5. refresh_department_drafts — MV refresh
-  6. invalidate_tags — cache invalidation
-"""
+"""Department draft logic — canonical surface over existing draft tools."""
 
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
 import asyncpg
@@ -18,55 +10,134 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.department.permissions import compute_can_draft
-from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.department.refresh import refresh_department_impl
 from app.infra.department.types import (
-    DepartmentDraftFormState,
+    DraftFormState,
     PatchDepartmentDraftApiRequest,
     PatchDepartmentDraftApiResponse,
     SaveDepartmentFieldError,
 )
-from app.tools.entries.department_drafts.create import (
-    create_department_draft,
-)
-from app.tools.entries.department_drafts.refresh import (
-    refresh_department_drafts,
-)
+from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.tools.entries.department_drafts.create import create_department_draft
 from app.tools.resources.descriptions.create import create_description
+from app.tools.resources.descriptions.search import search_descriptions
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
-from app.utils.cache.invalidate_tags import invalidate_tags
+from app.tools.resources.names.search import search_names
+from app.tools.resources.settings.search import search_settings
 
-# ---------------------------------------------------------------------------
-# Value resolution — creatable resources only
-# ---------------------------------------------------------------------------
+
+def _exact_match_id(results: list[Any], raw_value: str, *, attr: str = "name") -> UUID | None:
+    needle = raw_value.strip().lower()
+    for item in results:
+        value = getattr(item, attr, None)
+        item_id = getattr(item, "id", None)
+        if isinstance(value, str) and item_id and value.lower() == needle:
+            return item_id
+    return None
+
+
+def _merge_unique(existing: list[UUID] | None, new_ids: list[UUID]) -> list[UUID]:
+    merged = list(existing or [])
+    seen = set(merged)
+    for item_id in new_ids:
+        if item_id not in seen:
+            seen.add(item_id)
+            merged.append(item_id)
+    return merged
 
 
 async def _resolve_creatable_values(
-    pool: asyncpg.Pool,
+    conn: asyncpg.Connection,
     redis: Redis,
     request: PatchDepartmentDraftApiRequest,
 ) -> list[SaveDepartmentFieldError]:
-    """Resolve raw value fields to resource IDs (mutates request in place).
+    """Resolve raw value fields to resource IDs (mutates request in place)."""
 
-    Only handles creatable resources: name, description.
-    Returns a list of errors (empty if all resolved).
-    """
     errors: list[SaveDepartmentFieldError] = []
 
-    async with pool.acquire() as conn:
-        if request.name is not None and request.name_id is None:
-            result = await create_name(conn, request.name, redis)
-            request.name_id = result.id
+    if request.name is not None and request.name_id is None:
+        results = await search_names(
+            conn,
+            redis,
+            search=request.name,
+            limit_count=20,
+            department=True,
+        )
+        match_id = _exact_match_id(results, request.name)
+        if match_id is None:
+            match_id = (await create_name(conn, request.name, redis)).id
+        request.name_id = match_id
 
-        if request.description is not None and request.description_id is None:
-            result = await create_description(conn, request.description, redis)
-            request.description_id = result.id
+    if request.description is not None and request.description_id is None:
+        results = await search_descriptions(
+            conn,
+            redis,
+            search=request.description,
+            limit_count=20,
+            department=True,
+        )
+        match_id = _exact_match_id(results, request.description, attr="description")
+        if match_id is None:
+            match_id = (await create_description(conn, request.description, redis)).id
+        request.description_id = match_id
+
+    resolved_flag_id = request.active_flag_id or request.flag_id
+    if request.active_flag is not None and resolved_flag_id is None and request.active_flag:
+        results = await search_flags(
+            conn,
+            redis,
+            search=None,
+            limit_count=1000,
+            flag_type="department_active",
+            department=True,
+        )
+        match = next(
+            (
+                flag
+                for flag in results
+                if getattr(flag, "type", None) == "department_active"
+                or getattr(flag, "name", None) == "department_active"
+            ),
+            None,
+        )
+        if match and match.id:
+            resolved_flag_id = match.id
+        else:
+            errors.append(
+                SaveDepartmentFieldError(
+                    field="active_flag",
+                    message="Active flag resource not found",
+                )
+            )
+    if resolved_flag_id is not None:
+        request.flag_id = resolved_flag_id
+        request.active_flag_id = resolved_flag_id
+
+    if request.settings:
+        results = await search_settings(
+            conn,
+            redis,
+            search=None,
+            limit_count=1000,
+            department=True,
+        )
+        resolved_ids: list[UUID] = []
+        for raw_value in request.settings:
+            item_id = _exact_match_id(results, raw_value, attr="name")
+            if item_id is None:
+                errors.append(
+                    SaveDepartmentFieldError(
+                        field="settings",
+                        message=f'Setting "{raw_value}" not found',
+                    )
+                )
+                continue
+            resolved_ids.append(item_id)
+        if not any(error.field == "settings" for error in errors):
+            request.setting_ids = _merge_unique(request.setting_ids, resolved_ids)
 
     return errors
-
-
-# ---------------------------------------------------------------------------
-# patch_department_draft_impl — composable infra architecture
-# ---------------------------------------------------------------------------
 
 
 async def patch_department_draft_impl(
@@ -75,20 +146,24 @@ async def patch_department_draft_impl(
     *,
     profile_id: UUID,
     session_id: UUID,
-    request: PatchDepartmentDraftApiRequest,
+    request: PatchDepartmentDraftApiRequest | None = None,
+    draft_id: UUID | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    **kwargs: Any,
 ) -> PatchDepartmentDraftApiResponse:
-    """Department draft using composable infra functions.
+    """Department draft using the canonical request/response contract."""
 
-    Flow:
-      1. resolve_profile_identity_context → role
-      2. compute_can_draft → permission check
-      3. Value resolution (creatable resources only)
-      4. create_department_draft entry tool (append-only snapshot)
-      5. refresh_department_drafts MV
-      6. invalidate_tags
-    """
+    if request is None:
+        request = PatchDepartmentDraftApiRequest(**kwargs)
 
-    # ── Step 1: Profile context ────────────────────────────────────────
+    request.draft_id = request.draft_id or request.input_draft_id or draft_id
+    request.input_draft_id = request.input_draft_id or request.draft_id
+
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key is not None and accept is None:
+        accept = request.accept
 
     profile = await resolve_profile_identity_context(
         pool,
@@ -96,67 +171,84 @@ async def patch_department_draft_impl(
         redis,
         session_id=session_id,
     )
-
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    # ── Step 2: Permission check ───────────────────────────────────────
-
-    if not compute_can_draft(role_level=profile.role_level, role_permissions=profile.role_permissions):
+    if not compute_can_draft(
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
+    ):
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to create or edit department drafts.",
         )
 
-    # ── Step 3: Value resolution (creatable only) ──────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_department_draft(
+                        conn,
+                        session_id=session_id,
+                        id=idempotency_key,
+                        soft=False,
+                        profile_ids=[profile.profiles_id],
+                        pending_ids=set(request.pending_ids) if request.pending_ids else None,
+                    )
+            await refresh_department_impl(pool, redis, profile_id=profile_id)
+        return PatchDepartmentDraftApiResponse(
+            success=True,
+            draft_id=idempotency_key,
+            idempotency_key=idempotency_key,
+            message="Draft accepted" if accept else "Draft rejected",
+            form_state=DraftFormState(),
+        )
 
-    errors = await _resolve_creatable_values(pool, redis, request)
+    async with pool.acquire() as conn:
+        errors = await _resolve_creatable_values(conn, redis, request)
     if errors:
         raise HTTPException(
             status_code=400,
-            detail=[e.model_dump() for e in errors],
+            detail=[error.model_dump() for error in errors],
         )
-
-    # ── Step 4: Create draft entry (append-only snapshot) ──────────────
 
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_department_draft(
                 conn,
                 session_id=session_id,
+                id=idempotency_key,
+                soft=soft,
                 name_ids=[request.name_id] if request.name_id else None,
-                description_ids=[request.description_id]
-                if request.description_id
-                else None,
+                description_ids=[request.description_id] if request.description_id else None,
                 flag_ids=[request.flag_id] if request.flag_id else None,
                 setting_ids=request.setting_ids,
                 profile_ids=[profile.profiles_id],
+                pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
-    # ── Step 5: Build form state (server is source of truth) ────────────
-
-    form_state = DepartmentDraftFormState(
+    resolved_flag_id = request.active_flag_id or request.flag_id
+    form_state = DraftFormState(
         name_id=request.name_id,
+        name=request.name,
         description_id=request.description_id,
-        flag_id=request.flag_id,
+        description=request.description,
+        flag_id=resolved_flag_id,
+        active_flag_id=resolved_flag_id,
         setting_ids=request.setting_ids or [],
+        pending_ids=request.pending_ids or [],
     )
 
-    # ── Step 6: Refresh MV ─────────────────────────────────────────────
-
-    async with pool.acquire() as conn:
-        await refresh_department_drafts(conn)
-
-    # ── Step 7: Invalidate cache ───────────────────────────────────────
-
-    await invalidate_tags(["departments", "drafts"], redis=redis)
+    if not soft:
+        await refresh_department_impl(pool, redis, profile_id=profile_id)
 
     return PatchDepartmentDraftApiResponse(
         success=True,
         draft_id=result.id,
-        message="Draft created successfully",
+        idempotency_key=result.id,
+        message="Draft saved successfully",
         form_state=form_state,
     )

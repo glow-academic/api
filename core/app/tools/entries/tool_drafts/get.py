@@ -21,13 +21,21 @@ async def get_tool_drafts(
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
             COALESCE(ARRAY_AGG(DISTINCT ap.arg_positions_id) FILTER (WHERE ap.arg_positions_id IS NOT NULL), '{}') AS arg_position_ids,
+            COALESCE(ARRAY_AGG(DISTINCT ap.arg_positions_id) FILTER (WHERE ap.arg_positions_id IS NOT NULL AND ap.active = false), '{}') AS pending_arg_position_ids,
             COALESCE(ARRAY_AGG(DISTINCT a.args_id) FILTER (WHERE a.args_id IS NOT NULL), '{}') AS arg_ids,
+            COALESCE(ARRAY_AGG(DISTINCT a.args_id) FILTER (WHERE a.args_id IS NOT NULL AND a.active = false), '{}') AS pending_arg_ids,
             COALESCE(ARRAY_AGG(DISTINCT ao.args_outputs_id) FILTER (WHERE ao.args_outputs_id IS NOT NULL), '{}') AS args_output_ids,
+            COALESCE(ARRAY_AGG(DISTINCT ao.args_outputs_id) FILTER (WHERE ao.args_outputs_id IS NOT NULL AND ao.active = false), '{}') AS pending_args_output_ids,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
+            COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL AND dep.active = false), '{}') AS pending_department_ids,
             COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL), '{}') AS description_ids,
+            COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL AND desc_c.active = false), '{}') AS pending_description_ids,
             COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL), '{}') AS flag_ids,
+            COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL AND f.active = false), '{}') AS pending_flag_ids,
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL), '{}') AS name_ids,
+            COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = false), '{}') AS pending_name_ids,
             COALESCE(ARRAY_AGG(DISTINCT perm.permissions_id) FILTER (WHERE perm.permissions_id IS NOT NULL), '{}') AS permission_ids,
+            COALESCE(ARRAY_AGG(DISTINCT perm.permissions_id) FILTER (WHERE perm.permissions_id IS NOT NULL AND perm.active = false), '{}') AS pending_permission_ids,
             COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL), '{}') AS profile_ids
         FROM tool_drafts_entry d
         LEFT JOIN tool_drafts_arg_positions_connection ap ON ap.draft_id = d.id
@@ -65,6 +73,14 @@ async def get_tool_drafts(
             name_ids=r["name_ids"],
             permission_ids=r["permission_ids"],
             profile_ids=r["profile_ids"],
+            pending_arg_position_ids=r["pending_arg_position_ids"],
+            pending_arg_ids=r["pending_arg_ids"],
+            pending_args_output_ids=r["pending_args_output_ids"],
+            pending_department_ids=r["pending_department_ids"],
+            pending_description_ids=r["pending_description_ids"],
+            pending_flag_ids=r["pending_flag_ids"],
+            pending_name_ids=r["pending_name_ids"],
+            pending_permission_ids=r["pending_permission_ids"],
         )
         for r in rows
     ]

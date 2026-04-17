@@ -1,0 +1,64 @@
+INPUT:
+  chat_entry_id: 019d9816-d06a-7878-989d-9864da3f8b3d
+  draft_id: 019d981c-2cb1-744b-9b13-2d3c7819d9e6
+
+OUTPUT:
+### Chat Bundle
+- **Chat Entry ID:** `019d9816-d06a-7878-989d-9864da3f8b3d`
+- **Group ID:** `019d981c-3920-75bf-93e9-5f5f8c55c0e2`
+
+
+
+
+### Setup Summary
+
+
+**Needs input (pass to create):**
+- Personas → `personas`
+- Documents → `documents`
+- Problem Statement (exactly 1) → `problem_statement`
+- Objectives → `objectives`
+- Questions → `questions`
+- Options → `options_ids`
+
+
+
+**Auto-configured (never pass):** departments, scenarios, names, descriptions, config flags
+
+---
+
+
+
+
+
+**Personas (pass names):** Aggressive (High), Aggressive (Low), Aggressive (Medium), Confused, Happy, Instructional Staff, Passive, Professor, Student
+
+
+
+
+
+**Documents (pass names):** Academic Integrity Policy, FERPA, FERPA Policy, Homework Template, Lab Template, Lecture Template, Midterm Template, Policy Template, Project Template, Quiz Template, Syllabus Template
+
+
+
+
+
+**Problem Statements (pick 1 — pass text):** A student approaches a professor's office hours visibly upset about a grade. The student expresses f, A student is seen looking at another student's exam paper during a test. The professor notices the b, An instructional staff member accidentally leaves a student's grade sheet visible on their computer 
+
+
+
+
+
+**Objectives (pass texts or create new):** Apply de-escalation techniques to reduce emotional tension, Apply the institution's academic integrity policy accurately, Communicate consequences of academic dishonesty clearly and professionally, Demonstrate active listening when a student expresses frustration, Explain student privacy rights under FERPA clearly, Guide the conversation toward a constructive resolution, Identify indicators of academic integrity violations during examinations, Identify situations that constitute FERPA violations, Take immediate corrective action when a privacy breach occurs
+
+
+
+
+
+**Questions (pass texts or create new):** A student arrives at your office visibly upset about a grade. What should your f, What does FERPA protect?, What is the appropriate first step when you observe a potential academic integri, Which de-escalation technique is most appropriate when a student raises their vo, Which of the following is an appropriate consequence for a first-time academic i, Which of the following scenarios constitutes a FERPA violation?
+
+
+
+
+
+**Options (pass IDs):** A formal warning and required academic integrity seminar, Acknowledge their feelings and invite them to share their co, Ask them to leave and send an email instead, Discussing a student's grades with their parent without cons, Document the observation and report to the department chair, Explain the grading rubric before they finish speaking, Faculty employment contracts, Ignore it unless you have definitive proof, Immediate expulsion from the university, Immediately confront the student in front of the class, Match their volume to show you take them seriously, No action unless the student admits to cheating, Posting anonymous assignment feedback on the LMS, Sharing aggregated class performance statistics, Speak calmly, lower your voice, and use open body language, Tell them to come back when they have calmed down, The privacy of student education records, University financial records

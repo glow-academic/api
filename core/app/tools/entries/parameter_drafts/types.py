@@ -23,3 +23,8 @@ class GetParameterDraftResponse(BaseModel):
     flag_ids: list[UUID] = Field(..., description="Associated flag UUIDs")
     name_ids: list[UUID] = Field(..., description="Associated name UUIDs")
     profile_ids: list[UUID] = Field(..., description="Associated profile UUIDs")
+    pending_department_ids: list[UUID] = Field(default_factory=list, description="Pending department UUIDs")
+    pending_description_ids: list[UUID] = Field(default_factory=list, description="Pending description UUIDs")
+    pending_field_ids: list[UUID] = Field(default_factory=list, description="Pending field UUIDs")
+    pending_flag_ids: list[UUID] = Field(default_factory=list, description="Pending flag UUIDs")
+    pending_name_ids: list[UUID] = Field(default_factory=list, description="Pending name UUIDs")

@@ -46,8 +46,14 @@ async def department_get(sid: str, data: dict[str, Any]) -> None:
             redis,
             profile_id=identity.profile_id,
             session_id=identity.session_id,
-            department_id=payload.department_id,
+            id=payload.id or payload.department_id,
             draft_id=payload.draft_id,
+            filters={
+                "names": payload.names,
+                "descriptions": payload.descriptions,
+                "flags": payload.flags,
+                "settings": payload.settings,
+            },
         ),
         arguments=payload.model_dump(mode="json"),
     )

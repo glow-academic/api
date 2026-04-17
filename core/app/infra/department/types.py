@@ -9,7 +9,6 @@ from typing import ClassVar
 
 from pydantic import BaseModel, Field
 
-from app.infra.api_types import BaseResourceSection
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.department_drafts.types import (
     GetDepartmentDraftResponse,
@@ -20,6 +19,28 @@ class GetDepartmentDraftsApiResponse(BaseModel):
     """Response model for department drafts list endpoint."""
 
     entries: list[GetDepartmentDraftResponse] | None = Field(None, description="List of department draft entries")
+
+
+class DepartmentNameResource(BaseModel):
+    """Name resource for department."""
+
+    id: UUID | None = Field(None, description="Unique identifier")
+    name: str | None = Field(None, description="Display name")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class DepartmentDescriptionResource(BaseModel):
+    """Description resource for department."""
+
+    id: UUID | None = Field(None, description="Unique identifier")
+    description: str | None = Field(None, description="Description text")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class DepartmentFlagConfig(BaseModel):
@@ -33,46 +54,71 @@ class DepartmentFlagConfig(BaseModel):
     show: bool = Field(True, description="Whether the flag is visible to the client")
     required: bool = Field(False, description="Whether the flag is required")
     generated: bool | None = Field(None, description="Whether the flag was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class DepartmentNameSection(BaseResourceSection):
-    resource: object | None = Field(None, description="Currently selected name resource")
-    resources: list | None = Field(None, description="Available name resources")
+class DepartmentSettingResource(BaseModel):
+    """Setting resource for department."""
+
+    id: UUID | None = Field(None, description="Unique identifier")
+    name: str | None = Field(None, description="Setting display name")
+    description: str | None = Field(None, description="Setting description")
+    department_ids: list[UUID] = Field(default_factory=list, description="Associated department identifiers")
+    provider_key_ids: list[UUID] = Field(default_factory=list, description="Associated provider key identifiers")
+    auth_ids: list[UUID] = Field(default_factory=list, description="Associated auth identifiers")
+    system_ids: list[UUID] = Field(default_factory=list, description="Associated system identifiers")
+    active: bool | None = Field(None, description="Whether this setting is active")
+    mcp: bool | None = Field(None, description="Whether this setting used MCP")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class DepartmentDescriptionSection(BaseResourceSection):
-    resource: object | None = Field(None, description="Currently selected description resource")
-    resources: list | None = Field(None, description="Available description resources")
+class SectionFilter(BaseModel):
+    """Per-section filter options for GET requests."""
 
-
-class DepartmentFlagSection(BaseResourceSection):
-    current: list[DepartmentFlagConfig] | None = Field(None, description="Currently assigned flag configs")
-    resources: list[DepartmentFlagConfig] | None = Field(None, description="Available flag configs")
-
-
-class DepartmentSettingSection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned settings")
-    resources: list | None = Field(None, description="Available setting resources")
+    search: str | None = Field(None, description="Filter options by search text")
+    limit: int | None = Field(None, description="Max options to return")
+    selected: bool | None = Field(None, description="Only return selected items")
+    suggested: bool | None = Field(None, description="Only return suggested items")
+    include: bool | None = Field(None, description="Include this section in response (default true)")
+    parameter_ids: list[str] | None = Field(
+        None,
+        description="Reserved for compatibility with shared filter parsing",
+    )
 
 
 class GetDepartmentApiRequest(BaseModel):
-    department_id: UUID | None = Field(None, description="UUID of the department to retrieve")
+    """Request model for get department endpoint."""
+
+    id: UUID | None = Field(None, description="Department UUID to retrieve")
+    department_id: UUID | None = Field(None, description="Legacy department UUID to retrieve")
     draft_id: UUID | None = Field(None, description="UUID of the draft to load")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+    names: SectionFilter | None = Field(None, description="Filter options for names section")
+    descriptions: SectionFilter | None = Field(None, description="Filter options for descriptions section")
+    flags: SectionFilter | None = Field(None, description="Filter options for flags section")
+    settings: SectionFilter | None = Field(None, description="Filter options for settings section")
 
 
 class GetDepartmentApiResponse(BaseModel):
+    """Canonical flat composed response for the department editor."""
+
     actor_name: str | None = Field(None, description="Display name of the acting user")
     department_exists: bool | None = Field(None, description="Whether the department exists")
     can_edit: bool | None = Field(None, description="Whether the actor can edit this department")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled, if any")
     group_id: UUID | None = Field(None, description="Group UUID for draft collaboration")
-
-    basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate button")
-
-    names: DepartmentNameSection | None = Field(None, description="Name section with resources")
-    descriptions: DepartmentDescriptionSection | None = Field(None, description="Description section with resources")
-    flags: DepartmentFlagSection | None = Field(None, description="Flag section with configs")
-    settings: DepartmentSettingSection | None = Field(None, description="Setting section with resources")
+    show_ai_generate: bool | None = Field(None, description="Whether to show AI generate anywhere")
+    basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for basic sections")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
+    names: list[DepartmentNameResource] | None = Field(None, description="Name resources")
+    descriptions: list[DepartmentDescriptionResource] | None = Field(None, description="Description resources")
+    flags: list[DepartmentFlagConfig] | None = Field(None, description="Flag configs")
+    settings: list[DepartmentSettingResource] | None = Field(None, description="Setting resources")
 
 
 # ========== Shared Create/Update Types ==========
@@ -217,25 +263,21 @@ class DuplicateDepartmentApiResponse(BaseModel):
 
 
 class PatchDepartmentDraftApiRequest(ScopedItem):
-    """Request model for new-style department draft endpoint.
-
-    Dual-mode for creatable resources only:
-      - name/name_id, description/description_id
-    ID-only for non-creatable resources:
-      - flag_id, setting_ids
-
-    Client always sends full state (append-only — each write is a new snapshot).
-    """
+    """Request model for canonical department draft endpoint."""
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
+        "active_flag": "flags",
+        "active_flag_id": "flags",
         "flag_id": "flags",
+        "settings": "settings",
         "setting_ids": "settings",
     }
 
+    draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
 
     # Creatable single-select — provide value or ID
@@ -244,18 +286,30 @@ class PatchDepartmentDraftApiRequest(ScopedItem):
     description: str | None = Field(None, description="Description value to resolve or create")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
 
-    # Non-creatable — ID-only
+    active_flag: bool | None = Field(None, description="Whether the department is active")
+    active_flag_id: UUID | None = Field(None, description="UUID of the active flag resource")
     flag_id: UUID | None = Field(None, description="UUID of the flag option")
+    settings: list[str] | None = Field(None, description="Setting names to resolve")
     setting_ids: list[UUID] | None = Field(None, description="Setting UUIDs to assign")
+    pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep pending where supported")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack or retry")
+    accept: bool = Field(True, description="Accept or reject dormant state")
 
 
-class DepartmentDraftFormState(BaseModel):
+class DraftFormState(BaseModel):
     """Server-authoritative form state returned after draft save."""
 
     name_id: UUID | None = Field(None, description="Resolved name resource UUID")
+    name: str | None = Field(None, description="Echoed name value")
     description_id: UUID | None = Field(None, description="Resolved description resource UUID")
+    description: str | None = Field(None, description="Echoed description value")
     flag_id: UUID | None = Field(None, description="Resolved flag option UUID")
-    setting_ids: list[UUID] = Field(..., description="Assigned setting UUIDs")
+    active_flag_id: UUID | None = Field(None, description="Resolved active flag option UUID")
+    setting_ids: list[UUID] = Field(default_factory=list, description="Assigned setting UUIDs")
+    pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
+
+
+DepartmentDraftFormState = DraftFormState
 
 
 class PatchDepartmentDraftApiResponse(BaseModel):
@@ -263,8 +317,9 @@ class PatchDepartmentDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the draft save succeeded")
     draft_id: UUID = Field(..., description="UUID of the saved draft")
+    idempotency_key: UUID = Field(..., description="Idempotency key for this draft operation")
     message: str = Field(..., description="Result message")
-    form_state: DepartmentDraftFormState | None = Field(None, description="Server-authoritative form state")
+    form_state: DraftFormState | None = Field(None, description="Server-authoritative form state")
 
 
 # ========== Export Endpoint Types ==========

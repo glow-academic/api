@@ -4,7 +4,7 @@ import time
 
 import asyncpg
 
-from app.infra.globals import get_redis_client
+from redis.asyncio import Redis
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 MV_NAME = "practice_mv"
@@ -17,12 +17,14 @@ async def refresh_practice(conn: asyncpg.Connection) -> None:
 
 async def refresh_practice_internal(
     conn: asyncpg.Connection,
+    redis: Redis | None = None,
 ) -> dict:
     """Refresh practice_mv concurrently with cache invalidation."""
     start_time = time.time()
     await refresh_practice(conn)
     duration_ms = int((time.time() - start_time) * 1000)
-    await invalidate_tags(["entries", "practice"], redis=get_redis_client())
+    if redis is not None:
+        await invalidate_tags(["entries", "practice"], redis=redis)
     return {
         "success": True,
         "duration_ms": duration_ms,

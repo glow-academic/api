@@ -21,15 +21,24 @@ async def get_document_drafts(
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
+            COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL AND dep.active = false), '{}') AS pending_department_ids,
             COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL), '{}') AS description_ids,
+            COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL AND desc_c.active = false), '{}') AS pending_description_ids,
             COALESCE(ARRAY_AGG(DISTINCT fi.files_id) FILTER (WHERE fi.files_id IS NOT NULL), '{}') AS file_ids,
+            COALESCE(ARRAY_AGG(DISTINCT fi.files_id) FILTER (WHERE fi.files_id IS NOT NULL AND fi.active = false), '{}') AS pending_file_ids,
             COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL), '{}') AS flag_ids,
+            COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL AND f.active = false), '{}') AS pending_flag_ids,
             COALESCE(ARRAY_AGG(DISTINCT img.images_id) FILTER (WHERE img.images_id IS NOT NULL), '{}') AS image_ids,
+            COALESCE(ARRAY_AGG(DISTINCT img.images_id) FILTER (WHERE img.images_id IS NOT NULL AND img.active = false), '{}') AS pending_image_ids,
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL), '{}') AS name_ids,
+            COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = false), '{}') AS pending_name_ids,
             COALESCE(ARRAY_AGG(DISTINCT pf.parameter_fields_id) FILTER (WHERE pf.parameter_fields_id IS NOT NULL), '{}') AS parameter_field_ids,
+            COALESCE(ARRAY_AGG(DISTINCT pf.parameter_fields_id) FILTER (WHERE pf.parameter_fields_id IS NOT NULL AND pf.active = false), '{}') AS pending_parameter_field_ids,
             COALESCE(ARRAY_AGG(DISTINCT par.parameters_id) FILTER (WHERE par.parameters_id IS NOT NULL), '{}') AS parameter_ids,
+            COALESCE(ARRAY_AGG(DISTINCT par.parameters_id) FILTER (WHERE par.parameters_id IS NOT NULL AND par.active = false), '{}') AS pending_parameter_ids,
             COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL), '{}') AS profile_ids,
-            COALESCE(ARRAY_AGG(DISTINCT t.texts_id) FILTER (WHERE t.texts_id IS NOT NULL), '{}') AS text_ids
+            COALESCE(ARRAY_AGG(DISTINCT t.texts_id) FILTER (WHERE t.texts_id IS NOT NULL), '{}') AS text_ids,
+            COALESCE(ARRAY_AGG(DISTINCT t.texts_id) FILTER (WHERE t.texts_id IS NOT NULL AND t.active = false), '{}') AS pending_text_ids
         FROM document_drafts_entry d
         LEFT JOIN document_drafts_departments_connection dep ON dep.draft_id = d.id
         LEFT JOIN document_drafts_descriptions_connection desc_c ON desc_c.draft_id = d.id
@@ -68,6 +77,15 @@ async def get_document_drafts(
             parameter_ids=r["parameter_ids"],
             profile_ids=r["profile_ids"],
             text_ids=r["text_ids"],
+            pending_department_ids=r["pending_department_ids"],
+            pending_description_ids=r["pending_description_ids"],
+            pending_file_ids=r["pending_file_ids"],
+            pending_flag_ids=r["pending_flag_ids"],
+            pending_image_ids=r["pending_image_ids"],
+            pending_name_ids=r["pending_name_ids"],
+            pending_parameter_field_ids=r["pending_parameter_field_ids"],
+            pending_parameter_ids=r["pending_parameter_ids"],
+            pending_text_ids=r["pending_text_ids"],
         )
         for r in rows
     ]

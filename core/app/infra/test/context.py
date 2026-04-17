@@ -155,7 +155,7 @@ async def resolve_test_context(
             return []
         async with pool.acquire() as c:
             from app.tools.entries.messages.refresh import refresh_messages_internal
-            await refresh_messages_internal(conn=c)
+            await refresh_messages_internal(conn=c, redis=redis)
             msgs, _ = await search_messages(c, run_ids=run_ids, limit=100000)
             return msgs
 
@@ -165,7 +165,7 @@ async def resolve_test_context(
             return []
         async with pool.acquire() as c:
             from app.tools.entries.calls.refresh import refresh_calls_internal
-            await refresh_calls_internal(c)
+            await refresh_calls_internal(c, redis=redis)
             return await search_calls(c, run_ids=[original_run_id], limit=1000)
 
     feedback, messages, original_calls = await asyncio.gather(

@@ -305,6 +305,17 @@ async def resolve_tool_context(
         _search_permissions(),
     )
 
+    pending_ids: set[UUID] = set()
+    if draft:
+        pending_ids.update(draft.pending_name_ids or [])
+        pending_ids.update(draft.pending_description_ids or [])
+        pending_ids.update(draft.pending_flag_ids or [])
+        pending_ids.update(draft.pending_department_ids or [])
+        pending_ids.update(draft.pending_arg_ids or [])
+        pending_ids.update(draft.pending_arg_position_ids or [])
+        pending_ids.update(draft.pending_args_output_ids or [])
+        pending_ids.update(draft.pending_permission_ids or [])
+
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,
         active=active,
@@ -339,7 +350,7 @@ async def resolve_tool_context(
                 suggestions=dedupe_by_id(permissions_suggestions),
             ),
         },
-        entries={"pending_ids": set()},
+        entries={"pending_ids": pending_ids},
     )
 
 

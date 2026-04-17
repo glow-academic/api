@@ -423,6 +423,21 @@ async def resolve_model_context(
         item for item in flags_suggestions if getattr(item, "name", None) in MODEL_FLAG_NAMES
     ]
 
+    pending_ids: set[UUID] = set()
+    if draft:
+        pending_ids.update(draft.pending_name_ids or [])
+        pending_ids.update(draft.pending_description_ids or [])
+        pending_ids.update(draft.pending_flag_ids or [])
+        pending_ids.update(draft.pending_department_ids or [])
+        pending_ids.update(draft.pending_value_ids or [])
+        pending_ids.update(draft.pending_provider_ids or [])
+        pending_ids.update(draft.pending_modality_ids or [])
+        pending_ids.update(draft.pending_temperature_level_ids or [])
+        pending_ids.update(draft.pending_pricing_ids or [])
+        pending_ids.update(draft.pending_reasoning_level_ids or [])
+        pending_ids.update(draft.pending_quality_ids or [])
+        pending_ids.update(draft.pending_voice_ids or [])
+
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,
         active=active,
@@ -447,7 +462,7 @@ async def resolve_model_context(
             "qualities": ResourcePair(selected=qualities_selected, suggestions=qualities_suggestions),
             "voices": ResourcePair(selected=voices_selected, suggestions=voices_suggestions),
         },
-        entries={"pending_ids": set()},
+        entries={"pending_ids": pending_ids},
     )
 
 

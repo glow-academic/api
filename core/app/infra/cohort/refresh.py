@@ -121,7 +121,7 @@ async def refresh_cohort_impl(
     # ── Short-circuit: ack path ──────────────────────────────────────────
     if accept is not None and idempotency_key is not None:
         if accept:
-            await _execute_refreshes(pool, effective_targets)
+            await _execute_refreshes(pool, effective_targets, redis=redis)
             if session_id and effective_operation_key:
                 async with pool.acquire() as conn:
                     for target in effective_targets:
@@ -161,7 +161,7 @@ async def refresh_cohort_impl(
 
     # ── Step 3: Execute refresh + record ─────────────────────────────────
 
-    await _execute_refreshes(pool, effective_targets)
+    await _execute_refreshes(pool, effective_targets, redis=redis)
 
     if session_id and effective_operation_key:
         async with pool.acquire() as conn:
@@ -192,13 +192,13 @@ async def refresh_cohort_impl(
 # ---------------------------------------------------------------------------
 
 
-async def _execute_refreshes(pool: asyncpg.Pool, targets: list[str]) -> None:
+async def _execute_refreshes(pool: asyncpg.Pool, targets: list[str], redis: Redis | None = None) -> None:
     """Execute MV refreshes in parallel for the given targets."""
 
     async def _refresh(target: str) -> None:
         fn = _REFRESH_FNS.get(target)
         if fn:
             async with pool.acquire() as conn:
-                await fn(conn)
+                await fn(conn, redis=redis)
 
     await asyncio.gather(*[_refresh(t) for t in targets])

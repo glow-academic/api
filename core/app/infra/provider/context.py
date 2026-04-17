@@ -305,6 +305,16 @@ async def resolve_provider_context(
         f for f in flags_suggestions if getattr(f, "name", None) in PROVIDER_FLAG_NAMES
     ]
 
+    pending_ids: set[UUID] = set()
+    if draft:
+        pending_ids.update(draft.pending_name_ids or [])
+        pending_ids.update(draft.pending_description_ids or [])
+        pending_ids.update(draft.pending_flag_ids or [])
+        pending_ids.update(draft.pending_department_ids or [])
+        pending_ids.update(draft.pending_value_ids or [])
+        pending_ids.update(draft.pending_endpoint_ids or [])
+        pending_ids.update(draft.pending_key_ids or [])
+
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,
         active=active,
@@ -330,7 +340,7 @@ async def resolve_provider_context(
             ),
             "keys": ResourcePair(selected=keys_selected, suggestions=keys_suggestions),
         },
-        entries={"pending_ids": set()},
+        entries={"pending_ids": pending_ids},
     )
 
 

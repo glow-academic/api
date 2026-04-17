@@ -19,6 +19,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.agent.permissions import compute_can_duplicate
+from app.infra.agent.refresh import refresh_agent_impl
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.agent.types import (
     DuplicateAgentApiResponse,
@@ -30,7 +31,6 @@ from app.tools.artifacts.agent.get import get_agents
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def duplicate_agent_impl(
@@ -41,6 +41,8 @@ async def duplicate_agent_impl(
     agent_id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> DuplicateAgentApiResponse:
     """Agent duplicate using composable infra functions.
 
@@ -76,6 +78,16 @@ async def duplicate_agent_impl(
             status_code=403,
             detail="You don't have permission to duplicate this agent.",
         )
+
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            return DuplicateAgentApiResponse(
+                success=True,
+                agent_id=idempotency_key,
+                message="Agent duplicate rejected",
+                idempotency_key=idempotency_key,
+            )
+        soft = False
 
     # -- Step 3: Fetch original agent with all junctions ------------------------
 
@@ -136,6 +148,7 @@ async def duplicate_agent_impl(
         async with conn.transaction():
             result = await create_agent_artifact(
                 conn,
+                id=idempotency_key,
                 name_id=new_name_resource.id,
                 description_id=original.description_ids[0]
                 if original.description_ids
@@ -151,12 +164,24 @@ async def duplicate_agent_impl(
                 soft=soft,
             )
 
-    # -- Step 7: Invalidate cache -----------------------------------------------
-
-    await invalidate_tags(["agents"], redis=redis)
+    if not soft:
+        await refresh_agent_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key or result.id,
+        )
 
     return DuplicateAgentApiResponse(
         success=True,
         agent_id=result.id,
-        message=f"Agent '{original_name}' duplicated successfully",
+        message=(
+            "Agent duplicate accepted"
+            if accept is not None and idempotency_key is not None
+            else "Agent duplicated (pending acceptance)"
+            if soft
+            else f"Agent '{original_name}' duplicated successfully"
+        ),
+        idempotency_key=idempotency_key,
     )

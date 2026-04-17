@@ -235,6 +235,14 @@ async def resolve_profile_context(
         flag for flag in flags_suggestions if getattr(flag, "type", None) in PROFILE_FLAG_TYPES
     ]
 
+    pending_ids: set[UUID] = set()
+    if draft:
+        pending_ids.update(draft.pending_name_ids or [])
+        pending_ids.update(draft.pending_email_ids or [])
+        pending_ids.update(draft.pending_flag_ids or [])
+        pending_ids.update(draft.pending_department_ids or [])
+        pending_ids.update(draft.pending_role_ids or [])
+
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,
         active=active,
@@ -249,7 +257,7 @@ async def resolve_profile_context(
             ),
             "roles": ResourcePair(selected=roles_selected, suggestions=roles_suggestions),
         },
-        entries={"pending_ids": set()},
+        entries={"pending_ids": pending_ids},
     )
 
 

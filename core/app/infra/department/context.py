@@ -1,54 +1,60 @@
-"""Resolve department artifact context — merged junctions + hydrated resources.
-
-Given a department_id (and optional draft_id), fetches the published artifact
-and draft entry, merges junction IDs (draft overrides published), then
-hydrates all resources in parallel (selected + suggestions).
-
-Department is special: it IS a department, so there is no "departments"
-resource — the junction `department_departments_junction` is always empty.
-Resources: names, descriptions, flags, settings (4 resources).
-
-Composes existing black-box fetchers — no raw SQL.
-"""
+"""Resolve department artifact context — merged junctions + hydrated resources."""
 
 from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
+from typing import Any
 from uuid import UUID
 
 import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.types import ArtifactContext, ResourcePair
-
-# Artifact + draft fetchers
-from app.tools.artifacts.department.get import (
-    get_departments as get_department_artifacts,
-)
+from app.tools.artifacts.department.get import get_departments as get_department_artifacts
 from app.tools.entries.department_drafts.get import get_department_drafts
-
-# Resource get fetchers (by known IDs)
 from app.tools.resources.descriptions.get import get_descriptions
-
-# Resource search fetchers (bounded, paginated)
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.get import get_flags
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 from app.tools.resources.names.search import search_names
 from app.tools.resources.settings.get import get_settings
-
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
+from app.tools.resources.settings.search import search_settings
 
 DEPARTMENT_FLAG_NAMES = {"department_active"}
 
 
-# ---------------------------------------------------------------------------
-# resolve_department_context
-# ---------------------------------------------------------------------------
+@dataclass
+class _MergedIds:
+    name_ids: list[UUID]
+    description_ids: list[UUID]
+    flag_ids: list[UUID]
+    setting_ids: list[UUID]
+
+
+def _merge_junction_ids(artifact: Any, draft: Any) -> _MergedIds:
+    name_ids = list(artifact.name_ids or []) if artifact else []
+    description_ids = list(artifact.description_ids or []) if artifact else []
+    flag_ids = list(artifact.flag_ids or []) if artifact else []
+    setting_ids = list(artifact.settings_ids or []) if artifact else []
+
+    if draft:
+        if draft.name_ids:
+            name_ids = list(draft.name_ids)
+        if draft.description_ids:
+            description_ids = list(draft.description_ids)
+        if draft.flag_ids:
+            flag_ids = list(draft.flag_ids)
+        if draft.setting_ids:
+            setting_ids = list(draft.setting_ids)
+
+    return _MergedIds(
+        name_ids=name_ids,
+        description_ids=description_ids,
+        flag_ids=flag_ids,
+        setting_ids=setting_ids,
+    )
 
 
 async def resolve_department_context(
@@ -58,19 +64,19 @@ async def resolve_department_context(
     department_id: UUID | None,
     group_id: UUID,
     draft_id: UUID | None = None,
+    names_search: str | None = None,
+    descriptions_search: str | None = None,
+    flags_search: str | None = None,
+    settings_search: str | None = None,
+    names_limit: int | None = None,
+    descriptions_limit: int | None = None,
+    flags_limit: int | None = None,
+    settings_limit: int | None = None,
     bypass_cache: bool = False,
 ) -> ArtifactContext:
-    """Resolve a department artifact into fully hydrated resources for the GET endpoint.
+    """Resolve a department artifact into fully hydrated resource pairs."""
 
-    Steps:
-      1. Fetch artifact + draft in parallel -> merge IDs
-      2. Parallel hydrate: get (selected) + search (suggestions) per resource
-      3. Assemble ArtifactContext with ResourcePairs
-    """
-
-    # Step 1: fetch artifact + draft in parallel
-
-    async def _fetch_artifacts() -> list:
+    async def _fetch_artifact() -> list[Any]:
         if not department_id:
             return []
         async with pool.acquire() as conn:
@@ -84,75 +90,91 @@ async def resolve_department_context(
                 settings=True,
             )
 
-    async def _fetch_drafts() -> list:
+    async def _fetch_draft() -> list[Any]:
         if not draft_id:
             return []
         async with pool.acquire() as conn:
             return await get_department_drafts(conn, [draft_id])
 
-    artifacts, drafts = await asyncio.gather(_fetch_artifacts(), _fetch_drafts())
-
+    artifacts, drafts = await asyncio.gather(_fetch_artifact(), _fetch_draft())
     artifact = artifacts[0] if artifacts else None
     draft = drafts[0] if drafts else None
 
-    # Merge IDs: start from published, draft overrides if present
     merged = _merge_junction_ids(artifact, draft)
-    active = artifact.active if artifact else True
 
-    # Step 2: parallel hydrate — selected + suggestions for each resource
-
-    async def _get_names() -> list:
+    async def _get_names_selected() -> list[Any]:
         async with pool.acquire() as conn:
             return await get_names(conn, merged.name_ids, redis, bypass_cache)
 
-    async def _search_names() -> list:
+    async def _search_names_suggestions() -> list[Any]:
         async with pool.acquire() as conn:
             return await search_names(
                 conn,
                 redis,
+                search=names_search,
+                limit_count=names_limit or 20,
                 draft_id=group_id,
                 exclude_ids=merged.name_ids,
                 bypass_cache=bypass_cache,
                 department=True,
             )
 
-    async def _get_descriptions() -> list:
+    async def _get_descriptions_selected() -> list[Any]:
         async with pool.acquire() as conn:
             return await get_descriptions(
-                conn, merged.description_ids, redis, bypass_cache
+                conn,
+                merged.description_ids,
+                redis,
+                bypass_cache,
             )
 
-    async def _search_descriptions() -> list:
+    async def _search_descriptions_suggestions() -> list[Any]:
         async with pool.acquire() as conn:
             return await search_descriptions(
                 conn,
                 redis,
+                search=descriptions_search,
+                limit_count=descriptions_limit or 20,
                 draft_id=group_id,
                 exclude_ids=merged.description_ids,
                 bypass_cache=bypass_cache,
                 department=True,
             )
 
-    async def _get_flags() -> list:
+    async def _get_flags_selected() -> list[Any]:
         async with pool.acquire() as conn:
             return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
 
-    async def _search_flags() -> list:
+    async def _search_flags_suggestions() -> list[Any]:
         async with pool.acquire() as conn:
             return await search_flags(
                 conn,
                 redis,
-                search=None,
-                limit_count=50,
+                search=flags_search,
+                limit_count=flags_limit or 50,
                 offset_count=0,
                 exclude_ids=merged.flag_ids,
+                flag_type="department_active",
                 bypass_cache=bypass_cache,
                 department=True,
             )
 
-    async def _get_settings() -> list:
+    async def _get_settings_selected() -> list[Any]:
         async with pool.acquire() as conn:
-            return await get_settings(conn, merged.settings_ids, redis, bypass_cache)
+            return await get_settings(conn, merged.setting_ids, redis, bypass_cache)
+
+    async def _search_settings_suggestions() -> list[Any]:
+        async with pool.acquire() as conn:
+            return await search_settings(
+                conn,
+                redis,
+                search=settings_search,
+                limit_count=settings_limit or 20,
+                offset_count=0,
+                exclude_ids=merged.setting_ids,
+                bypass_cache=bypass_cache,
+                department=True,
+            )
 
     (
         names_selected,
@@ -162,87 +184,59 @@ async def resolve_department_context(
         flags_selected,
         flags_suggestions,
         settings_selected,
+        settings_suggestions,
     ) = await asyncio.gather(
-        _get_names(),
-        _search_names(),
-        _get_descriptions(),
-        _search_descriptions(),
-        _get_flags(),
-        _search_flags(),
-        _get_settings(),
+        _get_names_selected(),
+        _search_names_suggestions(),
+        _get_descriptions_selected(),
+        _search_descriptions_suggestions(),
+        _get_flags_selected(),
+        _search_flags_suggestions(),
+        _get_settings_selected(),
+        _search_settings_suggestions(),
     )
 
-    # Filter flags to department-specific types
-    flags_suggestions_filtered = [
-        f
-        for f in flags_suggestions
-        if getattr(f, "name", None) in DEPARTMENT_FLAG_NAMES
+    filtered_flags_selected = [
+        flag
+        for flag in flags_selected
+        if getattr(flag, "name", None) in DEPARTMENT_FLAG_NAMES
+        or getattr(flag, "type", None) in DEPARTMENT_FLAG_NAMES
     ]
+    filtered_flags_suggestions = [
+        flag
+        for flag in flags_suggestions
+        if getattr(flag, "name", None) in DEPARTMENT_FLAG_NAMES
+        or getattr(flag, "type", None) in DEPARTMENT_FLAG_NAMES
+    ]
+
+    pending_ids: set[UUID] = set()
+    if draft:
+        pending_ids.update(draft.pending_name_ids or [])
+        pending_ids.update(draft.pending_description_ids or [])
+        pending_ids.update(draft.pending_flag_ids or [])
+        pending_ids.update(draft.pending_setting_ids or [])
 
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,
-        active=active,
+        active=artifact.active if artifact else True,
         group_id=group_id,
         resources={
             "names": ResourcePair(
-                selected=names_selected, suggestions=names_suggestions
+                selected=names_selected,
+                suggestions=names_suggestions,
             ),
             "descriptions": ResourcePair(
-                selected=descriptions_selected, suggestions=descriptions_suggestions
+                selected=descriptions_selected,
+                suggestions=descriptions_suggestions,
             ),
             "flags": ResourcePair(
-                selected=flags_selected, suggestions=flags_suggestions_filtered
+                selected=filtered_flags_selected,
+                suggestions=filtered_flags_suggestions,
             ),
-            "settings": ResourcePair(selected=settings_selected, suggestions=[]),
+            "settings": ResourcePair(
+                selected=settings_selected,
+                suggestions=settings_suggestions,
+            ),
         },
-        entries={},
+        entries={"pending_ids": pending_ids},
     )
-
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class _MergedIds:
-    """Merged junction IDs from artifact + draft."""
-
-    name_ids: list[UUID]
-    description_ids: list[UUID]
-    flag_ids: list[UUID]
-    settings_ids: list[UUID]
-
-
-def _merge_junction_ids(artifact, draft) -> _MergedIds:
-    """Merge artifact junction IDs with draft overrides.
-
-    Note: draft uses ``setting_ids`` (not ``settings_ids``) — matches the
-    GetDepartmentDraftResponse field name from the connection table.
-    """
-    name_ids = list(artifact.name_ids or []) if artifact else []
-    description_ids = list(artifact.description_ids or []) if artifact else []
-    flag_ids = list(artifact.flag_ids or []) if artifact else []
-    settings_ids = list(artifact.settings_ids or []) if artifact else []
-
-    # Draft overrides (if present)
-    if draft:
-        if draft.name_ids:
-            name_ids = list(draft.name_ids)
-        if draft.description_ids:
-            description_ids = list(draft.description_ids)
-        if draft.flag_ids:
-            flag_ids = list(draft.flag_ids)
-        if draft.setting_ids:
-            settings_ids = list(draft.setting_ids)
-
-    return _MergedIds(
-        name_ids=name_ids,
-        description_ids=description_ids,
-        flag_ids=flag_ids,
-        settings_ids=settings_ids,
-    )
-
-
-async def _empty() -> list:
-    return []

@@ -22,10 +22,15 @@ async def get_profile_drafts(
             d.session_id,
             COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL), '{}') AS profile_ids,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
+            COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL AND dep.active = false), '{}') AS pending_department_ids,
             COALESCE(ARRAY_AGG(DISTINCT em.emails_id) FILTER (WHERE em.emails_id IS NOT NULL), '{}') AS email_ids,
+            COALESCE(ARRAY_AGG(DISTINCT em.emails_id) FILTER (WHERE em.emails_id IS NOT NULL AND em.active = false), '{}') AS pending_email_ids,
             COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL), '{}') AS flag_ids,
+            COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL AND f.active = false), '{}') AS pending_flag_ids,
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL), '{}') AS name_ids,
+            COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = false), '{}') AS pending_name_ids,
             COALESCE(ARRAY_AGG(DISTINCT ro.roles_id) FILTER (WHERE ro.roles_id IS NOT NULL), '{}') AS role_ids
+            ,COALESCE(ARRAY_AGG(DISTINCT ro.roles_id) FILTER (WHERE ro.roles_id IS NOT NULL AND ro.active = false), '{}') AS pending_role_ids
         FROM profile_drafts_entry d
         LEFT JOIN profile_drafts_profiles_connection p ON p.draft_id = d.id
         LEFT JOIN profile_drafts_departments_connection dep ON dep.draft_id = d.id
@@ -56,6 +61,11 @@ async def get_profile_drafts(
             flag_ids=r["flag_ids"],
             name_ids=r["name_ids"],
             role_ids=r["role_ids"],
+            pending_department_ids=r["pending_department_ids"],
+            pending_email_ids=r["pending_email_ids"],
+            pending_flag_ids=r["pending_flag_ids"],
+            pending_name_ids=r["pending_name_ids"],
+            pending_role_ids=r["pending_role_ids"],
         )
         for r in rows
     ]

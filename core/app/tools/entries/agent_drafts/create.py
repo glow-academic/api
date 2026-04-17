@@ -25,12 +25,15 @@ async def create_agent_draft(
     voice_ids: list[UUID] | None = None,
     quality_ids: list[UUID] | None = None,
     rubric_ids: list[UUID] | None = None,
+    agent_ids: list[UUID] | None = None,
+    pending_ids: set[UUID] | None = None,
 ) -> CreateAgentDraftResponse:
     """Create an agent_drafts entry with optional connection table links."""
     draft_id = await conn.fetchval(
         """
         INSERT INTO agent_drafts_entry (id, session_id, active, mcp, generated)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
+        ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         session_id,
@@ -67,14 +70,18 @@ async def create_agent_draft(
         ("agent_drafts_voices_connection", "voices_id", voice_ids or []),
         ("agent_drafts_qualities_connection", "qualities_id", quality_ids or []),
         ("agent_drafts_rubrics_connection", "rubrics_id", rubric_ids or []),
+        ("agent_drafts_agents_connection", "agents_id", agent_ids or []),
     ]
 
+    _pending = pending_ids or set()
     for table, col, ids in connections:
         for rid in ids:
             await conn.execute(
-                f"INSERT INTO {table} (draft_id, {col}) VALUES ($1, $2)",
+                f"INSERT INTO {table} (draft_id, {col}, active) VALUES ($1, $2, $3) "
+                f"ON CONFLICT (draft_id, {col}) DO UPDATE SET active = EXCLUDED.active",
                 draft_id,
                 rid,
+                False if soft else (rid not in _pending),
             )
 
     return CreateAgentDraftResponse(id=draft_id)

@@ -20,19 +20,15 @@ from app.infra.agent.permissions_context import (
     create_denormalized_snapshot,
     resolve_agent_values,
 )
+from app.infra.agent.refresh import refresh_agent_impl
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.agent.create import (
     create_agent as create_agent_artifact,
 )
-from app.utils.cache.invalidate_tags import invalidate_tags
-
-
 from app.infra.agent.types import (
     CreateAgentApiRequest,
-    CreateAgentItem,
-    AgentFieldError,
-    AgentResultItem,
     CreateAgentApiResponse,
+    AgentResultItem,
 )
 
 
@@ -46,6 +42,8 @@ async def create_agent_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> CreateAgentApiResponse:
     """Agent bulk create using composable infra functions.
 
@@ -58,7 +56,13 @@ async def create_agent_impl(
     """
     from app.infra.agent.permissions import compute_can_create
 
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key is not None and accept is None:
+        accept = request.accept
+
     items = request.agents
+    if idempotency_key is not None and len(items) == 1 and items[0].id is None:
+        items = [items[0].model_copy(update={"id": idempotency_key})]
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
@@ -87,6 +91,20 @@ async def create_agent_impl(
             detail="You don't have permission to create agents.",
         )
 
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            return CreateAgentApiResponse(
+                results=[
+                    AgentResultItem(
+                        success=True,
+                        agent_id=idempotency_key,
+                        message="Agent rejected",
+                    )
+                ],
+                idempotency_key=idempotency_key,
+            )
+        soft = False
+
     # ── Step 3: Per-item value resolution ──────────────────────────────
 
     has_errors = False
@@ -108,33 +126,37 @@ async def create_agent_impl(
                 error_results.append(AgentResultItem(success=True, message="Validated"))
 
     if has_errors:
-        return CreateAgentApiResponse(results=error_results)
+        return CreateAgentApiResponse(
+            results=error_results,
+            idempotency_key=idempotency_key,
+        )
 
     # ── Step 4: Single transaction ─────────────────────────────────────
 
     results: list[AgentResultItem] = []
+    snapshot_ids: list[UUID] = []
 
-    for item in items:
-        # Create denormalized snapshot OUTSIDE transaction (read-only hydration)
-        agents_resource_id = await create_denormalized_snapshot(
-            pool,
-            redis,
-            id=item.resource_id,
-            name_id=item.name_id,
-            description_id=item.description_id,
-            department_ids=item.department_ids,
-            model_id=item.model_id,
-            rubric_id=item.rubric_ids[0] if item.rubric_ids else None,
-            tool_ids=item.tool_ids,
-            voice_ids=item.voice_ids,
-            prompt_id=item.prompt_id,
-            instruction_ids=item.instruction_ids,
-        )
+    if not soft:
+        for item in items:
+            agents_resource_id = await create_denormalized_snapshot(
+                pool,
+                redis,
+                id=item.resource_id,
+                name_id=item.name_id,
+                description_id=item.description_id,
+                department_ids=item.department_ids,
+                model_id=item.model_id,
+                rubric_id=item.rubric_ids[0] if item.rubric_ids else None,
+                tool_ids=item.tool_ids,
+                voice_ids=item.voice_ids,
+                prompt_id=item.prompt_id,
+                instruction_ids=item.instruction_ids,
+            )
+            snapshot_ids.append(agents_resource_id)
 
-        # Artifact create inside transaction
-        async with pool.acquire() as conn:
-            async with conn.transaction():
-                # Combine existing flag_ids with active_flag_id
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            for idx, item in enumerate(items):
                 combined_flag_ids = list(item.flag_ids or [])
                 if item.active_flag_id:
                     combined_flag_ids.append(item.active_flag_id)
@@ -152,20 +174,35 @@ async def create_agent_impl(
                     tool_ids=item.tool_ids,
                     voice_ids=item.voice_ids,
                     rubric_ids=item.rubric_ids,
-                    agent_ids=[agents_resource_id],
+                    agent_ids=[snapshot_ids[idx]] if snapshot_ids else None,
                     soft=soft,
                 )
 
-        results.append(
-            AgentResultItem(
-                success=True,
-                agent_id=result.id,
-                message="Agent created successfully",
-            )
+                results.append(
+                    AgentResultItem(
+                        success=True,
+                        agent_id=result.id,
+                        message=(
+                            "Agent accepted"
+                            if accept is not None and idempotency_key is not None
+                            else "Agent created (pending acceptance)"
+                            if soft
+                            else "Agent created successfully"
+                        ),
+                    )
+                )
+
+    if not soft:
+        await refresh_agent_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (results[0].agent_id if results else None),
         )
 
-    # ── Step 5: Invalidate cache ───────────────────────────────────────
-
-    await invalidate_tags(["agents"], redis=redis)
-
-    return CreateAgentApiResponse(results=results)
+    return CreateAgentApiResponse(
+        results=results,
+        idempotency_key=idempotency_key,
+    )

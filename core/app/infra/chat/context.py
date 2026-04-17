@@ -131,6 +131,9 @@ async def resolve_chat_context(
     # ── Step 2: Derive constraints from template ──────────────────────────────
     has_template = template is not None
 
+    # Video mode vs chat mode — video_enabled is the master toggle
+    is_video_mode = (template.video_enabled or False) if has_template else False
+
     # Determine which sections are enabled
     enabled: dict[str, bool] = {
         "names": True,                            # selectable
@@ -140,12 +143,15 @@ async def resolve_chat_context(
         "personas": True,
         "documents": True,
         "scenarios": not has_template,            # from template, never selectable
-        "fields": True,                           # context — shown for selection
+        "fields": not has_template,               # context catalog — not relevant for attempt
         "parameter_fields": True,                 # selectable
-        "questions": (template.questions_enabled or False) if has_template else True,
-        "options": (template.questions_enabled or False) if has_template else True,
-        "videos": (template.video_enabled or False) if has_template else True,
-        "images": (template.images_enabled or False) if has_template else True,
+        # Video mode: video → questions → options
+        "videos": is_video_mode,
+        "questions": is_video_mode,
+        "options": is_video_mode,
+        # Chat mode: images instead of video
+        "images": (not is_video_mode) if has_template else True,
+        # Independent flags
         "problem_statements": (template.problem_statement_enabled or False) if has_template else True,
         "objectives": (template.objectives_enabled or False) if has_template else True,
     }

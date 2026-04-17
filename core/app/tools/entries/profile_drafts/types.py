@@ -23,3 +23,8 @@ class GetProfileDraftResponse(BaseModel):
     flag_ids: list[UUID] = Field(..., description="Associated flag UUIDs")
     name_ids: list[UUID] = Field(..., description="Associated name UUIDs")
     role_ids: list[UUID] = Field(..., description="Associated role UUIDs")
+    pending_department_ids: list[UUID] = Field(default_factory=list, description="Pending department UUIDs")
+    pending_email_ids: list[UUID] = Field(default_factory=list, description="Pending email UUIDs")
+    pending_flag_ids: list[UUID] = Field(default_factory=list, description="Pending flag UUIDs")
+    pending_name_ids: list[UUID] = Field(default_factory=list, description="Pending name UUIDs")
+    pending_role_ids: list[UUID] = Field(default_factory=list, description="Pending role UUIDs")

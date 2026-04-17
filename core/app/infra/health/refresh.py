@@ -54,7 +54,7 @@ async def refresh_health_impl(
 
     async def _refresh_health() -> None:
         async with pool.acquire() as conn:
-            await refresh_health_internal(conn)
+            await refresh_health_internal(conn, redis=redis)
 
     await asyncio.gather(
         _refresh_health(),

@@ -364,6 +364,18 @@ async def resolve_document_context(
         _fetch_text_entries(),
     )
 
+    pending_ids: set[UUID] = set()
+    if draft:
+        pending_ids.update(draft.pending_name_ids or [])
+        pending_ids.update(draft.pending_description_ids or [])
+        pending_ids.update(draft.pending_flag_ids or [])
+        pending_ids.update(draft.pending_department_ids or [])
+        pending_ids.update(draft.pending_parameter_field_ids or [])
+        pending_ids.update(draft.pending_parameter_ids or [])
+        pending_ids.update(draft.pending_file_ids or [])
+        pending_ids.update(draft.pending_image_ids or [])
+        pending_ids.update(draft.pending_text_ids or [])
+
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,
         active=active,
@@ -387,7 +399,7 @@ async def resolve_document_context(
             "file_entries": file_entries,
             "image_entries": image_entries,
             "text_entries": text_entries,
-            "pending_ids": set(),
+            "pending_ids": pending_ids,
         },
     )
 

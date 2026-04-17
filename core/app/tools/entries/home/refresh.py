@@ -4,7 +4,7 @@ import time
 
 import asyncpg
 
-from app.infra.globals import get_redis_client
+from redis.asyncio import Redis
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 MV_NAME = "home_mv"
@@ -17,12 +17,14 @@ async def refresh_home(conn: asyncpg.Connection) -> None:
 
 async def refresh_home_internal(
     conn: asyncpg.Connection,
+    redis: Redis | None = None,
 ) -> dict:
     """Refresh home_mv concurrently with cache invalidation."""
     start_time = time.time()
     await refresh_home(conn)
     duration_ms = int((time.time() - start_time) * 1000)
-    await invalidate_tags(["entries", "home"], redis=get_redis_client())
+    if redis is not None:
+        await invalidate_tags(["entries", "home"], redis=redis)
     return {
         "success": True,
         "duration_ms": duration_ms,

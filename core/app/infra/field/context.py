@@ -265,6 +265,12 @@ async def resolve_field_context(
     ]
 
     pending_ids: set[UUID] = set()
+    if draft:
+        pending_ids.update(draft.pending_name_ids or [])
+        pending_ids.update(draft.pending_description_ids or [])
+        pending_ids.update(draft.pending_flag_ids or [])
+        pending_ids.update(draft.pending_department_ids or [])
+        pending_ids.update(draft.pending_conditional_parameter_ids or [])
 
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,

@@ -69,10 +69,18 @@ UPSET_STUDENT_SCENARIO_RESOURCE = sid("uni/scenario-resource/upset-student")
 # Default toggle flags for all scenarios
 # ---------------------------------------------------------------------------
 
-_DEFAULT_FLAGS = dict(
+_PRACTICE_FLAGS = dict(
     problem_statement_enabled_flag=True,
     objectives_enabled_flag=True,
     images_enabled_flag=True,
+    questions_enabled_flag=False,
+    video_enabled_flag=False,
+)
+
+_TRAINING_FLAGS = dict(
+    problem_statement_enabled_flag=True,
+    objectives_enabled_flag=True,
+    images_enabled_flag=False,
     questions_enabled_flag=True,
     video_enabled_flag=True,
 )
@@ -91,7 +99,7 @@ scenarios = [
         persona_ids=[CONFUSED_RESOURCE],
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        **_DEFAULT_FLAGS,
+        **_PRACTICE_FLAGS,
     ),
     dict(
         id=HAPPY_SCENARIO,
@@ -101,7 +109,7 @@ scenarios = [
         persona_ids=[HAPPY_RESOURCE],
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        **_DEFAULT_FLAGS,
+        **_PRACTICE_FLAGS,
     ),
     dict(
         id=PASSIVE_SCENARIO,
@@ -111,7 +119,7 @@ scenarios = [
         persona_ids=[PASSIVE_RESOURCE],
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        **_DEFAULT_FLAGS,
+        **_PRACTICE_FLAGS,
     ),
     dict(
         id=AGGRESSIVE_SCENARIO,
@@ -121,7 +129,7 @@ scenarios = [
         persona_ids=[AGGRESSIVE_HIGH_RESOURCE],
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        **_DEFAULT_FLAGS,
+        **_PRACTICE_FLAGS,
     ),
     dict(
         id=GENERAL_SCENARIO,
@@ -130,7 +138,7 @@ scenarios = [
         description="General purpose scenario for flexible practice across various situations.",
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        **_DEFAULT_FLAGS,
+        **_PRACTICE_FLAGS,
     ),
     # ── Training Scenarios (with problem statements and multiple personas) ─
     dict(
@@ -151,7 +159,7 @@ scenarios = [
         objective_ids=ACADEMIC_INTEGRITY_OBJECTIVES,
         question_ids=ACADEMIC_INTEGRITY_QUESTIONS,
         option_ids=ACADEMIC_INTEGRITY_OPTIONS,
-        **_DEFAULT_FLAGS,
+        **_TRAINING_FLAGS,
     ),
     dict(
         id=FERPA_SCENARIO,
@@ -171,7 +179,7 @@ scenarios = [
         objective_ids=FERPA_OBJECTIVES,
         question_ids=FERPA_QUESTIONS,
         option_ids=FERPA_OPTIONS,
-        **_DEFAULT_FLAGS,
+        **_TRAINING_FLAGS,
     ),
     dict(
         id=UPSET_STUDENT_SCENARIO,
@@ -190,6 +198,6 @@ scenarios = [
         objective_ids=UPSET_STUDENT_OBJECTIVES,
         question_ids=UPSET_STUDENT_QUESTIONS,
         option_ids=UPSET_STUDENT_OPTIONS,
-        **_DEFAULT_FLAGS,
+        **_TRAINING_FLAGS,
     ),
 ]

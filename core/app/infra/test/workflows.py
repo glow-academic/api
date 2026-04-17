@@ -840,7 +840,7 @@ async def test_proceed_impl(
             if tests and tests[0].call_id:
                 async with pool.acquire() as conn:
                     from app.tools.entries.calls.refresh import refresh_calls_internal
-                    await refresh_calls_internal(conn)
+                    await refresh_calls_internal(conn, redis=redis)
                     calls = await get_calls(conn, [tests[0].call_id])
                 if calls:
                     original_run_id = calls[0].run_id

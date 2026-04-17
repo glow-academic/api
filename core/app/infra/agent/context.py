@@ -96,6 +96,8 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
             quality_ids = list(draft.quality_ids)
         if draft.rubric_ids:
             rubric_ids = list(draft.rubric_ids)
+        if draft.agent_ids:
+            agent_ids = list(draft.agent_ids)
 
     return _MergedIds(
         name_ids=name_ids,
@@ -222,6 +224,27 @@ async def resolve_agent_context(
     instruction_ids = _dedupe_ids(
         [instruction_id for item in selected_agent_resources for instruction_id in (getattr(item, "instruction_ids", None) or [])]
     )
+    pending_ids: set[UUID] = set()
+    pending_agent_ids = set(draft.pending_agent_ids or []) if draft else set()
+    if draft:
+        pending_ids.update(draft.pending_name_ids or [])
+        pending_ids.update(draft.pending_description_ids or [])
+        pending_ids.update(draft.pending_flag_ids or [])
+        pending_ids.update(draft.pending_department_ids or [])
+        pending_ids.update(draft.pending_model_ids or [])
+        pending_ids.update(draft.pending_tool_ids or [])
+        pending_ids.update(draft.pending_reasoning_level_ids or [])
+        pending_ids.update(draft.pending_temperature_level_ids or [])
+        pending_ids.update(draft.pending_voice_ids or [])
+        pending_ids.update(draft.pending_quality_ids or [])
+        pending_ids.update(draft.pending_rubric_ids or [])
+    for item in selected_agent_resources:
+        if getattr(item, "id", None) not in pending_agent_ids:
+            continue
+        prompt_id = getattr(item, "prompt_id", None)
+        if prompt_id:
+            pending_ids.add(prompt_id)
+        pending_ids.update(getattr(item, "instruction_ids", None) or [])
 
     async def _get_names() -> list:
         async with pool.acquire() as conn:
@@ -535,5 +558,5 @@ async def resolve_agent_context(
             "qualities": ResourcePair(selected=qualities_selected, suggestions=qualities_suggestions),
             "rubrics": ResourcePair(selected=rubrics_selected, suggestions=rubrics_suggestions),
         },
-        entries={"pending_ids": set()},
+        entries={"pending_ids": pending_ids},
     )

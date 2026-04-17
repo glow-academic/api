@@ -22,6 +22,7 @@ from app.infra.agent.permissions_context import (
     resolve_agent_values,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.agent.refresh import refresh_agent_impl
 from app.tools.artifacts.agent.update import (
     _UNSET,
 )
@@ -29,7 +30,6 @@ from app.tools.artifacts.agent.update import (
     update_agent as update_agent_artifact,
 )
 from app.infra.agent.types import UpdateAgentApiRequest, UpdateAgentApiResponse
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def update_agent_impl(
@@ -42,6 +42,8 @@ async def update_agent_impl(
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> UpdateAgentApiResponse:
     """Agent bulk update using composable infra functions.
 
@@ -59,6 +61,10 @@ async def update_agent_impl(
     from app.infra.agent.types import (
         AgentResultItem,
     )
+
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key and accept is None:
+        accept = request.accept
 
     items = request.agents
 
@@ -102,6 +108,21 @@ async def update_agent_impl(
                     detail=f"Item {idx}: You don't have permission to update this agent.",
                 )
 
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            return UpdateAgentApiResponse(
+                results=[
+                    AgentResultItem(
+                        success=True,
+                        agent_id=item.agent_id,
+                        message="Update rejected",
+                    )
+                    for item in items
+                ],
+                idempotency_key=idempotency_key,
+            )
+        soft = False
+
     # ── Step 3: Per-item value resolution ──────────────────────────────
 
     has_errors = False
@@ -123,24 +144,28 @@ async def update_agent_impl(
                 error_results.append(AgentResultItem(success=True, message="Validated"))
 
     if has_errors:
-        return UpdateAgentApiResponse(results=error_results)
+        return UpdateAgentApiResponse(
+            results=error_results,
+            idempotency_key=idempotency_key,
+        )
 
     # ── Step 4: Single transaction ─────────────────────────────────────
 
     results: list[AgentResultItem] = []
 
     for item in items:
-        # Create denormalized snapshot OUTSIDE transaction (read-only hydration)
-        agents_resource_id = await create_denormalized_snapshot(
-            pool,
-            redis,
-            name_id=item.name_id,
-            description_id=item.description_id,
-            department_ids=item.department_ids,
-            model_id=item.model_id,
-            tool_ids=item.tool_ids,
-            voice_ids=item.voice_ids,
-        )
+        agents_resource_id = None
+        if not soft:
+            agents_resource_id = await create_denormalized_snapshot(
+                pool,
+                redis,
+                name_id=item.name_id,
+                description_id=item.description_id,
+                department_ids=item.department_ids,
+                model_id=item.model_id,
+                tool_ids=item.tool_ids,
+                voice_ids=item.voice_ids,
+            )
 
         # Artifact update inside transaction
         async with pool.acquire() as conn:
@@ -172,12 +197,27 @@ async def update_agent_impl(
             AgentResultItem(
                 success=True,
                 agent_id=item.agent_id,
-                message="Agent updated successfully",
+                message=(
+                    "Agent update accepted"
+                    if accept is not None and idempotency_key is not None
+                    else "Agent updated (pending acceptance)"
+                    if soft
+                    else "Agent updated successfully"
+                ),
             )
         )
 
-    # ── Step 5: Invalidate cache ───────────────────────────────────────
+    if not soft:
+        await refresh_agent_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (results[0].agent_id if results else None),
+        )
 
-    await invalidate_tags(["agents"], redis=redis)
-
-    return UpdateAgentApiResponse(results=results)
+    return UpdateAgentApiResponse(
+        results=results,
+        idempotency_key=idempotency_key,
+    )

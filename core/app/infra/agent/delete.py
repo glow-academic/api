@@ -16,9 +16,11 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.delete.delete_artifact import restore_artifacts
 from app.infra.agent.permissions import compute_can_delete
 from app.infra.agent.permissions_context import resolve_agent_permissions_context
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.agent.refresh import refresh_agent_impl
 from app.infra.agent.types import (
     DeleteAgentApiResponse,
     DeleteAgentResult,
@@ -26,7 +28,6 @@ from app.infra.agent.types import (
 from app.tools.artifacts.agent.delete import delete_agents
 from app.tools.artifacts.agent.get import get_agents
 from app.tools.resources.names.get import get_names
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 async def delete_agent_impl(
@@ -37,6 +38,8 @@ async def delete_agent_impl(
     agent_ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
 ) -> DeleteAgentApiResponse:
     """Agent bulk delete using composable infra functions.
 
@@ -97,6 +100,34 @@ async def delete_agent_impl(
                     detail=f"Item {idx}: You don't have permission to delete this agent.",
                 )
 
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await restore_artifacts(
+                        conn,
+                        table="agent_artifact",
+                        ids=agent_ids,
+                    )
+        await refresh_agent_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
+        return DeleteAgentApiResponse(
+            results=[
+                DeleteAgentResult(
+                    success=True,
+                    agent_id=agent_id,
+                    message="Delete confirmed" if accept else "Delete rejected — agent restored",
+                )
+                for agent_id in agent_ids
+            ],
+            idempotency_key=idempotency_key,
+        )
+
     # -- Step 4: Fetch names for result messages --------------------------------
 
     async with pool.acquire() as conn:
@@ -116,17 +147,29 @@ async def delete_agent_impl(
         async with conn.transaction():
             result = await delete_agents(conn, agent_ids, soft=soft)
 
-    # -- Step 6: Invalidate cache -----------------------------------------------
-
-    await invalidate_tags(["agents"], redis=redis)
+    await refresh_agent_impl(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        soft=soft,
+        operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
+    )
 
     results = [
         DeleteAgentResult(
             success=True,
             agent_id=pid,
-            message=f"Agent '{name_map.get(pid, 'Unknown')}' deleted successfully",
+            message=(
+                f"Agent '{name_map.get(pid, 'Unknown')}' deleted (pending confirmation)"
+                if soft
+                else f"Agent '{name_map.get(pid, 'Unknown')}' deleted successfully"
+            ),
         )
         for pid in result.deleted_ids
     ]
 
-    return DeleteAgentApiResponse(results=results)
+    return DeleteAgentApiResponse(
+        results=results,
+        idempotency_key=idempotency_key,
+    )

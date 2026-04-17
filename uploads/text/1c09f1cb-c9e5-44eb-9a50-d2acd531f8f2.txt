@@ -1,0 +1,54 @@
+INPUT:
+  chat_entry_id: 019d98e0-4ad6-7a16-a60f-451d9c3f1984
+  draft_id: 019d9934-e156-7949-ad69-f93215ace465
+
+OUTPUT:
+### Chat Bundle
+- **Chat Entry ID:** `019d98e0-4ad6-7a16-a60f-451d9c3f1984`
+- **Group ID:** `019d9935-0aa5-701f-af96-4e80ecaf465d`
+
+- **Mode:** Video (video → questions → options)
+
+### Setup Summary
+**Needs input:**
+- Name → `name`
+- Description → `description`
+- Personas → `personas`
+- Documents → `documents`
+- Parameter Fields → `parameter_fields_ids`
+- Problem Statement (exactly 1) → `problem_statement`
+- Objectives → `objectives`
+- Questions (require video) → `questions`
+- Options (require questions) → `options_ids`
+**Auto-configured:** departments, scenarios, config flags
+
+---
+**Names (pass name or name_id):** 1:00 PM, 10:00 AM, 11:00 AM, 12:00 PM, 2:00 PM, 3:00 PM, 4:00 PM, 5:00 PM, 9:00 AM, Academic Integrity Policy, Academic Integrity Training, Academic Integrity Training Scenario, Activity, Activity Export, Activity Get, Activity Problem, Activity Refresh, Activity Resolve, Activity Search, Agent
+**Descriptions (pass description or description_id):** A cost-efficient version of GPT Audio. Accepts audio inputs and outputs, can be , A cost-efficient version of GPT Realtime - capable of responding to audio and te, A few students scattered around; very short or no wait., A flexible simulation for open-ended practice with any persona., A moderate number of students; you may have to wait a bit for help., A quiet, focused study environment in the lower level of the HAAS building., A specialized tech-focused lab environment in the basement of the Data Science/A, Academic integrity and honor code policy document, Academic integrity and honor code policy document, Agent for generating and working with documents, templates, and structured conte, Agent for generating rubric descriptions and grid cell content, AI agent for creating and managing benchmark invocations with model and tool con, AI agent for creating and managing training chat sessions with persona-driven sc, AI agent for generating analytical insights about benchmark evaluation results i, AI agent for generating and managing agent resources including names, descriptio, AI agent for generating and managing auth resources including names, description, AI agent for generating and managing cohort resources including names, descripti, AI agent for generating and managing department resources including names, descr, AI agent for generating and managing eval resources including names, description, AI agent for generating and managing field resources including names, descriptio
+**Personas (pass names):** Aggressive (High), Aggressive (Low), Aggressive (Medium), Confused, Happy, Instructional Staff, Passive, Professor, Student
+**Documents (pass names):** Academic Integrity Policy, FERPA, FERPA Policy, Homework Template, Lab Template, Lecture Template, Midterm Template, Policy Template, Project Template, Quiz Template, Syllabus Template
+**Parameter Fields (pass parameter_fields_ids):**
+- `d754754b-6b57-56d3-a32d-418ddaf306fe` — (no text)
+- `6a3304d4-e342-59ec-b705-aa1cac1d1a66` — (no text)
+- `e1a34f98-3038-5387-a9e1-53fb8758bc81` — (no text)
+- `a0b8aba9-c32e-5d7e-8bb8-d89c0943e795` — (no text)
+- `b730ac94-0da6-50ab-a8c3-10409b4541f0` — (no text)
+- `395b74ad-83b3-55d6-961a-c56dfa79e2c9` — (no text)
+- `30d60830-085a-588d-8d58-ad5a6886d276` — (no text)
+- `d8b1f368-4791-551a-80ad-01558b2abab2` — (no text)
+- `c8e509cd-5f26-55b8-a77c-b7c7125acbd7` — (no text)
+- `6e1cf833-5809-567c-b080-1ed8d472c039` — (no text)
+- `df13ca43-0dd3-5173-9a5e-f2f62f8533f6` — (no text)
+- `487ebc27-62f1-5b04-b8e3-5457d1720953` — (no text)
+- `79645ef2-ed1c-522b-b23f-cb49a0a505df` — (no text)
+- `c0ba2f52-fff1-5ff0-8b7a-fdec926089f8` — (no text)
+- `47e1460c-181e-5995-88b7-62c314c030b4` — (no text)
+- `89b5c123-c342-547e-ab01-bf417b0effb8` — (no text)
+- `db5925c2-db46-56d2-be3e-e8158d79cbd1` — (no text)
+- `60fed52a-d4e3-5cf8-915f-07d935895502` — (no text)
+- `d52a2d40-afc6-5c96-a360-bc9ccfbfd212` — (no text)
+- `983d3ea0-f9ac-5d04-a281-829ace6ff6ae` — (no text)
+**Problem Statements (pick 1):** A student approaches a professor's office hours visibly upset about a grade. The student expresses f, A student approaches a professor's office hours visibly upset about a grade. The student expresses f, A student is seen looking at another student's exam paper during a test. The professor notices the b, An instructional staff member accidentally leaves a student's grade sheet visible on their computer 
+**Objectives (pass texts or create new):** Apply de-escalation techniques to reduce emotional tension, Apply de-escalation techniques to reduce emotional tension, Apply the institution's academic integrity policy accurately, Communicate consequences of academic dishonesty clearly and professionally, Demonstrate active listening when a student expresses frustration, Demonstrate active listening when a student expresses frustration, Explain student privacy rights under FERPA clearly, Guide the conversation toward a constructive resolution, Guide the conversation toward a constructive resolution, Identify indicators of academic integrity violations during examinations, Identify situations that constitute FERPA violations, Take immediate corrective action when a privacy breach occurs
+**Questions (pass texts or create new — require video):** A student arrives at your office visibly upset about a grade. What should your f, A student arrives at your office visibly upset about a grade. What should your f, What does FERPA protect?, What is the appropriate first step when you observe a potential academic integri, Which de-escalation technique is most appropriate when a student raises their vo, Which of the following is an appropriate consequence for a first-time academic i, Which of the following scenarios constitutes a FERPA violation?
+**Options:** A formal warning and required academic integrity seminar, Acknowledge their feelings and invite them to share their co, Acknowledge their feelings and invite them to share their co, Ask them to leave and send an email instead, Discussing a student's grades with their parent without cons, Document the observation and report to the department chair, Explain the grading rubric before they finish speaking, Explain the grading rubric before they finish speaking, Faculty employment contracts, Ignore it unless you have definitive proof, Immediate expulsion from the university, Immediately confront the student in front of the class, Match their volume to show you take them seriously, Match their volume to show you take them seriously, No action unless the student admits to cheating, Posting anonymous assignment feedback on the LMS, Sharing aggregated class performance statistics, Speak calmly, lower your voice, and use open body language, Tell them to come back when they have calmed down, Tell them to come back when they have calmed down

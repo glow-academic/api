@@ -457,6 +457,18 @@ async def resolve_simulation_context(
                 )
             )
 
+    pending_ids: set[UUID] = set()
+    if draft:
+        pending_ids.update(draft.pending_name_ids or [])
+        pending_ids.update(draft.pending_description_ids or [])
+        pending_ids.update(draft.pending_flag_ids or [])
+        pending_ids.update(draft.pending_department_ids or [])
+        pending_ids.update(draft.pending_scenario_ids or [])
+        pending_ids.update(draft.pending_scenario_flag_ids or [])
+        pending_ids.update(draft.pending_scenario_position_ids or [])
+        pending_ids.update(draft.pending_scenario_rubric_ids or [])
+        pending_ids.update(draft.pending_scenario_time_limit_ids or [])
+
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,
         active=artifact.active if artifact else True,
@@ -493,9 +505,7 @@ async def resolve_simulation_context(
             ),
             "rubrics": ResourcePair(selected=[], suggestions=rubrics_catalog),
         },
-        # Simulation draft black-boxes do not expose inactive connections, so
-        # pending_ids remain empty until the tool layer adds that support.
-        entries={"pending_ids": set()},
+        entries={"pending_ids": pending_ids},
     )
 
 

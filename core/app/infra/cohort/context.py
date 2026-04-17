@@ -400,6 +400,16 @@ async def resolve_cohort_context(
     # Cohort draft black-boxes do not expose inactive connections, so pending_ids
     # remain empty until the draft layer grows that support.
     pending_ids: set[UUID] = set()
+    if draft:
+        pending_ids.update(draft.pending_name_ids or [])
+        pending_ids.update(draft.pending_description_ids or [])
+        pending_ids.update(draft.pending_flag_ids or [])
+        pending_ids.update(draft.pending_department_ids or [])
+        pending_ids.update(draft.pending_simulation_ids or [])
+        pending_ids.update(draft.pending_simulation_position_ids or [])
+        pending_ids.update(draft.pending_simulation_availability_ids or [])
+        pending_ids.update(draft.pending_profile_ids or [])
+        pending_ids.update(draft.pending_profile_persona_ids or [])
 
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,

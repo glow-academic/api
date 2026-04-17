@@ -4,7 +4,7 @@ import time
 
 import asyncpg
 
-from app.infra.globals import get_redis_client
+from redis.asyncio import Redis
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 MV_NAME = "files_mv"
@@ -12,12 +12,14 @@ MV_NAME = "files_mv"
 
 async def refresh_files_internal(
     conn: asyncpg.Connection,
+    redis: Redis | None = None,
 ) -> dict:
     """Refresh files_mv concurrently."""
     start_time = time.time()
     await conn.execute(f"REFRESH MATERIALIZED VIEW CONCURRENTLY {MV_NAME}")
     duration_ms = int((time.time() - start_time) * 1000)
-    await invalidate_tags(["entries", "files"], redis=get_redis_client())
+    if redis is not None:
+        await invalidate_tags(["entries", "files"], redis=redis)
     return {
         "success": True,
         "duration_ms": duration_ms,

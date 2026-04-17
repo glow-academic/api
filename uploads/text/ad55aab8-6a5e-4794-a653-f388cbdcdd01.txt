@@ -1,0 +1,37 @@
+## Context
+
+**Draft ID:** `019d9800-94a1-726b-a00b-320c052089c0`
+**Chat ID:** `019d9789-c772-70d6-9f22-e192cb499833`
+**Attempt ID:** `019d9800-93d0-7531-ace1-f9ea5114a80e`
+
+**Group ID:** `019d9800-959d-78e0-9507-223ae55c68bc`
+
+## Tools
+
+
+## Steps
+
+1. Call **Attempt_Chat_Get**(chat_entry_id: "019d9789-c772-70d6-9f22-e192cb499833", draft_id: "019d9800-94a1-726b-a00b-320c052089c0", attempt_id: "019d9800-93d0-7531-ace1-f9ea5114a80e")
+2. From the response, collect resource IDs from **Available** sections only:
+   - `personas_ids` — all available persona IDs
+   - `objectives_ids` — all available objective IDs (if section shown)
+   - `problem_statements_ids` — exactly 1 problem statement ID (if section shown)
+   - `questions_ids` — all available question IDs (if section shown)
+   - `documents_ids` — all available document IDs
+   - `images_ids` — at most 1 image ID (if section shown)
+   - `videos_ids` — at most 1 video ID (if section shown)
+   - `options_ids` — all available option IDs (if section shown)
+   - **Skip** any section marked "Selected (locked)" — those are already set
+   - **Skip** any section not shown — it's disabled
+   - **Never pass** `scenarios_ids` or `departments_ids` — they are auto-configured
+3. Call **Attempt_Chat_Create** with:
+   - `attempt_id`: `"019d9800-93d0-7531-ace1-f9ea5114a80e"`
+   - `chat_id`: `"019d9789-c772-70d6-9f22-e192cb499833"`
+   - `text_enabled`: `true`
+   - All the resource IDs collected in step 2 (only from Available sections)
+4. Call **Attempt_Group**(group_id: "019d9800-959d-78e0-9507-223ae55c68bc", name: "short descriptive name")
+
+**IMPORTANT:**
+- Use `chat_id: "019d9789-c772-70d6-9f22-e192cb499833"` and `attempt_id: "019d9800-93d0-7531-ace1-f9ea5114a80e"` exactly — do NOT substitute the draft_id
+- Only pass IDs from **Available** sections — locked and hidden sections are handled automatically
+- If a resource section has no Available items, omit that field

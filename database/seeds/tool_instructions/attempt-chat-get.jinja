@@ -4,69 +4,64 @@
 - **Chat Entry ID:** `{{ r.chat_entry_id }}`
 - **Group ID:** `{{ r.group_id }}`
 {% if r.attempt_id %}- **Attempt ID:** `{{ r.attempt_id }}`{% endif %}
+{% set is_video_mode = r.videos and r.videos.show -%}
+- **Mode:** {% if is_video_mode %}Video (video → questions → options){% else %}Chat (personas, documents, image){% endif %}
 
-{% macro section_status(section) %}{% if not section or not section.show %}disabled{% elif section.current and not section.resources %}locked{% elif section.resources %}needs_input{% else %}empty{% endif %}{% endmacro %}
-
+{% macro section_status(section) %}{% if not section or not section.show %}disabled{% elif section.current and not section.resources %}locked{% elif section.resources %}needs_input{% else %}empty{% endif %}{% endmacro -%}
 ### Setup Summary
-
 {% set sections = [
-  (r.names, 'names_ids', 'Names'),
-  (r.descriptions, 'descriptions_ids', 'Descriptions'),
-  (r.personas, 'personas_ids', 'Personas'),
-  (r.documents, 'documents_ids', 'Documents'),
-  (r.fields, 'field_ids', 'Fields'),
+  (r.names, 'name', 'Name'),
+  (r.descriptions, 'description', 'Description'),
+  (r.personas, 'personas', 'Personas'),
+  (r.documents, 'documents', 'Documents'),
   (r.parameter_fields, 'parameter_fields_ids', 'Parameter Fields'),
-  (r.problem_statements, 'problem_statements_ids', 'Problem Statements'),
-  (r.objectives, 'objectives_ids', 'Objectives'),
-  (r.questions, 'questions_ids', 'Questions'),
-  (r.options, 'options_ids', 'Options'),
-  (r.videos, 'videos_ids', 'Videos'),
-  (r.images, 'images_ids', 'Images'),
-] %}
-**Needs input (pass IDs to create):**
+  (r.problem_statements, 'problem_statement', 'Problem Statement (exactly 1)'),
+  (r.objectives, 'objectives', 'Objectives'),
+  (r.videos, 'video_id', 'Video (required for questions)'),
+  (r.questions, 'questions', 'Questions (require video)'),
+  (r.options, 'options_ids', 'Options (require questions)'),
+  (r.images, 'image_id', 'Image (chat mode only)'),
+] -%}
+**Needs input:**
 {% for sec, arg, label in sections %}{% if section_status(sec) == 'needs_input' %}- {{ label }} → `{{ arg }}`
-{% endif %}{% endfor %}
-**Locked (already set — do NOT pass):**
+{% endif %}{% endfor -%}
+{% set has_locked = [] %}{% for sec, arg, label in sections %}{% if section_status(sec) == 'locked' %}{% if has_locked.append(1) %}{% endif %}{% endif %}{% endfor %}{% if has_locked -%}
+**Locked (already set):**
 {% for sec, arg, label in sections %}{% if section_status(sec) == 'locked' %}- {{ label }}
-{% endif %}{% endfor %}
-**Disabled (not enabled — do NOT pass):**
-{% for sec, arg, label in sections %}{% if section_status(sec) == 'disabled' %}- {{ label }}
-{% endif %}{% endfor %}
-**Auto-configured (never pass):** departments, scenarios
+{% endif %}{% endfor -%}
+{% endif -%}
+**Auto-configured:** departments, scenarios, config flags
 
 ---
-
-{% macro render_section(section, label, id_field, display_field, display_truncate) %}
-{% if section and section.show %}
-### {{ label }}{% if section.current and not section.resources %} (locked){% endif %}
-
-{% if section.current and not section.resources %}
-{% for item in section.current %}- `{{ item[id_field] }}` — {{ item[display_field][:display_truncate] if item[display_field] else '(no text)' }}
-{% endfor %}
-{% elif section.current %}
-**Selected:**
-{% for item in section.current %}- `{{ item[id_field] }}` — {{ item[display_field][:display_truncate] if item[display_field] else '(no text)' }}
-{% endfor %}
-{% endif %}
-{% if section.resources %}
-**Available — pick from these:**
+{% macro render_compressed(section, label, display_field, display_truncate) -%}
+{% if section and section.show and section.resources -%}
+**{{ label }}:** {% for item in section.resources %}{{ item[display_field][:display_truncate] if item[display_field] else '(no text)' }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif section and section.show and section.current and not section.resources -%}
+**{{ label }} (locked):** {% for item in section.current %}{{ item[display_field][:display_truncate] if item[display_field] else '(no text)' }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif -%}
+{% endmacro -%}
+{% macro render_with_ids(section, label, id_field, display_field, display_truncate) -%}
+{% if section and section.show and section.resources -%}
+**{{ label }}:**
 {% for item in section.resources %}- `{{ item[id_field] }}` — {{ item[display_field][:display_truncate] if item[display_field] else '(no text)' }}
-{% endfor %}
-{% endif %}
-{% endif %}
-{% endmacro %}
-{{ render_section(r.names, 'Names', 'id', 'name', 100) }}
-{{ render_section(r.descriptions, 'Descriptions', 'id', 'description', 120) }}
-{{ render_section(r.personas, 'Personas', 'id', 'name', 100) }}
-{{ render_section(r.documents, 'Documents', 'id', 'name', 100) }}
-{{ render_section(r.fields, 'Fields', 'id', 'name', 100) }}
-{{ render_section(r.parameter_fields, 'Parameter Fields', 'id', 'name', 100) }}
-{{ render_section(r.problem_statements, 'Problem Statements', 'id', 'problem_statement', 120) }}
-{{ render_section(r.objectives, 'Objectives', 'id', 'objective', 120) }}
-{{ render_section(r.questions, 'Questions', 'id', 'question_text', 120) }}
-{{ render_section(r.options, 'Options', 'id', 'option_text', 100) }}
-{{ render_section(r.videos, 'Videos', 'id', 'name', 100) }}
-{{ render_section(r.images, 'Images', 'id', 'name', 100) }}
+{% endfor -%}
+{% elif section and section.show and section.current and not section.resources -%}
+**{{ label }} (locked):**
+{% for item in section.current %}- `{{ item[id_field] }}` — {{ item[display_field][:display_truncate] if item[display_field] else '(no text)' }}
+{% endfor -%}
+{% endif -%}
+{% endmacro -%}
+{{ render_compressed(r.names, 'Names (pass name or name_id)', 'name', 60) -}}
+{{ render_compressed(r.descriptions, 'Descriptions (pass description or description_id)', 'description', 80) -}}
+{{ render_compressed(r.personas, 'Personas (pass names)', 'name', 60) -}}
+{{ render_compressed(r.documents, 'Documents (pass names)', 'name', 60) -}}
+{{ render_with_ids(r.parameter_fields, 'Parameter Fields (pass parameter_fields_ids)', 'id', 'name', 60) -}}
+{{ render_compressed(r.problem_statements, 'Problem Statements (pick 1)', 'problem_statement', 500) -}}
+{{ render_compressed(r.objectives, 'Objectives (pass texts or create new)', 'objective', 200) -}}
+{{ render_with_ids(r.videos, 'Videos (pass video_id — required for questions)', 'id', 'name', 60) -}}
+{{ render_compressed(r.questions, 'Questions (pass texts or create new — require video)', 'question_text', 200) -}}
+{{ render_compressed(r.options, 'Options', 'option_text', 60) -}}
+{{ render_with_ids(r.images, 'Images (pass image_id — chat mode only)', 'id', 'name', 60) -}}
 {% elif results and results[0] and results[0].error %}
 Error fetching chat bundle: {{ results[0].error }}
 {% else %}

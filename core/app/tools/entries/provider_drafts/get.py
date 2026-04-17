@@ -21,13 +21,20 @@ async def get_provider_drafts(
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
+            COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL AND dep.active = false), '{}') AS pending_department_ids,
             COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL), '{}') AS description_ids,
+            COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL AND desc_c.active = false), '{}') AS pending_description_ids,
             COALESCE(ARRAY_AGG(DISTINCT e.endpoints_id) FILTER (WHERE e.endpoints_id IS NOT NULL), '{}') AS endpoint_ids,
+            COALESCE(ARRAY_AGG(DISTINCT e.endpoints_id) FILTER (WHERE e.endpoints_id IS NOT NULL AND e.active = false), '{}') AS pending_endpoint_ids,
             COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL), '{}') AS flag_ids,
+            COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL AND f.active = false), '{}') AS pending_flag_ids,
             COALESCE(ARRAY_AGG(DISTINCT k.keys_id) FILTER (WHERE k.keys_id IS NOT NULL), '{}') AS key_ids,
+            COALESCE(ARRAY_AGG(DISTINCT k.keys_id) FILTER (WHERE k.keys_id IS NOT NULL AND k.active = false), '{}') AS pending_key_ids,
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL), '{}') AS name_ids,
+            COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = false), '{}') AS pending_name_ids,
             COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL), '{}') AS profile_ids,
-            COALESCE(ARRAY_AGG(DISTINCT v.values_id) FILTER (WHERE v.values_id IS NOT NULL), '{}') AS value_ids
+            COALESCE(ARRAY_AGG(DISTINCT v.values_id) FILTER (WHERE v.values_id IS NOT NULL), '{}') AS value_ids,
+            COALESCE(ARRAY_AGG(DISTINCT v.values_id) FILTER (WHERE v.values_id IS NOT NULL AND v.active = false), '{}') AS pending_value_ids
         FROM provider_drafts_entry d
         LEFT JOIN provider_drafts_departments_connection dep ON dep.draft_id = d.id
         LEFT JOIN provider_drafts_descriptions_connection desc_c ON desc_c.draft_id = d.id
@@ -62,6 +69,13 @@ async def get_provider_drafts(
             name_ids=r["name_ids"],
             profile_ids=r["profile_ids"],
             value_id=r["value_ids"][0] if r["value_ids"] else None,
+            pending_department_ids=r["pending_department_ids"],
+            pending_description_ids=r["pending_description_ids"],
+            pending_endpoint_ids=r["pending_endpoint_ids"],
+            pending_flag_ids=r["pending_flag_ids"],
+            pending_key_ids=r["pending_key_ids"],
+            pending_name_ids=r["pending_name_ids"],
+            pending_value_ids=r["pending_value_ids"],
         )
         for r in rows
     ]
