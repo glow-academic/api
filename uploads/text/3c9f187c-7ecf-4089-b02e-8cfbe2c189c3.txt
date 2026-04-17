@@ -1,0 +1,7 @@
+INPUT:
+  group_id: color-selection
+  name: Color Selection Complete
+
+OUTPUT:
+### Group Resolved
+- **Group ID:** ``

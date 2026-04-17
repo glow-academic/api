@@ -374,10 +374,10 @@ tools = [
         id="728a52ad-4a72-5fdd-9493-98cf1b112fa0",
         resource_id=sid("tool-resource/attempt/group"),
         name="Attempt Group",
-        description="Group operation for Attempt",
+        description="Resolve or create an attempt group with optional naming",
         permission_ids=[sid("permission/attempt/group")],
-        args=[],
-        args_outputs=["artifact_attempt", "operation_group"],
+        args=["group_id", "name"],
+        args_outputs=["artifact_attempt", "operation_group", "group_id", "name"],
         instruction_id=_iid("Attempt Group"),
     ),
     dict(

@@ -579,7 +579,7 @@ async def attempt_message_impl(
     sid = data.get("sid", "")
     attempt_id = data.get("attempt_id")
     chat_id = data.get("chat_id")
-    message = (data.get("message") or "").strip()
+    message = (data.get("message") or data.get("text") or "").strip()
     if not attempt_id or not chat_id or not message:
         return
 

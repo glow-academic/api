@@ -800,6 +800,7 @@ INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = {
     ("attempt", "response"): (f"{_I}.attempt.response", "attempt_response_internal_impl"),
     ("attempt", "previous"): (f"{_I}.attempt.previous", "attempt_previous_internal_impl"),
     # Attempt chat-level operations
+    ("attempt", "group"): (f"{_I}.attempt.group", "group_attempt_impl"),
     ("attempt", "chat_get"): (f"{_I}.chat.get", "get_chat_impl"),
     ("attempt", "chat_create"): (f"{_I}.attempt.chat_create", "create_attempt_chat_impl"),
     ("attempt", "chat_send"): (f"{_I}.attempt.message", "attempt_message_internal_impl"),

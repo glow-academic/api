@@ -183,7 +183,13 @@ async def patch_auth_draft_impl(
                             slug_ids=draft.slug_ids,
                             pending_ids=set(),
                         )
-            await refresh_auth_impl(pool, redis, profile_id=profile_id)
+            await refresh_auth_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
+            )
 
         return PatchAuthDraftApiResponse(
             success=True,
@@ -232,12 +238,19 @@ async def patch_auth_draft_impl(
     )
 
     if not soft:
-        await refresh_auth_impl(pool, redis, profile_id=profile_id)
+        await refresh_auth_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=result.id,
+        )
 
     return PatchAuthDraftApiResponse(
         success=True,
         draft_id=result.id,
         idempotency_key=result.id,
-        message="Draft saved successfully",
+        message="Draft saved successfully" if not soft else "Draft saved (pending acceptance)",
         form_state=form_state,
     )

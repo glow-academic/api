@@ -5416,7 +5416,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetEvalApiResponse-Output"
+                  "$ref": "#/components/schemas/GetEvalApiResponse"
                 }
               }
             }
@@ -13164,6 +13164,16 @@
         "summary": "Auth Refresh",
         "description": "Refresh auth materialized views and invalidate caches.",
         "operationId": "auth_refresh_auth_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshAuthApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -13171,6 +13181,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -34791,7 +34811,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetEvalApiResponse-Input"
+                "$ref": "#/components/schemas/GetEvalApiResponse"
               }
             }
           },
@@ -46535,8 +46555,15 @@
       "AttemptMessagePayload": {
         "properties": {
           "attempt_id": {
-            "type": "string",
-            "format": "uuid",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Attempt Id",
             "description": "UUID of the attempt"
           },
@@ -46547,9 +46574,28 @@
             "description": "UUID of the chat"
           },
           "message": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Message",
             "description": "Text message content"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text",
+            "description": "Text message content (alias for message)"
           },
           "parent_message_id": {
             "anyOf": [
@@ -46567,9 +46613,7 @@
         },
         "type": "object",
         "required": [
-          "attempt_id",
-          "chat_id",
-          "message"
+          "chat_id"
         ],
         "title": "AttemptMessagePayload",
         "description": "Client-to-server: send a text message in an attempt chat (modality=call)."
@@ -54050,6 +54094,25 @@
             "type": "array",
             "title": "Auths",
             "description": "List of auth providers to create"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -54068,6 +54131,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item creation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -54086,6 +54162,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item creation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -61473,6 +61562,25 @@
             "type": "array",
             "title": "Auth Ids",
             "description": "UUIDs of auth providers to delete"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -61491,6 +61599,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item deletion results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -63638,7 +63759,7 @@
             "title": "Document Id",
             "description": "UUID of the document"
           },
-          "upload_id": {
+          "text_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -63648,8 +63769,21 @@
                 "type": "null"
               }
             ],
-            "title": "Upload Id",
-            "description": "UUID of the uploaded file"
+            "title": "Text Id",
+            "description": "UUID of the text entry"
+          },
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id",
+            "description": "UUID of the file entry"
           },
           "name": {
             "anyOf": [
@@ -64834,6 +64968,25 @@
             "format": "uuid",
             "title": "Auth Id",
             "description": "UUID of the auth provider to duplicate"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -64860,6 +65013,19 @@
             "type": "string",
             "title": "Message",
             "description": "Result message"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -66484,70 +66650,9 @@
         ],
         "title": "EndTestApiResponse"
       },
-      "EvalDepartmentSection": {
+      "EvalDepartmentResource": {
         "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected departments"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available departments"
-          }
-        },
-        "type": "object",
-        "title": "EvalDepartmentSection"
-      },
-      "EvalDescriptionSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected description resource"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available description resources"
-          }
-        },
-        "type": "object",
-        "title": "EvalDescriptionSection"
-      },
-      "EvalDraftFormState": {
-        "properties": {
-          "name_id": {
+          "department_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -66557,10 +66662,70 @@
                 "type": "null"
               }
             ],
-            "title": "Name Id",
-            "description": "Selected name resource UUID"
+            "title": "Department Id",
+            "description": "Department identifier"
           },
-          "description_id": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Description text"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "EvalDepartmentResource"
+      },
+      "EvalDescriptionResource": {
+        "properties": {
+          "id": {
             "anyOf": [
               {
                 "type": "string",
@@ -66570,55 +66735,54 @@
                 "type": "null"
               }
             ],
-            "title": "Description Id",
-            "description": "Selected description resource UUID"
+            "title": "Id",
+            "description": "Unique identifier"
           },
-          "flag_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Flag Ids",
-            "description": "Selected flag option UUIDs"
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Description text"
           },
-          "department_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Department Ids",
-            "description": "Selected department UUIDs"
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
           },
-          "model_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Model Ids",
-            "description": "Selected model UUIDs"
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
           },
-          "rubric_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Rubric Ids",
-            "description": "Selected rubric UUIDs"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "required": [
-          "flag_ids",
-          "department_ids",
-          "model_ids",
-          "rubric_ids"
-        ],
-        "title": "EvalDraftFormState",
-        "description": "Server-authoritative form state returned after draft save."
+        "title": "EvalDescriptionResource"
       },
       "EvalFieldError": {
         "properties": {
@@ -66688,7 +66852,7 @@
               }
             ],
             "title": "Flag Option Id",
-            "description": "Selected flag option UUID"
+            "description": "Flag resource UUID"
           },
           "show": {
             "type": "boolean",
@@ -66713,6 +66877,24 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
@@ -66720,27 +66902,241 @@
           "key",
           "label"
         ],
-        "title": "EvalFlagConfig",
-        "description": "Enriched flag config for direct client consumption."
+        "title": "EvalFlagConfig"
       },
-      "EvalFlagSection": {
+      "EvalModelFlagResource": {
         "properties": {
-          "resource": {
+          "id": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/EvalFlagConfig"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Currently selected flag config"
+            "title": "Id",
+            "description": "Model-flag resource identifier"
           },
-          "resources": {
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id",
+            "description": "Associated model identifier"
+          },
+          "flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Id",
+            "description": "Associated flag identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Description text"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Icon identifier"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "EvalModelFlagResource"
+      },
+      "EvalModelPositionResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Model-position resource identifier"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id",
+            "description": "Associated model identifier"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Associated position value"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "EvalModelPositionResource"
+      },
+      "EvalModelResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Model resource identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Description text"
+          },
+          "modality_ids": {
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/EvalFlagConfig"
+                  "type": "string",
+                  "format": "uuid"
                 },
                 "type": "array"
               },
@@ -66748,169 +67144,178 @@
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available flag configs"
-          }
-        },
-        "type": "object",
-        "title": "EvalFlagSection"
-      },
-      "EvalModelFlagSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected model flags"
+            "title": "Modality Ids",
+            "description": "Associated modality identifiers"
           },
-          "resources": {
+          "generated": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available model flags"
-          }
-        },
-        "type": "object",
-        "title": "EvalModelFlagSection"
-      },
-      "EvalModelPositionSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected model positions"
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available model positions"
-          }
-        },
-        "type": "object",
-        "title": "EvalModelPositionSection"
-      },
-      "EvalModelRubricSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected model rubrics"
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available model rubrics"
-          }
-        },
-        "type": "object",
-        "title": "EvalModelRubricSection"
-      },
-      "EvalModelSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected models"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available models"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "EvalModelSection"
+        "title": "EvalModelResource"
       },
-      "EvalNameSection": {
+      "EvalModelRubricResource": {
         "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected name resource"
-          },
-          "resources": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available name resources"
+            "title": "Id",
+            "description": "Model-rubric resource identifier"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id",
+            "description": "Associated model identifier"
+          },
+          "rubric_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubric Id",
+            "description": "Associated rubric identifier"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "EvalNameSection"
+        "title": "EvalModelRubricResource"
+      },
+      "EvalNameResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Unique identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "EvalNameResource"
       },
       "EvalResultItem": {
         "properties": {
@@ -79914,6 +80319,19 @@
       },
       "GetEvalApiRequest": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Eval UUID to retrieve"
+          },
           "eval_id": {
             "anyOf": [
               {
@@ -79925,7 +80343,7 @@
               }
             ],
             "title": "Eval Id",
-            "description": "Eval UUID to retrieve"
+            "description": "Legacy eval UUID to retrieve"
           },
           "draft_id": {
             "anyOf": [
@@ -79939,13 +80357,113 @@
             ],
             "title": "Draft Id",
             "description": "Draft UUID to load from"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__eval__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for names section"
+          },
+          "descriptions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__eval__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for descriptions section"
+          },
+          "flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__eval__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags section"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__eval__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for departments section"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__eval__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for models section"
+          },
+          "model_flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__eval__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for model flags section"
+          },
+          "model_rubrics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__eval__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for model rubrics section"
+          },
+          "model_positions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__eval__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for model positions section"
           }
         },
         "type": "object",
         "title": "GetEvalApiRequest",
         "description": "Request model for get eval endpoint."
       },
-      "GetEvalApiResponse-Input": {
+      "GetEvalApiResponse": {
         "properties": {
           "actor_name": {
             "anyOf": [
@@ -80018,7 +80536,7 @@
               }
             ],
             "title": "Basic Show Ai Generate",
-            "description": "Whether to show AI generate for basic step"
+            "description": "Whether to show AI generate for the basic step"
           },
           "model_show_ai_generate": {
             "anyOf": [
@@ -80030,324 +80548,160 @@
               }
             ],
             "title": "Model Show Ai Generate",
-            "description": "Whether to show AI generate for model step"
+            "description": "Whether to show AI generate for the model step"
+          },
+          "show_ai_generate": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show Ai Generate",
+            "description": "Whether any AI generate action should be shown"
+          },
+          "pending_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers when available"
           },
           "names": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/EvalNameSection"
+                "items": {
+                  "$ref": "#/components/schemas/EvalNameResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Name section with resource and options"
+            "title": "Names",
+            "description": "Name resources"
           },
           "descriptions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/EvalDescriptionSection"
+                "items": {
+                  "$ref": "#/components/schemas/EvalDescriptionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Description section with resource and options"
+            "title": "Descriptions",
+            "description": "Description resources"
           },
-          "active_flags": {
+          "flags": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/EvalFlagSection"
+                "items": {
+                  "$ref": "#/components/schemas/EvalFlagConfig"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Active flag section"
-          },
-          "dynamic_flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvalFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Dynamic flag section"
-          },
-          "groups_flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvalFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Groups flag section"
+            "title": "Flags",
+            "description": "Flag configs"
           },
           "departments": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/EvalDepartmentSection"
+                "items": {
+                  "$ref": "#/components/schemas/EvalDepartmentResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Department section with selections and options"
+            "title": "Departments",
+            "description": "Department resources"
           },
           "models": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/EvalModelSection"
+                "items": {
+                  "$ref": "#/components/schemas/EvalModelResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Model section with selections and options"
+            "title": "Models",
+            "description": "Model resources"
           },
           "model_flags": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/EvalModelFlagSection"
+                "items": {
+                  "$ref": "#/components/schemas/EvalModelFlagResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Model flag section"
+            "title": "Model Flags",
+            "description": "Model flag resources"
           },
           "model_rubrics": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/EvalModelRubricSection"
+                "items": {
+                  "$ref": "#/components/schemas/EvalModelRubricResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Model rubric section"
+            "title": "Model Rubrics",
+            "description": "Model rubric resources"
           },
           "model_positions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/EvalModelPositionSection"
+                "items": {
+                  "$ref": "#/components/schemas/EvalModelPositionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Model position section"
+            "title": "Model Positions",
+            "description": "Model position resources"
           }
         },
         "type": "object",
         "title": "GetEvalApiResponse",
-        "description": "Response model for get eval endpoint."
-      },
-      "GetEvalApiResponse-Output": {
-        "properties": {
-          "actor_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Actor Name",
-            "description": "Display name of the current user"
-          },
-          "eval_exists": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Eval Exists",
-            "description": "Whether the eval exists"
-          },
-          "can_edit": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Can Edit",
-            "description": "Whether the current user can edit"
-          },
-          "disabled_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Disabled Reason",
-            "description": "Reason editing is disabled"
-          },
-          "group_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Group Id",
-            "description": "Associated group UUID"
-          },
-          "basic_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Basic Show Ai Generate",
-            "description": "Whether to show AI generate for basic step"
-          },
-          "model_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Model Show Ai Generate",
-            "description": "Whether to show AI generate for model step"
-          },
-          "names": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvalNameSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Name section with resource and options"
-          },
-          "descriptions": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvalDescriptionSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Description section with resource and options"
-          },
-          "active_flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvalFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Active flag section"
-          },
-          "dynamic_flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvalFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Dynamic flag section"
-          },
-          "groups_flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvalFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Groups flag section"
-          },
-          "departments": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvalDepartmentSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Department section with selections and options"
-          },
-          "models": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvalModelSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Model section with selections and options"
-          },
-          "model_flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvalModelFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Model flag section"
-          },
-          "model_rubrics": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvalModelRubricSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Model rubric section"
-          },
-          "model_positions": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvalModelPositionSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Model position section"
-          }
-        },
-        "type": "object",
-        "title": "GetEvalApiResponse",
-        "description": "Response model for get eval endpoint."
+        "description": "Canonical flat composed response for the eval editor."
       },
       "GetEvalDraftResponse": {
         "properties": {
@@ -80446,6 +80800,60 @@
             "type": "array",
             "title": "Rubric Ids",
             "description": "Associated rubric UUIDs"
+          },
+          "pending_department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Department Ids",
+            "description": "Associated department UUIDs stored as inactive pending links"
+          },
+          "pending_description_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Description Ids",
+            "description": "Associated description UUIDs stored as inactive pending links"
+          },
+          "pending_flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Flag Ids",
+            "description": "Associated flag UUIDs stored as inactive pending links"
+          },
+          "pending_model_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Model Ids",
+            "description": "Associated model UUIDs stored as inactive pending links"
+          },
+          "pending_name_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Name Ids",
+            "description": "Associated name UUIDs stored as inactive pending links"
+          },
+          "pending_rubric_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Rubric Ids",
+            "description": "Associated rubric UUIDs stored as inactive pending links"
           }
         },
         "type": "object",
@@ -90617,6 +91025,25 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -90655,6 +91082,19 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -106984,6 +107424,19 @@
       },
       "PatchEvalDraftApiRequest": {
         "properties": {
+          "draft_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Id",
+            "description": "Existing draft UUID to patch"
+          },
           "input_draft_id": {
             "anyOf": [
               {
@@ -107063,6 +107516,21 @@
             "title": "Flag Ids",
             "description": "Flag option UUIDs"
           },
+          "departments": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departments",
+            "description": "Department names to resolve"
+          },
           "department_ids": {
             "anyOf": [
               {
@@ -107095,7 +107563,7 @@
             "title": "Model Ids",
             "description": "Model UUIDs"
           },
-          "rubric_ids": {
+          "pending_ids": {
             "anyOf": [
               {
                 "items": {
@@ -107108,8 +107576,27 @@
                 "type": "null"
               }
             ],
-            "title": "Rubric Ids",
-            "description": "Rubric UUIDs"
+            "title": "Pending Ids",
+            "description": "Resource IDs to keep inactive on the draft"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant draft"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -107129,6 +107616,19 @@
             "title": "Draft Id",
             "description": "Draft UUID"
           },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key echoed back for client correlation"
+          },
           "message": {
             "type": "string",
             "title": "Message",
@@ -107137,7 +107637,7 @@
           "form_state": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/EvalDraftFormState"
+                "$ref": "#/components/schemas/app__infra__eval__types__DraftFormState"
               },
               {
                 "type": "null"
@@ -113284,6 +113784,25 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -113313,6 +113832,19 @@
             "title": "Message",
             "description": "Status message",
             "default": "Problem created successfully"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -117226,6 +117758,47 @@
         "type": "object",
         "title": "RefreshAgentApiRequest",
         "description": "Request model for agent refresh endpoint."
+      },
+      "RefreshAuthApiRequest": {
+        "properties": {
+          "targets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targets",
+            "description": "MV targets to refresh (omit for all). Options: auth_drafts_mv"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject. Only meaningful with idempotency_key",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "RefreshAuthApiRequest",
+        "description": "Request model for auth refresh endpoint."
       },
       "RefreshCohortApiRequest": {
         "properties": {
@@ -131090,6 +131663,25 @@
             "type": "array",
             "title": "Auths",
             "description": "List of auth providers to update"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -131108,6 +131700,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item update results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -131126,6 +131731,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item update results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -137685,6 +138303,180 @@
         "type": "object",
         "title": "SectionFilter",
         "description": "Per-section filter options for GET requests."
+      },
+      "app__infra__eval__types__DraftFormState": {
+        "properties": {
+          "name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Id",
+            "description": "Selected name resource UUID"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Echoed selected name value"
+          },
+          "description_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description Id",
+            "description": "Selected description resource UUID"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Echoed selected description value"
+          },
+          "flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
+          },
+          "department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Department Ids",
+            "description": "Selected department UUIDs"
+          },
+          "model_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Model Ids",
+            "description": "Selected model UUIDs"
+          },
+          "pending_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers"
+          }
+        },
+        "type": "object",
+        "title": "DraftFormState",
+        "description": "Server-authoritative form state returned after draft save."
+      },
+      "app__infra__eval__types__SectionFilter": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Filter options by search text"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Max options to return"
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected",
+            "description": "Only return selected items"
+          },
+          "suggested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested",
+            "description": "Only return suggested items"
+          },
+          "include": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include",
+            "description": "Include this section in response (default true)"
+          },
+          "parameter_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Ids",
+            "description": "Reserved for compatibility with shared filter parsing"
+          }
+        },
+        "type": "object",
+        "title": "SectionFilter"
       },
       "app__infra__field__types__DraftFormState": {
         "properties": {

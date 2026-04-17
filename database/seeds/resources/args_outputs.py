@@ -3663,6 +3663,12 @@ SHARED_ARGS_OUTPUTS = {
         name="strengths_enabled",
         template="{{ strengths_enabled }}",
     ),
+    "text": dict(
+        id=sid("args_output/text"),
+        args_id=sid("arg/text"),
+        name="text",
+        template="{{ text }}",
+    ),
     "text_enabled": dict(
         id=sid("args_output/text_enabled"),
         args_id=sid("arg/text_enabled"),

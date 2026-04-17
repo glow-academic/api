@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, ClassVar
+from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import ListFilterSection
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.eval_drafts.types import GetEvalDraftResponse
 
@@ -22,91 +22,141 @@ class GetEvalDraftsApiResponse(BaseModel):
 # ========== Eval-specific resource types ==========
 
 
-class EvalFlagConfig(BaseModel):
-    """Enriched flag config for direct client consumption."""
+class EvalNameResource(BaseModel):
+    id: UUID | None = Field(None, description="Unique identifier")
+    name: str | None = Field(None, description="Display name")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
-    key: str = Field(..., description="Flag key identifier")  # e.g., "active", "dynamic", "groups"
+
+class EvalDescriptionResource(BaseModel):
+    id: UUID | None = Field(None, description="Unique identifier")
+    description: str | None = Field(None, description="Description text")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class EvalFlagConfig(BaseModel):
+    key: str = Field(..., description="Flag key identifier")
     label: str = Field(..., description="Display label")
     description: str | None = Field(None, description="Flag description")
     icon_id: str | None = Field(None, description="Icon identifier for the flag")
-    flag_option_id: UUID | None = Field(None, description="Selected flag option UUID")
+    flag_option_id: UUID | None = Field(None, description="Flag resource UUID")
     show: bool = Field(True, description="Whether to show this flag in the UI")
     required: bool = Field(False, description="Whether this flag is required")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-# ========== GET Endpoint Types - Section Types ==========
+class EvalDepartmentResource(BaseModel):
+    department_id: UUID | None = Field(None, description="Department identifier")
+    name: str | None = Field(None, description="Display name")
+    description: str | None = Field(None, description="Description text")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class EvalNameSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected name resource")
-    resources: list[Any] | None = Field(None, description="Available name resources")
+class EvalModelResource(BaseModel):
+    id: UUID | None = Field(None, description="Model resource identifier")
+    name: str | None = Field(None, description="Display name")
+    description: str | None = Field(None, description="Description text")
+    modality_ids: list[UUID] | None = Field(None, description="Associated modality identifiers")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class EvalDescriptionSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected description resource")
-    resources: list[Any] | None = Field(None, description="Available description resources")
+class EvalModelFlagResource(BaseModel):
+    id: UUID | None = Field(None, description="Model-flag resource identifier")
+    model_id: UUID | None = Field(None, description="Associated model identifier")
+    flag_id: UUID | None = Field(None, description="Associated flag identifier")
+    name: str | None = Field(None, description="Display name")
+    description: str | None = Field(None, description="Description text")
+    icon: str | None = Field(None, description="Icon identifier")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class EvalFlagSection(BaseResourceSection):
-    resource: EvalFlagConfig | None = Field(None, description="Currently selected flag config")
-    resources: list[EvalFlagConfig] | None = Field(None, description="Available flag configs")
+class EvalModelRubricResource(BaseModel):
+    id: UUID | None = Field(None, description="Model-rubric resource identifier")
+    model_id: UUID | None = Field(None, description="Associated model identifier")
+    rubric_id: UUID | None = Field(None, description="Associated rubric identifier")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class EvalDepartmentSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently selected departments")
-    resources: list[Any] | None = Field(None, description="Available departments")
+class EvalModelPositionResource(BaseModel):
+    id: UUID | None = Field(None, description="Model-position resource identifier")
+    model_id: UUID | None = Field(None, description="Associated model identifier")
+    value: int | float | None = Field(None, description="Associated position value")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class EvalModelSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently selected models")
-    resources: list[Any] | None = Field(None, description="Available models")
-
-
-class EvalModelFlagSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently selected model flags")
-    resources: list[Any] | None = Field(None, description="Available model flags")
-
-
-class EvalModelRubricSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently selected model rubrics")
-    resources: list[Any] | None = Field(None, description="Available model rubrics")
-
-
-class EvalModelPositionSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently selected model positions")
-    resources: list[Any] | None = Field(None, description="Available model positions")
+class SectionFilter(BaseModel):
+    search: str | None = Field(None, description="Filter options by search text")
+    limit: int | None = Field(None, description="Max options to return")
+    selected: bool | None = Field(None, description="Only return selected items")
+    suggested: bool | None = Field(None, description="Only return suggested items")
+    include: bool | None = Field(None, description="Include this section in response (default true)")
+    parameter_ids: list[str] | None = Field(
+        None,
+        description="Reserved for compatibility with shared filter parsing",
+    )
 
 
 class GetEvalApiRequest(BaseModel):
     """Request model for get eval endpoint."""
 
-    eval_id: UUID | None = Field(None, description="Eval UUID to retrieve")
+    id: UUID | None = Field(None, description="Eval UUID to retrieve")
+    eval_id: UUID | None = Field(None, description="Legacy eval UUID to retrieve")
     draft_id: UUID | None = Field(None, description="Draft UUID to load from")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+    names: SectionFilter | None = Field(None, description="Filter options for names section")
+    descriptions: SectionFilter | None = Field(None, description="Filter options for descriptions section")
+    flags: SectionFilter | None = Field(None, description="Filter options for flags section")
+    departments: SectionFilter | None = Field(None, description="Filter options for departments section")
+    models: SectionFilter | None = Field(None, description="Filter options for models section")
+    model_flags: SectionFilter | None = Field(None, description="Filter options for model flags section")
+    model_rubrics: SectionFilter | None = Field(None, description="Filter options for model rubrics section")
+    model_positions: SectionFilter | None = Field(None, description="Filter options for model positions section")
 
 
 class GetEvalApiResponse(BaseModel):
-    """Response model for get eval endpoint."""
+    """Canonical flat composed response for the eval editor."""
 
     actor_name: str | None = Field(None, description="Display name of the current user")
     eval_exists: bool | None = Field(None, description="Whether the eval exists")
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled")
     group_id: UUID | None = Field(None, description="Associated group UUID")
-
-    basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for basic step")
-    model_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for model step")
-
-    names: EvalNameSection | None = Field(None, description="Name section with resource and options")
-    descriptions: EvalDescriptionSection | None = Field(None, description="Description section with resource and options")
-    active_flags: EvalFlagSection | None = Field(None, description="Active flag section")
-    dynamic_flags: EvalFlagSection | None = Field(None, description="Dynamic flag section")
-    groups_flags: EvalFlagSection | None = Field(None, description="Groups flag section")
-    departments: EvalDepartmentSection | None = Field(None, description="Department section with selections and options")
-    models: EvalModelSection | None = Field(None, description="Model section with selections and options")
-    model_flags: EvalModelFlagSection | None = Field(None, description="Model flag section")
-    model_rubrics: EvalModelRubricSection | None = Field(None, description="Model rubric section")
-    model_positions: EvalModelPositionSection | None = Field(None, description="Model position section")
+    basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for the basic step")
+    model_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for the model step")
+    show_ai_generate: bool | None = Field(None, description="Whether any AI generate action should be shown")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
+    names: list[EvalNameResource] | None = Field(None, description="Name resources")
+    descriptions: list[EvalDescriptionResource] | None = Field(None, description="Description resources")
+    flags: list[EvalFlagConfig] | None = Field(None, description="Flag configs")
+    departments: list[EvalDepartmentResource] | None = Field(None, description="Department resources")
+    models: list[EvalModelResource] | None = Field(None, description="Model resources")
+    model_flags: list[EvalModelFlagResource] | None = Field(None, description="Model flag resources")
+    model_rubrics: list[EvalModelRubricResource] | None = Field(None, description="Model rubric resources")
+    model_positions: list[EvalModelPositionResource] | None = Field(None, description="Model position resources")
 
 
 # ========== List Endpoint Types ==========
@@ -328,11 +378,12 @@ class PatchEvalDraftApiRequest(ScopedItem):
         "description": "descriptions",
         "description_id": "descriptions",
         "flag_ids": "flags",
+        "departments": "departments",
         "department_ids": "departments",
         "model_ids": "models",
-        "rubric_ids": "rubrics",
     }
 
+    draft_id: UUID | None = Field(None, description="Existing draft UUID to patch")
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to patch")
 
     # Creatable single-select — provide value or ID
@@ -343,20 +394,25 @@ class PatchEvalDraftApiRequest(ScopedItem):
 
     # Non-creatable — ID-only
     flag_ids: list[UUID] | None = Field(None, description="Flag option UUIDs")
+    departments: list[str] | None = Field(None, description="Department names to resolve")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     model_ids: list[UUID] | None = Field(None, description="Model UUIDs")
-    rubric_ids: list[UUID] | None = Field(None, description="Rubric UUIDs")
+    pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep inactive on the draft")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant draft")
+    accept: bool = Field(True, description="Accept or reject dormant state. Only meaningful with idempotency_key")
 
 
-class EvalDraftFormState(BaseModel):
+class DraftFormState(BaseModel):
     """Server-authoritative form state returned after draft save."""
 
     name_id: UUID | None = Field(None, description="Selected name resource UUID")
+    name: str | None = Field(None, description="Echoed selected name value")
     description_id: UUID | None = Field(None, description="Selected description resource UUID")
-    flag_ids: list[UUID] = Field(..., description="Selected flag option UUIDs")
-    department_ids: list[UUID] = Field(..., description="Selected department UUIDs")
-    model_ids: list[UUID] = Field(..., description="Selected model UUIDs")
-    rubric_ids: list[UUID] = Field(..., description="Selected rubric UUIDs")
+    description: str | None = Field(None, description="Echoed selected description value")
+    flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag option UUIDs")
+    department_ids: list[UUID] = Field(default_factory=list, description="Selected department UUIDs")
+    model_ids: list[UUID] = Field(default_factory=list, description="Selected model UUIDs")
+    pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
 
 
 class PatchEvalDraftApiResponse(BaseModel):
@@ -364,8 +420,9 @@ class PatchEvalDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the operation succeeded")
     draft_id: UUID = Field(..., description="Draft UUID")
+    idempotency_key: UUID | None = Field(None, description="Operation key echoed back for client correlation")
     message: str = Field(..., description="Human-readable result message")
-    form_state: EvalDraftFormState | None = Field(None, description="Server-authoritative form state")
+    form_state: DraftFormState | None = Field(None, description="Server-authoritative form state")
 
 
 # ========== Export Endpoint Types ==========

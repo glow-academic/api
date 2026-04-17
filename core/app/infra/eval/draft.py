@@ -1,16 +1,8 @@
-"""Eval draft logic — composable infra architecture.
-
-Core draft function that composes existing black-box tools:
-  1. resolve_profile_identity_context — profile (role, departments)
-  2. compute_can_draft — permission check
-  3. Value resolution (creatable resources only) — raw value → ID
-  4. create_eval_draft — entry tool (append-only snapshot)
-  5. refresh_eval_drafts — MV refresh
-  6. invalidate_tags — cache invalidation
-"""
+"""Eval draft logic — canonical draft-first architecture."""
 
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
 import asyncpg
@@ -18,22 +10,20 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.eval.permissions import compute_can_draft
-from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.eval.refresh import refresh_eval_impl
 from app.infra.eval.types import (
-    EvalDraftFormState,
+    DraftFormState,
     PatchEvalDraftApiRequest,
     PatchEvalDraftApiResponse,
     SaveEvalFieldError,
 )
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.eval_drafts.create import create_eval_draft
-from app.tools.entries.eval_drafts.refresh import refresh_eval_drafts
+from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
+from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.names.create import create_name
-from app.utils.cache.invalidate_tags import invalidate_tags
-
-# ---------------------------------------------------------------------------
-# Value resolution — creatable resources only
-# ---------------------------------------------------------------------------
+from app.tools.resources.names.search import search_names
 
 
 async def _resolve_creatable_values(
@@ -41,27 +31,78 @@ async def _resolve_creatable_values(
     redis: Redis,
     request: PatchEvalDraftApiRequest,
 ) -> list[SaveEvalFieldError]:
-    """Resolve raw value fields to resource IDs (mutates request in place).
+    """Resolve raw values to resource IDs, mutating the request in place."""
 
-    Only handles creatable resources: name, description.
-    Returns a list of errors (empty if all resolved).
-    """
     errors: list[SaveEvalFieldError] = []
 
     if request.name is not None and request.name_id is None:
-        result = await create_name(conn, request.name, redis)
-        request.name_id = result.id
+        existing = await search_names(
+            conn,
+            redis,
+            search=request.name,
+            limit_count=1,
+            eval=True,
+        )
+        match = next(
+            (item for item in existing if item.name and item.name.lower() == request.name.lower()),
+            None,
+        )
+        if match and match.id:
+            request.name_id = match.id
+        else:
+            result = await create_name(conn, request.name, redis)
+            request.name_id = result.id
 
     if request.description is not None and request.description_id is None:
-        result = await create_description(conn, request.description, redis)
-        request.description_id = result.id
+        existing = await search_descriptions(
+            conn,
+            redis,
+            search=request.description,
+            limit_count=1,
+            eval=True,
+        )
+        match = next(
+            (
+                item
+                for item in existing
+                if item.description and item.description.lower() == request.description.lower()
+            ),
+            None,
+        )
+        if match and match.id:
+            request.description_id = match.id
+        else:
+            result = await create_description(conn, request.description, redis)
+            request.description_id = result.id
+
+    if request.departments is not None and request.department_ids is None:
+        all_departments = await search_departments(
+            conn,
+            redis,
+            search=None,
+            limit_count=1000,
+        )
+        department_name_map = {
+            item.name.lower(): item.department_id
+            for item in all_departments
+            if item.name and item.department_id
+        }
+        resolved_ids: list[UUID] = []
+        for department_name in request.departments:
+            department_id = department_name_map.get(department_name.lower())
+            if department_id:
+                resolved_ids.append(department_id)
+            else:
+                errors.append(
+                    SaveEvalFieldError(
+                        field="departments",
+                        message=f'Department "{department_name}" not found',
+                    )
+                )
+        if not any(error.field == "departments" for error in errors):
+            request.department_ids = resolved_ids
 
     return errors
-
-
-# ---------------------------------------------------------------------------
-# patch_eval_draft_impl — composable infra architecture
-# ---------------------------------------------------------------------------
 
 
 async def patch_eval_draft_impl(
@@ -70,20 +111,24 @@ async def patch_eval_draft_impl(
     *,
     profile_id: UUID,
     session_id: UUID,
-    request: PatchEvalDraftApiRequest,
+    request: PatchEvalDraftApiRequest | None = None,
+    draft_id: UUID | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    **kwargs: Any,
 ) -> PatchEvalDraftApiResponse:
-    """Eval draft using composable infra functions.
+    """Eval draft using the canonical request/response contract."""
 
-    Flow:
-      1. resolve_profile_identity_context → role
-      2. compute_can_draft → permission check
-      3. Value resolution (creatable resources only)
-      4. create_eval_draft entry tool (append-only snapshot)
-      5. refresh_eval_drafts MV
-      6. invalidate_tags
-    """
+    if request is None:
+        request = PatchEvalDraftApiRequest(**kwargs)
 
-    # ── Step 1: Profile context ────────────────────────────────────────
+    request.draft_id = request.draft_id or request.input_draft_id or draft_id
+    request.input_draft_id = request.input_draft_id or request.draft_id
+
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key is not None and accept is None:
+        accept = request.accept
 
     profile = await resolve_profile_identity_context(
         pool,
@@ -91,72 +136,85 @@ async def patch_eval_draft_impl(
         redis,
         session_id=session_id,
     )
-
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    # ── Step 2: Permission check ───────────────────────────────────────
-
-    if not compute_can_draft(role_level=profile.role_level, role_permissions=profile.role_permissions):
+    if not compute_can_draft(
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
+    ):
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to create or edit eval drafts.",
         )
 
-    # ── Step 3: Value resolution (creatable only) ──────────────────────
+    if accept is not None and idempotency_key is not None:
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_eval_draft(
+                        conn,
+                        session_id=session_id,
+                        id=idempotency_key,
+                        soft=False,
+                        profile_ids=[profile.profiles_id],
+                        pending_ids=set(request.pending_ids) if request.pending_ids else None,
+                    )
+            await refresh_eval_impl(pool, redis, profile_id=profile_id)
+
+        return PatchEvalDraftApiResponse(
+            success=True,
+            draft_id=idempotency_key,
+            idempotency_key=idempotency_key,
+            message="Draft accepted" if accept else "Draft rejected",
+            form_state=DraftFormState(),
+        )
 
     async with pool.acquire() as conn:
         errors = await _resolve_creatable_values(conn, redis, request)
     if errors:
         raise HTTPException(
             status_code=400,
-            detail=[e.model_dump() for e in errors],
+            detail=[error.model_dump() for error in errors],
         )
-
-    # ── Step 4: Create draft entry (append-only snapshot) ──────────────
 
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_eval_draft(
                 conn,
                 session_id=session_id,
-                profile_ids=[profile.profiles_id],
+                id=idempotency_key,
+                soft=soft,
                 name_ids=[request.name_id] if request.name_id else None,
-                description_ids=[request.description_id]
-                if request.description_id
-                else None,
+                description_ids=[request.description_id] if request.description_id else None,
                 flag_ids=request.flag_ids,
                 department_ids=request.department_ids,
                 model_ids=request.model_ids,
-                rubric_ids=request.rubric_ids,
+                profile_ids=[profile.profiles_id],
+                pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
-    # ── Step 5: Build form state (server is source of truth) ────────────
-
-    form_state = EvalDraftFormState(
+    form_state = DraftFormState(
         name_id=request.name_id,
+        name=request.name,
         description_id=request.description_id,
+        description=request.description,
         flag_ids=request.flag_ids or [],
         department_ids=request.department_ids or [],
         model_ids=request.model_ids or [],
-        rubric_ids=request.rubric_ids or [],
+        pending_ids=request.pending_ids or [],
     )
 
-    # ── Step 6: Refresh MV ─────────────────────────────────────────────
-
-    async with pool.acquire() as conn:
-        await refresh_eval_drafts(conn)
-
-    # ── Step 7: Invalidate cache ───────────────────────────────────────
-
-    await invalidate_tags(["evals", "drafts"], redis=redis)
+    if not soft:
+        await refresh_eval_impl(pool, redis, profile_id=profile_id)
 
     return PatchEvalDraftApiResponse(
         success=True,
         draft_id=result.id,
-        message="Draft created successfully",
+        idempotency_key=result.id,
+        message="Draft created (pending acceptance)" if soft else "Draft created successfully",
         form_state=form_state,
     )

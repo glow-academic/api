@@ -272,8 +272,6 @@ async def get_attempt_internal(
     video_entry_map = {
         video.videos_id: video for video in ctx.entries.get("videos", [])
     }
-    file_entry_map = {file.files_id: file for file in ctx.entries.get("files", [])}
-
     for item in _res("images"):
         if item.id:
             entry = image_entry_map.get(item.id)
@@ -292,11 +290,11 @@ async def get_attempt_internal(
             }
     for item in _res("documents"):
         if item.id:
-            file_entry = file_entry_map.get(item.file_id) if item.file_id else None
             resource_meta["documents"][item.id] = {
                 "name": item.name,
                 "description": item.description,
-                "upload_id": file_entry.upload_id if file_entry else None,
+                "text_id": item.text_id,
+                "file_id": item.file_id,
                 "template": item.template,
             }
     for item in _res("personas"):
@@ -385,7 +383,8 @@ async def get_attempt_internal(
         documents={
             str(k): DocumentEntry(
                 document_id=k,
-                upload_id=v.get("upload_id"),
+                text_id=v.get("text_id"),
+                file_id=v.get("file_id"),
                 name=v.get("name"),
                 description=v.get("description"),
                 template=v.get("template"),

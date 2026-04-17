@@ -140,10 +140,16 @@ class AttemptErrorEvent(BaseModel):
 class AttemptMessagePayload(BaseModel):
     """Client-to-server: send a text message in an attempt chat (modality=call)."""
 
-    attempt_id: UUID = Field(..., description="UUID of the attempt")
+    attempt_id: UUID | None = Field(None, description="UUID of the attempt")
     chat_id: UUID = Field(..., description="UUID of the chat")
-    message: str = Field(..., description="Text message content")
+    message: str | None = Field(None, description="Text message content")
+    text: str | None = Field(None, description="Text message content (alias for message)")
     parent_message_id: UUID | None = Field(None, description="UUID of the parent message for threading")
+
+    @property
+    def resolved_message(self) -> str:
+        """Get the message text from either field."""
+        return self.text or self.message or ""
 
 
 class AttemptUserCompleteEvent(BaseModel):

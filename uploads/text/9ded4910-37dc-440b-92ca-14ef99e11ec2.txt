@@ -1,0 +1,8 @@
+INPUT:
+  chat_id: 019d9bdb-19b2-7c81-aae2-0c36289004bf
+  text: Could you please clarify your question or concern? I'm here to help and want to make sure I address exactly what you need.
+
+OUTPUT:
+Message sent.
+- **Accepted:** 
+- **Message ID:** ``

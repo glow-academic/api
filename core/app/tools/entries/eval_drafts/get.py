@@ -20,13 +20,19 @@ async def get_eval_drafts(
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
-            COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
-            COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL), '{}') AS description_ids,
-            COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL), '{}') AS flag_ids,
-            COALESCE(ARRAY_AGG(DISTINCT m.models_id) FILTER (WHERE m.models_id IS NOT NULL), '{}') AS model_ids,
-            COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL), '{}') AS name_ids,
+            COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL AND dep.active = true), '{}') AS department_ids,
+            COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL AND desc_c.active = true), '{}') AS description_ids,
+            COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL AND f.active = true), '{}') AS flag_ids,
+            COALESCE(ARRAY_AGG(DISTINCT m.models_id) FILTER (WHERE m.models_id IS NOT NULL AND m.active = true), '{}') AS model_ids,
+            COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = true), '{}') AS name_ids,
             COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL), '{}') AS profile_ids,
-            COALESCE(ARRAY_AGG(DISTINCT r.rubrics_id) FILTER (WHERE r.rubrics_id IS NOT NULL), '{}') AS rubric_ids
+            COALESCE(ARRAY_AGG(DISTINCT r.rubrics_id) FILTER (WHERE r.rubrics_id IS NOT NULL AND r.active = true), '{}') AS rubric_ids,
+            COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL AND dep.active = false), '{}') AS pending_department_ids,
+            COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL AND desc_c.active = false), '{}') AS pending_description_ids,
+            COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL AND f.active = false), '{}') AS pending_flag_ids,
+            COALESCE(ARRAY_AGG(DISTINCT m.models_id) FILTER (WHERE m.models_id IS NOT NULL AND m.active = false), '{}') AS pending_model_ids,
+            COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = false), '{}') AS pending_name_ids,
+            COALESCE(ARRAY_AGG(DISTINCT r.rubrics_id) FILTER (WHERE r.rubrics_id IS NOT NULL AND r.active = false), '{}') AS pending_rubric_ids
         FROM eval_drafts_entry d
         LEFT JOIN eval_drafts_departments_connection dep ON dep.draft_id = d.id
         LEFT JOIN eval_drafts_descriptions_connection desc_c ON desc_c.draft_id = d.id
@@ -59,6 +65,12 @@ async def get_eval_drafts(
             name_ids=r["name_ids"],
             profile_ids=r["profile_ids"],
             rubric_ids=r["rubric_ids"],
+            pending_department_ids=r["pending_department_ids"],
+            pending_description_ids=r["pending_description_ids"],
+            pending_flag_ids=r["pending_flag_ids"],
+            pending_model_ids=r["pending_model_ids"],
+            pending_name_ids=r["pending_name_ids"],
+            pending_rubric_ids=r["pending_rubric_ids"],
         )
         for r in rows
     ]

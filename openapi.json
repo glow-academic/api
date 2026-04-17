@@ -11768,7 +11768,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetAuthApiResponse-Output"
+                  "$ref": "#/components/schemas/GetAuthApiResponse"
                 }
               }
             }
@@ -12343,6 +12343,16 @@
         "summary": "Auth Refresh",
         "description": "Refresh auth materialized views and invalidate caches.",
         "operationId": "auth_refresh_auth_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshAuthApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -12350,6 +12360,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -31645,7 +31665,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetAuthApiResponse-Input"
+                "$ref": "#/components/schemas/GetAuthApiResponse"
               }
             }
           },
@@ -44519,38 +44539,83 @@
         "title": "AudioUploadAttemptApiResponse",
         "description": "Response model for attempt audio upload endpoint."
       },
-      "AuthDescriptionSection": {
+      "AuthDepartmentResource": {
         "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected description resource"
-          },
-          "resources": {
+          "department_id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available description resources"
+            "title": "Department Id",
+            "description": "Department identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Department name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Department description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "AuthDescriptionSection"
+        "title": "AuthDepartmentResource",
+        "description": "Department resource for auth."
       },
-      "AuthDraftFormState": {
+      "AuthDescriptionResource": {
         "properties": {
-          "name_id": {
+          "id": {
             "anyOf": [
               {
                 "type": "string",
@@ -44560,81 +44625,55 @@
                 "type": "null"
               }
             ],
-            "title": "Name Id",
-            "description": "Resolved name resource UUID"
+            "title": "Id",
+            "description": "Unique identifier"
           },
-          "description_id": {
+          "description": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Description Id",
-            "description": "Resolved description resource UUID"
+            "title": "Description",
+            "description": "Description text"
           },
-          "flag_id": {
+          "generated": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Flag Id",
-            "description": "Resolved flag option UUID"
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
           },
-          "department_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Department Ids",
-            "description": "Assigned department UUIDs"
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
           },
-          "protocol_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Protocol Ids",
-            "description": "Assigned protocol UUIDs"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
           },
-          "slug_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Slug Ids",
-            "description": "Assigned slug UUIDs"
-          },
-          "item_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Item Ids",
-            "description": "Assigned auth item UUIDs"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "required": [
-          "department_ids",
-          "protocol_ids",
-          "slug_ids",
-          "item_ids"
-        ],
-        "title": "AuthDraftFormState",
-        "description": "Server-authoritative form state returned after draft save."
+        "title": "AuthDescriptionResource",
+        "description": "Description resource for auth."
       },
       "AuthFieldError": {
         "properties": {
@@ -44729,6 +44768,24 @@
             ],
             "title": "Generated",
             "description": "Whether the flag was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
@@ -44739,45 +44796,9 @@
         "title": "AuthFlagConfig",
         "description": "Enriched flag config for direct client consumption."
       },
-      "AuthFlagSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AuthFlagConfig"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned flag configs"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AuthFlagConfig"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available flag configs"
-          }
-        },
-        "type": "object",
-        "title": "AuthFlagSection"
-      },
       "AuthItemResource": {
         "properties": {
-          "auth_item_id": {
+          "id": {
             "anyOf": [
               {
                 "type": "string",
@@ -44787,7 +44808,7 @@
                 "type": "null"
               }
             ],
-            "title": "Auth Item Id",
+            "title": "Id",
             "description": "Unique auth item identifier"
           },
           "name": {
@@ -44826,43 +44847,6 @@
             "title": "Position",
             "description": "Sort position within the auth provider"
           },
-          "active": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active",
-            "description": "Whether the auth item is active"
-          },
-          "value_masked": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value Masked",
-            "description": "Masked value for display"
-          },
-          "key_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Key Id",
-            "description": "UUID of the associated key"
-          },
           "encrypted": {
             "anyOf": [
               {
@@ -44886,108 +44870,153 @@
             ],
             "title": "Generated",
             "description": "Whether the item was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
         "title": "AuthItemResource",
         "description": "Auth item resource shape for client/editing."
       },
-      "AuthItemSection": {
+      "AuthNameResource": {
         "properties": {
-          "current": {
+          "id": {
             "anyOf": [
               {
-                "items": {
-                  "$ref": "#/components/schemas/AuthItemResource"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently assigned auth items"
+            "title": "Id",
+            "description": "Unique identifier"
           },
-          "resources": {
+          "name": {
             "anyOf": [
               {
-                "items": {
-                  "$ref": "#/components/schemas/AuthItemResource"
-                },
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available auth item resources"
+            "title": "Name",
+            "description": "Display name"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "AuthItemSection"
+        "title": "AuthNameResource",
+        "description": "Name resource for auth."
       },
-      "AuthNameSection": {
+      "AuthProtocolResource": {
         "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected name resource"
-          },
-          "resources": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available name resources"
+            "title": "Id",
+            "description": "Protocol identifier"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Protocol value"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "AuthNameSection"
-      },
-      "AuthProtocolSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned protocols"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available protocol resources"
-          }
-        },
-        "type": "object",
-        "title": "AuthProtocolSection"
+        "title": "AuthProtocolResource",
+        "description": "Protocol resource for auth."
       },
       "AuthResultItem": {
         "properties": {
@@ -45038,37 +45067,67 @@
         "title": "AuthResultItem",
         "description": "Per-item result within a bulk create/update response."
       },
-      "AuthSlugSection": {
+      "AuthSlugResource": {
         "properties": {
-          "current": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently assigned slugs"
+            "title": "Id",
+            "description": "Slug identifier"
           },
-          "resources": {
+          "value": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available slug resources"
+            "title": "Value",
+            "description": "Slug value"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "AuthSlugSection"
+        "title": "AuthSlugResource",
+        "description": "Slug resource for auth."
       },
       "AvailableContinuationOptions-Input": {
         "properties": {
@@ -50856,6 +50915,20 @@
             ],
             "title": "Parameter Fields Ids"
           },
+          "parameter_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Fields"
+          },
           "objectives_ids": {
             "anyOf": [
               {
@@ -50990,6 +51063,25 @@
             "type": "array",
             "title": "Auths",
             "description": "List of auth providers to create"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -51008,6 +51100,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item creation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -51026,6 +51131,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item creation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -58413,6 +58531,25 @@
             "type": "array",
             "title": "Auth Ids",
             "description": "UUIDs of auth providers to delete"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -58431,6 +58568,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item deletion results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -61774,6 +61924,25 @@
             "format": "uuid",
             "title": "Auth Id",
             "description": "UUID of the auth provider to duplicate"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -61800,6 +61969,19 @@
             "type": "string",
             "title": "Message",
             "description": "Result message"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -73832,6 +74014,19 @@
       },
       "GetAuthApiRequest": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Auth identifier"
+          },
           "auth_id": {
             "anyOf": [
               {
@@ -73843,7 +74038,7 @@
               }
             ],
             "title": "Auth Id",
-            "description": "UUID of the auth provider to retrieve"
+            "description": "Legacy alias for auth identifier"
           },
           "draft_id": {
             "anyOf": [
@@ -73857,13 +74052,102 @@
             ],
             "title": "Draft Id",
             "description": "UUID of the draft to load"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__auth__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for names section"
+          },
+          "descriptions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__auth__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for descriptions section"
+          },
+          "flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__auth__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags section"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__auth__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for departments section"
+          },
+          "protocols": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__auth__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for protocols section"
+          },
+          "slugs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__auth__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for slugs section"
+          },
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__auth__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for items section"
           }
         },
         "type": "object",
         "title": "GetAuthApiRequest",
         "description": "Request model for get auth endpoint."
       },
-      "GetAuthApiResponse-Input": {
+      "GetAuthApiResponse": {
         "properties": {
           "actor_name": {
             "anyOf": [
@@ -73926,7 +74210,7 @@
             "title": "Group Id",
             "description": "Group UUID for draft collaboration"
           },
-          "basic_show_ai_generate": {
+          "show_ai_generate": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -73935,142 +74219,8 @@
                 "type": "null"
               }
             ],
-            "title": "Basic Show Ai Generate",
-            "description": "Whether to show AI generate button"
-          },
-          "names": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AuthNameSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Name section with resources"
-          },
-          "descriptions": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AuthDescriptionSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Description section with resources"
-          },
-          "flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AuthFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Flag section with configs"
-          },
-          "protocols": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AuthProtocolSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Protocol section with resources"
-          },
-          "slugs": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AuthSlugSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Slug section with resources"
-          },
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AuthItemSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Auth item section with resources"
-          }
-        },
-        "type": "object",
-        "title": "GetAuthApiResponse",
-        "description": "Response model for get auth endpoint."
-      },
-      "GetAuthApiResponse-Output": {
-        "properties": {
-          "actor_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Actor Name",
-            "description": "Display name of the acting user"
-          },
-          "auth_exists": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Auth Exists",
-            "description": "Whether the auth provider exists"
-          },
-          "can_edit": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Can Edit",
-            "description": "Whether the actor can edit this auth"
-          },
-          "disabled_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Disabled Reason",
-            "description": "Reason editing is disabled, if any"
-          },
-          "group_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Group Id",
-            "description": "Group UUID for draft collaboration"
+            "title": "Show Ai Generate",
+            "description": "Whether any auth resource supports AI generate"
           },
           "basic_show_ai_generate": {
             "anyOf": [
@@ -74084,76 +74234,131 @@
             "title": "Basic Show Ai Generate",
             "description": "Whether to show AI generate button"
           },
-          "names": {
+          "pending_ids": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AuthNameSection"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Name section with resources"
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers when available"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AuthNameResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Names",
+            "description": "Name resources"
           },
           "descriptions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AuthDescriptionSection"
+                "items": {
+                  "$ref": "#/components/schemas/AuthDescriptionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Description section with resources"
+            "title": "Descriptions",
+            "description": "Description resources"
           },
           "flags": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AuthFlagSection"
+                "items": {
+                  "$ref": "#/components/schemas/AuthFlagConfig"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Flag section with configs"
+            "title": "Flags",
+            "description": "Flag configs"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AuthDepartmentResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departments",
+            "description": "Department resources"
           },
           "protocols": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AuthProtocolSection"
+                "items": {
+                  "$ref": "#/components/schemas/AuthProtocolResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Protocol section with resources"
+            "title": "Protocols",
+            "description": "Protocol resources"
           },
           "slugs": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AuthSlugSection"
+                "items": {
+                  "$ref": "#/components/schemas/AuthSlugResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Slug section with resources"
+            "title": "Slugs",
+            "description": "Slug resources"
           },
           "items": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AuthItemSection"
+                "items": {
+                  "$ref": "#/components/schemas/AuthItemResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Auth item section with resources"
+            "title": "Items",
+            "description": "Auth item resources"
           }
         },
         "type": "object",
         "title": "GetAuthApiResponse",
-        "description": "Response model for get auth endpoint."
+        "description": "Canonical flat composed response for the auth editor."
       },
       "GetAuthDraftResponse": {
         "properties": {
@@ -74261,6 +74466,69 @@
             "type": "array",
             "title": "Slug Ids",
             "description": "Associated slug UUIDs"
+          },
+          "pending_department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Department Ids",
+            "description": "Pending department UUIDs"
+          },
+          "pending_description_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Description Ids",
+            "description": "Pending description UUIDs"
+          },
+          "pending_flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Flag Ids",
+            "description": "Pending flag UUIDs"
+          },
+          "pending_item_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Item Ids",
+            "description": "Pending item UUIDs"
+          },
+          "pending_name_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Name Ids",
+            "description": "Pending name UUIDs"
+          },
+          "pending_protocol_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Protocol Ids",
+            "description": "Pending protocol UUIDs"
+          },
+          "pending_slug_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Slug Ids",
+            "description": "Pending slug UUIDs"
           }
         },
         "type": "object",
@@ -87471,6 +87739,25 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -87509,6 +87796,19 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -102102,6 +102402,19 @@
       },
       "PatchAuthDraftApiRequest": {
         "properties": {
+          "draft_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Id",
+            "description": "Existing draft UUID to update"
+          },
           "input_draft_id": {
             "anyOf": [
               {
@@ -102114,6 +102427,25 @@
             ],
             "title": "Input Draft Id",
             "description": "Existing draft UUID to update"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Stable idempotency key for ack/promote flows"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Whether to accept a pending draft when acknowledging",
+            "default": true
           },
           "name": {
             "anyOf": [
@@ -102165,6 +102497,18 @@
             "title": "Description Id",
             "description": "UUID of the description resource"
           },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether the auth provider is active"
+          },
           "flag_id": {
             "anyOf": [
               {
@@ -102177,6 +102521,21 @@
             ],
             "title": "Flag Id",
             "description": "UUID of the flag option"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departments",
+            "description": "Department names to resolve"
           },
           "department_ids": {
             "anyOf": [
@@ -102194,6 +102553,21 @@
             "title": "Department Ids",
             "description": "Department UUIDs to assign"
           },
+          "protocols": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocols",
+            "description": "Protocol values to resolve"
+          },
           "protocol_ids": {
             "anyOf": [
               {
@@ -102209,6 +102583,21 @@
             ],
             "title": "Protocol Ids",
             "description": "Protocol resource UUIDs"
+          },
+          "slugs": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slugs",
+            "description": "Slug values to resolve"
           },
           "slug_ids": {
             "anyOf": [
@@ -102241,6 +102630,22 @@
             ],
             "title": "Item Ids",
             "description": "Auth item UUIDs"
+          },
+          "pending_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Ids",
+            "description": "Resource IDs to keep pending where supported"
           }
         },
         "type": "object",
@@ -102260,6 +102665,19 @@
             "title": "Draft Id",
             "description": "UUID of the saved draft"
           },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Stable idempotency key for ack/promote flows"
+          },
           "message": {
             "type": "string",
             "title": "Message",
@@ -102268,7 +102686,7 @@
           "form_state": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AuthDraftFormState"
+                "$ref": "#/components/schemas/app__infra__auth__types__DraftFormState"
               },
               {
                 "type": "null"
@@ -110020,6 +110438,25 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -110049,6 +110486,19 @@
             "title": "Message",
             "description": "Status message",
             "default": "Problem created successfully"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -113962,6 +114412,47 @@
         "type": "object",
         "title": "RefreshAgentApiRequest",
         "description": "Request model for agent refresh endpoint."
+      },
+      "RefreshAuthApiRequest": {
+        "properties": {
+          "targets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targets",
+            "description": "MV targets to refresh (omit for all). Options: auth_drafts_mv"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject. Only meaningful with idempotency_key",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "RefreshAuthApiRequest",
+        "description": "Request model for auth refresh endpoint."
       },
       "RefreshCohortApiRequest": {
         "properties": {
@@ -127826,6 +128317,25 @@
             "type": "array",
             "title": "Auths",
             "description": "List of auth providers to update"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -127844,6 +128354,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item update results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -127862,6 +128385,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item update results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -133309,6 +133845,203 @@
         },
         "type": "object",
         "title": "SectionFilter"
+      },
+      "app__infra__auth__types__DraftFormState": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Echoed name value"
+          },
+          "name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Id",
+            "description": "Resolved name resource UUID"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Echoed description value"
+          },
+          "description_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description Id",
+            "description": "Resolved description resource UUID"
+          },
+          "flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Id",
+            "description": "Resolved flag option UUID"
+          },
+          "department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Department Ids",
+            "description": "Assigned department UUIDs"
+          },
+          "protocol_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Protocol Ids",
+            "description": "Assigned protocol UUIDs"
+          },
+          "slug_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Slug Ids",
+            "description": "Assigned slug UUIDs"
+          },
+          "item_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Item Ids",
+            "description": "Assigned auth item UUIDs"
+          },
+          "pending_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers"
+          }
+        },
+        "type": "object",
+        "title": "DraftFormState",
+        "description": "Server-authoritative form state returned after draft save."
+      },
+      "app__infra__auth__types__SectionFilter": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Filter options by search text"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Max options to return"
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected",
+            "description": "Only return selected items"
+          },
+          "suggested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested",
+            "description": "Only return suggested items"
+          },
+          "include": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include",
+            "description": "Include this section in response (default true)"
+          },
+          "parameter_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Ids",
+            "description": "Unused for auth; present for shared request compatibility"
+          }
+        },
+        "type": "object",
+        "title": "SectionFilter",
+        "description": "Per-section filter options for GET requests."
       },
       "app__infra__chat__types__DraftImageValue": {
         "properties": {

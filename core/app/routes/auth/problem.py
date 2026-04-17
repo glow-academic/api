@@ -62,6 +62,8 @@ async def problem_auth(
                 session_id=session_id,
                 type=request.type,
                 message=request.message,
+                accept=request.accept,
+                idempotency_key=request.idempotency_key,
             )
 
         result = await run_artifact_operation_with_audit(

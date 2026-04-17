@@ -292,6 +292,7 @@ async def create_attempt_chat_impl(
     from app.tools.resources.questions.create import create_question
     from app.tools.resources.options.create import create_option
     from app.tools.resources.personas.search import search_personas
+    from app.tools.resources.parameter_fields.search import search_parameter_fields
     from app.tools.resources.documents.search import search_documents
 
     scope_dept_ids = [department_id] if department_id else profile.department_ids
@@ -336,24 +337,30 @@ async def create_attempt_chat_impl(
         if request.parameter_fields:
             from app.tools.resources.fields.search import search_fields
             resolved_parameter_fields_ids = []
+            seen_pf_ids: set[UUID] = set()
             for field_name in request.parameter_fields:
-                # Search fields by name
+                # Search fields by exact name first, fall back to ILIKE
                 fields = await search_fields(
-                    conn, redis, search=field_name, limit_count=1, bypass_cache=True,
+                    conn, redis, search=field_name, limit_count=5, bypass_cache=True,
                 )
-                if not fields:
-                    # Fetch all for error hint
+                # Prefer exact match
+                exact = [f for f in fields if f.name == field_name]
+                field = exact[0] if exact else (fields[0] if fields else None)
+                if not field:
                     all_fields = await search_fields(conn, redis, limit_count=50, bypass_cache=True)
                     available = [f.name for f in all_fields if f.name]
                     hint = f"Available: {', '.join(available[:20])}" if available else "No fields available"
                     raise HTTPException(400, f'Field not found: "{field_name}". {hint}')
                 # Find the parameter_field linking this field
                 pfs = await search_parameter_fields(
-                    conn, redis, field_ids=[fields[0].id], limit_count=1, bypass_cache=True,
+                    conn, redis, field_ids=[field.id], limit_count=1, bypass_cache=True,
                 )
                 if not pfs:
                     raise HTTPException(400, f'No parameter field for field: "{field_name}"')
-                resolved_parameter_fields_ids.append(pfs[0].id)
+                # Deduplicate
+                if pfs[0].id not in seen_pf_ids:
+                    seen_pf_ids.add(pfs[0].id)
+                    resolved_parameter_fields_ids.append(pfs[0].id)
 
         # Multi-select text resources (create if value provided)
         resolved_objectives_ids = await _resolve_multi_text(

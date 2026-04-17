@@ -59,6 +59,8 @@ async def duplicate_auth(
                 profile_id=profile_id,
                 auth_id=request.auth_id,
                 session_id=session_id,
+                accept=request.accept,
+                idempotency_key=request.idempotency_key,
             )
 
         result = await run_artifact_operation_with_audit(

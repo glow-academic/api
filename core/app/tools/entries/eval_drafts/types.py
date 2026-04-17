@@ -24,3 +24,27 @@ class GetEvalDraftResponse(BaseModel):
     name_ids: list[UUID] = Field(..., description="Associated name UUIDs")
     profile_ids: list[UUID] = Field(..., description="Associated profile UUIDs")
     rubric_ids: list[UUID] = Field(..., description="Associated rubric UUIDs")
+    pending_department_ids: list[UUID] = Field(
+        default_factory=list,
+        description="Associated department UUIDs stored as inactive pending links",
+    )
+    pending_description_ids: list[UUID] = Field(
+        default_factory=list,
+        description="Associated description UUIDs stored as inactive pending links",
+    )
+    pending_flag_ids: list[UUID] = Field(
+        default_factory=list,
+        description="Associated flag UUIDs stored as inactive pending links",
+    )
+    pending_model_ids: list[UUID] = Field(
+        default_factory=list,
+        description="Associated model UUIDs stored as inactive pending links",
+    )
+    pending_name_ids: list[UUID] = Field(
+        default_factory=list,
+        description="Associated name UUIDs stored as inactive pending links",
+    )
+    pending_rubric_ids: list[UUID] = Field(
+        default_factory=list,
+        description="Associated rubric UUIDs stored as inactive pending links",
+    )

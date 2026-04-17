@@ -1,14 +1,14 @@
 ## Context
 
 {% if params %}
-{% if params.draft_id %}
-**Draft ID:** `{{ params.draft_id }}`
-{% endif %}
 {% if params.chat_id %}
 **Chat ID:** `{{ params.chat_id }}`
 {% endif %}
 {% if params.attempt_id %}
 **Attempt ID:** `{{ params.attempt_id }}`
+{% endif %}
+{% if params.draft_id %}
+**Draft ID:** `{{ params.draft_id }}`
 {% endif %}
 {% endif %}
 
@@ -23,26 +23,55 @@
 
 {% endfor %}
 
+{% if "chat_send" in operations and "chat_create" not in operations %}
+{# ── MESSAGE MODE ── #}
+
+## Your Task
+
+Respond to the user's message **in character**. The user's message is provided as the instructions.
+
+Call **Attempt_Chat_Send** with:
+- `chat_id`: `"{{ params.chat_id }}"`
+- `text`: your in-character response
+
+**Rules:**
+- Stay in character — you are the persona assigned to this chat
+- Respond naturally to what the user said
+- Call the tool exactly once with your full response
+- Do NOT output plain text — use the tool call
+
+{% elif "chat_create" in operations %}
+{# ── SETUP MODE ── #}
+
 ## Steps
 
 1. Call **Attempt_Chat_Get**(chat_entry_id: "{{ params.chat_id }}", draft_id: "{{ params.draft_id }}", attempt_id: "{{ params.attempt_id }}")
 2. Read the **Setup Summary** to see which sections need input, are locked, or are disabled
-3. For each section that **needs input**, collect values from the **Available** list:
-   - Singular fields (`name`, `description`, `problem_statement`) — pick exactly 1, pass text or ID
-   - `video_id`, `image_id` — pick exactly 1, pass ID
-   - Plural fields (`personas`, `documents`, `objectives`) — pick all available, pass names/texts or IDs
-   - `questions` — pass structured values with nested options, or `questions_ids` for existing ones
-   - `options_ids` — pass IDs for standalone existing options
-   - `parameter_fields_ids` — pass IDs
+3. For each section that **needs input**, select resources from the available options:
+   - `personas` — pick **1** persona that fits the scenario
+   - `documents` — pick **1-2** most relevant documents
+   - `problem_statement` — pick **1** (required)
+   - `objectives` — pick **2-3** that align with the chosen problem
+   - `parameter_fields` — pick **1 per group** (one temperament, one time, one location, etc.)
+   - `questions` — create **2-3** if needed, with nested options
+   - `video_id`, `image_id` — pick 1 if available (ID only)
 4. Call **Attempt_Chat_Create** with:
    - `attempt_id`: `"{{ params.attempt_id }}"`
    - `chat_id`: `"{{ params.chat_id }}"`
-   - All collected resource selections from step 3
+   - Your curated selections from step 3
 5. Call **Attempt_Group**(group_id: "{{ group_id }}", name: "short descriptive name")
 
 **IMPORTANT:**
+- **Be selective** — curate a focused scenario, don't pass all available resources
 - Use `chat_id: "{{ params.chat_id }}"` and `attempt_id: "{{ params.attempt_id }}"` exactly
 - Skip **locked** sections — those are already set
 - Skip **disabled** sections — those are not enabled
 - Never pass `departments`, `scenarios`, config flags, or rubrics — auto-configured
 - You can pass text values instead of UUIDs for convenience
+
+{% else %}
+{# ── FALLBACK ── #}
+
+Use the available tools to complete the requested task. Always respond with tool calls — never output plain text.
+
+{% endif %}

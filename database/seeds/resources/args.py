@@ -530,6 +530,7 @@ SHARED_ARGS = {
     "standard_groups_ids": dict(id=sid("arg/standard_groups_ids"), name="standard_groups_ids", field_type="uuid[]", description="Standard group identifiers"),
     "standards_ids": dict(id=sid("arg/standards_ids"), name="standards_ids", field_type="uuid[]", description="Standard identifiers"),
     "strengths_enabled": dict(id=sid("arg/strengths_enabled"), name="strengths_enabled", field_type="boolean", description="Whether strengths are enabled"),
+    "text": dict(id=sid("arg/text"), name="text", field_type="text", description="Message text content"),
     "text_enabled": dict(id=sid("arg/text_enabled"), name="text_enabled", field_type="boolean", description="Whether text is enabled"),
     "time_limit": dict(id=sid("arg/time_limit"), name="time_limit", field_type="integer", description="Time limit in seconds"),
     "title": dict(id=sid("arg/title"), name="title", field_type="text", description="Chat title"),

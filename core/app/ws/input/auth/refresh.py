@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from app.infra.auth.refresh import refresh_auth_impl
+from app.infra.auth.refresh import RefreshAuthApiRequest, refresh_auth_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
@@ -13,6 +13,8 @@ async def auth_refresh(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:
         return
+
+    payload = RefreshAuthApiRequest(**data)
 
     pool = get_pool()
     redis = get_redis_client()
@@ -29,6 +31,8 @@ async def auth_refresh(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
+            session_id=identity.session_id,
+            request=payload,
         ),
-        arguments={},
+        arguments=payload.model_dump(mode="json"),
     )

@@ -10,6 +10,7 @@ from . import (  # noqa: F401
     audio_ready,
     audio_upload,
     chat_ended,
+    chat_send,
     chat_started,
     ended,
     error,

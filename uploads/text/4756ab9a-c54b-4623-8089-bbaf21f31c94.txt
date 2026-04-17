@@ -1,0 +1,24 @@
+## Context
+
+**Chat ID:** `019d9bb9-50b2-7465-b1c2-093e8afec04c`
+**Attempt ID:** `019d9bb9-3b43-7bda-bcde-79dcf37e7afe`
+
+**Group ID:** `019d9bba-922c-7a80-8516-8f4cb2712143`
+
+## Tools
+
+
+
+## Your Task
+
+Respond to the user's message **in character**. The user's message is provided as the instructions.
+
+Call **Attempt_Chat_Send** with:
+- `chat_id`: `"019d9bb9-50b2-7465-b1c2-093e8afec04c"`
+- `text`: your in-character response
+
+**Rules:**
+- Stay in character — you are the persona assigned to this chat
+- Respond naturally to what the user said
+- Call the tool exactly once with your full response
+- Do NOT output plain text — use the tool call

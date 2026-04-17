@@ -1,0 +1,18 @@
+INPUT:
+  color_id: b8f2e073-e045-5cad-859e-04aa711b17fb
+
+OUTPUT:
+Draft saved. ID: `5ad6c228-9cd7-451e-be3e-5a03c720af38`.
+
+
+### Form State
+- **Name:** not set
+- **Description:** not set
+- **Color:** `b8f2e073-e045-5cad-859e-04aa711b17fb`
+- **Icon:** not set
+- **Instructions:** not set
+- **Active:** not set
+- **Departments:** 0
+- **Examples:** 0
+- **Voices:** 0
+- **Parameter Fields:** 0

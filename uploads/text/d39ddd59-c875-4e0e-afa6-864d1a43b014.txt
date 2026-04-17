@@ -1,0 +1,15 @@
+INPUT:
+  attempt_id: 019d9ba8-2818-73ba-8cd1-bdbe311a8ea7
+  chat_id: 019d9ba5-e1f0-7cf5-9453-2bbcb969ae08
+  problem_statement: A student approaches a professor's office hours visibly upset about a grade. The student expresses frustration and concerns about the grading. The professor must listen attentively, acknowledge the student's concerns, and offer to review the work together while providing constructive feedback.
+  personas: ['Confused', 'Aggressive (Medium)']
+  documents: ['FERPA Policy', 'Academic Integrity Policy']
+  parameter_fields: ['Temperament', 'Persona Type', 'Intensity', 'Crowdedness', 'Deadline', 'Time', 'Location', 'Class', 'Document Type']
+  objectives: ['Demonstrate active listening when a student expresses frustration', 'Guide the conversation toward a constructive resolution', 'Apply de-escalation techniques to reduce emotional tension']
+
+OUTPUT:
+Attempt chat created successfully.
+- **Attempt Chat ID:** ``
+
+
+Config flags, rubrics, departments, and scenarios were auto-resolved from the chat template.

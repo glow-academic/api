@@ -49,8 +49,18 @@ async def get_eval(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
-                eval_id=request.eval_id,
+                id=request.id or request.eval_id,
                 draft_id=request.draft_id,
+                filters={
+                    "names": request.names,
+                    "descriptions": request.descriptions,
+                    "flags": request.flags,
+                    "departments": request.departments,
+                    "models": request.models,
+                    "model_flags": request.model_flags,
+                    "model_rubrics": request.model_rubrics,
+                    "model_positions": request.model_positions,
+                },
                 bypass_cache=bypass_cache,
             )
 

@@ -1,11 +1,4 @@
-"""Resolve eval artifact context — merged junctions + hydrated resources.
-
-Given an eval_id (and optional draft_id), fetches the published artifact
-and draft entry, merges junction IDs (draft overrides published), then
-hydrates all resources in parallel (selected + suggestions).
-
-Composes existing black-box fetchers — no raw SQL.
-"""
+"""Resolve eval artifact context — merged junctions + hydrated resources."""
 
 from __future__ import annotations
 
@@ -17,17 +10,9 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.types import ArtifactContext, ResourcePair
-
-# Artifact + draft fetchers
-from app.tools.artifacts.eval.get import (
-    get_evals as get_eval_artifacts,
-)
+from app.tools.artifacts.eval.get import get_evals as get_eval_artifacts
 from app.tools.entries.eval_drafts.get import get_eval_drafts
-
-# Resource get fetchers (by known IDs)
 from app.tools.resources.departments.get import get_departments
-
-# Resource search fetchers (bounded, paginated)
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.descriptions.search import search_descriptions
@@ -40,19 +25,15 @@ from app.tools.resources.model_positions.search import search_model_positions
 from app.tools.resources.model_rubrics.get import get_model_rubrics
 from app.tools.resources.model_rubrics.search import search_model_rubrics
 from app.tools.resources.models.get import get_models
+from app.tools.resources.models.search import search_models
 from app.tools.resources.names.get import get_names
 from app.tools.resources.names.search import search_names
-
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
 
 EVAL_FLAG_NAMES = {"eval_active", "dynamic", ""}
 
 
-# ---------------------------------------------------------------------------
-# resolve_eval_context
-# ---------------------------------------------------------------------------
+def _limit(value: int | None, default: int) -> int:
+    return default if value is None else max(value, 0)
 
 
 async def resolve_eval_context(
@@ -63,18 +44,27 @@ async def resolve_eval_context(
     group_id: UUID,
     draft_id: UUID | None = None,
     user_department_ids: list[UUID] | None = None,
+    names_search: str | None = None,
+    descriptions_search: str | None = None,
+    flags_search: str | None = None,
+    departments_search: str | None = None,
+    models_search: str | None = None,
+    model_flags_search: str | None = None,
+    model_rubrics_search: str | None = None,
+    model_positions_search: str | None = None,
+    names_limit: int | None = None,
+    descriptions_limit: int | None = None,
+    flags_limit: int | None = None,
+    departments_limit: int | None = None,
+    models_limit: int | None = None,
+    model_flags_limit: int | None = None,
+    model_rubrics_limit: int | None = None,
+    model_positions_limit: int | None = None,
     bypass_cache: bool = False,
 ) -> ArtifactContext:
-    """Resolve an eval artifact into fully hydrated resources for the GET endpoint.
+    """Resolve the eval artifact bundle for the canonical GET endpoint."""
 
-    Steps:
-      1. Fetch artifact + draft in parallel -> merge IDs
-      2. Parallel hydrate: get (selected) + search (suggestions) per resource
-      3. Assemble ArtifactContext with ResourcePairs
-    """
     user_dept_ids = user_department_ids or []
-
-    # Step 1: fetch artifact + draft in parallel
 
     async def _fetch_artifact() -> list:
         if not eval_id:
@@ -101,15 +91,11 @@ async def resolve_eval_context(
             return await get_eval_drafts(conn, [draft_id])
 
     artifacts, drafts = await asyncio.gather(_fetch_artifact(), _fetch_draft())
-
     artifact = artifacts[0] if artifacts else None
     draft = drafts[0] if drafts else None
 
-    # Merge IDs: start from published, draft overrides if present
     merged = _merge_junction_ids(artifact, draft)
     active = artifact.active if artifact else True
-
-    # Step 2: parallel hydrate — selected + suggestions for each resource
 
     async def _get_names() -> list:
         async with pool.acquire() as conn:
@@ -120,7 +106,9 @@ async def resolve_eval_context(
             return await search_names(
                 conn,
                 redis,
+                search=names_search,
                 draft_id=group_id,
+                limit_count=_limit(names_limit, 20),
                 exclude_ids=merged.name_ids,
                 bypass_cache=bypass_cache,
                 eval=True,
@@ -128,16 +116,16 @@ async def resolve_eval_context(
 
     async def _get_descriptions() -> list:
         async with pool.acquire() as conn:
-            return await get_descriptions(
-                conn, merged.description_ids, redis, bypass_cache
-            )
+            return await get_descriptions(conn, merged.description_ids, redis, bypass_cache)
 
     async def _search_descriptions() -> list:
         async with pool.acquire() as conn:
             return await search_descriptions(
                 conn,
                 redis,
+                search=descriptions_search,
                 draft_id=group_id,
+                limit_count=_limit(descriptions_limit, 20),
                 exclude_ids=merged.description_ids,
                 bypass_cache=bypass_cache,
                 eval=True,
@@ -152,8 +140,8 @@ async def resolve_eval_context(
             return await search_flags(
                 conn,
                 redis,
-                search=None,
-                limit_count=50,
+                search=flags_search,
+                limit_count=_limit(flags_limit, 50),
                 offset_count=0,
                 exclude_ids=merged.flag_ids,
                 bypass_cache=bypass_cache,
@@ -162,17 +150,15 @@ async def resolve_eval_context(
 
     async def _get_departments() -> list:
         async with pool.acquire() as conn:
-            return await get_departments(
-                conn, merged.department_ids, redis, bypass_cache
-            )
+            return await get_departments(conn, merged.department_ids, redis, bypass_cache)
 
     async def _search_departments() -> list:
         async with pool.acquire() as conn:
             return await search_departments(
                 conn,
                 redis,
-                search=None,
-                limit_count=20,
+                search=departments_search,
+                limit_count=_limit(departments_limit, 20),
                 offset_count=0,
                 department_ids=user_dept_ids,
                 suggest_source="all" if eval_id is None else "recent",
@@ -184,17 +170,29 @@ async def resolve_eval_context(
         async with pool.acquire() as conn:
             return await get_models(conn, merged.model_ids, redis, bypass_cache)
 
+    async def _search_models() -> list:
+        async with pool.acquire() as conn:
+            return await search_models(
+                conn,
+                redis,
+                search=models_search,
+                limit_count=_limit(models_limit, 20),
+                offset_count=0,
+                exclude_ids=merged.model_ids,
+                bypass_cache=bypass_cache,
+            )
+
     async def _get_model_flags() -> list:
         async with pool.acquire() as conn:
-            return await get_model_flags(
-                conn, merged.model_flag_ids, redis, bypass_cache
-            )
+            return await get_model_flags(conn, merged.model_flag_ids, redis, bypass_cache)
 
     async def _search_model_flags() -> list:
         async with pool.acquire() as conn:
             return await search_model_flags(
                 conn,
                 redis,
+                search=model_flags_search,
+                limit_count=_limit(model_flags_limit, 20),
                 exclude_ids=merged.model_flag_ids,
                 bypass_cache=bypass_cache,
                 eval=True,
@@ -202,15 +200,15 @@ async def resolve_eval_context(
 
     async def _get_model_rubrics() -> list:
         async with pool.acquire() as conn:
-            return await get_model_rubrics(
-                conn, merged.model_rubric_ids, redis, bypass_cache
-            )
+            return await get_model_rubrics(conn, merged.model_rubric_ids, redis, bypass_cache)
 
     async def _search_model_rubrics() -> list:
         async with pool.acquire() as conn:
             return await search_model_rubrics(
                 conn,
                 redis,
+                search=model_rubrics_search,
+                limit_count=_limit(model_rubrics_limit, 20),
                 exclude_ids=merged.model_rubric_ids,
                 bypass_cache=bypass_cache,
                 eval=True,
@@ -218,15 +216,15 @@ async def resolve_eval_context(
 
     async def _get_model_positions() -> list:
         async with pool.acquire() as conn:
-            return await get_model_positions(
-                conn, merged.model_position_ids, redis, bypass_cache
-            )
+            return await get_model_positions(conn, merged.model_position_ids, redis, bypass_cache)
 
     async def _search_model_positions() -> list:
         async with pool.acquire() as conn:
             return await search_model_positions(
                 conn,
                 redis,
+                search=model_positions_search,
+                limit_count=_limit(model_positions_limit, 20),
                 exclude_ids=merged.model_position_ids,
                 bypass_cache=bypass_cache,
                 eval=True,
@@ -242,6 +240,7 @@ async def resolve_eval_context(
         departments_selected,
         departments_suggestions,
         models_selected,
+        models_suggestions,
         model_flags_selected,
         model_flags_suggestions,
         model_rubrics_selected,
@@ -258,6 +257,7 @@ async def resolve_eval_context(
         _get_departments(),
         _search_departments(),
         _get_models(),
+        _search_models(),
         _get_model_flags(),
         _search_model_flags(),
         _get_model_rubrics(),
@@ -266,53 +266,60 @@ async def resolve_eval_context(
         _search_model_positions(),
     )
 
-    # Filter flags to eval-specific types
     flags_suggestions_filtered = [
-        f for f in flags_suggestions if getattr(f, "name", None) in EVAL_FLAG_NAMES
+        item for item in flags_suggestions if getattr(item, "name", None) in EVAL_FLAG_NAMES
     ]
+
+    pending_ids: set[UUID] = set()
+    if draft:
+        pending_ids.update(draft.pending_name_ids or [])
+        pending_ids.update(draft.pending_description_ids or [])
+        pending_ids.update(draft.pending_flag_ids or [])
+        pending_ids.update(draft.pending_department_ids or [])
+        pending_ids.update(draft.pending_model_ids or [])
+        pending_ids.update(draft.pending_rubric_ids or [])
 
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,
         active=active,
         group_id=group_id,
         resources={
-            "names": ResourcePair(
-                selected=names_selected, suggestions=names_suggestions
-            ),
+            "names": ResourcePair(selected=names_selected, suggestions=names_suggestions),
             "descriptions": ResourcePair(
-                selected=descriptions_selected, suggestions=descriptions_suggestions
+                selected=descriptions_selected,
+                suggestions=descriptions_suggestions,
             ),
             "flags": ResourcePair(
-                selected=flags_selected, suggestions=flags_suggestions_filtered
+                selected=flags_selected,
+                suggestions=flags_suggestions_filtered,
             ),
             "departments": ResourcePair(
-                selected=departments_selected, suggestions=departments_suggestions
+                selected=departments_selected,
+                suggestions=departments_suggestions,
             ),
-            "models": ResourcePair(selected=models_selected, suggestions=[]),
+            "models": ResourcePair(
+                selected=models_selected,
+                suggestions=models_suggestions,
+            ),
             "model_flags": ResourcePair(
-                selected=model_flags_selected, suggestions=model_flags_suggestions
+                selected=model_flags_selected,
+                suggestions=model_flags_suggestions,
             ),
             "model_rubrics": ResourcePair(
-                selected=model_rubrics_selected, suggestions=model_rubrics_suggestions
+                selected=model_rubrics_selected,
+                suggestions=model_rubrics_suggestions,
             ),
             "model_positions": ResourcePair(
                 selected=model_positions_selected,
                 suggestions=model_positions_suggestions,
             ),
         },
-        entries={},
+        entries={"pending_ids": pending_ids},
     )
-
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
 
 
 @dataclass
 class _MergedIds:
-    """Merged junction IDs from artifact + draft."""
-
     name_ids: list[UUID]
     description_ids: list[UUID]
     flag_ids: list[UUID]
@@ -324,11 +331,8 @@ class _MergedIds:
 
 
 def _merge_junction_ids(artifact, draft) -> _MergedIds:
-    """Merge artifact junction IDs with draft overrides.
+    """Merge published artifact selections with draft overrides."""
 
-    Draft overrides published values. Ignores profile_ids and rubric_ids
-    from draft (rubric junction has been dropped).
-    """
     name_ids = list(artifact.name_ids or []) if artifact else []
     description_ids = list(artifact.description_ids or []) if artifact else []
     flag_ids = list(artifact.flag_ids or []) if artifact else []
@@ -338,7 +342,6 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
     model_rubric_ids = list(artifact.model_rubric_ids or []) if artifact else []
     model_position_ids = list(artifact.model_position_ids or []) if artifact else []
 
-    # Draft overrides (if present) — ignore profile_ids and rubric_ids from draft
     if draft:
         if draft.name_ids:
             name_ids = list(draft.name_ids)
@@ -350,8 +353,6 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
             department_ids = list(draft.department_ids)
         if draft.model_ids:
             model_ids = list(draft.model_ids)
-        # Note: draft does not have model_flag_ids, model_rubric_ids,
-        # model_position_ids connections — those come only from artifact junctions
 
     return _MergedIds(
         name_ids=name_ids,
@@ -363,7 +364,3 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
         model_rubric_ids=model_rubric_ids,
         model_position_ids=model_position_ids,
     )
-
-
-async def _empty() -> list:
-    return []

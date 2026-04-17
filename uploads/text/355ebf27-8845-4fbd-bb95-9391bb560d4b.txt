@@ -1,0 +1,15 @@
+INPUT:
+  attempt_id: 019d9b88-7b9b-7345-9f41-e2d5355c9ea8
+  chat_id: 019d9b41-140c-73f6-b92d-e55db9a4a020
+  problem_statement: A student approaches a professor's office hours visibly upset about a grade. The student expresses frustration and concerns about the grading. The professor must listen attentively, acknowledge the student's concerns, and offer to review the work together while providing constructive feedback.
+  personas: ['Aggressive (High)', 'Aggressive (Low)', 'Aggressive (Medium)', 'Confused', 'Happy', 'Passive']
+  documents: ['Academic Integrity Policy', 'FERPA', 'FERPA Policy', 'Homework Template', 'Lab Template', 'Lecture Template', 'Midterm Template', 'Policy Template', 'Project Template', 'Quiz Template', 'Syllabus Template']
+  parameter_fields: ['happy', 'passive', 'confused', 'aggressive', 'Emotion', 'Neutral', 'Very Calm (1)', 'Calm (2)', 'Mild (3)', 'Slightly Tense (4)', 'Moderate (5)', 'Noticeably Intense (6)', 'Tense (7)', 'Very Tense (8)', 'Extremely Intense (9)', 'Maximum Intensity (10)', 'Almost Empty (1)', 'Very Few Students (2)', 'Sparse (3)', 'Some Students (4)', 'Moderately Busy (5)', 'Busy (6)', 'Very Busy (7)', 'Crowded (8)', 'Extremely Crowded (9)', 'Hectic (10)', 'No deadline', 'End of week', 'Couple of days', 'Next day', 'Few hours', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', 'Lawson Computer Science Building', 'Felix Haas Hall', 'Data Science and Artificial Intelligence Building', 'CS 180', 'CS 182', 'CS 242', 'CS 251', 'CS 373', 'CS 381', 'CS 422', 'homework', 'lab', 'lecture', 'midterm', 'policy', 'project', 'quiz', 'syllabus']
+  objectives: ['Apply de-escalation techniques to reduce emotional tension', 'Demonstrate active listening when a student expresses frustration', 'Guide the conversation toward a constructive resolution']
+
+OUTPUT:
+Attempt chat created successfully.
+- **Attempt Chat ID:** ``
+
+
+Config flags, rubrics, departments, and scenarios were auto-resolved from the chat template.

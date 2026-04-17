@@ -84,7 +84,8 @@ class DocumentEntry(BaseModel):
     """Document entry with resource metadata."""
 
     document_id: UUID | None = Field(None, description="UUID of the document")
-    upload_id: UUID | None = Field(None, description="UUID of the uploaded file")
+    text_id: UUID | None = Field(None, description="UUID of the text entry")
+    file_id: UUID | None = Field(None, description="UUID of the file entry")
     name: str | None = Field(None, description="Name of the document")
     description: str | None = Field(None, description="Description of the document")
     template: bool | None = Field(None, description="Whether this document is a template")

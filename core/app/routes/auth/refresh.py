@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Request, Response
 
 from app.infra.auth.group import group_auth_impl
-from app.infra.auth.refresh import refresh_auth_impl
+from app.infra.auth.refresh import RefreshAuthApiRequest, refresh_auth_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.refresh.types import RefreshResponse
@@ -13,6 +13,7 @@ router = APIRouter()
 
 @router.post("/refresh", response_model=RefreshResponse)
 async def auth_refresh(
+    request: RefreshAuthApiRequest,
     http_request: Request,
     response: Response,
 ) -> RefreshResponse:
@@ -35,6 +36,8 @@ async def auth_refresh(
             pool,
             redis,
             profile_id=profile_id,
+            session_id=session_id,
+            request=request,
         )
 
     result = await run_artifact_operation_with_audit(
@@ -45,7 +48,7 @@ async def auth_refresh(
         session_id=session_id,
         group_id=group_id,
         operation="refresh",
-        arguments={},
+        arguments=request.model_dump(mode="json"),
         response_model=RefreshResponse,
         runner=_runner,
         upload_folder=get_upload_folder(),
