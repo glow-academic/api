@@ -653,19 +653,11 @@ async def attempt_message_impl(
     if not attempt_chat.chat_entry_id or not attempt_chat.department_id:
         return
 
-    await emit_chat_generate_impl(
-        emit=emit,
-        pool=pool,
-        sid=sid,
-        profile_id=profile_id_uuid,
-        profiles_id=profiles_id,
-        session_id=session_id_uuid,
-        attempt_id=attempt_id_uuid,
-        chat_entry_id=attempt_chat.chat_entry_id,
-        department_id=attempt_chat.department_id,
-        attempt_chat_id=attempt_chat.chat_id,
-        instructions=[message],
-    )
+    # NOTE: Generation is now triggered by the client via /attempt/generate
+    # after the user message is persisted. The old emit_chat_generate_impl
+    # pipeline is no longer used for message responses.
+    # await emit_chat_generate_impl(...)
+    pass
 
 
 async def speech_complete_impl(

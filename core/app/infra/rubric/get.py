@@ -1,12 +1,4 @@
-"""Canonical shared rubric get operation.
-
-Uses composable infra layers:
-  1. resolve_common_context — profile + tool graph + runs
-  2. resolve_rubric_permissions_context — fail-fast 404/403
-  3. resolve_rubric_context — artifact + draft -> merged + hydrated resources
-  4. score_tools — tool graph + artifact resources -> per-resource tool picks
-  5. Pure Python — permissions, show/required flags, response assembly
-"""
+"""Canonical shared rubric GET operation."""
 
 from __future__ import annotations
 
@@ -42,31 +34,69 @@ from app.infra.rubric.permissions import (
     has_access,
 )
 from app.infra.rubric.permissions_context import resolve_rubric_permissions_context
-from app.infra.tool_graph import score_tools
 from app.infra.rubric.types import (
     GetRubricApiResponse,
-    RubricDepartmentSection,
-    RubricDescriptionSection,
+    RubricDepartmentResource,
+    RubricDescriptionResource,
     RubricFlagConfig,
-    RubricFlagSection,
-    RubricNameSection,
-    RubricPointsSection,
-    RubricStandardGroupsSection,
-    RubricStandardsSection,
+    RubricNameResource,
+    RubricPointResource,
+    RubricStandardGroupResource,
+    RubricStandardResource,
+    SectionFilter,
 )
+from app.infra.tool_graph import score_tools
 
-# ---------------------------------------------------------------------------
-# get_rubric_impl — composable infra architecture
-# ---------------------------------------------------------------------------
+SECTIONS = [
+    "names",
+    "descriptions",
+    "flags",
+    "departments",
+    "points",
+    "standard_groups",
+    "standards",
+]
 
 
-def derive_flag_key_and_label(name: str | None) -> tuple[str, str]:
-    """Derive key and label from flag name like 'rubric_active' -> ('active', 'Active')"""
+def _sf(
+    filters: dict[str, SectionFilter | None],
+    section: str,
+    attr: str,
+    default=None,
+):
+    section_filter = filters.get(section)
+    if section_filter is None:
+        return default
+    return getattr(section_filter, attr, default)
+
+
+def _filter_items(
+    items: list | None,
+    section: str,
+    *,
+    selected_only: dict[str, bool],
+    suggested_only: dict[str, bool],
+):
+    if items is None:
+        return None
+    result = items
+    if selected_only.get(section):
+        result = [item for item in result if getattr(item, "selected", False)]
+    if suggested_only.get(section):
+        result = [item for item in result if getattr(item, "suggested", False)]
+    return result
+
+
+def _derive_flag_key_and_label(name: str | None) -> tuple[str, str]:
     if not name:
         return ("unknown", "Unknown")
-    key = name.replace("rubric_", "")
-    label = key.replace("_", " ").title()
-    return (key, label)
+    key = (
+        name.replace("rubric_", "")
+        .replace("_flag", "")
+        .replace("simulation_", "simulation_")
+        .replace("video_", "video_")
+    )
+    return (key, key.replace("_", " ").title())
 
 
 async def get_rubric_impl(
@@ -75,23 +105,18 @@ async def get_rubric_impl(
     *,
     profile_id: UUID,
     session_id: UUID | None = None,
-    rubric_id: UUID | None,
+    id: UUID | None = None,
+    rubric_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
+    filters: dict[str, SectionFilter | None] | None = None,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> GetRubricApiResponse:
-    """Rubric GET using composable infra functions.
+    """Resolve the canonical rubric artifact bundle for any surface."""
 
-    Flow:
-      1. resolve_common_context(profile_id) -> profile, tool_graph, runs
-      2. resolve_rubric_permissions_context -> access check (404, 403, fail fast)
-      3. resolve_rubric_context(rubric_id, draft_id, ...) -> hydrated resources
-      4. score_tools(tool_graph, RUBRIC_RESOURCES) -> per-resource tool picks
-      5. Pure Python: permissions, show/required/AI flags, response assembly
-    """
-
-    # -- Step 1: Common context (profile -> tool_graph + runs) ----------------
+    rubric_id = id or rubric_id
+    resolved_filters = dict(filters or {})
 
     common = await resolve_common_context(
         pool,
@@ -103,89 +128,137 @@ async def get_rubric_impl(
         artifact_type="rubric",
         bypass_cache=bypass_cache,
     )
-
     if common is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    group_id = group_id or common.profile.group_id
     profile = common.profile
-
-    # -- Step 2: Permissions check (fail fast before full hydration) -----------
+    effective_group_id = group_id or profile.group_id
 
     perms = None
     if rubric_id is not None:
         async with pool.acquire() as conn:
             perms = await resolve_rubric_permissions_context(conn, rubric_id)
-
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
                 detail=f"Rubric {rubric_id} not found",
             )
-
         if not has_access(profile.role_level, profile.department_ids, perms.department_ids):
             raise HTTPException(
                 status_code=403,
                 detail="You don't have access to this rubric. It may be restricted to other departments.",
             )
 
-    # -- Step 3: Rubric artifact context --------------------------------------
-
-    rubric_ctx = await resolve_rubric_context(
+    rubric = await resolve_rubric_context(
         pool,
         redis,
         rubric_id=rubric_id,
-        group_id=group_id,
+        group_id=effective_group_id,
         draft_id=draft_id,
         user_department_ids=profile.department_ids,
+        names_search=_sf(resolved_filters, "names", "search"),
+        descriptions_search=_sf(resolved_filters, "descriptions", "search"),
+        flags_search=_sf(resolved_filters, "flags", "search"),
+        departments_search=_sf(resolved_filters, "departments", "search"),
+        points_search=_sf(resolved_filters, "points", "search"),
+        standard_groups_search=_sf(resolved_filters, "standard_groups", "search"),
+        standards_search=_sf(resolved_filters, "standards", "search"),
+        names_limit=_sf(resolved_filters, "names", "limit"),
+        descriptions_limit=_sf(resolved_filters, "descriptions", "limit"),
+        flags_limit=_sf(resolved_filters, "flags", "limit"),
+        departments_limit=_sf(resolved_filters, "departments", "limit"),
+        points_limit=_sf(resolved_filters, "points", "limit"),
+        standard_groups_limit=_sf(resolved_filters, "standard_groups", "limit"),
+        standards_limit=_sf(resolved_filters, "standards", "limit"),
         bypass_cache=bypass_cache,
     )
 
-    # -- Step 4: Tool scoring -------------------------------------------------
-
     scores = score_tools(common.tool_graph, RUBRIC_RESOURCES)
-
-    agent_ids: dict[str, UUID | None] = {
-        r: (scores.best[r].agent_id if scores.best.get(r) else None)
-        for r in RUBRIC_RESOURCES
+    include = {
+        section: _sf(resolved_filters, section, "include") is not False
+        for section in SECTIONS
     }
-
-
-    # -- Step 5: Permissions --------------------------------------------------
+    selected_only = {
+        section: bool(_sf(resolved_filters, section, "selected"))
+        for section in SECTIONS
+    }
+    suggested_only = {
+        section: bool(_sf(resolved_filters, section, "suggested"))
+        for section in SECTIONS
+    }
 
     perms_department_ids = perms.department_ids if perms else []
     active_simulation_count = perms.active_simulation_count if perms else 0
-
     can_edit = compute_can_edit(
-        role_level=profile.role_level, role_permissions=profile.role_permissions,
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
         rubric_department_ids=perms_department_ids,
         active_simulation_count=active_simulation_count,
     )
-
     disabled_reason = compute_disabled_reason(
-        role_level=profile.role_level, role_permissions=profile.role_permissions,
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
         rubric_department_ids=perms_department_ids,
         active_simulation_count=active_simulation_count,
     )
 
-    # -- Step 6: Show / Required / AI flags -----------------------------------
+    pending_ids: set[UUID] = rubric.entries.get("pending_ids", set())
 
-    names_has_tools = scores.has_any.get("names", False)
+    names_selected = rubric.resources["names"].selected
+    names_suggestions = rubric.resources["names"].suggestions
+    descriptions_selected = rubric.resources["descriptions"].selected
+    descriptions_suggestions = rubric.resources["descriptions"].suggestions
+    flags_selected = rubric.resources["flags"].selected
+    flags_suggestions = rubric.resources["flags"].suggestions
+    departments_selected = rubric.resources["departments"].selected
+    departments_suggestions = rubric.resources["departments"].suggestions
+    points_selected = rubric.resources["points"].selected
+    points_suggestions = rubric.resources["points"].suggestions
+    standard_groups_selected = rubric.resources["standard_groups"].selected
+    standard_groups_suggestions = rubric.resources["standard_groups"].suggestions
+    standards_selected = rubric.resources["standards"].selected
+    standards_suggestions = rubric.resources["standards"].suggestions
 
-    all_departments = dedupe_by_id(
-        rubric_ctx.resources["departments"].selected
-        + rubric_ctx.resources["departments"].suggestions
-    )
+    all_names = dedupe_by_id(names_selected + names_suggestions)
+    all_descriptions = dedupe_by_id(descriptions_selected + descriptions_suggestions)
+    all_flags = dedupe_by_id(flags_selected + flags_suggestions)
+    all_departments = dedupe_by_id(departments_selected + departments_suggestions)
+    all_points = dedupe_by_id(points_selected + points_suggestions)
     all_standard_groups = dedupe_by_id(
-        rubric_ctx.resources["standard_groups"].selected
-        + rubric_ctx.resources["standard_groups"].suggestions
+        standard_groups_selected + standard_groups_suggestions
     )
+    all_standards = dedupe_by_id(standards_selected + standards_suggestions)
+
+    if rubric_id is None and not all_departments:
+        raise HTTPException(
+            status_code=400,
+            detail="No accessible departments found for user",
+        )
+
+    selected_ids = {
+        "names": {item.id for item in names_selected if item.id},
+        "descriptions": {item.id for item in descriptions_selected if item.id},
+        "flags": {item.id for item in flags_selected if item.id},
+        "departments": {item.id for item in departments_selected if item.id},
+        "points": {item.id for item in points_selected if item.id},
+        "standard_groups": {item.id for item in standard_groups_selected if item.id},
+        "standards": {item.id for item in standards_selected if item.id},
+    }
+    suggested_ids = {
+        "names": {item.id for item in names_suggestions if item.id},
+        "descriptions": {item.id for item in descriptions_suggestions if item.id},
+        "flags": {item.id for item in flags_suggestions if item.id},
+        "departments": {item.id for item in departments_suggestions if item.id},
+        "points": {item.id for item in points_suggestions if item.id},
+        "standard_groups": {item.id for item in standard_groups_suggestions if item.id},
+        "standards": {item.id for item in standards_suggestions if item.id},
+    }
 
     show_flags_map = {
-        "names": compute_show_name(names_has_tools),
+        "names": compute_show_name(scores.has_any.get("names", False)),
         "descriptions": compute_show_description(),
         "flags": compute_show_flag(),
         "departments": compute_show_departments(len(all_departments)),
@@ -193,7 +266,6 @@ async def get_rubric_impl(
         "standard_groups": compute_show_standard_groups(),
         "standards": compute_show_standards(len(all_standard_groups)),
     }
-
     required_flags_map = {
         "names": compute_name_required(),
         "descriptions": compute_description_required(),
@@ -204,134 +276,163 @@ async def get_rubric_impl(
         "standards": compute_standards_required(),
     }
 
-    # -- Step 7: Validation ---------------------------------------------------
-
-    if rubric_id is None:
-        if not all_departments:
-            raise HTTPException(
-                status_code=400, detail="No accessible departments found for user"
-            )
-
-    # -- Step 8: Response assembly --------------------------------------------
-
-    # Flags — enriched format
-    all_flags = dedupe_by_id(
-        rubric_ctx.resources["flags"].selected
-        + rubric_ctx.resources["flags"].suggestions
-    )
-    rubric_flags = [
-        RubricFlagConfig(
-            key=derive_flag_key_and_label(flag.name)[0],
-            label=derive_flag_key_and_label(flag.name)[1],
-            description=flag.description,
-            icon_id=flag.icon,
-            flag_option_id=flag.id,
-            show=show_flags_map.get("flags", True),
-            required=required_flags_map.get("flags", False),
-            generated=flag.generated,
+    def _decorate(item_id: UUID | None, section: str) -> tuple[bool, bool, bool]:
+        return (
+            bool(item_id and item_id in suggested_ids[section]),
+            bool(item_id and item_id in selected_ids[section]),
+            bool(item_id and item_id in pending_ids),
         )
-        for flag in all_flags
-        if flag.id
+
+    names = [
+        RubricNameResource(
+            id=item.id,
+            name=item.name,
+            generated=item.generated,
+            suggested=_decorate(item.id, "names")[0],
+            selected=_decorate(item.id, "names")[1],
+            pending=_decorate(item.id, "names")[2],
+        )
+        for item in all_names
+    ]
+    descriptions = [
+        RubricDescriptionResource(
+            id=item.id,
+            description=item.description,
+            generated=item.generated,
+            suggested=_decorate(item.id, "descriptions")[0],
+            selected=_decorate(item.id, "descriptions")[1],
+            pending=_decorate(item.id, "descriptions")[2],
+        )
+        for item in all_descriptions
+    ]
+    flags = [
+        RubricFlagConfig(
+            key=_derive_flag_key_and_label(getattr(item, "name", None) or getattr(item, "type", None))[0],
+            label=_derive_flag_key_and_label(getattr(item, "name", None) or getattr(item, "type", None))[1],
+            description=item.description,
+            icon_id=item.icon,
+            flag_option_id=item.id,
+            show=show_flags_map["flags"],
+            required=required_flags_map["flags"],
+            generated=item.generated,
+            suggested=_decorate(item.id, "flags")[0],
+            selected=_decorate(item.id, "flags")[1],
+            pending=_decorate(item.id, "flags")[2],
+        )
+        for item in all_flags
+    ]
+    departments = [
+        RubricDepartmentResource(
+            department_id=item.id,
+            id=item.id,
+            name=item.name,
+            description=item.description,
+            department_ids=item.department_ids or [],
+            setting_ids=item.setting_ids or [],
+            is_primary=item.is_primary,
+            generated=item.generated,
+            suggested=_decorate(item.id, "departments")[0],
+            selected=_decorate(item.id, "departments")[1],
+            pending=_decorate(item.id, "departments")[2],
+        )
+        for item in all_departments
+    ]
+    points = [
+        RubricPointResource(
+            id=item.id,
+            value=item.value,
+            type=item.type,
+            generated=item.generated,
+            suggested=_decorate(item.id, "points")[0],
+            selected=_decorate(item.id, "points")[1],
+            pending=_decorate(item.id, "points")[2],
+        )
+        for item in all_points
+    ]
+    standard_groups = [
+        RubricStandardGroupResource(
+            id=item.id,
+            standard_group_id=item.id,
+            name=item.name,
+            short_name=item.short_name,
+            description=item.description,
+            points=item.points,
+            pass_points=item.pass_points,
+            generated=item.generated,
+            suggested=_decorate(item.id, "standard_groups")[0],
+            selected=_decorate(item.id, "standard_groups")[1],
+            pending=_decorate(item.id, "standard_groups")[2],
+        )
+        for item in all_standard_groups
+    ]
+    standards = [
+        RubricStandardResource(
+            id=item.id,
+            standard_id=item.id,
+            standard_group_id=item.standard_group_id,
+            name=item.name,
+            description=item.description,
+            points=item.points,
+            generated=item.generated,
+            suggested=_decorate(item.id, "standards")[0],
+            selected=_decorate(item.id, "standards")[1],
+            pending=_decorate(item.id, "standards")[2],
+        )
+        for item in all_standards
     ]
 
-    current_flags = [
-        RubricFlagConfig(
-            key=derive_flag_key_and_label(f.name)[0],
-            label=derive_flag_key_and_label(f.name)[1],
-            description=f.description,
-            icon_id=f.icon,
-            flag_option_id=f.id,
-            show=show_flags_map.get("flags", True),
-            required=required_flags_map.get("flags", False),
-            generated=f.generated,
-        )
-        for f in rubric_ctx.resources["flags"].selected
-        if f.id
-    ]
-
-    # Names, Descriptions — all = selected + suggestions deduped
-    all_names = dedupe_by_id(
-        rubric_ctx.resources["names"].selected
-        + rubric_ctx.resources["names"].suggestions
-    )
-    all_descriptions = dedupe_by_id(
-        rubric_ctx.resources["descriptions"].selected
-        + rubric_ctx.resources["descriptions"].suggestions
-    )
-    all_points = dedupe_by_id(
-        rubric_ctx.resources["points"].selected
-        + rubric_ctx.resources["points"].suggestions
-    )
-
-    # Suggestions maps (IDs only)
-    suggestions_map = {
-        "names": [n.id for n in rubric_ctx.resources["names"].suggestions],
-        "descriptions": [
-            d.id for d in rubric_ctx.resources["descriptions"].suggestions
-        ],
-        "departments": [d.id for d in rubric_ctx.resources["departments"].suggestions],
-        "points": [p.id for p in rubric_ctx.resources["points"].suggestions],
-        "standard_groups": [
-            sg.id for sg in rubric_ctx.resources["standard_groups"].suggestions
-        ],
-        "standards": [s.id for s in rubric_ctx.resources["standards"].suggestions],
-    }
-
-    def _section(resource_key: str) -> dict:
-        return {
-            "show": show_flags_map.get(resource_key, False),
-            "required": required_flags_map.get(resource_key, False),
-            "suggestions": suggestions_map.get(resource_key, []),
-        }
+    basic_show_ai_generate = any(scores.has_any.get(resource, False) for resource in RUBRIC_BASIC_RESOURCES)
+    content_show_ai_generate = any(scores.has_any.get(resource, False) for resource in RUBRIC_CONTENT_RESOURCES)
 
     return GetRubricApiResponse(
         actor_name=profile.name,
-        rubric_exists=rubric_ctx.artifact_id is not None,
+        rubric_exists=rubric.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        group_id=group_id,
-        names=RubricNameSection(
-            **_section("names"),
-            resource=rubric_ctx.resources["names"].selected[0]
-            if rubric_ctx.resources["names"].selected
-            else None,
-            resources=all_names,
-        ),
-        descriptions=RubricDescriptionSection(
-            **_section("descriptions"),
-            resource=rubric_ctx.resources["descriptions"].selected[0]
-            if rubric_ctx.resources["descriptions"].selected
-            else None,
-            resources=all_descriptions,
-        ),
-        flags=RubricFlagSection(
-            **_section("flags"),
-            current=current_flags or None,
-            resources=rubric_flags,
-        ),
-        departments=RubricDepartmentSection(
-            **_section("departments"),
-            current=rubric_ctx.resources["departments"].selected or None,
-            resources=all_departments,
-        ),
-        points=RubricPointsSection(
-            **_section("points"),
-            resource=rubric_ctx.resources["points"].selected[0]
-            if rubric_ctx.resources["points"].selected
-            else None,
-            resources=all_points,
-        ),
-        standard_groups=RubricStandardGroupsSection(
-            **_section("standard_groups"),
-            current=rubric_ctx.resources["standard_groups"].selected or None,
-            resources=all_standard_groups,
-        ),
-        standards=RubricStandardsSection(
-            **_section("standards"),
-            current=rubric_ctx.resources["standards"].selected or None,
-            resources=dedupe_by_id(
-                rubric_ctx.resources["standards"].selected
-                + rubric_ctx.resources["standards"].suggestions
-            ),
-        ),
+        group_id=effective_group_id,
+        show_ai_generate=basic_show_ai_generate or content_show_ai_generate,
+        basic_show_ai_generate=basic_show_ai_generate,
+        content_show_ai_generate=content_show_ai_generate,
+        pending_ids=sorted(pending_ids),
+        names=_filter_items(names, "names", selected_only=selected_only, suggested_only=suggested_only)
+        if include["names"]
+        else None,
+        descriptions=_filter_items(
+            descriptions,
+            "descriptions",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        )
+        if include["descriptions"]
+        else None,
+        flags=_filter_items(flags, "flags", selected_only=selected_only, suggested_only=suggested_only)
+        if include["flags"]
+        else None,
+        departments=_filter_items(
+            departments,
+            "departments",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        )
+        if include["departments"]
+        else None,
+        points=_filter_items(points, "points", selected_only=selected_only, suggested_only=suggested_only)
+        if include["points"]
+        else None,
+        standard_groups=_filter_items(
+            standard_groups,
+            "standard_groups",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        )
+        if include["standard_groups"]
+        else None,
+        standards=_filter_items(
+            standards,
+            "standards",
+            selected_only=selected_only,
+            suggested_only=suggested_only,
+        )
+        if include["standards"]
+        else None,
     )

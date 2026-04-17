@@ -183,6 +183,17 @@ async def resolve_chat_context(
         if dept_id:
             scope_dept_ids = [dept_id]
 
+    # Resolve mode-scoped parameter_field_ids for persona/document filtering
+    mode_pf_ids: list[UUID] | None = None
+    if has_template:
+        from app.infra.chat.mode import resolve_mode_parameter_field_ids
+        async with pool.acquire() as conn:
+            mode_pf_ids = await resolve_mode_parameter_field_ids(
+                conn, redis,
+                video_mode=is_video_mode,
+                department_ids=scope_dept_ids,
+            )
+
     # ── Step 3: Fetch draft ───────────────────────────────────────────────────
     if draft_id:
         async with pool.acquire() as conn:
@@ -238,7 +249,9 @@ async def resolve_chat_context(
             return []
         async with pool.acquire() as c:
             return await search_names(
-                c, redis, draft_id=group_id,
+                c, redis,
+                draft_id=draft_id if has_template else group_id,
+                suggest_source="draft" if has_template and draft_id else None,
                 exclude_ids=name_ids, bypass_cache=bypass_cache,
             )
 
@@ -255,7 +268,9 @@ async def resolve_chat_context(
             return []
         async with pool.acquire() as c:
             return await search_descriptions(
-                c, redis, search=description_search, draft_id=group_id,
+                c, redis, search=description_search,
+                draft_id=draft_id if has_template else group_id,
+                suggest_source="draft" if has_template and draft_id else None,
                 exclude_ids=description_ids, bypass_cache=bypass_cache,
             )
 
@@ -309,6 +324,7 @@ async def resolve_chat_context(
             return await search_personas(
                 c, redis, search=persona_search, limit_count=20, offset_count=0,
                 department_ids=scope_dept_ids, draft_id=group_id,
+                parameter_field_ids=mode_pf_ids,
                 suggest_source="selected" if persona_show_selected else None,
                 exclude_ids=persona_ids, bypass_cache=bypass_cache,
             )
@@ -328,6 +344,7 @@ async def resolve_chat_context(
             return await search_documents(
                 c, redis, search=document_search, limit_count=20, offset_count=0,
                 department_ids=scope_dept_ids, draft_id=group_id,
+                parameter_field_ids=mode_pf_ids,
                 suggest_source="selected" if document_show_selected else None,
                 exclude_ids=document_ids, bypass_cache=bypass_cache,
             )
@@ -379,7 +396,15 @@ async def resolve_chat_context(
     async def _search_parameter_fields() -> list:
         if not enabled["parameter_fields"]:
             return []
+        # Scope to mode-appropriate parameter_field_ids if available
+        pf_filter_ids = mode_pf_ids if mode_pf_ids else None
         async with pool.acquire() as c:
+            if pf_filter_ids:
+                # Only show parameter fields matching the mode
+                from app.tools.resources.parameter_fields.get import get_parameter_fields as get_pfs
+                # Filter mode_pf_ids to exclude already-selected
+                available_ids = [pid for pid in pf_filter_ids if pid not in set(parameter_field_ids)]
+                return await get_pfs(c, available_ids, redis, bypass_cache) if available_ids else []
             return await search_parameter_fields(
                 c, redis, limit_count=20, offset_count=0,
                 exclude_ids=parameter_field_ids, bypass_cache=bypass_cache,

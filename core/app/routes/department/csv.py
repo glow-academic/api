@@ -12,8 +12,8 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
-from app.infra.department.create import CreateDepartmentItem
 from app.infra.department.search import DEPARTMENT_IMPORT_FIELDS
+from app.infra.department.types import CreateDepartmentItem
 from app.infra.globals import UPLOAD_FOLDER, get_pool
 from app.tools.entries.uploads.create import create_upload
 from app.utils.error.handle_route_error import handle_route_error

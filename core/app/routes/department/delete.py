@@ -56,6 +56,8 @@ async def delete_department(
                 profile_id=profile_id,
                 department_ids=request.department_ids,
                 session_id=session_id,
+                accept=request.accept,
+                idempotency_key=request.idempotency_key,
             )
 
         result = await run_artifact_operation_with_audit(

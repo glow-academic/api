@@ -181,12 +181,15 @@ class CreateDepartmentApiRequest(BaseModel):
     """Request model for bulk create department endpoint."""
 
     departments: list[CreateDepartmentItem] = Field(..., description="List of departments to create")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateDepartmentApiResponse(BaseModel):
     """Response model for bulk create department endpoint."""
 
     results: list[DepartmentResultItem] = Field(..., description="Per-item creation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Update Endpoint Types ==========
@@ -214,12 +217,15 @@ class UpdateDepartmentApiRequest(BaseModel):
     """Request model for bulk update department endpoint."""
 
     departments: list[UpdateDepartmentItem] = Field(..., description="List of departments to update")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateDepartmentApiResponse(BaseModel):
     """Response model for bulk update department endpoint."""
 
     results: list[DepartmentResultItem] = Field(..., description="Per-item update results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 class SaveDepartmentFieldError(BaseModel):
@@ -233,6 +239,8 @@ class DeleteDepartmentApiRequest(BaseModel):
     """Request model for bulk delete department endpoint."""
 
     department_ids: list[UUID] = Field(..., description="UUIDs of departments to delete")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DeleteDepartmentResult(BaseModel):
@@ -247,16 +255,20 @@ class DeleteDepartmentApiResponse(BaseModel):
     """Response model for bulk delete department endpoint."""
 
     results: list[DeleteDepartmentResult] = Field(..., description="Per-item deletion results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 class DuplicateDepartmentApiRequest(BaseModel):
     department_id: UUID = Field(..., description="UUID of the department to duplicate")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateDepartmentApiResponse(BaseModel):
     success: bool = Field(..., description="Whether the duplication succeeded")
     department_id: UUID = Field(..., description="UUID of the newly created department")
     message: str = Field(..., description="Result message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Draft Endpoint Types (composable infra) ==========
@@ -317,7 +329,7 @@ class PatchDepartmentDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the draft save succeeded")
     draft_id: UUID = Field(..., description="UUID of the saved draft")
-    idempotency_key: UUID = Field(..., description="Idempotency key for this draft operation")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key for this draft operation")
     message: str = Field(..., description="Result message")
     form_state: DraftFormState | None = Field(None, description="Server-authoritative form state")
 
@@ -400,6 +412,8 @@ class ProblemDepartmentApiRequest(BaseModel):
 
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemDepartmentApiResponse(BaseModel):
@@ -408,3 +422,4 @@ class ProblemDepartmentApiResponse(BaseModel):
     problem_id: UUID = Field(..., description="UUID of the created problem")
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")

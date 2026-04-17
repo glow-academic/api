@@ -198,7 +198,14 @@ async def patch_department_draft_impl(
                         profile_ids=[profile.profiles_id],
                         pending_ids=set(request.pending_ids) if request.pending_ids else None,
                     )
-            await refresh_department_impl(pool, redis, profile_id=profile_id)
+            await refresh_department_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                targets=["department_drafts_mv"],
+                operation_key=idempotency_key,
+            )
         return PatchDepartmentDraftApiResponse(
             success=True,
             draft_id=idempotency_key,
@@ -243,12 +250,19 @@ async def patch_department_draft_impl(
     )
 
     if not soft:
-        await refresh_department_impl(pool, redis, profile_id=profile_id)
+        await refresh_department_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["department_drafts_mv"],
+            operation_key=result.id,
+        )
 
     return PatchDepartmentDraftApiResponse(
         success=True,
         draft_id=result.id,
         idempotency_key=result.id,
-        message="Draft saved successfully",
+        message="Draft created (pending acceptance)" if soft else "Draft created successfully",
         form_state=form_state,
     )

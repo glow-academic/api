@@ -46,8 +46,17 @@ async def rubric_get(sid: str, data: dict[str, Any]) -> None:
             redis,
             profile_id=identity.profile_id,
             session_id=identity.session_id,
-            rubric_id=payload.rubric_id,
+            id=payload.id or payload.rubric_id,
             draft_id=payload.draft_id,
+            filters={
+                "names": payload.names,
+                "descriptions": payload.descriptions,
+                "flags": payload.flags,
+                "departments": payload.departments,
+                "points": payload.points,
+                "standard_groups": payload.standard_groups,
+                "standards": payload.standards,
+            },
         ),
         arguments=payload.model_dump(mode="json"),
     )

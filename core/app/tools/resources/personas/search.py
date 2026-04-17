@@ -34,6 +34,7 @@ async def search_personas(
     suggest_source: str | None = None,
     exclude_ids: list[UUID] | None = None,
     department_ids: list[UUID] | None = None,
+    parameter_field_ids: list[UUID] | None = None,
     bypass_cache: bool = False,
     *,
     cohort_profile: bool = False,
@@ -61,6 +62,7 @@ async def search_personas(
             "suggest_source": suggest_source,
             "exclude_ids": [str(i) for i in (exclude_ids or [])],
             "department_ids": sorted(str(i) for i in (department_ids or [])),
+            "parameter_field_ids": sorted(str(i) for i in (parameter_field_ids or [])),
             **artifact_filters,
         },
     )
@@ -82,6 +84,14 @@ async def search_personas(
             (
                 "({alias}.department_ids && ${idx} OR COALESCE(array_length({alias}.department_ids, 1), 0) = 0)",
                 department_ids,
+            ),
+        )
+    if parameter_field_ids:
+        # Personas whose parameter_field_ids overlap, or have none (untagged)
+        extra_conditions.append(
+            (
+                "({alias}.parameter_field_ids && ${idx} OR COALESCE(array_length({alias}.parameter_field_ids, 1), 0) = 0)",
+                parameter_field_ids,
             ),
         )
 

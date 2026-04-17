@@ -52,8 +52,18 @@ async def get_rubric(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
-                rubric_id=request.rubric_id,
+                id=request.id or request.rubric_id,
                 draft_id=request.draft_id,
+                group_id=group_id,
+                filters={
+                    "names": request.names,
+                    "descriptions": request.descriptions,
+                    "flags": request.flags,
+                    "departments": request.departments,
+                    "points": request.points,
+                    "standard_groups": request.standard_groups,
+                    "standards": request.standards,
+                },
                 bypass_cache=bypass_cache,
             )
 

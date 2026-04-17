@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Request, Response
 
 from app.infra.department.group import group_department_impl
-from app.infra.department.refresh import refresh_department_impl
+from app.infra.department.refresh import RefreshDepartmentApiRequest, refresh_department_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.refresh.types import RefreshResponse
@@ -13,6 +13,7 @@ router = APIRouter()
 
 @router.post("/refresh", response_model=RefreshResponse)
 async def department_refresh(
+    request: RefreshDepartmentApiRequest,
     http_request: Request,
     response: Response,
 ) -> RefreshResponse:
@@ -35,6 +36,8 @@ async def department_refresh(
             pool,
             redis,
             profile_id=profile_id,
+            session_id=session_id,
+            request=request,
         )
 
     result = await run_artifact_operation_with_audit(
@@ -44,7 +47,7 @@ async def department_refresh(
         profile_id=profile_id,
         session_id=session_id,
         operation="refresh",
-        arguments={},
+        arguments=request.model_dump(mode="json"),
         response_model=RefreshResponse,
         runner=_runner,
         upload_folder=get_upload_folder(),

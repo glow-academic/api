@@ -1,0 +1,17 @@
+INPUT:
+  attempt_id: 019d9b0e-6d25-7103-857f-b672fa2bf600
+  chat_id: 019d993d-a151-77c8-8fa4-d5db696593dc
+  name: Academic Integrity Training Scenario
+  description: A flexible simulation for open-ended practice with any persona.
+  problem_statement: A student is seen looking at another student's exam paper during a test. The professor notices the b
+  personas: ['Professor', 'Student']
+  documents: ['Academic Integrity Policy']
+  parameter_fields_ids: ['d754754b-6b57-56d3-a32d-418ddaf306fe', '6a3304d4-e342-59ec-b705-aa1cac1d1a66', 'e1a34f98-3038-5387-a9e1-53fb8758bc81', 'a0b8aba9-c32e-5d7e-8bb8-d89c0943e795', 'b730ac94-0da6-50ab-a8c3-10409b4541f0', '395b74ad-83b3-55d6-961a-c56dfa79e2c9', '30d60830-085a-588d-8d58-ad5a6886d276', 'd8b1f368-4791-551a-80ad-01558b2abab2', 'c8e509cd-5f26-55b8-a77c-b7c7125acbd7', '6e1cf833-5809-567c-b080-1ed8d472c039', 'df13ca43-0dd3-5173-9a5e-f2f62f8533f6', '487ebc27-62f1-5b04-b8e3-5457d1720953', '79645ef2-ed1c-522b-b23f-cb49a0a505df', 'c0ba2f52-fff1-5ff0-8b7a-fdec926089f8', '47e1460c-181e-5995-88b7-62c314c030b4', '89b5c123-c342-547e-ab01-bf417b0effb8', 'db5925c2-db46-56d2-be3e-e8158d79cbd1', '60fed52a-d4e3-5cf8-915f-07d935895502', 'd52a2d40-afc6-5c96-a360-bc9ccfbfd212', '983d3ea0-f9ac-5d04-a281-829ace6ff6ae']
+  objectives: ["Apply the institution's academic integrity policy accurately", 'Communicate consequences of academic dishonesty clearly and professionally', 'Identify indicators of academic integrity violations during examinations', 'Guide the conversation toward a constructive resolution']
+
+OUTPUT:
+Attempt chat created successfully.
+- **Attempt Chat ID:** `019d9b0e-8c75-727d-ab80-6fecd8677511`
+
+
+Config flags, rubrics, departments, and scenarios were auto-resolved from the chat template.

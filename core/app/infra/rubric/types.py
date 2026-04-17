@@ -1,17 +1,33 @@
-"""Handcrafted types for rubric artifact endpoints."""
-
-from __future__ import annotations
-
-from typing import Any, ClassVar
-from uuid import UUID
-
 from datetime import datetime
+from typing import ClassVar
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import ListFilterSection
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.rubric_drafts.types import GetRubricDraftResponse
+
+class RubricNameResource(BaseModel):
+    """Name resource for rubric."""
+
+    id: UUID | None = Field(None, description="Unique identifier")
+    name: str | None = Field(None, description="Display name")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class RubricDescriptionResource(BaseModel):
+    """Description resource for rubric."""
+
+    id: UUID | None = Field(None, description="Unique identifier")
+    description: str | None = Field(None, description="Description text")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class RubricFlagConfig(BaseModel):
@@ -25,65 +41,119 @@ class RubricFlagConfig(BaseModel):
     show: bool = Field(True, description="Whether to show this flag in the UI")
     required: bool = Field(False, description="Whether this flag is required")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class RubricNameSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected name resource")
-    resources: list[Any] | None = Field(None, description="Available name resources")
+class RubricDepartmentResource(BaseModel):
+    """Department resource for rubric."""
+
+    department_id: UUID | None = Field(None, description="Department identifier")
+    id: UUID | None = Field(None, description="Department identifier")
+    name: str | None = Field(None, description="Department name")
+    description: str | None = Field(None, description="Department description")
+    department_ids: list[UUID] = Field(default_factory=list, description="Associated department identifiers")
+    setting_ids: list[UUID] = Field(default_factory=list, description="Associated setting identifiers")
+    is_primary: bool | None = Field(None, description="Whether this is the primary department")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class RubricDescriptionSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected description resource")
-    resources: list[Any] | None = Field(None, description="Available description resources")
+class RubricPointResource(BaseModel):
+    """Point resource for rubric."""
+
+    id: UUID | None = Field(None, description="Unique identifier")
+    value: int | None = Field(None, description="Point value")
+    type: str | None = Field(None, description="Point type")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class RubricFlagSection(BaseResourceSection):
-    current: list[RubricFlagConfig] | None = Field(None, description="Currently selected flag configs")
-    resources: list[RubricFlagConfig] | None = Field(None, description="Available flag configs")
+class RubricStandardGroupResource(BaseModel):
+    """Standard group resource for rubric."""
+
+    id: UUID | None = Field(None, description="Unique identifier")
+    standard_group_id: UUID | None = Field(None, description="Standard group identifier")
+    name: str | None = Field(None, description="Standard group name")
+    short_name: str | None = Field(None, description="Standard group short name")
+    description: str | None = Field(None, description="Standard group description")
+    points: int | None = Field(None, description="Total points for this group")
+    pass_points: int | None = Field(None, description="Pass points for this group")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class RubricDepartmentSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently selected departments")
-    resources: list[Any] | None = Field(None, description="Available departments")
+class RubricStandardResource(BaseModel):
+    """Standard resource for rubric."""
+
+    id: UUID | None = Field(None, description="Unique identifier")
+    standard_id: UUID | None = Field(None, description="Standard identifier")
+    standard_group_id: UUID | None = Field(None, description="Parent standard group identifier")
+    name: str | None = Field(None, description="Standard name")
+    description: str | None = Field(None, description="Standard description")
+    points: int | None = Field(None, description="Points for this standard")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class RubricPointsSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected points resource")
-    resources: list[Any] | None = Field(None, description="Available points resources")
+class SectionFilter(BaseModel):
+    """Per-section filter options for GET requests."""
 
-
-class RubricStandardGroupsSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently selected standard groups")
-    resources: list[Any] | None = Field(None, description="Available standard groups")
-
-
-class RubricStandardsSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently selected standards")
-    resources: list[Any] | None = Field(None, description="Available standards")
+    search: str | None = Field(None, description="Filter options by search text")
+    limit: int | None = Field(None, description="Max options to return")
+    selected: bool | None = Field(None, description="Only return selected items")
+    suggested: bool | None = Field(None, description="Only return suggested items")
+    include: bool | None = Field(None, description="Include this section in response (default true)")
+    parameter_ids: list[str] | None = Field(
+        None,
+        description="Reserved for compatibility with shared filter parsing",
+    )
 
 
 class GetRubricApiRequest(BaseModel):
-    rubric_id: UUID | None = Field(None, description="Rubric UUID to retrieve")
+    """Request model for get rubric endpoint."""
+
+    id: UUID | None = Field(None, description="Rubric UUID to retrieve")
+    rubric_id: UUID | None = Field(None, description="Legacy rubric UUID to retrieve")
     draft_id: UUID | None = Field(None, description="Draft UUID to load from")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+    names: SectionFilter | None = Field(None, description="Filter options for names section")
+    descriptions: SectionFilter | None = Field(None, description="Filter options for descriptions section")
+    flags: SectionFilter | None = Field(None, description="Filter options for flags section")
+    departments: SectionFilter | None = Field(None, description="Filter options for departments section")
+    points: SectionFilter | None = Field(None, description="Filter options for points section")
+    standard_groups: SectionFilter | None = Field(None, description="Filter options for standard groups section")
+    standards: SectionFilter | None = Field(None, description="Filter options for standards section")
 
 
 class GetRubricApiResponse(BaseModel):
+    """Canonical flat composed response for the rubric editor."""
+
     actor_name: str | None = Field(None, description="Display name of the current user")
     rubric_exists: bool | None = Field(None, description="Whether the rubric exists")
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled")
     group_id: UUID | None = Field(None, description="Associated group UUID")
-
-    basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for basic step")
-    content_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for content step")
-
-    names: RubricNameSection | None = Field(None, description="Name section with resource and options")
-    descriptions: RubricDescriptionSection | None = Field(None, description="Description section with resource and options")
-    flags: RubricFlagSection | None = Field(None, description="Flag section with selections and options")
-    departments: RubricDepartmentSection | None = Field(None, description="Department section with selections and options")
-    points: RubricPointsSection | None = Field(None, description="Points section with resource and options")
-    standard_groups: RubricStandardGroupsSection | None = Field(None, description="Standard groups section")
-    standards: RubricStandardsSection | None = Field(None, description="Standards section")
+    show_ai_generate: bool | None = Field(None, description="Whether any section supports AI generation")
+    basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for the basic step")
+    content_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for the content step")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
+    names: list[RubricNameResource] | None = Field(None, description="Name resources")
+    descriptions: list[RubricDescriptionResource] | None = Field(None, description="Description resources")
+    flags: list[RubricFlagConfig] | None = Field(None, description="Flag configs")
+    departments: list[RubricDepartmentResource] | None = Field(None, description="Department resources")
+    points: list[RubricPointResource] | None = Field(None, description="Point resources")
+    standard_groups: list[RubricStandardGroupResource] | None = Field(None, description="Standard group resources")
+    standards: list[RubricStandardResource] | None = Field(None, description="Standard resources")
 
 
 class GetRubricDraftsApiResponse(BaseModel):
@@ -271,13 +341,17 @@ class PatchRubricDraftApiRequest(ScopedItem):
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
+        "active_flag": "flags",
+        "active_flag_id": "flags",
         "flag_id": "flags",
+        "departments": "departments",
         "department_ids": "departments",
         "point_ids": "points",
         "standard_group_ids": "standard_groups",
         "standard_ids": "standards",
     }
 
+    draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to patch")
 
     # Creatable single-select — provide value or ID
@@ -286,24 +360,36 @@ class PatchRubricDraftApiRequest(ScopedItem):
     description: str | None = Field(None, description="Description value to create a resource")
     description_id: UUID | None = Field(None, description="Existing description resource UUID")
 
-    # Non-creatable — ID-only
+    active_flag: bool | None = Field(None, description="Whether the rubric is active")
+    active_flag_id: UUID | None = Field(None, description="Active flag option UUID")
     flag_id: UUID | None = Field(None, description="Flag option UUID")
+    departments: list[str] | None = Field(None, description="Department names to resolve")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     point_ids: list[UUID] | None = Field(None, description="Point UUIDs")
     standard_group_ids: list[UUID] | None = Field(None, description="Standard group UUIDs")
     standard_ids: list[UUID] | None = Field(None, description="Standard UUIDs")
+    pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep pending where supported")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack or retry")
+    accept: bool = Field(True, description="Accept or reject dormant state")
 
 
-class RubricDraftFormState(BaseModel):
+class DraftFormState(BaseModel):
     """Server-authoritative form state returned after draft save."""
 
     name_id: UUID | None = Field(None, description="Selected name resource UUID")
+    name: str | None = Field(None, description="Echoed name value")
     description_id: UUID | None = Field(None, description="Selected description resource UUID")
+    description: str | None = Field(None, description="Echoed description value")
     flag_id: UUID | None = Field(None, description="Selected flag option UUID")
-    department_ids: list[UUID] = Field(..., description="Selected department UUIDs")
-    point_ids: list[UUID] = Field(..., description="Selected point UUIDs")
-    standard_group_ids: list[UUID] = Field(..., description="Selected standard group UUIDs")
-    standard_ids: list[UUID] = Field(..., description="Selected standard UUIDs")
+    active_flag_id: UUID | None = Field(None, description="Selected active flag option UUID")
+    department_ids: list[UUID] = Field(default_factory=list, description="Selected department UUIDs")
+    point_ids: list[UUID] = Field(default_factory=list, description="Selected point UUIDs")
+    standard_group_ids: list[UUID] = Field(default_factory=list, description="Selected standard group UUIDs")
+    standard_ids: list[UUID] = Field(default_factory=list, description="Selected standard UUIDs")
+    pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
+
+
+RubricDraftFormState = DraftFormState
 
 
 class PatchRubricDraftApiResponse(BaseModel):
@@ -311,8 +397,9 @@ class PatchRubricDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the operation succeeded")
     draft_id: UUID = Field(..., description="Draft UUID")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key for this draft operation")
     message: str = Field(..., description="Human-readable result message")
-    form_state: RubricDraftFormState | None = Field(None, description="Server-authoritative form state")
+    form_state: DraftFormState | None = Field(None, description="Server-authoritative form state")
 
 
 # ========== Export Endpoint Types ==========

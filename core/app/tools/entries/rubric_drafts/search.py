@@ -24,14 +24,21 @@ async def search_rubric_drafts(
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
-            COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
-            COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL), '{}') AS description_ids,
-            COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL), '{}') AS flag_ids,
-            COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL), '{}') AS name_ids,
-            COALESCE(ARRAY_AGG(DISTINCT pt.points_id) FILTER (WHERE pt.points_id IS NOT NULL), '{}') AS point_ids,
+            COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL AND dep.active = true), '{}') AS department_ids,
+            COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL AND desc_c.active = true), '{}') AS description_ids,
+            COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL AND f.active = true), '{}') AS flag_ids,
+            COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = true), '{}') AS name_ids,
+            COALESCE(ARRAY_AGG(DISTINCT pt.points_id) FILTER (WHERE pt.points_id IS NOT NULL AND pt.active = true), '{}') AS point_ids,
             COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL), '{}') AS profile_ids,
-            COALESCE(ARRAY_AGG(DISTINCT sg.standard_groups_id) FILTER (WHERE sg.standard_groups_id IS NOT NULL), '{}') AS standard_group_ids,
-            COALESCE(ARRAY_AGG(DISTINCT s.standards_id) FILTER (WHERE s.standards_id IS NOT NULL), '{}') AS standard_ids
+            COALESCE(ARRAY_AGG(DISTINCT sg.standard_groups_id) FILTER (WHERE sg.standard_groups_id IS NOT NULL AND sg.active = true), '{}') AS standard_group_ids,
+            COALESCE(ARRAY_AGG(DISTINCT s.standards_id) FILTER (WHERE s.standards_id IS NOT NULL AND s.active = true), '{}') AS standard_ids,
+            COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL AND dep.active = false), '{}') AS pending_department_ids,
+            COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL AND desc_c.active = false), '{}') AS pending_description_ids,
+            COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL AND f.active = false), '{}') AS pending_flag_ids,
+            COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = false), '{}') AS pending_name_ids,
+            COALESCE(ARRAY_AGG(DISTINCT pt.points_id) FILTER (WHERE pt.points_id IS NOT NULL AND pt.active = false), '{}') AS pending_point_ids,
+            COALESCE(ARRAY_AGG(DISTINCT sg.standard_groups_id) FILTER (WHERE sg.standard_groups_id IS NOT NULL AND sg.active = false), '{}') AS pending_standard_group_ids,
+            COALESCE(ARRAY_AGG(DISTINCT s.standards_id) FILTER (WHERE s.standards_id IS NOT NULL AND s.active = false), '{}') AS pending_standard_ids
         FROM rubric_drafts_entry d
         LEFT JOIN rubric_drafts_departments_connection dep ON dep.draft_id = d.id
         LEFT JOIN rubric_drafts_descriptions_connection desc_c ON desc_c.draft_id = d.id
@@ -77,6 +84,13 @@ async def search_rubric_drafts(
             profile_ids=r["profile_ids"],
             standard_group_ids=r["standard_group_ids"],
             standard_ids=r["standard_ids"],
+            pending_department_ids=r["pending_department_ids"],
+            pending_description_ids=r["pending_description_ids"],
+            pending_flag_ids=r["pending_flag_ids"],
+            pending_name_ids=r["pending_name_ids"],
+            pending_point_ids=r["pending_point_ids"],
+            pending_standard_group_ids=r["pending_standard_group_ids"],
+            pending_standard_ids=r["pending_standard_ids"],
         )
         for r in rows
     ]

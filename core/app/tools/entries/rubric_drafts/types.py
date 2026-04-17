@@ -25,3 +25,31 @@ class GetRubricDraftResponse(BaseModel):
     profile_ids: list[UUID] = Field(..., description="Associated profile UUIDs")
     standard_group_ids: list[UUID] = Field(..., description="Associated standard group UUIDs")
     standard_ids: list[UUID] = Field(..., description="Associated standard UUIDs")
+    pending_department_ids: list[UUID] = Field(
+        default_factory=list,
+        description="Associated pending department UUIDs",
+    )
+    pending_description_ids: list[UUID] = Field(
+        default_factory=list,
+        description="Associated pending description UUIDs",
+    )
+    pending_flag_ids: list[UUID] = Field(
+        default_factory=list,
+        description="Associated pending flag UUIDs",
+    )
+    pending_name_ids: list[UUID] = Field(
+        default_factory=list,
+        description="Associated pending name UUIDs",
+    )
+    pending_point_ids: list[UUID] = Field(
+        default_factory=list,
+        description="Associated pending point UUIDs",
+    )
+    pending_standard_group_ids: list[UUID] = Field(
+        default_factory=list,
+        description="Associated pending standard group UUIDs",
+    )
+    pending_standard_ids: list[UUID] = Field(
+        default_factory=list,
+        description="Associated pending standard UUIDs",
+    )

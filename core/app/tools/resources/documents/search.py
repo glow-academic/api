@@ -31,6 +31,7 @@ async def search_documents(
     text_ids: list[UUID] | None = None,
     image_ids: list[UUID] | None = None,
     template: bool | None = None,
+    parameter_field_ids: list[UUID] | None = None,
     bypass_cache: bool = False,
     *,
     document: bool = False,
@@ -60,6 +61,7 @@ async def search_documents(
             "text_ids": sorted(str(i) for i in (text_ids or [])),
             "image_ids": sorted(str(i) for i in (image_ids or [])),
             "template": template,
+            "parameter_field_ids": sorted(str(i) for i in (parameter_field_ids or [])),
             **artifact_filters,
         },
     )
@@ -99,6 +101,14 @@ async def search_documents(
     if template is not None:
         extra_conditions.append(
             ("{alias}.template = ${idx}", template),
+        )
+    if parameter_field_ids:
+        # Documents whose parameter_field_ids overlap, or have none (untagged)
+        extra_conditions.append(
+            (
+                "({alias}.parameter_field_ids && ${idx} OR COALESCE(array_length({alias}.parameter_field_ids, 1), 0) = 0)",
+                parameter_field_ids,
+            ),
         )
 
     ids = await search_resource_ids(
