@@ -25,17 +25,30 @@ async def search_setting_drafts(
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
             COALESCE(ARRAY_AGG(DISTINCT ag.agents_id) FILTER (WHERE ag.agents_id IS NOT NULL), '{}') AS agent_ids,
+            COALESCE(ARRAY_AGG(DISTINCT ag.agents_id) FILTER (WHERE ag.agents_id IS NOT NULL AND ag.active = false), '{}') AS pending_agent_ids,
             COALESCE(ARRAY_AGG(DISTINCT aik.auth_item_keys_id) FILTER (WHERE aik.auth_item_keys_id IS NOT NULL), '{}') AS auth_item_key_ids,
+            COALESCE(ARRAY_AGG(DISTINCT aik.auth_item_keys_id) FILTER (WHERE aik.auth_item_keys_id IS NOT NULL AND aik.active = false), '{}') AS pending_auth_item_key_ids,
             COALESCE(ARRAY_AGG(DISTINCT au.auths_id) FILTER (WHERE au.auths_id IS NOT NULL), '{}') AS auth_ids,
+            COALESCE(ARRAY_AGG(DISTINCT au.auths_id) FILTER (WHERE au.auths_id IS NOT NULL AND au.active = false), '{}') AS pending_auth_ids,
             COALESCE(ARRAY_AGG(DISTINCT c.colors_id) FILTER (WHERE c.colors_id IS NOT NULL), '{}') AS color_ids,
+            COALESCE(ARRAY_AGG(DISTINCT c.colors_id) FILTER (WHERE c.colors_id IS NOT NULL AND c.active = false), '{}') AS pending_color_ids,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
+            COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL AND dep.active = false), '{}') AS pending_department_ids,
             COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL), '{}') AS description_ids,
+            COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL AND desc_c.active = false), '{}') AS pending_description_ids,
             COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL), '{}') AS flag_ids,
+            COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL AND f.active = false), '{}') AS pending_flag_ids,
             COALESCE(ARRAY_AGG(DISTINCT it.items_id) FILTER (WHERE it.items_id IS NOT NULL), '{}') AS item_ids,
+            COALESCE(ARRAY_AGG(DISTINCT it.items_id) FILTER (WHERE it.items_id IS NOT NULL AND it.active = false), '{}') AS pending_item_ids,
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL), '{}') AS name_ids,
+            COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = false), '{}') AS pending_name_ids,
             COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL), '{}') AS profile_ids,
+            COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL AND p.active = false), '{}') AS pending_profile_ids,
             COALESCE(ARRAY_AGG(DISTINCT pk.provider_keys_id) FILTER (WHERE pk.provider_keys_id IS NOT NULL), '{}') AS provider_key_ids,
+            COALESCE(ARRAY_AGG(DISTINCT pk.provider_keys_id) FILTER (WHERE pk.provider_keys_id IS NOT NULL AND pk.active = false), '{}') AS pending_provider_key_ids,
             COALESCE(ARRAY_AGG(DISTINCT th.thresholds_id) FILTER (WHERE th.thresholds_id IS NOT NULL), '{}') AS threshold_ids
+            ,
+            COALESCE(ARRAY_AGG(DISTINCT th.thresholds_id) FILTER (WHERE th.thresholds_id IS NOT NULL AND th.active = false), '{}') AS pending_threshold_ids
         FROM setting_drafts_entry d
         LEFT JOIN setting_drafts_agents_connection ag ON ag.draft_id = d.id
         LEFT JOIN setting_drafts_auth_item_keys_connection aik ON aik.draft_id = d.id
@@ -89,6 +102,18 @@ async def search_setting_drafts(
             profile_ids=r["profile_ids"],
             provider_key_ids=r["provider_key_ids"],
             threshold_ids=r["threshold_ids"],
+            pending_agent_ids=r["pending_agent_ids"],
+            pending_auth_item_key_ids=r["pending_auth_item_key_ids"],
+            pending_auth_ids=r["pending_auth_ids"],
+            pending_color_ids=r["pending_color_ids"],
+            pending_department_ids=r["pending_department_ids"],
+            pending_description_ids=r["pending_description_ids"],
+            pending_flag_ids=r["pending_flag_ids"],
+            pending_item_ids=r["pending_item_ids"],
+            pending_name_ids=r["pending_name_ids"],
+            pending_profile_ids=r["pending_profile_ids"],
+            pending_provider_key_ids=r["pending_provider_key_ids"],
+            pending_threshold_ids=r["pending_threshold_ids"],
         )
         for r in rows
     ]

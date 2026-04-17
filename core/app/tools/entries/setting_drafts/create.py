@@ -26,12 +26,15 @@ async def create_setting_draft(
     profile_ids: list[UUID] | None = None,
     provider_key_ids: list[UUID] | None = None,
     threshold_ids: list[UUID] | None = None,
+    pending_ids: set[UUID] | None = None,
 ) -> CreateSettingDraftResponse:
-    """Create a setting_drafts entry with optional connection table links."""
+    """Create or update a setting_drafts entry with optional connection links."""
+
     draft_id = await conn.fetchval(
         """
         INSERT INTO setting_drafts_entry (id, session_id, active, mcp, generated)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
+        ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         session_id,
@@ -43,6 +46,7 @@ async def create_setting_draft(
     if draft_id is None:
         raise ValueError("Failed to create setting_drafts entry")
 
+    _pending = pending_ids or set()
     connections: list[tuple[str, str, list[UUID]]] = [
         ("setting_drafts_agents_connection", "agents_id", agent_ids or []),
         (
@@ -77,9 +81,11 @@ async def create_setting_draft(
     for table, col, ids in connections:
         for rid in ids:
             await conn.execute(
-                f"INSERT INTO {table} (draft_id, {col}) VALUES ($1, $2)",
+                f"INSERT INTO {table} (draft_id, {col}, active) VALUES ($1, $2, $3) "
+                f"ON CONFLICT (draft_id, {col}) DO UPDATE SET active = EXCLUDED.active",
                 draft_id,
                 rid,
+                False if soft else (rid not in _pending),
             )
 
     return CreateSettingDraftResponse(id=draft_id)

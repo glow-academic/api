@@ -6,119 +6,188 @@ from datetime import datetime
 from typing import ClassVar
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
-from app.infra.api_types import BaseResourceSection
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.setting_drafts.types import GetSettingDraftResponse
 
-# ========== Flag Enrichment ==========
+class SettingNameResource(BaseModel):
+    id: UUID | None = Field(None, description="Name resource identifier")
+    name: str | None = Field(None, description="Setting display name")
+    generated: bool | None = Field(None, description="Whether the name was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class SettingDescriptionResource(BaseModel):
+    id: UUID | None = Field(None, description="Description resource identifier")
+    description: str | None = Field(None, description="Setting description")
+    generated: bool | None = Field(None, description="Whether the description was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class SettingColorResource(BaseModel):
+    id: UUID | None = Field(None, description="Color resource identifier")
+    name: str | None = Field(None, description="Color display name")
+    description: str | None = Field(None, description="Color description")
+    hex_code: str | None = Field(None, description="Hex color value")
+    generated: bool | None = Field(None, description="Whether the color was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
 class SettingFlagConfig(BaseModel):
-    """Enriched flag config for direct client consumption."""
-
-    key: str = Field(..., description="Flag key identifier (e.g. 'active')")
-    label: str = Field(..., description="Human-readable flag label (e.g. 'Active')")
+    key: str = Field(..., description="Flag key identifier")
+    label: str = Field(..., description="Human-readable flag label")
     description: str | None = Field(None, description="Flag description text")
     icon_id: str | None = Field(None, description="Icon identifier for the flag")
     flag_option_id: UUID | None = Field(None, description="UUID of the flag option to use when enabling")
     show: bool = Field(True, description="Whether the flag is visible to the client")
     required: bool = Field(False, description="Whether the flag is required")
     generated: bool | None = Field(None, description="Whether the flag was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
-# ========== Per-Resource Section Types ==========
+class SettingDepartmentResource(BaseModel):
+    department_id: UUID | None = Field(None, description="Department identifier")
+    name: str | None = Field(None, description="Department name")
+    description: str | None = Field(None, description="Department description")
+    generated: bool | None = Field(None, description="Whether the department was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
-# Single-select sections
-class SettingNameSection(BaseResourceSection):
-    resource: dict | None = Field(None, description="Currently selected name resource")
-    resources: list | None = Field(None, description="Available name resources")
+class SettingProfileResource(BaseModel):
+    profile_id: UUID | None = Field(None, description="Profile identifier")
+    name: str | None = Field(None, description="Profile display name")
+    description: str | None = Field(None, description="Profile description")
+    generated: bool | None = Field(None, description="Whether the profile was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
-class SettingDescriptionSection(BaseResourceSection):
-    resource: dict | None = Field(None, description="Currently selected description resource")
-    resources: list | None = Field(None, description="Available description resources")
+class SettingAuthResource(BaseModel):
+    auth_id: UUID | None = Field(None, description="Auth identifier")
+    name: str | None = Field(None, description="Auth display name")
+    description: str | None = Field(None, description="Auth description")
+    slug: str | None = Field(None, description="Auth slug")
+    protocol: str | None = Field(None, description="Auth protocol")
+    generated: bool | None = Field(None, description="Whether the auth was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
-# Flag section (uses SettingFlagConfig)
-class SettingFlagSection(BaseResourceSection):
-    current: SettingFlagConfig | None = Field(None, description="Currently selected flag config")
-    resources: list[SettingFlagConfig] | None = Field(None, description="Available flag configs")
+class SettingProviderKeyResource(BaseModel):
+    id: UUID | None = Field(None, description="Provider key identifier")
+    provider_id: UUID | None = Field(None, description="Provider identifier")
+    key_id: UUID | None = Field(None, description="Key identifier")
+    key: str | None = Field(None, description="Key value")
+    name: str | None = Field(None, description="Key display name")
+    description: str | None = Field(None, description="Key description")
+    generated: bool | None = Field(None, description="Whether the provider-key pair was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
-# Multi-select sections
-class SettingColorSection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned colors")
-    resources: list | None = Field(None, description="Available color resources")
+class SettingAuthItemKeyResource(BaseModel):
+    id: UUID | None = Field(None, description="Auth item key identifier")
+    auth_id: UUID | None = Field(None, description="Auth identifier")
+    item_id: UUID | None = Field(None, description="Item identifier")
+    key_id: UUID | None = Field(None, description="Key identifier")
+    generated: bool | None = Field(None, description="Whether the auth-item-key pair was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
-class SettingDepartmentSection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned departments")
-    resources: list | None = Field(None, description="Available department resources")
+class SettingSystemResource(BaseModel):
+    system_id: UUID | None = Field(None, description="System identifier")
+    name: str | None = Field(None, description="System display name")
+    description: str | None = Field(None, description="System description")
+    agent_ids: list[UUID] = Field(default_factory=list, description="Linked agent identifiers")
+    resolution_strategy: str | None = Field(None, description="Resolution strategy")
+    resolution_threshold: float | None = Field(None, description="Resolution threshold")
+    generated: bool | None = Field(None, description="Whether the system was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
-class SettingProfileSection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned profiles")
-    resources: list | None = Field(None, description="Available profile resources")
+class SettingProviderCatalogResource(BaseModel):
+    provider_id: UUID | None = Field(None, description="Provider identifier")
+    name: str | None = Field(None, description="Provider display name")
+    description: str | None = Field(None, description="Provider description")
 
 
-class SettingAuthSection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned auth providers")
-    resources: list | None = Field(None, description="Available auth resources")
+class SettingKeyCatalogResource(BaseModel):
+    key_id: UUID | None = Field(None, description="Key identifier")
+    name: str | None = Field(None, description="Key display name")
+    description: str | None = Field(None, description="Key description")
+    masked_key: str | None = Field(None, description="Masked key value for display")
 
 
-class SettingProviderKeySection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned provider keys")
-    resources: list | None = Field(None, description="Available provider key resources")
-
-
-class SettingAuthItemKeySection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned auth item keys")
-    resources: list | None = Field(None, description="Available auth item key resources")
-
-
-class SettingSystemSection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned systems")
-    resources: list | None = Field(None, description="Available system resources")
-
-
-# ========== GET Endpoint Types ==========
+class SectionFilter(BaseModel):
+    search: str | None = Field(None, description="Filter options by search text")
+    limit: int | None = Field(None, description="Max options to return")
+    selected: bool | None = Field(None, description="Only return selected items")
+    suggested: bool | None = Field(None, description="Only return suggested items")
+    include: bool | None = Field(None, description="Include this section in response (default true)")
+    parameter_ids: list[str] | None = Field(None, description="Reserved for compatibility with shared filter parsing")
 
 
 class GetSettingApiRequest(BaseModel):
     """Request model for get setting endpoint."""
 
-    model_config = ConfigDict(populate_by_name=True)
-
-    setting_id: UUID | None = Field(default=None, alias="settings_id", description="UUID of the setting to retrieve")
-    color_search: str | None = Field(None, description="Search query for color resources")
+    id: UUID | None = Field(None, description="UUID of the setting to retrieve")
+    setting_id: UUID | None = Field(None, description="Legacy setting identifier")
+    settings_id: UUID | None = Field(None, description="Legacy alias for setting identifier")
     draft_id: UUID | None = Field(None, description="UUID of the draft to load")
-    mcp: bool | None = Field(False, description="Whether request is from MCP client")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+    names: SectionFilter | None = Field(None, description="Filter options for names")
+    descriptions: SectionFilter | None = Field(None, description="Filter options for descriptions")
+    colors: SectionFilter | None = Field(None, description="Filter options for colors")
+    flags: SectionFilter | None = Field(None, description="Filter options for flags")
+    departments: SectionFilter | None = Field(None, description="Filter options for departments")
+    profiles: SectionFilter | None = Field(None, description="Filter options for profiles")
+    auths: SectionFilter | None = Field(None, description="Filter options for auths")
+    provider_keys: SectionFilter | None = Field(None, description="Filter options for provider keys")
+    auth_item_keys: SectionFilter | None = Field(None, description="Filter options for auth item keys")
+    systems: SectionFilter | None = Field(None, description="Filter options for systems")
 
 
 class GetSettingApiResponse(BaseModel):
-    """Section-first response model for get setting endpoint."""
+    """Canonical composed setting response."""
 
-    # Context
     actor_name: str | None = Field(None, description="Display name of the acting user")
     setting_exists: bool | None = Field(None, description="Whether the setting exists")
     can_edit: bool | None = Field(None, description="Whether the actor can edit this setting")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled, if any")
     group_id: UUID | None = Field(None, description="Group UUID for draft collaboration")
-
-    # Per-resource sections (10 total)
-    names: SettingNameSection | None = Field(None, description="Name section with resources")
-    descriptions: SettingDescriptionSection | None = Field(None, description="Description section with resources")
-    colors: SettingColorSection | None = Field(None, description="Color section with resources")
-    flags: SettingFlagSection | None = Field(None, description="Flag section with configs")
-    departments: SettingDepartmentSection | None = Field(None, description="Department section with resources")
-    profiles: SettingProfileSection | None = Field(None, description="Profile section with resources")
-    auths: SettingAuthSection | None = Field(None, description="Auth section with resources")
-    provider_keys: SettingProviderKeySection | None = Field(None, description="Provider key section with resources")
-    auth_item_keys: SettingAuthItemKeySection | None = Field(None, description="Auth item key section with resources")
-    systems: SettingSystemSection | None = Field(None, description="System section with resources")
+    show_ai_generate: bool | None = Field(None, description="Whether any section should show AI generate")
+    basic_show_ai_generate: bool | None = Field(None, description="Whether the basic section should show AI generate")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
+    names: list[SettingNameResource] | None = Field(None, description="Name resources")
+    descriptions: list[SettingDescriptionResource] | None = Field(None, description="Description resources")
+    colors: list[SettingColorResource] | None = Field(None, description="Color resources")
+    flags: list[SettingFlagConfig] | None = Field(None, description="Flag configs")
+    departments: list[SettingDepartmentResource] | None = Field(None, description="Department resources")
+    profiles: list[SettingProfileResource] | None = Field(None, description="Profile resources")
+    auths: list[SettingAuthResource] | None = Field(None, description="Auth resources")
+    provider_keys: list[SettingProviderKeyResource] | None = Field(None, description="Provider key resources")
+    auth_item_keys: list[SettingAuthItemKeyResource] | None = Field(None, description="Auth item key resources")
+    systems: list[SettingSystemResource] | None = Field(None, description="System resources")
+    providers: list[SettingProviderCatalogResource] | None = Field(None, description="Provider catalog used by provider key editing")
+    keys: list[SettingKeyCatalogResource] | None = Field(None, description="Key catalog used by provider key and auth item key editing")
 
 
 # ========== Generation Completion Event ==========
@@ -277,64 +346,64 @@ class SaveSettingFieldError(BaseModel):
 
 
 class PatchSettingDraftApiRequest(ScopedItem):
-    """Request model for new-style setting draft endpoint.
+    """Canonical setting draft request."""
 
-    Dual-mode for creatable resources only:
-      - name/name_id, description/description_id
-    ID-only for non-creatable resources:
-      - flag_id, department_ids, color_ids, profile_ids, auth_ids,
-        provider_key_ids, auth_item_key_ids, threshold_ids
+    draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
+    input_draft_id: UUID | None = Field(None, description="Legacy draft UUID alias")
+    idempotency_key: UUID | None = Field(None, description="Operation key for accept/reject acknowledgement")
+    accept: bool = Field(True, description="Accept or reject pending draft state when used with idempotency_key")
 
-    Client always sends full state (append-only — each write is a new snapshot).
-    """
-
-    input_draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
-
-    # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Name value to resolve or create")
     name_id: UUID | None = Field(None, description="UUID of the name resource")
     description: str | None = Field(None, description="Description value to resolve or create")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
-
-    # Non-creatable — ID-only
-    flag_id: UUID | None = Field(None, description="UUID of the flag option")
+    active_flag: bool | None = Field(None, description="Whether the setting is active")
+    active_flag_id: UUID | None = Field(None, description="UUID of the active flag option")
+    flag_id: UUID | None = Field(None, description="Legacy alias for the active flag option")
+    departments: list[str] | None = Field(None, description="Department names to resolve")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     color_ids: list[UUID] | None = Field(None, description="Color resource UUIDs")
     profile_ids: list[UUID] | None = Field(None, description="Profile UUIDs to assign")
     auth_ids: list[UUID] | None = Field(None, description="Auth provider UUIDs")
     provider_key_ids: list[UUID] | None = Field(None, description="Provider key UUIDs")
     auth_item_key_ids: list[UUID] | None = Field(None, description="Auth item key UUIDs")
-    threshold_ids: list[UUID] | None = Field(None, description="Threshold UUIDs to assign")
+    system_ids: list[UUID] | None = Field(None, description="System UUIDs to assign")
+    pending_ids: list[UUID] | None = Field(None, description="Resource IDs to retain as pending inactive connections")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
+        "active_flag": "flags",
+        "active_flag_id": "flags",
         "flag_id": "flags",
+        "departments": "departments",
         "department_ids": "departments",
         "color_ids": "colors",
         "profile_ids": "profiles",
         "auth_ids": "auths",
         "provider_key_ids": "provider_keys",
         "auth_item_key_ids": "auth_item_keys",
-        "threshold_ids": "thresholds",
+        "system_ids": "systems",
     }
 
 
-class SettingDraftFormState(BaseModel):
-    """Server-authoritative form state returned after draft save."""
-
+class DraftFormState(BaseModel):
     name_id: UUID | None = Field(None, description="Resolved name resource UUID")
+    name: str | None = Field(None, description="Echoed name value when available")
     description_id: UUID | None = Field(None, description="Resolved description resource UUID")
-    flag_id: UUID | None = Field(None, description="Resolved flag option UUID")
-    department_ids: list[UUID] = Field(..., description="Assigned department UUIDs")
-    color_ids: list[UUID] = Field(..., description="Assigned color UUIDs")
-    profile_ids: list[UUID] = Field(..., description="Assigned profile UUIDs")
-    auth_ids: list[UUID] = Field(..., description="Assigned auth provider UUIDs")
-    provider_key_ids: list[UUID] = Field(..., description="Assigned provider key UUIDs")
-    auth_item_key_ids: list[UUID] = Field(..., description="Assigned auth item key UUIDs")
-    threshold_ids: list[UUID] = Field(..., description="Assigned threshold UUIDs")
+    description: str | None = Field(None, description="Echoed description value when available")
+    active_flag_id: UUID | None = Field(None, description="Resolved active flag option UUID")
+    flag_id: UUID | None = Field(None, description="Legacy alias for the active flag option UUID")
+    department_ids: list[UUID] = Field(default_factory=list, description="Assigned department UUIDs")
+    color_ids: list[UUID] = Field(default_factory=list, description="Assigned color UUIDs")
+    profile_ids: list[UUID] = Field(default_factory=list, description="Assigned profile UUIDs")
+    auth_ids: list[UUID] = Field(default_factory=list, description="Assigned auth provider UUIDs")
+    provider_key_ids: list[UUID] = Field(default_factory=list, description="Assigned provider key UUIDs")
+    auth_item_key_ids: list[UUID] = Field(default_factory=list, description="Assigned auth item key UUIDs")
+    system_ids: list[UUID] = Field(default_factory=list, description="Assigned system UUIDs")
+    pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
 
 
 class PatchSettingDraftApiResponse(BaseModel):
@@ -342,8 +411,9 @@ class PatchSettingDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the draft save succeeded")
     draft_id: UUID = Field(..., description="UUID of the saved draft")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
     message: str = Field(..., description="Result message")
-    form_state: SettingDraftFormState | None = Field(None, description="Server-authoritative form state")
+    form_state: DraftFormState | None = Field(None, description="Server-authoritative form state")
 
 
 class GetSettingDraftsApiResponse(BaseModel):

@@ -261,12 +261,15 @@ class CreateEvalApiRequest(BaseModel):
     """Request model for bulk create eval endpoint."""
 
     evals: list[CreateEvalItem] = Field(..., description="List of evals to create")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateEvalApiResponse(BaseModel):
     """Response model for bulk create eval endpoint."""
 
     results: list[EvalResultItem] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Update Endpoint Types ==========
@@ -303,12 +306,15 @@ class UpdateEvalApiRequest(BaseModel):
     """Request model for bulk update eval endpoint."""
 
     evals: list[UpdateEvalItem] = Field(..., description="List of evals to update")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateEvalApiResponse(BaseModel):
     """Response model for bulk update eval endpoint."""
 
     results: list[EvalResultItem] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 class SaveEvalFieldError(BaseModel):
@@ -325,6 +331,8 @@ class DeleteEvalApiRequest(BaseModel):
     """Request model for bulk delete eval endpoint."""
 
     eval_ids: list[UUID] = Field(..., description="Eval UUIDs to delete")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DeleteEvalResult(BaseModel):
@@ -339,6 +347,7 @@ class DeleteEvalApiResponse(BaseModel):
     """Response model for bulk delete eval endpoint."""
 
     results: list[DeleteEvalResult] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Duplicate Endpoint Types ==========
@@ -348,6 +357,8 @@ class DuplicateEvalApiRequest(BaseModel):
     """Request model for duplicate eval endpoint."""
 
     eval_id: UUID = Field(..., description="Eval UUID to duplicate")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateEvalApiResponse(BaseModel):
@@ -356,6 +367,7 @@ class DuplicateEvalApiResponse(BaseModel):
     success: bool = Field(..., description="Whether the operation succeeded")
     eval_id: UUID = Field(..., description="Newly created eval UUID")
     message: str = Field(..., description="Human-readable result message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Draft Endpoint Types (composable infra) ==========
@@ -479,6 +491,8 @@ class ProblemEvalApiRequest(BaseModel):
 
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemEvalApiResponse(BaseModel):
@@ -487,3 +501,4 @@ class ProblemEvalApiResponse(BaseModel):
     problem_id: UUID = Field(..., description="UUID of the created problem")
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")

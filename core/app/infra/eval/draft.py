@@ -19,6 +19,7 @@ from app.infra.eval.types import (
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.eval_drafts.create import create_eval_draft
+from app.tools.entries.eval_drafts.get import get_eval_drafts
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.search import search_descriptions
@@ -126,7 +127,8 @@ async def patch_eval_draft_impl(
     request.draft_id = request.draft_id or request.input_draft_id or draft_id
     request.input_draft_id = request.input_draft_id or request.draft_id
 
-    idempotency_key = idempotency_key or request.idempotency_key
+    resolved_draft_id = request.draft_id or request.input_draft_id
+    idempotency_key = idempotency_key or request.idempotency_key or resolved_draft_id
     if idempotency_key is not None and accept is None:
         accept = request.accept
 
@@ -154,16 +156,31 @@ async def patch_eval_draft_impl(
     if accept is not None and idempotency_key is not None:
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
-                    await create_eval_draft(
-                        conn,
-                        session_id=session_id,
-                        id=idempotency_key,
-                        soft=False,
-                        profile_ids=[profile.profiles_id],
-                        pending_ids=set(request.pending_ids) if request.pending_ids else None,
-                    )
-            await refresh_eval_impl(pool, redis, profile_id=profile_id)
+                drafts = await get_eval_drafts(conn, [idempotency_key])
+                if drafts:
+                    draft = drafts[0]
+                    async with conn.transaction():
+                        await create_eval_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            department_ids=draft.department_ids,
+                            description_ids=draft.description_ids,
+                            flag_ids=draft.flag_ids,
+                            model_ids=draft.model_ids,
+                            name_ids=draft.name_ids,
+                            profile_ids=draft.profile_ids or [profile.profiles_id],
+                            rubric_ids=draft.rubric_ids,
+                            pending_ids=set(),
+                        )
+            await refresh_eval_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
+            )
 
         return PatchEvalDraftApiResponse(
             success=True,
@@ -186,7 +203,7 @@ async def patch_eval_draft_impl(
             result = await create_eval_draft(
                 conn,
                 session_id=session_id,
-                id=idempotency_key,
+                id=resolved_draft_id or idempotency_key,
                 soft=soft,
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id] if request.description_id else None,
@@ -209,7 +226,14 @@ async def patch_eval_draft_impl(
     )
 
     if not soft:
-        await refresh_eval_impl(pool, redis, profile_id=profile_id)
+        await refresh_eval_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=result.id,
+        )
 
     return PatchEvalDraftApiResponse(
         success=True,

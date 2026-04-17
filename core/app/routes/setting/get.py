@@ -52,9 +52,22 @@ async def get_setting(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
+                id=request.id,
                 setting_id=request.setting_id,
+                settings_id=request.settings_id,
                 draft_id=request.draft_id,
-                color_search=request.color_search,
+                filters={
+                    "names": request.names,
+                    "descriptions": request.descriptions,
+                    "colors": request.colors,
+                    "flags": request.flags,
+                    "departments": request.departments,
+                    "profiles": request.profiles,
+                    "auths": request.auths,
+                    "provider_keys": request.provider_keys,
+                    "auth_item_keys": request.auth_item_keys,
+                    "systems": request.systems,
+                },
                 bypass_cache=bypass_cache,
             )
 

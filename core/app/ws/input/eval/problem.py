@@ -47,6 +47,8 @@ async def eval_problem(sid: str, data: dict[str, Any]) -> None:
             session_id=identity.session_id,
             type=payload.type,
             message=payload.message,
+            accept=payload.accept,
+            idempotency_key=payload.idempotency_key,
         ),
         arguments=payload.model_dump(mode="json"),
     )

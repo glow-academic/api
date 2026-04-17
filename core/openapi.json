@@ -6080,6 +6080,16 @@
         "summary": "Eval Refresh",
         "description": "Refresh eval materialized views and invalidate caches.",
         "operationId": "eval_refresh_eval_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshEvalApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6087,6 +6097,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -6956,7 +6976,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetSettingApiResponse-Output"
+                  "$ref": "#/components/schemas/GetSettingApiResponse"
                 }
               }
             }
@@ -36736,7 +36756,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetSettingApiResponse-Input"
+                "$ref": "#/components/schemas/GetSettingApiResponse"
               }
             }
           },
@@ -55363,6 +55383,25 @@
             "type": "array",
             "title": "Evals",
             "description": "List of evals to create"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -55381,6 +55420,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -55399,6 +55451,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -61950,6 +62015,25 @@
             "type": "array",
             "title": "Eval Ids",
             "description": "Eval UUIDs to delete"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -61968,6 +62052,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -65270,6 +65367,25 @@
             "format": "uuid",
             "title": "Eval Id",
             "description": "Eval UUID to duplicate"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -65296,6 +65412,19 @@
             "type": "string",
             "title": "Message",
             "description": "Human-readable result message"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -87246,6 +87375,32 @@
       },
       "GetSettingApiRequest": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "UUID of the setting to retrieve"
+          },
+          "setting_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Setting Id",
+            "description": "Legacy setting identifier"
+          },
           "settings_id": {
             "anyOf": [
               {
@@ -87257,19 +87412,7 @@
               }
             ],
             "title": "Settings Id",
-            "description": "UUID of the setting to retrieve"
-          },
-          "color_search": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Color Search",
-            "description": "Search query for color resources"
+            "description": "Legacy alias for setting identifier"
           },
           "draft_id": {
             "anyOf": [
@@ -87284,25 +87427,134 @@
             "title": "Draft Id",
             "description": "UUID of the draft to load"
           },
-          "mcp": {
+          "snapshot_key": {
             "anyOf": [
               {
-                "type": "boolean"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Mcp",
-            "description": "Whether request is from MCP client",
-            "default": false
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for names"
+          },
+          "descriptions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for descriptions"
+          },
+          "colors": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for colors"
+          },
+          "flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for departments"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for profiles"
+          },
+          "auths": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for auths"
+          },
+          "provider_keys": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for provider keys"
+          },
+          "auth_item_keys": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for auth item keys"
+          },
+          "systems": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for systems"
           }
         },
         "type": "object",
         "title": "GetSettingApiRequest",
         "description": "Request model for get setting endpoint."
       },
-      "GetSettingApiResponse-Input": {
+      "GetSettingApiResponse": {
         "properties": {
           "actor_name": {
             "anyOf": [
@@ -87365,136 +87617,7 @@
             "title": "Group Id",
             "description": "Group UUID for draft collaboration"
           },
-          "names": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SettingNameSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Name section with resources"
-          },
-          "descriptions": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SettingDescriptionSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Description section with resources"
-          },
-          "colors": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SettingColorSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Color section with resources"
-          },
-          "flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SettingFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Flag section with configs"
-          },
-          "departments": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SettingDepartmentSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Department section with resources"
-          },
-          "profiles": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SettingProfileSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Profile section with resources"
-          },
-          "auths": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SettingAuthSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Auth section with resources"
-          },
-          "provider_keys": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SettingProviderKeySection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Provider key section with resources"
-          },
-          "auth_item_keys": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SettingAuthItemKeySection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Auth item key section with resources"
-          },
-          "systems": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SettingSystemSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "System section with resources"
-          }
-        },
-        "type": "object",
-        "title": "GetSettingApiResponse",
-        "description": "Section-first response model for get setting endpoint."
-      },
-      "GetSettingApiResponse-Output": {
-        "properties": {
-          "actor_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Actor Name",
-            "description": "Display name of the acting user"
-          },
-          "setting_exists": {
+          "show_ai_generate": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -87503,10 +87626,10 @@
                 "type": "null"
               }
             ],
-            "title": "Setting Exists",
-            "description": "Whether the setting exists"
+            "title": "Show Ai Generate",
+            "description": "Whether any section should show AI generate"
           },
-          "can_edit": {
+          "basic_show_ai_generate": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -87515,148 +87638,209 @@
                 "type": "null"
               }
             ],
-            "title": "Can Edit",
-            "description": "Whether the actor can edit this setting"
+            "title": "Basic Show Ai Generate",
+            "description": "Whether the basic section should show AI generate"
           },
-          "disabled_reason": {
+          "pending_ids": {
             "anyOf": [
               {
-                "type": "string"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Disabled Reason",
-            "description": "Reason editing is disabled, if any"
-          },
-          "group_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Group Id",
-            "description": "Group UUID for draft collaboration"
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers when available"
           },
           "names": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SettingNameSection"
+                "items": {
+                  "$ref": "#/components/schemas/SettingNameResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Name section with resources"
+            "title": "Names",
+            "description": "Name resources"
           },
           "descriptions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SettingDescriptionSection"
+                "items": {
+                  "$ref": "#/components/schemas/SettingDescriptionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Description section with resources"
+            "title": "Descriptions",
+            "description": "Description resources"
           },
           "colors": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SettingColorSection"
+                "items": {
+                  "$ref": "#/components/schemas/SettingColorResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Color section with resources"
+            "title": "Colors",
+            "description": "Color resources"
           },
           "flags": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SettingFlagSection"
+                "items": {
+                  "$ref": "#/components/schemas/SettingFlagConfig"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Flag section with configs"
+            "title": "Flags",
+            "description": "Flag configs"
           },
           "departments": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SettingDepartmentSection"
+                "items": {
+                  "$ref": "#/components/schemas/SettingDepartmentResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Department section with resources"
+            "title": "Departments",
+            "description": "Department resources"
           },
           "profiles": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SettingProfileSection"
+                "items": {
+                  "$ref": "#/components/schemas/SettingProfileResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Profile section with resources"
+            "title": "Profiles",
+            "description": "Profile resources"
           },
           "auths": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SettingAuthSection"
+                "items": {
+                  "$ref": "#/components/schemas/SettingAuthResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Auth section with resources"
+            "title": "Auths",
+            "description": "Auth resources"
           },
           "provider_keys": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SettingProviderKeySection"
+                "items": {
+                  "$ref": "#/components/schemas/SettingProviderKeyResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Provider key section with resources"
+            "title": "Provider Keys",
+            "description": "Provider key resources"
           },
           "auth_item_keys": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SettingAuthItemKeySection"
+                "items": {
+                  "$ref": "#/components/schemas/SettingAuthItemKeyResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Auth item key section with resources"
+            "title": "Auth Item Keys",
+            "description": "Auth item key resources"
           },
           "systems": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SettingSystemSection"
+                "items": {
+                  "$ref": "#/components/schemas/SettingSystemResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "System section with resources"
+            "title": "Systems",
+            "description": "System resources"
+          },
+          "providers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingProviderCatalogResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Providers",
+            "description": "Provider catalog used by provider key editing"
+          },
+          "keys": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingKeyCatalogResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Keys",
+            "description": "Key catalog used by provider key and auth item key editing"
           }
         },
         "type": "object",
         "title": "GetSettingApiResponse",
-        "description": "Section-first response model for get setting endpoint."
+        "description": "Canonical composed setting response."
       },
       "GetSettingDraftResponse": {
         "properties": {
@@ -87800,6 +87984,114 @@
             "type": "array",
             "title": "Threshold Ids",
             "description": "Associated threshold UUIDs"
+          },
+          "pending_agent_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Agent Ids",
+            "description": "Pending agent UUIDs"
+          },
+          "pending_auth_item_key_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Auth Item Key Ids",
+            "description": "Pending auth item key UUIDs"
+          },
+          "pending_auth_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Auth Ids",
+            "description": "Pending auth UUIDs"
+          },
+          "pending_color_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Color Ids",
+            "description": "Pending color UUIDs"
+          },
+          "pending_department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Department Ids",
+            "description": "Pending department UUIDs"
+          },
+          "pending_description_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Description Ids",
+            "description": "Pending description UUIDs"
+          },
+          "pending_flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Flag Ids",
+            "description": "Pending flag UUIDs"
+          },
+          "pending_item_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Item Ids",
+            "description": "Pending item UUIDs"
+          },
+          "pending_name_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Name Ids",
+            "description": "Pending name UUIDs"
+          },
+          "pending_profile_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Profile Ids",
+            "description": "Pending profile UUIDs"
+          },
+          "pending_provider_key_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Provider Key Ids",
+            "description": "Pending provider key UUIDs"
+          },
+          "pending_threshold_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Threshold Ids",
+            "description": "Pending threshold UUIDs"
           }
         },
         "type": "object",
@@ -92043,6 +92335,25 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -92081,6 +92392,19 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -110663,6 +110987,19 @@
       },
       "PatchSettingDraftApiRequest": {
         "properties": {
+          "draft_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Id",
+            "description": "Existing draft UUID to update"
+          },
           "input_draft_id": {
             "anyOf": [
               {
@@ -110674,7 +111011,26 @@
               }
             ],
             "title": "Input Draft Id",
-            "description": "Existing draft UUID to update"
+            "description": "Legacy draft UUID alias"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for accept/reject acknowledgement"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject pending draft state when used with idempotency_key",
+            "default": true
           },
           "name": {
             "anyOf": [
@@ -110726,6 +111082,31 @@
             "title": "Description Id",
             "description": "UUID of the description resource"
           },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether the setting is active"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "UUID of the active flag option"
+          },
           "flag_id": {
             "anyOf": [
               {
@@ -110737,7 +111118,22 @@
               }
             ],
             "title": "Flag Id",
-            "description": "UUID of the flag option"
+            "description": "Legacy alias for the active flag option"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departments",
+            "description": "Department names to resolve"
           },
           "department_ids": {
             "anyOf": [
@@ -110835,7 +111231,7 @@
             "title": "Auth Item Key Ids",
             "description": "Auth item key UUIDs"
           },
-          "threshold_ids": {
+          "system_ids": {
             "anyOf": [
               {
                 "items": {
@@ -110848,13 +111244,29 @@
                 "type": "null"
               }
             ],
-            "title": "Threshold Ids",
-            "description": "Threshold UUIDs to assign"
+            "title": "System Ids",
+            "description": "System UUIDs to assign"
+          },
+          "pending_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Ids",
+            "description": "Resource IDs to retain as pending inactive connections"
           }
         },
         "type": "object",
         "title": "PatchSettingDraftApiRequest",
-        "description": "Request model for new-style setting draft endpoint.\n\nDual-mode for creatable resources only:\n  - name/name_id, description/description_id\nID-only for non-creatable resources:\n  - flag_id, department_ids, color_ids, profile_ids, auth_ids,\n    provider_key_ids, auth_item_key_ids, threshold_ids\n\nClient always sends full state (append-only \u2014 each write is a new snapshot)."
+        "description": "Canonical setting draft request."
       },
       "PatchSettingDraftApiResponse": {
         "properties": {
@@ -110869,6 +111281,19 @@
             "title": "Draft Id",
             "description": "UUID of the saved draft"
           },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
+          },
           "message": {
             "type": "string",
             "title": "Message",
@@ -110877,7 +111302,7 @@
           "form_state": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SettingDraftFormState"
+                "$ref": "#/components/schemas/app__infra__setting__types__DraftFormState"
               },
               {
                 "type": "null"
@@ -114206,6 +114631,25 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -114235,6 +114679,19 @@
             "title": "Message",
             "description": "Status message",
             "default": "Problem created successfully"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -117922,6 +118379,47 @@
         "type": "object",
         "title": "RefreshDocumentApiRequest",
         "description": "Request model for document refresh endpoint."
+      },
+      "RefreshEvalApiRequest": {
+        "properties": {
+          "targets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targets",
+            "description": "MV targets to refresh (omit for all). Options: eval_drafts_mv"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject. Only meaningful with idempotency_key",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "RefreshEvalApiRequest",
+        "description": "Request model for eval refresh endpoint."
       },
       "RefreshFieldApiRequest": {
         "properties": {
@@ -126352,169 +126850,9 @@
         "title": "SessionTimelineItem",
         "description": "Single event in the unified session timeline."
       },
-      "SettingAuthItemKeySection": {
+      "SettingAuthItemKeyResource": {
         "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned auth item keys"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available auth item key resources"
-          }
-        },
-        "type": "object",
-        "title": "SettingAuthItemKeySection"
-      },
-      "SettingAuthSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned auth providers"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available auth resources"
-          }
-        },
-        "type": "object",
-        "title": "SettingAuthSection"
-      },
-      "SettingColorSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned colors"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available color resources"
-          }
-        },
-        "type": "object",
-        "title": "SettingColorSection"
-      },
-      "SettingDepartmentSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently assigned departments"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available department resources"
-          }
-        },
-        "type": "object",
-        "title": "SettingDepartmentSection"
-      },
-      "SettingDescriptionSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected description resource"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available description resources"
-          }
-        },
-        "type": "object",
-        "title": "SettingDescriptionSection"
-      },
-      "SettingDraftFormState": {
-        "properties": {
-          "name_id": {
+          "id": {
             "anyOf": [
               {
                 "type": "string",
@@ -126524,10 +126862,10 @@
                 "type": "null"
               }
             ],
-            "title": "Name Id",
-            "description": "Resolved name resource UUID"
+            "title": "Id",
+            "description": "Auth item key identifier"
           },
-          "description_id": {
+          "auth_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -126537,10 +126875,10 @@
                 "type": "null"
               }
             ],
-            "title": "Description Id",
-            "description": "Resolved description resource UUID"
+            "title": "Auth Id",
+            "description": "Auth identifier"
           },
-          "flag_id": {
+          "item_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -126550,85 +126888,371 @@
                 "type": "null"
               }
             ],
-            "title": "Flag Id",
-            "description": "Resolved flag option UUID"
+            "title": "Item Id",
+            "description": "Item identifier"
           },
-          "department_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Department Ids",
-            "description": "Assigned department UUIDs"
+          "key_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Id",
+            "description": "Key identifier"
           },
-          "color_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Color Ids",
-            "description": "Assigned color UUIDs"
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the auth-item-key pair was AI-generated"
           },
-          "profile_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Profile Ids",
-            "description": "Assigned profile UUIDs"
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
           },
-          "auth_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Auth Ids",
-            "description": "Assigned auth provider UUIDs"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
           },
-          "provider_key_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Provider Key Ids",
-            "description": "Assigned provider key UUIDs"
-          },
-          "auth_item_key_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Auth Item Key Ids",
-            "description": "Assigned auth item key UUIDs"
-          },
-          "threshold_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Threshold Ids",
-            "description": "Assigned threshold UUIDs"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "required": [
-          "department_ids",
-          "color_ids",
-          "profile_ids",
-          "auth_ids",
-          "provider_key_ids",
-          "auth_item_key_ids",
-          "threshold_ids"
-        ],
-        "title": "SettingDraftFormState",
-        "description": "Server-authoritative form state returned after draft save."
+        "title": "SettingAuthItemKeyResource"
+      },
+      "SettingAuthResource": {
+        "properties": {
+          "auth_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Id",
+            "description": "Auth identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Auth display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Auth description"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "Auth slug"
+          },
+          "protocol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol",
+            "description": "Auth protocol"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the auth was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "SettingAuthResource"
+      },
+      "SettingColorResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Color resource identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Color display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Color description"
+          },
+          "hex_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hex Code",
+            "description": "Hex color value"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the color was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "SettingColorResource"
+      },
+      "SettingDepartmentResource": {
+        "properties": {
+          "department_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Id",
+            "description": "Department identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Department name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Department description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the department was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "SettingDepartmentResource"
+      },
+      "SettingDescriptionResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Description resource identifier"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Setting description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the description was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "SettingDescriptionResource"
       },
       "SettingFieldError": {
         "properties": {
@@ -126656,12 +127280,12 @@
           "key": {
             "type": "string",
             "title": "Key",
-            "description": "Flag key identifier (e.g. 'active')"
+            "description": "Flag key identifier"
           },
           "label": {
             "type": "string",
             "title": "Label",
-            "description": "Human-readable flag label (e.g. 'Active')"
+            "description": "Human-readable flag label"
           },
           "description": {
             "anyOf": [
@@ -126723,6 +127347,24 @@
             ],
             "title": "Generated",
             "description": "Whether the flag was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
@@ -126730,136 +127372,350 @@
           "key",
           "label"
         ],
-        "title": "SettingFlagConfig",
-        "description": "Enriched flag config for direct client consumption."
+        "title": "SettingFlagConfig"
       },
-      "SettingFlagSection": {
+      "SettingKeyCatalogResource": {
         "properties": {
-          "current": {
+          "key_id": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SettingFlagConfig"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Currently selected flag config"
+            "title": "Key Id",
+            "description": "Key identifier"
           },
-          "resources": {
+          "name": {
             "anyOf": [
               {
-                "items": {
-                  "$ref": "#/components/schemas/SettingFlagConfig"
-                },
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available flag configs"
+            "title": "Name",
+            "description": "Key display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Key description"
+          },
+          "masked_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Masked Key",
+            "description": "Masked key value for display"
           }
         },
         "type": "object",
-        "title": "SettingFlagSection"
+        "title": "SettingKeyCatalogResource"
       },
-      "SettingNameSection": {
+      "SettingNameResource": {
         "properties": {
-          "resource": {
+          "id": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resource",
-            "description": "Currently selected name resource"
+            "title": "Id",
+            "description": "Name resource identifier"
           },
-          "resources": {
+          "name": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available name resources"
+            "title": "Name",
+            "description": "Setting display name"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the name was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "SettingNameSection"
+        "title": "SettingNameResource"
       },
-      "SettingProfileSection": {
+      "SettingProfileResource": {
         "properties": {
-          "current": {
+          "profile_id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently assigned profiles"
+            "title": "Profile Id",
+            "description": "Profile identifier"
           },
-          "resources": {
+          "name": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available profile resources"
+            "title": "Name",
+            "description": "Profile display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Profile description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the profile was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "SettingProfileSection"
+        "title": "SettingProfileResource"
       },
-      "SettingProviderKeySection": {
+      "SettingProviderCatalogResource": {
         "properties": {
-          "current": {
+          "provider_id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently assigned provider keys"
+            "title": "Provider Id",
+            "description": "Provider identifier"
           },
-          "resources": {
+          "name": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available provider key resources"
+            "title": "Name",
+            "description": "Provider display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Provider description"
           }
         },
         "type": "object",
-        "title": "SettingProviderKeySection"
+        "title": "SettingProviderCatalogResource"
+      },
+      "SettingProviderKeyResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Provider key identifier"
+          },
+          "provider_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Id",
+            "description": "Provider identifier"
+          },
+          "key_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Id",
+            "description": "Key identifier"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key",
+            "description": "Key value"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Key display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Key description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the provider-key pair was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "SettingProviderKeyResource"
       },
       "SettingResultItem": {
         "properties": {
@@ -126910,37 +127766,111 @@
         "title": "SettingResultItem",
         "description": "Per-item result within a bulk create/update response."
       },
-      "SettingSystemSection": {
+      "SettingSystemResource": {
         "properties": {
-          "current": {
+          "system_id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently assigned systems"
+            "title": "System Id",
+            "description": "System identifier"
           },
-          "resources": {
+          "name": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available system resources"
+            "title": "Name",
+            "description": "System display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "System description"
+          },
+          "agent_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Agent Ids",
+            "description": "Linked agent identifiers"
+          },
+          "resolution_strategy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Strategy",
+            "description": "Resolution strategy"
+          },
+          "resolution_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Threshold",
+            "description": "Resolution threshold"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the system was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "SettingSystemSection"
+        "title": "SettingSystemResource"
       },
       "SimulationData": {
         "properties": {
@@ -132858,6 +133788,25 @@
             "type": "array",
             "title": "Evals",
             "description": "List of evals to update"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -132876,6 +133825,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -132894,6 +133856,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -140303,6 +141278,241 @@
         ],
         "title": "DraftVideoValue",
         "description": "Value for creating a video via the draft endpoint."
+      },
+      "app__infra__setting__types__DraftFormState": {
+        "properties": {
+          "name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Id",
+            "description": "Resolved name resource UUID"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Echoed name value when available"
+          },
+          "description_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description Id",
+            "description": "Resolved description resource UUID"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Echoed description value when available"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Resolved active flag option UUID"
+          },
+          "flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Id",
+            "description": "Legacy alias for the active flag option UUID"
+          },
+          "department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Department Ids",
+            "description": "Assigned department UUIDs"
+          },
+          "color_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Color Ids",
+            "description": "Assigned color UUIDs"
+          },
+          "profile_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Profile Ids",
+            "description": "Assigned profile UUIDs"
+          },
+          "auth_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Auth Ids",
+            "description": "Assigned auth provider UUIDs"
+          },
+          "provider_key_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Provider Key Ids",
+            "description": "Assigned provider key UUIDs"
+          },
+          "auth_item_key_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Auth Item Key Ids",
+            "description": "Assigned auth item key UUIDs"
+          },
+          "system_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "System Ids",
+            "description": "Assigned system UUIDs"
+          },
+          "pending_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers"
+          }
+        },
+        "type": "object",
+        "title": "DraftFormState"
+      },
+      "app__infra__setting__types__SectionFilter": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Filter options by search text"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Max options to return"
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected",
+            "description": "Only return selected items"
+          },
+          "suggested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested",
+            "description": "Only return suggested items"
+          },
+          "include": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include",
+            "description": "Include this section in response (default true)"
+          },
+          "parameter_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Ids",
+            "description": "Reserved for compatibility with shared filter parsing"
+          }
+        },
+        "type": "object",
+        "title": "SectionFilter"
       },
       "app__infra__simulation__types__DraftFormState": {
         "properties": {

@@ -1,12 +1,4 @@
-"""Canonical shared setting get operation.
-
-Uses composable infra layers:
-  1. resolve_common_context — profile + tool graph + runs
-  2. resolve_setting_permissions_context — access check (404, 403, fail fast)
-  3. resolve_setting_context — artifact + draft -> merged + hydrated resources
-  4. score_tools — tool graph + artifact resources -> per-resource tool picks
-  5. Pure Python — permissions, show/required flags, response assembly
-"""
+"""Canonical shared setting GET operation."""
 
 from __future__ import annotations
 
@@ -20,9 +12,11 @@ from app.infra.common_context import resolve_common_context
 from app.infra.helpers import dedupe_by_id
 from app.infra.setting.context import resolve_setting_context
 from app.infra.setting.permissions import (
+    SETTING_GENERATION_RESOURCES,
     SETTING_RESOURCES,
     compute_auth_item_keys_required,
     compute_auths_required,
+    compute_can_draft,
     compute_can_edit,
     compute_colors_required,
     compute_departments_required,
@@ -47,37 +41,60 @@ from app.infra.setting.permissions import (
     has_access,
 )
 from app.infra.setting.permissions_context import resolve_setting_permissions_context
-from app.infra.tool_graph import score_tools
 from app.infra.setting.types import (
     GetSettingApiResponse,
-    SettingAuthItemKeySection,
-    SettingAuthSection,
-    SettingColorSection,
-    SettingDepartmentSection,
-    SettingDescriptionSection,
+    SectionFilter,
+    SettingAuthItemKeyResource,
+    SettingAuthResource,
+    SettingColorResource,
+    SettingDepartmentResource,
+    SettingDescriptionResource,
     SettingFlagConfig,
-    SettingFlagSection,
-    SettingNameSection,
-    SettingProfileSection,
-    SettingProviderKeySection,
-    SettingSystemSection,
+    SettingKeyCatalogResource,
+    SettingNameResource,
+    SettingProfileResource,
+    SettingProviderCatalogResource,
+    SettingProviderKeyResource,
+    SettingSystemResource,
 )
+from app.infra.tool_graph import score_tools
 
-# ---------------------------------------------------------------------------
-# get_setting_impl — composable infra architecture
-# ---------------------------------------------------------------------------
+SECTIONS = [
+    "names",
+    "descriptions",
+    "colors",
+    "flags",
+    "departments",
+    "profiles",
+    "auths",
+    "provider_keys",
+    "auth_item_keys",
+    "systems",
+]
 
 
-def _serialize_model(item):
-    if item is None:
+def _sf(filters: dict[str, SectionFilter | None], section: str, attr: str, default=None):
+    section_filter = filters.get(section)
+    if section_filter is None:
+        return default
+    return getattr(section_filter, attr, default)
+
+
+def _filter_items(
+    items: list | None,
+    section: str,
+    *,
+    selected_only: dict[str, bool],
+    suggested_only: dict[str, bool],
+):
+    if items is None:
         return None
-    if hasattr(item, "model_dump"):
-        return item.model_dump(mode="json")
-    return item
-
-
-def _serialize_models(items: list) -> list:
-    return [_serialize_model(item) for item in items]
+    result = items
+    if selected_only.get(section):
+        result = [item for item in result if getattr(item, "selected", False)]
+    if suggested_only.get(section):
+        result = [item for item in result if getattr(item, "suggested", False)]
+    return result
 
 
 async def get_setting_impl(
@@ -86,25 +103,19 @@ async def get_setting_impl(
     *,
     profile_id: UUID,
     session_id: UUID | None = None,
-    setting_id: UUID | None,
+    id: UUID | None = None,
+    setting_id: UUID | None = None,
+    settings_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
-    # Search filters (threaded from client)
-    color_search: str | None = None,
+    filters: dict[str, SectionFilter | None] | None = None,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> GetSettingApiResponse:
-    """Setting GET using composable infra functions.
+    """Resolve the canonical setting artifact bundle for any surface."""
 
-    Flow:
-      1. resolve_common_context(profile_id) -> profile, tool_graph, runs
-      2. resolve_setting_permissions_context -> access check (404, 403, fail fast)
-      3. resolve_setting_context(setting_id, draft_id, ...) -> hydrated resources
-      4. score_tools(tool_graph, SETTING_RESOURCES) -> per-resource tool picks
-      5. Pure Python: permissions, show/required/AI flags, response assembly
-    """
-
-    # -- Step 1: Common context (profile -> tool_graph + runs) ----------------
+    resolved_filters = dict(filters or {})
+    setting_id = id or setting_id or settings_id
 
     common = await resolve_common_context(
         pool,
@@ -116,83 +127,268 @@ async def get_setting_impl(
         artifact_type="setting",
         bypass_cache=bypass_cache,
     )
-
     if common is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    group_id = group_id or common.profile.group_id
-    profile = common.profile
-
-    # -- Step 2: Permissions check (fail fast before full hydration) -----------
+    actor = common.profile
+    effective_group_id = group_id or actor.group_id
 
     perms = None
     if setting_id is not None:
         async with pool.acquire() as conn:
             perms = await resolve_setting_permissions_context(conn, setting_id)
-
         if not perms.exists:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Setting {setting_id} not found",
-            )
-
-        if not has_access(profile.role_level, profile.department_ids, perms.department_ids):
+            raise HTTPException(status_code=404, detail=f"Setting {setting_id} not found")
+        if not has_access(actor.role_level, actor.department_ids, perms.department_ids):
             raise HTTPException(
                 status_code=403,
                 detail="You don't have access to this setting. It may be restricted to other departments.",
             )
 
-    # -- Step 3: Setting artifact context -------------------------------------
-
     setting = await resolve_setting_context(
         pool,
         redis,
         setting_id=setting_id,
-        group_id=group_id,
+        group_id=effective_group_id,
         draft_id=draft_id,
-        user_department_ids=profile.department_ids,
-        color_search=color_search,
+        user_department_ids=actor.department_ids,
+        owner_profile_id=actor.profiles_id,
+        names_search=_sf(resolved_filters, "names", "search"),
+        descriptions_search=_sf(resolved_filters, "descriptions", "search"),
+        colors_search=_sf(resolved_filters, "colors", "search"),
+        flags_search=_sf(resolved_filters, "flags", "search"),
+        departments_search=_sf(resolved_filters, "departments", "search"),
+        profiles_search=_sf(resolved_filters, "profiles", "search"),
+        auths_search=_sf(resolved_filters, "auths", "search"),
+        provider_keys_search=_sf(resolved_filters, "provider_keys", "search"),
+        auth_item_keys_search=_sf(resolved_filters, "auth_item_keys", "search"),
+        systems_search=_sf(resolved_filters, "systems", "search"),
+        names_limit=_sf(resolved_filters, "names", "limit"),
+        descriptions_limit=_sf(resolved_filters, "descriptions", "limit"),
+        colors_limit=_sf(resolved_filters, "colors", "limit"),
+        flags_limit=_sf(resolved_filters, "flags", "limit"),
+        departments_limit=_sf(resolved_filters, "departments", "limit"),
+        profiles_limit=_sf(resolved_filters, "profiles", "limit"),
+        auths_limit=_sf(resolved_filters, "auths", "limit"),
+        provider_keys_limit=_sf(resolved_filters, "provider_keys", "limit"),
+        auth_item_keys_limit=_sf(resolved_filters, "auth_item_keys", "limit"),
+        systems_limit=_sf(resolved_filters, "systems", "limit"),
+        names_selected_only=_sf(resolved_filters, "names", "selected"),
+        descriptions_selected_only=_sf(resolved_filters, "descriptions", "selected"),
+        colors_selected_only=_sf(resolved_filters, "colors", "selected"),
+        flags_selected_only=_sf(resolved_filters, "flags", "selected"),
+        departments_selected_only=_sf(resolved_filters, "departments", "selected"),
+        profiles_selected_only=_sf(resolved_filters, "profiles", "selected"),
+        auths_selected_only=_sf(resolved_filters, "auths", "selected"),
+        provider_keys_selected_only=_sf(resolved_filters, "provider_keys", "selected"),
+        auth_item_keys_selected_only=_sf(resolved_filters, "auth_item_keys", "selected"),
+        systems_selected_only=_sf(resolved_filters, "systems", "selected"),
         bypass_cache=bypass_cache,
     )
 
-    # -- Step 4: Tool scoring -------------------------------------------------
-
     scores = score_tools(common.tool_graph, SETTING_RESOURCES)
-
-    agent_ids: dict[str, UUID | None] = {
-        r: (scores.best[r].agent_id if scores.best.get(r) else None)
-        for r in SETTING_RESOURCES
-    }
-
-
-    # -- Step 5: Permissions --------------------------------------------------
+    include = {section: _sf(resolved_filters, section, "include") is not False for section in SECTIONS}
+    selected_only = {section: bool(_sf(resolved_filters, section, "selected")) for section in SECTIONS}
+    suggested_only = {section: bool(_sf(resolved_filters, section, "suggested")) for section in SECTIONS}
 
     perms_department_ids = perms.department_ids if perms else []
-
     can_edit = compute_can_edit(
-        role_level=profile.role_level, role_permissions=profile.role_permissions,
+        role_level=actor.role_level,
+        role_permissions=actor.role_permissions,
         setting_department_ids=perms_department_ids,
-        user_department_ids=profile.department_ids,
+        user_department_ids=actor.department_ids,
     )
-
     disabled_reason = compute_disabled_reason(
-        role_level=profile.role_level, role_permissions=profile.role_permissions,
+        role_level=actor.role_level,
+        role_permissions=actor.role_permissions,
         setting_department_ids=perms_department_ids,
-        user_department_ids=profile.department_ids,
+        user_department_ids=actor.department_ids,
     )
 
-    # -- Step 6: Show / Required / AI flags -----------------------------------
+    pending_ids: set[UUID] = setting.entries.get("pending_ids", set())
 
-    all_colors = dedupe_by_id(
-        setting.resources["colors"].selected + setting.resources["colors"].suggestions
-    )
-    all_departments = dedupe_by_id(
-        setting.resources["departments"].selected
-        + setting.resources["departments"].suggestions
-    )
+    resource_pairs = setting.resources
+    selected_ids = {
+        section: {item.id for item in resource_pairs[section].selected if getattr(item, "id", None)}
+        for section in resource_pairs
+    }
+    suggested_ids = {
+        section: {item.id for item in resource_pairs[section].suggestions if getattr(item, "id", None)}
+        for section in resource_pairs
+    }
+
+    def _decorate(item_id: UUID | None, section: str) -> tuple[bool, bool, bool]:
+        return (
+            bool(item_id and item_id in suggested_ids[section]),
+            bool(item_id and item_id in selected_ids[section]),
+            bool(item_id and item_id in pending_ids),
+        )
+
+    all_names = dedupe_by_id(resource_pairs["names"].selected + resource_pairs["names"].suggestions)
+    all_descriptions = dedupe_by_id(resource_pairs["descriptions"].selected + resource_pairs["descriptions"].suggestions)
+    all_colors = dedupe_by_id(resource_pairs["colors"].selected + resource_pairs["colors"].suggestions)
+    all_flags = dedupe_by_id(resource_pairs["flags"].selected + resource_pairs["flags"].suggestions)
+    all_departments = dedupe_by_id(resource_pairs["departments"].selected + resource_pairs["departments"].suggestions)
+    all_profiles = dedupe_by_id(resource_pairs["profiles"].selected + resource_pairs["profiles"].suggestions)
+    all_auths = dedupe_by_id(resource_pairs["auths"].selected + resource_pairs["auths"].suggestions)
+    all_provider_keys = dedupe_by_id(resource_pairs["provider_keys"].selected + resource_pairs["provider_keys"].suggestions)
+    all_auth_item_keys = dedupe_by_id(resource_pairs["auth_item_keys"].selected + resource_pairs["auth_item_keys"].suggestions)
+    all_systems = dedupe_by_id(resource_pairs["systems"].selected + resource_pairs["systems"].suggestions)
+
+    names = [
+        SettingNameResource(
+            id=item.id,
+            name=item.name,
+            generated=item.generated,
+            suggested=_decorate(item.id, "names")[0],
+            selected=_decorate(item.id, "names")[1],
+            pending=_decorate(item.id, "names")[2],
+        )
+        for item in all_names
+    ]
+    descriptions = [
+        SettingDescriptionResource(
+            id=item.id,
+            description=item.description,
+            generated=item.generated,
+            suggested=_decorate(item.id, "descriptions")[0],
+            selected=_decorate(item.id, "descriptions")[1],
+            pending=_decorate(item.id, "descriptions")[2],
+        )
+        for item in all_descriptions
+    ]
+    colors = [
+        SettingColorResource(
+            id=item.id,
+            name=item.name,
+            description=item.description,
+            hex_code=item.hex_code,
+            generated=item.generated,
+            suggested=_decorate(item.id, "colors")[0],
+            selected=_decorate(item.id, "colors")[1],
+            pending=_decorate(item.id, "colors")[2],
+        )
+        for item in all_colors
+    ]
+    flags = [
+        SettingFlagConfig(
+            key=derive_flag_key_and_label(getattr(item, "name", None) or getattr(item, "type", None))[0],
+            label=derive_flag_key_and_label(getattr(item, "name", None) or getattr(item, "type", None))[1],
+            description=item.description,
+            icon_id=getattr(item, "icon", None),
+            flag_option_id=item.id,
+            show=compute_show_flag(),
+            required=compute_flag_required(),
+            generated=item.generated,
+            suggested=_decorate(item.id, "flags")[0],
+            selected=_decorate(item.id, "flags")[1],
+            pending=_decorate(item.id, "flags")[2],
+        )
+        for item in all_flags
+        if item.id
+    ]
+    departments = [
+        SettingDepartmentResource(
+            department_id=item.id,
+            name=item.name,
+            description=item.description,
+            generated=item.generated,
+            suggested=_decorate(item.id, "departments")[0],
+            selected=_decorate(item.id, "departments")[1],
+            pending=_decorate(item.id, "departments")[2],
+        )
+        for item in all_departments
+    ]
+    profiles = [
+        SettingProfileResource(
+            profile_id=item.id,
+            name=item.name,
+            description=item.description,
+            generated=item.generated,
+            suggested=_decorate(item.id, "profiles")[0],
+            selected=_decorate(item.id, "profiles")[1],
+            pending=_decorate(item.id, "profiles")[2],
+        )
+        for item in all_profiles
+    ]
+    auths = [
+        SettingAuthResource(
+            auth_id=item.id,
+            name=item.name,
+            description=item.description,
+            slug=item.slug,
+            protocol=item.protocol,
+            generated=item.generated,
+            suggested=_decorate(item.id, "auths")[0],
+            selected=_decorate(item.id, "auths")[1],
+            pending=_decorate(item.id, "auths")[2],
+        )
+        for item in all_auths
+    ]
+    provider_keys = [
+        SettingProviderKeyResource(
+            id=item.id,
+            provider_id=item.provider_id,
+            key_id=item.key_id,
+            key=item.key,
+            name=item.name,
+            description=item.description,
+            generated=item.generated,
+            suggested=_decorate(item.id, "provider_keys")[0],
+            selected=_decorate(item.id, "provider_keys")[1],
+            pending=_decorate(item.id, "provider_keys")[2],
+        )
+        for item in all_provider_keys
+    ]
+    auth_item_keys = [
+        SettingAuthItemKeyResource(
+            id=item.id,
+            auth_id=item.auth_id,
+            item_id=item.item_id,
+            key_id=item.key_id,
+            generated=item.generated,
+            suggested=_decorate(item.id, "auth_item_keys")[0],
+            selected=_decorate(item.id, "auth_item_keys")[1],
+            pending=_decorate(item.id, "auth_item_keys")[2],
+        )
+        for item in all_auth_item_keys
+    ]
+    systems = [
+        SettingSystemResource(
+            system_id=item.id,
+            name=item.name,
+            description=item.description,
+            agent_ids=item.agent_ids or [],
+            resolution_strategy=item.resolution_strategy,
+            resolution_threshold=item.resolution_threshold,
+            generated=item.generated,
+            suggested=_decorate(item.id, "systems")[0],
+            selected=_decorate(item.id, "systems")[1],
+            pending=_decorate(item.id, "systems")[2],
+        )
+        for item in all_systems
+    ]
+
+    providers_catalog = [
+        SettingProviderCatalogResource(
+            provider_id=item.id,
+            name=item.name,
+            description=item.description,
+        )
+        for item in setting.entries.get("providers", [])
+    ]
+    keys_catalog = [
+        SettingKeyCatalogResource(
+            key_id=item.id,
+            name=item.name,
+            description=item.description,
+            masked_key=getattr(item, "key_masked", None) or getattr(item, "masked_key", None),
+        )
+        for item in setting.entries.get("keys", [])
+    ]
 
     show_flags_map = {
         "names": compute_show_name(),
@@ -206,7 +402,6 @@ async def get_setting_impl(
         "auth_item_keys": compute_show_auth_item_keys(),
         "systems": compute_show_systems(),
     }
-
     required_flags_map = {
         "names": compute_name_required(),
         "descriptions": compute_description_required(),
@@ -220,146 +415,34 @@ async def get_setting_impl(
         "systems": compute_systems_required(),
     }
 
-    # -- Step 7: Response assembly --------------------------------------------
-
-    # Build flags with enriched config
-    all_flags = dedupe_by_id(
-        setting.resources["flags"].selected + setting.resources["flags"].suggestions
-    )
-    setting_flags = [
-        SettingFlagConfig(
-            key=derive_flag_key_and_label(f.name)[0],
-            label=derive_flag_key_and_label(f.name)[1],
-            description=f.description,
-            icon_id=f.icon,
-            flag_option_id=f.id,
-            generated=f.generated,
-        )
-        for f in all_flags
-        if f.id
-    ]
-
-    current_flag = None
-    if setting.resources["flags"].selected:
-        f = setting.resources["flags"].selected[0]
-        current_flag = SettingFlagConfig(
-            key=derive_flag_key_and_label(f.name)[0],
-            label=derive_flag_key_and_label(f.name)[1],
-            description=f.description,
-            icon_id=f.icon,
-            flag_option_id=f.id,
-            generated=f.generated,
-        )
-
-    suggestions_map: dict[str, list[UUID]] = {
-        "names": [n.id for n in setting.resources["names"].suggestions],
-        "descriptions": [d.id for d in setting.resources["descriptions"].suggestions],
-        "colors": [c.id for c in setting.resources["colors"].suggestions],
-        "departments": [d.id for d in setting.resources["departments"].suggestions],
-        "profiles": [p.id for p in setting.resources["profiles"].suggestions],
-        "auths": [a.id for a in setting.resources["auths"].suggestions],
-        "provider_keys": [
-            pk.id for pk in setting.resources["provider_keys"].suggestions
-        ],
-        "auth_item_keys": [
-            aik.id for aik in setting.resources["auth_item_keys"].suggestions
-        ],
-        "systems": [s.id for s in setting.resources["systems"].suggestions],
-    }
-
-    def _section(resource_key: str) -> dict:
-        return {
-            "show": show_flags_map.get(resource_key, False),
-            "required": required_flags_map.get(resource_key, False),
-            "suggestions": suggestions_map.get(resource_key),
-        }
-
-    all_names = dedupe_by_id(
-        setting.resources["names"].selected + setting.resources["names"].suggestions
-    )
-    all_descriptions = dedupe_by_id(
-        setting.resources["descriptions"].selected
-        + setting.resources["descriptions"].suggestions
-    )
-    all_profiles = dedupe_by_id(
-        setting.resources["profiles"].selected
-        + setting.resources["profiles"].suggestions
-    )
-    all_auths = dedupe_by_id(
-        setting.resources["auths"].selected + setting.resources["auths"].suggestions
-    )
-    all_provider_keys = dedupe_by_id(
-        setting.resources["provider_keys"].selected
-        + setting.resources["provider_keys"].suggestions
-    )
-    all_auth_item_keys = dedupe_by_id(
-        setting.resources["auth_item_keys"].selected
-        + setting.resources["auth_item_keys"].suggestions
-    )
-    all_systems = dedupe_by_id(
-        setting.resources["systems"].selected + setting.resources["systems"].suggestions
-    )
+    basic_show_ai_generate = compute_can_draft(
+        role_level=actor.role_level,
+        role_permissions=actor.role_permissions,
+    ) and any(scores.has_any.get(resource, False) for resource in SETTING_GENERATION_RESOURCES)
+    show_ai_generate = compute_can_draft(
+        role_level=actor.role_level,
+        role_permissions=actor.role_permissions,
+    ) and any(scores.has_any.get(resource, False) for resource in SETTING_RESOURCES)
 
     return GetSettingApiResponse(
-        # Context
-        actor_name=profile.name,
+        actor_name=actor.name,
         setting_exists=setting.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
-        group_id=group_id,
-        # Per-resource sections
-        names=SettingNameSection(
-            **_section("names"),
-            resource=_serialize_model(setting.resources["names"].selected[0])
-            if setting.resources["names"].selected
-            else None,
-            resources=_serialize_models(all_names),
-        ),
-        descriptions=SettingDescriptionSection(
-            **_section("descriptions"),
-            resource=_serialize_model(setting.resources["descriptions"].selected[0])
-            if setting.resources["descriptions"].selected
-            else None,
-            resources=_serialize_models(all_descriptions),
-        ),
-        colors=SettingColorSection(
-            **_section("colors"),
-            current=_serialize_models(setting.resources["colors"].selected),
-            resources=_serialize_models(all_colors),
-        ),
-        flags=SettingFlagSection(
-            **_section("flags"),
-            current=current_flag,
-            resources=setting_flags,
-        ),
-        departments=SettingDepartmentSection(
-            **_section("departments"),
-            current=_serialize_models(setting.resources["departments"].selected),
-            resources=_serialize_models(all_departments),
-        ),
-        profiles=SettingProfileSection(
-            **_section("profiles"),
-            current=_serialize_models(setting.resources["profiles"].selected),
-            resources=_serialize_models(all_profiles),
-        ),
-        auths=SettingAuthSection(
-            **_section("auths"),
-            current=_serialize_models(setting.resources["auths"].selected),
-            resources=_serialize_models(all_auths),
-        ),
-        provider_keys=SettingProviderKeySection(
-            **_section("provider_keys"),
-            current=_serialize_models(setting.resources["provider_keys"].selected),
-            resources=_serialize_models(all_provider_keys),
-        ),
-        auth_item_keys=SettingAuthItemKeySection(
-            **_section("auth_item_keys"),
-            current=_serialize_models(setting.resources["auth_item_keys"].selected),
-            resources=_serialize_models(all_auth_item_keys),
-        ),
-        systems=SettingSystemSection(
-            **_section("systems"),
-            current=_serialize_models(setting.resources["systems"].selected),
-            resources=_serialize_models(all_systems),
-        ),
+        group_id=effective_group_id,
+        show_ai_generate=show_ai_generate,
+        basic_show_ai_generate=basic_show_ai_generate,
+        pending_ids=sorted(pending_ids),
+        names=_filter_items(names, "names", selected_only=selected_only, suggested_only=suggested_only) if include["names"] else None,
+        descriptions=_filter_items(descriptions, "descriptions", selected_only=selected_only, suggested_only=suggested_only) if include["descriptions"] else None,
+        colors=_filter_items(colors, "colors", selected_only=selected_only, suggested_only=suggested_only) if include["colors"] else None,
+        flags=_filter_items(flags, "flags", selected_only=selected_only, suggested_only=suggested_only) if include["flags"] else None,
+        departments=_filter_items(departments, "departments", selected_only=selected_only, suggested_only=suggested_only) if include["departments"] else None,
+        profiles=_filter_items(profiles, "profiles", selected_only=selected_only, suggested_only=suggested_only) if include["profiles"] else None,
+        auths=_filter_items(auths, "auths", selected_only=selected_only, suggested_only=suggested_only) if include["auths"] else None,
+        provider_keys=_filter_items(provider_keys, "provider_keys", selected_only=selected_only, suggested_only=suggested_only) if include["provider_keys"] else None,
+        auth_item_keys=_filter_items(auth_item_keys, "auth_item_keys", selected_only=selected_only, suggested_only=suggested_only) if include["auth_item_keys"] else None,
+        systems=_filter_items(systems, "systems", selected_only=selected_only, suggested_only=suggested_only) if include["systems"] else None,
+        providers=providers_catalog,
+        keys=keys_catalog,
     )

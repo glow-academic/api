@@ -59,6 +59,8 @@ async def duplicate_eval(
                 profile_id=profile_id,
                 eval_id=request.eval_id,
                 session_id=session_id,
+                accept=request.accept,
+                idempotency_key=request.idempotency_key,
             )
 
         result = await run_artifact_operation_with_audit(
