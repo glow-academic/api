@@ -46,6 +46,8 @@ async def setting_duplicate(sid: str, data: dict[str, Any]) -> None:
             profile_id=identity.profile_id,
             setting_id=payload.setting_id,
             session_id=identity.session_id,
+            accept=payload.accept,
+            idempotency_key=payload.idempotency_key,
         ),
         arguments=payload.model_dump(mode="json"),
     )

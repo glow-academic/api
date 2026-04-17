@@ -144,6 +144,7 @@ async def attempt_stop_internal_impl(
     if not audit:
         return await _run()
 
+    sid = data.get("sid", "")
     return await run_artifact_operation_with_audit(
         get_pool(),
         get_redis_client(),
@@ -154,6 +155,8 @@ async def attempt_stop_internal_impl(
         arguments=build_audit_arguments(data),
         session_id=UUID(str(session_id)),
         entity_id=payload.chat_id,
+        sid=sid,
+        rooms=[sid] if sid else None,
         response_model=AttemptStopInternalResult,
     )
 

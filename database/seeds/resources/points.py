@@ -12,4 +12,8 @@ points = [
     dict(id=sid("point/total/16"), value=16, type="total"),
     dict(id=sid("point/total/10"), value=10, type="total"),
     dict(id=sid("point/total/8"), value=8, type="total"),
+    dict(id=sid("point/total/20"), value=20, type="total"),
+    dict(id=sid("point/pass/16"), value=16, type="pass"),
+    dict(id=sid("point/total/15"), value=15, type="total"),
+    dict(id=sid("point/pass/12"), value=12, type="pass"),
 ]

@@ -93,14 +93,36 @@ async def resolve_chat_context(
     draft_id: UUID | None = None,
     profile: ProfileIdentityContext | None = None,
     # Search filters
+    names_search: str | None = None,
     description_search: str | None = None,
+    flags_search: str | None = None,
+    departments_search: str | None = None,
     persona_search: str | None = None,
     document_search: str | None = None,
+    scenario_search: str | None = None,
+    field_search: str | None = None,
     problem_statement_search: str | None = None,
+    objective_search: str | None = None,
     image_search: str | None = None,
     video_search: str | None = None,
     question_search: str | None = None,
     option_search: str | None = None,
+    # Limits
+    names_limit: int | None = None,
+    descriptions_limit: int | None = None,
+    flags_limit: int | None = None,
+    departments_limit: int | None = None,
+    personas_limit: int | None = None,
+    documents_limit: int | None = None,
+    scenarios_limit: int | None = None,
+    fields_limit: int | None = None,
+    parameter_fields_limit: int | None = None,
+    questions_limit: int | None = None,
+    options_limit: int | None = None,
+    videos_limit: int | None = None,
+    images_limit: int | None = None,
+    problem_statements_limit: int | None = None,
+    objectives_limit: int | None = None,
     # Show-selected toggles
     persona_show_selected: bool | None = None,
     document_show_selected: bool | None = None,
@@ -202,32 +224,40 @@ async def resolve_chat_context(
         drafts = []
     draft = drafts[0] if drafts else None
 
-    # Extract IDs from draft (draft-only — no merge with published)
-    name_ids = list(draft.name_ids) if draft and draft.name_ids else []
-    description_ids = (
-        list(draft.description_ids) if draft and draft.description_ids else []
-    )
-    flag_ids = list(draft.flag_ids) if draft and draft.flag_ids else []
-    department_ids = (
-        list(draft.department_ids) if draft and draft.department_ids else []
-    )
-    persona_ids = list(draft.persona_ids) if draft and draft.persona_ids else []
-    document_ids = list(draft.document_ids) if draft and draft.document_ids else []
-    scenario_ids = list(draft.scenario_ids) if draft and draft.scenario_ids else []
+    # Merge draft over template defaults.
+    name_ids = list(draft.name_ids) if draft and draft.name_ids else list(template.name_ids) if template and template.name_ids else []
+    description_ids = list(draft.description_ids) if draft and draft.description_ids else list(template.description_ids) if template and template.description_ids else []
+    flag_ids = list(draft.flag_ids) if draft and draft.flag_ids else list(template.flag_ids) if template and template.flag_ids else []
+    department_ids = list(draft.department_ids) if draft and draft.department_ids else list(template.department_ids) if template and template.department_ids else []
+    persona_ids = list(draft.persona_ids) if draft and draft.persona_ids else list(template.persona_ids) if template and template.persona_ids else []
+    document_ids = list(draft.document_ids) if draft and draft.document_ids else list(template.document_ids) if template and template.document_ids else []
+    scenario_ids = list(draft.scenario_ids) if draft and draft.scenario_ids else [template.scenario_id] if template and template.scenario_id else []
     field_ids = list(draft.field_ids) if draft and draft.field_ids else []
-    parameter_field_ids = (
-        list(draft.parameter_field_ids) if draft and draft.parameter_field_ids else []
-    )
-    question_ids = list(draft.question_ids) if draft and draft.question_ids else []
-    option_ids = list(draft.option_ids) if draft and draft.option_ids else []
-    video_ids = list(draft.video_ids) if draft and draft.video_ids else []
-    image_ids = list(draft.image_ids) if draft and draft.image_ids else []
-    problem_statement_ids = (
-        list(draft.problem_statement_ids)
-        if draft and draft.problem_statement_ids
-        else []
-    )
-    objective_ids = list(draft.objective_ids) if draft and draft.objective_ids else []
+    parameter_field_ids = list(draft.parameter_field_ids) if draft and draft.parameter_field_ids else list(template.parameter_field_ids) if template and template.parameter_field_ids else []
+    question_ids = list(draft.question_ids) if draft and draft.question_ids else list(template.question_ids) if template and template.question_ids else []
+    option_ids = list(draft.option_ids) if draft and draft.option_ids else list(template.option_ids) if template and template.option_ids else []
+    video_ids = list(draft.video_ids) if draft and draft.video_ids else list(template.video_ids) if template and template.video_ids else []
+    image_ids = list(draft.image_ids) if draft and draft.image_ids else list(template.image_ids) if template and template.image_ids else []
+    problem_statement_ids = list(draft.problem_statement_ids) if draft and draft.problem_statement_ids else list(template.problem_statement_ids) if template and template.problem_statement_ids else []
+    objective_ids = list(draft.objective_ids) if draft and draft.objective_ids else list(template.objective_ids) if template and template.objective_ids else []
+
+    pending_ids: set[UUID] = set()
+    if draft:
+        pending_ids |= set(getattr(draft, "pending_name_ids", []) or [])
+        pending_ids |= set(getattr(draft, "pending_description_ids", []) or [])
+        pending_ids |= set(getattr(draft, "pending_flag_ids", []) or [])
+        pending_ids |= set(getattr(draft, "pending_department_ids", []) or [])
+        pending_ids |= set(getattr(draft, "pending_persona_ids", []) or [])
+        pending_ids |= set(getattr(draft, "pending_document_ids", []) or [])
+        pending_ids |= set(getattr(draft, "pending_scenario_ids", []) or [])
+        pending_ids |= set(getattr(draft, "pending_field_ids", []) or [])
+        pending_ids |= set(getattr(draft, "pending_parameter_field_ids", []) or [])
+        pending_ids |= set(getattr(draft, "pending_question_ids", []) or [])
+        pending_ids |= set(getattr(draft, "pending_option_ids", []) or [])
+        pending_ids |= set(getattr(draft, "pending_video_ids", []) or [])
+        pending_ids |= set(getattr(draft, "pending_image_ids", []) or [])
+        pending_ids |= set(getattr(draft, "pending_problem_statement_ids", []) or [])
+        pending_ids |= set(getattr(draft, "pending_objective_ids", []) or [])
 
     # ── Step 4: Parallel hydrate ──────────────────────────────────────────────
     # Each closure acquires its own connection for true parallelism.
@@ -250,6 +280,8 @@ async def resolve_chat_context(
         async with pool.acquire() as c:
             return await search_names(
                 c, redis,
+                search=names_search,
+                limit_count=names_limit or 20,
                 draft_id=draft_id if has_template else group_id,
                 suggest_source="draft" if has_template and draft_id else None,
                 exclude_ids=name_ids, bypass_cache=bypass_cache,
@@ -269,6 +301,7 @@ async def resolve_chat_context(
         async with pool.acquire() as c:
             return await search_descriptions(
                 c, redis, search=description_search,
+                limit_count=descriptions_limit or 20,
                 draft_id=draft_id if has_template else group_id,
                 suggest_source="draft" if has_template and draft_id else None,
                 exclude_ids=description_ids, bypass_cache=bypass_cache,
@@ -287,7 +320,7 @@ async def resolve_chat_context(
             return []
         async with pool.acquire() as c:
             return await search_flags(
-                c, redis, search=None, limit_count=50, offset_count=0,
+                c, redis, search=flags_search, limit_count=flags_limit or 50, offset_count=0,
                 exclude_ids=flag_ids, bypass_cache=bypass_cache,
             )
 
@@ -304,7 +337,7 @@ async def resolve_chat_context(
             return []
         async with pool.acquire() as c:
             return await search_departments(
-                c, redis, search=None, limit_count=20, offset_count=0,
+                c, redis, search=departments_search, limit_count=departments_limit or 20, offset_count=0,
                 department_ids=user_dept_ids, suggest_source="recent",
                 exclude_ids=department_ids, bypass_cache=bypass_cache,
             )
@@ -322,7 +355,7 @@ async def resolve_chat_context(
             return []
         async with pool.acquire() as c:
             return await search_personas(
-                c, redis, search=persona_search, limit_count=20, offset_count=0,
+                c, redis, search=persona_search, limit_count=personas_limit or 20, offset_count=0,
                 department_ids=scope_dept_ids, draft_id=group_id,
                 parameter_field_ids=mode_pf_ids,
                 suggest_source="selected" if persona_show_selected else None,
@@ -342,7 +375,7 @@ async def resolve_chat_context(
             return []
         async with pool.acquire() as c:
             return await search_documents(
-                c, redis, search=document_search, limit_count=20, offset_count=0,
+                c, redis, search=document_search, limit_count=documents_limit or 20, offset_count=0,
                 department_ids=scope_dept_ids, draft_id=group_id,
                 parameter_field_ids=mode_pf_ids,
                 suggest_source="selected" if document_show_selected else None,
@@ -362,7 +395,7 @@ async def resolve_chat_context(
             return []
         async with pool.acquire() as c:
             return await search_scenarios(
-                c, redis, search=None, limit_count=20, offset_count=0,
+                c, redis, search=scenario_search, limit_count=scenarios_limit or 20, offset_count=0,
                 exclude_ids=scenario_ids, bypass_cache=bypass_cache,
             )
 
@@ -379,7 +412,7 @@ async def resolve_chat_context(
             return []
         async with pool.acquire() as c:
             return await search_fields(
-                c, redis, search=None, limit_count=20, offset_count=0,
+                c, redis, search=field_search, limit_count=fields_limit or 20, offset_count=0,
                 exclude_ids=field_ids, bypass_cache=bypass_cache,
             )
 
@@ -404,9 +437,10 @@ async def resolve_chat_context(
                 from app.tools.resources.parameter_fields.get import get_parameter_fields as get_pfs
                 # Filter mode_pf_ids to exclude already-selected
                 available_ids = [pid for pid in pf_filter_ids if pid not in set(parameter_field_ids)]
-                return await get_pfs(c, available_ids, redis, bypass_cache) if available_ids else []
+                limited_ids = available_ids[: parameter_fields_limit or 20]
+                return await get_pfs(c, limited_ids, redis, bypass_cache) if limited_ids else []
             return await search_parameter_fields(
-                c, redis, limit_count=20, offset_count=0,
+                c, redis, limit_count=parameter_fields_limit or 20, offset_count=0,
                 exclude_ids=parameter_field_ids, bypass_cache=bypass_cache,
             )
 
@@ -423,7 +457,7 @@ async def resolve_chat_context(
             return []
         async with pool.acquire() as c:
             return await search_questions(
-                c, redis, search=question_search, limit_count=20, offset_count=0,
+                c, redis, search=question_search, limit_count=questions_limit or 20, offset_count=0,
                 exclude_ids=question_ids, bypass_cache=bypass_cache,
             )
 
@@ -440,7 +474,7 @@ async def resolve_chat_context(
             return []
         async with pool.acquire() as c:
             return await search_options(
-                c, redis, search=option_search, limit_count=20, offset_count=0,
+                c, redis, search=option_search, limit_count=options_limit or 20, offset_count=0,
                 exclude_ids=option_ids, bypass_cache=bypass_cache,
             )
 
@@ -457,7 +491,7 @@ async def resolve_chat_context(
             return []
         async with pool.acquire() as c:
             return await search_videos(
-                c, redis, search=video_search, limit_count=20, offset_count=0,
+                c, redis, search=video_search, limit_count=videos_limit or 20, offset_count=0,
                 exclude_ids=video_ids, bypass_cache=bypass_cache,
             )
 
@@ -474,7 +508,7 @@ async def resolve_chat_context(
             return []
         async with pool.acquire() as c:
             return await search_images(
-                c, redis, search=image_search, limit_count=20, offset_count=0,
+                c, redis, search=image_search, limit_count=images_limit or 20, offset_count=0,
                 exclude_ids=image_ids, bypass_cache=bypass_cache,
             )
 
@@ -493,7 +527,7 @@ async def resolve_chat_context(
             return []
         async with pool.acquire() as c:
             return await search_problem_statements(
-                c, redis, search=problem_statement_search, limit_count=20,
+                c, redis, search=problem_statement_search, limit_count=problem_statements_limit or 20,
                 offset_count=0, exclude_ids=problem_statement_ids,
                 bypass_cache=bypass_cache,
             )
@@ -511,7 +545,7 @@ async def resolve_chat_context(
             return []
         async with pool.acquire() as c:
             return await search_objectives(
-                c, redis, search=None, limit_count=20, offset_count=0,
+                c, redis, search=objective_search, limit_count=objectives_limit or 20, offset_count=0,
                 exclude_ids=objective_ids, bypass_cache=bypass_cache,
             )
 
@@ -647,5 +681,8 @@ async def resolve_chat_context(
         active=True,
         group_id=group_id,
         resources=resources,
-        entries={},
+        entries={
+            "pending_ids": pending_ids,
+            "chat_exists": has_template or chat_entry_id is None,
+        },
     )

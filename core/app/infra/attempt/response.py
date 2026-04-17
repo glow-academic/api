@@ -208,6 +208,7 @@ async def attempt_response_internal_impl(
     if not audit:
         return await _run()
 
+    sid = data.get("sid", "")
     return await run_artifact_operation_with_audit(
         get_pool(),
         get_redis_client(),
@@ -220,6 +221,8 @@ async def attempt_response_internal_impl(
         entity_id=(
             UUID(str(data["attempt_id"])) if data.get("attempt_id") is not None else None
         ),
+        sid=sid,
+        rooms=[sid] if sid else None,
         response_model=AttemptResponseInternalResult,
     )
 

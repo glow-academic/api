@@ -1,9 +1,4 @@
-"""Setting generate logic — per-artifact generation entry point.
-
-Fire-and-return: resolves identity, checks setting:generate permission,
-validates resources against the registry, and emits to the internal bus.
-Progress/completion events arrive via SSE or WebSocket.
-"""
+"""Setting generate logic — deterministic infra architecture."""
 
 from __future__ import annotations
 
@@ -14,9 +9,12 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.generation.execute import execute_generation
+from app.infra.generation.prepare import prepare_generation
 from app.infra.globals import get_internal_sio
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.setting.refresh import refresh_setting_impl
 from app.infra.websocket.generation_types import (
     ArtifactGenerateRequest,
     ArtifactGenerateResponse,
@@ -24,6 +22,9 @@ from app.infra.websocket.generation_types import (
     GeneratePayload,
 )
 from app.registry.generate import REGISTRY
+from app.utils.logging.db_logger import get_logger
+
+logger = get_logger(__name__)
 
 ARTIFACT_TYPE = "setting"
 
@@ -36,17 +37,21 @@ async def generate_setting_impl(
     session_id: UUID,
     request: ArtifactGenerateRequest,
     sid: str | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    **_kwargs,
 ) -> ArtifactGenerateResponse:
-    """Trigger setting generation.
+    """Setting generation using deterministic infra functions."""
+    internal_sio = get_internal_sio()
+    resolved_sid = sid or f"http-{uuid.uuid4()}"
+    cfg = request.config or GenerateConfig()
 
-    Flow:
-      1. resolve_profile_identity_context → role, permissions
-      2. Permission check — setting:generate
-      3. Validate resources against registry
-      4. Emit to internal bus
-      5. Return group_id immediately
-    """
-    # ── Step 1: Profile context ────────────────────────────────────────
+    tool_soft = not cfg.dangerous
+
+    idempotency_key = idempotency_key or request.idempotency_key
+    if idempotency_key and accept is None:
+        accept = request.accept
 
     profile = await resolve_profile_identity_context(
         pool,
@@ -54,14 +59,11 @@ async def generate_setting_impl(
         redis,
         session_id=session_id,
     )
-
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
-
-    # ── Step 2: Permission check ───────────────────────────────────────
 
     if not has_permission(profile.role_permissions, ARTIFACT_TYPE, "generate"):
         raise HTTPException(
@@ -69,16 +71,15 @@ async def generate_setting_impl(
             detail="You don't have permission to generate settings.",
         )
 
-    # ── Step 3: Validate resources ─────────────────────────────────────
-
-    cfg = request.config or GenerateConfig()
     group_id = cfg.group_id
     if not group_id:
         raise HTTPException(status_code=400, detail="group_id is required")
 
     config = REGISTRY.get(ARTIFACT_TYPE)
-    # ── Step 4: Emit to internal bus ───────────────────────────────────
+    if not config:
+        raise HTTPException(status_code=400, detail=f"No config for {ARTIFACT_TYPE}")
 
+    generated_key = idempotency_key or uuid.uuid4()
     payload = GeneratePayload(
         artifact_type=ARTIFACT_TYPE,
         instructions=request.instructions,
@@ -87,20 +88,65 @@ async def generate_setting_impl(
         params=cfg.params,
     )
 
-    resolved_sid = sid or f"http-{uuid.uuid4()}"
+    try:
+        prepared = await prepare_generation(
+            pool,
+            redis,
+            profile_id=profile_id,
+            profiles_id=profile.profiles_id,
+            session_id=session_id,
+            group_id=UUID(str(group_id)),
+            artifact_type=ARTIFACT_TYPE,
+            artifact_config=config,
+            payload=payload,
+            soft=soft,
+        )
 
-    internal_sio = get_internal_sio()
-    await internal_sio.emit(
-        "generate",
-        {
-            "sid": resolved_sid,
-            "profile_id": str(profile_id),
-            "profiles_id": str(profile.profiles_id),
-            "session_id": str(session_id),
-            "group_id": str(group_id),
-            "request_limit": profile.request_limit,
-            **payload.model_dump(mode="json"),
-        },
+        logger.info(
+            f"GENERATE_SETTING: prepared run_id={prepared.run_id}, "
+            f"dispatches={len(prepared.dispatches)}, "
+            f"resource_types={prepared.resource_types}"
+        )
+
+        for dispatch in prepared.dispatches:
+            for msg in dispatch.messages:
+                role = msg.get("role", "")
+                content = msg.get("content", "")
+                if role and content:
+                    await internal_sio.emit(
+                        f"{ARTIFACT_TYPE}.generate.text.complete",
+                        {
+                            "sid": resolved_sid,
+                            "rooms": [resolved_sid] if resolved_sid else [],
+                            "artifact_type": ARTIFACT_TYPE,
+                            "run_id": str(prepared.run_id),
+                            "group_id": str(group_id),
+                            "role": role,
+                            "text": content,
+                        },
+                    )
+
+        await execute_generation(
+            pool,
+            redis,
+            prepared=prepared,
+            sid=resolved_sid,
+            tool_soft=tool_soft,
+        )
+
+        await refresh_setting_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=generated_key,
+        )
+
+    except Exception as exc:
+        logger.exception(f"Setting generation failed: {exc}")
+        raise
+
+    return ArtifactGenerateResponse(
+        group_id=str(group_id),
+        idempotency_key=generated_key,
     )
-
-    return ArtifactGenerateResponse(group_id=str(group_id))

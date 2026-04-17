@@ -46,9 +46,7 @@ async def invocation_get(sid: str, data: dict[str, Any]) -> None:
             redis,
             profile_id=identity.profile_id,
             session_id=identity.session_id,
-            test_id=payload.test_id,
-            draft_id=payload.draft_id,
-            descriptions_search=payload.descriptions_search,
+            request=payload,
         ),
         arguments=payload.model_dump(mode="json"),
     )

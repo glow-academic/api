@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict RTPdmuy6W5IdcUtocOn5Z6I0viuQRiGkFAVBOKAtRPT2fNptJg1HJa4VjCK9LHi
+\restrict vrwiiJgdBqT2ACYLJzeDYv0S9mZvsKx30Viee63Kf3zbTegEZARb6fdN1bRbSdu
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -91,7 +91,8 @@ CREATE TYPE public.artifact_type AS ENUM (
     'chat',
     'invocation',
     'group',
-    'session'
+    'session',
+    'system'
 );
 
 
@@ -319,7 +320,141 @@ CREATE TYPE public.operation_type AS ENUM (
     'chat_analyses',
     'chat_hints',
     'join',
-    'leave'
+    'leave',
+    'home_context',
+    'home_export',
+    'home_generate',
+    'home_generations',
+    'home_get',
+    'home_group',
+    'home_problem',
+    'home_refresh',
+    'home_search',
+    'practice_context',
+    'practice_export',
+    'practice_generate',
+    'practice_generations',
+    'practice_get',
+    'practice_group',
+    'practice_problem',
+    'practice_refresh',
+    'practice_search',
+    'chat_context',
+    'chat_draft',
+    'chat_drafts',
+    'chat_export',
+    'chat_refresh',
+    'chat_search',
+    'dashboard_context',
+    'dashboard_export',
+    'dashboard_generate',
+    'dashboard_generations',
+    'dashboard_get',
+    'dashboard_group',
+    'dashboard_problem',
+    'dashboard_refresh',
+    'dashboard_search',
+    'leaderboard_context',
+    'leaderboard_export',
+    'leaderboard_generate',
+    'leaderboard_generations',
+    'leaderboard_get',
+    'leaderboard_group',
+    'leaderboard_problem',
+    'leaderboard_refresh',
+    'leaderboard_search',
+    'reports_context',
+    'reports_export',
+    'reports_generate',
+    'reports_generations',
+    'reports_get',
+    'reports_group',
+    'reports_problem',
+    'reports_refresh',
+    'reports_search',
+    'record_context',
+    'record_export',
+    'record_generate',
+    'record_generations',
+    'record_get',
+    'record_group',
+    'record_problem',
+    'record_refresh',
+    'record_search',
+    'invocation_context',
+    'invocation_decrypt',
+    'invocation_draft',
+    'invocation_drafts',
+    'invocation_export',
+    'invocation_generate',
+    'invocation_generations',
+    'invocation_get',
+    'invocation_group',
+    'invocation_problem',
+    'invocation_refresh',
+    'invocation_search',
+    'benchmark_context',
+    'benchmark_export',
+    'benchmark_generate',
+    'benchmark_generations',
+    'benchmark_get',
+    'benchmark_group',
+    'benchmark_problem',
+    'benchmark_refresh',
+    'benchmark_search',
+    'activity_context',
+    'activity_export',
+    'activity_generate',
+    'activity_generations',
+    'activity_get',
+    'activity_group',
+    'activity_problem',
+    'activity_refresh',
+    'activity_resolve',
+    'activity_search',
+    'session_context',
+    'session_export',
+    'session_generate',
+    'session_generations',
+    'session_get',
+    'session_group',
+    'session_problem',
+    'session_refresh',
+    'session_search',
+    'pricing_context',
+    'pricing_export',
+    'pricing_generate',
+    'pricing_generations',
+    'pricing_get',
+    'pricing_group',
+    'pricing_problem',
+    'pricing_refresh',
+    'pricing_search',
+    'group_audio_download',
+    'group_call_download',
+    'group_context',
+    'group_export',
+    'group_file_download',
+    'group_file_preview',
+    'group_generate',
+    'group_generations',
+    'group_get',
+    'group_image_download',
+    'group_name',
+    'group_problem',
+    'group_refresh',
+    'group_search',
+    'group_text_download',
+    'group_video_download',
+    'health_context',
+    'health_export',
+    'health_generate',
+    'health_generations',
+    'health_get',
+    'health_group',
+    'health_problem',
+    'health_refresh',
+    'health_search'
 );
 
 
@@ -611,6 +746,20 @@ CREATE TABLE public.agent_descriptions_junction (
     generated boolean DEFAULT false CONSTRAINT agent_descriptions_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT agent_descriptions_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT agent_descriptions_active_not_null NOT NULL
+);
+
+
+--
+-- Name: agent_drafts_agents_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.agent_drafts_agents_connection (
+    draft_id uuid NOT NULL,
+    agents_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
 );
 
 
@@ -13864,6 +14013,14 @@ ALTER TABLE ONLY public.agent_descriptions_junction
 
 
 --
+-- Name: agent_drafts_agents_connection agent_drafts_agents_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.agent_drafts_agents_connection
+    ADD CONSTRAINT agent_drafts_agents_connection_pkey PRIMARY KEY (draft_id, agents_id);
+
+
+--
 -- Name: agent_drafts_departments_connection agent_drafts_departments_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -21377,6 +21534,13 @@ CREATE INDEX idx_agent_descriptions_generated ON public.agent_descriptions_junct
 --
 
 CREATE INDEX idx_agent_descriptions_mcp ON public.agent_descriptions_junction USING btree (mcp);
+
+
+--
+-- Name: idx_agent_drafts_agents_resource_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_agent_drafts_agents_resource_id ON public.agent_drafts_agents_connection USING btree (agents_id);
 
 
 --
@@ -30008,6 +30172,22 @@ ALTER TABLE ONLY public.agent_descriptions_junction
 
 ALTER TABLE ONLY public.agent_descriptions_junction
     ADD CONSTRAINT agent_descriptions_description_id_fkey FOREIGN KEY (descriptions_id) REFERENCES public.descriptions_resource(id) ON DELETE CASCADE;
+
+
+--
+-- Name: agent_drafts_agents_connection agent_drafts_agents_connection_agents_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.agent_drafts_agents_connection
+    ADD CONSTRAINT agent_drafts_agents_connection_agents_id_fkey FOREIGN KEY (agents_id) REFERENCES public.agents_resource(id) ON DELETE CASCADE;
+
+
+--
+-- Name: agent_drafts_agents_connection agent_drafts_agents_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.agent_drafts_agents_connection
+    ADD CONSTRAINT agent_drafts_agents_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.agent_drafts_entry(id) ON DELETE CASCADE;
 
 
 --
@@ -39542,5 +39722,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict RTPdmuy6W5IdcUtocOn5Z6I0viuQRiGkFAVBOKAtRPT2fNptJg1HJa4VjCK9LHi
+\unrestrict vrwiiJgdBqT2ACYLJzeDYv0S9mZvsKx30Viee63Kf3zbTegEZARb6fdN1bRbSdu
 

@@ -2,13 +2,12 @@
 
 from typing import Any
 
-from app.infra.globals import get_internal_sio, sio
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
 from app.infra.websocket.attempt.audio_start import (
     attempt_audio_start_internal_impl,
 )
-
-internal_sio = get_internal_sio()
 
 
 @sio.on("attempt.chat.voice")  # type: ignore
@@ -17,17 +16,27 @@ async def attempt_audio_start(sid: str, data: dict[str, Any]) -> None:
     if not identity:
         return
 
-    try:
+    async def _runner() -> dict[str, Any]:
         await attempt_audio_start_internal_impl({
             **data,
             "sid": sid,
             "profile_id": str(identity.profile_id),
             "session_id": str(identity.session_id),
         })
-    except Exception as e:
-        await internal_sio.emit("attempt.audio_start.failed", {
-            "sid": sid,
-            "rooms": [sid],
-            "message": str(e),
-            "error_type": type(e).__name__,
-        })
+        return {"success": True}
+
+    pool = get_pool()
+    redis = get_redis_client()
+
+    await run_artifact_operation_with_audit(
+        pool,
+        redis,
+        artifact="attempt",
+        operation="chat.voice",
+        profile_id=identity.profile_id,
+        session_id=identity.session_id,
+        sid=sid,
+        rooms=[sid],
+        runner=_runner,
+        arguments={k: v for k, v in data.items() if k not in {"sid", "profile_id", "session_id"}},
+    )

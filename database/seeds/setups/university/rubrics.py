@@ -23,6 +23,66 @@ POLICY_KNOWLEDGE_RESOURCE = sid("uni/rubric-resource/policy-knowledge")
 DE_ESCALATION_RESOURCE = sid("uni/rubric-resource/de-escalation")
 
 # ---------------------------------------------------------------------------
+# Standard group IDs (defined in database/seeds/resources/standard_groups.py)
+# ---------------------------------------------------------------------------
+
+_COMMUNICATION_SKILLS_SG_IDS = [
+    sid("standard-group/uni-clarity"),
+    sid("standard-group/uni-active-listening"),
+    sid("standard-group/uni-empathy"),
+    sid("standard-group/uni-language-adaptation"),
+]
+
+_POLICY_KNOWLEDGE_SG_IDS = [
+    sid("standard-group/uni-policy-accuracy"),
+    sid("standard-group/uni-procedure-compliance"),
+    sid("standard-group/uni-resource-referral"),
+]
+
+_DE_ESCALATION_SG_IDS = [
+    sid("standard-group/uni-conflict-recognition"),
+    sid("standard-group/uni-emotional-regulation"),
+    sid("standard-group/uni-solution-oriented"),
+    sid("standard-group/uni-professional-tone"),
+]
+
+# ---------------------------------------------------------------------------
+# Standard IDs (defined in database/seeds/resources/standards.py)
+# ---------------------------------------------------------------------------
+
+_LEVELS = ["excellent", "good", "acceptable", "marginal", "poor"]
+
+_COMMUNICATION_SKILLS_STD_IDS = [
+    sid(f"standard/uni-{slug}/{level}")
+    for slug in ["clarity", "active-listening", "empathy", "language-adaptation"]
+    for level in _LEVELS
+]
+
+_POLICY_KNOWLEDGE_STD_IDS = [
+    sid(f"standard/uni-{slug}/{level}")
+    for slug in ["policy-accuracy", "procedure-compliance", "resource-referral"]
+    for level in _LEVELS
+]
+
+_DE_ESCALATION_STD_IDS = [
+    sid(f"standard/uni-{slug}/{level}")
+    for slug in [
+        "conflict-recognition",
+        "emotional-regulation",
+        "solution-oriented",
+        "professional-tone",
+    ]
+    for level in _LEVELS
+]
+
+# ---------------------------------------------------------------------------
+# Point IDs (defined in database/seeds/resources/points.py)
+# ---------------------------------------------------------------------------
+
+_POINTS_20_16 = [sid("point/total/20"), sid("point/pass/16")]
+_POINTS_15_12 = [sid("point/total/15"), sid("point/pass/12")]
+
+# ---------------------------------------------------------------------------
 # Rubric definitions
 # ---------------------------------------------------------------------------
 
@@ -40,6 +100,11 @@ rubrics = [
         ),
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        standard_group_ids=_COMMUNICATION_SKILLS_SG_IDS,
+        standard_ids=_COMMUNICATION_SKILLS_STD_IDS,
+        point_ids=_POINTS_20_16,
+        total_points=20,
+        pass_points=16,
     ),
     # ── Policy Knowledge ────────────────────────────────────────────────
     dict(
@@ -55,6 +120,11 @@ rubrics = [
         ),
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        standard_group_ids=_POLICY_KNOWLEDGE_SG_IDS,
+        standard_ids=_POLICY_KNOWLEDGE_STD_IDS,
+        point_ids=_POINTS_15_12,
+        total_points=15,
+        pass_points=12,
     ),
     # ── De-escalation ───────────────────────────────────────────────────
     dict(
@@ -70,5 +140,10 @@ rubrics = [
         ),
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        standard_group_ids=_DE_ESCALATION_SG_IDS,
+        standard_ids=_DE_ESCALATION_STD_IDS,
+        point_ids=_POINTS_20_16,
+        total_points=20,
+        pass_points=16,
     ),
 ]

@@ -47,9 +47,7 @@ async def invocation_get(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
-                test_id=request.test_id,
-                draft_id=request.draft_id,
-                descriptions_search=request.descriptions_search,
+                request=request,
                 bypass_cache=bypass_cache,
             )
 

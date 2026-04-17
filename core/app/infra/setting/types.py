@@ -281,12 +281,15 @@ class CreateSettingApiRequest(BaseModel):
     """Request model for bulk create setting endpoint."""
 
     settings: list[CreateSettingItem] = Field(..., description="List of settings to create")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateSettingApiResponse(BaseModel):
     """Response model for bulk create setting endpoint."""
 
     results: list[SettingResultItem] = Field(..., description="Per-item creation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Update Endpoint Types ==========
@@ -327,12 +330,15 @@ class UpdateSettingApiRequest(BaseModel):
     """Request model for bulk update setting endpoint."""
 
     settings: list[UpdateSettingItem] = Field(..., description="List of settings to update")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateSettingApiResponse(BaseModel):
     """Response model for bulk update setting endpoint."""
 
     results: list[SettingResultItem] = Field(..., description="Per-item update results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 class SaveSettingFieldError(BaseModel):
@@ -467,6 +473,8 @@ class DeleteSettingApiRequest(BaseModel):
     """Request model for bulk delete setting endpoint."""
 
     setting_ids: list[UUID] = Field(..., description="UUIDs of settings to delete")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DeleteSettingResult(BaseModel):
@@ -481,6 +489,7 @@ class DeleteSettingApiResponse(BaseModel):
     """Response model for bulk delete setting endpoint."""
 
     results: list[DeleteSettingResult] = Field(..., description="Per-item deletion results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Duplicate Endpoint Types ==========
@@ -490,6 +499,8 @@ class DuplicateSettingApiRequest(BaseModel):
     """Request model for duplicate setting endpoint."""
 
     setting_id: UUID = Field(..., description="UUID of the setting to duplicate")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateSettingApiResponse(BaseModel):
@@ -498,6 +509,7 @@ class DuplicateSettingApiResponse(BaseModel):
     success: bool = Field(..., description="Whether the duplication succeeded")
     setting_id: UUID = Field(..., description="UUID of the newly created setting")
     message: str = Field(..., description="Result message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Export Endpoint Types ==========
@@ -574,6 +586,8 @@ class ProblemSettingApiRequest(BaseModel):
 
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemSettingApiResponse(BaseModel):
@@ -582,3 +596,4 @@ class ProblemSettingApiResponse(BaseModel):
     problem_id: UUID = Field(..., description="UUID of the created problem")
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")

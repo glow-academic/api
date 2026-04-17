@@ -7640,6 +7640,16 @@
         "summary": "Setting Refresh",
         "description": "Refresh setting materialized views and invalidate caches.",
         "operationId": "setting_refresh_setting_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshSettingApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -7647,6 +7657,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -50021,153 +50041,188 @@
         "title": "ChatData",
         "description": "Chat view data with IDs for related resources.\n\nSplit into view categories:\n- Normal/General View: problem_statement, objectives, personas, images\n- Video/Quiz View: videos, questions, options, responses\n- Both Views: documents"
       },
-      "ChatDepartmentSection": {
+      "ChatDepartmentResource": {
         "properties": {
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this section",
-            "default": false
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this section is required",
-            "default": false
-          },
-          "suggestions": {
+          "department_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Suggestions",
-            "description": "Suggested resource IDs"
+            "title": "Department Id"
           },
-          "show_ai_generate": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated"
+          },
+          "suggested": {
             "type": "boolean",
-            "title": "Show Ai Generate",
-            "description": "Whether to show AI generate option",
+            "title": "Suggested",
             "default": false
           },
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected departments"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available department resources"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ChatDepartmentSection"
+        "title": "ChatDepartmentResource"
       },
-      "ChatDescriptionSection": {
+      "ChatDescriptionResource": {
         "properties": {
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this section",
-            "default": false
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this section is required",
-            "default": false
-          },
-          "suggestions": {
+          "id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Suggestions",
-            "description": "Suggested resource IDs"
+            "title": "Id"
           },
-          "show_ai_generate": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated"
+          },
+          "suggested": {
             "type": "boolean",
-            "title": "Show Ai Generate",
-            "description": "Whether to show AI generate option",
+            "title": "Suggested",
             "default": false
           },
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected descriptions"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available description resources"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ChatDescriptionSection"
+        "title": "ChatDescriptionResource"
       },
-      "ChatDocumentSection": {
+      "ChatDocumentResource": {
         "properties": {
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this section",
-            "default": false
+          "document_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
           },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this section is required",
-            "default": false
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
           },
-          "suggestions": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id"
+          },
+          "text_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Id"
+          },
+          "image_ids": {
             "anyOf": [
               {
                 "items": {
@@ -50180,73 +50235,134 @@
                 "type": "null"
               }
             ],
-            "title": "Suggestions",
-            "description": "Suggested resource IDs"
+            "title": "Image Ids"
           },
-          "show_ai_generate": {
+          "template": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template"
+          },
+          "parameter_field_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Field Ids"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated"
+          },
+          "suggested": {
             "type": "boolean",
-            "title": "Show Ai Generate",
-            "description": "Whether to show AI generate option",
+            "title": "Suggested",
             "default": false
           },
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected documents"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available document resources"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ChatDocumentSection"
+        "title": "ChatDocumentResource"
       },
       "ChatDraftFormState": {
         "properties": {
-          "name_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Name Ids",
-            "description": "Selected name resource IDs"
+          "name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Id"
           },
-          "description_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Description Ids",
-            "description": "Selected description resource IDs"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
           },
-          "flag_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Flag Ids",
-            "description": "Selected flag resource IDs"
+          "description_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description Id"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "problem_statement_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Statement Id"
+          },
+          "problem_statement": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Statement"
           },
           "department_ids": {
             "items": {
@@ -50254,17 +50370,7 @@
               "format": "uuid"
             },
             "type": "array",
-            "title": "Department Ids",
-            "description": "Selected department resource IDs"
-          },
-          "persona_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Persona Ids",
-            "description": "Selected persona resource IDs"
+            "title": "Department Ids"
           },
           "document_ids": {
             "items": {
@@ -50272,35 +50378,7 @@
               "format": "uuid"
             },
             "type": "array",
-            "title": "Document Ids",
-            "description": "Selected document resource IDs"
-          },
-          "parameter_field_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Parameter Field Ids",
-            "description": "Selected parameter field resource IDs"
-          },
-          "parameter_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Parameter Ids",
-            "description": "Selected parameter resource IDs"
-          },
-          "scenario_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Scenario Ids",
-            "description": "Selected scenario resource IDs"
+            "title": "Document Ids"
           },
           "field_ids": {
             "items": {
@@ -50308,35 +50386,15 @@
               "format": "uuid"
             },
             "type": "array",
-            "title": "Field Ids",
-            "description": "Selected field resource IDs"
+            "title": "Field Ids"
           },
-          "question_ids": {
+          "flag_ids": {
             "items": {
               "type": "string",
               "format": "uuid"
             },
             "type": "array",
-            "title": "Question Ids",
-            "description": "Selected question resource IDs"
-          },
-          "option_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Option Ids",
-            "description": "Selected option resource IDs"
-          },
-          "video_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Video Ids",
-            "description": "Selected video resource IDs"
+            "title": "Flag Ids"
           },
           "image_ids": {
             "items": {
@@ -50344,17 +50402,7 @@
               "format": "uuid"
             },
             "type": "array",
-            "title": "Image Ids",
-            "description": "Selected image resource IDs"
-          },
-          "problem_statement_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Problem Statement Ids",
-            "description": "Selected problem statement resource IDs"
+            "title": "Image Ids"
           },
           "objective_ids": {
             "items": {
@@ -50362,8 +50410,71 @@
               "format": "uuid"
             },
             "type": "array",
-            "title": "Objective Ids",
-            "description": "Selected objective resource IDs"
+            "title": "Objective Ids"
+          },
+          "option_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Option Ids"
+          },
+          "parameter_field_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Parameter Field Ids"
+          },
+          "parameter_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Parameter Ids"
+          },
+          "persona_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Persona Ids"
+          },
+          "question_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Question Ids"
+          },
+          "scenario_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Scenario Ids"
+          },
+          "video_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Video Ids"
+          },
+          "pending_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Ids"
           }
         },
         "type": "object",
@@ -50467,21 +50578,54 @@
         ],
         "title": "ChatFeedbackResponse"
       },
-      "ChatFieldSection": {
+      "ChatFieldResource": {
         "properties": {
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this section",
-            "default": false
+          "field_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Id"
           },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this section is required",
-            "default": false
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
           },
-          "suggestions": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "conditional_parameter_ids": {
             "anyOf": [
               {
                 "items": {
@@ -50494,110 +50638,136 @@
                 "type": "null"
               }
             ],
-            "title": "Suggestions",
-            "description": "Suggested resource IDs"
+            "title": "Conditional Parameter Ids"
           },
-          "show_ai_generate": {
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated"
+          },
+          "suggested": {
             "type": "boolean",
-            "title": "Show Ai Generate",
-            "description": "Whether to show AI generate option",
+            "title": "Suggested",
             "default": false
           },
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected fields"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available field resources"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ChatFieldSection"
+        "title": "ChatFieldResource"
       },
-      "ChatFlagSection": {
+      "ChatFlagResource": {
         "properties": {
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this section",
-            "default": false
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this section is required",
-            "default": false
-          },
-          "suggestions": {
+          "id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Suggestions",
-            "description": "Suggested resource IDs"
+            "title": "Id"
           },
-          "show_ai_generate": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated"
+          },
+          "suggested": {
             "type": "boolean",
-            "title": "Show Ai Generate",
-            "description": "Whether to show AI generate option",
+            "title": "Suggested",
             "default": false
           },
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected flags"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available flag resources"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ChatFlagSection"
+        "title": "ChatFlagResource"
       },
       "ChatHighlightItem": {
         "properties": {
@@ -50732,71 +50902,83 @@
         ],
         "title": "ChatHintsResponse"
       },
-      "ChatImageSection": {
+      "ChatImageResource": {
         "properties": {
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this section",
-            "default": false
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this section is required",
-            "default": false
-          },
-          "suggestions": {
+          "image_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Suggestions",
-            "description": "Suggested resource IDs"
+            "title": "Image Id"
           },
-          "show_ai_generate": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "upload_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upload Id"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated"
+          },
+          "suggested": {
             "type": "boolean",
-            "title": "Show Ai Generate",
-            "description": "Whether to show AI generate option",
+            "title": "Suggested",
             "default": false
           },
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected images"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available image resources"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ChatImageSection"
+        "title": "ChatImageResource"
       },
       "ChatImprovementItem": {
         "properties": {
@@ -50947,467 +51129,514 @@
         ],
         "title": "ChatMuteResponse"
       },
-      "ChatNameSection": {
+      "ChatNameResource": {
         "properties": {
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this section",
-            "default": false
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this section is required",
-            "default": false
-          },
-          "suggestions": {
+          "id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Suggestions",
-            "description": "Suggested resource IDs"
+            "title": "Id"
           },
-          "show_ai_generate": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated"
+          },
+          "suggested": {
             "type": "boolean",
-            "title": "Show Ai Generate",
-            "description": "Whether to show AI generate option",
+            "title": "Suggested",
             "default": false
           },
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected names"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available name resources"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ChatNameSection"
+        "title": "ChatNameResource"
       },
-      "ChatObjectiveSection": {
+      "ChatObjectiveResource": {
         "properties": {
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this section",
-            "default": false
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this section is required",
-            "default": false
-          },
-          "suggestions": {
+          "id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Suggestions",
-            "description": "Suggested resource IDs"
+            "title": "Id"
           },
-          "show_ai_generate": {
+          "objective": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objective"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated"
+          },
+          "suggested": {
             "type": "boolean",
-            "title": "Show Ai Generate",
-            "description": "Whether to show AI generate option",
+            "title": "Suggested",
             "default": false
           },
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected objectives"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available objective resources"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ChatObjectiveSection"
+        "title": "ChatObjectiveResource"
       },
-      "ChatOptionSection": {
+      "ChatOptionResource": {
         "properties": {
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this section",
-            "default": false
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this section is required",
-            "default": false
-          },
-          "suggestions": {
+          "option_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Suggestions",
-            "description": "Suggested resource IDs"
+            "title": "Option Id"
           },
-          "show_ai_generate": {
+          "option_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Option Text"
+          },
+          "question_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Id"
+          },
+          "is_correct": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Correct"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated"
+          },
+          "suggested": {
             "type": "boolean",
-            "title": "Show Ai Generate",
-            "description": "Whether to show AI generate option",
+            "title": "Suggested",
             "default": false
           },
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected options"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available option resources"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ChatOptionSection"
+        "title": "ChatOptionResource"
       },
-      "ChatParameterFieldSection": {
+      "ChatParameterFieldResource": {
         "properties": {
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this section",
-            "default": false
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this section is required",
-            "default": false
-          },
-          "suggestions": {
+          "id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Suggestions",
-            "description": "Suggested resource IDs"
+            "title": "Id"
           },
-          "show_ai_generate": {
+          "field_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Id"
+          },
+          "parameter_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "parameter_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Name"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated"
+          },
+          "suggested": {
             "type": "boolean",
-            "title": "Show Ai Generate",
-            "description": "Whether to show AI generate option",
+            "title": "Suggested",
             "default": false
           },
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected parameter fields"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available parameter field resources"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ChatParameterFieldSection"
+        "title": "ChatParameterFieldResource"
       },
-      "ChatPersonaSection": {
+      "ChatPersonaResource": {
         "properties": {
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this section",
-            "default": false
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this section is required",
-            "default": false
-          },
-          "suggestions": {
+          "persona_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Suggestions",
-            "description": "Suggested resource IDs"
+            "title": "Persona Id"
           },
-          "show_ai_generate": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated"
+          },
+          "suggested": {
             "type": "boolean",
-            "title": "Show Ai Generate",
-            "description": "Whether to show AI generate option",
+            "title": "Suggested",
             "default": false
           },
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected personas"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available persona resources"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ChatPersonaSection"
+        "title": "ChatPersonaResource"
       },
-      "ChatProblemStatementSection": {
+      "ChatProblemStatementResource": {
         "properties": {
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this section",
-            "default": false
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this section is required",
-            "default": false
-          },
-          "suggestions": {
+          "problem_statement_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Suggestions",
-            "description": "Suggested resource IDs"
+            "title": "Problem Statement Id"
           },
-          "show_ai_generate": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "problem_statement": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Statement"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated"
+          },
+          "suggested": {
             "type": "boolean",
-            "title": "Show Ai Generate",
-            "description": "Whether to show AI generate option",
+            "title": "Suggested",
             "default": false
           },
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected problem statements"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available problem statement resources"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ChatProblemStatementSection"
+        "title": "ChatProblemStatementResource"
       },
-      "ChatQuestionSection": {
+      "ChatQuestionResource": {
         "properties": {
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this section",
-            "default": false
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this section is required",
-            "default": false
-          },
-          "suggestions": {
+          "question_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Suggestions",
-            "description": "Suggested resource IDs"
+            "title": "Question Id"
           },
-          "show_ai_generate": {
+          "question_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Text"
+          },
+          "allow_multiple": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allow Multiple"
+          },
+          "time": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated"
+          },
+          "suggested": {
             "type": "boolean",
-            "title": "Show Ai Generate",
-            "description": "Whether to show AI generate option",
+            "title": "Suggested",
             "default": false
           },
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected questions"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available question resources"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ChatQuestionSection"
+        "title": "ChatQuestionResource"
       },
       "ChatReplacementItem": {
         "properties": {
@@ -51438,71 +51667,71 @@
         ],
         "title": "ChatReplacementItem"
       },
-      "ChatScenarioSection": {
+      "ChatScenarioResource": {
         "properties": {
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this section",
-            "default": false
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this section is required",
-            "default": false
-          },
-          "suggestions": {
+          "scenario_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Suggestions",
-            "description": "Suggested resource IDs"
+            "title": "Scenario Id"
           },
-          "show_ai_generate": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated"
+          },
+          "suggested": {
             "type": "boolean",
-            "title": "Show Ai Generate",
-            "description": "Whether to show AI generate option",
+            "title": "Suggested",
             "default": false
           },
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected scenarios"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available scenario resources"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ChatScenarioSection"
+        "title": "ChatScenarioResource"
       },
       "ChatSendRequest": {
         "properties": {
@@ -52009,71 +52238,83 @@
         ],
         "title": "ChatStrengthsResponse"
       },
-      "ChatVideoSection": {
+      "ChatVideoResource": {
         "properties": {
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this section",
-            "default": false
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this section is required",
-            "default": false
-          },
-          "suggestions": {
+          "video_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Suggestions",
-            "description": "Suggested resource IDs"
+            "title": "Video Id"
           },
-          "show_ai_generate": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "upload_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upload Id"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated"
+          },
+          "suggested": {
             "type": "boolean",
-            "title": "Show Ai Generate",
-            "description": "Whether to show AI generate option",
+            "title": "Suggested",
             "default": false
           },
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected videos"
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": false
           },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available video resources"
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "default": false
           }
         },
         "type": "object",
-        "title": "ChatVideoSection"
+        "title": "ChatVideoResource"
       },
       "ChatVoiceRequest": {
         "properties": {
@@ -58785,6 +59026,25 @@
             "type": "array",
             "title": "Settings",
             "description": "List of settings to create"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -58803,6 +59063,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item creation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -58821,6 +59094,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item creation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -62898,6 +63184,25 @@
             "type": "array",
             "title": "Setting Ids",
             "description": "UUIDs of settings to delete"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -62916,6 +63221,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item deletion results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -66041,6 +66359,25 @@
             "format": "uuid",
             "title": "Setting Id",
             "description": "UUID of the setting to duplicate"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -66067,6 +66404,19 @@
             "type": "string",
             "title": "Message",
             "description": "Result message"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -78028,6 +78378,15 @@
             "title": "Department Ids",
             "description": "Associated department UUIDs"
           },
+          "pending_department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Department Ids",
+            "description": "Pending department UUIDs"
+          },
           "description_ids": {
             "items": {
               "type": "string",
@@ -78036,6 +78395,15 @@
             "type": "array",
             "title": "Description Ids",
             "description": "Associated description UUIDs"
+          },
+          "pending_description_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Description Ids",
+            "description": "Pending description UUIDs"
           },
           "document_ids": {
             "items": {
@@ -78046,6 +78414,15 @@
             "title": "Document Ids",
             "description": "Associated document UUIDs"
           },
+          "pending_document_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Document Ids",
+            "description": "Pending document UUIDs"
+          },
           "field_ids": {
             "items": {
               "type": "string",
@@ -78054,6 +78431,15 @@
             "type": "array",
             "title": "Field Ids",
             "description": "Associated field UUIDs"
+          },
+          "pending_field_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Field Ids",
+            "description": "Pending field UUIDs"
           },
           "flag_ids": {
             "items": {
@@ -78064,6 +78450,15 @@
             "title": "Flag Ids",
             "description": "Associated flag UUIDs"
           },
+          "pending_flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Flag Ids",
+            "description": "Pending flag UUIDs"
+          },
           "image_ids": {
             "items": {
               "type": "string",
@@ -78072,6 +78467,15 @@
             "type": "array",
             "title": "Image Ids",
             "description": "Associated image UUIDs"
+          },
+          "pending_image_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Image Ids",
+            "description": "Pending image UUIDs"
           },
           "name_ids": {
             "items": {
@@ -78082,6 +78486,15 @@
             "title": "Name Ids",
             "description": "Associated name UUIDs"
           },
+          "pending_name_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Name Ids",
+            "description": "Pending name UUIDs"
+          },
           "objective_ids": {
             "items": {
               "type": "string",
@@ -78090,6 +78503,15 @@
             "type": "array",
             "title": "Objective Ids",
             "description": "Associated objective UUIDs"
+          },
+          "pending_objective_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Objective Ids",
+            "description": "Pending objective UUIDs"
           },
           "option_ids": {
             "items": {
@@ -78100,6 +78522,15 @@
             "title": "Option Ids",
             "description": "Associated option UUIDs"
           },
+          "pending_option_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Option Ids",
+            "description": "Pending option UUIDs"
+          },
           "parameter_field_ids": {
             "items": {
               "type": "string",
@@ -78108,6 +78539,15 @@
             "type": "array",
             "title": "Parameter Field Ids",
             "description": "Associated parameter field UUIDs"
+          },
+          "pending_parameter_field_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Parameter Field Ids",
+            "description": "Pending parameter field UUIDs"
           },
           "parameter_ids": {
             "items": {
@@ -78118,6 +78558,15 @@
             "title": "Parameter Ids",
             "description": "Associated parameter UUIDs"
           },
+          "pending_parameter_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Parameter Ids",
+            "description": "Pending parameter UUIDs"
+          },
           "persona_ids": {
             "items": {
               "type": "string",
@@ -78127,6 +78576,15 @@
             "title": "Persona Ids",
             "description": "Associated persona UUIDs"
           },
+          "pending_persona_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Persona Ids",
+            "description": "Pending persona UUIDs"
+          },
           "problem_statement_ids": {
             "items": {
               "type": "string",
@@ -78135,6 +78593,15 @@
             "type": "array",
             "title": "Problem Statement Ids",
             "description": "Associated problem statement UUIDs"
+          },
+          "pending_problem_statement_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Problem Statement Ids",
+            "description": "Pending problem statement UUIDs"
           },
           "profile_ids": {
             "items": {
@@ -78154,6 +78621,15 @@
             "title": "Question Ids",
             "description": "Associated question UUIDs"
           },
+          "pending_question_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Question Ids",
+            "description": "Pending question UUIDs"
+          },
           "scenario_ids": {
             "items": {
               "type": "string",
@@ -78163,6 +78639,15 @@
             "title": "Scenario Ids",
             "description": "Associated scenario UUIDs"
           },
+          "pending_scenario_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Scenario Ids",
+            "description": "Pending scenario UUIDs"
+          },
           "video_ids": {
             "items": {
               "type": "string",
@@ -78171,6 +78656,15 @@
             "type": "array",
             "title": "Video Ids",
             "description": "Associated video UUIDs"
+          },
+          "pending_video_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Video Ids",
+            "description": "Pending video UUIDs"
           }
         },
         "type": "object",
@@ -78225,11 +78719,31 @@
       },
       "GetChatRequest": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Chat entry ID"
+          },
           "chat_entry_id": {
-            "type": "string",
-            "format": "uuid",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Chat Entry Id",
-            "description": "UUID of the chat entry"
+            "description": "Legacy alias for the chat entry ID"
           },
           "attempt_id": {
             "anyOf": [
@@ -78242,7 +78756,7 @@
               }
             ],
             "title": "Attempt Id",
-            "description": "UUID of the attempt"
+            "description": "Attempt ID"
           },
           "draft_id": {
             "anyOf": [
@@ -78255,9 +78769,9 @@
               }
             ],
             "title": "Draft Id",
-            "description": "UUID of the draft"
+            "description": "Draft ID"
           },
-          "description_search": {
+          "snapshot_key": {
             "anyOf": [
               {
                 "type": "string"
@@ -78266,132 +78780,276 @@
                 "type": "null"
               }
             ],
-            "title": "Description Search",
-            "description": "Search filter for descriptions"
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads"
           },
-          "persona_search": {
+          "names": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Persona Search",
-            "description": "Search filter for personas"
+            ]
           },
-          "document_search": {
+          "descriptions": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Document Search",
-            "description": "Search filter for documents"
+            ]
           },
-          "problem_statement_search": {
+          "flags": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Problem Statement Search",
-            "description": "Search filter for problem statements"
+            ]
           },
-          "image_search": {
+          "departments": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Image Search",
-            "description": "Search filter for images"
+            ]
           },
-          "video_search": {
+          "personas": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Video Search",
-            "description": "Search filter for videos"
+            ]
           },
-          "question_search": {
+          "documents": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Question Search",
-            "description": "Search filter for questions"
+            ]
           },
-          "option_search": {
+          "parameter_fields": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Option Search",
-            "description": "Search filter for options"
+            ]
           },
-          "persona_show_selected": {
+          "scenarios": {
             "anyOf": [
               {
-                "type": "boolean"
+                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Persona Show Selected",
-            "description": "Whether to show only selected personas"
+            ]
           },
-          "document_show_selected": {
+          "fields": {
             "anyOf": [
               {
-                "type": "boolean"
+                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Document Show Selected",
-            "description": "Whether to show only selected documents"
+            ]
+          },
+          "questions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "options": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "videos": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "images": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "problem_statements": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "objectives": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
-        "required": [
-          "chat_entry_id"
-        ],
         "title": "GetChatRequest",
-        "description": "Client API request for one chat bundle customization payload."
+        "description": "Canonical chat customization request."
       },
       "GetChatResponse": {
         "properties": {
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "Display name of the authenticated user"
+          },
+          "chat_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chat Exists",
+            "description": "Whether the chat template exists"
+          },
+          "can_edit": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Can Edit",
+            "description": "Whether the current user can edit this draft"
+          },
+          "disabled_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disabled Reason",
+            "description": "Human-readable reason if editing is disabled"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id",
+            "description": "Group ID for generation and draft correlation"
+          },
+          "show_ai_generate": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show Ai Generate",
+            "description": "Whether AI generation is available"
+          },
+          "profile_has_access": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Has Access",
+            "description": "Compatibility flag for current chat pages",
+            "default": true
+          },
+          "simulation_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Name",
+            "description": "Optional simulation name for UI display"
+          },
           "chat_entry_id": {
-            "type": "string",
-            "format": "uuid",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Chat Entry Id",
-            "description": "UUID of the chat entry"
+            "description": "Chat entry ID"
           },
           "attempt_id": {
             "anyOf": [
@@ -78404,187 +79062,447 @@
               }
             ],
             "title": "Attempt Id",
-            "description": "UUID of the attempt"
-          },
-          "group_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Group Id",
-            "description": "UUID of the group"
+            "description": "Attempt ID"
           },
           "names": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ChatNameSection"
+                "items": {
+                  "$ref": "#/components/schemas/ChatNameResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Name section data"
+            "title": "Names"
           },
           "descriptions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ChatDescriptionSection"
+                "items": {
+                  "$ref": "#/components/schemas/ChatDescriptionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Description section data"
+            "title": "Descriptions"
           },
           "flags": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ChatFlagSection"
+                "items": {
+                  "$ref": "#/components/schemas/ChatFlagResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Flag section data"
+            "title": "Flags"
           },
           "departments": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ChatDepartmentSection"
+                "items": {
+                  "$ref": "#/components/schemas/ChatDepartmentResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Department section data"
+            "title": "Departments"
           },
           "personas": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ChatPersonaSection"
+                "items": {
+                  "$ref": "#/components/schemas/ChatPersonaResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Persona section data"
+            "title": "Personas"
           },
           "documents": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ChatDocumentSection"
+                "items": {
+                  "$ref": "#/components/schemas/ChatDocumentResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Document section data"
+            "title": "Documents"
           },
           "parameter_fields": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ChatParameterFieldSection"
+                "items": {
+                  "$ref": "#/components/schemas/ChatParameterFieldResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Parameter field section data"
+            "title": "Parameter Fields"
           },
           "scenarios": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ChatScenarioSection"
+                "items": {
+                  "$ref": "#/components/schemas/ChatScenarioResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Scenario section data"
+            "title": "Scenarios"
           },
           "fields": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ChatFieldSection"
+                "items": {
+                  "$ref": "#/components/schemas/ChatFieldResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Field section data"
+            "title": "Fields"
           },
           "questions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ChatQuestionSection"
+                "items": {
+                  "$ref": "#/components/schemas/ChatQuestionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Question section data"
+            "title": "Questions"
           },
           "options": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ChatOptionSection"
+                "items": {
+                  "$ref": "#/components/schemas/ChatOptionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Option section data"
+            "title": "Options"
           },
           "videos": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ChatVideoSection"
+                "items": {
+                  "$ref": "#/components/schemas/ChatVideoResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Video section data"
+            "title": "Videos"
           },
           "images": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ChatImageSection"
+                "items": {
+                  "$ref": "#/components/schemas/ChatImageResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Image section data"
+            "title": "Images"
           },
           "problem_statements": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ChatProblemStatementSection"
+                "items": {
+                  "$ref": "#/components/schemas/ChatProblemStatementResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Problem statement section data"
+            "title": "Problem Statements"
           },
           "objectives": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ChatObjectiveSection"
+                "items": {
+                  "$ref": "#/components/schemas/ChatObjectiveResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Objective section data"
+            "title": "Objectives"
+          },
+          "name_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Ids"
+          },
+          "description_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description Ids"
+          },
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids"
+          },
+          "department_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Ids"
+          },
+          "persona_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Persona Ids"
+          },
+          "document_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Ids"
+          },
+          "parameter_field_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Field Ids"
+          },
+          "scenario_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Ids"
+          },
+          "field_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Ids"
+          },
+          "question_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Ids"
+          },
+          "option_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Option Ids"
+          },
+          "video_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Ids"
+          },
+          "image_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Ids"
+          },
+          "problem_statement_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Statement Ids"
+          },
+          "objective_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objective Ids"
           }
         },
         "type": "object",
-        "required": [
-          "chat_entry_id",
-          "group_id"
-        ],
         "title": "GetChatResponse",
-        "description": "Client-facing chat bundle response \u2014 section-first pattern."
+        "description": "Canonical chat bundle response."
       },
       "GetCohortApiRequest": {
         "properties": {
@@ -94311,6 +95229,25 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -94349,6 +95286,19 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -106316,6 +107266,19 @@
       },
       "PatchChatDraftApiRequest": {
         "properties": {
+          "draft_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Id",
+            "description": "Existing draft ID to update"
+          },
           "input_draft_id": {
             "anyOf": [
               {
@@ -106327,7 +107290,7 @@
               }
             ],
             "title": "Input Draft Id",
-            "description": "UUID of the input draft"
+            "description": "Legacy alias for draft_id"
           },
           "name": {
             "anyOf": [
@@ -106338,8 +107301,19 @@
                 "type": "null"
               }
             ],
-            "title": "Name",
-            "description": "Name value to create"
+            "title": "Name"
+          },
+          "name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Id"
           },
           "description": {
             "anyOf": [
@@ -106350,8 +107324,19 @@
                 "type": "null"
               }
             ],
-            "title": "Description",
-            "description": "Description value to create"
+            "title": "Description"
+          },
+          "description_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description Id"
           },
           "problem_statement": {
             "anyOf": [
@@ -106362,8 +107347,19 @@
                 "type": "null"
               }
             ],
-            "title": "Problem Statement",
-            "description": "Problem statement value to create"
+            "title": "Problem Statement"
+          },
+          "problem_statement_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Statement Id"
           },
           "objectives": {
             "anyOf": [
@@ -106377,164 +107373,7 @@
                 "type": "null"
               }
             ],
-            "title": "Objectives",
-            "description": "Objective texts to create"
-          },
-          "images": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/app__infra__chat__types__DraftImageValue"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Images",
-            "description": "Image values to create"
-          },
-          "videos": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/app__infra__chat__types__DraftVideoValue"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Videos",
-            "description": "Video values to create"
-          },
-          "questions": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/app__infra__chat__types__DraftQuestionValue"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Questions",
-            "description": "Question values to create"
-          },
-          "options": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/app__infra__chat__types__DraftOptionValue"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Options",
-            "description": "Option values to create"
-          },
-          "name_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name Ids",
-            "description": "Selected name resource IDs"
-          },
-          "description_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description Ids",
-            "description": "Selected description resource IDs"
-          },
-          "document_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Document Ids",
-            "description": "Selected document resource IDs"
-          },
-          "field_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Field Ids",
-            "description": "Selected field resource IDs"
-          },
-          "flag_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Ids",
-            "description": "Selected flag resource IDs"
-          },
-          "image_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Image Ids",
-            "description": "Selected image resource IDs"
+            "title": "Objectives"
           },
           "objective_ids": {
             "anyOf": [
@@ -106549,10 +107388,23 @@
                 "type": "null"
               }
             ],
-            "title": "Objective Ids",
-            "description": "Selected objective resource IDs"
+            "title": "Objective Ids"
           },
-          "option_ids": {
+          "images": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/app__infra__chat__types__DraftImageValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Images"
+          },
+          "image_ids": {
             "anyOf": [
               {
                 "items": {
@@ -106565,15 +107417,13 @@
                 "type": "null"
               }
             ],
-            "title": "Option Ids",
-            "description": "Selected option resource IDs"
+            "title": "Image Ids"
           },
-          "parameter_field_ids": {
+          "videos": {
             "anyOf": [
               {
                 "items": {
-                  "type": "string",
-                  "format": "uuid"
+                  "$ref": "#/components/schemas/app__infra__chat__types__DraftVideoValue"
                 },
                 "type": "array"
               },
@@ -106581,88 +107431,7 @@
                 "type": "null"
               }
             ],
-            "title": "Parameter Field Ids",
-            "description": "Selected parameter field resource IDs"
-          },
-          "parameter_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parameter Ids",
-            "description": "Selected parameter resource IDs"
-          },
-          "persona_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Persona Ids",
-            "description": "Selected persona resource IDs"
-          },
-          "problem_statement_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Problem Statement Ids",
-            "description": "Selected problem statement resource IDs"
-          },
-          "question_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Question Ids",
-            "description": "Selected question resource IDs"
-          },
-          "scenario_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Scenario Ids",
-            "description": "Selected scenario resource IDs"
+            "title": "Videos"
           },
           "video_ids": {
             "anyOf": [
@@ -106677,8 +107446,65 @@
                 "type": "null"
               }
             ],
-            "title": "Video Ids",
-            "description": "Selected video resource IDs"
+            "title": "Video Ids"
+          },
+          "questions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/app__infra__chat__types__DraftQuestionValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questions"
+          },
+          "question_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Ids"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/app__infra__chat__types__DraftOptionValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "option_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Option Ids"
           },
           "department_ids": {
             "anyOf": [
@@ -106693,13 +107519,152 @@
                 "type": "null"
               }
             ],
-            "title": "Department Ids",
-            "description": "Selected department resource IDs"
+            "title": "Department Ids"
+          },
+          "document_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Ids"
+          },
+          "field_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Ids"
+          },
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids"
+          },
+          "parameter_field_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Field Ids"
+          },
+          "parameter_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Ids"
+          },
+          "persona_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Persona Ids"
+          },
+          "scenario_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Ids"
+          },
+          "pending_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Ids",
+            "description": "Resource IDs to keep pending/inactive on the draft"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Ack key for generation/correlation flows"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject pending state",
+            "default": true
           }
         },
         "type": "object",
         "title": "PatchChatDraftApiRequest",
-        "description": "Request model for new-style chat draft endpoint.\n\nSingle-select creatables: name, description, problem_statement\n  \u2192 value creates resource, ID replaces value (mutually exclusive).\n\nMulti-select creatables: objectives, images, videos, questions, options\n  \u2192 values create resources, created IDs are merged with existing IDs.\n\nClient always sends full state (append-only \u2014 each write is a new snapshot)."
+        "description": "Canonical chat draft request."
       },
       "PatchChatDraftApiResponse": {
         "properties": {
@@ -106713,6 +107678,19 @@
             "format": "uuid",
             "title": "Draft Id",
             "description": "UUID of the saved draft"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key for client correlation"
           },
           "message": {
             "type": "string",
@@ -115882,6 +116860,25 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -115911,6 +116908,19 @@
             "title": "Message",
             "description": "Status message",
             "default": "Problem created successfully"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -118750,6 +119760,47 @@
         "type": "object",
         "title": "RefreshScenarioApiRequest",
         "description": "Request model for scenario refresh endpoint."
+      },
+      "RefreshSettingApiRequest": {
+        "properties": {
+          "targets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targets",
+            "description": "MV targets to refresh (omit for all). Options: setting_drafts_mv"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject. Only meaningful with idempotency_key",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "RefreshSettingApiRequest",
+        "description": "Request model for setting refresh endpoint."
       },
       "RefreshSimulationApiRequest": {
         "properties": {
@@ -136780,6 +137831,25 @@
             "type": "array",
             "title": "Settings",
             "description": "List of settings to update"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -136798,6 +137868,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item update results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -136816,6 +137899,19 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item update results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -138486,6 +139582,88 @@
         ],
         "title": "DraftVideoValue",
         "description": "Value for creating a video via the draft endpoint."
+      },
+      "app__infra__chat__types__SectionFilter": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Filter options by search text"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Max options to return"
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected",
+            "description": "Only return selected items"
+          },
+          "suggested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested",
+            "description": "Only return suggested items"
+          },
+          "include": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include",
+            "description": "Include this section in the response"
+          },
+          "parameter_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Ids",
+            "description": "Parameter IDs to filter parameter_fields by"
+          }
+        },
+        "type": "object",
+        "title": "SectionFilter",
+        "description": "Per-section filter options for chat GET requests."
       },
       "app__infra__cohort__types__DraftFormState": {
         "properties": {

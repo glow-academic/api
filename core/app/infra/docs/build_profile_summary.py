@@ -81,6 +81,7 @@ async def build_profile_summary(
         role_level=profile.role_level,
         department_ids=profile.department_ids,
         artifact_access=profile.role_artifacts,
+        role_permissions=profile.role_permissions,
         is_active=profile.is_active,
         active=profile.is_active,
         theme=theme,

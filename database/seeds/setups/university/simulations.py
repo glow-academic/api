@@ -11,7 +11,12 @@ from database.seeds.ids import sid
 from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVERSITY_DEPT_RESOURCE
 from database.seeds.setups.university.scenario_rubrics import (
     ACADEMIC_INTEGRITY_RUBRICS,
+    AGGRESSIVE_RUBRICS,
+    CONFUSED_RUBRICS,
     FERPA_RUBRICS,
+    GENERAL_RUBRICS,
+    HAPPY_RUBRICS,
+    PASSIVE_RUBRICS,
     UPSET_STUDENT_RUBRICS,
 )
 from database.seeds.setups.university.scenarios import (
@@ -72,6 +77,7 @@ simulations = [
         name="Confused Practice",
         description="Seeks to understand by asking questions and exploring ideas.",
         scenario_ids=[CONFUSED_SCENARIO_RESOURCE],
+        scenario_rubric_ids=CONFUSED_RUBRICS,
         flag_ids=[PRACTICE_FLAG],
         practice_flag_id=PRACTICE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
@@ -82,6 +88,7 @@ simulations = [
         name="Happy Practice",
         description="Provides uplifting feedback and cheerful responses.",
         scenario_ids=[HAPPY_SCENARIO_RESOURCE],
+        scenario_rubric_ids=HAPPY_RUBRICS,
         flag_ids=[PRACTICE_FLAG],
         practice_flag_id=PRACTICE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
@@ -92,6 +99,7 @@ simulations = [
         name="Passive Practice",
         description="Responds with minimal engagement and requires prompting.",
         scenario_ids=[PASSIVE_SCENARIO_RESOURCE],
+        scenario_rubric_ids=PASSIVE_RUBRICS,
         flag_ids=[PRACTICE_FLAG],
         practice_flag_id=PRACTICE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
@@ -102,6 +110,7 @@ simulations = [
         name="Aggressive Practice",
         description="Challenges with confrontational and resistant responses.",
         scenario_ids=[AGGRESSIVE_SCENARIO_RESOURCE],
+        scenario_rubric_ids=AGGRESSIVE_RUBRICS,
         flag_ids=[PRACTICE_FLAG],
         practice_flag_id=PRACTICE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
@@ -112,6 +121,7 @@ simulations = [
         name="General Practice",
         description="A flexible simulation for open-ended practice with any persona.",
         scenario_ids=[GENERAL_SCENARIO_RESOURCE],
+        scenario_rubric_ids=GENERAL_RUBRICS,
         flag_ids=[PRACTICE_FLAG],
         practice_flag_id=PRACTICE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],

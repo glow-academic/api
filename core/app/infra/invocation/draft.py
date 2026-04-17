@@ -1,13 +1,4 @@
-"""Invocation draft logic — composable infra architecture.
-
-Core draft function that composes existing black-box tools:
-  1. resolve_profile_identity_context — profile (role, departments)
-  2. Value resolution (creatable resources only) — raw value → ID
-  3. create_invocation_draft — entry tool (append-only snapshot)
-  4. Build form state (server is source of truth)
-  5. refresh_invocation_drafts — MV refresh
-  6. invalidate_tags — cache invalidation
-"""
+"""Invocation draft logic for the canonical test-owned invocation surface."""
 
 from __future__ import annotations
 
@@ -17,60 +8,73 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.invocation.types import (
-    InvocationDraftFormState,
+    DraftFormState,
     PatchInvocationDraftApiRequest,
     PatchInvocationDraftApiResponse,
     SaveInvocationFieldError,
 )
-from app.tools.entries.invocation_drafts.create import (
-    create_invocation_draft,
-)
-from app.tools.entries.invocation_drafts.refresh import (
-    refresh_invocation_drafts,
-)
+from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.tools.entries.invocation_drafts.create import create_invocation_draft
+from app.tools.entries.invocation_drafts.refresh import refresh_invocation_drafts
 from app.tools.resources.descriptions.create import create_description
+from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.names.create import create_name
+from app.tools.resources.names.search import search_names
 from app.utils.cache.invalidate_tags import invalidate_tags
-
-# ---------------------------------------------------------------------------
-# Value resolution — creatable resources only
-# ---------------------------------------------------------------------------
 
 
 async def _resolve_creatable_values(
-    pool: asyncpg.Pool,
+    conn: asyncpg.Connection,
     redis: Redis,
     request: PatchInvocationDraftApiRequest,
 ) -> list[SaveInvocationFieldError]:
-    """Resolve raw value fields to resource IDs (mutates request in place).
+    """Resolve raw value fields to resource IDs (mutates request in place)."""
 
-    Single-select creatables: name, description
-      → value creates resource, created ID is appended to the IDs list.
-
-    Returns a list of errors (empty if all resolved).
-    """
     errors: list[SaveInvocationFieldError] = []
 
-    # ── Single-select creatables ──────────────────────────────────────
+    if request.name is not None and request.name_id is None:
+        results = await search_names(
+            conn,
+            redis,
+            search=request.name,
+            limit_count=20,
+            draft_id=request.draft_id,
+        )
+        needle = request.name.strip().lower()
+        match = next(
+            (
+                item for item in results
+                if isinstance(item.name, str) and item.name.strip().lower() == needle
+            ),
+            None,
+        )
+        request.name_id = match.id if match and match.id else (await create_name(conn, request.name, redis)).id
 
-    if request.name is not None:
-        async with pool.acquire() as conn:
-            result = await create_name(conn, request.name, redis)
-        request.name_ids = [result.id]
-
-    if request.description is not None:
-        async with pool.acquire() as conn:
-            result = await create_description(conn, request.description, redis)
-        request.description_ids = [result.id]
+    if request.description is not None and request.description_id is None:
+        results = await search_descriptions(
+            conn,
+            redis,
+            search=request.description,
+            limit_count=20,
+            draft_id=request.draft_id,
+        )
+        needle = request.description.strip().lower()
+        match = next(
+            (
+                item for item in results
+                if isinstance(item.description, str)
+                and item.description.strip().lower() == needle
+            ),
+            None,
+        )
+        request.description_id = (
+            match.id
+            if match and match.id
+            else (await create_description(conn, request.description, redis)).id
+        )
 
     return errors
-
-
-# ---------------------------------------------------------------------------
-# patch_invocation_draft_impl — composable infra architecture
-# ---------------------------------------------------------------------------
 
 
 async def patch_invocation_draft_impl(
@@ -81,18 +85,10 @@ async def patch_invocation_draft_impl(
     session_id: UUID,
     request: PatchInvocationDraftApiRequest,
 ) -> PatchInvocationDraftApiResponse:
-    """Invocation draft using composable infra functions.
+    """Patch the invocation draft and return server-authored form state."""
 
-    Flow:
-      1. resolve_profile_identity_context → role
-      2. Value resolution (creatable resources only)
-      3. create_invocation_draft entry tool (append-only snapshot)
-      4. Build form state (server is source of truth)
-      5. refresh_invocation_drafts MV
-      6. invalidate_tags
-    """
-
-    # ── Step 1: Profile context ────────────────────────────────────────
+    request.draft_id = request.draft_id or request.input_draft_id
+    request.input_draft_id = request.input_draft_id or request.draft_id
 
     profile = await resolve_profile_identity_context(
         pool,
@@ -100,71 +96,88 @@ async def patch_invocation_draft_impl(
         redis,
         session_id=session_id,
     )
-
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    # ── Step 2: Value resolution (creatable only) ──────────────────────
+    if request.idempotency_key is not None:
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                result = await create_invocation_draft(
+                    conn,
+                    session_id=session_id,
+                    id=request.idempotency_key,
+                    soft=not request.accept,
+                    profile_ids=[profile.profiles_id],
+                    pending_ids=set(request.pending_ids or []),
+                )
+        async with pool.acquire() as conn:
+            await refresh_invocation_drafts(conn)
+        return PatchInvocationDraftApiResponse(
+            success=True,
+            draft_id=result.id,
+            idempotency_key=request.idempotency_key,
+            message="Draft accepted" if request.accept else "Draft rejected",
+            form_state=DraftFormState(pending_ids=request.pending_ids or []),
+        )
 
-    errors = await _resolve_creatable_values(pool, redis, request)
+    async with pool.acquire() as conn:
+        errors = await _resolve_creatable_values(conn, redis, request)
     if errors:
         raise HTTPException(
             status_code=400,
-            detail=[e.model_dump() for e in errors],
+            detail=[error.model_dump() for error in errors],
         )
-
-    # ── Step 3: Create draft entry (append-only snapshot) ──────────────
 
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_invocation_draft(
                 conn,
                 session_id=session_id,
-                name_ids=request.name_ids,
-                description_ids=request.description_ids,
-                value_ids=[request.value_id] if request.value_id else None,
+                id=request.draft_id,
+                name_ids=[request.name_id] if request.name_id else None,
+                description_ids=[request.description_id] if request.description_id else None,
+                value_id=request.value_id,
                 flag_ids=request.flag_ids,
                 department_ids=request.department_ids,
-                key_ids=request.key_ids,
-                endpoint_ids=request.endpoint_ids,
-                temperature_level_ids=request.temperature_level_ids,
-                pricing_ids=request.pricing_ids,
-                reasoning_level_ids=request.reasoning_level_ids,
+                key_ids=[request.key_id] if request.key_id else None,
+                endpoint_ids=[request.endpoint_id] if request.endpoint_id else None,
+                temperature_level_ids=[request.temperature_level_id] if request.temperature_level_id else None,
+                pricing_ids=[request.pricing_id] if request.pricing_id else None,
+                reasoning_level_ids=[request.reasoning_level_id] if request.reasoning_level_id else None,
                 voice_ids=request.voice_ids,
                 profile_ids=[profile.profiles_id],
+                pending_ids=set(request.pending_ids or []),
             )
-
-    # ── Step 4: Build form state (server is source of truth) ──────────
-
-    form_state = InvocationDraftFormState(
-        name_ids=request.name_ids or [],
-        description_ids=request.description_ids or [],
-        value_id=request.value_id,
-        flag_ids=request.flag_ids or [],
-        department_ids=request.department_ids or [],
-        key_ids=request.key_ids or [],
-        endpoint_ids=request.endpoint_ids or [],
-        temperature_level_ids=request.temperature_level_ids or [],
-        pricing_ids=request.pricing_ids or [],
-        reasoning_level_ids=request.reasoning_level_ids or [],
-        voice_ids=request.voice_ids or [],
-    )
-
-    # ── Step 5: Refresh MV ─────────────────────────────────────────────
 
     async with pool.acquire() as conn:
         await refresh_invocation_drafts(conn)
-
-    # ── Step 6: Invalidate cache ───────────────────────────────────────
 
     await invalidate_tags(["benchmark", "drafts"], redis=redis)
 
     return PatchInvocationDraftApiResponse(
         success=True,
         draft_id=result.id,
+        idempotency_key=request.idempotency_key,
         message="Draft created successfully",
-        form_state=form_state,
+        form_state=DraftFormState(
+            name_id=request.name_id,
+            name=request.name,
+            description_id=request.description_id,
+            description=request.description,
+            value_id=request.value_id,
+            flag_ids=request.flag_ids or [],
+            department_ids=request.department_ids or [],
+            key_id=request.key_id,
+            endpoint_id=request.endpoint_id,
+            modality_ids=request.modality_ids or [],
+            temperature_level_id=request.temperature_level_id,
+            pricing_id=request.pricing_id,
+            reasoning_level_id=request.reasoning_level_id,
+            quality_ids=request.quality_ids or [],
+            voice_ids=request.voice_ids or [],
+            pending_ids=request.pending_ids or [],
+        ),
     )

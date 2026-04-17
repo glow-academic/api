@@ -64,9 +64,7 @@ async def update_setting(
             session_id=session_id,
             group_id=group_id,
             operation="update",
-            arguments={
-                "settings": [item.model_dump(mode="json") for item in request.settings]
-            },
+            arguments=request.model_dump(mode="json"),
             response_model=UpdateSettingApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

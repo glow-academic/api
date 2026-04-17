@@ -89,6 +89,7 @@ class ProfileSummary(BaseModel):
     role_level: int = Field(..., description="Role hierarchy level (0 = highest privilege)")
     department_ids: list[UUID] = Field(..., description="Departments the user belongs to")
     artifact_access: list[str] = Field(..., description="Artifact types this role can access (sidebar visibility)")
+    role_permissions: list[tuple[str, str]] = Field(..., description="Full (artifact, operation) permission tuples for granular page gating")
     is_active: bool = Field(..., description="Whether the user's profile is active")
 
     # --- New fields (needed by client providers) ---

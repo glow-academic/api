@@ -58,6 +58,7 @@ _STANDARD_IDS = [
 def _rubric(slug: str, name: str, description: str) -> dict:
     return dict(
         id=sid(f"rubric/{slug}"),
+        resource_id=sid(f"rubric-resource/{slug}"),
         name=name,
         description=description,
         total_points=25,

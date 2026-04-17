@@ -10,6 +10,7 @@ from app.tools.entries.chat_drafts.types import CreateChatDraftResponse
 async def create_chat_draft(
     conn: asyncpg.Connection,
     session_id: UUID,
+    *,
     id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
@@ -30,12 +31,14 @@ async def create_chat_draft(
     question_ids: list[UUID] | None = None,
     scenario_ids: list[UUID] | None = None,
     video_ids: list[UUID] | None = None,
+    pending_ids: set[UUID] | None = None,
 ) -> CreateChatDraftResponse:
-    """Create a chat_drafts entry with optional connection table links."""
+    """Create or update a chat_drafts entry with optional connection table links."""
     draft_id = await conn.fetchval(
         """
         INSERT INTO chat_drafts_entry (id, session_id, active, mcp, generated)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
+        ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         session_id,
@@ -79,12 +82,15 @@ async def create_chat_draft(
         ("chat_drafts_videos_connection", "videos_id", video_ids or []),
     ]
 
+    _pending = pending_ids or set()
     for table, col, ids in connections:
         for rid in ids:
             await conn.execute(
-                f"INSERT INTO {table} (draft_id, {col}) VALUES ($1, $2)",
+                f"INSERT INTO {table} (draft_id, {col}, active) VALUES ($1, $2, $3) "
+                f"ON CONFLICT (draft_id, {col}) DO UPDATE SET active = EXCLUDED.active",
                 draft_id,
                 rid,
+                False if soft else (rid not in _pending),
             )
 
     return CreateChatDraftResponse(id=draft_id)

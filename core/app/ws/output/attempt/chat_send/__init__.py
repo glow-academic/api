@@ -1,3 +1,3 @@
-"""Output: attempt.chat_send.* events."""
+"""Output: attempt.chat.send.* events."""
 
-from . import completed, started  # noqa: F401
+from . import completed, failed, started  # noqa: F401

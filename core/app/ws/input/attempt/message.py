@@ -7,7 +7,8 @@ otherwise uses the standard text generation pipeline.
 
 from typing import Any
 
-from app.infra.globals import get_internal_sio, get_pool, get_upload_folder, sio
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder, sio
 from app.infra.identity.socket import resolve_socket_identity
 from app.infra.websocket.attempt.audio_frame import (
     attempt_audio_frame_internal_impl,
@@ -15,8 +16,6 @@ from app.infra.websocket.attempt.audio_frame import (
 from app.infra.websocket.session_store import get_session_by_chat_id
 from app.infra.attempt.message import attempt_message_internal_impl
 from app.tools.entries.uploads.get import get_upload
-
-internal_sio = get_internal_sio()
 
 
 @sio.on("attempt.chat.send")  # type: ignore
@@ -65,7 +64,7 @@ async def attempt_message(sid: str, data: dict[str, Any]) -> None:
     if not text:
         return
 
-    try:
+    async def _runner() -> dict[str, Any]:
         await attempt_message_internal_impl({
             **data,
             "message": text,
@@ -73,10 +72,20 @@ async def attempt_message(sid: str, data: dict[str, Any]) -> None:
             "profile_id": str(identity.profile_id),
             "session_id": str(identity.session_id),
         })
-    except Exception as e:
-        await internal_sio.emit("attempt.chat.send.failed", {
-            "sid": sid,
-            "rooms": [sid],
-            "message": str(e),
-            "error_type": type(e).__name__,
-        })
+        return {"chat_id": chat_id, "success": True}
+
+    pool = get_pool()
+    redis = get_redis_client()
+
+    await run_artifact_operation_with_audit(
+        pool,
+        redis,
+        artifact="attempt",
+        operation="chat.send",
+        profile_id=identity.profile_id,
+        session_id=identity.session_id,
+        sid=sid,
+        rooms=[sid],
+        runner=_runner,
+        arguments={"chat_id": chat_id},
+    )

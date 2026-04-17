@@ -27,13 +27,16 @@ from app.infra.chat.types import (
 from app.tools.entries.chat_drafts.create import create_chat_draft
 from app.tools.entries.chat_drafts.refresh import refresh_chat_drafts
 from app.tools.resources.descriptions.create import create_description
+from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.images.create import create_image
 from app.tools.resources.names.create import create_name
+from app.tools.resources.names.search import search_names
 from app.tools.resources.objectives.create import create_objective
 from app.tools.resources.options.create import create_option
 from app.tools.resources.problem_statements.create import (
     create_problem_statement,
 )
+from app.tools.resources.problem_statements.search import search_problem_statements
 from app.tools.resources.questions.create import create_question
 from app.tools.resources.videos.create import create_video
 from app.utils.cache.invalidate_tags import invalidate_tags
@@ -63,19 +66,36 @@ async def _resolve_creatable_values(
     async with pool.acquire() as conn:
         # ── Single-select creatables ──────────────────────────────────────
 
-        if request.name is not None:
-            result = await create_name(conn, request.name, redis)
-            request.name_ids = [result.id]
+        if request.name is not None and request.name_id is None:
+            existing = await search_names(conn, redis, search=request.name, limit_count=1)
+            if existing and existing[0].name.lower() == request.name.lower():
+                request.name_id = existing[0].id
+            else:
+                result = await create_name(conn, request.name, redis)
+                request.name_id = result.id
 
-        if request.description is not None:
-            result = await create_description(conn, request.description, redis)
-            request.description_ids = [result.id]
+        if request.description is not None and request.description_id is None:
+            existing = await search_descriptions(conn, redis, search=request.description, limit_count=1)
+            if existing and existing[0].description.lower() == request.description.lower():
+                request.description_id = existing[0].id
+            else:
+                result = await create_description(conn, request.description, redis)
+                request.description_id = result.id
 
-        if request.problem_statement is not None:
-            result = await create_problem_statement(
-                conn, request.name or "", request.problem_statement, redis
+        if request.problem_statement is not None and request.problem_statement_id is None:
+            existing = await search_problem_statements(
+                conn, redis, search=request.problem_statement, limit_count=1
             )
-            request.problem_statement_ids = [result.id]
+            if (
+                existing
+                and existing[0].problem_statement.lower() == request.problem_statement.lower()
+            ):
+                request.problem_statement_id = existing[0].id
+            else:
+                result = await create_problem_statement(
+                    conn, request.name or "", request.problem_statement, redis
+                )
+                request.problem_statement_id = result.id
 
         # ── Multi-select creatables (merged mode) ─────────────────────────
 
@@ -149,6 +169,9 @@ async def patch_chat_draft_impl(
       6. invalidate_tags
     """
 
+    draft_entry_id = request.draft_id or request.input_draft_id
+    pending_ids = set(request.pending_ids or [])
+
     # ── Step 1: Profile context ────────────────────────────────────────
 
     profile = await resolve_profile_identity_context(
@@ -180,8 +203,9 @@ async def patch_chat_draft_impl(
             result = await create_chat_draft(
                 conn,
                 session_id=session_id,
-                name_ids=request.name_ids,
-                description_ids=request.description_ids,
+                id=draft_entry_id,
+                name_ids=[request.name_id] if request.name_id else None,
+                description_ids=[request.description_id] if request.description_id else None,
                 document_ids=request.document_ids,
                 field_ids=request.field_ids,
                 flag_ids=request.flag_ids,
@@ -191,19 +215,24 @@ async def patch_chat_draft_impl(
                 parameter_field_ids=request.parameter_field_ids,
                 parameter_ids=request.parameter_ids,
                 persona_ids=request.persona_ids,
-                problem_statement_ids=request.problem_statement_ids,
+                problem_statement_ids=[request.problem_statement_id] if request.problem_statement_id else None,
                 question_ids=request.question_ids,
                 scenario_ids=request.scenario_ids,
                 video_ids=request.video_ids,
                 department_ids=request.department_ids,
                 profile_ids=[profile.profiles_id],
+                pending_ids=pending_ids,
             )
 
     # ── Step 4: Build form state (server is source of truth) ──────────
 
     form_state = ChatDraftFormState(
-        name_ids=request.name_ids or [],
-        description_ids=request.description_ids or [],
+        name_id=request.name_id,
+        name=request.name,
+        description_id=request.description_id,
+        description=request.description,
+        problem_statement_id=request.problem_statement_id,
+        problem_statement=request.problem_statement,
         flag_ids=request.flag_ids or [],
         department_ids=request.department_ids or [],
         persona_ids=request.persona_ids or [],
@@ -216,8 +245,8 @@ async def patch_chat_draft_impl(
         option_ids=request.option_ids or [],
         video_ids=request.video_ids or [],
         image_ids=request.image_ids or [],
-        problem_statement_ids=request.problem_statement_ids or [],
         objective_ids=request.objective_ids or [],
+        pending_ids=list(pending_ids),
     )
 
     # ── Step 5: Refresh MV ─────────────────────────────────────────────
@@ -232,6 +261,7 @@ async def patch_chat_draft_impl(
     return PatchChatDraftApiResponse(
         success=True,
         draft_id=result.id,
+        idempotency_key=request.idempotency_key,
         message="Draft created successfully",
         form_state=form_state,
     )

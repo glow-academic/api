@@ -3120,3 +3120,29 @@ PERMISSION_IDS = {
     ("group", "call_download"): sid("permission/group/call_download"),
     ("group", "context"): sid("permission/group/context"),
 }
+
+# ---------------------------------------------------------------------------
+# Post-consolidation aliases (migration 30)
+#
+# VIEW artifacts folded into 3 parents:
+#   attempt ← home, practice, chat, dashboard, leaderboard, reports, record
+#   test    ← invocation, benchmark
+#   system  ← activity, session, pricing, group, health
+#
+# Maps new (parent, child_op) keys to the same UUIDs as old (child, op).
+# Existing entries (e.g. attempt/chat_get) are preserved — no overwrite.
+# ---------------------------------------------------------------------------
+
+_CONSOLIDATION_MAP = {
+    "attempt": ["home", "practice", "chat", "dashboard", "leaderboard", "reports", "record"],
+    "test": ["invocation", "benchmark"],
+    "system": ["activity", "session", "pricing", "group", "health"],
+}
+
+for _parent, _children in _CONSOLIDATION_MAP.items():
+    for _child in _children:
+        for (_art, _op), _pid in list(PERMISSION_IDS.items()):
+            if _art == _child:
+                _new_key = (_parent, f"{_child}_{_op}")
+                if _new_key not in PERMISSION_IDS:  # skip collisions (e.g. attempt/chat_get)
+                    PERMISSION_IDS[_new_key] = _pid

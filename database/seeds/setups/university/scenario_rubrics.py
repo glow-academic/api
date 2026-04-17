@@ -20,11 +20,24 @@ from database.seeds.setups.university.rubrics import (
 from database.seeds.setups.university.scenarios import (
     ACADEMIC_INTEGRITY_SCENARIO,
     ACADEMIC_INTEGRITY_SCENARIO_RESOURCE,
+    AGGRESSIVE_SCENARIO,
+    AGGRESSIVE_SCENARIO_RESOURCE,
+    CONFUSED_SCENARIO,
+    CONFUSED_SCENARIO_RESOURCE,
     FERPA_SCENARIO,
     FERPA_SCENARIO_RESOURCE,
+    GENERAL_SCENARIO,
+    GENERAL_SCENARIO_RESOURCE,
+    HAPPY_SCENARIO,
+    HAPPY_SCENARIO_RESOURCE,
+    PASSIVE_SCENARIO,
+    PASSIVE_SCENARIO_RESOURCE,
     UPSET_STUDENT_SCENARIO,
     UPSET_STUDENT_SCENARIO_RESOURCE,
 )
+
+# Training Rubric resource ID (defined in database/seeds/rubrics.py)
+TRAINING_RUBRIC_RESOURCE = sid("rubric-resource/training-rubric")
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs — importable by simulations, etc.
@@ -42,6 +55,13 @@ UPSET_STUDENT_DE_ESCALATION = sid("uni/scenario-rubric/upset-student+de-escalati
 UPSET_STUDENT_COMMUNICATION_SKILLS = sid(
     "uni/scenario-rubric/upset-student+communication-skills"
 )
+
+# Practice scenario-rubric IDs (each practice scenario → Training Rubric)
+CONFUSED_TRAINING = sid("uni/scenario-rubric/confused+training")
+HAPPY_TRAINING = sid("uni/scenario-rubric/happy+training")
+PASSIVE_TRAINING = sid("uni/scenario-rubric/passive+training")
+AGGRESSIVE_TRAINING = sid("uni/scenario-rubric/aggressive+training")
+GENERAL_TRAINING = sid("uni/scenario-rubric/general+training")
 
 ACADEMIC_INTEGRITY_POLICY_KNOWLEDGE_RESOURCE = sid(
     "uni/scenario-rubric-resource/academic-integrity+policy-knowledge"
@@ -75,6 +95,11 @@ UPSET_STUDENT_RUBRICS = [
     UPSET_STUDENT_DE_ESCALATION,
     UPSET_STUDENT_COMMUNICATION_SKILLS,
 ]
+CONFUSED_RUBRICS = [CONFUSED_TRAINING]
+HAPPY_RUBRICS = [HAPPY_TRAINING]
+PASSIVE_RUBRICS = [PASSIVE_TRAINING]
+AGGRESSIVE_RUBRICS = [AGGRESSIVE_TRAINING]
+GENERAL_RUBRICS = [GENERAL_TRAINING]
 
 # ---------------------------------------------------------------------------
 # Scenario-rubric definitions
@@ -122,5 +147,31 @@ scenario_rubrics = [
         resource_id=UPSET_STUDENT_COMMUNICATION_SKILLS_RESOURCE,
         scenario_id=UPSET_STUDENT_SCENARIO_RESOURCE,
         rubric_id=COMMUNICATION_SKILLS_RESOURCE,
+    ),
+    # -- Practice Scenarios + Training Rubric ---------------------------------
+    dict(
+        id=CONFUSED_TRAINING,
+        scenario_id=CONFUSED_SCENARIO_RESOURCE,
+        rubric_id=TRAINING_RUBRIC_RESOURCE,
+    ),
+    dict(
+        id=HAPPY_TRAINING,
+        scenario_id=HAPPY_SCENARIO_RESOURCE,
+        rubric_id=TRAINING_RUBRIC_RESOURCE,
+    ),
+    dict(
+        id=PASSIVE_TRAINING,
+        scenario_id=PASSIVE_SCENARIO_RESOURCE,
+        rubric_id=TRAINING_RUBRIC_RESOURCE,
+    ),
+    dict(
+        id=AGGRESSIVE_TRAINING,
+        scenario_id=AGGRESSIVE_SCENARIO_RESOURCE,
+        rubric_id=TRAINING_RUBRIC_RESOURCE,
+    ),
+    dict(
+        id=GENERAL_TRAINING,
+        scenario_id=GENERAL_SCENARIO_RESOURCE,
+        rubric_id=TRAINING_RUBRIC_RESOURCE,
     ),
 ]

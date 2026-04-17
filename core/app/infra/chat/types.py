@@ -268,156 +268,260 @@ class ChatSimulationOperational(BaseModel):
 
 
 # =============================================================================
-# BUNDLE endpoint types (customize/start flow) — Section-first pattern
+# BUNDLE endpoint types (customize/start flow) — canonical flat-array pattern
 # =============================================================================
 
 
+class SectionFilter(BaseModel):
+    """Per-section filter options for chat GET requests."""
+
+    search: str | None = Field(None, description="Filter options by search text")
+    limit: int | None = Field(None, description="Max options to return")
+    selected: bool | None = Field(None, description="Only return selected items")
+    suggested: bool | None = Field(None, description="Only return suggested items")
+    include: bool | None = Field(None, description="Include this section in the response")
+    parameter_ids: list[str] | None = Field(
+        None,
+        description="Parameter IDs to filter parameter_fields by",
+    )
+
+
+class ChatNameResource(BaseModel):
+    id: UUID | None = None
+    name: str | None = None
+    generated: bool | None = None
+    suggested: bool = False
+    selected: bool = False
+    pending: bool = False
+
+
+class ChatDescriptionResource(BaseModel):
+    id: UUID | None = None
+    description: str | None = None
+    generated: bool | None = None
+    suggested: bool = False
+    selected: bool = False
+    pending: bool = False
+
+
+class ChatFlagResource(BaseModel):
+    id: UUID | None = None
+    name: str | None = None
+    description: str | None = None
+    type: str | None = None
+    icon: str | None = None
+    value: bool | None = None
+    generated: bool | None = None
+    suggested: bool = False
+    selected: bool = False
+    pending: bool = False
+
+
+class ChatDepartmentResource(BaseModel):
+    department_id: UUID | None = None
+    name: str | None = None
+    description: str | None = None
+    generated: bool | None = None
+    suggested: bool = False
+    selected: bool = False
+    pending: bool = False
+
+
+class ChatPersonaResource(BaseModel):
+    persona_id: UUID | None = None
+    name: str | None = None
+    description: str | None = None
+    icon: str | None = None
+    color: str | None = None
+    generated: bool | None = None
+    suggested: bool = False
+    selected: bool = False
+    pending: bool = False
+
+
+class ChatDocumentResource(BaseModel):
+    document_id: UUID | None = None
+    name: str | None = None
+    description: str | None = None
+    file_id: UUID | None = None
+    text_id: UUID | None = None
+    image_ids: list[UUID] | None = None
+    template: bool | None = None
+    parameter_field_ids: list[UUID] | None = None
+    generated: bool | None = None
+    suggested: bool = False
+    selected: bool = False
+    pending: bool = False
+
+
+class ChatParameterFieldResource(BaseModel):
+    id: UUID | None = None
+    field_id: UUID | None = None
+    parameter_id: UUID | None = None
+    name: str | None = None
+    parameter_name: str | None = None
+    generated: bool | None = None
+    suggested: bool = False
+    selected: bool = False
+    pending: bool = False
+
+
+class ChatScenarioResource(BaseModel):
+    scenario_id: UUID | None = None
+    name: str | None = None
+    description: str | None = None
+    generated: bool | None = None
+    suggested: bool = False
+    selected: bool = False
+    pending: bool = False
+
+
+class ChatFieldResource(BaseModel):
+    field_id: UUID | None = None
+    name: str | None = None
+    description: str | None = None
+    value: str | None = None
+    conditional_parameter_ids: list[UUID] | None = None
+    generated: bool | None = None
+    suggested: bool = False
+    selected: bool = False
+    pending: bool = False
+
+
+class ChatQuestionResource(BaseModel):
+    question_id: UUID | None = None
+    question_text: str | None = None
+    allow_multiple: bool | None = None
+    time: int | None = None
+    generated: bool | None = None
+    suggested: bool = False
+    selected: bool = False
+    pending: bool = False
+
+
+class ChatOptionResource(BaseModel):
+    option_id: UUID | None = None
+    option_text: str | None = None
+    question_id: UUID | None = None
+    is_correct: bool | None = None
+    generated: bool | None = None
+    suggested: bool = False
+    selected: bool = False
+    pending: bool = False
+
+
+class ChatVideoResource(BaseModel):
+    video_id: UUID | None = None
+    name: str | None = None
+    description: str | None = None
+    upload_id: UUID | None = None
+    generated: bool | None = None
+    suggested: bool = False
+    selected: bool = False
+    pending: bool = False
+
+
+class ChatImageResource(BaseModel):
+    image_id: UUID | None = None
+    name: str | None = None
+    description: str | None = None
+    upload_id: UUID | None = None
+    generated: bool | None = None
+    suggested: bool = False
+    selected: bool = False
+    pending: bool = False
+
+
+class ChatProblemStatementResource(BaseModel):
+    problem_statement_id: UUID | None = None
+    name: str | None = None
+    problem_statement: str | None = None
+    generated: bool | None = None
+    suggested: bool = False
+    selected: bool = False
+    pending: bool = False
+
+
+class ChatObjectiveResource(BaseModel):
+    id: UUID | None = None
+    objective: str | None = None
+    generated: bool | None = None
+    suggested: bool = False
+    selected: bool = False
+    pending: bool = False
+
+
 class GetChatRequest(BaseModel):
-    """Client API request for one chat bundle customization payload."""
+    """Canonical chat customization request."""
 
-    chat_entry_id: UUID = Field(..., description="UUID of the chat entry")
-    attempt_id: UUID | None = Field(None, description="UUID of the attempt")
-    draft_id: UUID | None = Field(None, description="UUID of the draft")
-    # Search filters (analogous to scenario)
-    description_search: str | None = Field(None, description="Search filter for descriptions")
-    persona_search: str | None = Field(None, description="Search filter for personas")
-    document_search: str | None = Field(None, description="Search filter for documents")
-    problem_statement_search: str | None = Field(None, description="Search filter for problem statements")
-    image_search: str | None = Field(None, description="Search filter for images")
-    video_search: str | None = Field(None, description="Search filter for videos")
-    question_search: str | None = Field(None, description="Search filter for questions")
-    option_search: str | None = Field(None, description="Search filter for options")
-    # Show-selected toggles
-    persona_show_selected: bool | None = Field(None, description="Whether to show only selected personas")
-    document_show_selected: bool | None = Field(None, description="Whether to show only selected documents")
-
-
-# --- Section types (one per resource) ---
-
-
-class BaseChatSection(BaseModel):
-    """Common metadata fields for all chat bundle resource sections."""
-
-    show: bool = Field(False, description="Whether to show this section")
-    required: bool = Field(False, description="Whether this section is required")
-    suggestions: list[UUID] | None = Field(None, description="Suggested resource IDs")
-    show_ai_generate: bool = Field(False, description="Whether to show AI generate option")
-
-
-class ChatDepartmentSection(BaseChatSection):
-    current: list[Any] | None = Field(None, description="Currently selected departments")
-    resources: list[Any] | None = Field(None, description="Available department resources")
-
-
-class ChatPersonaSection(BaseChatSection):
-    current: list[Any] | None = Field(None, description="Currently selected personas")
-    resources: list[Any] | None = Field(None, description="Available persona resources")
-
-
-class ChatDocumentSection(BaseChatSection):
-    current: list[Any] | None = Field(None, description="Currently selected documents")
-    resources: list[Any] | None = Field(None, description="Available document resources")
-
-
-class ChatParameterFieldSection(BaseChatSection):
-    current: list[Any] | None = Field(None, description="Currently selected parameter fields")
-    resources: list[Any] | None = Field(None, description="Available parameter field resources")
-
-
-class ChatScenarioSection(BaseChatSection):
-    current: list[Any] | None = Field(None, description="Currently selected scenarios")
-    resources: list[Any] | None = Field(None, description="Available scenario resources")
-
-
-class ChatFieldSection(BaseChatSection):
-    current: list[Any] | None = Field(None, description="Currently selected fields")
-    resources: list[Any] | None = Field(None, description="Available field resources")
-
-
-class ChatQuestionSection(BaseChatSection):
-    current: list[Any] | None = Field(None, description="Currently selected questions")
-    resources: list[Any] | None = Field(None, description="Available question resources")
-
-
-class ChatOptionSection(BaseChatSection):
-    current: list[Any] | None = Field(None, description="Currently selected options")
-    resources: list[Any] | None = Field(None, description="Available option resources")
-
-
-class ChatVideoSection(BaseChatSection):
-    current: list[Any] | None = Field(None, description="Currently selected videos")
-    resources: list[Any] | None = Field(None, description="Available video resources")
-
-
-class ChatImageSection(BaseChatSection):
-    current: list[Any] | None = Field(None, description="Currently selected images")
-    resources: list[Any] | None = Field(None, description="Available image resources")
-
-
-class ChatProblemStatementSection(BaseChatSection):
-    current: list[Any] | None = Field(None, description="Currently selected problem statements")
-    resources: list[Any] | None = Field(None, description="Available problem statement resources")
-
-
-class ChatObjectiveSection(BaseChatSection):
-    current: list[Any] | None = Field(None, description="Currently selected objectives")
-    resources: list[Any] | None = Field(None, description="Available objective resources")
-
-
-class ChatNameSection(BaseChatSection):
-    current: list[Any] | None = Field(None, description="Currently selected names")
-    resources: list[Any] | None = Field(None, description="Available name resources")
-
-
-class ChatDescriptionSection(BaseChatSection):
-    current: list[Any] | None = Field(None, description="Currently selected descriptions")
-    resources: list[Any] | None = Field(None, description="Available description resources")
-
-
-class ChatFlagSection(BaseChatSection):
-    current: list[Any] | None = Field(None, description="Currently selected flags")
-    resources: list[Any] | None = Field(None, description="Available flag resources")
-
-
-# --- Scenario flags type ---
-
-
-class ChatScenarioFlags(BaseModel):
-    """Scenario-level flags that control section visibility."""
-
-    video_enabled: bool = Field(False, description="Whether video section is enabled")
-    problem_statement_enabled: bool = Field(False, description="Whether problem statement is enabled")
-    objectives_enabled: bool = Field(False, description="Whether objectives section is enabled")
-    images_enabled: bool = Field(False, description="Whether images section is enabled")
-    questions_enabled: bool = Field(False, description="Whether questions section is enabled")
-
-
-# --- GET response (section-first) ---
+    id: UUID | None = Field(None, description="Chat entry ID")
+    chat_entry_id: UUID | None = Field(None, description="Legacy alias for the chat entry ID")
+    attempt_id: UUID | None = Field(None, description="Attempt ID")
+    draft_id: UUID | None = Field(None, description="Draft ID")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads")
+    names: SectionFilter | None = None
+    descriptions: SectionFilter | None = None
+    flags: SectionFilter | None = None
+    departments: SectionFilter | None = None
+    personas: SectionFilter | None = None
+    documents: SectionFilter | None = None
+    parameter_fields: SectionFilter | None = None
+    scenarios: SectionFilter | None = None
+    fields: SectionFilter | None = None
+    questions: SectionFilter | None = None
+    options: SectionFilter | None = None
+    videos: SectionFilter | None = None
+    images: SectionFilter | None = None
+    problem_statements: SectionFilter | None = None
+    objectives: SectionFilter | None = None
 
 
 class GetChatResponse(BaseModel):
-    """Client-facing chat bundle response — section-first pattern."""
+    """Canonical chat bundle response."""
 
-    chat_entry_id: UUID = Field(..., description="UUID of the chat entry")
-    attempt_id: UUID | None = Field(None, description="UUID of the attempt")
-    group_id: UUID = Field(..., description="UUID of the group")
+    actor_name: str | None = Field(None, description="Display name of the authenticated user")
+    chat_exists: bool | None = Field(None, description="Whether the chat template exists")
+    can_edit: bool | None = Field(None, description="Whether the current user can edit this draft")
+    disabled_reason: str | None = Field(None, description="Human-readable reason if editing is disabled")
+    group_id: UUID | None = Field(None, description="Group ID for generation and draft correlation")
+    show_ai_generate: bool | None = Field(None, description="Whether AI generation is available")
+    profile_has_access: bool | None = Field(True, description="Compatibility flag for current chat pages")
+    simulation_name: str | None = Field(None, description="Optional simulation name for UI display")
+    chat_entry_id: UUID | None = Field(None, description="Chat entry ID")
+    attempt_id: UUID | None = Field(None, description="Attempt ID")
 
-    # 15 section-first resources
-    names: ChatNameSection | None = Field(None, description="Name section data")
-    descriptions: ChatDescriptionSection | None = Field(None, description="Description section data")
-    flags: ChatFlagSection | None = Field(None, description="Flag section data")
-    departments: ChatDepartmentSection | None = Field(None, description="Department section data")
-    personas: ChatPersonaSection | None = Field(None, description="Persona section data")
-    documents: ChatDocumentSection | None = Field(None, description="Document section data")
-    parameter_fields: ChatParameterFieldSection | None = Field(None, description="Parameter field section data")
-    scenarios: ChatScenarioSection | None = Field(None, description="Scenario section data")
-    fields: ChatFieldSection | None = Field(None, description="Field section data")
-    questions: ChatQuestionSection | None = Field(None, description="Question section data")
-    options: ChatOptionSection | None = Field(None, description="Option section data")
-    videos: ChatVideoSection | None = Field(None, description="Video section data")
-    images: ChatImageSection | None = Field(None, description="Image section data")
-    problem_statements: ChatProblemStatementSection | None = Field(None, description="Problem statement section data")
-    objectives: ChatObjectiveSection | None = Field(None, description="Objective section data")
+    names: list[ChatNameResource] | None = None
+    descriptions: list[ChatDescriptionResource] | None = None
+    flags: list[ChatFlagResource] | None = None
+    departments: list[ChatDepartmentResource] | None = None
+    personas: list[ChatPersonaResource] | None = None
+    documents: list[ChatDocumentResource] | None = None
+    parameter_fields: list[ChatParameterFieldResource] | None = None
+    scenarios: list[ChatScenarioResource] | None = None
+    fields: list[ChatFieldResource] | None = None
+    questions: list[ChatQuestionResource] | None = None
+    options: list[ChatOptionResource] | None = None
+    videos: list[ChatVideoResource] | None = None
+    images: list[ChatImageResource] | None = None
+    problem_statements: list[ChatProblemStatementResource] | None = None
+    objectives: list[ChatObjectiveResource] | None = None
+
+    # Compatibility fields for attempt generation consumers.
+    name_ids: list[UUID] | None = None
+    description_ids: list[UUID] | None = None
+    flag_ids: list[UUID] | None = None
+    department_ids: list[UUID] | None = None
+    persona_ids: list[UUID] | None = None
+    document_ids: list[UUID] | None = None
+    parameter_field_ids: list[UUID] | None = None
+    scenario_ids: list[UUID] | None = None
+    field_ids: list[UUID] | None = None
+    question_ids: list[UUID] | None = None
+    option_ids: list[UUID] | None = None
+    video_ids: list[UUID] | None = None
+    image_ids: list[UUID] | None = None
+    problem_statement_ids: list[UUID] | None = None
+    objective_ids: list[UUID] | None = None
 
 
 # =============================================================================
@@ -466,56 +570,52 @@ class DraftOptionValue(BaseModel):
 
 
 class PatchChatDraftApiRequest(ScopedItem):
-    """Request model for new-style chat draft endpoint.
+    """Canonical chat draft request."""
 
-    Single-select creatables: name, description, problem_statement
-      → value creates resource, ID replaces value (mutually exclusive).
+    draft_id: UUID | None = Field(None, description="Existing draft ID to update")
+    input_draft_id: UUID | None = Field(None, description="Legacy alias for draft_id")
 
-    Multi-select creatables: objectives, images, videos, questions, options
-      → values create resources, created IDs are merged with existing IDs.
+    # Single-select creatables
+    name: str | None = None
+    name_id: UUID | None = None
+    description: str | None = None
+    description_id: UUID | None = None
+    problem_statement: str | None = None
+    problem_statement_id: UUID | None = None
 
-    Client always sends full state (append-only — each write is a new snapshot).
-    """
+    # Multi-select creatables
+    objectives: list[str] | None = None
+    objective_ids: list[UUID] | None = None
+    images: list[DraftImageValue] | None = None
+    image_ids: list[UUID] | None = None
+    videos: list[DraftVideoValue] | None = None
+    video_ids: list[UUID] | None = None
+    questions: list[DraftQuestionValue] | None = None
+    question_ids: list[UUID] | None = None
+    options: list[DraftOptionValue] | None = None
+    option_ids: list[UUID] | None = None
 
-    input_draft_id: UUID | None = Field(None, description="UUID of the input draft")
+    # Match/select-only
+    department_ids: list[UUID] | None = None
+    document_ids: list[UUID] | None = None
+    field_ids: list[UUID] | None = None
+    flag_ids: list[UUID] | None = None
+    parameter_field_ids: list[UUID] | None = None
+    parameter_ids: list[UUID] | None = None
+    persona_ids: list[UUID] | None = None
+    scenario_ids: list[UUID] | None = None
 
-    # Single-select creatables — provide value OR ID
-    name: str | None = Field(None, description="Name value to create")
-    description: str | None = Field(None, description="Description value to create")
-    problem_statement: str | None = Field(None, description="Problem statement value to create")
-
-    # Multi-select creatables — values create resources, merged with IDs
-    objectives: list[str] | None = Field(None, description="Objective texts to create")
-    images: list[DraftImageValue] | None = Field(None, description="Image values to create")
-    videos: list[DraftVideoValue] | None = Field(None, description="Video values to create")
-    questions: list[DraftQuestionValue] | None = Field(None, description="Question values to create")
-    options: list[DraftOptionValue] | None = Field(None, description="Option values to create")
-
-    # All ID-only
-    name_ids: list[UUID] | None = Field(None, description="Selected name resource IDs")
-    description_ids: list[UUID] | None = Field(None, description="Selected description resource IDs")
-    document_ids: list[UUID] | None = Field(None, description="Selected document resource IDs")
-    field_ids: list[UUID] | None = Field(None, description="Selected field resource IDs")
-    flag_ids: list[UUID] | None = Field(None, description="Selected flag resource IDs")
-    image_ids: list[UUID] | None = Field(None, description="Selected image resource IDs")
-    objective_ids: list[UUID] | None = Field(None, description="Selected objective resource IDs")
-    option_ids: list[UUID] | None = Field(None, description="Selected option resource IDs")
-    parameter_field_ids: list[UUID] | None = Field(None, description="Selected parameter field resource IDs")
-    parameter_ids: list[UUID] | None = Field(None, description="Selected parameter resource IDs")
-    persona_ids: list[UUID] | None = Field(None, description="Selected persona resource IDs")
-    problem_statement_ids: list[UUID] | None = Field(None, description="Selected problem statement resource IDs")
-    question_ids: list[UUID] | None = Field(None, description="Selected question resource IDs")
-    scenario_ids: list[UUID] | None = Field(None, description="Selected scenario resource IDs")
-    video_ids: list[UUID] | None = Field(None, description="Selected video resource IDs")
-    department_ids: list[UUID] | None = Field(None, description="Selected department resource IDs")
+    pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep pending/inactive on the draft")
+    idempotency_key: UUID | None = Field(None, description="Ack key for generation/correlation flows")
+    accept: bool = Field(True, description="Accept or reject pending state")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
-        "name_ids": "names",
+        "name_id": "names",
         "description": "descriptions",
-        "description_ids": "descriptions",
+        "description_id": "descriptions",
         "problem_statement": "problem_statements",
-        "problem_statement_ids": "problem_statements",
+        "problem_statement_id": "problem_statements",
         "objectives": "objectives",
         "objective_ids": "objectives",
         "images": "images",
@@ -526,6 +626,7 @@ class PatchChatDraftApiRequest(ScopedItem):
         "question_ids": "questions",
         "options": "options",
         "option_ids": "options",
+        "department_ids": "departments",
         "document_ids": "documents",
         "field_ids": "fields",
         "flag_ids": "flags",
@@ -533,7 +634,6 @@ class PatchChatDraftApiRequest(ScopedItem):
         "parameter_ids": "parameters",
         "persona_ids": "personas",
         "scenario_ids": "scenarios",
-        "department_ids": "departments",
     }
 
 
@@ -552,22 +652,26 @@ class SaveChatFieldError(BaseModel):
 class ChatDraftFormState(BaseModel):
     """Server-authoritative form state returned after draft save."""
 
-    name_ids: list[UUID] = Field(default_factory=list, description="Selected name resource IDs")
-    description_ids: list[UUID] = Field(default_factory=list, description="Selected description resource IDs")
-    flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag resource IDs")
-    department_ids: list[UUID] = Field(default_factory=list, description="Selected department resource IDs")
-    persona_ids: list[UUID] = Field(default_factory=list, description="Selected persona resource IDs")
-    document_ids: list[UUID] = Field(default_factory=list, description="Selected document resource IDs")
-    parameter_field_ids: list[UUID] = Field(default_factory=list, description="Selected parameter field resource IDs")
-    parameter_ids: list[UUID] = Field(default_factory=list, description="Selected parameter resource IDs")
-    scenario_ids: list[UUID] = Field(default_factory=list, description="Selected scenario resource IDs")
-    field_ids: list[UUID] = Field(default_factory=list, description="Selected field resource IDs")
-    question_ids: list[UUID] = Field(default_factory=list, description="Selected question resource IDs")
-    option_ids: list[UUID] = Field(default_factory=list, description="Selected option resource IDs")
-    video_ids: list[UUID] = Field(default_factory=list, description="Selected video resource IDs")
-    image_ids: list[UUID] = Field(default_factory=list, description="Selected image resource IDs")
-    problem_statement_ids: list[UUID] = Field(default_factory=list, description="Selected problem statement resource IDs")
-    objective_ids: list[UUID] = Field(default_factory=list, description="Selected objective resource IDs")
+    name_id: UUID | None = None
+    name: str | None = None
+    description_id: UUID | None = None
+    description: str | None = None
+    problem_statement_id: UUID | None = None
+    problem_statement: str | None = None
+    department_ids: list[UUID] = Field(default_factory=list)
+    document_ids: list[UUID] = Field(default_factory=list)
+    field_ids: list[UUID] = Field(default_factory=list)
+    flag_ids: list[UUID] = Field(default_factory=list)
+    image_ids: list[UUID] = Field(default_factory=list)
+    objective_ids: list[UUID] = Field(default_factory=list)
+    option_ids: list[UUID] = Field(default_factory=list)
+    parameter_field_ids: list[UUID] = Field(default_factory=list)
+    parameter_ids: list[UUID] = Field(default_factory=list)
+    persona_ids: list[UUID] = Field(default_factory=list)
+    question_ids: list[UUID] = Field(default_factory=list)
+    scenario_ids: list[UUID] = Field(default_factory=list)
+    video_ids: list[UUID] = Field(default_factory=list)
+    pending_ids: list[UUID] = Field(default_factory=list)
 
 
 class PatchChatDraftApiResponse(BaseModel):
@@ -575,6 +679,7 @@ class PatchChatDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the draft save succeeded")
     draft_id: UUID = Field(..., description="UUID of the saved draft")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key for client correlation")
     message: str = Field(..., description="Response message")
     form_state: ChatDraftFormState | None = Field(None, description="Updated form state after save")
 

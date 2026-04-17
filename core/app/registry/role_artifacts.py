@@ -1,4 +1,12 @@
-"""role → artifacts accessible to that role."""
+"""role → artifacts accessible to that role.
+
+After consolidation (migration 30), VIEW artifacts are folded into 3 parents:
+  attempt ← home, practice, chat, dashboard, leaderboard, reports, record
+  test    ← invocation, benchmark
+  system  ← activity, session, pricing, group, health
+
+The 17 CRUD artifacts remain unchanged.
+"""
 
 from __future__ import annotations
 
@@ -7,60 +15,40 @@ ROLE_ARTIFACTS: dict[str, frozenset[str]] = {
         {
             "agent",
             "attempt",
-            "benchmark",
-            "chat",
             "cohort",
-            "dashboard",
             "document",
             "field",
-            "group",
-            "health",
-            "home",
-            "leaderboard",
             "model",
             "parameter",
             "persona",
-            "practice",
-            "pricing",
             "profile",
             "provider",
-            "record",
-            "reports",
             "scenario",
-            "settings",
+            "setting",
             "simulation",
+            "system",
             "test",
             "tool",
         }
     ),
-    "guest": frozenset({"attempt", "chat", "practice"}),
+    "guest": frozenset({"attempt"}),
     "instructional": frozenset(
         {
             "attempt",
-            "benchmark",
-            "chat",
             "cohort",
-            "dashboard",
-            "group",
-            "home",
-            "leaderboard",
+            "document",
+            "field",
+            "parameter",
             "persona",
-            "practice",
-            "pricing",
-            "record",
-            "reports",
             "scenario",
             "simulation",
+            "system",
             "test",
         }
     ),
     "member": frozenset(
         {
             "attempt",
-            "chat",
-            "home",
-            "leaderboard",
-            "practice",
         }
     ),
     "superadmin": frozenset(
@@ -68,31 +56,21 @@ ROLE_ARTIFACTS: dict[str, frozenset[str]] = {
             "agent",
             "attempt",
             "auth",
-            "benchmark",
-            "chat",
             "cohort",
-            "dashboard",
             "department",
             "document",
             "eval",
             "field",
-            "group",
-            "health",
-            "home",
-            "leaderboard",
             "model",
             "parameter",
             "persona",
-            "practice",
-            "pricing",
             "profile",
             "provider",
-            "record",
-            "reports",
             "rubric",
             "scenario",
-            "settings",
+            "setting",
             "simulation",
+            "system",
             "test",
             "tool",
         }

@@ -44,4 +44,17 @@ from . import (  # noqa: F401
     practice,
     record,
     reports,
+    # Lifecycle completed/failed handlers
+    start,
+    end,
+    end_all,
+    next,
+    response,
+    stop,
+    use_previous,
+    join,
+    leave,
+    chat_mute,
+    chat_voice,
+    chat_silence,
 )
