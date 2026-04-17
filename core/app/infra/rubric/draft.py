@@ -11,6 +11,7 @@ from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.rubric.permissions import compute_can_draft
+from app.infra.rubric.refresh import refresh_rubric_impl
 from app.infra.rubric.types import (
     DraftFormState,
     PatchRubricDraftApiRequest,
@@ -18,14 +19,12 @@ from app.infra.rubric.types import (
     SaveRubricFieldError,
 )
 from app.tools.entries.rubric_drafts.create import create_rubric_draft
-from app.tools.entries.rubric_drafts.refresh import refresh_rubric_drafts
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
-from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 def _exact_match_id(results: list[Any], raw_value: str, *, attr: str = "name") -> UUID | None:
@@ -202,8 +201,14 @@ async def patch_rubric_draft_impl(
                         profile_ids=[profile.profiles_id],
                         pending_ids=set(request.pending_ids) if request.pending_ids else None,
                     )
-                    await refresh_rubric_drafts(conn)
-            await invalidate_tags(["rubrics", "drafts"], redis=redis)
+            await refresh_rubric_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                targets=["rubric_drafts_mv"],
+                operation_key=idempotency_key,
+            )
         return PatchRubricDraftApiResponse(
             success=True,
             draft_id=idempotency_key,
@@ -242,8 +247,6 @@ async def patch_rubric_draft_impl(
                 standard_ids=request.standard_ids,
                 pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
-            if not soft:
-                await refresh_rubric_drafts(conn)
 
     resolved_flag_id = request.active_flag_id or request.flag_id
     form_state = DraftFormState(
@@ -260,7 +263,15 @@ async def patch_rubric_draft_impl(
         pending_ids=request.pending_ids or [],
     )
 
-    await invalidate_tags(["rubrics", "drafts"], redis=redis)
+    if not soft:
+        await refresh_rubric_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["rubric_drafts_mv"],
+            operation_key=result.id,
+        )
 
     return PatchRubricDraftApiResponse(
         success=True,

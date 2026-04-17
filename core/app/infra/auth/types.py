@@ -17,7 +17,7 @@ from app.infra.shared_types import (
     QGetSystemsV4Item,
     QGetToolsV4Item,
 )
-from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import ListFilterSection
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.auth_drafts.types import GetAuthDraftResponse
 
@@ -160,6 +160,40 @@ class GetAnalyticsFiltersApiResponse(AnalyticsFacets):
 # ---------------------------------------------------------------------------
 
 
+class AuthNameResource(BaseModel):
+    """Name resource for auth."""
+
+    id: UUID | None = Field(None, description="Unique identifier")
+    name: str | None = Field(None, description="Display name")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class AuthDescriptionResource(BaseModel):
+    """Description resource for auth."""
+
+    id: UUID | None = Field(None, description="Unique identifier")
+    description: str | None = Field(None, description="Description text")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class AuthDepartmentResource(BaseModel):
+    """Department resource for auth."""
+
+    department_id: UUID | None = Field(None, description="Department identifier")
+    name: str | None = Field(None, description="Department name")
+    description: str | None = Field(None, description="Department description")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
 class AuthFlagConfig(BaseModel):
     """Enriched flag config for direct client consumption."""
 
@@ -171,76 +205,92 @@ class AuthFlagConfig(BaseModel):
     show: bool = Field(True, description="Whether the flag is visible to the client")
     required: bool = Field(False, description="Whether the flag is required")
     generated: bool | None = Field(None, description="Whether the flag was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class AuthProtocolResource(BaseModel):
+    """Protocol resource for auth."""
+
+    id: UUID | None = Field(None, description="Protocol identifier")
+    value: str | None = Field(None, description="Protocol value")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class AuthSlugResource(BaseModel):
+    """Slug resource for auth."""
+
+    id: UUID | None = Field(None, description="Slug identifier")
+    value: str | None = Field(None, description="Slug value")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
 class AuthItemResource(BaseModel):
     """Auth item resource shape for client/editing."""
 
-    auth_item_id: UUID | None = Field(None, description="Unique auth item identifier")
+    id: UUID | None = Field(None, description="Unique auth item identifier")
     name: str | None = Field(None, description="Auth item display name")
     description: str | None = Field(None, description="Auth item description text")
     position: int | None = Field(None, description="Sort position within the auth provider")
-    active: bool | None = Field(None, description="Whether the auth item is active")
-    value_masked: str | None = Field(None, description="Masked value for display")
-    key_id: UUID | None = Field(None, description="UUID of the associated key")
     encrypted: bool | None = Field(None, description="Whether the value is encrypted")
     generated: bool | None = Field(None, description="Whether the item was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class AuthNameSection(BaseResourceSection):
-    resource: object | None = Field(None, description="Currently selected name resource")
-    resources: list | None = Field(None, description="Available name resources")
+class SectionFilter(BaseModel):
+    """Per-section filter options for GET requests."""
 
-
-class AuthDescriptionSection(BaseResourceSection):
-    resource: object | None = Field(None, description="Currently selected description resource")
-    resources: list | None = Field(None, description="Available description resources")
-
-
-class AuthFlagSection(BaseResourceSection):
-    current: list[AuthFlagConfig] | None = Field(None, description="Currently assigned flag configs")
-    resources: list[AuthFlagConfig] | None = Field(None, description="Available flag configs")
-
-
-class AuthProtocolSection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned protocols")
-    resources: list | None = Field(None, description="Available protocol resources")
-
-
-class AuthSlugSection(BaseResourceSection):
-    current: list | None = Field(None, description="Currently assigned slugs")
-    resources: list | None = Field(None, description="Available slug resources")
-
-
-class AuthItemSection(BaseResourceSection):
-    current: list[AuthItemResource] | None = Field(None, description="Currently assigned auth items")
-    resources: list[AuthItemResource] | None = Field(None, description="Available auth item resources")
+    search: str | None = Field(None, description="Filter options by search text")
+    limit: int | None = Field(None, description="Max options to return")
+    selected: bool | None = Field(None, description="Only return selected items")
+    suggested: bool | None = Field(None, description="Only return suggested items")
+    include: bool | None = Field(None, description="Include this section in response (default true)")
+    parameter_ids: list[str] | None = Field(None, description="Unused for auth; present for shared request compatibility")
 
 
 class GetAuthApiRequest(BaseModel):
     """Request model for get auth endpoint."""
 
-    auth_id: UUID | None = Field(None, description="UUID of the auth provider to retrieve")
+    id: UUID | None = Field(None, description="Auth identifier")
+    auth_id: UUID | None = Field(None, description="Legacy alias for auth identifier")
     draft_id: UUID | None = Field(None, description="UUID of the draft to load")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+    names: SectionFilter | None = Field(None, description="Filter options for names section")
+    descriptions: SectionFilter | None = Field(None, description="Filter options for descriptions section")
+    flags: SectionFilter | None = Field(None, description="Filter options for flags section")
+    departments: SectionFilter | None = Field(None, description="Filter options for departments section")
+    protocols: SectionFilter | None = Field(None, description="Filter options for protocols section")
+    slugs: SectionFilter | None = Field(None, description="Filter options for slugs section")
+    items: SectionFilter | None = Field(None, description="Filter options for items section")
 
 
 class GetAuthApiResponse(BaseModel):
-    """Response model for get auth endpoint."""
+    """Canonical flat composed response for the auth editor."""
 
     actor_name: str | None = Field(None, description="Display name of the acting user")
     auth_exists: bool | None = Field(None, description="Whether the auth provider exists")
     can_edit: bool | None = Field(None, description="Whether the actor can edit this auth")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled, if any")
     group_id: UUID | None = Field(None, description="Group UUID for draft collaboration")
-
+    show_ai_generate: bool | None = Field(None, description="Whether any auth resource supports AI generate")
     basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate button")
-
-    names: AuthNameSection | None = Field(None, description="Name section with resources")
-    descriptions: AuthDescriptionSection | None = Field(None, description="Description section with resources")
-    flags: AuthFlagSection | None = Field(None, description="Flag section with configs")
-    protocols: AuthProtocolSection | None = Field(None, description="Protocol section with resources")
-    slugs: AuthSlugSection | None = Field(None, description="Slug section with resources")
-    items: AuthItemSection | None = Field(None, description="Auth item section with resources")
+    pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
+    names: list[AuthNameResource] | None = Field(None, description="Name resources")
+    descriptions: list[AuthDescriptionResource] | None = Field(None, description="Description resources")
+    flags: list[AuthFlagConfig] | None = Field(None, description="Flag configs")
+    departments: list[AuthDepartmentResource] | None = Field(None, description="Department resources")
+    protocols: list[AuthProtocolResource] | None = Field(None, description="Protocol resources")
+    slugs: list[AuthSlugResource] | None = Field(None, description="Slug resources")
+    items: list[AuthItemResource] | None = Field(None, description="Auth item resources")
 
 
 class GetAuthDraftsApiResponse(BaseModel):
@@ -429,14 +479,21 @@ class PatchAuthDraftApiRequest(ScopedItem):
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
+        "active_flag": "flags",
         "flag_id": "flags",
+        "departments": "departments",
         "department_ids": "departments",
+        "protocols": "protocols",
         "protocol_ids": "protocols",
+        "slugs": "slugs",
         "slug_ids": "slugs",
         "item_ids": "items",
     }
 
+    draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
+    idempotency_key: UUID | None = Field(None, description="Stable idempotency key for ack/promote flows")
+    accept: bool = Field(True, description="Whether to accept a pending draft when acknowledging")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Name value to resolve or create")
@@ -445,23 +502,33 @@ class PatchAuthDraftApiRequest(ScopedItem):
     description_id: UUID | None = Field(None, description="UUID of the description resource")
 
     # Non-creatable — ID-only
+    active_flag: bool | None = Field(None, description="Whether the auth provider is active")
     flag_id: UUID | None = Field(None, description="UUID of the flag option")
+    departments: list[str] | None = Field(None, description="Department names to resolve")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
+    protocols: list[str] | None = Field(None, description="Protocol values to resolve")
     protocol_ids: list[UUID] | None = Field(None, description="Protocol resource UUIDs")
+    slugs: list[str] | None = Field(None, description="Slug values to resolve")
     slug_ids: list[UUID] | None = Field(None, description="Slug resource UUIDs")
     item_ids: list[UUID] | None = Field(None, description="Auth item UUIDs")
+    pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep pending where supported")
 
-
-class AuthDraftFormState(BaseModel):
+class DraftFormState(BaseModel):
     """Server-authoritative form state returned after draft save."""
 
+    name: str | None = Field(None, description="Echoed name value")
     name_id: UUID | None = Field(None, description="Resolved name resource UUID")
+    description: str | None = Field(None, description="Echoed description value")
     description_id: UUID | None = Field(None, description="Resolved description resource UUID")
     flag_id: UUID | None = Field(None, description="Resolved flag option UUID")
-    department_ids: list[UUID] = Field(..., description="Assigned department UUIDs")
-    protocol_ids: list[UUID] = Field(..., description="Assigned protocol UUIDs")
-    slug_ids: list[UUID] = Field(..., description="Assigned slug UUIDs")
-    item_ids: list[UUID] = Field(..., description="Assigned auth item UUIDs")
+    department_ids: list[UUID] = Field(default_factory=list, description="Assigned department UUIDs")
+    protocol_ids: list[UUID] = Field(default_factory=list, description="Assigned protocol UUIDs")
+    slug_ids: list[UUID] = Field(default_factory=list, description="Assigned slug UUIDs")
+    item_ids: list[UUID] = Field(default_factory=list, description="Assigned auth item UUIDs")
+    pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
+
+
+AuthDraftFormState = DraftFormState
 
 
 class PatchAuthDraftApiResponse(BaseModel):
@@ -469,8 +536,9 @@ class PatchAuthDraftApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the draft save succeeded")
     draft_id: UUID = Field(..., description="UUID of the saved draft")
+    idempotency_key: UUID | None = Field(None, description="Stable idempotency key for ack/promote flows")
     message: str = Field(..., description="Result message")
-    form_state: AuthDraftFormState | None = Field(None, description="Server-authoritative form state")
+    form_state: DraftFormState | None = Field(None, description="Server-authoritative form state")
 
 
 # ========== Export Endpoint Types ==========

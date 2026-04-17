@@ -31,7 +31,14 @@ async def search_auth_drafts(
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL), '{}') AS name_ids,
             COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL), '{}') AS profile_ids,
             COALESCE(ARRAY_AGG(DISTINCT pr.protocols_id) FILTER (WHERE pr.protocols_id IS NOT NULL), '{}') AS protocol_ids,
-            COALESCE(ARRAY_AGG(DISTINCT s.slugs_id) FILTER (WHERE s.slugs_id IS NOT NULL), '{}') AS slug_ids
+            COALESCE(ARRAY_AGG(DISTINCT s.slugs_id) FILTER (WHERE s.slugs_id IS NOT NULL), '{}') AS slug_ids,
+            COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL AND dep.active = false), '{}') AS pending_department_ids,
+            COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL AND desc_c.active = false), '{}') AS pending_description_ids,
+            COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL AND f.active = false), '{}') AS pending_flag_ids,
+            COALESCE(ARRAY_AGG(DISTINCT i.items_id) FILTER (WHERE i.items_id IS NOT NULL AND i.active = false), '{}') AS pending_item_ids,
+            COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = false), '{}') AS pending_name_ids,
+            COALESCE(ARRAY_AGG(DISTINCT pr.protocols_id) FILTER (WHERE pr.protocols_id IS NOT NULL AND pr.active = false), '{}') AS pending_protocol_ids,
+            COALESCE(ARRAY_AGG(DISTINCT s.slugs_id) FILTER (WHERE s.slugs_id IS NOT NULL AND s.active = false), '{}') AS pending_slug_ids
         FROM auth_drafts_entry d
         LEFT JOIN auth_drafts_departments_connection dep ON dep.draft_id = d.id
         LEFT JOIN auth_drafts_descriptions_connection desc_c ON desc_c.draft_id = d.id
@@ -77,6 +84,13 @@ async def search_auth_drafts(
             profile_ids=r["profile_ids"],
             protocol_ids=r["protocol_ids"],
             slug_ids=r["slug_ids"],
+            pending_department_ids=r["pending_department_ids"],
+            pending_description_ids=r["pending_description_ids"],
+            pending_flag_ids=r["pending_flag_ids"],
+            pending_item_ids=r["pending_item_ids"],
+            pending_name_ids=r["pending_name_ids"],
+            pending_protocol_ids=r["pending_protocol_ids"],
+            pending_slug_ids=r["pending_slug_ids"],
         )
         for r in rows
     ]

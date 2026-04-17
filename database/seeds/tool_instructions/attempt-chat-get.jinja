@@ -55,7 +55,21 @@
 {{ render_compressed(r.descriptions, 'Descriptions (pass description or description_id)', 'description', 80) -}}
 {{ render_compressed(r.personas, 'Personas (pass names)', 'name', 60) -}}
 {{ render_compressed(r.documents, 'Documents (pass names)', 'name', 60) -}}
-{{ render_with_ids(r.parameter_fields, 'Parameter Fields (pass parameter_fields_ids)', 'id', 'name', 60) -}}
+{% if r.parameter_fields and r.parameter_fields.show -%}
+{% set pf_items = (r.parameter_fields.resources or []) + (r.parameter_fields.current or []) -%}
+{% if pf_items -%}
+**Parameter Fields (pass names via `parameter_fields`):**
+{% set ns = namespace(groups={}) -%}
+{% for pf in pf_items -%}
+{% set grp = pf.parameter_name or 'Other' -%}
+{% if grp not in ns.groups -%}{% if ns.groups.update({grp: []}) -%}{% endif -%}{% endif -%}
+{% if ns.groups[grp].append(pf.name or '?') -%}{% endif -%}
+{% endfor -%}
+{% for grp, names in ns.groups.items() -%}
+- **{{ grp }}:** {{ names | join(', ') }}
+{% endfor -%}
+{% endif -%}
+{% endif -%}
 {{ render_compressed(r.problem_statements, 'Problem Statements (pick 1)', 'problem_statement', 500) -}}
 {{ render_compressed(r.objectives, 'Objectives (pass texts or create new)', 'objective', 200) -}}
 {{ render_with_ids(r.videos, 'Videos (pass video_id — required for questions)', 'id', 'name', 60) -}}

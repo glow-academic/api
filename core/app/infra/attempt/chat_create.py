@@ -89,6 +89,7 @@ class CreateAttemptChatApiRequest(BaseModel):
     documents_ids: list[UUID] | None = None
     documents: list[str] | None = None        # search by name, error if not found
     parameter_fields_ids: list[UUID] | None = None
+    parameter_fields: list[str] | None = None  # search by field name, error if not found
     objectives_ids: list[UUID] | None = None
     objectives: list[str] | None = None       # search/create by text
     questions_ids: list[UUID] | None = None
@@ -328,6 +329,32 @@ async def create_attempt_chat_impl(
             label="document", search_fn=search_documents, department_ids=scope_dept_ids,
         )
 
+        # Parameter fields — resolve by field name lookup
+        resolved_parameter_fields_ids: list[UUID] | None = request.parameter_fields_ids
+        if request.parameter_fields_ids and request.parameter_fields:
+            raise HTTPException(400, "Pass parameter_fields_ids or parameter_fields, not both.")
+        if request.parameter_fields:
+            from app.tools.resources.fields.search import search_fields
+            resolved_parameter_fields_ids = []
+            for field_name in request.parameter_fields:
+                # Search fields by name
+                fields = await search_fields(
+                    conn, redis, search=field_name, limit_count=1, bypass_cache=True,
+                )
+                if not fields:
+                    # Fetch all for error hint
+                    all_fields = await search_fields(conn, redis, limit_count=50, bypass_cache=True)
+                    available = [f.name for f in all_fields if f.name]
+                    hint = f"Available: {', '.join(available[:20])}" if available else "No fields available"
+                    raise HTTPException(400, f'Field not found: "{field_name}". {hint}')
+                # Find the parameter_field linking this field
+                pfs = await search_parameter_fields(
+                    conn, redis, field_ids=[fields[0].id], limit_count=1, bypass_cache=True,
+                )
+                if not pfs:
+                    raise HTTPException(400, f'No parameter field for field: "{field_name}"')
+                resolved_parameter_fields_ids.append(pfs[0].id)
+
         # Multi-select text resources (create if value provided)
         resolved_objectives_ids = await _resolve_multi_text(
             conn, redis, ids=request.objectives_ids, values=request.objectives,
@@ -420,7 +447,7 @@ async def create_attempt_chat_impl(
     final_options_ids = t_option_ids or resolved_options_ids
     final_videos_ids = t_video_ids or ([request.video_id] if request.video_id else None)
     final_images_ids = t_image_ids or ([request.image_id] if request.image_id else None)
-    final_parameter_fields_ids = t_parameter_field_ids or request.parameter_fields_ids
+    final_parameter_fields_ids = t_parameter_field_ids or resolved_parameter_fields_ids
 
     # ── Step 6: Create in transaction ─────────────────────────────────────────
 

@@ -586,6 +586,38 @@ async def resolve_chat_context(
         f for f in flags_suggestions if getattr(f, "name", None) in CHAT_FLAG_NAMES
     ]
 
+    # Enrich parameter_fields with field name + parameter group name
+    all_pf_items = list(parameter_fields_selected) + list(parameter_fields_suggestions)
+    if all_pf_items:
+        pf_field_ids = list({pf.field_id for pf in all_pf_items if pf.field_id})
+        pf_param_ids = list({pf.parameter_id for pf in all_pf_items if pf.parameter_id})
+
+        async def _enrich_fields() -> dict:
+            if not pf_field_ids:
+                return {}
+            async with pool.acquire() as c:
+                items = await get_fields(c, pf_field_ids, redis, bypass_cache)
+            return {f.id: f for f in items}
+
+        async def _enrich_params() -> dict:
+            if not pf_param_ids:
+                return {}
+            from app.tools.resources.parameters.get import get_parameters
+            async with pool.acquire() as c:
+                items = await get_parameters(c, pf_param_ids, redis, bypass_cache)
+            return {p.parameter_id: p for p in items}
+
+        field_lookup, param_lookup = await asyncio.gather(
+            _enrich_fields(), _enrich_params(),
+        )
+        for pf in all_pf_items:
+            catalog_field = field_lookup.get(pf.field_id)
+            if catalog_field:
+                pf.name = catalog_field.name
+            param = param_lookup.get(pf.parameter_id) if pf.parameter_id else None
+            if param:
+                pf.parameter_name = param.name
+
     # ── Step 5: Assemble — only include enabled sections ──────────────────────
 
     resources: dict[str, ResourcePair] = {}

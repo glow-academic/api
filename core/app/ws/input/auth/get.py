@@ -46,8 +46,17 @@ async def auth_get(sid: str, data: dict[str, Any]) -> None:
             redis,
             profile_id=identity.profile_id,
             session_id=identity.session_id,
-            auth_id=payload.auth_id,
+            id=payload.id or payload.auth_id,
             draft_id=payload.draft_id,
+            filters={
+                "names": payload.names,
+                "descriptions": payload.descriptions,
+                "flags": payload.flags,
+                "departments": payload.departments,
+                "protocols": payload.protocols,
+                "slugs": payload.slugs,
+                "items": payload.items,
+            },
         ),
         arguments=payload.model_dump(mode="json"),
     )

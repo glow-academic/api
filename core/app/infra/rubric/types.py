@@ -236,12 +236,15 @@ class CreateRubricApiRequest(BaseModel):
     """Request model for bulk create rubric endpoint."""
 
     rubrics: list[CreateRubricItem] = Field(..., description="List of rubrics to create")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateRubricApiResponse(BaseModel):
     """Response model for bulk create rubric endpoint."""
 
     results: list[RubricResultItem] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Update Endpoint Types ==========
@@ -277,12 +280,15 @@ class UpdateRubricApiRequest(BaseModel):
     """Request model for bulk update rubric endpoint."""
 
     rubrics: list[UpdateRubricItem] = Field(..., description="List of rubrics to update")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateRubricApiResponse(BaseModel):
     """Response model for bulk update rubric endpoint."""
 
     results: list[RubricResultItem] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 class SaveRubricFieldError(BaseModel):
@@ -296,6 +302,8 @@ class DeleteRubricApiRequest(BaseModel):
     """Request model for bulk delete rubric endpoint."""
 
     rubric_ids: list[UUID] = Field(..., description="Rubric UUIDs to delete")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DeleteRubricResult(BaseModel):
@@ -310,16 +318,20 @@ class DeleteRubricApiResponse(BaseModel):
     """Response model for bulk delete rubric endpoint."""
 
     results: list[DeleteRubricResult] = Field(..., description="List of operation results")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 class DuplicateRubricApiRequest(BaseModel):
     rubric_id: UUID = Field(..., description="Rubric UUID to duplicate")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateRubricApiResponse(BaseModel):
     success: bool = Field(..., description="Whether the operation succeeded")
     rubric_id: UUID = Field(..., description="Newly created rubric UUID")
     message: str = Field(..., description="Human-readable result message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
 # ========== Draft Endpoint Types (composable infra) ==========
@@ -502,6 +514,8 @@ class ProblemRubricApiRequest(BaseModel):
 
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
+    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
+    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemRubricApiResponse(BaseModel):
@@ -510,3 +524,4 @@ class ProblemRubricApiResponse(BaseModel):
     problem_id: UUID = Field(..., description="UUID of the created problem")
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")

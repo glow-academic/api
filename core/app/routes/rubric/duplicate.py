@@ -59,6 +59,8 @@ async def duplicate_rubric(
                 profile_id=profile_id,
                 rubric_id=request.rubric_id,
                 session_id=session_id,
+                accept=request.accept,
+                idempotency_key=request.idempotency_key,
             )
 
         result = await run_artifact_operation_with_audit(

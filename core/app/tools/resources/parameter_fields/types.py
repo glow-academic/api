@@ -15,3 +15,5 @@ class GetParameterFieldResponse(BaseModel):
     active: bool
     generated: bool
     mcp: bool
+    name: str | None = None              # enriched from fields_resource via field_id
+    parameter_name: str | None = None    # enriched from parameters_resource via parameter_id

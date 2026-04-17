@@ -49,8 +49,17 @@ async def get_auth(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
-                auth_id=request.auth_id,
+                id=request.id or request.auth_id,
                 draft_id=request.draft_id,
+                filters={
+                    "names": request.names,
+                    "descriptions": request.descriptions,
+                    "flags": request.flags,
+                    "departments": request.departments,
+                    "protocols": request.protocols,
+                    "slugs": request.slugs,
+                    "items": request.items,
+                },
                 bypass_cache=bypass_cache,
             )
 

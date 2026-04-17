@@ -1,0 +1,84 @@
+INPUT:
+  chat_entry_id: 019d993d-a151-77c8-8fa4-d5db696593dc
+  draft_id: 019d9b2f-6a67-77cb-be4f-6edfc4c9543c
+
+OUTPUT:
+### Chat Bundle
+- **Chat Entry ID:** `019d993d-a151-77c8-8fa4-d5db696593dc`
+- **Group ID:** `019d9b2f-7644-754b-ba94-f4839d588798`
+
+- **Mode:** Chat (personas, documents, image)
+
+### Setup Summary
+**Needs input:**
+- Personas → `personas`
+- Documents → `documents`
+- Parameter Fields → `parameter_fields_ids`
+- Problem Statement (exactly 1) → `problem_statement`
+- Objectives → `objectives`
+**Auto-configured:** departments, scenarios, config flags
+
+---
+**Personas (pass names):** Aggressive (High), Aggressive (Low), Aggressive (Medium), Confused, Happy, Passive
+**Documents (pass names):** Academic Integrity Policy, FERPA, FERPA Policy, Homework Template, Lab Template, Lecture Template, Midterm Template, Policy Template, Project Template, Quiz Template, Syllabus Template
+**Parameter Fields (pass parameter_fields_ids):**
+- `d754754b-6b57-56d3-a32d-418ddaf306fe` — happy
+- `6a3304d4-e342-59ec-b705-aa1cac1d1a66` — passive
+- `e1a34f98-3038-5387-a9e1-53fb8758bc81` — confused
+- `a0b8aba9-c32e-5d7e-8bb8-d89c0943e795` — aggressive
+- `b730ac94-0da6-50ab-a8c3-10409b4541f0` — Emotion
+- `395b74ad-83b3-55d6-961a-c56dfa79e2c9` — Neutral
+- `30d60830-085a-588d-8d58-ad5a6886d276` — Very Calm (1)
+- `d8b1f368-4791-551a-80ad-01558b2abab2` — Calm (2)
+- `c8e509cd-5f26-55b8-a77c-b7c7125acbd7` — Mild (3)
+- `6e1cf833-5809-567c-b080-1ed8d472c039` — Slightly Tense (4)
+- `df13ca43-0dd3-5173-9a5e-f2f62f8533f6` — Moderate (5)
+- `487ebc27-62f1-5b04-b8e3-5457d1720953` — Noticeably Intense (6)
+- `79645ef2-ed1c-522b-b23f-cb49a0a505df` — Tense (7)
+- `c0ba2f52-fff1-5ff0-8b7a-fdec926089f8` — Very Tense (8)
+- `47e1460c-181e-5995-88b7-62c314c030b4` — Extremely Intense (9)
+- `89b5c123-c342-547e-ab01-bf417b0effb8` — Maximum Intensity (10)
+- `db5925c2-db46-56d2-be3e-e8158d79cbd1` — Almost Empty (1)
+- `60fed52a-d4e3-5cf8-915f-07d935895502` — Very Few Students (2)
+- `d52a2d40-afc6-5c96-a360-bc9ccfbfd212` — Sparse (3)
+- `983d3ea0-f9ac-5d04-a281-829ace6ff6ae` — Some Students (4)
+- `3ec4ccf6-f8ac-5244-a4a4-4ad0bd736a1c` — Moderately Busy (5)
+- `969aa21a-0830-55cb-ad45-42ab3b4717a2` — Busy (6)
+- `6e99e506-6b58-5ee8-bf68-460e50d2a09b` — Very Busy (7)
+- `630661a9-4b8a-58c9-bdee-009eae8deda4` — Crowded (8)
+- `33faf1fd-23e8-5d49-bb84-084da940cbd6` — Extremely Crowded (9)
+- `553fb9f1-9812-5966-af49-f04166647edc` — Hectic (10)
+- `3f8590d4-3bed-5bc3-969c-38982f943004` — No deadline
+- `1b5308c5-c686-53f7-808a-12fc227b90ba` — End of week
+- `2c2d86c7-2cdc-53f9-ae7f-7f00c0786754` — Couple of days
+- `7017cf17-848e-59c1-a569-0a84350f3b37` — Next day
+- `4a1973ae-3cab-5626-9692-e55c63c60378` — Few hours
+- `35ca9cbd-00ee-5a47-a954-21a453a2bf5d` — 9:00 AM
+- `966637bf-0469-5a8e-8355-d1ebb7258520` — 10:00 AM
+- `988e554b-b899-5583-9a66-133a6a7887db` — 11:00 AM
+- `99920db9-4e9f-54aa-bd06-501d4c538516` — 12:00 PM
+- `56a2941f-f22d-5b40-ae3f-f3a58acb50d1` — 1:00 PM
+- `d4011b80-7aa0-5510-9e2a-56cfed1cba3b` — 2:00 PM
+- `dd25e287-0c46-5d1f-b08a-bf8a45f5eebc` — 3:00 PM
+- `e076a59e-b5e1-507c-9e27-371466b945d9` — 4:00 PM
+- `492feb5c-6c91-50f2-893c-cca675e51c8a` — 5:00 PM
+- `429bd260-31ef-5a0c-8ebe-b2e6b4b99157` — Lawson Computer Science Building
+- `9f4cc5a0-392d-5de8-b135-d63ff9d7ef90` — Felix Haas Hall
+- `c86db5ba-6903-5824-b8c8-48d36430ddf5` — Data Science and Artificial Intelligence Building
+- `d3a06da6-9231-52c2-8fe7-9ad183a42a68` — CS 180
+- `2a0d64c7-fab2-547b-b8d7-7cef84ae9f0c` — CS 182
+- `7b05c001-9af3-51f2-ad0c-5576e4f5316e` — CS 242
+- `af92a2e9-0fea-50cd-9925-d948a23a8c05` — CS 251
+- `d3d5a68d-600d-5923-b60d-4f77aa0245c2` — CS 373
+- `e37ce313-6396-5f74-afa2-a499d61b6336` — CS 381
+- `099fb032-85a8-5312-8a39-b37abe23d523` — CS 422
+- `97860d85-1420-5c08-8c15-d7e5afcf172e` — homework
+- `ff7d5ff9-53b8-5ad8-9e0c-088aebbe7380` — lab
+- `89f6d321-3233-580b-84f3-8b786242b742` — lecture
+- `a387c2b6-50b9-55c7-9e56-459011dda514` — midterm
+- `5259e65e-ffc0-524b-bef7-3929b97a968b` — policy
+- `32816003-a19c-5f40-a8a7-dd4a19299a74` — project
+- `f713898e-b25f-5c28-bc26-39c4917d396e` — quiz
+- `204aca46-d4cb-5333-b2fe-38ae0e9f36c5` — syllabus
+**Problem Statements (pick 1):** A student approaches a professor's office hours visibly upset about a grade. The student expresses f, A student approaches a professor's office hours visibly upset about a grade. The student expresses f, A student is seen looking at another student's exam paper during a test. The professor notices the b, A student is seen looking at another student's exam paper during a test. The professor notices the b, An instructional staff member accidentally leaves a student's grade sheet visible on their computer 
+**Objectives (pass texts or create new):** Apply de-escalation techniques to reduce emotional tension, Apply de-escalation techniques to reduce emotional tension, Apply the institution's academic integrity policy accurately, Apply the institution's academic integrity policy accurately, Communicate consequences of academic dishonesty clearly and professionally, Communicate consequences of academic dishonesty clearly and professionally, Demonstrate active listening when a student expresses frustration, Demonstrate active listening when a student expresses frustration, Explain student privacy rights under FERPA clearly, Guide the conversation toward a constructive resolution, Guide the conversation toward a constructive resolution, Guide the conversation toward a constructive resolution, Identify indicators of academic integrity violations during examinations, Identify indicators of academic integrity violations during examinations, Identify situations that constitute FERPA violations, Take immediate corrective action when a privacy breach occurs

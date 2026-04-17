@@ -5742,7 +5742,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetRubricApiResponse-Output"
+                  "$ref": "#/components/schemas/GetRubricApiResponse"
                 }
               }
             }
@@ -6411,6 +6411,16 @@
         "summary": "Rubric Refresh",
         "description": "Refresh rubric materialized views and invalidate caches.",
         "operationId": "rubric_refresh_rubric_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRubricApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6418,6 +6428,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -33716,7 +33736,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetRubricApiResponse-Input"
+                "$ref": "#/components/schemas/GetRubricApiResponse"
               }
             }
           },
@@ -54539,6 +54559,25 @@
             "type": "array",
             "title": "Rubrics",
             "description": "List of rubrics to create"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -54557,6 +54596,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -54575,6 +54627,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -59351,6 +59416,25 @@
             "type": "array",
             "title": "Rubric Ids",
             "description": "Rubric UUIDs to delete"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -59369,6 +59453,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -62439,6 +62536,25 @@
             "format": "uuid",
             "title": "Rubric Id",
             "description": "Rubric UUID to duplicate"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -62464,6 +62580,19 @@
             "type": "string",
             "title": "Message",
             "description": "Human-readable result message"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -81935,6 +82064,19 @@
       },
       "GetRubricApiRequest": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Rubric UUID to retrieve"
+          },
           "rubric_id": {
             "anyOf": [
               {
@@ -81946,7 +82088,7 @@
               }
             ],
             "title": "Rubric Id",
-            "description": "Rubric UUID to retrieve"
+            "description": "Legacy rubric UUID to retrieve"
           },
           "draft_id": {
             "anyOf": [
@@ -81960,12 +82102,102 @@
             ],
             "title": "Draft Id",
             "description": "Draft UUID to load from"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__rubric__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for names section"
+          },
+          "descriptions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__rubric__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for descriptions section"
+          },
+          "flags": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__rubric__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags section"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__rubric__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for departments section"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__rubric__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for points section"
+          },
+          "standard_groups": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__rubric__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for standard groups section"
+          },
+          "standards": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__rubric__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for standards section"
           }
         },
         "type": "object",
-        "title": "GetRubricApiRequest"
+        "title": "GetRubricApiRequest",
+        "description": "Request model for get rubric endpoint."
       },
-      "GetRubricApiResponse-Input": {
+      "GetRubricApiResponse": {
         "properties": {
           "actor_name": {
             "anyOf": [
@@ -82028,7 +82260,7 @@
             "title": "Group Id",
             "description": "Associated group UUID"
           },
-          "basic_show_ai_generate": {
+          "show_ai_generate": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -82037,164 +82269,8 @@
                 "type": "null"
               }
             ],
-            "title": "Basic Show Ai Generate",
-            "description": "Whether to show AI generate for basic step"
-          },
-          "content_show_ai_generate": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Content Show Ai Generate",
-            "description": "Whether to show AI generate for content step"
-          },
-          "names": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RubricNameSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Name section with resource and options"
-          },
-          "descriptions": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RubricDescriptionSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Description section with resource and options"
-          },
-          "flags": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RubricFlagSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Flag section with selections and options"
-          },
-          "departments": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RubricDepartmentSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Department section with selections and options"
-          },
-          "points": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RubricPointsSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Points section with resource and options"
-          },
-          "standard_groups": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RubricStandardGroupsSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Standard groups section"
-          },
-          "standards": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RubricStandardsSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Standards section"
-          }
-        },
-        "type": "object",
-        "title": "GetRubricApiResponse"
-      },
-      "GetRubricApiResponse-Output": {
-        "properties": {
-          "actor_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Actor Name",
-            "description": "Display name of the current user"
-          },
-          "rubric_exists": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rubric Exists",
-            "description": "Whether the rubric exists"
-          },
-          "can_edit": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Can Edit",
-            "description": "Whether the current user can edit"
-          },
-          "disabled_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Disabled Reason",
-            "description": "Reason editing is disabled"
-          },
-          "group_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Group Id",
-            "description": "Associated group UUID"
+            "title": "Show Ai Generate",
+            "description": "Whether any section supports AI generation"
           },
           "basic_show_ai_generate": {
             "anyOf": [
@@ -82206,7 +82282,7 @@
               }
             ],
             "title": "Basic Show Ai Generate",
-            "description": "Whether to show AI generate for basic step"
+            "description": "Whether to show AI generate for the basic step"
           },
           "content_show_ai_generate": {
             "anyOf": [
@@ -82218,88 +82294,133 @@
               }
             ],
             "title": "Content Show Ai Generate",
-            "description": "Whether to show AI generate for content step"
+            "description": "Whether to show AI generate for the content step"
+          },
+          "pending_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers when available"
           },
           "names": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/RubricNameSection"
+                "items": {
+                  "$ref": "#/components/schemas/RubricNameResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Name section with resource and options"
+            "title": "Names",
+            "description": "Name resources"
           },
           "descriptions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/RubricDescriptionSection"
+                "items": {
+                  "$ref": "#/components/schemas/RubricDescriptionResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Description section with resource and options"
+            "title": "Descriptions",
+            "description": "Description resources"
           },
           "flags": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/RubricFlagSection"
+                "items": {
+                  "$ref": "#/components/schemas/RubricFlagConfig"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Flag section with selections and options"
+            "title": "Flags",
+            "description": "Flag configs"
           },
           "departments": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/RubricDepartmentSection"
+                "items": {
+                  "$ref": "#/components/schemas/RubricDepartmentResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Department section with selections and options"
+            "title": "Departments",
+            "description": "Department resources"
           },
           "points": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/RubricPointsSection"
+                "items": {
+                  "$ref": "#/components/schemas/RubricPointResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Points section with resource and options"
+            "title": "Points",
+            "description": "Point resources"
           },
           "standard_groups": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/RubricStandardGroupsSection"
+                "items": {
+                  "$ref": "#/components/schemas/RubricStandardGroupResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Standard groups section"
+            "title": "Standard Groups",
+            "description": "Standard group resources"
           },
           "standards": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/RubricStandardsSection"
+                "items": {
+                  "$ref": "#/components/schemas/RubricStandardResource"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Standards section"
+            "title": "Standards",
+            "description": "Standard resources"
           }
         },
         "type": "object",
-        "title": "GetRubricApiResponse"
+        "title": "GetRubricApiResponse",
+        "description": "Canonical flat composed response for the rubric editor."
       },
       "GetRubricDraftResponse": {
         "properties": {
@@ -82407,6 +82528,69 @@
             "type": "array",
             "title": "Standard Ids",
             "description": "Associated standard UUIDs"
+          },
+          "pending_department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Department Ids",
+            "description": "Associated pending department UUIDs"
+          },
+          "pending_description_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Description Ids",
+            "description": "Associated pending description UUIDs"
+          },
+          "pending_flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Flag Ids",
+            "description": "Associated pending flag UUIDs"
+          },
+          "pending_name_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Name Ids",
+            "description": "Associated pending name UUIDs"
+          },
+          "pending_point_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Point Ids",
+            "description": "Associated pending point UUIDs"
+          },
+          "pending_standard_group_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Standard Group Ids",
+            "description": "Associated pending standard group UUIDs"
+          },
+          "pending_standard_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Standard Ids",
+            "description": "Associated pending standard UUIDs"
           }
         },
         "type": "object",
@@ -89900,6 +90084,25 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -89938,6 +90141,19 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -105991,6 +106207,19 @@
       },
       "PatchRubricDraftApiRequest": {
         "properties": {
+          "draft_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Id",
+            "description": "Existing draft UUID to update"
+          },
           "input_draft_id": {
             "anyOf": [
               {
@@ -106054,6 +106283,31 @@
             "title": "Description Id",
             "description": "Existing description resource UUID"
           },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "Whether the rubric is active"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Active flag option UUID"
+          },
           "flag_id": {
             "anyOf": [
               {
@@ -106066,6 +106320,21 @@
             ],
             "title": "Flag Id",
             "description": "Flag option UUID"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departments",
+            "description": "Department names to resolve"
           },
           "department_ids": {
             "anyOf": [
@@ -106130,6 +106399,41 @@
             ],
             "title": "Standard Ids",
             "description": "Standard UUIDs"
+          },
+          "pending_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Ids",
+            "description": "Resource IDs to keep pending where supported"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack or retry"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject dormant state",
+            "default": true
           }
         },
         "type": "object",
@@ -106149,6 +106453,19 @@
             "title": "Draft Id",
             "description": "Draft UUID"
           },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key for this draft operation"
+          },
           "message": {
             "type": "string",
             "title": "Message",
@@ -106157,7 +106474,7 @@
           "form_state": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/RubricDraftFormState"
+                "$ref": "#/components/schemas/app__infra__rubric__types__DraftFormState"
               },
               {
                 "type": "null"
@@ -111101,6 +111418,25 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -111130,6 +111466,19 @@
             "title": "Message",
             "description": "Status message",
             "default": "Problem created successfully"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -113985,6 +114334,47 @@
         "title": "RefreshResponse",
         "description": "Standard response for composable refresh endpoints.\n\nReturned by all `refresh_{artifact}_client` infra functions."
       },
+      "RefreshRubricApiRequest": {
+        "properties": {
+          "targets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targets",
+            "description": "MV targets to refresh (omit for all). Options: rubric_drafts_mv"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject. Only meaningful with idempotency_key",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "RefreshRubricApiRequest",
+        "description": "Request model for rubric refresh endpoint."
+      },
       "RefreshScenarioApiRequest": {
         "properties": {
           "targets": {
@@ -115754,70 +116144,9 @@
         ],
         "title": "ResponseAttemptApiResponse"
       },
-      "RubricDepartmentSection": {
+      "RubricDepartmentResource": {
         "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected departments"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available departments"
-          }
-        },
-        "type": "object",
-        "title": "RubricDepartmentSection"
-      },
-      "RubricDescriptionSection": {
-        "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected description resource"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available description resources"
-          }
-        },
-        "type": "object",
-        "title": "RubricDescriptionSection"
-      },
-      "RubricDraftFormState": {
-        "properties": {
-          "name_id": {
+          "department_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -115827,10 +116156,10 @@
                 "type": "null"
               }
             ],
-            "title": "Name Id",
-            "description": "Selected name resource UUID"
+            "title": "Department Id",
+            "description": "Department identifier"
           },
-          "description_id": {
+          "id": {
             "anyOf": [
               {
                 "type": "string",
@@ -115840,21 +116169,32 @@
                 "type": "null"
               }
             ],
-            "title": "Description Id",
-            "description": "Selected description resource UUID"
+            "title": "Id",
+            "description": "Department identifier"
           },
-          "flag_id": {
+          "name": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Flag Id",
-            "description": "Selected flag option UUID"
+            "title": "Name",
+            "description": "Department name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Department description"
           },
           "department_ids": {
             "items": {
@@ -115863,45 +116203,125 @@
             },
             "type": "array",
             "title": "Department Ids",
-            "description": "Selected department UUIDs"
+            "description": "Associated department identifiers"
           },
-          "point_ids": {
+          "setting_ids": {
             "items": {
               "type": "string",
               "format": "uuid"
             },
             "type": "array",
-            "title": "Point Ids",
-            "description": "Selected point UUIDs"
+            "title": "Setting Ids",
+            "description": "Associated setting identifiers"
           },
-          "standard_group_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Standard Group Ids",
-            "description": "Selected standard group UUIDs"
+          "is_primary": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Primary",
+            "description": "Whether this is the primary department"
           },
-          "standard_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Standard Ids",
-            "description": "Selected standard UUIDs"
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "required": [
-          "department_ids",
-          "point_ids",
-          "standard_group_ids",
-          "standard_ids"
-        ],
-        "title": "RubricDraftFormState",
-        "description": "Server-authoritative form state returned after draft save."
+        "title": "RubricDepartmentResource",
+        "description": "Department resource for rubric."
+      },
+      "RubricDescriptionResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Unique identifier"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Description text"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "RubricDescriptionResource",
+        "description": "Description resource for rubric."
       },
       "RubricEntry": {
         "properties": {
@@ -116064,6 +116484,24 @@
             ],
             "title": "Generated",
             "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
@@ -116073,42 +116511,6 @@
         ],
         "title": "RubricFlagConfig",
         "description": "Enriched flag config for direct client consumption."
-      },
-      "RubricFlagSection": {
-        "properties": {
-          "current": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/RubricFlagConfig"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current",
-            "description": "Currently selected flag configs"
-          },
-          "resources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/RubricFlagConfig"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resources",
-            "description": "Available flag configs"
-          }
-        },
-        "type": "object",
-        "title": "RubricFlagSection"
       },
       "RubricHeatmapCell": {
         "properties": {
@@ -116403,63 +116805,141 @@
         "title": "RubricMapping",
         "description": "Rubric metadata mapping rubric to its standard groups."
       },
-      "RubricNameSection": {
+      "RubricNameResource": {
         "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected name resource"
-          },
-          "resources": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available name resources"
+            "title": "Id",
+            "description": "Unique identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "RubricNameSection"
+        "title": "RubricNameResource",
+        "description": "Name resource for rubric."
       },
-      "RubricPointsSection": {
+      "RubricPointResource": {
         "properties": {
-          "resource": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource",
-            "description": "Currently selected points resource"
-          },
-          "resources": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available points resources"
+            "title": "Id",
+            "description": "Unique identifier"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Point value"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Point type"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "RubricPointsSection"
+        "title": "RubricPointResource",
+        "description": "Point resource for rubric."
       },
       "RubricResultItem": {
         "properties": {
@@ -116510,69 +116990,240 @@
         "title": "RubricResultItem",
         "description": "Per-item result within a bulk create/update response."
       },
-      "RubricStandardGroupsSection": {
+      "RubricStandardGroupResource": {
         "properties": {
-          "current": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently selected standard groups"
+            "title": "Id",
+            "description": "Unique identifier"
           },
-          "resources": {
+          "standard_group_id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available standard groups"
+            "title": "Standard Group Id",
+            "description": "Standard group identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Standard group name"
+          },
+          "short_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Name",
+            "description": "Standard group short name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Standard group description"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points",
+            "description": "Total points for this group"
+          },
+          "pass_points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Points",
+            "description": "Pass points for this group"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "RubricStandardGroupsSection"
+        "title": "RubricStandardGroupResource",
+        "description": "Standard group resource for rubric."
       },
-      "RubricStandardsSection": {
+      "RubricStandardResource": {
         "properties": {
-          "current": {
+          "id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Current",
-            "description": "Currently selected standards"
+            "title": "Id",
+            "description": "Unique identifier"
           },
-          "resources": {
+          "standard_id": {
             "anyOf": [
               {
-                "items": {},
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Resources",
-            "description": "Available standards"
+            "title": "Standard Id",
+            "description": "Standard identifier"
+          },
+          "standard_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Standard Group Id",
+            "description": "Parent standard group identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Standard name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Standard description"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points",
+            "description": "Points for this standard"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "title": "RubricStandardsSection"
+        "title": "RubricStandardResource",
+        "description": "Standard resource for rubric."
       },
       "RubricStructureData": {
         "properties": {
@@ -130318,6 +130969,25 @@
             "type": "array",
             "title": "Rubrics",
             "description": "List of rubrics to update"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
@@ -130336,6 +131006,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -130354,6 +131037,19 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
           }
         },
         "type": "object",
@@ -135015,6 +135711,216 @@
         },
         "type": "object",
         "title": "SectionFilter"
+      },
+      "app__infra__rubric__types__DraftFormState": {
+        "properties": {
+          "name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Id",
+            "description": "Selected name resource UUID"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Echoed name value"
+          },
+          "description_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description Id",
+            "description": "Selected description resource UUID"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Echoed description value"
+          },
+          "flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Id",
+            "description": "Selected flag option UUID"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "Selected active flag option UUID"
+          },
+          "department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Department Ids",
+            "description": "Selected department UUIDs"
+          },
+          "point_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Point Ids",
+            "description": "Selected point UUIDs"
+          },
+          "standard_group_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Standard Group Ids",
+            "description": "Selected standard group UUIDs"
+          },
+          "standard_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Standard Ids",
+            "description": "Selected standard UUIDs"
+          },
+          "pending_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Ids",
+            "description": "Pending resource identifiers"
+          }
+        },
+        "type": "object",
+        "title": "DraftFormState",
+        "description": "Server-authoritative form state returned after draft save."
+      },
+      "app__infra__rubric__types__SectionFilter": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Filter options by search text"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Max options to return"
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected",
+            "description": "Only return selected items"
+          },
+          "suggested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested",
+            "description": "Only return suggested items"
+          },
+          "include": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include",
+            "description": "Include this section in response (default true)"
+          },
+          "parameter_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Ids",
+            "description": "Reserved for compatibility with shared filter parsing"
+          }
+        },
+        "type": "object",
+        "title": "SectionFilter",
+        "description": "Per-section filter options for GET requests."
       },
       "app__infra__scenario__types__DraftImageValue": {
         "properties": {

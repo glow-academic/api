@@ -1,7 +1,17 @@
 """Shared mode scoping — resolves parameter_field_ids for video vs chat mode.
 
-Used by both chat context and scenario context to determine which
-personas, documents, and parameter fields are relevant for the current mode.
+Used by chat context to determine which parameter fields, personas, and
+documents are relevant for the current mode.
+
+Rules (from scenario parameter flags):
+  - video_parameter=True  → shows when video is enabled
+  - scenario_parameter=True → shows in chat (scenario) mode
+  - Dual-flagged (both true) → shows in both modes
+  - Neither flag → shows in both modes (untagged)
+
+For personas/documents, scoping is derived through:
+  persona.parameter_field_ids → parameter_fields_resource.parameter_id
+  → parameters_resource.video_parameter
 """
 
 from __future__ import annotations
@@ -22,16 +32,17 @@ async def resolve_mode_parameter_field_ids(
     """Get parameter_field_ids relevant to the current mode.
 
     - Video mode: parameters with video_parameter=True
-    - Chat mode: parameters with persona_parameter=True OR document_parameter=True
+    - Chat mode: parameters with scenario_parameter=True OR video_parameter=False
+      (includes unflagged parameters like Temperament, Intensity)
 
-    Returns parameter_field_ids that can be used to filter personas and documents
-    via their parameter_field_ids array overlap.
+    Returns parameter_field_ids for filtering personas, documents, and
+    the parameter_fields section.
     """
     from app.tools.resources.parameters.search import search_parameters
     from app.tools.resources.parameter_fields.search import search_parameter_fields
 
-    # Find parameters matching the mode
     if video_mode:
+        # Video mode: video_parameter=True (Concepts, Role, Location, Time)
         params = await search_parameters(
             conn, redis,
             video_parameter=True,
@@ -40,25 +51,29 @@ async def resolve_mode_parameter_field_ids(
             bypass_cache=True,
         )
     else:
-        # Chat mode: persona + document parameters
-        persona_params = await search_parameters(
+        # Chat mode: everything NOT video-only
+        # scenario_parameter=True gives Class, Crowdedness, Deadline, Location, Time
+        # But we also need unflagged params (Temperament, Intensity) for chat personas
+        # Simplest: get all parameters where video_parameter is False
+        params = await search_parameters(
             conn, redis,
-            persona_parameter=True,
+            video_parameter=False,
             department_ids=department_ids,
             limit_count=100,
             bypass_cache=True,
         )
-        document_params = await search_parameters(
+        # Also include dual-flagged (scenario=True AND video=True) like Location, Time
+        dual_params = await search_parameters(
             conn, redis,
-            document_parameter=True,
+            scenario_parameter=True,
+            video_parameter=True,
             department_ids=department_ids,
             limit_count=100,
             bypass_cache=True,
         )
-        # Dedupe by ID
-        seen: set[UUID] = set()
-        params = []
-        for p in persona_params + document_params:
+        # Dedupe
+        seen = {p.parameter_id for p in params}
+        for p in dual_params:
             if p.parameter_id not in seen:
                 seen.add(p.parameter_id)
                 params.append(p)

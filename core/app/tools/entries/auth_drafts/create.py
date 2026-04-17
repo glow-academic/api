@@ -21,12 +21,14 @@ async def create_auth_draft(
     profile_ids: list[UUID] | None = None,
     protocol_ids: list[UUID] | None = None,
     slug_ids: list[UUID] | None = None,
+    pending_ids: set[UUID] | None = None,
 ) -> CreateAuthDraftResponse:
     """Create an auth_drafts entry with optional connection table links."""
     draft_id = await conn.fetchval(
         """
         INSERT INTO auth_drafts_entry (id, session_id, active, mcp, generated)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
+        ON CONFLICT (id) DO UPDATE SET active = true
         RETURNING id
         """,
         session_id,
@@ -53,12 +55,16 @@ async def create_auth_draft(
         ("auth_drafts_slugs_connection", "slugs_id", slug_ids or []),
     ]
 
+    _pending = pending_ids or set()
     for table, col, ids in connections:
         for rid in ids:
+            is_active = False if soft else (rid not in _pending)
             await conn.execute(
-                f"INSERT INTO {table} (draft_id, {col}) VALUES ($1, $2)",
+                f"INSERT INTO {table} (draft_id, {col}, active) VALUES ($1, $2, $3) "
+                f"ON CONFLICT (draft_id, {col}) DO UPDATE SET active = EXCLUDED.active",
                 draft_id,
                 rid,
+                is_active,
             )
 
     return CreateAuthDraftResponse(id=draft_id)
