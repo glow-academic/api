@@ -110,5 +110,4 @@ async def file_upload_document_impl(
 
     return FileUploadDocumentApiResponse(
         file_id=file_result.id,
-        upload_id=upload_result.id,
     )

@@ -1,0 +1,9 @@
+INPUT:
+  grade_id: 019da14b-cef0-7595-849b-db9ddb3a539c
+  message_id: 1
+  name: Supportive Tone
+  description: The trainee maintained a patient and supportive tone throughout the conversation, which helped keep the confused persona engaged and comfortable asking questions.
+
+OUTPUT:
+Strengths created.
+- **Success:** False

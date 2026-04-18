@@ -26,7 +26,6 @@ from app.infra.websocket.socket_event import (
 from app.infra.attempt.client_types import AttemptGradePayload
 from app.infra.websocket.attempt_types import AttemptErrorData
 from app.tools.entries.attempt_grade.create import create_attempt_grade
-from app.tools.entries.calls.create import create_call
 from app.tools.entries.groups.create import create_group
 from app.tools.entries.runs.create import create_run
 
@@ -117,15 +116,10 @@ async def attempt_grade_internal_impl(
                 session_id=UUID(str(session_id)),
                 group_id=group_result.id,
             )
-            call_result = await create_call(
-                conn,
-                run_id=run_result.id,
-                session_id=UUID(str(session_id)),
-            )
             grade_result = await create_attempt_grade(
                 conn,
                 chat_id=chat_id,
-                call_id=call_result.id,
+                session_id=UUID(str(session_id)),
                 time_taken=0,
                 passed=passed or False,
                 score=score or 0,

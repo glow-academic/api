@@ -52,11 +52,9 @@ async def home_start_impl(
     from app.tools.entries.attempt.refresh import refresh_attempt
     from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
     from app.tools.entries.attempt_home.create import create_attempt_home
-    from app.tools.entries.calls.create import create_call
     from app.tools.entries.home.get import get_homes
     from app.tools.entries.home_chat.search import search_home_chats
     from app.tools.entries.persona.create import create_persona
-    from app.tools.entries.runs.create import create_run
     from app.tools.resources.profile_personas.search import search_profile_personas
     from app.tools.resources.simulations.get import get_simulations
 
@@ -183,12 +181,10 @@ async def home_start_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            run_result = await create_run(conn, session_id=session_id, group_id=group_id)
             persona_result = await create_persona(conn, personas_id=persona_id)
-            call = await create_call(conn, run_id=run_result.id, session_id=session_id)
             attempt_result = await create_attempt(
                 conn,
-                call_id=call.id,
+                session_id=session_id,
                 user_persona_id=persona_result.id,
                 profiles_id=profiles_resource_id,
                 name=sim_name or "",

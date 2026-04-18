@@ -13,7 +13,7 @@ CREATE MATERIALIZED VIEW public.attempt_archive_mv AS
     active,
     attempt_id,
     archived,
-    call_id
+    session_id
    FROM public.attempt_archive_entry
   WHERE (active = true)
   WITH NO DATA;

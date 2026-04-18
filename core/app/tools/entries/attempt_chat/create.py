@@ -9,7 +9,7 @@ from app.tools.entries.attempt_chat.types import CreateAttemptChatResponse
 
 async def create_attempt_chat(
     conn: asyncpg.Connection,
-    call_id: UUID,
+    session_id: UUID,
     chat_id: UUID,
     id: UUID | None = None,
     assistant_persona_ids: list[UUID] | None = None,
@@ -58,7 +58,7 @@ async def create_attempt_chat(
     attempt_chat_id = await conn.fetchval(
         """
         INSERT INTO attempt_chat_entry (
-            id, call_id, chat_id, title, "position", time_limit,
+            id, session_id, chat_id, title, "position", time_limit,
             negative_time, audio_enabled, text_enabled, hints_enabled,
             copy_paste_allowed, show_images, show_objectives,
             show_problem_statement, analyses_enabled, improvements_enabled,
@@ -79,7 +79,7 @@ async def create_attempt_chat(
         )
         RETURNING id
         """,
-        call_id,
+        session_id,
         chat_id,
         title,
         position,

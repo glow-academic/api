@@ -51,7 +51,6 @@ async def chat_hints(
 
     pool = get_pool()
     async with pool.acquire() as conn:
-        call_id = uuid4()
         hint_ids: list[UUID] = []
         for item in request.hints:
             if not item.message_id:
@@ -62,7 +61,7 @@ async def chat_hints(
             result = await create_attempt_hint(
                 conn,
                 message_id=item.message_id,
-                call_id=call_id,
+                session_id=session_id,
                 hint=item.hint,
                 soft=not request.accept,
             )

@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
-from app.infra.group.group import group_group_impl
+from app.infra.system.group import group_system_impl
 from app.infra.group.name import (
     NameGroupApiRequest,
     NameGroupApiResponse,
@@ -50,7 +50,7 @@ async def name_group(
         # Resolve time-windowed group for audit linking
         group_id = None
         if session_id:
-            group_result = await group_group_impl(
+            group_result = await group_system_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
             )
             group_id = group_result.group_id

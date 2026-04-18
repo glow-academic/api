@@ -1,0 +1,30 @@
+INPUT:
+  chat_entry_id: 019da118-1df5-7176-b236-14b827d100d3
+  draft_id: 019da11f-061e-7aeb-9b34-f10262f4dcf8
+
+OUTPUT:
+### Chat Bundle
+- **Chat Entry ID:** `019da118-1df5-7176-b236-14b827d100d3`
+- **Group ID:** `019da11f-103b-7b48-b44f-93e877a53ae3`
+
+- **Mode:** Chat (personas, documents, image)
+
+### Setup Summary
+**Needs input:**
+- Personas → `personas`
+- Documents → `documents`
+- Parameter Fields → `parameter_fields`
+- Problem Statement (exactly 1) → `problem_statement`
+- Objectives → `objectives`
+**Auto-configured:** departments, scenarios, config flags
+
+---
+**Personas (pass names):** Aggressive (High), Aggressive (Low), Aggressive (Medium), Confused, Happy, Passive
+**Documents (pass names):** Academic Integrity Policy, FERPA, FERPA Policy, Homework Template, Lab Template, Lecture Template, Midterm Template, Policy Template, Project Template, Quiz Template, Syllabus Template
+**Parameter Fields (pass names via `parameter_fields`):**
+- **Temperament:** happy, passive, confused, aggressive
+- **Persona Type:** Emotion, Neutral
+- **Intensity:** Very Calm (1), Calm (2), Mild (3), Slightly Tense (4), Moderate (5), Noticeably Intense (6), Tense (7), Very Tense (8), Extremely Intense (9), Maximum Intensity (10)
+- **Crowdedness:** Almost Empty (1), Very Few Students (2), Sparse (3), Some Students (4)
+**Problem Statements (pick 1):** A student approaches a professor's office hours visibly upset about a grade. The student expresses frustration and concerns about the grading. The professor must listen attentively, acknowledge the student's concerns, and offer to review the work together while providing constructive feedback., A student is seen looking at another student's exam paper during a test. The professor notices the behavior and must approach the student to discuss the violation, explain the consequences, and emphasize the importance of maintaining academic honesty., An instructional staff member accidentally leaves a student's grade sheet visible on their computer screen. A student notices the visible information and questions whether this violates FERPA. The staff member must quickly address the situation and explain the importance of protecting student privacy.
+**Objectives (pass texts or create new):** Apply de-escalation techniques to reduce emotional tension, Apply the institution's academic integrity policy accurately, Communicate consequences of academic dishonesty clearly and professionally, Demonstrate active listening when a student expresses frustration, Explain student privacy rights under FERPA clearly, Guide the conversation toward a constructive resolution, Identify indicators of academic integrity violations during examinations, Identify situations that constitute FERPA violations, Take immediate corrective action when a privacy breach occurs

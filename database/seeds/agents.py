@@ -212,6 +212,7 @@ agents = [
             sid("tool-resource/attempt/chat_strengths"),
             sid("tool-resource/attempt/chat_improvements"),
             sid("tool-resource/attempt/chat_analyses"),
+            sid("tool-resource/attempt/chat_complete"),
             sid("tool-resource/attempt/chat_hints"),
             sid("tool-resource/attempt-audio/create"),
             sid("tool-resource/attempt-audio/download"),

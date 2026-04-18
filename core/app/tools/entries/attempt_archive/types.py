@@ -18,4 +18,4 @@ class GetAttemptArchiveResponse(BaseModel):
     active: bool
     attempt_id: UUID
     archived: bool
-    call_id: UUID
+    session_id: UUID | None = None

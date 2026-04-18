@@ -28,7 +28,6 @@ from app.infra.websocket.attempt_types import (
     GenerateRequestData,
 )
 from app.tools.entries.attempt_grade.create import create_attempt_grade
-from app.tools.entries.calls.create import create_call
 from app.tools.entries.groups.create import create_group
 from app.tools.entries.runs.create import create_run
 
@@ -79,7 +78,7 @@ async def attempt_end_internal_impl(
     profile_uuid = UUID(str(profile_id))
     session_uuid = UUID(str(session_id))
 
-    async def _run(*, call_id: UUID | None = None) -> AttemptEndInternalResult:
+    async def _run(*, call_id: UUID | None = None, **_kw) -> AttemptEndInternalResult:
         downstream_emit = wrap_emit_with_stream_bridge(
             artifact="attempt",
             operation="end",
@@ -110,15 +109,10 @@ async def attempt_end_internal_impl(
                     session_id=session_uuid,
                     group_id=group_result.id,
                 )
-                call_result = await create_call(
-                    conn,
-                    run_id=run_result.id,
-                    session_id=session_uuid,
-                )
                 grade_result = await create_attempt_grade(
                     conn,
                     chat_id=payload.chat_id,
-                    call_id=call_result.id,
+                    session_id=session_uuid,
                     time_taken=0,
                     passed=False,
                     score=0,

@@ -24,7 +24,7 @@ async def search_attempt_conversation_completions(
 
     rows = await conn.fetch(
         f"""
-        SELECT id, created_at, generated, mcp, active, conversation_id, stop, error, message, call_id
+        SELECT id, created_at, generated, mcp, active, conversation_id, stop, error, message, session_id
         FROM {source}
         WHERE ($1::uuid[] IS NULL OR conversation_id = ANY($1))
         ORDER BY created_at DESC

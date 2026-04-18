@@ -78,6 +78,7 @@ async def group_attempt_impl(
     group_id: UUID | None = None,
     name: str | None = None,
     window_seconds: int = DEFAULT_WINDOW_SECONDS,
+    **_kwargs,
 ) -> GroupAttemptApiResponse:
     """Resolve or create an attempt group with optional naming.
 

@@ -5,9 +5,9 @@ from typing import Any
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
-from app.infra.chat.group import (
-    GroupChatApiRequest,
-    group_chat_impl,
+from app.infra.attempt.group import (
+    GroupAttemptApiRequest,
+    group_attempt_impl,
 )
 
 
@@ -18,7 +18,7 @@ async def chat_group(sid: str, data: dict[str, Any]) -> None:
         return
 
     try:
-        payload = GroupChatApiRequest(**data)
+        payload = GroupAttemptApiRequest(**data)
     except Exception:
         return
 
@@ -28,13 +28,13 @@ async def chat_group(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="chat",
+        artifact="attempt",
         operation="group",
         profile_id=identity.profile_id,
         session_id=identity.session_id,
         sid=sid,
         rooms=[sid],
-        runner=lambda: group_chat_impl(
+        runner=lambda: group_attempt_impl(
             pool,
             redis,
             profile_id=identity.profile_id,

@@ -5,7 +5,7 @@
 -- Name: attempt_mutes_mv_conversation_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX attempt_mutes_mv_conversation_id_idx ON public.attempt_mutes_mv USING btree (conversation_id);
+CREATE UNIQUE INDEX attempt_mutes_mv_conversation_id_idx ON public.attempt_mutes_mv USING btree (conversation_id);
 
 
 --

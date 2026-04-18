@@ -29,8 +29,6 @@ from app.tools.entries.attempt_chat.create import create_attempt_chat
 from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
 from app.tools.entries.attempt_chat_bridge.create import create_attempt_chat_bridge
 from app.tools.entries.attempt_chat_bridge.refresh import refresh_attempt_chat_bridge
-from app.tools.entries.calls.create import create_call
-from app.tools.entries.runs.create import create_run
 
 
 # ---------------------------------------------------------------------------
@@ -458,17 +456,21 @@ async def create_attempt_chat_impl(
 
     # ── Step 6: Create in transaction ─────────────────────────────────────────
 
+    from app.tools.entries.persona.create import create_persona
+
     async with pool.acquire() as conn:
         async with conn.transaction():
-            run_result = await create_run(
-                conn, session_id=session_id, group_id=profile.group_id,
-            )
-            call = await create_call(
-                conn, run_id=run_result.id, session_id=session_id,
-            )
+            # Create personas_entry for each AI persona resource ID
+            assistant_entry_ids: list[UUID] = []
+            for persona_resource_id in (final_personas_ids or []):
+                persona_entry = await create_persona(
+                    conn, personas_id=persona_resource_id,
+                )
+                assistant_entry_ids.append(persona_entry.id)
+
             result = await create_attempt_chat(
                 conn,
-                call_id=call.id,
+                session_id=session_id,
                 chat_id=request.chat_id,
                 title=cfg_name,
                 position=cfg_position,
@@ -496,6 +498,7 @@ async def create_attempt_chat_impl(
                 standards_ids=t_standard_ids or None,
                 standard_groups_ids=t_standard_group_ids or None,
                 departments_ids=final_departments_ids,
+                assistant_persona_ids=assistant_entry_ids or None,
                 personas_ids=final_personas_ids,
                 problem_statements_ids=final_problem_statements_ids,
                 objectives_ids=final_objectives_ids,

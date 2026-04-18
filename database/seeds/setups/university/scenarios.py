@@ -23,8 +23,10 @@ from database.seeds.setups.university.departments import UNIVERSITY_DEPT, UNIVER
 from database.seeds.setups.university.documents import (
     ACADEMIC_INTEGRITY_POLICY,
     ACADEMIC_INTEGRITY_POLICY_RESOURCE,
+    ACADEMIC_INTEGRITY_IMAGE,
     FERPA_POLICY,
     FERPA_POLICY_RESOURCE,
+    FERPA_POLICY_IMAGE,
 )
 from database.seeds.setups.university.personas import (
     AGGRESSIVE_HIGH,
@@ -64,6 +66,12 @@ GENERAL_SCENARIO_RESOURCE = sid("uni/scenario-resource/general")
 ACADEMIC_INTEGRITY_SCENARIO_RESOURCE = sid("uni/scenario-resource/academic-integrity")
 FERPA_SCENARIO_RESOURCE = sid("uni/scenario-resource/ferpa")
 UPSET_STUDENT_SCENARIO_RESOURCE = sid("uni/scenario-resource/upset-student")
+
+# Video resource IDs — set on scenarios_resource.video_ids at creation,
+# resolved later when video seeds run.
+ACADEMIC_INTEGRITY_VIDEO = sid("uni/videos-resource/academic-integrity")
+FERPA_VIDEO = sid("uni/videos-resource/ferpa")
+UPSET_STUDENT_VIDEO = sid("uni/videos-resource/upset-student")
 
 # ---------------------------------------------------------------------------
 # Default toggle flags for all scenarios
@@ -156,6 +164,8 @@ scenarios = [
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         document_ids=[ACADEMIC_INTEGRITY_POLICY_RESOURCE],
+        video_ids=[ACADEMIC_INTEGRITY_VIDEO],
+        image_ids=[ACADEMIC_INTEGRITY_IMAGE],
         objective_ids=ACADEMIC_INTEGRITY_OBJECTIVES,
         question_ids=ACADEMIC_INTEGRITY_QUESTIONS,
         option_ids=ACADEMIC_INTEGRITY_OPTIONS,
@@ -176,6 +186,8 @@ scenarios = [
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         document_ids=[FERPA_POLICY_RESOURCE],
+        video_ids=[FERPA_VIDEO],
+        image_ids=[FERPA_POLICY_IMAGE],
         objective_ids=FERPA_OBJECTIVES,
         question_ids=FERPA_QUESTIONS,
         option_ids=FERPA_OPTIONS,
@@ -195,6 +207,7 @@ scenarios = [
         ),
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        video_ids=[UPSET_STUDENT_VIDEO],
         objective_ids=UPSET_STUDENT_OBJECTIVES,
         question_ids=UPSET_STUDENT_QUESTIONS,
         option_ids=UPSET_STUDENT_OPTIONS,

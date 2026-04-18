@@ -50,7 +50,7 @@ async def attempt_start_internal_impl(
     if not session_id:
         raise ValueError("Missing session_id for attempt_start")
 
-    async def _run(*, call_id: UUID | None = None) -> AttemptStartInternalResult:
+    async def _run(*, call_id: UUID | None = None, **_kw) -> AttemptStartInternalResult:
         pool = get_pool()
         downstream_emit = wrap_emit_with_stream_bridge(
             artifact="attempt",

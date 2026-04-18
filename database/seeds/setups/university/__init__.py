@@ -60,4 +60,6 @@ MODULES = [
     "settings",
     "texts",
     "files",
+    "videos",
+    "images",
 ]

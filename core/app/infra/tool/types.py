@@ -328,6 +328,28 @@ class DuplicateToolApiResponse(BaseModel):
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
+class CreateArgInput(BaseModel):
+    """Inline arg creation input."""
+    name: str = Field(..., description="Argument name")
+    field_type: str = Field(..., description="Argument type (string, number, boolean, array)")
+    description: str = Field("", description="Argument description")
+    required: bool = Field(False, description="Whether the argument is required")
+    default_value: str = Field("", description="Default value")
+
+
+class CreateArgPositionInput(BaseModel):
+    """Inline arg position creation input."""
+    args_id: UUID = Field(..., description="Argument resource ID this position belongs to")
+    value: int = Field(..., description="Position value")
+
+
+class CreateArgsOutputInput(BaseModel):
+    """Inline args output creation input."""
+    args_id: UUID = Field(..., description="Argument resource ID this output belongs to")
+    name: str = Field(..., description="Output name")
+    template: str = Field("", description="Output template")
+
+
 class PatchToolDraftApiRequest(ScopedItem):
     """Request model for canonical tool draft endpoint."""
 
@@ -346,9 +368,14 @@ class PatchToolDraftApiRequest(ScopedItem):
     flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     arg_ids: list[UUID] | None = Field(None, description="Argument identifiers")
+    args: list[CreateArgInput] | None = Field(None, description="Arguments to create inline")
     arg_position_ids: list[UUID] | None = Field(None, description="Argument position identifiers")
+    arg_positions: list[CreateArgPositionInput] | None = Field(None, description="Argument positions to create inline")
     args_output_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
     args_outputs_ids: list[UUID] | None = Field(None, description="Legacy alias for argument output identifiers")
+    args_outputs: list[CreateArgsOutputInput] | None = Field(None, description="Argument outputs to create inline")
+    instruction_id: UUID | None = Field(None, description="Instruction resource identifier")
+    instruction_ids: list[UUID] | None = Field(None, description="Instruction resource identifiers")
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
     agent_id: UUID | None = Field(None, description="Delegate agent for tool execution")
     pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers to preserve")
@@ -368,6 +395,8 @@ class PatchToolDraftApiRequest(ScopedItem):
         "arg_position_ids": "arg_positions",
         "args_output_ids": "args_outputs",
         "args_outputs_ids": "args_outputs",
+        "instruction_id": "instructions",
+        "instruction_ids": "instructions",
         "permission_ids": "permissions",
         "agent_id": "agents",
     }
@@ -387,6 +416,8 @@ class DraftFormState(BaseModel):
     arg_position_ids: list[UUID] = Field(..., description="Argument position identifiers")
     args_output_ids: list[UUID] = Field(..., description="Argument output identifiers")
     args_outputs_ids: list[UUID] = Field(..., description="Legacy alias for argument output identifiers")
+    instruction_id: UUID | None = Field(None, description="Instruction resource identifier")
+    instruction_ids: list[UUID] = Field(default_factory=list, description="Instruction resource identifiers")
     permission_ids: list[UUID] = Field(..., description="Permission identifiers")
     agent_id: UUID | None = Field(None, description="Delegate agent identifier")
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")

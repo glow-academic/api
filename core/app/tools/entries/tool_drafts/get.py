@@ -36,6 +36,10 @@ async def get_tool_drafts(
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = false), '{}') AS pending_name_ids,
             COALESCE(ARRAY_AGG(DISTINCT perm.permissions_id) FILTER (WHERE perm.permissions_id IS NOT NULL), '{}') AS permission_ids,
             COALESCE(ARRAY_AGG(DISTINCT perm.permissions_id) FILTER (WHERE perm.permissions_id IS NOT NULL AND perm.active = false), '{}') AS pending_permission_ids,
+            COALESCE(ARRAY_AGG(DISTINCT ins.instructions_id) FILTER (WHERE ins.instructions_id IS NOT NULL), '{}') AS instruction_ids,
+            COALESCE(ARRAY_AGG(DISTINCT ins.instructions_id) FILTER (WHERE ins.instructions_id IS NOT NULL AND ins.active = false), '{}') AS pending_instruction_ids,
+            COALESCE(ARRAY_AGG(DISTINCT ag.agents_id) FILTER (WHERE ag.agents_id IS NOT NULL), '{}') AS agent_ids,
+            COALESCE(ARRAY_AGG(DISTINCT ag.agents_id) FILTER (WHERE ag.agents_id IS NOT NULL AND ag.active = false), '{}') AS pending_agent_ids,
             COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL), '{}') AS profile_ids
         FROM tool_drafts_entry d
         LEFT JOIN tool_drafts_arg_positions_connection ap ON ap.draft_id = d.id
@@ -45,8 +49,10 @@ async def get_tool_drafts(
         LEFT JOIN tool_drafts_descriptions_connection desc_c ON desc_c.draft_id = d.id
         LEFT JOIN tool_drafts_flags_connection f ON f.draft_id = d.id
         LEFT JOIN tool_drafts_names_connection n ON n.draft_id = d.id
+        LEFT JOIN tool_drafts_instructions_connection ins ON ins.draft_id = d.id
         LEFT JOIN tool_drafts_permissions_connection perm ON perm.draft_id = d.id
         LEFT JOIN tool_drafts_profiles_connection p ON p.draft_id = d.id
+        LEFT JOIN tool_drafts_agents_connection ag ON ag.draft_id = d.id
         WHERE d.id = ANY($1)
           AND d.active = true
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
@@ -71,8 +77,10 @@ async def get_tool_drafts(
             description_ids=r["description_ids"],
             flag_ids=r["flag_ids"],
             name_ids=r["name_ids"],
+            instruction_ids=r["instruction_ids"],
             permission_ids=r["permission_ids"],
             profile_ids=r["profile_ids"],
+            agent_ids=r["agent_ids"],
             pending_arg_position_ids=r["pending_arg_position_ids"],
             pending_arg_ids=r["pending_arg_ids"],
             pending_args_output_ids=r["pending_args_output_ids"],
@@ -81,6 +89,8 @@ async def get_tool_drafts(
             pending_flag_ids=r["pending_flag_ids"],
             pending_name_ids=r["pending_name_ids"],
             pending_permission_ids=r["pending_permission_ids"],
+            pending_instruction_ids=r["pending_instruction_ids"],
+            pending_agent_ids=r["pending_agent_ids"],
         )
         for r in rows
     ]

@@ -208,6 +208,8 @@ async def create_denormalized_snapshot(
     image_ids: list[UUID] | None = None,
     parameter_field_ids: list[UUID] | None = None,
     template: bool = False,
+    file_id: UUID | None = None,
+    text_id: UUID | None = None,
 ) -> UUID:
     """Create a documents_resource snapshot by hydrating IDs to values.
 
@@ -244,5 +246,7 @@ async def create_denormalized_snapshot(
             image_ids=image_ids,
             parameter_field_ids=parameter_field_ids,
             template=template,
+            file_id=file_id,
+            text_id=text_id,
         )
     return result.id

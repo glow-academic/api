@@ -10,7 +10,7 @@ from app.tools.entries.attempt_hint.types import CreateAttemptHintResponse
 async def create_attempt_hint(
     conn: asyncpg.Connection,
     message_id: UUID,
-    call_id: UUID,
+    session_id: UUID,
     hint: str,
     id: UUID | None = None,
     mcp: bool = False,
@@ -20,12 +20,12 @@ async def create_attempt_hint(
     entry_id = await conn.fetchval(
         """
         INSERT INTO attempt_hint_entry
-            (id, message_id, call_id, hint, active, mcp, generated)
+            (id, message_id, session_id, hint, active, mcp, generated)
         VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, true)
         RETURNING id
         """,
         message_id,
-        call_id,
+        session_id,
         hint,
         not soft,
         mcp,

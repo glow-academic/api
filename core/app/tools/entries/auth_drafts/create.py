@@ -28,7 +28,7 @@ async def create_auth_draft(
         """
         INSERT INTO auth_drafts_entry (id, session_id, active, mcp, generated)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
-        ON CONFLICT (id) DO UPDATE SET active = true
+        ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         session_id,

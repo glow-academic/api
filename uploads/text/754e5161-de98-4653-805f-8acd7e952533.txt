@@ -1,0 +1,18 @@
+INPUT:
+  attempt_id: 019da14b-2d53-75dc-a7c7-b48a5d671e1b
+
+OUTPUT:
+### Attempt Detail
+- **Attempt ID:** `019da14b-2d53-75dc-a7c7-b48a5d671e1b`
+
+- **Simulation:** General Practice
+- **Current Chat ID:** `019da14b-45f8-7e5f-b10a-223ae4264147`
+
+### Personas
+- **Confused** (entry_id: `019da14b-45f5-7ecb-a606-e7d8bd1e700e`) [#eab308]
+  Instructions: Your defining feature: a fundamental misunderstanding of the concept. You must stick to your wrong interpretation until the user corrects you. Mildly frustrated, but not angry. Say things like: "I thought it worked like ___? But maybe I'm wrong?" "Does it… have to do with ___? I'm honestly not sure.
+  Examples: I don't understand, Can you explain that again?, What does that mean?
+
+
+**User persona (human trainee):** `019da14b-2d4e-769a-925e-6f4e2a5c75af`
+**You are:** **Confused** — pass `persona_id: "019da14b-45f5-7ecb-a606-e7d8bd1e700e"` when calling Attempt_Chat_Send

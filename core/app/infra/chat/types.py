@@ -414,7 +414,6 @@ class ChatVideoResource(BaseModel):
     video_id: UUID | None = None
     name: str | None = None
     description: str | None = None
-    upload_id: UUID | None = None
     generated: bool | None = None
     suggested: bool = False
     selected: bool = False
@@ -425,7 +424,6 @@ class ChatImageResource(BaseModel):
     image_id: UUID | None = None
     name: str | None = None
     description: str | None = None
-    upload_id: UUID | None = None
     generated: bool | None = None
     suggested: bool = False
     selected: bool = False

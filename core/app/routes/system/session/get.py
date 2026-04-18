@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.session.get import get_session_detail_impl_cached
-from app.infra.session.group import group_session_impl
+from app.infra.system.group import group_system_impl
 from app.infra.session.types import (
     GetSessionDetailRequest,
     GetSessionDetailResponse,
@@ -41,7 +41,7 @@ async def get_session(
         group_id = None
         session_id = actor_session_id or request.session_id
         if session_id:
-            group_result = await group_session_impl(
+            group_result = await group_system_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
             )
             group_id = group_result.group_id

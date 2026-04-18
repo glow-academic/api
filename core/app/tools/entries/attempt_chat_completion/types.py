@@ -20,4 +20,4 @@ class GetAttemptChatCompletionResponse(BaseModel):
     active: bool
     generated: bool
     mcp: bool
-    call_id: UUID
+    session_id: UUID | None = None

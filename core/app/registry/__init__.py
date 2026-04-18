@@ -19,12 +19,7 @@ from app.registry.modalities import (
     RESOURCE_MODALITIES,
     get_tool_output_modalities,
 )
-from app.registry.operations import (
-    ARTIFACT_OPS,
-    ENTRY_OPS,
-    RESOURCE_OPS,
-    resolve_callable,
-)
+from app.registry.operations import resolve_callable
 from app.registry.resource_entries import RESOURCE_ENTRIES
 from app.registry.resource_events import RESOURCE_EVENTS, ResourceGenerationBase
 from app.registry.resource_output_schemas import RESOURCE_OUTPUT_SCHEMAS
@@ -37,7 +32,6 @@ __all__ = [
     "ARTIFACT_ENTRIES",
     "ARTIFACT_FLAGS",
     "ARTIFACT_MODALITIES",
-    "ARTIFACT_OPS",
     "ARTIFACT_RESOURCES",
     "ARTIFACT_ROLES",
     "ARTIFACT_ROUTES",
@@ -48,7 +42,6 @@ __all__ = [
     "DEFAULT_OUTPUT_MODALITIES",
     "ENTRY_EVENTS",
     "ENTRY_MODALITIES",
-    "ENTRY_OPS",
     "ENTRY_RESOURCES",
     "ENTRY_SCHEMAS",
     "ENTRY_VIEW_NAMES",
@@ -57,7 +50,6 @@ __all__ = [
     "RESOURCE_ENTRIES",
     "RESOURCE_EVENTS",
     "RESOURCE_MODALITIES",
-    "RESOURCE_OPS",
     "RESOURCE_OUTPUT_SCHEMAS",
     "RESOURCE_SCHEMAS",
     "ResourceGenerationBase",

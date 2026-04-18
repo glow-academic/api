@@ -64,41 +64,33 @@ THRESHOLD_DANGER = sid("threshold/70")
 # ---------------------------------------------------------------------------
 
 ALL_SYSTEMS = [
-    ACTIVITY_SYSTEM,
+    # CRUD artifact systems (create, update, delete, generate)
     AGENT_SYSTEM,
-    ATTEMPT_CHAT_SYSTEM,
-    ATTEMPT_GRADE_SYSTEM,
     AUTH_SYSTEM,
-    BENCHMARK_SYSTEM,
     CHAT_SYSTEM,
     COHORT_SYSTEM,
-    DASHBOARD_SYSTEM,
     DEPARTMENT_SYSTEM,
     DOCUMENT_SYSTEM,
     EVAL_SYSTEM,
     FIELD_SYSTEM,
-    GROUP_SYSTEM,
-    HEALTH_SYSTEM,
-    HOME_SYSTEM,
-    INVOCATION_SYSTEM,
-    LEADERBOARD_SYSTEM,
     MODEL_SYSTEM,
     PARAMETER_SYSTEM,
     PERSONA_SYSTEM,
-    PRACTICE_SYSTEM,
-    PRICING_SYSTEM,
     PROFILE_SYSTEM,
     PROVIDER_SYSTEM,
-    RECORD_SYSTEM,
-    REPORTS_SYSTEM,
     RUBRIC_SYSTEM,
     SCENARIO_SYSTEM,
-    SESSION_SYSTEM,
     SETTING_SYSTEM,
     SIMULATION_SYSTEM,
-    TEST_GRADE_SYSTEM,
     TOOL_SYSTEM,
+    # Attempt + test state machines
+    ATTEMPT_CHAT_SYSTEM,
+    ATTEMPT_GRADE_SYSTEM,
+    TEST_GRADE_SYSTEM,
+    # Orchestration
     COMPOSER_SYSTEM,
+    GROUP_SYSTEM,
+    INVOCATION_SYSTEM,
 ]
 
 # ---------------------------------------------------------------------------

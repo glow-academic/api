@@ -403,7 +403,6 @@ async def get_document_impl(
                 DocumentFileResource(
                     id=item.id,
                     files_id=item.id,
-                    upload_id=getattr(entry, "upload_id", None),
                     file_path=getattr(entry, "file_path", None),
                     mime_type=getattr(entry, "mime_type", None),
                     size=getattr(entry, "size", None),
@@ -426,7 +425,6 @@ async def get_document_impl(
                     image_id=item.id,
                     name=item.name,
                     description=item.description,
-                    upload_id=getattr(entry, "upload_id", None),
                     file_path=getattr(entry, "file_path", None),
                     mime_type=getattr(entry, "mime_type", None),
                     size=getattr(entry, "size", None),
@@ -454,7 +452,6 @@ async def get_document_impl(
                 DocumentTextResource(
                     id=item.id,
                     texts_id=item.id,
-                    upload_id=getattr(entry, "upload_id", None),
                     file_path=getattr(entry, "file_path", None),
                     mime_type=getattr(entry, "mime_type", None),
                     generated=item.generated,

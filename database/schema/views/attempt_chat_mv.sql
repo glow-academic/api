@@ -105,13 +105,13 @@ CREATE MATERIALIZED VIEW public.attempt_chat_mv AS
  SELECT c.id AS chat_id,
     ac.attempt_id,
     c.chat_id AS chat_entry_id,
-    r_grp.group_id,
     apc.profiles_id AS profile_id,
     COALESCE(home_coh.cohorts_id, prac_coh.cohorts_id) AS cohort_id,
     COALESCE(home_dep.departments_id, prac_dep.departments_id) AS department_id,
     COALESCE(home_sim.simulations_id, prac_sim.simulations_id) AS simulation_id,
     cs.scenario_id,
     cp.persona_ids,
+    c.assistant_persona_ids,
     cr.rubric_id,
     lg.grade_score,
     cr.rubric_total_points AS grade_total_points,
@@ -148,9 +148,7 @@ CREATE MATERIALIZED VIEW public.attempt_chat_mv AS
     cvid.video_ids,
     csg.standard_group_ids,
     cstd.standard_ids
-   FROM (((((((((((((((((((((((((((((public.attempt_chat_entry c
-     LEFT JOIN public.calls_entry cl_grp ON ((cl_grp.id = c.call_id)))
-     LEFT JOIN public.runs_entry r_grp ON ((r_grp.id = cl_grp.run_id)))
+   FROM (((((((((((((((((((((((((((public.attempt_chat_entry c
      JOIN public.attempt_chat_bridge_entry ac ON ((ac.attempt_chat_id = c.id)))
      JOIN public.attempt_entry a ON ((a.id = ac.attempt_id)))
      JOIN public.attempt_profiles_connection apc ON (((apc.attempt_id = a.id) AND (apc.active = true))))

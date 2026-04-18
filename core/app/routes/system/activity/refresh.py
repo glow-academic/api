@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Request, Response
 
-from app.infra.activity.group import group_activity_impl
+from app.infra.system.group import group_system_impl
 from app.infra.activity.refresh import refresh_activity_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
@@ -25,7 +25,7 @@ async def activity_refresh(
     # Resolve time-windowed group for audit linking
     group_id = None
     if session_id:
-        group_result = await group_activity_impl(
+        group_result = await group_system_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
         )
         group_id = group_result.group_id

@@ -1,0 +1,38 @@
+## Context
+
+**Chat ID:** `019da174-1ae6-7a29-97e3-8f45aa5c3233`
+**Attempt ID:** `019da173-f391-7369-8a5c-7835db65e507`
+
+**Group ID:** `019da174-b01a-7965-8236-04c9e207660c`
+
+## Tools
+
+
+
+## Steps
+
+1. Call **Attempt_Get**(attempt_id: "019da173-f391-7369-8a5c-7835db65e507") to get the conversation, personas, and rubric context
+2. Review the conversation messages and evaluate performance against the rubric
+3. Call **Attempt_Chat_Grade** with:
+   - `chat_id`: `"019da174-1ae6-7a29-97e3-8f45aa5c3233"`
+   - `score`: total points earned (integer)
+4. Use the returned `grade_id` for subsequent calls
+5. Call **Attempt_Chat_Analyses** with `grade_id` and an overall `content` analysis
+6. For each notable message, call **Attempt_Chat_Strengths** or **Attempt_Chat_Improvements** with:
+   - `grade_id`: from step 4
+   - `message_id`: the actual message UUID from the conversation
+   - `name`: short title (e.g., "Active listening", "Missed de-escalation opportunity")
+   - `description`: detailed explanation
+7. Optionally call **Attempt_Chat_Feedback** for per-standard feedback with:
+   - `grade_id`: from step 4
+   - `score`: points for this standard
+   - `feedback`: detailed feedback text
+8. Call **Attempt_Chat_Complete**(chat_id: "019da174-1ae6-7a29-97e3-8f45aa5c3233") as the **final step**
+
+**IMPORTANT:**
+- Always call `Attempt_Get` first to read the conversation and get message IDs
+- Create the grade FIRST, then use its `grade_id` for feedback/strengths/improvements
+- Use actual `message_id` UUIDs from the conversation — do NOT invent IDs
+- Be specific — reference actual messages and behaviors
+- Balance strengths and improvements
+- Always call `Attempt_Chat_Complete` as the last step

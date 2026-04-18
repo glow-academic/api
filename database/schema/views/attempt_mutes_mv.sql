@@ -13,7 +13,7 @@ CREATE MATERIALIZED VIEW public.attempt_mutes_mv AS
     active,
     conversation_id,
     muted,
-    call_id
+    session_id
    FROM public.attempt_mutes_entry
   WHERE (active = true)
   WITH NO DATA;

@@ -470,6 +470,13 @@ class DuplicateAgentApiResponse(BaseModel):
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
+class CreatePromptInput(BaseModel):
+    """Inline prompt creation input."""
+    system_prompt: str = Field(..., description="System prompt text")
+    name: str = Field("", description="Prompt name")
+    description: str = Field("", description="Prompt description")
+
+
 class PatchAgentDraftApiRequest(ScopedItem):
     """Request model for new-style agent draft endpoint.
 
@@ -532,6 +539,7 @@ class PatchAgentDraftApiRequest(ScopedItem):
     qualities: list[str] | None = Field(None, description="Quality labels for matching")
     quality_ids: list[UUID] | None = Field(None, description="Associated quality UUIDs")
     prompt_id: UUID | None = Field(None, description="Associated prompt UUID")
+    prompt: CreatePromptInput | None = Field(None, description="Prompt to create inline")
     instruction_id: UUID | None = Field(None, description="Associated instruction UUID")
     instructions_id: UUID | None = Field(None, description="Legacy alias for associated instruction UUID")
     rubric_ids: list[UUID] | None = Field(None, description="Associated rubric UUIDs")

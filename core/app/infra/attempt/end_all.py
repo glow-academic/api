@@ -64,7 +64,7 @@ async def attempt_end_all_internal_impl(
     if group_id is None:
         raise ValueError(f"Group not found for attempt {payload.attempt_id}")
 
-    async def _run(*, call_id: UUID | None = None) -> AttemptEndAllInternalResult:
+    async def _run(*, call_id: UUID | None = None, **_kw) -> AttemptEndAllInternalResult:
         downstream_emit = wrap_emit_with_stream_bridge(
             artifact="attempt",
             operation="end_all",

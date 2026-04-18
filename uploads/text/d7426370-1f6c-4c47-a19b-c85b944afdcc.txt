@@ -1,0 +1,9 @@
+INPUT:
+  grade_id: 019da14b-cef0-7595-849b-db9ddb3a539c
+  message_id: 2
+  name: Clarification Techniques
+  description: The trainee could have used more specific examples or analogies to clarify the misunderstood concept, and should have checked for understanding to ensure the confusion was resolved.
+
+OUTPUT:
+Improvements created.
+- **Success:** False

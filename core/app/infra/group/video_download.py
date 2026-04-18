@@ -55,7 +55,7 @@ async def video_download_group_impl(
         )
 
     # -- Step 2: Permission check -----------------------------------------------
-    if not has_permission(profile.role_permissions, "group", "video_download"):
+    if not has_permission(profile.role_permissions, "system", "video_download"):
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to download group videos.",

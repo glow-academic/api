@@ -66,7 +66,6 @@ class ImageEntry(BaseModel):
     """Image entry with resource metadata."""
 
     image_id: UUID | None = Field(None, description="UUID of the image")
-    upload_id: UUID | None = Field(None, description="UUID of the uploaded file")
     name: str | None = Field(None, description="Name of the image")
     description: str | None = Field(None, description="Description of the image")
 
@@ -75,7 +74,6 @@ class VideoEntry(BaseModel):
     """Video entry with resource metadata."""
 
     video_id: UUID | None = Field(None, description="UUID of the video")
-    upload_id: UUID | None = Field(None, description="UUID of the uploaded file")
     name: str | None = Field(None, description="Name of the video")
     description: str | None = Field(None, description="Description of the video")
 
@@ -316,7 +314,8 @@ class GradeAttemptRequest(BaseModel):
 class PersonaEntry(BaseModel):
     """Persona entry for lookup."""
 
-    id: UUID | None = Field(None, description="UUID of the persona")
+    id: UUID | None = Field(None, description="UUID of the persona resource")
+    entry_id: UUID | None = Field(None, description="UUID of the personas_entry (pass as persona_id)")
     name: str | None = Field(None, description="Name of the persona")
     icon: str | None = Field(None, description="Icon identifier for the persona")
     color: str | None = Field(None, description="Display color for the persona")
@@ -596,6 +595,7 @@ class AttemptData(BaseModel):
     infinite_mode: bool | None = Field(None, description="Whether infinite mode is enabled")
     profile_id: UUID | None = Field(None, description="UUID of the user profile")
     profile_name: str | None = Field(None, description="Display name of the user profile")
+    user_persona_id: UUID | None = Field(None, description="UUID of the user's persona entry for this attempt")
     department_id: UUID | None = Field(None, description="UUID of the department")
     # Home mode only
     cohort_id: UUID | None = Field(None, description="UUID of the cohort (home mode only)")

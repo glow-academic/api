@@ -12,8 +12,7 @@ from app.tools.entries.attempt_message.types import (
 async def create_attempt_message(
     conn: asyncpg.Connection,
     chat_id: UUID,
-    message_id: UUID,
-    call_id: UUID,
+    session_id: UUID,
     id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
@@ -21,13 +20,12 @@ async def create_attempt_message(
     """Create an attempt_message_entry row."""
     entry_id = await conn.fetchval(
         """
-        INSERT INTO attempt_message_entry (id, chat_id, call_id, active, mcp, generated)
-        VALUES (COALESCE($6::uuid, $1::uuid), $2, $3, $4, $5, true)
+        INSERT INTO attempt_message_entry (id, chat_id, session_id, active, mcp, generated)
+        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true)
         RETURNING id
         """,
-        message_id,
         chat_id,
-        call_id,
+        session_id,
         not soft,
         mcp,
         id,

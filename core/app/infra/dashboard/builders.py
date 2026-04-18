@@ -7,10 +7,10 @@ def build_simulation_meta(simulations: list[Any]) -> list[dict]:
     """Build simulation metadata list from hydrated simulations."""
     return [
         {
-            "simulation_id": str(item.simulation_id) if item.simulation_id else None,
+            "simulation_id": str(item.id) if item.id else None,
             "name": item.name,
             "description": item.description,
-            "department_ids": item.department_ids,
+            "department_ids": [str(d) for d in (item.department_ids or [])],
             "time_limit": None,
         }
         for item in simulations
@@ -21,7 +21,7 @@ def build_scenario_meta(scenarios: list[Any]) -> list[dict]:
     """Build scenario metadata list from hydrated scenarios."""
     return [
         {
-            "scenario_id": str(item.scenario_id) if item.scenario_id else None,
+            "scenario_id": str(item.id) if item.id else None,
             "name": item.name,
             "description": item.description,
         }
@@ -33,7 +33,7 @@ def build_rubric_meta(rubrics: list[Any]) -> list[dict]:
     """Build rubric metadata list from hydrated rubrics."""
     return [
         {
-            "rubric_id": str(item.rubric_id) if item.rubric_id else None,
+            "rubric_id": str(item.id) if item.id else None,
             "name": item.name,
             "description": item.description,
         }
@@ -67,17 +67,17 @@ def build_field_meta(
     }
     return [
         {
-            "field_id": str(item.field_id) if item.field_id else None,
+            "field_id": str(item.id) if item.id else None,
             "name": item.name,
             "description": item.description,
             "parameter_id": (
-                str(field_parameter_map.get(item.field_id))
-                if item.field_id and field_parameter_map.get(item.field_id)
+                str(field_parameter_map.get(item.id))
+                if item.id and field_parameter_map.get(item.id)
                 else None
             ),
             "parameter_name": (
-                parameter_name_map.get(field_parameter_map.get(item.field_id))
-                if item.field_id and field_parameter_map.get(item.field_id)
+                parameter_name_map.get(field_parameter_map.get(item.id))
+                if item.id and field_parameter_map.get(item.id)
                 else None
             ),
         }

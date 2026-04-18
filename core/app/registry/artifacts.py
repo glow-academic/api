@@ -98,7 +98,7 @@ _VIEWS: dict[str, tuple[str, frozenset[str]]] = {
     "session": ("analytics", frozenset({"get"})),
     "group": ("analytics", frozenset({"get"})),
     "test": ("benchmark", frozenset({"get", "archive"})),
-    "invocation": ("benchmark", frozenset({"get", "draft"})),
+    "invocation": ("benchmark", frozenset({"get", "draft", "refresh"})),
     # Special
     "chat": ("home", frozenset({"get", "draft", "refresh"})),
 }

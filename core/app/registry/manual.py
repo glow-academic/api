@@ -54,7 +54,7 @@ VIEW_ENDPOINT_OVERRIDES: dict[str, frozenset[str]] = {
     "activity": frozenset({"get", "problem", "refresh", "resolve", "docs"}),
     "attempt": frozenset({"get", "archive", "certifficate", "docs"}),
     "record": frozenset(),
-    "invocation": frozenset({"get", "draft"}),
+    "invocation": frozenset({"get", "draft", "refresh"}),
     "chat": frozenset({"get", "draft", "refresh", "docs"}),
 }
 

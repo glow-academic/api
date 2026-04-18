@@ -12,7 +12,7 @@ from app.tools.entries.attempt_chat_completion.types import (
 async def create_attempt_chat_completion(
     conn: asyncpg.Connection,
     chat_id: UUID,
-    call_id: UUID,
+    session_id: UUID,
     id: UUID | None = None,
     stop: bool = False,
     error: bool = False,
@@ -23,12 +23,13 @@ async def create_attempt_chat_completion(
     """Create an attempt_chat_completion entry."""
     entry_id = await conn.fetchval(
         """
-        INSERT INTO attempt_chat_completion_entry (id, chat_id, call_id, stop, error, message, active, mcp, generated)
+        INSERT INTO attempt_chat_completion_entry (id, chat_id, session_id, stop, error, message, active, mcp, generated)
         VALUES (COALESCE($8, uuidv7()), $1, $2, $3, $4, $5, $6, $7, true)
+        ON CONFLICT (chat_id) DO NOTHING
         RETURNING id
         """,
         chat_id,
-        call_id,
+        session_id,
         stop,
         error,
         message,
@@ -36,4 +37,9 @@ async def create_attempt_chat_completion(
         mcp,
         id,
     )
+    if entry_id is None:
+        entry_id = await conn.fetchval(
+            "SELECT id FROM attempt_chat_completion_entry WHERE chat_id = $1",
+            chat_id,
+        )
     return CreateAttemptChatCompletionResponse(id=entry_id)

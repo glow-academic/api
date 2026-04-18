@@ -94,11 +94,10 @@ class DocumentParameterResource(BaseModel):
 
 
 class DocumentFileResource(BaseModel):
-    """File (upload) resource for document."""
+    """File resource for document."""
 
     id: UUID | None = Field(None, description="Unique identifier")
     files_id: UUID | None = Field(None, description="File resource UUID")
-    upload_id: UUID | None = Field(None, description="Upload UUID")
     file_path: str | None = Field(None, description="Stored file path")
     mime_type: str | None = Field(None, description="File MIME type")
     size: int | None = Field(None, description="File size in bytes")
@@ -115,7 +114,6 @@ class DocumentImageResource(BaseModel):
     image_id: UUID | None = Field(None, description="Image resource UUID")
     name: str | None = Field(None, description="Image name")
     description: str | None = Field(None, description="Image description")
-    upload_id: UUID | None = Field(None, description="Upload UUID")
     file_path: str | None = Field(None, description="Stored file path")
     mime_type: str | None = Field(None, description="File MIME type")
     size: int | None = Field(None, description="File size in bytes")
@@ -130,7 +128,6 @@ class DocumentTextResource(BaseModel):
 
     id: UUID | None = Field(None, description="Unique identifier")
     texts_id: UUID | None = Field(None, description="Text resource UUID")
-    upload_id: UUID | None = Field(None, description="Upload UUID")
     file_path: str | None = Field(None, description="Stored file path")
     mime_type: str | None = Field(None, description="File MIME type")
     content: str | None = Field(None, description="Optional text content when available")
@@ -274,7 +271,7 @@ class ListDocumentApiDocument(BaseModel):
     is_inactive: bool | None = Field(None, description="Whether the document is inactive")
     num_scenarios: int | None = Field(None, description="Total number of scenarios")
     active_scenario_count: int | None = Field(None, description="Number of active scenarios")
-    upload_id: UUID | None = Field(None, description="Associated upload UUID")
+    file_id: UUID | None = Field(None, description="Associated file resource UUID")
     # Computed in Python
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     can_duplicate: bool | None = Field(None, description="Whether the current user can duplicate")
@@ -362,6 +359,9 @@ class CreateDocumentItem(ScopedItem):
     upload_ids: list[UUID] | None = Field(None, description="File upload UUIDs")
     image_ids: list[UUID] | None = Field(None, description="Image UUIDs")
     text_ids: list[UUID] | None = Field(None, description="Text resource UUIDs")
+    # Direct resource references (set at creation, resolved later by file/text seed)
+    file_id: UUID | None = Field(None, description="Files resource UUID for document file")
+    text_id: UUID | None = Field(None, description="Texts resource UUID for document text")
 
 
 class CreateDocumentApiRequest(BaseModel):
@@ -646,7 +646,6 @@ class FileUploadDocumentApiResponse(BaseModel):
     """Response model for document file upload endpoint."""
 
     file_id: UUID = Field(..., description="UUID of the created files_resource")
-    upload_id: UUID = Field(..., description="UUID of the uploads_entry (file on disk)")
 
 
 class FileDownloadDocumentApiRequest(BaseModel):

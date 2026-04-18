@@ -12,9 +12,8 @@ CREATE MATERIALIZED VIEW public.attempt_content_mv AS
     sce.persona_id AS persona_entry_id,
     ((row_number() OVER (PARTITION BY sce.message_id ORDER BY sce.created_at) - 1))::integer AS idx,
     sce.created_at
-   FROM ((((((public.attempt_content_entry sce
+   FROM (((((public.attempt_content_entry sce
      JOIN public.attempt_message_entry sm ON ((sm.id = sce.message_id)))
-     JOIN public.messages_entry m ON ((m.id = sm.id)))
      JOIN public.attempt_chat_entry c ON ((c.id = sm.chat_id)))
      JOIN public.attempt_chat_bridge_entry ac ON ((ac.attempt_chat_id = c.id)))
      JOIN public.attempt_entry a ON ((a.id = ac.attempt_id)))
@@ -23,7 +22,7 @@ CREATE MATERIALIZED VIEW public.attempt_content_mv AS
           WHERE ((attempt_archive_entry.attempt_id = a.id) AND (attempt_archive_entry.active = true))
           ORDER BY attempt_archive_entry.created_at DESC
          LIMIT 1) sa_archive ON (true))
-  WHERE ((sce.active = true) AND (m.active = true) AND (c.active = true) AND (a.active = true) AND (COALESCE(sa_archive.archived, false) = false))
+  WHERE ((sce.active = true) AND (sm.active = true) AND (c.active = true) AND (a.active = true) AND (COALESCE(sa_archive.archived, false) = false))
   WITH NO DATA;
 
 

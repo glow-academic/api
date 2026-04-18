@@ -27,6 +27,7 @@ from app.infra.persona.types import (
     SavePersonaFieldError,
 )
 from app.tools.entries.persona_drafts.create import create_persona_draft
+from app.tools.entries.persona_drafts.get import get_persona_drafts
 from app.infra.persona.refresh import refresh_persona_impl
 from app.tools.resources.colors.search import search_colors
 from app.tools.resources.departments.search import search_departments
@@ -264,13 +265,37 @@ async def patch_persona_draft_impl(
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
         if accept:
-            # Promote: re-call create with soft=False → ON CONFLICT activates
             async with pool.acquire() as conn:
+                drafts = await get_persona_drafts(conn, [idempotency_key])
                 async with conn.transaction():
-                    result = await create_persona_draft(
-                        conn, session_id=session_id, id=idempotency_key, soft=False,
-                        profile_ids=[profile.profiles_id],
-                    )
+                    if drafts:
+                        draft = drafts[0]
+                        await create_persona_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            name_ids=draft.name_ids,
+                            description_ids=draft.description_ids,
+                            color_ids=draft.color_ids,
+                            icon_ids=draft.icon_ids,
+                            instruction_ids=draft.instruction_ids,
+                            flag_ids=draft.flag_ids,
+                            department_ids=draft.department_ids,
+                            parameter_field_ids=draft.parameter_field_ids,
+                            example_ids=draft.example_ids,
+                            voice_ids=draft.voice_ids,
+                            profile_ids=draft.profile_ids or [profile.profiles_id],
+                            pending_ids=set(),
+                        )
+                    else:
+                        await create_persona_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            profile_ids=[profile.profiles_id],
+                        )
             await refresh_persona_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
                 targets=["persona_drafts_mv"], operation_key=idempotency_key,

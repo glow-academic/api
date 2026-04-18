@@ -27,12 +27,18 @@ async def get_eval_drafts(
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = true), '{}') AS name_ids,
             COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL), '{}') AS profile_ids,
             COALESCE(ARRAY_AGG(DISTINCT r.rubrics_id) FILTER (WHERE r.rubrics_id IS NOT NULL AND r.active = true), '{}') AS rubric_ids,
+            COALESCE(ARRAY_AGG(DISTINCT mf.model_flags_id) FILTER (WHERE mf.model_flags_id IS NOT NULL AND mf.active = true), '{}') AS model_flag_ids,
+            COALESCE(ARRAY_AGG(DISTINCT mp.model_positions_id) FILTER (WHERE mp.model_positions_id IS NOT NULL AND mp.active = true), '{}') AS model_position_ids,
+            COALESCE(ARRAY_AGG(DISTINCT mr.model_rubrics_id) FILTER (WHERE mr.model_rubrics_id IS NOT NULL AND mr.active = true), '{}') AS model_rubric_ids,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL AND dep.active = false), '{}') AS pending_department_ids,
             COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL AND desc_c.active = false), '{}') AS pending_description_ids,
             COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL AND f.active = false), '{}') AS pending_flag_ids,
             COALESCE(ARRAY_AGG(DISTINCT m.models_id) FILTER (WHERE m.models_id IS NOT NULL AND m.active = false), '{}') AS pending_model_ids,
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = false), '{}') AS pending_name_ids,
-            COALESCE(ARRAY_AGG(DISTINCT r.rubrics_id) FILTER (WHERE r.rubrics_id IS NOT NULL AND r.active = false), '{}') AS pending_rubric_ids
+            COALESCE(ARRAY_AGG(DISTINCT r.rubrics_id) FILTER (WHERE r.rubrics_id IS NOT NULL AND r.active = false), '{}') AS pending_rubric_ids,
+            COALESCE(ARRAY_AGG(DISTINCT mf.model_flags_id) FILTER (WHERE mf.model_flags_id IS NOT NULL AND mf.active = false), '{}') AS pending_model_flag_ids,
+            COALESCE(ARRAY_AGG(DISTINCT mp.model_positions_id) FILTER (WHERE mp.model_positions_id IS NOT NULL AND mp.active = false), '{}') AS pending_model_position_ids,
+            COALESCE(ARRAY_AGG(DISTINCT mr.model_rubrics_id) FILTER (WHERE mr.model_rubrics_id IS NOT NULL AND mr.active = false), '{}') AS pending_model_rubric_ids
         FROM eval_drafts_entry d
         LEFT JOIN eval_drafts_departments_connection dep ON dep.draft_id = d.id
         LEFT JOIN eval_drafts_descriptions_connection desc_c ON desc_c.draft_id = d.id
@@ -41,6 +47,9 @@ async def get_eval_drafts(
         LEFT JOIN eval_drafts_names_connection n ON n.draft_id = d.id
         LEFT JOIN eval_drafts_profiles_connection p ON p.draft_id = d.id
         LEFT JOIN eval_drafts_rubrics_connection r ON r.draft_id = d.id
+        LEFT JOIN eval_drafts_model_flags_connection mf ON mf.draft_id = d.id
+        LEFT JOIN eval_drafts_model_positions_connection mp ON mp.draft_id = d.id
+        LEFT JOIN eval_drafts_model_rubrics_connection mr ON mr.draft_id = d.id
         WHERE d.id = ANY($1)
           AND d.active = true
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
@@ -65,12 +74,18 @@ async def get_eval_drafts(
             name_ids=r["name_ids"],
             profile_ids=r["profile_ids"],
             rubric_ids=r["rubric_ids"],
+            model_flag_ids=r["model_flag_ids"],
+            model_position_ids=r["model_position_ids"],
+            model_rubric_ids=r["model_rubric_ids"],
             pending_department_ids=r["pending_department_ids"],
             pending_description_ids=r["pending_description_ids"],
             pending_flag_ids=r["pending_flag_ids"],
             pending_model_ids=r["pending_model_ids"],
             pending_name_ids=r["pending_name_ids"],
             pending_rubric_ids=r["pending_rubric_ids"],
+            pending_model_flag_ids=r["pending_model_flag_ids"],
+            pending_model_position_ids=r["pending_model_position_ids"],
+            pending_model_rubric_ids=r["pending_model_rubric_ids"],
         )
         for r in rows
     ]

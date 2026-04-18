@@ -484,6 +484,12 @@ SHARED_ARGS_OUTPUTS = {
         name="message",
         template="{{ message }}",
     ),
+    "message_id": dict(
+        id=sid("args_output/message_id"),
+        args_id=sid("arg/message_id"),
+        name="message_id",
+        template="{{ message_id }}",
+    ),
     "feedback": dict(
         id=sid("args_output/feedback"),
         args_id=sid("arg/feedback"),
@@ -694,6 +700,90 @@ SHARED_ARGS_OUTPUTS = {
         args_id=_OPERATION_ARG_ID,
         name="operation",
         template="chat_get",
+    ),
+    "operation_chat_send": dict(
+        id=sid("args_output/operation_chat_send"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="chat_send",
+    ),
+    "operation_chat_stop": dict(
+        id=sid("args_output/operation_chat_stop"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="chat_stop",
+    ),
+    "operation_chat_end": dict(
+        id=sid("args_output/operation_chat_end"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="chat_end",
+    ),
+    "operation_chat_grade": dict(
+        id=sid("args_output/operation_chat_grade"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="chat_grade",
+    ),
+    "operation_chat_voice": dict(
+        id=sid("args_output/operation_chat_voice"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="chat_voice",
+    ),
+    "operation_chat_mute": dict(
+        id=sid("args_output/operation_chat_mute"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="chat_mute",
+    ),
+    "operation_chat_silence": dict(
+        id=sid("args_output/operation_chat_silence"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="chat_silence",
+    ),
+    "operation_chat_response": dict(
+        id=sid("args_output/operation_chat_response"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="chat_response",
+    ),
+    "operation_chat_feedback": dict(
+        id=sid("args_output/operation_chat_feedback"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="chat_feedback",
+    ),
+    "operation_chat_strengths": dict(
+        id=sid("args_output/operation_chat_strengths"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="chat_strengths",
+    ),
+    "operation_chat_improvements": dict(
+        id=sid("args_output/operation_chat_improvements"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="chat_improvements",
+    ),
+    "operation_chat_analyses": dict(
+        id=sid("args_output/operation_chat_analyses"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="chat_analyses",
+    ),
+    "operation_chat_complete": dict(
+        id=sid("args_output/operation_chat_complete"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="chat_complete",
+    ),
+    "operation_chat_hints": dict(
+        id=sid("args_output/operation_chat_hints"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="chat_hints",
     ),
     # --- Routing: additional hardcoded artifacts ---
     "artifact_attempt": dict(
@@ -1537,6 +1627,12 @@ SHARED_ARGS_OUTPUTS = {
         args_id=sid("arg/time_taken"),
         name="time_taken",
         template="{{ time_taken }}",
+    ),
+    "total": dict(
+        id=sid("args_output/total"),
+        args_id=sid("arg/total"),
+        name="total",
+        template="{{ total }}",
     ),
     "tool_id": dict(
         id=sid("args_output/tool_id"),
@@ -3560,6 +3656,12 @@ SHARED_ARGS_OUTPUTS = {
         args_id=sid("arg/documents_ids"),
         name="documents_ids",
         template="{{ documents_ids }}",
+    ),
+    "hint": dict(
+        id=sid("args_output/hint"),
+        args_id=sid("arg/hint"),
+        name="hint",
+        template="{{ hint }}",
     ),
     "hints_enabled": dict(
         id=sid("args_output/hints_enabled"),

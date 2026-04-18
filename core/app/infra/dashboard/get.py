@@ -335,9 +335,9 @@ async def get_dashboard_impl_cached(
         ]
 
     simulation_options = [
-        FilterOption(value=str(s.simulation_id), label=s.name)
+        FilterOption(value=str(s.id), label=s.name)
         for s in simulations
-        if s.simulation_id and s.name
+        if s.id and s.name
     ]
 
     bundle = DashboardBundleResponse(

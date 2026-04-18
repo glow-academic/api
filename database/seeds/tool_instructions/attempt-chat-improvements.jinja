@@ -1,9 +1,7 @@
 {% if success and results and results[0] and results[0].result %}
 {% set r = results[0].result %}
-Improvements created.
-- **Success:** {{ r.success }}
-{% if r.improvement_ids %}- **Improvement IDs:** {% for iid in r.improvement_ids %}`{{ iid }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
-{% if r.idempotency_key %}- **Idempotency Key:** `{{ r.idempotency_key }}`{% endif %}
+Improvement created.
+- **Improvement ID:** `{{ r.improvement_id }}`
 {% elif results and results[0] and results[0].error %}
 Error creating improvements: {{ results[0].error }}
 {% else %}

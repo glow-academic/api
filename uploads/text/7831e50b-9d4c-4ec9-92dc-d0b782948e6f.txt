@@ -1,0 +1,9 @@
+INPUT:
+  chat_id: 019d9ea1-9a3c-7b20-8d75-29f19f2dfdc9
+  text: Wait, so I thought you just add up all the numbers and then divide by how many there are? But then, why does it matter if one number is way bigger than the others? Isn’t it just the same thing? I’m honestly not sure I get why that changes anything.
+  persona_id: 019d9ea1-9a34-7afb-8fdb-4c70fc4235d6
+
+OUTPUT:
+Message sent.
+- **Accepted:** 
+- **Message ID:** `019d9eaa-ff53-7c82-83d0-2b9abaa4ae11`

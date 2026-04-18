@@ -14,6 +14,7 @@ from . import (  # noqa: F401
     generate,
     generations,
     get,
+    grade,
     group,
     image_download,
     join,

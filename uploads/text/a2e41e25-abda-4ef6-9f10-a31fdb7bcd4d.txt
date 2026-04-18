@@ -1,0 +1,37 @@
+## Context
+
+**Chat ID:** `019da149-a11c-749d-8784-4d31cb7cb590`
+**Attempt ID:** `019da14b-2d53-75dc-a7c7-b48a5d671e1b`
+**Draft ID:** `019da14b-2e02-7d5a-8116-efa660e50746`
+
+**Group ID:** `019da14b-2e3a-7a75-86e5-54684d109422`
+
+## Tools
+
+
+
+## Steps
+
+1. Call **Attempt_Chat_Get**(chat_entry_id: "019da149-a11c-749d-8784-4d31cb7cb590", draft_id: "019da14b-2e02-7d5a-8116-efa660e50746", attempt_id: "019da14b-2d53-75dc-a7c7-b48a5d671e1b")
+2. Read the **Setup Summary** to see which sections need input, are locked, or are disabled
+3. For each section that **needs input**, select resources from the available options:
+   - `personas` — pick **1** persona that fits the scenario
+   - `documents` — pick **1-2** most relevant documents
+   - `problem_statement` — pick **1** (required)
+   - `objectives` — pick **2-3** that align with the chosen problem
+   - `parameter_fields` — pick **1 per group** (one temperament, one time, one location, etc.)
+   - `questions` — create **2-3** if needed, with nested options
+   - `video_id`, `image_id` — pick 1 if available (ID only)
+4. Call **Attempt_Chat_Create** with:
+   - `attempt_id`: `"019da14b-2d53-75dc-a7c7-b48a5d671e1b"`
+   - `chat_id`: `"019da149-a11c-749d-8784-4d31cb7cb590"`
+   - Your curated selections from step 3
+5. Call **Attempt_Group**(group_id: "019da14b-2e3a-7a75-86e5-54684d109422", name: "short descriptive name")
+
+**IMPORTANT:**
+- **Be selective** — curate a focused scenario, don't pass all available resources
+- Use `chat_id: "019da149-a11c-749d-8784-4d31cb7cb590"` and `attempt_id: "019da14b-2d53-75dc-a7c7-b48a5d671e1b"` exactly
+- Skip **locked** sections — those are already set
+- Skip **disabled** sections — those are not enabled
+- Never pass `departments`, `scenarios`, config flags, or rubrics — auto-configured
+- You can pass text values instead of UUIDs for convenience

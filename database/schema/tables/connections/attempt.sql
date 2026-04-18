@@ -257,6 +257,21 @@ CREATE TABLE public.attempt_chat_personas_connection (
 
 --
 
+-- Name: attempt_grade_rubrics_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.attempt_grade_rubrics_connection (
+    grade_id uuid NOT NULL,
+    rubrics_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+
 -- Name: attempt_responses_options_connection; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -425,6 +440,15 @@ ALTER TABLE ONLY public.attempt_chat_standards_connection
 
 ALTER TABLE ONLY public.attempt_chat_videos_connection
     ADD CONSTRAINT attempt_chat_videos_connection_pkey PRIMARY KEY (attempt_chat_id, videos_id);
+
+
+--
+
+-- Name: attempt_grade_rubrics_connection attempt_grade_rubrics_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attempt_grade_rubrics_connection
+    ADD CONSTRAINT attempt_grade_rubrics_connection_pkey PRIMARY KEY (grade_id, rubrics_id);
 
 
 --

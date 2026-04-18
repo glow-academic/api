@@ -20,6 +20,7 @@ from app.infra.model.types import (
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.model_drafts.create import create_model_draft
+from app.tools.entries.model_drafts.get import get_model_drafts
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.get import get_descriptions
@@ -371,15 +372,38 @@ async def patch_model_draft_impl(
     if accept is not None and idempotency_key is not None:
         if accept:
             async with pool.acquire() as conn:
+                drafts = await get_model_drafts(conn, [idempotency_key])
                 async with conn.transaction():
-                    await create_model_draft(
-                        conn,
-                        session_id=session_id,
-                        id=idempotency_key,
-                        soft=False,
-                        profile_ids=[profile.profiles_id],
-                        pending_ids=set(request.pending_ids) if request.pending_ids else None,
-                    )
+                    if drafts:
+                        draft = drafts[0]
+                        await create_model_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            name_ids=draft.name_ids,
+                            description_ids=draft.description_ids,
+                            flag_ids=draft.flag_ids,
+                            department_ids=draft.department_ids,
+                            modality_ids=draft.modality_ids,
+                            pricing_ids=draft.pricing_ids,
+                            provider_ids=draft.provider_ids,
+                            quality_ids=draft.quality_ids,
+                            reasoning_level_ids=draft.reasoning_level_ids,
+                            temperature_level_ids=draft.temperature_level_ids,
+                            voice_ids=draft.voice_ids,
+                            value_id=draft.value_id,
+                            profile_ids=draft.profile_ids or [profile.profiles_id],
+                            pending_ids=set(),
+                        )
+                    else:
+                        await create_model_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            profile_ids=[profile.profiles_id],
+                        )
             await refresh_model_impl(
                 pool,
                 redis,

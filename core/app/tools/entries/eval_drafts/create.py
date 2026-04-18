@@ -21,6 +21,9 @@ async def create_eval_draft(
     name_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
     rubric_ids: list[UUID] | None = None,
+    model_flag_ids: list[UUID] | None = None,
+    model_position_ids: list[UUID] | None = None,
+    model_rubric_ids: list[UUID] | None = None,
     pending_ids: set[UUID] | None = None,
 ) -> CreateEvalDraftResponse:
     """Create an eval_drafts entry with optional connection table links.
@@ -56,6 +59,9 @@ async def create_eval_draft(
         ("eval_drafts_names_connection", "names_id", name_ids or []),
         ("eval_drafts_profiles_connection", "profiles_id", profile_ids or []),
         ("eval_drafts_rubrics_connection", "rubrics_id", rubric_ids or []),
+        ("eval_drafts_model_flags_connection", "model_flags_id", model_flag_ids or []),
+        ("eval_drafts_model_positions_connection", "model_positions_id", model_position_ids or []),
+        ("eval_drafts_model_rubrics_connection", "model_rubrics_id", model_rubric_ids or []),
     ]
 
     pending = pending_ids or set()

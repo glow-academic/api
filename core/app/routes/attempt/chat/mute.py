@@ -55,7 +55,7 @@ async def chat_mute(
                 await create_attempt_mutes(
                     conn,
                     conversation_id=uuid_mod.UUID(session.conversation_id),
-                    call_id=uuid_mod.uuid4(),
+                    session_id=session_id,
                     muted=request.muted,
                 )
         except Exception as e:

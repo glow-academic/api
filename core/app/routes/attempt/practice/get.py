@@ -33,7 +33,7 @@ from app.infra.chat.permissions import (
 from app.infra.common_context import resolve_common_context
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
-from app.infra.practice.group import group_practice_impl
+from app.infra.attempt.group import group_attempt_impl
 from app.infra.practice_context import resolve_practice_context
 from app.infra.auth.types import AnalyticsFilterFields
 from app.infra.chat.types import (
@@ -504,7 +504,7 @@ async def practice_get(
         # Resolve time-windowed group for audit linking
         group_id = None
         if session_id:
-            group_result = await group_practice_impl(
+            group_result = await group_attempt_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
             )
             group_id = group_result.group_id

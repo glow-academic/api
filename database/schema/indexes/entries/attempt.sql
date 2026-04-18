@@ -42,26 +42,10 @@ CREATE INDEX attempt_mutes_entry_created_at_idx ON public.attempt_mutes_entry US
 
 --
 
--- Name: attempt_responses_entry_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX attempt_responses_entry_call_id_idx ON public.attempt_responses_entry USING btree (call_id);
-
-
---
-
 -- Name: attempt_responses_entry_chat_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX attempt_responses_entry_chat_id_idx ON public.attempt_responses_entry USING btree (chat_id);
-
-
---
-
--- Name: idx_attempt_archive_entry_call_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_attempt_archive_entry_call_id ON public.attempt_archive_entry USING btree (call_id);
 
 
 --
@@ -82,26 +66,10 @@ CREATE INDEX idx_attempt_chat_bridge_entry_session_id ON public.attempt_chat_bri
 
 --
 
--- Name: idx_attempt_chat_completion_entry_call_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_attempt_chat_completion_entry_call_id ON public.attempt_chat_completion_entry USING btree (call_id);
-
-
---
-
 -- Name: idx_attempt_chat_completion_entry_chat_id; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_attempt_chat_completion_entry_chat_id ON public.attempt_chat_completion_entry USING btree (chat_id);
-
-
---
-
--- Name: idx_attempt_chat_entry_call_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_attempt_chat_entry_call_id ON public.attempt_chat_entry USING btree (call_id);
 
 
 --
@@ -130,26 +98,10 @@ CREATE INDEX idx_attempt_completion_entry_attempt_id ON public.attempt_completio
 
 --
 
--- Name: idx_attempt_completion_entry_call_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_attempt_completion_entry_call_id ON public.attempt_completion_entry USING btree (call_id);
-
-
---
-
 -- Name: idx_attempt_content_entry_persona_id; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_attempt_content_entry_persona_id ON public.attempt_content_entry USING btree (persona_id);
-
-
---
-
--- Name: idx_attempt_conversation_completion_entry_call_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_attempt_conversation_completion_entry_call_id ON public.attempt_conversation_completion_entry USING btree (call_id);
 
 
 --
@@ -166,38 +118,6 @@ CREATE INDEX idx_attempt_conversation_completion_entry_conversation_id ON public
 --
 
 CREATE INDEX idx_attempt_conversation_completion_entry_created_at ON public.attempt_conversation_completion_entry USING btree (created_at);
-
-
---
-
--- Name: idx_attempt_conversations_entry_call_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_attempt_conversations_entry_call_id ON public.attempt_conversations_entry USING btree (call_id);
-
-
---
-
--- Name: idx_attempt_entry_call_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_attempt_entry_call_id ON public.attempt_entry USING btree (call_id);
-
-
---
-
--- Name: idx_attempt_grade_entry_call_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_attempt_grade_entry_call_id ON public.attempt_grade_entry USING btree (call_id);
-
-
---
-
--- Name: idx_attempt_highlight_entry_call_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_attempt_highlight_entry_call_id ON public.attempt_highlight_entry USING btree (call_id);
 
 
 --
@@ -226,22 +146,6 @@ CREATE INDEX idx_attempt_message_completion_entry_attempt_message_id ON public.a
 
 --
 
--- Name: idx_attempt_message_completion_entry_call_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_attempt_message_completion_entry_call_id ON public.attempt_message_completion_entry USING btree (call_id);
-
-
---
-
--- Name: idx_attempt_message_entry_call_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_attempt_message_entry_call_id ON public.attempt_message_entry USING btree (call_id);
-
-
---
-
 -- Name: idx_attempt_message_entry_chat_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -266,14 +170,6 @@ CREATE INDEX idx_attempt_message_tree_entry_session_id ON public.attempt_message
 
 --
 
--- Name: idx_attempt_mutes_entry_call_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_attempt_mutes_entry_call_id ON public.attempt_mutes_entry USING btree (call_id);
-
-
---
-
 -- Name: idx_attempt_practice_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -286,14 +182,6 @@ CREATE INDEX idx_attempt_practice_entry_session_id ON public.attempt_practice_en
 --
 
 CREATE INDEX idx_attempt_practice_practice_id ON public.attempt_practice_entry USING btree (practice_id);
-
-
---
-
--- Name: idx_attempt_replacement_entry_call_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_attempt_replacement_entry_call_id ON public.attempt_replacement_entry USING btree (call_id);
 
 
 --
@@ -442,14 +330,6 @@ CREATE INDEX idx_simulation_strengths_message_id ON public.attempt_strength_entr
 
 --
 
--- Name: simulation_analyses_entry_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX simulation_analyses_entry_call_id_idx ON public.attempt_analysis_entry USING btree (call_id);
-
-
---
-
 -- Name: simulation_archives_entry_attempt_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -470,46 +350,6 @@ CREATE INDEX simulation_archives_entry_attempt_id_idx ON public.attempt_archive_
 --
 
 CREATE INDEX simulation_archives_entry_created_at_idx ON public.attempt_archive_entry USING btree (created_at);
-
-
---
-
--- Name: simulation_contents_entry_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX simulation_contents_entry_call_id_idx ON public.attempt_content_entry USING btree (call_id);
-
-
---
-
--- Name: simulation_feedbacks_entry_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX simulation_feedbacks_entry_call_id_idx ON public.attempt_feedback_entry USING btree (call_id);
-
-
---
-
--- Name: simulation_hints_entry_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX simulation_hints_entry_call_id_idx ON public.attempt_hint_entry USING btree (call_id);
-
-
---
-
--- Name: simulation_improvements_entry_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX simulation_improvements_entry_call_id_idx ON public.attempt_improvement_entry USING btree (call_id);
-
-
---
-
--- Name: simulation_strengths_entry_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX simulation_strengths_entry_call_id_idx ON public.attempt_strength_entry USING btree (call_id);
 
 
 --

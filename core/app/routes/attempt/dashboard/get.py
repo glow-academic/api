@@ -19,7 +19,7 @@ async def get_dashboard(
     try:
         # Lazy imports to avoid circular import
         from app.infra.dashboard.get import get_dashboard_impl_cached
-        from app.infra.dashboard.group import group_dashboard_impl
+        from app.infra.attempt.group import group_attempt_impl
         from app.infra.dashboard.types import DashboardBundleResponse, DashboardRequest
 
         body = await http_request.json()
@@ -39,7 +39,7 @@ async def get_dashboard(
         # Resolve time-windowed group for audit linking
         group_id = None
         if session_id:
-            group_result = await group_dashboard_impl(
+            group_result = await group_attempt_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
             )
             group_id = group_result.group_id

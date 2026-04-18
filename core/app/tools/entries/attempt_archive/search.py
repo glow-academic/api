@@ -22,7 +22,7 @@ async def search_attempt_archives(
 
     rows = await conn.fetch(
         f"""
-        SELECT id, created_at, generated, mcp, active, attempt_id, archived, call_id
+        SELECT id, created_at, generated, mcp, active, attempt_id, archived, session_id
         FROM {source}
         WHERE ($1::uuid[] IS NULL OR attempt_id = ANY($1))
         ORDER BY created_at DESC

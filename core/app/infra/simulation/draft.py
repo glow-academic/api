@@ -223,14 +223,35 @@ async def patch_simulation_draft_impl(
     if accept is not None and idempotency_key is not None:
         if accept:
             async with pool.acquire() as conn:
+                drafts = await get_simulation_drafts(conn, [idempotency_key])
                 async with conn.transaction():
-                    await create_simulation_draft(
-                        conn,
-                        session_id=session_id,
-                        id=idempotency_key,
-                        soft=False,
-                        profile_ids=[profile.profiles_id],
-                    )
+                    if drafts:
+                        draft = drafts[0]
+                        await create_simulation_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            name_ids=draft.name_ids,
+                            description_ids=draft.description_ids,
+                            flag_ids=draft.flag_ids,
+                            department_ids=draft.department_ids,
+                            scenario_ids=draft.scenario_ids,
+                            scenario_flag_ids=draft.scenario_flag_ids,
+                            scenario_position_ids=draft.scenario_position_ids,
+                            scenario_rubric_ids=draft.scenario_rubric_ids,
+                            scenario_time_limit_ids=draft.scenario_time_limit_ids,
+                            profile_ids=draft.profile_ids or [profile.profiles_id],
+                            pending_ids=set(),
+                        )
+                    else:
+                        await create_simulation_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            profile_ids=[profile.profiles_id],
+                        )
             await refresh_simulation_impl(
                 pool,
                 redis,

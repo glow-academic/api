@@ -55,7 +55,7 @@ async def call_download_group_impl(
         )
 
     # -- Step 2: Permission check -----------------------------------------------
-    if not has_permission(profile.role_permissions, "group", "call_download"):
+    if not has_permission(profile.role_permissions, "system", "call_download"):
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to download group calls.",

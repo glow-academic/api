@@ -18,4 +18,4 @@ class GetAttemptMutesResponse(BaseModel):
     active: bool
     conversation_id: UUID
     muted: bool
-    call_id: UUID
+    session_id: UUID | None = None

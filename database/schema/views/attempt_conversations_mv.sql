@@ -12,7 +12,7 @@ CREATE MATERIALIZED VIEW public.attempt_conversations_mv AS
     mcp,
     active,
     chat_id,
-    call_id
+    session_id
    FROM public.attempt_conversations_entry
   WHERE (active = true)
   WITH NO DATA;

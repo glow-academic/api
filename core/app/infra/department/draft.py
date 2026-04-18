@@ -19,6 +19,7 @@ from app.infra.department.types import (
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.department_drafts.create import create_department_draft
+from app.tools.entries.department_drafts.get import get_department_drafts
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.search import search_flags
@@ -189,15 +190,30 @@ async def patch_department_draft_impl(
     if accept is not None and idempotency_key is not None:
         if accept:
             async with pool.acquire() as conn:
+                drafts = await get_department_drafts(conn, [idempotency_key])
                 async with conn.transaction():
-                    await create_department_draft(
-                        conn,
-                        session_id=session_id,
-                        id=idempotency_key,
-                        soft=False,
-                        profile_ids=[profile.profiles_id],
-                        pending_ids=set(request.pending_ids) if request.pending_ids else None,
-                    )
+                    if drafts:
+                        draft = drafts[0]
+                        await create_department_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            name_ids=draft.name_ids,
+                            description_ids=draft.description_ids,
+                            flag_ids=draft.flag_ids,
+                            setting_ids=draft.setting_ids,
+                            profile_ids=draft.profile_ids or [profile.profiles_id],
+                            pending_ids=set(),
+                        )
+                    else:
+                        await create_department_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            profile_ids=[profile.profiles_id],
+                        )
             await refresh_department_impl(
                 pool,
                 redis,

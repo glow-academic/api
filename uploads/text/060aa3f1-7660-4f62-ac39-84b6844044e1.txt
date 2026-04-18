@@ -1,0 +1,10 @@
+INPUT:
+  attempt_id: 019d9d77-4856-7010-9ad3-6ab5ad8a348d
+  chat_id: 019d9d76-0464-7ed4-bbdc-8a6234e38033
+
+OUTPUT:
+Attempt chat created successfully.
+- **Attempt Chat ID:** `019d9d77-5a1a-79ea-87a2-c3c1c57b5035`
+
+
+Config flags, rubrics, departments, and scenarios were auto-resolved from the chat template.

@@ -205,6 +205,8 @@ async def create_document_impl(
                 image_ids=item.image_ids,
                 parameter_field_ids=item.parameter_field_ids,
                 template=bool(item.template_flag_id),
+                file_id=item.file_id,
+                text_id=item.text_id,
             )
             snapshot_ids.append(documents_resource_id)
 

@@ -1,0 +1,12 @@
+INPUT:
+  chat_id: 019da11f-1ea6-7f59-aed3-457f7d86ba8b
+  score: 60
+  passed: False
+  time_taken: 10
+
+OUTPUT:
+Grading complete.
+- **Chat ID:** ``
+
+- **Score:** 
+- **Passed:**

@@ -287,6 +287,9 @@ class PatchInvocationDraftApiRequest(ScopedItem):
     reasoning_level_id: UUID | None = Field(None, description="Selected reasoning level identifier")
     quality_ids: list[UUID] | None = Field(None, description="Selected quality identifiers")
     voice_ids: list[UUID] | None = Field(None, description="Selected voice identifiers")
+    model_flag_ids: list[UUID] | None = Field(None, description="Selected model flag identifiers")
+    model_position_ids: list[UUID] | None = Field(None, description="Selected model position identifiers")
+    model_rubric_ids: list[UUID] | None = Field(None, description="Selected model rubric identifiers")
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep pending where supported")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack-style replay")
     accept: bool = Field(True, description="Accept or reject a dormant change when used with idempotency_key")
@@ -307,6 +310,9 @@ class PatchInvocationDraftApiRequest(ScopedItem):
         "reasoning_level_id": "reasoning_levels",
         "quality_ids": "qualities",
         "voice_ids": "voices",
+        "model_flag_ids": "model_flags",
+        "model_position_ids": "model_positions",
+        "model_rubric_ids": "model_rubrics",
     }
 
 
@@ -328,6 +334,9 @@ class DraftFormState(BaseModel):
     reasoning_level_id: UUID | None = Field(None, description="Saved reasoning level identifier")
     quality_ids: list[UUID] = Field(default_factory=list, description="Saved quality identifiers")
     voice_ids: list[UUID] = Field(default_factory=list, description="Saved voice identifiers")
+    model_flag_ids: list[UUID] = Field(default_factory=list, description="Saved model flag identifiers")
+    model_position_ids: list[UUID] = Field(default_factory=list, description="Saved model position identifiers")
+    model_rubric_ids: list[UUID] = Field(default_factory=list, description="Saved model rubric identifiers")
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
 
 

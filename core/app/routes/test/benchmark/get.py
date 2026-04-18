@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.benchmark.get import get_benchmark_impl
-from app.infra.benchmark.group import group_benchmark_impl
+from app.infra.test.group import group_test_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.benchmark.types import BenchmarkRequest, BenchmarkResponse
@@ -37,7 +37,7 @@ async def get_benchmark(
         # Resolve time-windowed group for audit linking
         group_id = None
         if session_id:
-            group_result = await group_benchmark_impl(
+            group_result = await group_test_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
             )
             group_id = group_result.group_id

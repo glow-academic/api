@@ -28,6 +28,11 @@ async def create_invocation_draft(
     temperature_level_ids: list[UUID] | None = None,
     value_id: UUID | None = None,
     voice_ids: list[UUID] | None = None,
+    modality_ids: list[UUID] | None = None,
+    quality_ids: list[UUID] | None = None,
+    model_flag_ids: list[UUID] | None = None,
+    model_position_ids: list[UUID] | None = None,
+    model_rubric_ids: list[UUID] | None = None,
     pending_ids: set[UUID] | None = None,
 ) -> CreateInvocationDraftResponse:
     """Create an invocation_drafts entry with optional connection table links."""
@@ -74,6 +79,11 @@ async def create_invocation_draft(
             temperature_level_ids or [],
         ),
         ("invocation_drafts_voices_connection", "voices_id", voice_ids or []),
+        ("invocation_drafts_modalities_connection", "modalities_id", modality_ids or []),
+        ("invocation_drafts_qualities_connection", "qualities_id", quality_ids or []),
+        ("invocation_drafts_model_flags_connection", "model_flags_id", model_flag_ids or []),
+        ("invocation_drafts_model_positions_connection", "model_positions_id", model_position_ids or []),
+        ("invocation_drafts_model_rubrics_connection", "model_rubrics_id", model_rubric_ids or []),
     ]
 
     pending = pending_ids or set()

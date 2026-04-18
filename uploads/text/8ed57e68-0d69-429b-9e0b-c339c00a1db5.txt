@@ -1,0 +1,9 @@
+INPUT:
+  chat_id: 019d9e8d-5645-70d4-94da-f90e7e4dc088
+  text: Thank you for sharing your concerns. Can you tell me a bit more about what happened and how you’re feeling about the situation? I want to make sure I understand everything so we can work through this together.
+  persona_id: b7e2e2e2-2e2e-4e2e-8e2e-2e2e2e2e2e2e
+
+OUTPUT:
+Message sent.
+- **Accepted:** 
+- **Message ID:** ``

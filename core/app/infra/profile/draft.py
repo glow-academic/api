@@ -20,6 +20,7 @@ from app.infra.profile.types import (
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.profile_drafts.create import create_profile_draft
+from app.tools.entries.profile_drafts.get import get_profile_drafts
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.emails.create import create_email
 from app.tools.resources.emails.search import search_emails
@@ -208,15 +209,31 @@ async def patch_profile_draft_impl(
     if accept is not None and idempotency_key is not None:
         if accept:
             async with pool.acquire() as conn:
+                drafts = await get_profile_drafts(conn, [idempotency_key])
                 async with conn.transaction():
-                    await create_profile_draft(
-                        conn,
-                        session_id=session_id,
-                        id=idempotency_key,
-                        soft=False,
-                        profile_ids=[profile.profiles_id],
-                        pending_ids=set(request.pending_ids) if request.pending_ids else None,
-                    )
+                    if drafts:
+                        draft = drafts[0]
+                        await create_profile_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            name_ids=draft.name_ids,
+                            flag_ids=draft.flag_ids,
+                            department_ids=draft.department_ids,
+                            email_ids=draft.email_ids,
+                            role_ids=draft.role_ids,
+                            profile_ids=draft.profile_ids or [profile.profiles_id],
+                            pending_ids=set(),
+                        )
+                    else:
+                        await create_profile_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            profile_ids=[profile.profiles_id],
+                        )
             await refresh_profile_impl(
                 pool,
                 redis,

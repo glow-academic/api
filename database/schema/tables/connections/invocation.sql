@@ -107,6 +107,21 @@ CREATE TABLE public.invocation_drafts_keys_connection (
 
 --
 
+-- Name: invocation_drafts_modalities_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invocation_drafts_modalities_connection (
+    draft_id uuid NOT NULL,
+    modalities_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+
 -- Name: invocation_drafts_model_flags_connection; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -192,6 +207,21 @@ CREATE TABLE public.invocation_drafts_profiles_connection (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL
+);
+
+
+--
+
+-- Name: invocation_drafts_qualities_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invocation_drafts_qualities_connection (
+    draft_id uuid NOT NULL,
+    qualities_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
 );
 
 
@@ -527,6 +557,15 @@ ALTER TABLE ONLY public.invocation_drafts_endpoints_connection
 
 --
 
+-- Name: invocation_drafts_modalities_connection invocation_drafts_modalities_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invocation_drafts_modalities_connection
+    ADD CONSTRAINT invocation_drafts_modalities_connection_pkey PRIMARY KEY (draft_id, modalities_id);
+
+
+--
+
 -- Name: invocation_drafts_model_flags_connection invocation_drafts_model_flags_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -568,6 +607,15 @@ ALTER TABLE ONLY public.invocation_drafts_pricing_connection
 
 ALTER TABLE ONLY public.invocation_drafts_profiles_connection
     ADD CONSTRAINT invocation_drafts_profiles_connection_pkey PRIMARY KEY (draft_id, profiles_id);
+
+
+--
+
+-- Name: invocation_drafts_qualities_connection invocation_drafts_qualities_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invocation_drafts_qualities_connection
+    ADD CONSTRAINT invocation_drafts_qualities_connection_pkey PRIMARY KEY (draft_id, qualities_id);
 
 
 --

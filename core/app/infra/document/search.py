@@ -248,12 +248,8 @@ async def search_document_impl(
         )
         can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
-        # Resolve upload_id from files_ids
-        upload_id: UUID | None = None
-        for fid in a.files_ids or []:
-            if fid in upload_resource_to_file_id:
-                upload_id = upload_resource_to_file_id[fid]
-                break
+        # Resolve first file_id for preview thumbnail
+        file_id: UUID | None = (a.files_ids or [None])[0] if a.files_ids else None
 
         documents.append(
             ListDocumentApiDocument(
@@ -265,7 +261,7 @@ async def search_document_impl(
                 is_inactive=is_inactive,
                 num_scenarios=active_scenario_count,
                 active_scenario_count=active_scenario_count,
-                upload_id=upload_id,
+                file_id=file_id,
                 can_edit=can_edit,
                 can_duplicate=can_duplicate,
                 can_delete=can_delete,

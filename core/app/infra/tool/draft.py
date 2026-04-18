@@ -20,10 +20,14 @@ from app.infra.tool.types import (
 )
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.tool_drafts.create import create_tool_draft
+from app.tools.entries.tool_drafts.get import get_tool_drafts
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.search import search_flags
+from app.tools.resources.args.create import create_arg
+from app.tools.resources.arg_positions.create import create_arg_position
+from app.tools.resources.args_outputs.create import create_args_output
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
 from app.tools.resources.names.search import search_names
@@ -107,6 +111,50 @@ async def _resolve_creatable_values(
                 )
             )
 
+    # --- Inline arg creation ---
+    if request.args and not errors:
+        created_arg_ids = list(request.arg_ids or [])
+        async with pool.acquire() as conn:
+            for arg_input in request.args:
+                result = await create_arg(
+                    conn,
+                    name=arg_input.name,
+                    field_type=arg_input.field_type,
+                    redis=redis,
+                    description=arg_input.description,
+                    required=arg_input.required,
+                    default_value=arg_input.default_value,
+                )
+                created_arg_ids.append(result.id)
+        request.arg_ids = created_arg_ids
+
+    if request.args_outputs and not errors:
+        created_output_ids = list(request.args_output_ids or request.args_outputs_ids or [])
+        async with pool.acquire() as conn:
+            for out_input in request.args_outputs:
+                result = await create_args_output(
+                    conn,
+                    args_id=out_input.args_id,
+                    name=out_input.name,
+                    redis=redis,
+                    template=out_input.template,
+                )
+                created_output_ids.append(result.id)
+        request.args_output_ids = created_output_ids
+
+    if request.arg_positions and not errors:
+        created_pos_ids = list(request.arg_position_ids or [])
+        async with pool.acquire() as conn:
+            for pos_input in request.arg_positions:
+                result = await create_arg_position(
+                    conn,
+                    args_id=pos_input.args_id,
+                    value=pos_input.value,
+                    redis=redis,
+                )
+                created_pos_ids.append(result.id)
+        request.arg_position_ids = created_pos_ids
+
     return errors
 
 
@@ -182,15 +230,36 @@ async def patch_tool_draft_impl(
     if accept is not None and idempotency_key is not None:
         if accept:
             async with pool.acquire() as conn:
+                drafts = await get_tool_drafts(conn, [idempotency_key])
                 async with conn.transaction():
-                    await create_tool_draft(
-                        conn,
-                        session_id=session_id,
-                        id=idempotency_key,
-                        soft=False,
-                        profile_ids=[profile.profiles_id],
-                        pending_ids=set(request.pending_ids) if request.pending_ids else None,
-                    )
+                    if drafts:
+                        draft = drafts[0]
+                        await create_tool_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            name_ids=draft.name_ids,
+                            description_ids=draft.description_ids,
+                            flag_ids=draft.flag_ids,
+                            department_ids=draft.department_ids,
+                            arg_ids=draft.arg_ids,
+                            arg_position_ids=draft.arg_position_ids,
+                            args_output_ids=draft.args_output_ids,
+                            instruction_ids=draft.instruction_ids,
+                            permission_ids=draft.permission_ids,
+                            profile_ids=draft.profile_ids or [profile.profiles_id],
+                            agent_ids=draft.agent_ids,
+                            pending_ids=set(),
+                        )
+                    else:
+                        await create_tool_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            profile_ids=[profile.profiles_id],
+                        )
             await refresh_tool_impl(
                 pool,
                 redis,
@@ -232,6 +301,9 @@ async def patch_tool_draft_impl(
                 arg_ids=request.arg_ids,
                 arg_position_ids=request.arg_position_ids,
                 args_output_ids=request.args_output_ids,
+                instruction_ids=[request.instruction_id]
+                if request.instruction_id
+                else request.instruction_ids,
                 permission_ids=request.permission_ids,
                 profile_ids=[profile.profiles_id],
                 agent_ids=[request.agent_id] if request.agent_id else None,
@@ -267,6 +339,10 @@ async def patch_tool_draft_impl(
         arg_position_ids=request.arg_position_ids or [],
         args_output_ids=request.args_output_ids or [],
         args_outputs_ids=request.args_output_ids or [],
+        instruction_id=request.instruction_id,
+        instruction_ids=request.instruction_ids or (
+            [request.instruction_id] if request.instruction_id else []
+        ),
         permission_ids=request.permission_ids or [],
         agent_id=request.agent_id,
         pending_ids=request.pending_ids or [],

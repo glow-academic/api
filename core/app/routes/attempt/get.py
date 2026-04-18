@@ -50,7 +50,7 @@ async def attempt_get(
             group_id = group_result.group_id
 
         async def _runner() -> GetAttemptDetailResponse:
-            response_data, cache_hit = await get_attempt_impl(
+            return await get_attempt_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
@@ -58,8 +58,6 @@ async def attempt_get(
                 bypass_cache=bypass_cache,
                 cache_key_path=http_request.url.path,
             )
-            cache_hit_holder["value"] = cache_hit
-            return response_data
 
         response_data = await run_artifact_operation_with_audit(
             pool,

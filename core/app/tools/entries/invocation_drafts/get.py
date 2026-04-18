@@ -34,6 +34,10 @@ async def get_invocation_drafts(
             COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL AND f.active = false), '{}') AS pending_flag_ids,
             COALESCE(ARRAY_AGG(DISTINCT k.keys_id) FILTER (WHERE k.keys_id IS NOT NULL), '{}') AS key_ids,
             COALESCE(ARRAY_AGG(DISTINCT k.keys_id) FILTER (WHERE k.keys_id IS NOT NULL AND k.active = false), '{}') AS pending_key_ids,
+            COALESCE(ARRAY_AGG(DISTINCT mod.modalities_id) FILTER (WHERE mod.modalities_id IS NOT NULL), '{}') AS modality_ids,
+            COALESCE(ARRAY_AGG(DISTINCT mod.modalities_id) FILTER (WHERE mod.modalities_id IS NOT NULL AND mod.active = false), '{}') AS pending_modality_ids,
+            COALESCE(ARRAY_AGG(DISTINCT qual.qualities_id) FILTER (WHERE qual.qualities_id IS NOT NULL), '{}') AS quality_ids,
+            COALESCE(ARRAY_AGG(DISTINCT qual.qualities_id) FILTER (WHERE qual.qualities_id IS NOT NULL AND qual.active = false), '{}') AS pending_quality_ids,
             COALESCE(ARRAY_AGG(DISTINCT mf.model_flags_id) FILTER (WHERE mf.model_flags_id IS NOT NULL), '{}') AS model_flag_ids,
             COALESCE(ARRAY_AGG(DISTINCT mf.model_flags_id) FILTER (WHERE mf.model_flags_id IS NOT NULL AND mf.active = false), '{}') AS pending_model_flag_ids,
             COALESCE(ARRAY_AGG(DISTINCT mp.model_positions_id) FILTER (WHERE mp.model_positions_id IS NOT NULL), '{}') AS model_position_ids,
@@ -60,6 +64,8 @@ async def get_invocation_drafts(
         LEFT JOIN invocation_drafts_descriptions_connection desc_c ON desc_c.draft_id = d.id
         LEFT JOIN invocation_drafts_flags_connection f ON f.draft_id = d.id
         LEFT JOIN invocation_drafts_keys_connection k ON k.draft_id = d.id
+        LEFT JOIN invocation_drafts_modalities_connection mod ON mod.draft_id = d.id
+        LEFT JOIN invocation_drafts_qualities_connection qual ON qual.draft_id = d.id
         LEFT JOIN invocation_drafts_model_flags_connection mf ON mf.draft_id = d.id
         LEFT JOIN invocation_drafts_model_positions_connection mp ON mp.draft_id = d.id
         LEFT JOIN invocation_drafts_model_rubrics_connection mr ON mr.draft_id = d.id
@@ -92,6 +98,8 @@ async def get_invocation_drafts(
             description_ids=r["description_ids"],
             flag_ids=r["flag_ids"],
             key_ids=r["key_ids"],
+            modality_ids=r["modality_ids"],
+            quality_ids=r["quality_ids"],
             model_flag_ids=r["model_flag_ids"],
             model_position_ids=r["model_position_ids"],
             model_rubric_ids=r["model_rubric_ids"],
@@ -107,6 +115,8 @@ async def get_invocation_drafts(
             pending_description_ids=r["pending_description_ids"],
             pending_flag_ids=r["pending_flag_ids"],
             pending_key_ids=r["pending_key_ids"],
+            pending_modality_ids=r["pending_modality_ids"],
+            pending_quality_ids=r["pending_quality_ids"],
             pending_model_flag_ids=r["pending_model_flag_ids"],
             pending_model_position_ids=r["pending_model_position_ids"],
             pending_model_rubric_ids=r["pending_model_rubric_ids"],

@@ -172,6 +172,9 @@ async def patch_eval_draft_impl(
                             name_ids=draft.name_ids,
                             profile_ids=draft.profile_ids or [profile.profiles_id],
                             rubric_ids=draft.rubric_ids,
+                            model_flag_ids=draft.model_flag_ids,
+                            model_position_ids=draft.model_position_ids,
+                            model_rubric_ids=draft.model_rubric_ids,
                             pending_ids=set(),
                         )
             await refresh_eval_impl(
@@ -210,6 +213,9 @@ async def patch_eval_draft_impl(
                 flag_ids=request.flag_ids,
                 department_ids=request.department_ids,
                 model_ids=request.model_ids,
+                model_flag_ids=request.model_flag_ids,
+                model_position_ids=request.model_position_ids,
+                model_rubric_ids=request.model_rubric_ids,
                 profile_ids=[profile.profiles_id],
                 pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
@@ -222,6 +228,9 @@ async def patch_eval_draft_impl(
         flag_ids=request.flag_ids or [],
         department_ids=request.department_ids or [],
         model_ids=request.model_ids or [],
+        model_flag_ids=request.model_flag_ids or [],
+        model_position_ids=request.model_position_ids or [],
+        model_rubric_ids=request.model_rubric_ids or [],
         pending_ids=request.pending_ids or [],
     )
 

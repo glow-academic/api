@@ -15,10 +15,7 @@ from redis.asyncio import Redis
 from app.infra.attempt.types import ProblemAttemptApiResponse
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.tools.entries.calls.create import create_call
-from app.tools.entries.groups.create import create_group
 from app.tools.entries.problems.create import create_problem as create_problem_entry
-from app.tools.entries.runs.create import create_run
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 ARTIFACT_TYPE = "attempt"
@@ -53,13 +50,9 @@ async def problem_attempt_impl(
         raise HTTPException(status_code=403, detail="You don't have permission to report attempt problems.")
 
     async with pool.acquire() as conn:
-        group_result = await create_group(conn, session_id=session_id, artifact_type=ARTIFACT_TYPE)
-        run_result = await create_run(conn, group_id=group_result.id, session_id=session_id)
-        call_result = await create_call(conn, run_id=run_result.id, session_id=session_id)
         problem_result = await create_problem_entry(
             conn,
             session_id=session_id,
-            call_id=call_result.id,
             type=type,
             artifact_type=ARTIFACT_TYPE,
             message=message,

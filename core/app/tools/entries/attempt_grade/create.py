@@ -10,7 +10,7 @@ from app.tools.entries.attempt_grade.types import CreateAttemptGradeResponse
 async def create_attempt_grade(
     conn: asyncpg.Connection,
     chat_id: UUID,
-    call_id: UUID,
+    session_id: UUID,
     time_taken: int,
     passed: bool,
     score: int,
@@ -23,12 +23,12 @@ async def create_attempt_grade(
     entry_id = await conn.fetchval(
         """
         INSERT INTO attempt_grade_entry
-            (id, chat_id, call_id, time_taken, passed, score, active, mcp, generated)
+            (id, chat_id, session_id, time_taken, passed, score, active, mcp, generated)
         VALUES (COALESCE($8, uuidv7()), $1, $2, $3, $4, $5, $6, $7, true)
         RETURNING id
         """,
         chat_id,
-        call_id,
+        session_id,
         time_taken,
         passed,
         score,
@@ -41,11 +41,11 @@ async def create_attempt_grade(
         for rubric_id in rubric_ids:
             await conn.execute(
                 """
-                INSERT INTO attempt_chat_rubrics_connection
-                    (attempt_chat_id, rubrics_id, generated)
+                INSERT INTO attempt_grade_rubrics_connection
+                    (grade_id, rubrics_id, generated)
                 VALUES ($1, $2, true)
                 """,
-                chat_id,
+                entry_id,
                 rubric_id,
             )
 

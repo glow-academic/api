@@ -1,3 +1,12 @@
 """Input: system.* events."""
 
-from . import activity, group, health, pricing, session  # noqa: F401
+from . import (  # noqa: F401
+    activity,
+    generate,
+    generations,
+    group,
+    health,
+    pricing,
+    problem,
+    session,
+)

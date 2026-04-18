@@ -49,7 +49,7 @@ async def attempt_next_internal_impl(
     if not session_id:
         raise ValueError("Missing session_id for attempt_next")
 
-    async def _run(*, call_id: UUID | None = None) -> AttemptStartInternalResult:
+    async def _run(*, call_id: UUID | None = None, **_kw) -> AttemptStartInternalResult:
         downstream_emit = wrap_emit_with_stream_bridge(
             artifact="attempt",
             operation="next",

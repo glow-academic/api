@@ -1,9 +1,7 @@
 {% if success and results and results[0] and results[0].result %}
 {% set r = results[0].result %}
-Hints created.
-- **Success:** {{ r.success }}
-{% if r.hint_ids %}- **Hint IDs:** {% for hid in r.hint_ids %}`{{ hid }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
-{% if r.idempotency_key %}- **Idempotency Key:** `{{ r.idempotency_key }}`{% endif %}
+Hint created.
+- **Hint ID:** `{{ r.hint_id }}`
 {% elif results and results[0] and results[0].error %}
 Error creating hints: {{ results[0].error }}
 {% else %}

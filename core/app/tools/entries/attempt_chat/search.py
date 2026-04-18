@@ -42,9 +42,9 @@ async def search_attempt_chats(
 
     rows = await conn.fetch(
         f"""
-        SELECT chat_id, attempt_id, chat_entry_id, group_id,
+        SELECT chat_id, attempt_id, chat_entry_id,
                profile_id, cohort_id, department_id, simulation_id,
-               scenario_id, persona_ids, rubric_id,
+               scenario_id, persona_ids, assistant_persona_ids, rubric_id,
                grade_score, grade_total_points, grade_pass_points,
                grade_passed, grade_time_taken,
                completed, attempt_number, chat_created_at, attempt_date,
@@ -58,7 +58,7 @@ async def search_attempt_chats(
                COUNT(*) OVER() AS total_count
         FROM {source}
         WHERE ($1::uuid[] IS NULL OR attempt_id = ANY($1))
-          AND ($2::uuid[] IS NULL OR group_id = ANY($2))
+          AND ($2::uuid[] IS NULL OR TRUE)
           AND ($3::uuid[] IS NULL OR chat_id = ANY($3))
           AND ($4::uuid[] IS NULL OR profile_id = ANY($4))
           AND ($5::uuid[] IS NULL OR cohort_id = ANY($5))

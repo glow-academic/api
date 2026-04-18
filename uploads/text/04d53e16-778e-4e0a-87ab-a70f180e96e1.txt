@@ -1,0 +1,9 @@
+INPUT:
+  chat_id: 019da0d3-f56e-7b9f-88d9-66f13cfdbc65
+  text: Wait, so I thought the answer was just to do whatever the instructions say, right? But now you’re saying there’s more to it? I’m honestly not sure what I’m missing here. Does it have to do with that thing you mentioned earlier? Can you explain it again, maybe a bit simpler?
+  persona_id: 019da0d3-f569-7235-acd0-4197fd252bbf
+
+OUTPUT:
+Message sent.
+- **Accepted:** 
+- **Message ID:** `019da0d4-2488-7478-b7ed-7356fca0a569`

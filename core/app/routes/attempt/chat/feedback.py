@@ -53,13 +53,12 @@ async def chat_feedback(
             raise HTTPException(status_code=404, detail="No grade found for this chat")
         grade_id = grades[0].grade_id
 
-        call_id = uuid4()
         feedback_ids: list[UUID] = []
         for item in request.feedbacks:
             result = await create_attempt_feedback(
                 conn,
                 grade_id=grade_id,
-                call_id=call_id,
+                session_id=session_id,
                 total=int(item.total) if item.total is not None else 0,
                 feedback=item.feedback,
                 soft=not request.accept,

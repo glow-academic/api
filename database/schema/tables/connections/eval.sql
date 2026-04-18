@@ -47,6 +47,51 @@ CREATE TABLE public.eval_drafts_flags_connection (
 
 --
 
+-- Name: eval_drafts_model_flags_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.eval_drafts_model_flags_connection (
+    draft_id uuid NOT NULL,
+    model_flags_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+
+-- Name: eval_drafts_model_positions_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.eval_drafts_model_positions_connection (
+    draft_id uuid NOT NULL,
+    model_positions_id uuid CONSTRAINT eval_drafts_model_positions_connect_model_positions_id_not_null NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+
+-- Name: eval_drafts_model_rubrics_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.eval_drafts_model_rubrics_connection (
+    draft_id uuid NOT NULL,
+    model_rubrics_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+
 -- Name: eval_drafts_models_connection; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -130,6 +175,33 @@ ALTER TABLE ONLY public.eval_drafts_descriptions_connection
 
 ALTER TABLE ONLY public.eval_drafts_flags_connection
     ADD CONSTRAINT eval_drafts_flags_connection_pkey PRIMARY KEY (draft_id, flags_id);
+
+
+--
+
+-- Name: eval_drafts_model_flags_connection eval_drafts_model_flags_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.eval_drafts_model_flags_connection
+    ADD CONSTRAINT eval_drafts_model_flags_connection_pkey PRIMARY KEY (draft_id, model_flags_id);
+
+
+--
+
+-- Name: eval_drafts_model_positions_connection eval_drafts_model_positions_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.eval_drafts_model_positions_connection
+    ADD CONSTRAINT eval_drafts_model_positions_connection_pkey PRIMARY KEY (draft_id, model_positions_id);
+
+
+--
+
+-- Name: eval_drafts_model_rubrics_connection eval_drafts_model_rubrics_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.eval_drafts_model_rubrics_connection
+    ADD CONSTRAINT eval_drafts_model_rubrics_connection_pkey PRIMARY KEY (draft_id, model_rubrics_id);
 
 
 --

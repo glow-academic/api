@@ -81,30 +81,15 @@ async def attempt_message_internal_impl(
     # Create entries using black boxes
     from app.tools.entries.attempt_content.create import create_attempt_content
     from app.tools.entries.attempt_message.create import create_attempt_message
-    from app.tools.entries.calls.create import create_call
-    from app.tools.entries.runs.create import create_run
 
     effective_session_id = session_id or profile.session_id
 
     async with pool.acquire() as conn:
-        # Run + call for this message
-        run_result = await create_run(
-            conn,
-            session_id=effective_session_id,
-            group_id=profile.group_id,
-        )
-        call_result = await create_call(
-            conn,
-            run_id=run_result.id,
-            session_id=effective_session_id,
-        )
-
         # Create attempt_message_entry (container)
         message_result = await create_attempt_message(
             conn,
             chat_id=chat_id,
-            message_id=run_result.id,
-            call_id=call_result.id,
+            session_id=effective_session_id,
         )
 
         # Create attempt_content_entry for each content block
@@ -113,11 +98,18 @@ async def attempt_message_internal_impl(
             content_result = await create_attempt_content(
                 conn,
                 message_id=message_result.id,
-                call_id=call_result.id,
+                session_id=effective_session_id,
                 content=content_text,
                 persona_id=content_persona_id or uuid_mod.UUID(int=0),
             )
             content_ids.append(str(content_result.id))
+
+    # Refresh MVs so messages appear in the UI
+    from app.tools.entries.attempt_message.refresh import refresh_attempt_message
+    from app.tools.entries.attempt_content.refresh import refresh_attempt_content
+    async with pool.acquire() as conn:
+        await refresh_attempt_message(conn)
+        await refresh_attempt_content(conn)
 
     logger.info(
         f"Attempt message created: chat_id={chat_id}, "

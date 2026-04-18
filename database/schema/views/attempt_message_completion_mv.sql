@@ -11,7 +11,7 @@ CREATE MATERIALIZED VIEW public.attempt_message_completion_mv AS
     stop,
     error,
     message,
-    call_id,
+    session_id,
     created_at,
     active,
     generated,

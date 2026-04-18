@@ -60,9 +60,6 @@ async def attempt_response_internal_impl(
         from app.tools.entries.attempt_responses.refresh import (
             refresh_attempt_responses,
         )
-        from app.tools.entries.calls.create import create_call
-        from app.tools.entries.groups.get import get_groups
-        from app.tools.entries.runs.create import create_run
 
         downstream_emit = wrap_emit_with_stream_bridge(
             artifact="attempt",
@@ -99,8 +96,16 @@ async def attempt_response_internal_impl(
                     ]
                 )
             else:
-                attempt_chat = attempt_chats[0]
-                if not attempt_chat.group_id:
+                try:
+                    response = await create_attempt_responses(
+                        conn,
+                        chat_id=chat_id,
+                        session_id=UUID(str(session_id)),
+                        question_ids=[question_id],
+                        option_ids=option_ids,
+                    )
+                    await refresh_attempt_responses(conn)
+                except asyncpg.ForeignKeyViolationError:
                     await _emit(
                         [
                             SocketEvent(
@@ -109,85 +114,28 @@ async def attempt_response_internal_impl(
                                 data=AttemptErrorData(
                                     sid=sid,
                                     error_type="quiz",
-                                    message="Attempt chat group not found",
+                                    message="Invalid question or option selection",
                                     chat_id=str(chat_id),
                                 ).model_dump(mode="json"),
                             )
                         ]
                     )
                 else:
-                    groups = await get_groups(
-                        conn,
-                        ids=[attempt_chat.group_id],
-                        bypass_mv=True,
+                    await _emit(
+                        [
+                            SocketEvent(
+                                bus="internal",
+                                event="attempt_response_result",
+                                data=AttemptResponseResultData(
+                                    sid=sid,
+                                    success=True,
+                                    message="Response submitted",
+                                    is_correct=None,
+                                    response_id=str(response.id),
+                                ).model_dump(mode="json"),
+                            )
+                        ]
                     )
-                    if not groups:
-                        await _emit(
-                            [
-                                SocketEvent(
-                                    bus="internal",
-                                    event="attempt_error",
-                                    data=AttemptErrorData(
-                                        sid=sid,
-                                        error_type="quiz",
-                                        message="Attempt chat session not found",
-                                        chat_id=str(chat_id),
-                                    ).model_dump(mode="json"),
-                                )
-                            ]
-                        )
-                    else:
-                        group = groups[0]
-                        try:
-                            run = await create_run(
-                                conn,
-                                group_id=attempt_chat.group_id,
-                                session_id=group.session_id,
-                            )
-                            call = await create_call(
-                                conn,
-                                run_id=run.id,
-                                session_id=group.session_id,
-                            )
-                            response = await create_attempt_responses(
-                                conn,
-                                chat_id=chat_id,
-                                call_id=call.id,
-                                question_ids=[question_id],
-                                option_ids=option_ids,
-                            )
-                            await refresh_attempt_responses(conn)
-                        except asyncpg.ForeignKeyViolationError:
-                            await _emit(
-                                [
-                                    SocketEvent(
-                                        bus="internal",
-                                        event="attempt_error",
-                                        data=AttemptErrorData(
-                                            sid=sid,
-                                            error_type="quiz",
-                                            message="Invalid question or option selection",
-                                            chat_id=str(chat_id),
-                                        ).model_dump(mode="json"),
-                                    )
-                                ]
-                            )
-                        else:
-                            await _emit(
-                                [
-                                    SocketEvent(
-                                        bus="internal",
-                                        event="attempt_response_result",
-                                        data=AttemptResponseResultData(
-                                            sid=sid,
-                                            success=True,
-                                            message="Response submitted",
-                                            is_correct=None,
-                                            response_id=str(response.id),
-                                        ).model_dump(mode="json"),
-                                    )
-                                ]
-                            )
 
         for event in recorded:
             if event.bus != "internal":

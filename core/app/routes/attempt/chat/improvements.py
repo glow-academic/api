@@ -62,14 +62,13 @@ async def chat_improvements(
             raise HTTPException(status_code=404, detail="No grade found for this chat")
         grade_id = grades[0].grade_id
 
-        call_id = uuid4()
         improvement_ids: list[UUID] = []
         for item in request.improvements:
             result = await create_attempt_improvement(
                 conn,
                 grade_id=grade_id,
                 message_id=item.message_id or uuid4(),
-                call_id=call_id,
+                session_id=session_id,
                 name=item.name,
                 description=item.description,
                 soft=not request.accept,
@@ -82,7 +81,7 @@ async def chat_improvements(
                     await create_attempt_replacement(
                         conn,
                         improvement_id=result.id,
-                        call_id=call_id,
+                        session_id=session_id,
                         section=rpl.section,
                         replace=rpl.replace,
                         idx=rpl.idx or 0,

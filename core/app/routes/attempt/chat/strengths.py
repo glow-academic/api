@@ -61,14 +61,13 @@ async def chat_strengths(
             raise HTTPException(status_code=404, detail="No grade found for this chat")
         grade_id = grades[0].grade_id
 
-        call_id = uuid4()
         strength_ids: list[UUID] = []
         for item in request.strengths:
             result = await create_attempt_strength(
                 conn,
                 grade_id=grade_id,
                 message_id=item.message_id or uuid4(),
-                call_id=call_id,
+                session_id=session_id,
                 name=item.name,
                 description=item.description,
                 soft=not request.accept,
@@ -81,7 +80,7 @@ async def chat_strengths(
                     await create_attempt_highlight(
                         conn,
                         strength_id=result.id,
-                        call_id=call_id,
+                        session_id=session_id,
                         section=hl.section,
                         idx=hl.idx or 0,
                         soft=not request.accept,

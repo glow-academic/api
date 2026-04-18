@@ -112,25 +112,12 @@ async def archive_attempts(
                     updated_count=0, profile_ids_to_invalidate=[]
                 )
 
-            # 2. Create run + call for traceability
-            run = await create_run(
-                conn,
-                group_id=group_id,
-                session_id=session_id,
-                profiles_id=profiles_id,
-            )
-            call = await create_call(
-                conn,
-                run_id=run.id,
-                session_id=session_id,
-            )
-
-            # 3. Create archive entries
+            # 2. Create archive entries
             for attempt in attempts:
                 await create_attempt_archive(
                     conn,
                     attempt_id=attempt.attempt_id,
-                    call_id=call.id,
+                    session_id=session_id,
                     archived=request.archived,
                 )
 

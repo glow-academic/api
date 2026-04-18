@@ -39,6 +39,7 @@ async def create_document_file(
     mime_type: str,
     session_id: UUID,
     upload_folder: Path,
+    files_resource_id: UUID | None = None,
 ) -> CreateDocumentFileResult:
     """Create a file from a source file, copying to upload folder and creating the full entry chain.
 
@@ -61,7 +62,7 @@ async def create_document_file(
     )
 
     # 3. Create files resource
-    file_resource = await create_file_resource(conn, redis)
+    file_resource = await create_file_resource(conn, redis, id=files_resource_id)
 
     # 4. Create files entry linked to resource
     file_entry = await create_file_entry(

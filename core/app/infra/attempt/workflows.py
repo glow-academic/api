@@ -323,7 +323,6 @@ async def user_start_impl(
         from app.tools.entries.attempt_message.create import (
             create_attempt_message,
         )
-        from app.tools.entries.calls.create import create_call
         from app.tools.entries.messages.create import create_message
 
         run_id_uuid = uuid.UUID(run_id)
@@ -335,16 +334,11 @@ async def user_start_impl(
                 run_id=run_id_uuid,
                 role="user",
             )
-            call_result = await create_call(
-                conn,
-                run_id=run_id_uuid,
-                session_id=session_id_uuid or uuid.UUID(int=0),
-            )
             await create_attempt_message(
                 conn,
                 chat_id=uuid.UUID(chat_id),
                 message_id=result.id,
-                call_id=call_result.id,
+                session_id=session_id_uuid or uuid.UUID(int=0),
             )
 
         await emit(
@@ -474,9 +468,6 @@ async def user_complete_impl(
         return
 
     try:
-        from app.tools.entries.calls.create import create_call
-
-        run_id_uuid = uuid.UUID(run_id)
         session_id_uuid = uuid.UUID(session_id_str) if session_id_str else None
 
         async with pool.acquire() as conn:
@@ -510,29 +501,18 @@ async def user_complete_impl(
 
             user_persona_id = attempts[0].user_persona_id
 
-            content_call = await create_call(
-                conn,
-                run_id=run_id_uuid,
-                session_id=session_id_uuid or uuid.UUID(int=0),
-            )
-
             await create_attempt_content_entry_internal(
                 conn,
                 message_id=message_id,
-                call_id=content_call.id,
+                session_id=session_id_uuid or uuid.UUID(int=0),
                 content=content,
                 persona_id=user_persona_id,
             )
 
-            call_result = await create_call(
-                conn,
-                run_id=run_id_uuid,
-                session_id=session_id_uuid or uuid.UUID(int=0),
-            )
             await create_attempt_message_completion(
                 conn,
                 attempt_message_id=message_id,
-                call_id=call_result.id,
+                session_id=session_id_uuid or uuid.UUID(int=0),
             )
 
         await emit(
@@ -744,7 +724,6 @@ async def attempt_start_impl(
     from app.tools.entries.attempt_practice.create import (
         create_attempt_practice,
     )
-    from app.tools.entries.calls.create import create_call
     from app.tools.entries.home.get import get_homes
     from app.tools.entries.home_chat.search import search_home_chats
     from app.tools.entries.persona.create import create_persona
@@ -969,14 +948,9 @@ async def attempt_start_impl(
 
                 persona_result = await create_persona(conn, personas_id=persona_id)
 
-                call = await create_call(
-                    conn,
-                    run_id=run_id,
-                    session_id=session_id_uuid,
-                )
                 attempt_result = await create_attempt(
                     conn,
-                    call_id=call.id,
+                    session_id=session_id_uuid,
                     user_persona_id=persona_result.id,
                     profiles_id=profiles_resource_id,
                     name=sim_name or "",
@@ -1142,7 +1116,6 @@ async def attempt_proceed_impl(
     from app.tools.entries.attempt_practice.search import (
         search_attempt_practice_entries,
     )
-    from app.tools.entries.calls.create import create_call
     from app.tools.entries.chat.get import get_chat_entries_internal
     from app.tools.entries.home_chat.search import search_home_chats
     from app.tools.entries.practice_chat.search import search_practice_chats
@@ -1175,19 +1148,12 @@ async def attempt_proceed_impl(
             )
             run_id = run_result.id
 
-            call_result = await create_call(
-                conn,
-                run_id=run_id,
-                session_id=session_id_uuid,
-            )
-            call_id = call_result.id
-
             if completed_chat_id:
                 try:
                     await create_attempt_chat_completion(
                         conn,
                         chat_id=completed_chat_id,
-                        call_id=call_id,
+                        session_id=session_id_uuid,
                     )
                 except Exception:
                     logger.debug(f"Chat {completed_chat_id} already completed")
@@ -1207,7 +1173,7 @@ async def attempt_proceed_impl(
                             await create_attempt_chat_completion(
                                 conn,
                                 chat_id=bridge_chat_id,
-                                call_id=call_id,
+                                session_id=session_id_uuid,
                             )
                         except Exception:
                             pass
@@ -1442,14 +1408,9 @@ async def attempt_proceed_impl(
 
         async with pool.acquire() as conn:
             async with conn.transaction():
-                call = await create_call(
-                    conn,
-                    run_id=run_id,
-                    session_id=session_id_uuid,
-                )
                 chat_result = await create_attempt_chat(
                     conn,
-                    call_id=call.id,
+                    session_id=session_id_uuid,
                     chat_id=chat_entry_id,
                     title=request_dict.get("title", ""),
                     position=request_dict.get("position", 0),

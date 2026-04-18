@@ -64,18 +64,25 @@ async def attempt_message(sid: str, data: dict[str, Any]) -> None:
     if not text:
         return
 
-    async def _runner() -> dict[str, Any]:
-        await attempt_message_internal_impl({
-            **data,
-            "message": text,
-            "sid": sid,
-            "profile_id": str(identity.profile_id),
-            "session_id": str(identity.session_id),
-        })
-        return {"chat_id": chat_id, "success": True}
-
     pool = get_pool()
     redis = get_redis_client()
+
+    async def _runner() -> dict[str, Any]:
+        await attempt_message_internal_impl(
+            pool,
+            redis,
+            profile_id=identity.profile_id,
+            session_id=identity.session_id,
+            chat_id=chat_id,
+            text=text,
+            message=text,
+            attempt_id=data.get("attempt_id"),
+            persona_id=data.get("persona_id"),
+            contents=data.get("contents"),
+            parent_message_id=data.get("parent_message_id"),
+            sid=sid,
+        )
+        return {"chat_id": chat_id, "success": True}
 
     await run_artifact_operation_with_audit(
         pool,

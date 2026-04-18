@@ -26,6 +26,7 @@ from app.infra.scenario.types import (
     ScenarioDraftFormState,
 )
 from app.tools.entries.scenario_drafts.create import create_scenario_draft
+from app.tools.entries.scenario_drafts.get import get_scenario_drafts
 from app.infra.scenario.refresh import refresh_scenario_impl
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.images.create import create_image
@@ -166,16 +167,40 @@ async def patch_scenario_draft_impl(
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
         if accept:
-            # Promote: re-call create with soft=False → ON CONFLICT activates
             async with pool.acquire() as conn:
+                drafts = await get_scenario_drafts(conn, [idempotency_key])
                 async with conn.transaction():
-                    await create_scenario_draft(
-                        conn,
-                        session_id=session_id,
-                        id=idempotency_key,
-                        soft=False,
-                        profile_ids=[profile.profiles_id],
-                    )
+                    if drafts:
+                        draft = drafts[0]
+                        await create_scenario_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            name_ids=draft.name_ids,
+                            description_ids=draft.description_ids,
+                            problem_statement_ids=draft.problem_statement_ids,
+                            flag_ids=draft.flag_ids,
+                            department_ids=draft.department_ids,
+                            persona_ids=draft.persona_ids,
+                            document_ids=draft.document_ids,
+                            parameter_field_ids=draft.parameter_field_ids,
+                            objective_ids=draft.objective_ids,
+                            image_ids=draft.image_ids,
+                            video_ids=draft.video_ids,
+                            question_ids=draft.question_ids,
+                            option_ids=draft.option_ids,
+                            profile_ids=draft.profile_ids or [profile.profiles_id],
+                            pending_ids=set(),
+                        )
+                    else:
+                        await create_scenario_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            profile_ids=[profile.profiles_id],
+                        )
             await refresh_scenario_impl(
                 pool,
                 redis,

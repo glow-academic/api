@@ -393,6 +393,9 @@ class PatchEvalDraftApiRequest(ScopedItem):
         "departments": "departments",
         "department_ids": "departments",
         "model_ids": "models",
+        "model_flag_ids": "model_flags",
+        "model_position_ids": "model_positions",
+        "model_rubric_ids": "model_rubrics",
     }
 
     draft_id: UUID | None = Field(None, description="Existing draft UUID to patch")
@@ -409,6 +412,9 @@ class PatchEvalDraftApiRequest(ScopedItem):
     departments: list[str] | None = Field(None, description="Department names to resolve")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     model_ids: list[UUID] | None = Field(None, description="Model UUIDs")
+    model_flag_ids: list[UUID] | None = Field(None, description="Model flag UUIDs")
+    model_position_ids: list[UUID] | None = Field(None, description="Model position UUIDs")
+    model_rubric_ids: list[UUID] | None = Field(None, description="Model rubric UUIDs")
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep inactive on the draft")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant draft")
     accept: bool = Field(True, description="Accept or reject dormant state. Only meaningful with idempotency_key")
@@ -424,6 +430,9 @@ class DraftFormState(BaseModel):
     flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag option UUIDs")
     department_ids: list[UUID] = Field(default_factory=list, description="Selected department UUIDs")
     model_ids: list[UUID] = Field(default_factory=list, description="Selected model UUIDs")
+    model_flag_ids: list[UUID] = Field(default_factory=list, description="Selected model flag UUIDs")
+    model_position_ids: list[UUID] = Field(default_factory=list, description="Selected model position UUIDs")
+    model_rubric_ids: list[UUID] = Field(default_factory=list, description="Selected model rubric UUIDs")
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
 
 

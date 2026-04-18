@@ -1,12 +1,39 @@
 {% if success and results and results[0] and results[0].result %}
 {% set r = results[0].result %}
-### Attempt State
-{% if r.draft_id is defined %}- **Draft ID:** `{{ r.draft_id }}`{% endif %}
-{% if r.chat_id is defined %}- **Chat ID:** `{{ r.chat_id }}`{% endif %}
-{% if r.attempt_id is defined %}- **Attempt ID:** `{{ r.attempt_id }}`{% endif %}
-{% if r.scenario_name is defined %}- **Scenario:** {{ r.scenario_name }}{% endif %}
-{% if r.persona_name is defined %}- **Persona:** {{ r.persona_name }}{% endif %}
-{% if r.rubric_name is defined %}- **Rubric:** {{ r.rubric_name }}{% endif %}
+### Attempt Detail
+{% if r.attempt %}- **Attempt ID:** `{{ r.attempt.id }}`
+{% endif %}
+{% if r.simulation %}- **Simulation:** {{ r.simulation.name }}{% endif %}
+{% if r.current_chat_id %}- **Current Chat ID:** `{{ r.current_chat_id }}`{% endif %}
+
+{% if r.resources and r.resources.personas -%}
+### Personas
+{% for pid, p in r.resources.personas.items() -%}
+- **{{ p.name }}**{% if p.entry_id %} (entry_id: `{{ p.entry_id }}`){% endif %}{% if p.color %} [{{ p.color }}]{% endif %}
+{% if p.instructions %}  Instructions: {{ p.instructions[:300] }}{% endif %}
+{% if p.examples %}  Examples: {{ p.examples | join(', ') }}{% endif %}
+{% endfor -%}
+{% endif %}
+
+{% if r.attempt and r.attempt.user_persona_id -%}
+**User persona (human trainee):** `{{ r.attempt.user_persona_id }}`
+{% endif -%}
+{% if r.resources and r.resources.personas -%}
+{% for pid, p in r.resources.personas.items() -%}
+{% if p.entry_id and p.entry_id != (r.attempt.user_persona_id | string if r.attempt and r.attempt.user_persona_id else '') -%}
+**You are:** **{{ p.name }}** — pass `persona_id: "{{ p.entry_id }}"` when calling Attempt_Chat_Send
+{% endif -%}
+{% endfor -%}
+{% endif %}
+
+{% if r.entries and r.entries.attempt_message -%}
+### Conversation
+{% for msg in r.entries.attempt_message -%}
+{% set msg_type = msg.type or "unknown" -%}
+- **[{{ msg_type | upper }}]** `{{ msg.id }}`{% if msg.contents %} — {% for c in msg.contents %}{% if c.name %}**{{ c.name }}**: {% endif %}{{ c.content[:500] if c.content else "" }}{% if not loop.last %} | {% endif %}{% endfor %}{% endif %}
+
+{% endfor -%}
+{% endif %}
 {% elif results and results[0] and results[0].error %}
 Error fetching attempt: {{ results[0].error }}
 {% else %}

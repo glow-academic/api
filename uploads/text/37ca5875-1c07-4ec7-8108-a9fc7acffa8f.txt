@@ -1,0 +1,15 @@
+INPUT:
+  attempt_id: 019da0ce-3232-7c5b-b3c1-a07d49412bdd
+  chat_id: 019da0cb-5e94-7b32-897b-c04511cb8fc9
+  problem_statement: An instructional staff member accidentally leaves a student's grade sheet visible on their computer screen. A student notices the visible information and questions whether this violates FERPA. The staff member must quickly address the situation and explain the importance of protecting student privacy.
+  personas: ['Confused']
+  documents: ['FERPA Policy']
+  parameter_fields: ['confused', 'Emotion', 'Mild (3)', 'Some Students (4)']
+  objectives: ['Explain student privacy rights under FERPA clearly', 'Identify situations that constitute FERPA violations', 'Take immediate corrective action when a privacy breach occurs']
+
+OUTPUT:
+Attempt chat created successfully.
+- **Attempt Chat ID:** `019da0ce-4745-7c9a-863c-859c4b898aa8`
+
+
+Config flags, rubrics, departments, and scenarios were auto-resolved from the chat template.

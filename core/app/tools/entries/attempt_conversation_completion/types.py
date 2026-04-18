@@ -20,4 +20,4 @@ class GetAttemptConversationCompletionResponse(BaseModel):
     stop: bool
     error: bool
     message: str
-    call_id: UUID
+    session_id: UUID | None = None

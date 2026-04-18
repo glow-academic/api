@@ -1186,11 +1186,11 @@ async def _run_text_seeds(
       3. Calls update_document to link text_ids
     """
     from app.infra.tools.entries.create_document_text import create_document_text
-    from app.tools.artifacts.document.update import update_document
     from app.tools.entries.sessions.create import create_session
 
-    # Create a temp upload folder for text file writes
-    upload_folder = Path(tempfile.mkdtemp(prefix="seed_uploads_"))
+    # Use the project uploads/ dir so text files survive seed generation
+    upload_folder = assets_dir
+    upload_folder.mkdir(parents=True, exist_ok=True)
 
     # Create a session for entry ownership (no profile link — avoids FK issues)
     async with pool.acquire() as conn:
@@ -1208,13 +1208,7 @@ async def _run_text_seeds(
                 content=content,
                 session_id=session_id,
                 upload_folder=upload_folder,
-            )
-
-        async with pool.acquire() as conn:
-            await update_document(
-                conn,
-                dt["document_id"],
-                text_ids=[result.texts_resource_id],
+                texts_resource_id=dt.get("texts_resource_id"),
             )
 
         print(f"  OK: Text linked to document {dt['document_id']}")
@@ -1234,11 +1228,12 @@ async def _run_file_seeds(
       3. Links result to document via document_files_junction
     """
     from app.infra.tools.entries.create_document_file import create_document_file
-    from app.tools.artifacts.document.update import update_document
     from app.tools.entries.sessions.create import create_session
 
-    # Create a temp upload folder for file copies
-    upload_folder = Path(tempfile.mkdtemp(prefix="seed_uploads_"))
+    # Use the project uploads/ dir so UUID-named copies survive seed generation
+    # and are available at runtime when the template is loaded.
+    upload_folder = assets_dir
+    upload_folder.mkdir(parents=True, exist_ok=True)
 
     # Create a session for entry ownership (no profile link — avoids FK issues)
     async with pool.acquire() as conn:
@@ -1256,16 +1251,101 @@ async def _run_file_seeds(
                 mime_type=df["mime_type"],
                 session_id=session_id,
                 upload_folder=upload_folder,
-            )
-
-        async with pool.acquire() as conn:
-            await update_document(
-                conn,
-                df["document_id"],
-                file_ids=[result.files_resource_id],
+                files_resource_id=df.get("files_resource_id"),
             )
 
         print(f"  OK: File linked to document {df['document_id']}")
+
+
+async def _run_video_seeds(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    scenario_video_defs: list[dict],
+    assets_dir: Path,
+) -> None:
+    """Run video seed definitions using create_scenario_video."""
+    from app.infra.tools.entries.create_scenario_video import create_scenario_video
+    from app.tools.entries.sessions.create import create_session
+
+    upload_folder = assets_dir
+    upload_folder.mkdir(parents=True, exist_ok=True)
+
+    async with pool.acquire() as conn:
+        session = await create_session(conn)
+    session_id = session.id
+
+    for sv in scenario_video_defs:
+        source_path = assets_dir / sv["source_file"]
+
+        async with pool.acquire() as conn:
+            await create_scenario_video(
+                conn,
+                redis,
+                source_path=source_path,
+                mime_type=sv["mime_type"],
+                session_id=session_id,
+                upload_folder=upload_folder,
+                videos_resource_id=sv.get("videos_resource_id"),
+                name=sv.get("name", ""),
+                description=sv.get("description", ""),
+            )
+
+        print(f"  OK: Video linked to scenario {sv['scenario_id']}")
+
+
+async def _run_image_seeds(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    standalone_image_defs: list[dict],
+    document_image_defs: list[dict],
+    assets_dir: Path,
+) -> None:
+    """Run image seed definitions using create_document_image."""
+    from app.infra.tools.entries.create_document_image import create_document_image
+    from app.tools.entries.sessions.create import create_session
+
+    upload_folder = assets_dir
+    upload_folder.mkdir(parents=True, exist_ok=True)
+
+    async with pool.acquire() as conn:
+        session = await create_session(conn)
+    session_id = session.id
+
+    for si in standalone_image_defs:
+        source_path = assets_dir / si["source_file"]
+
+        async with pool.acquire() as conn:
+            await create_document_image(
+                conn,
+                redis,
+                source_path=source_path,
+                mime_type=si["mime_type"],
+                session_id=session_id,
+                upload_folder=upload_folder,
+                images_resource_id=si.get("images_resource_id"),
+                name=si.get("name", ""),
+                description=si.get("description", ""),
+            )
+
+        print(f"  OK: Standalone image created: {si.get('name', '')}")
+
+    for di in document_image_defs:
+        source_path = assets_dir / di["source_file"]
+
+        async with pool.acquire() as conn:
+            await create_document_image(
+                conn,
+                redis,
+                source_path=source_path,
+                mime_type=di["mime_type"],
+                session_id=session_id,
+                upload_folder=upload_folder,
+                images_resource_id=di.get("images_resource_id"),
+                name=di.get("name", ""),
+                description=di.get("description", ""),
+            )
+
+        print(f"  OK: Image linked to document {di['document_id']}")
 
 
 async def _cleanup_deactivated_junctions(pool: asyncpg.Pool) -> list[str]:
@@ -1943,6 +2023,16 @@ async def main_setup(setup: str = "university") -> None:
                 assets_dir = _get_assets_dir()
                 await _run_file_seeds(
                     pool, redis_client, mod.document_files, assets_dir
+                )
+            elif module_name == "videos":
+                assets_dir = _get_assets_dir()
+                await _run_video_seeds(
+                    pool, redis_client, mod.scenario_videos, assets_dir
+                )
+            elif module_name == "images":
+                assets_dir = _get_assets_dir()
+                await _run_image_seeds(
+                    pool, redis_client, mod.standalone_images, mod.document_images, assets_dir
                 )
 
         # Restore original SEED_PROFILE_ID

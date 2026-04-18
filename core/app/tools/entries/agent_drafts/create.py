@@ -25,6 +25,8 @@ async def create_agent_draft(
     voice_ids: list[UUID] | None = None,
     quality_ids: list[UUID] | None = None,
     rubric_ids: list[UUID] | None = None,
+    prompt_ids: list[UUID] | None = None,
+    instruction_ids: list[UUID] | None = None,
     agent_ids: list[UUID] | None = None,
     pending_ids: set[UUID] | None = None,
 ) -> CreateAgentDraftResponse:
@@ -70,6 +72,8 @@ async def create_agent_draft(
         ("agent_drafts_voices_connection", "voices_id", voice_ids or []),
         ("agent_drafts_qualities_connection", "qualities_id", quality_ids or []),
         ("agent_drafts_rubrics_connection", "rubrics_id", rubric_ids or []),
+        ("agent_drafts_prompts_connection", "prompts_id", prompt_ids or []),
+        ("agent_drafts_instructions_connection", "instructions_id", instruction_ids or []),
         ("agent_drafts_agents_connection", "agents_id", agent_ids or []),
     ]
 

@@ -247,7 +247,7 @@ async def get_attempt_internal(
     chat_entry_id = attempt_item.chat_entry_id
     training_id = chat_entry_id
     first_chat_item = chats_result[0] if chats_result else None
-    group_id = first_chat_item.group_id if first_chat_item else None
+    group_id = None  # group_id removed from attempt_chat_mv
     time_limit_seconds = sum(chat.time_limit_seconds or 0 for chat in chats_result)
     allows_negative_time = any(chat.negative or False for chat in chats_result)
 
@@ -297,10 +297,26 @@ async def get_attempt_internal(
                 "file_id": item.file_id,
                 "template": item.template,
             }
+    # Build resource_id → entry_id mapping for personas from chat MV data.
+    # assistant_persona_ids (entry IDs) and persona_ids (resource IDs) are
+    # parallel arrays on each chat — zip them to build the mapping.
+    persona_entry_map: dict[UUID, UUID] = {}      # resource_id → entry_id
+    persona_entry_reverse: dict[UUID, UUID] = {}  # entry_id → resource_id
+    for ch in chats_result:
+        resource_ids = ch.persona_ids or []
+        entry_ids = getattr(ch, "assistant_persona_ids", None) or []
+        for res_id, ent_id in zip(resource_ids, entry_ids):
+            persona_entry_map[res_id] = ent_id
+            persona_entry_reverse[ent_id] = res_id
+    # Also map user_persona_id → its resource via attempt_mv
+    if attempts and attempts[0].user_persona_id and attempts[0].personas_id:
+        persona_entry_reverse[attempts[0].user_persona_id] = attempts[0].personas_id
+
     for item in _res("personas"):
         if item.id:
             resource_meta["personas"][item.id] = {
                 "name": item.name,
+                "entry_id": str(persona_entry_map.get(item.id, "")),
                 "icon": item.icon,
                 "color": item.color,
                 "instructions": item.instructions,
@@ -395,6 +411,7 @@ async def get_attempt_internal(
         personas={
             str(k): PersonaEntry(
                 id=k,
+                entry_id=v.get("entry_id") or None,
                 name=v.get("name"),
                 icon=v.get("icon"),
                 color=v.get("color"),
@@ -531,11 +548,9 @@ async def get_attempt_internal(
         if msg_contents:
             contents = []
             for content in msg_contents:
-                persona_meta = (
-                    resource_meta["personas"].get(content.persona_id, {})
-                    if content.persona_id
-                    else {}
-                )
+                # Resolve entry_id → resource_id → persona metadata
+                _res_id = persona_entry_reverse.get(content.persona_entry_id) if content.persona_entry_id else None
+                persona_meta = resource_meta["personas"].get(_res_id, {}) if _res_id else {}
                 if msg.type == "query":
                     name = "You" if is_own_attempt else profile_name
                     color = None
@@ -700,6 +715,7 @@ async def get_attempt_internal(
         infinite_mode=attempt_item.infinite_mode,
         profile_id=attempt_item.profile_id,
         profile_name=profile_name,
+        user_persona_id=attempt_item.user_persona_id,
         department_id=attempt_item.department_id,
         cohort_id=attempt_item.cohort_id if not practice else None,
         is_archived=False if practice else None,
@@ -878,19 +894,19 @@ async def get_attempt_impl(
     profile_id: UUID,
     attempt_id: UUID,
     bypass_cache: bool = False,
-    cache_key_path: str,
+    cache_key_path: str | None = None,
     session_id: UUID | None = None,
     **_kwargs,
-) -> tuple[GetAttemptDetailResponse, bool]:
+) -> GetAttemptDetailResponse:
     """Resolve the canonical attempt detail response with shared caching."""
     tags = ["attempt"]
     body_dict = {"attempt_id": str(attempt_id)}
-    cache_key_val = cache_key(cache_key_path, body_dict)
+    cache_key_val = cache_key(cache_key_path or "/attempt/get", body_dict)
 
     if not bypass_cache:
         cached = await get_cached(cache_key_val, redis=redis)
         if cached:
-            return GetAttemptDetailResponse.model_validate(cached["data"]), True
+            return GetAttemptDetailResponse.model_validate(cached["data"])
 
     data = await get_attempt_internal(
         pool,
@@ -901,13 +917,10 @@ async def get_attempt_impl(
     )
 
     if not data.attempt_exists or data.access_denied:
-        return (
-            GetAttemptDetailResponse(
-                attempt_exists=data.attempt_exists,
-                access_denied=data.access_denied,
-                actor_name=data.actor_name,
-            ),
-            False,
+        return GetAttemptDetailResponse(
+            attempt_exists=data.attempt_exists,
+            access_denied=data.access_denied,
+            actor_name=data.actor_name,
         )
 
     api_response = GetAttemptDetailResponse(
@@ -946,4 +959,4 @@ async def get_attempt_impl(
         tags=tags,
         redis=redis,
     )
-    return api_response, False
+    return api_response

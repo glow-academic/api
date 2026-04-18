@@ -17,7 +17,7 @@ class GetAttemptMessageCompletionResponse(BaseModel):
     stop: bool
     error: bool
     message: str
-    call_id: UUID
+    session_id: UUID
     created_at: datetime
     active: bool
     generated: bool
@@ -36,7 +36,7 @@ async def search_attempt_message_completions(
 
     rows = await conn.fetch(
         f"""
-        SELECT id, attempt_message_id, stop, error, message, call_id, created_at, active, generated, mcp
+        SELECT id, attempt_message_id, stop, error, message, session_id, created_at, active, generated, mcp
         FROM {source}
         WHERE ($1::uuid[] IS NULL OR attempt_message_id = ANY($1))
         ORDER BY created_at DESC

@@ -17,4 +17,4 @@ class GetAttemptConversationsResponse(BaseModel):
     mcp: bool
     active: bool
     chat_id: UUID
-    call_id: UUID
+    session_id: UUID | None = None

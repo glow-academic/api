@@ -1,0 +1,9 @@
+INPUT:
+  chat_id: 019da130-397c-724f-9cb9-2e66469d3026
+  text: Wait, so I thought you just had to fill out the form and then everything would be fine? But now you're saying there's more to it? I'm honestly not sure what I'm missing here. Does it have to do with that other policy you mentioned, or is it something else entirely?
+  persona_id: 019da130-3978-7e50-b728-58d069745b96
+
+OUTPUT:
+Message sent.
+- **Accepted:** 
+- **Message ID:** `019da130-83d4-7e7a-a0df-a83a613e8b99`

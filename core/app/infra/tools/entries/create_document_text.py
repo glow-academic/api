@@ -38,6 +38,7 @@ async def create_document_text(
     content: str,
     session_id: UUID,
     upload_folder: Path,
+    texts_resource_id: UUID | None = None,
 ) -> CreateDocumentTextResult:
     """Create a text from raw content, writing to disk and creating the full entry chain.
 
@@ -59,7 +60,7 @@ async def create_document_text(
     )
 
     # 3. Create texts resource
-    text_resource = await create_text_resource(conn, redis)
+    text_resource = await create_text_resource(conn, redis, id=texts_resource_id)
 
     # 4. Create texts entry linked to resource
     text_entry = await create_text_entry(

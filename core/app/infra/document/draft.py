@@ -23,6 +23,7 @@ from app.infra.globals import UPLOAD_FOLDER
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.document_drafts.create import create_document_draft
+from app.tools.entries.document_drafts.get import get_document_drafts
 from app.tools.entries.file_uploads.create import create_file_upload
 from app.tools.entries.files.create import create_file as create_file_entry
 from app.tools.entries.image_uploads.create import create_image_upload
@@ -232,26 +233,35 @@ async def patch_document_draft_impl(
     if accept is not None and idempotency_key is not None:
         if accept:
             async with pool.acquire() as conn:
+                drafts = await get_document_drafts(conn, [idempotency_key])
                 async with conn.transaction():
-                    await create_document_draft(
-                        conn,
-                        session_id=session_id,
-                        id=idempotency_key,
-                        soft=False,
-                        name_ids=[request.name_id] if request.name_id else None,
-                        description_ids=[request.description_id]
-                        if request.description_id
-                        else None,
-                        flag_ids=request.flag_ids,
-                        department_ids=request.department_ids,
-                        file_ids=request.file_ids,
-                        image_ids=request.image_ids,
-                        text_ids=request.text_ids,
-                        parameter_field_ids=request.parameter_field_ids,
-                        parameter_ids=request.parameter_ids,
-                        pending_ids=set(request.pending_ids) if request.pending_ids else None,
-                        profile_ids=[profile.profiles_id],
-                    )
+                    if drafts:
+                        draft = drafts[0]
+                        await create_document_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            name_ids=draft.name_ids,
+                            description_ids=draft.description_ids,
+                            flag_ids=draft.flag_ids,
+                            department_ids=draft.department_ids,
+                            file_ids=draft.file_ids,
+                            image_ids=draft.image_ids,
+                            text_ids=draft.text_ids,
+                            parameter_field_ids=draft.parameter_field_ids,
+                            parameter_ids=draft.parameter_ids,
+                            profile_ids=draft.profile_ids or [profile.profiles_id],
+                            pending_ids=set(),
+                        )
+                    else:
+                        await create_document_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            profile_ids=[profile.profiles_id],
+                        )
             await refresh_document_impl(
                 pool,
                 redis,

@@ -17,7 +17,7 @@ async def search_attempt_mutes_entries_internal(
     rows = await conn.fetch(
         f"""
         SELECT id, created_at, generated, mcp, active,
-               conversation_id, muted, call_id
+               conversation_id, muted, session_id
         FROM {MV_NAME}
         WHERE ($1::uuid[] IS NULL OR conversation_id = ANY($1))
         ORDER BY created_at DESC

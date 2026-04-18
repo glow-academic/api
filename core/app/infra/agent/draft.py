@@ -21,12 +21,14 @@ from app.infra.agent.types import (
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.agent_drafts.create import create_agent_draft
+from app.tools.entries.agent_drafts.get import get_agent_drafts
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.get import get_flags
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
+from app.tools.resources.prompts.create import create_prompt
 from app.tools.resources.names.search import search_names
 from app.tools.resources.qualities.search import search_qualities
 from app.tools.resources.reasoning_levels.search import search_reasoning_levels
@@ -178,6 +180,18 @@ async def _resolve_creatable_values(
         if not any(error.field == "qualities" for error in errors):
             request.quality_ids = resolved_ids
 
+    # --- Inline prompt creation ---
+    if request.prompt is not None and request.prompt_id is None and not errors:
+        async with pool.acquire() as conn:
+            result = await create_prompt(
+                conn,
+                system_prompt=request.prompt.system_prompt,
+                name=request.prompt.name,
+                description=request.prompt.description,
+                redis=redis,
+            )
+        request.prompt_id = result.id
+
     return errors
 
 
@@ -254,15 +268,40 @@ async def patch_agent_draft_impl(
     if accept is not None and idempotency_key is not None:
         if accept:
             async with pool.acquire() as conn:
+                drafts = await get_agent_drafts(conn, [idempotency_key])
                 async with conn.transaction():
-                    await create_agent_draft(
-                        conn,
-                        session_id=session_id,
-                        id=idempotency_key,
-                        soft=False,
-                        profile_ids=[profile.profiles_id],
-                        pending_ids=set(request.pending_ids) if request.pending_ids else None,
-                    )
+                    if drafts:
+                        draft = drafts[0]
+                        await create_agent_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            name_ids=draft.name_ids,
+                            description_ids=draft.description_ids,
+                            flag_ids=draft.flag_ids,
+                            department_ids=draft.department_ids,
+                            model_ids=draft.model_ids,
+                            tool_ids=draft.tool_ids,
+                            profile_ids=draft.profile_ids or [profile.profiles_id],
+                            reasoning_level_ids=draft.reasoning_level_ids,
+                            temperature_level_ids=draft.temperature_level_ids,
+                            voice_ids=draft.voice_ids,
+                            quality_ids=draft.quality_ids,
+                            rubric_ids=draft.rubric_ids,
+                            prompt_ids=draft.prompt_ids,
+                            instruction_ids=draft.instruction_ids,
+                            agent_ids=draft.agent_ids,
+                            pending_ids=set(),
+                        )
+                    else:
+                        await create_agent_draft(
+                            conn,
+                            session_id=session_id,
+                            id=idempotency_key,
+                            soft=False,
+                            profile_ids=[profile.profiles_id],
+                        )
             await refresh_agent_impl(
                 pool,
                 redis,
@@ -361,6 +400,10 @@ async def patch_agent_draft_impl(
                 voice_ids=request.voice_ids,
                 quality_ids=request.quality_ids,
                 rubric_ids=request.rubric_ids,
+                prompt_ids=[request.prompt_id] if request.prompt_id else None,
+                instruction_ids=[request.instruction_id or request.instructions_id]
+                if (request.instruction_id or request.instructions_id)
+                else None,
                 agent_ids=[snapshot_id] if snapshot_id else None,
                 pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )

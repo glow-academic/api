@@ -52,13 +52,12 @@ async def chat_analyses(
             raise HTTPException(status_code=404, detail="No grade found for this chat")
         grade_id = grades[0].grade_id
 
-        call_id = uuid4()
         analysis_ids: list[UUID] = []
         for item in request.analyses:
             result = await create_attempt_analysis(
                 conn,
                 grade_id=grade_id,
-                call_id=call_id,
+                session_id=session_id,
                 content=item.content,
                 soft=not request.accept,
             )

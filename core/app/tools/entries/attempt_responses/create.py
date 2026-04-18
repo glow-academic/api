@@ -12,7 +12,7 @@ from app.tools.entries.attempt_responses.types import (
 async def create_attempt_responses(
     conn: asyncpg.Connection,
     chat_id: UUID,
-    call_id: UUID,
+    session_id: UUID,
     id: UUID | None = None,
     question_ids: list[UUID] | None = None,
     option_ids: list[UUID] | None = None,
@@ -23,12 +23,12 @@ async def create_attempt_responses(
     entry_id = await conn.fetchval(
         """
         INSERT INTO attempt_responses_entry
-            (id, chat_id, call_id, active, mcp, generated)
+            (id, chat_id, session_id, active, mcp, generated)
         VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true)
         RETURNING id
         """,
         chat_id,
-        call_id,
+        session_id,
         not soft,
         mcp,
         id,

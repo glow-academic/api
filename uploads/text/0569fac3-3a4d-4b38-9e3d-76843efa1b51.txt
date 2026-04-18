@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Assignment - Introduction to Computer Science</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { font-size: 16px; }
+        body { font-family: "Georgia", "Times New Roman", serif; background: #ffffff; color: #111827; line-height: 1.6; }
+        .document-container { max-width: 850px; margin: 2.5rem auto 3rem; padding: 3rem 3.5rem; background: #ffffff; border: 1px solid #d4d4d8; }
+        .document-title-section { padding-bottom: 1.75rem; margin-bottom: 1.75rem; border-bottom: 1.5px solid #9ca3af; text-align: center; }
+        .document-title-section h1 { font-size: 2.25rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: #111827; margin-bottom: 0.5rem; }
+        .document-title-section .class-info { font-size: 0.95rem; color: #4b5563; }
+        .meta-section { margin-bottom: 2.5rem; }
+        .meta-grid { display: table; width: 100%; border-collapse: collapse; border-top: 1px solid #d4d4d8; border-bottom: 1px solid #d4d4d8; }
+        .meta-item { display: table-row; }
+        .meta-label, .meta-value { display: table-cell; padding: 0.5rem 0.25rem; vertical-align: top; font-size: 0.95rem; border-top: 1px solid #e5e7eb; }
+        .meta-item:first-child .meta-label, .meta-item:first-child .meta-value { border-top: none; }
+        .meta-label { width: 28%; font-weight: 600; color: #374151; padding-right: 1.5rem; white-space: nowrap; }
+        .meta-value { color: #111827; }
+        .section { margin-bottom: 2.5rem; }
+        .section h2 { font-size: 1.35rem; font-weight: 700; color: #111827; margin-bottom: 1rem; border-bottom: 1px solid #9ca3af; padding-bottom: 0.4rem; }
+        .instructions-content { border-left: 3px solid #111827; padding: 1.25rem 1.5rem; background: #f9fafb; font-size: 0.98rem; color: #111827; }
+        .milestone { border: 1px solid #d4d4d8; padding: 1.5rem; background: #ffffff; margin-bottom: 1.5rem; }
+        .milestone-title { font-size: 1.1rem; font-weight: 600; color: #111827; margin-bottom: 0.5rem; }
+        .milestone-date { font-size: 0.85rem; color: #4b5563; margin-bottom: 0.75rem; }
+        .milestone-desc { font-size: 0.95rem; }
+        .requirement-item { margin-bottom: 0.75rem; padding-left: 1.5rem; position: relative; }
+        .requirement-item:before { content: "\25B8"; position: absolute; left: 0; color: #6b7280; }
+        .requirement-item:last-child { margin-bottom: 0; }
+        .submission-info { border: 1px solid #d4d4d8; padding: 1rem 1.5rem; background: #f9fafb; margin-top: 2rem; }
+        .submission-info h3 { font-size: 1rem; font-weight: 600; color: #111827; margin-bottom: 0.75rem; }
+        .submission-info ul { list-style: none; padding-left: 0; }
+        .submission-info li { margin-bottom: 0.5rem; padding-left: 1.5rem; position: relative; }
+        .submission-info li:before { content: "\2022"; position: absolute; left: 0; color: #6b7280; }
+        .document-footer { border-top: 1px solid #d4d4d8; padding: 1.5rem 0; margin-top: 1rem; font-size: 0.8rem; color: #4b5563; }
+        .footer-content { max-width: 850px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .footer-branding { display: flex; align-items: center; gap: 0.75rem; }
+        .footer-logo { width: 32px; height: 32px; border-radius: 2px; border: 1px solid #9ca3af; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.9rem; color: #111827; }
+        .footer-org-name { font-weight: 600; color: #111827; font-size: 0.9rem; }
+        .footer-meta { font-size: 0.8rem; color: #4b5563; }
+        @media print { body { background: #ffffff; color: #000000; } .document-container { margin: 0; padding: 0; border: none; } .document-footer { border-top: 1px solid #d4d4d8; margin-top: 1.5rem; padding-top: 0.75rem; } .milestone { border: 1px solid #c4c4c4; } }
+        @media (max-width: 768px) { .document-container { margin: 0.5rem; padding: 1.5rem 1.25rem 2rem; } .footer-content { flex-direction: column; align-items: flex-start; } }
+    </style>
+</head>
+<body>
+    <main class="document-container">
+        <section class="document-title-section">
+            <h1>Project 2: Student Records Management System</h1>
+            <div class="class-info">CS 180 - Introduction to Computer Science</div>
+        </section>
+
+        <section class="meta-section">
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <div class="meta-label">Department</div>
+                    <div class="meta-value">Computer Science</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Class</div>
+                    <div class="meta-value">CS 180 - Introduction to Computer Science</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Assignment Type</div>
+                    <div class="meta-value">Project</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Due Date</div>
+                    <div class="meta-value">Friday, November 15, 2024, 11:59 PM</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Total Points</div>
+                    <div class="meta-value">150</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Overview</h2>
+            <div class="instructions-content">
+                In this project you will build a command-line student records management system in Python. The system will allow users to add, search, update, and delete student records stored in a CSV file. This project tests your understanding of file I/O, data structures, functions, and error handling. You may work individually or in pairs.
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Requirements</h2>
+            <div class="milestone">
+                <div class="milestone-title">Core Functionality</div>
+                <div class="requirement-item">Add a new student record with name, ID, major, GPA, and enrollment date</div>
+                <div class="requirement-item">Search for students by name, ID, or major using partial matching</div>
+                <div class="requirement-item">Update any field of an existing student record</div>
+                <div class="requirement-item">Delete a student record by ID with confirmation prompt</div>
+                <div class="requirement-item">Display all records in a formatted table with column alignment</div>
+                <div class="requirement-item">Calculate and display class statistics (average GPA, count by major)</div>
+            </div>
+            <div class="milestone">
+                <div class="milestone-title">Technical Requirements</div>
+                <div class="requirement-item">All data must persist between program runs using CSV file storage</div>
+                <div class="requirement-item">Input validation for all fields (GPA must be 0.0-4.0, ID must be unique)</div>
+                <div class="requirement-item">Proper error handling with meaningful error messages</div>
+                <div class="requirement-item">At least 5 well-documented functions with docstrings</div>
+                <div class="requirement-item">Menu-driven interface with clean user prompts</div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Milestones</h2>
+            <div class="milestone">
+                <div class="milestone-title">Milestone 1: Design Document</div>
+                <div class="milestone-date">Due: October 25, 2024</div>
+                <div class="milestone-desc">Submit a 1-page design document describing your data structures, function signatures, and file format. Include a flowchart of the main program loop.</div>
+            </div>
+            <div class="milestone">
+                <div class="milestone-title">Milestone 2: Core Implementation</div>
+                <div class="milestone-date">Due: November 8, 2024</div>
+                <div class="milestone-desc">Working implementation of add, search, and display functionality. File I/O must be operational.</div>
+            </div>
+            <div class="milestone">
+                <div class="milestone-title">Milestone 3: Final Submission</div>
+                <div class="milestone-date">Due: November 15, 2024</div>
+                <div class="milestone-desc">Complete implementation with all features, error handling, and documentation.</div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Submission Instructions</h2>
+            <div class="submission-info">
+                <ul>
+                    <li>Submit all source files and your design document to Gradescope</li>
+                    <li>Include a README.txt with instructions on how to run your program</li>
+                    <li>If working in pairs, both partners must submit and list each other's names</li>
+                    <li>Include sample data file with at least 10 test records</li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <footer class="document-footer">
+        <div class="footer-content">
+            <div class="footer-branding">
+                <div class="footer-logo">P</div>
+                <div>
+                    <div class="footer-org-name">Purdue University</div>
+                    <div class="footer-meta">Department of Computer Science</div>
+                </div>
+            </div>
+            <div class="footer-meta">Computer Science &bull; CS 180</div>
+        </div>
+    </footer>
+</body>
+</html>

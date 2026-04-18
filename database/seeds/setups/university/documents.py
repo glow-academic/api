@@ -42,6 +42,27 @@ POLICY_TEMPLATE_RESOURCE = sid("uni/document-resource/policy-template")
 PROJECT_TEMPLATE_RESOURCE = sid("uni/document-resource/project-template")
 QUIZ_TEMPLATE_RESOURCE = sid("uni/document-resource/quiz-template")
 
+# Files/texts resource IDs — set on documents_resource at creation,
+# resolved later when file/text seeds run.
+FERPA_POLICY_FILES = sid("uni/files-resource/ferpa-policy")
+FERPA_GENERAL_FILES = sid("uni/files-resource/ferpa")
+ACADEMIC_INTEGRITY_FILES = sid("uni/files-resource/academic-integrity-policy")
+
+ACADEMIC_INTEGRITY_TEXTS = sid("uni/texts-resource/academic-integrity-policy")
+HOMEWORK_TEMPLATE_TEXTS = sid("uni/texts-resource/homework-template")
+LAB_TEMPLATE_TEXTS = sid("uni/texts-resource/lab-template")
+LECTURE_TEMPLATE_TEXTS = sid("uni/texts-resource/lecture-template")
+MIDTERM_TEMPLATE_TEXTS = sid("uni/texts-resource/midterm-template")
+PROJECT_TEMPLATE_TEXTS = sid("uni/texts-resource/project-template")
+QUIZ_TEMPLATE_TEXTS = sid("uni/texts-resource/quiz-template")
+SYLLABUS_TEMPLATE_TEXTS = sid("uni/texts-resource/syllabus-template")
+
+# Image resource IDs — set on documents_resource.image_ids at creation,
+# resolved later when image seeds run.
+FERPA_POLICY_IMAGE = sid("uni/images-resource/ferpa-policy")
+ACADEMIC_INTEGRITY_IMAGE = sid("uni/images-resource/academic-integrity")
+CLASSROOM_IMAGE = sid("uni/images-resource/classroom")
+
 # ---------------------------------------------------------------------------
 # Document definitions
 # ---------------------------------------------------------------------------
@@ -54,6 +75,9 @@ documents = [
         name="Academic Integrity Policy",
         description="Academic integrity and honor code policy document",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        file_id=ACADEMIC_INTEGRITY_FILES,
+        text_id=ACADEMIC_INTEGRITY_TEXTS,
+        image_ids=[ACADEMIC_INTEGRITY_IMAGE],
     ),
     dict(
         id=FERPA_POLICY,
@@ -61,6 +85,8 @@ documents = [
         name="FERPA Policy",
         description="Family Educational Rights and Privacy Act (FERPA) policy document",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        file_id=FERPA_POLICY_FILES,
+        image_ids=[FERPA_POLICY_IMAGE],
     ),
     dict(
         id=FERPA_GENERAL,
@@ -69,6 +95,7 @@ documents = [
         description="FERPA compliance and student privacy guidelines",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         parameter_field_ids=PF_FERPA_DOC,
+        file_id=FERPA_GENERAL_FILES,
     ),
     # ── Template documents ────────────────────────────────────────────────
     dict(
@@ -78,6 +105,7 @@ documents = [
         description="Template document for syllabus",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         parameter_field_ids=PF_DOC_SYLLABUS,
+        text_id=SYLLABUS_TEMPLATE_TEXTS,
     ),
     dict(
         id=HOMEWORK_TEMPLATE,
@@ -86,6 +114,7 @@ documents = [
         description="Template document for homework",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         parameter_field_ids=PF_DOC_HOMEWORK,
+        text_id=HOMEWORK_TEMPLATE_TEXTS,
     ),
     dict(
         id=LAB_TEMPLATE,
@@ -94,6 +123,7 @@ documents = [
         description="Template document for lab",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         parameter_field_ids=PF_DOC_LAB,
+        text_id=LAB_TEMPLATE_TEXTS,
     ),
     dict(
         id=LECTURE_TEMPLATE,
@@ -102,6 +132,7 @@ documents = [
         description="Template document for lecture",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         parameter_field_ids=PF_DOC_LECTURE,
+        text_id=LECTURE_TEMPLATE_TEXTS,
     ),
     dict(
         id=MIDTERM_TEMPLATE,
@@ -110,6 +141,7 @@ documents = [
         description="Template document for midterm",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         parameter_field_ids=PF_DOC_MIDTERM,
+        text_id=MIDTERM_TEMPLATE_TEXTS,
     ),
     dict(
         id=POLICY_TEMPLATE,
@@ -126,6 +158,7 @@ documents = [
         description="Template document for project",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         parameter_field_ids=PF_DOC_PROJECT,
+        text_id=PROJECT_TEMPLATE_TEXTS,
     ),
     dict(
         id=QUIZ_TEMPLATE,
@@ -134,5 +167,6 @@ documents = [
         description="Template document for quiz",
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         parameter_field_ids=PF_DOC_QUIZ,
+        text_id=QUIZ_TEMPLATE_TEXTS,
     ),
 ]

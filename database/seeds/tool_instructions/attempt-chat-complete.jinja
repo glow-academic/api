@@ -1,0 +1,10 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Chat marked as complete.
+- **Chat ID:** `{{ r.chat_id }}`
+- **Completion ID:** `{{ r.completion_id }}`
+{% elif results and results[0] and results[0].error %}
+Error completing chat: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

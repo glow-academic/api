@@ -16,7 +16,7 @@ from database.seeds.resources.permissions import PERMISSION_IDS
 
 _READ_OPS = ["get", "search", "docs", "refresh", "export", "generations", "context"]
 _WRITE_OPS = ["create", "update", "delete", "duplicate", "draft", "drafts", "generate", "name", "grade", "feedback", "group", "problem", "csv"]
-_LIFECYCLE_OPS = ["start", "end", "end_all", "stop", "join", "leave", "next", "previous", "response", "archive", "resolve", "chat_get", "chat_create", "chat_send", "chat_stop", "chat_end", "chat_grade", "chat_voice", "chat_mute", "chat_silence", "chat_response", "chat_feedback", "chat_strengths", "chat_improvements", "chat_analyses", "chat_hints"]
+_LIFECYCLE_OPS = ["start", "end", "end_all", "stop", "join", "leave", "next", "previous", "response", "archive", "resolve", "chat_get", "chat_create", "chat_send", "chat_stop", "chat_end", "chat_grade", "chat_voice", "chat_mute", "chat_silence", "chat_response", "chat_feedback", "chat_strengths", "chat_improvements", "chat_analyses", "chat_complete", "chat_hints"]
 _ALL_CRUD = _READ_OPS + _WRITE_OPS + _LIFECYCLE_OPS
 _MEDIA_OPS = [
     "image_upload", "image_download",
@@ -94,7 +94,7 @@ roles = [
             + _pids(["test"], _child_ops(_TEST_VIEWS))
             + _pids(["system"], _child_ops(_SYSTEM_VIEWS))
             # Media ops
-            + _pids(["scenario", "document", "attempt", "test"], _MEDIA_OPS)
+            + _pids(["scenario", "document", "attempt", "test", "system"], _MEDIA_OPS)
         ),
     ),
     # ── Admin (level 1): CRUD on most, read on system artifacts ──
@@ -120,7 +120,7 @@ roles = [
             + _pids(["system"], _child_ops(_SYSTEM_VIEWS, _READ_OPS))
             # Media ops (group media now under system via compound ops)
             + _pids(["scenario", "document", "attempt", "test"], _MEDIA_OPS)
-            + _pids(["system"], _child_ops(["group"], _MEDIA_OPS))
+            + _pids(["system"], _MEDIA_OPS)
         ),
     ),
     # ── Instructional (level 2): CRUD on training, read on analytics ──
@@ -145,7 +145,7 @@ roles = [
             + _pids(["system"], _child_ops(["activity", "session", "pricing", "group"], _READ_OPS))
             # Media ops
             + _pids(["scenario", "document", "attempt", "test"], _MEDIA_OPS)
-            + _pids(["system"], _child_ops(["group"], _MEDIA_OPS))
+            + _pids(["system"], _MEDIA_OPS)
         ),
     ),
     # ── GTA (level 3): read + practice ──

@@ -43,6 +43,10 @@ async def get_agent_drafts(
             COALESCE(ARRAY_AGG(DISTINCT q.qualities_id) FILTER (WHERE q.qualities_id IS NOT NULL AND q.active = false), '{}') AS pending_quality_ids,
             COALESCE(ARRAY_AGG(DISTINCT rb.rubrics_id) FILTER (WHERE rb.rubrics_id IS NOT NULL), '{}') AS rubric_ids,
             COALESCE(ARRAY_AGG(DISTINCT rb.rubrics_id) FILTER (WHERE rb.rubrics_id IS NOT NULL AND rb.active = false), '{}') AS pending_rubric_ids,
+            COALESCE(ARRAY_AGG(DISTINCT pr.prompts_id) FILTER (WHERE pr.prompts_id IS NOT NULL), '{}') AS prompt_ids,
+            COALESCE(ARRAY_AGG(DISTINCT pr.prompts_id) FILTER (WHERE pr.prompts_id IS NOT NULL AND pr.active = false), '{}') AS pending_prompt_ids,
+            COALESCE(ARRAY_AGG(DISTINCT ins.instructions_id) FILTER (WHERE ins.instructions_id IS NOT NULL), '{}') AS instruction_ids,
+            COALESCE(ARRAY_AGG(DISTINCT ins.instructions_id) FILTER (WHERE ins.instructions_id IS NOT NULL AND ins.active = false), '{}') AS pending_instruction_ids,
             COALESCE(ARRAY_AGG(DISTINCT ag.agents_id) FILTER (WHERE ag.agents_id IS NOT NULL), '{}') AS agent_ids,
             COALESCE(ARRAY_AGG(DISTINCT ag.agents_id) FILTER (WHERE ag.agents_id IS NOT NULL AND ag.active = false), '{}') AS pending_agent_ids
         FROM agent_drafts_entry d
@@ -58,6 +62,8 @@ async def get_agent_drafts(
         LEFT JOIN agent_drafts_voices_connection v ON v.draft_id = d.id
         LEFT JOIN agent_drafts_qualities_connection q ON q.draft_id = d.id
         LEFT JOIN agent_drafts_rubrics_connection rb ON rb.draft_id = d.id
+        LEFT JOIN agent_drafts_prompts_connection pr ON pr.draft_id = d.id
+        LEFT JOIN agent_drafts_instructions_connection ins ON ins.draft_id = d.id
         LEFT JOIN agent_drafts_agents_connection ag ON ag.draft_id = d.id
         WHERE d.id = ANY($1)
           AND d.active = true
@@ -88,6 +94,8 @@ async def get_agent_drafts(
             voice_ids=r["voice_ids"],
             quality_ids=r["quality_ids"],
             rubric_ids=r["rubric_ids"],
+            prompt_ids=r["prompt_ids"],
+            instruction_ids=r["instruction_ids"],
             agent_ids=r["agent_ids"],
             pending_name_ids=r["pending_name_ids"],
             pending_description_ids=r["pending_description_ids"],
@@ -100,6 +108,8 @@ async def get_agent_drafts(
             pending_voice_ids=r["pending_voice_ids"],
             pending_quality_ids=r["pending_quality_ids"],
             pending_rubric_ids=r["pending_rubric_ids"],
+            pending_prompt_ids=r["pending_prompt_ids"],
+            pending_instruction_ids=r["pending_instruction_ids"],
             pending_agent_ids=r["pending_agent_ids"],
         )
         for r in rows

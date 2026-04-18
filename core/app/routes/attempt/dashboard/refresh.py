@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Request, Response
 
-from app.infra.dashboard.group import group_dashboard_impl
+from app.infra.attempt.group import group_attempt_impl
 from app.infra.dashboard.refresh import refresh_dashboard_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
@@ -25,7 +25,7 @@ async def dashboard_refresh(
     # Resolve time-windowed group for audit linking
     group_id = None
     if session_id:
-        group_result = await group_dashboard_impl(
+        group_result = await group_attempt_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
         )
         group_id = group_result.group_id

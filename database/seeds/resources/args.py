@@ -104,6 +104,7 @@ SHARED_ARGS = {
     "invocation_id": dict(id=sid("arg/invocation_id"), name="invocation_id", field_type="uuid"),
     "limit": dict(id=sid("arg/limit"), name="limit", field_type="integer"),
     "message": dict(id=sid("arg/message"), name="message", field_type="string", required=True),
+    "message_id": dict(id=sid("arg/message_id"), name="message_id", field_type="uuid", description="UUID of the message"),
     "message_limit": dict(id=sid("arg/message_limit"), name="message_limit", field_type="integer"),
     "message_offset": dict(id=sid("arg/message_offset"), name="message_offset", field_type="integer"),
     "model_id": dict(id=sid("arg/model_id"), name="model_id", field_type="uuid"),
@@ -513,6 +514,7 @@ SHARED_ARGS = {
     "departments_ids": dict(id=sid("arg/departments_ids"), name="departments_ids", field_type="uuid[]", description="Department identifiers"),
     "descriptions_ids": dict(id=sid("arg/descriptions_ids"), name="descriptions_ids", field_type="uuid[]", description="Description identifiers"),
     "documents_ids": dict(id=sid("arg/documents_ids"), name="documents_ids", field_type="uuid[]", description="Document identifiers"),
+    "hint": dict(id=sid("arg/hint"), name="hint", field_type="text", description="Hint text content"),
     "hints_enabled": dict(id=sid("arg/hints_enabled"), name="hints_enabled", field_type="boolean", description="Whether hints are enabled"),
     "images_ids": dict(id=sid("arg/images_ids"), name="images_ids", field_type="uuid[]", description="Image identifiers"),
     "improvements_enabled": dict(id=sid("arg/improvements_enabled"), name="improvements_enabled", field_type="boolean", description="Whether improvements are enabled"),
@@ -534,6 +536,7 @@ SHARED_ARGS = {
     "text_enabled": dict(id=sid("arg/text_enabled"), name="text_enabled", field_type="boolean", description="Whether text is enabled"),
     "time_limit": dict(id=sid("arg/time_limit"), name="time_limit", field_type="integer", description="Time limit in seconds"),
     "title": dict(id=sid("arg/title"), name="title", field_type="text", description="Chat title"),
+    "total": dict(id=sid("arg/total"), name="total", field_type="integer", description="Total points for feedback"),
     "videos_ids": dict(id=sid("arg/videos_ids"), name="videos_ids", field_type="uuid[]", description="Video identifiers"),
 }
 

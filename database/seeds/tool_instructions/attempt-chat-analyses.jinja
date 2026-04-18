@@ -1,9 +1,7 @@
 {% if success and results and results[0] and results[0].result %}
 {% set r = results[0].result %}
-Analyses created.
-- **Success:** {{ r.success }}
-{% if r.analysis_ids %}- **Analysis IDs:** {% for aid in r.analysis_ids %}`{{ aid }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
-{% if r.idempotency_key %}- **Idempotency Key:** `{{ r.idempotency_key }}`{% endif %}
+Analysis created.
+- **Analysis ID:** `{{ r.analysis_id }}`
 {% elif results and results[0] and results[0].error %}
 Error creating analyses: {{ results[0].error }}
 {% else %}
