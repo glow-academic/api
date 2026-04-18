@@ -833,6 +833,51 @@ async def get_attempt_internal(
         and bool(chat_entry_id)
     )
 
+    # ── Resolve next_chat_entry_id (first parent chat not yet set up) ──
+    next_chat_entry_id: UUID | None = None
+    if has_remaining and is_active:
+        resolved_chat_entry_ids = {
+            chat.chat_id for chat in chats_result if chat.chat_id
+        } if chats_result else set()
+        try:
+            from app.tools.entries.home_chat.search import search_home_chats
+            from app.tools.entries.practice_chat.search import search_practice_chats
+            from app.tools.entries.attempt_home.search import search_attempt_homes
+            from app.tools.entries.attempt_practice.search import (
+                search_attempt_practice_entries,
+            )
+
+            async with pool.acquire() as conn:
+                if practice:
+                    practice_entries = await search_attempt_practice_entries(
+                        conn, attempt_ids=[attempt_id], bypass_mv=True,
+                    )
+                    if practice_entries:
+                        parent_links = await search_practice_chats(
+                            conn, practice_ids=[practice_entries[0].practice_id],
+                            limit=1000, bypass_mv=True,
+                        )
+                else:
+                    home_entries = await search_attempt_homes(
+                        conn, attempt_ids=[attempt_id], bypass_mv=True,
+                    )
+                    if home_entries:
+                        parent_links = await search_home_chats(
+                            conn, home_ids=[home_entries[0].home_id],
+                            limit=1000, bypass_mv=True,
+                        )
+                    else:
+                        parent_links = []
+
+            # Filter to unresolved, sort by position/creation
+            for link in sorted(parent_links, key=lambda l: (getattr(l, "position", 0) or 0)):
+                link_chat_id = link.chat_id
+                if link_chat_id and link_chat_id not in resolved_chat_entry_ids:
+                    next_chat_entry_id = link_chat_id
+                    break
+        except Exception:
+            pass  # Non-fatal — client can still navigate to results
+
     continuation_options = None
     previous_chats = ctx.entries.get("previous_chats", [])
     if is_lobby and not practice and previous_chats:
@@ -884,6 +929,7 @@ async def get_attempt_internal(
         has_messages=has_messages,
         rubric_structure=rubric_structure,
         continuation_options=continuation_options,
+        next_chat_entry_id=next_chat_entry_id,
     )
 
 
@@ -944,6 +990,7 @@ async def get_attempt_impl(
         rubric_structure=data.rubric_structure,
         training_id=data.training_id,
         chat_entry_id=data.chat_entry_id,
+        next_chat_entry_id=data.next_chat_entry_id,
         resources=data.resources_payload,
         entries=AttemptEntries(
             attempt=[data.attempt_item] if data.attempt_item else None,

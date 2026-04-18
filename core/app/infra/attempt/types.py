@@ -679,6 +679,8 @@ class GetAttemptDetailResponse(BaseModel):
     # Training context (for lobby flow)
     training_id: UUID | None = Field(None, description="UUID of the training")
     chat_entry_id: UUID | None = Field(None, description="UUID of the chat entry")
+    # Navigation — next chat to set up (None when all done)
+    next_chat_entry_id: UUID | None = Field(None, description="UUID of the next chat entry to set up, None when all chats are complete")
     # New normalized maps
     resources: AttemptResources | None = Field(None, description="Resource maps keyed by ID")
     entries: AttemptEntries | None = Field(None, description="Entry payloads by type")
@@ -744,6 +746,7 @@ class AttemptInternalData:
     has_messages: bool = False
     rubric_structure: RubricStructureData | None = None
     continuation_options: AvailableContinuationOptions | None = None
+    next_chat_entry_id: UUID | None = None
 
 
 # =============================================================================

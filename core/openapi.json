@@ -72451,6 +72451,19 @@
             "title": "Chat Entry Id",
             "description": "UUID of the chat entry"
           },
+          "next_chat_entry_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Chat Entry Id",
+            "description": "UUID of the next chat entry to set up, None when all chats are complete"
+          },
           "resources": {
             "anyOf": [
               {
@@ -72709,6 +72722,19 @@
             ],
             "title": "Chat Entry Id",
             "description": "UUID of the chat entry"
+          },
+          "next_chat_entry_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Chat Entry Id",
+            "description": "UUID of the next chat entry to set up, None when all chats are complete"
           },
           "resources": {
             "anyOf": [
