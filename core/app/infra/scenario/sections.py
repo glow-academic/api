@@ -383,7 +383,7 @@ def build_scenario_get_result(
                 key=flag.type,
                 label=flag.name,
                 description=flag.description,
-                icon_id=flag.icon,
+                icon_id=flag.icon_id,
                 flag_option_id=flag.id,
                 generated=flag.generated,
                 video_flag=flag.type == "questions_enabled",

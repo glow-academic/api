@@ -250,7 +250,7 @@ def build_persona_get_result(
                 key=flag.name,
                 label=flag.name,
                 description=flag.description,
-                icon_id=flag.icon,
+                icon_id=flag.icon_id,
                 flag_option_id=flag.id,
                 generated=flag.generated,
                 selected=flag.id in selected_flag_ids,

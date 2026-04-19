@@ -144,7 +144,7 @@ def _flag_payload(item, *, selected: bool, suggested: bool, pending: bool) -> di
         "key": item.name,
         "label": item.name,
         "description": item.description,
-        "icon_id": item.icon,
+        "icon_id": item.icon_id,
         "flag_option_id": item.id,
         "generated": item.generated,
         "show": True,

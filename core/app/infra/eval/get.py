@@ -290,7 +290,7 @@ async def get_eval_impl(
             key=_derive_flag_key_and_label(getattr(item, "name", None) or getattr(item, "type", None))[0],
             label=_derive_flag_key_and_label(getattr(item, "name", None) or getattr(item, "type", None))[1],
             description=item.description,
-            icon_id=getattr(item, "icon", None),
+            icon_id=getattr(item, "icon_id", None),
             flag_option_id=item.id,
             show=show_flags_map["flags"],
             required=required_flags_map["flags"],

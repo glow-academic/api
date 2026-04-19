@@ -328,7 +328,7 @@ async def get_cohort_impl(
             "key": item.name,
             "label": item.name,
             "description": item.description,
-            "icon_id": item.icon,
+            "icon_id": item.icon_id,
             "flag_option_id": item.id,
             "show": compute_show_flag(),
             "required": compute_flag_required(),
