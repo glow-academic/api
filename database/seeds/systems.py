@@ -14,6 +14,7 @@ from database.seeds.agents import (
     ACTIVITY_AGENT_RESOURCE,
     AGENT_AGENT_RESOURCE,
     ATTEMPT_AGENT_RESOURCE,
+    ATTEMPT_REALTIME_AGENT_RESOURCE,
     AUTH_AGENT_RESOURCE,
     BENCHMARK_AGENT_RESOURCE,
     CHAT_AGENT_RESOURCE,
@@ -112,8 +113,8 @@ systems = [
     dict(
         id=ATTEMPT_CHAT_SYSTEM,
         name="Attempt Chat System",
-        description="System for attempt-chat agents",
-        agent_ids=[ATTEMPT_AGENT_RESOURCE],
+        description="System for attempt-chat agents — text + realtime",
+        agent_ids=[ATTEMPT_AGENT_RESOURCE, ATTEMPT_REALTIME_AGENT_RESOURCE],
         resolution_strategy="max",
     ),
     dict(

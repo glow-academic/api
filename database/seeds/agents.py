@@ -38,6 +38,7 @@ ACTIVITY_AGENT = sid("agent/activity")
 AGENT_AGENT = sid("agent/agent")
 ATTEMPT_AGENT = sid("agent/attempt")
 # TODO: Remove after cleanup
+ATTEMPT_REALTIME_AGENT = sid("agent/attempt-realtime")
 ATTEMPT_CHAT_AGENT = sid("agent/attempt-chat")
 ATTEMPT_CHAT_AGENT_2 = sid("agent/attempt-chat-2")
 ATTEMPT_GRADE_AGENT = sid("agent/attempt-grade")
@@ -83,6 +84,7 @@ COMPOSER_AGENT = sid("agent/composer")
 ACTIVITY_AGENT_RESOURCE = sid("agent-resource/activity")
 AGENT_AGENT_RESOURCE = sid("agent-resource/agent")
 ATTEMPT_AGENT_RESOURCE = sid("agent-resource/attempt")
+ATTEMPT_REALTIME_AGENT_RESOURCE = sid("agent-resource/attempt-realtime")
 # TODO: Remove after cleanup
 ATTEMPT_CHAT_AGENT_RESOURCE = sid("agent-resource/attempt-chat")
 ATTEMPT_CHAT_AGENT_2_RESOURCE = sid("agent-resource/attempt-chat-2")
@@ -218,6 +220,56 @@ agents = [
         ],
         prompt_id=_prompt_id("Attempt Chat"),  # TODO: Create dedicated "Attempt" prompt
         instruction_ids=[_instruction_id("Attempt Chat")],  # TODO: Create dedicated "Attempt" instruction
+    ),
+    # Realtime attempt agent — same tools as text agent, uses glow-realtime model
+    dict(
+        id=ATTEMPT_REALTIME_AGENT,
+        resource_id=ATTEMPT_REALTIME_AGENT_RESOURCE,
+        name="Attempt Realtime",
+        description="AI agent for voice-based training attempts — same capabilities as text agent, uses realtime model",
+        flag_ids=[AGENT_ACTIVE_FLAG],
+        model_id=_role_model("realtime"),
+        tool_ids=[
+            sid("tool-resource/attempt/archive"),
+            sid("tool-resource/attempt/context"),
+            sid("tool-resource/attempt/create"),
+            sid("tool-resource/attempt/draft"),
+            sid("tool-resource/attempt/drafts"),
+            sid("tool-resource/attempt/export"),
+            sid("tool-resource/attempt/generate"),
+            sid("tool-resource/attempt/generations"),
+            sid("tool-resource/attempt/get"),
+            sid("tool-resource/attempt/grade"),
+            sid("tool-resource/attempt/group"),
+            sid("tool-resource/attempt/message"),
+            sid("tool-resource/attempt/problem"),
+            sid("tool-resource/attempt/refresh"),
+            sid("tool-resource/attempt/response"),
+            sid("tool-resource/attempt/search"),
+            sid("tool-resource/attempt/start"),
+            sid("tool-resource/attempt/stop"),
+            sid("tool-resource/attempt/chat_get"),
+            sid("tool-resource/attempt/chat_create"),
+            sid("tool-resource/attempt/chat_message"),
+            sid("tool-resource/attempt/chat_stop"),
+            sid("tool-resource/attempt/chat_grade"),
+            sid("tool-resource/attempt/chat_voice"),
+            sid("tool-resource/attempt/chat_silence"),
+            sid("tool-resource/attempt/chat_response"),
+            sid("tool-resource/attempt/chat_feedback"),
+            sid("tool-resource/attempt/chat_strengths"),
+            sid("tool-resource/attempt/chat_improvements"),
+            sid("tool-resource/attempt/chat_analyses"),
+            sid("tool-resource/attempt/chat_complete"),
+            sid("tool-resource/attempt/chat_hints"),
+            sid("tool-resource/attempt-audio/create"),
+            sid("tool-resource/attempt-audio/download"),
+            sid("tool-resource/attempt-audio/start"),
+            sid("tool-resource/attempt-audio/frame"),
+            sid("tool-resource/attempt-audio/stop"),
+        ],
+        prompt_id=_prompt_id("Attempt Chat"),
+        instruction_ids=[_instruction_id("Attempt Chat")],
     ),
     dict(
         id=AUTH_AGENT,
