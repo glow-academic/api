@@ -171,17 +171,43 @@ async def execute_generation(
 
     total_result = ExecuteGenerationResult(run_id=run_id)
 
-    for dispatch in prepared.dispatches:
+    # Run all agent dispatches in parallel (enables A/B evals when
+    # multiple agents in the winning system handle the same operations)
+    if len(prepared.dispatches) > 1:
+        import asyncio
+        agent_results = await asyncio.gather(
+            *[
+                _execute_agent_dispatch(
+                    pool, redis,
+                    dispatch=dispatch,
+                    prepared=prepared,
+                    sid=sid,
+                    tool_soft=tool_soft,
+                    max_iterations=max_iterations,
+                    internal_sio=internal_sio,
+                )
+                for dispatch in prepared.dispatches
+            ],
+            return_exceptions=True,
+        )
+        for agent_result in agent_results:
+            if isinstance(agent_result, Exception):
+                logger.error(f"Agent dispatch failed: {agent_result}")
+                continue
+            total_result.total_input_tokens += agent_result.total_input_tokens
+            total_result.total_output_tokens += agent_result.total_output_tokens
+            total_result.tool_results.extend(agent_result.tool_results)
+            total_result.assistant_output = agent_result.assistant_output
+    elif prepared.dispatches:
         agent_result = await _execute_agent_dispatch(
             pool, redis,
-            dispatch=dispatch,
+            dispatch=prepared.dispatches[0],
             prepared=prepared,
             sid=sid,
             tool_soft=tool_soft,
             max_iterations=max_iterations,
             internal_sio=internal_sio,
         )
-
         total_result.total_input_tokens += agent_result.total_input_tokens
         total_result.total_output_tokens += agent_result.total_output_tokens
         total_result.tool_results.extend(agent_result.tool_results)

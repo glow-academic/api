@@ -518,10 +518,22 @@ def build_agent_groups_from_scores(
     """
     agent_groups: dict[UUID, list[str]] = {}
 
+    # Determine the winning system from scores.best
+    winning_system_id: UUID | None = None
+    if hasattr(scores, "best"):
+        for best_tool in scores.best.values():
+            if best_tool is not None:
+                winning_system_id = best_tool.system_id
+                break
+
     # Operations-based matching via tool graph
+    # Include ALL agents from the winning system that can handle the operations
     if operations and tool_graph and hasattr(tool_graph, "tools"):
         perm_set = {(artifact_type, op) for op in operations}
         for resolved_tool in tool_graph.tools:
+            # Filter to winning system only
+            if winning_system_id and resolved_tool.system_id != winning_system_id:
+                continue
             if (resolved_tool.target, resolved_tool.operation) in perm_set:
                 agent_groups.setdefault(resolved_tool.agent_id, []).append(
                     resolved_tool.target
@@ -533,7 +545,7 @@ def build_agent_groups_from_scores(
         }
         return agent_groups
 
-    # Fallback: resource_type scoring
+    # Fallback: resource_type scoring (winning system only)
     for rt in resource_types:
         best = scores.best.get(rt)
         if best is not None:
