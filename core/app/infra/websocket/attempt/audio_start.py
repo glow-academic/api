@@ -10,6 +10,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from app.infra.attempt.client_types import AttemptAudioStartPayload
+from app.infra.attempt.group import group_attempt_impl
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.websocket.attempt_types import (
@@ -61,13 +62,17 @@ async def attempt_audio_start_internal_impl(
     pool = get_pool()
     internal_sio = get_internal_sio()
 
+    redis = get_redis_client()
+
     identity = await resolve_profile_identity_context(
-        pool, profile_id, get_redis_client(), session_id=session_id
+        pool, profile_id, redis, session_id=session_id
     )
     profiles_id = identity.profiles_id if identity else None
-    group_id = identity.group_id if identity else None
-    if not group_id:
-        raise ValueError(f"No group found for chat {chat_id}")
+
+    group_result = await group_attempt_impl(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+    )
+    group_id = group_result.group_id
 
     async with pool.acquire() as conn:
         # Step 1: Resolve attempt_id from attempt_chat_entry
