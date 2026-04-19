@@ -14606,56 +14606,6 @@
         ]
       }
     },
-    "/attempt/speak": {
-      "post": {
-        "tags": [
-          "attempt"
-        ],
-        "summary": "Attempt Speak",
-        "description": "Push audio bytes into a conversation's inbound buffer.",
-        "operationId": "attempt_speak_attempt_speak_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AttemptSpeakRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AttemptSpeakResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt"
-        ]
-      }
-    },
     "/attempt/stop": {
       "post": {
         "tags": [
@@ -14886,20 +14836,20 @@
         ]
       }
     },
-    "/attempt/chat/send": {
+    "/attempt/chat/message": {
       "post": {
         "tags": [
           "attempt",
           "attempt-chat"
         ],
-        "summary": "Chat Send",
-        "description": "Send text or audio input to an attempt chat.\n\nRouting logic:\n- Voice session active + audio_id \u2192 feed audio to voice pipeline\n- Voice session active + text \u2192 feed text to voice pipeline (TTS)\n- No voice session + text \u2192 standard text generation pipeline\n- No voice session + audio_id \u2192 STT \u2192 standard text pipeline",
-        "operationId": "chat_send_attempt_chat_send_post",
+        "summary": "Chat Message",
+        "description": "Create a message in an attempt chat.",
+        "operationId": "chat_message_attempt_chat_message_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ChatSendRequest"
+                "$ref": "#/components/schemas/ChatMessageRequest"
               }
             }
           },
@@ -14911,7 +14861,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ChatSendResponse"
+                  "$ref": "#/components/schemas/ChatMessageResponse"
                 }
               }
             }
@@ -15068,6 +15018,58 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AudioStartInternalResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
+    "/attempt/chat/speak": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Speak",
+        "description": "Push audio bytes into a conversation's inbound buffer.",
+        "operationId": "chat_speak_attempt_chat_speak_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatSpeakRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatSpeakResponse"
                 }
               }
             }
@@ -43758,38 +43760,6 @@
         "title": "AttemptResponseResultEvent",
         "description": "Server-to-client: response submission result."
       },
-      "AttemptSpeakRequest": {
-        "properties": {
-          "conversation_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Conversation Id"
-          },
-          "audio": {
-            "type": "string",
-            "title": "Audio"
-          }
-        },
-        "type": "object",
-        "required": [
-          "conversation_id",
-          "audio"
-        ],
-        "title": "AttemptSpeakRequest"
-      },
-      "AttemptSpeakResponse": {
-        "properties": {
-          "accepted": {
-            "type": "boolean",
-            "title": "Accepted"
-          }
-        },
-        "type": "object",
-        "required": [
-          "accepted"
-        ],
-        "title": "AttemptSpeakResponse"
-      },
       "AttemptStartPayload": {
         "properties": {
           "home_id": {
@@ -47782,6 +47752,87 @@
         ],
         "title": "ChatImprovementsResponse"
       },
+      "ChatMessageRequest": {
+        "properties": {
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "persona_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Persona Id"
+          },
+          "audio_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Id"
+          },
+          "parent_message_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Message Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_id",
+          "text"
+        ],
+        "title": "ChatMessageRequest"
+      },
+      "ChatMessageResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message_id": {
+            "type": "string",
+            "title": "Message Id"
+          },
+          "content_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Content Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message_id",
+          "content_ids"
+        ],
+        "title": "ChatMessageResponse"
+      },
       "ChatNameResource": {
         "properties": {
           "id": {
@@ -48386,74 +48437,6 @@
         "type": "object",
         "title": "ChatScenarioResource"
       },
-      "ChatSendRequest": {
-        "properties": {
-          "chat_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Chat Id"
-          },
-          "text": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Text"
-          },
-          "audio_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Audio Id"
-          },
-          "parent_message_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parent Message Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "chat_id"
-        ],
-        "title": "ChatSendRequest"
-      },
-      "ChatSendResponse": {
-        "properties": {
-          "accepted": {
-            "type": "boolean",
-            "title": "Accepted"
-          },
-          "message_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Message Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "accepted",
-          "message_id"
-        ],
-        "title": "ChatSendResponse"
-      },
       "ChatSilenceRequest": {
         "properties": {
           "chat_id": {
@@ -48773,6 +48756,56 @@
         ],
         "title": "ChatSimulationOperational",
         "description": "Simulation data for starting a chat session.\n\nContains data needed to start a simulation AND card display stats.\nNow serves as the unified type for home/practice simulation cards."
+      },
+      "ChatSpeakRequest": {
+        "properties": {
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
+          "chat_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chat Id"
+          },
+          "audio": {
+            "type": "string",
+            "title": "Audio"
+          }
+        },
+        "type": "object",
+        "required": [
+          "audio"
+        ],
+        "title": "ChatSpeakRequest"
+      },
+      "ChatSpeakResponse": {
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "accepted"
+        ],
+        "title": "ChatSpeakResponse"
       },
       "ChatStrengthItem": {
         "properties": {

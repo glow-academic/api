@@ -147,7 +147,6 @@ async def create_tool_impl(
                 args_output_ids=item.args_outputs_ids,
                 permission_ids=item.permission_ids,
                 instruction_id=item.instruction_id,
-                agent_id=item.agent_id,
             )
             snapshot_ids.append(tools_resource_id)
 
