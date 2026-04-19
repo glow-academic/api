@@ -35,7 +35,7 @@ JUNCTIONS: list[tuple[str, str, str, str]] = [
         "provider_key_ids",
     ),
     ("thresholds", "setting_thresholds_junction", "thresholds_id", "threshold_ids"),
-    ("agents", "setting_systems_junction", "systems_id", "agents_ids"),
+    ("agents", "setting_agents_junction", "agents_id", "agents_ids"),
     ("settings", "setting_settings_junction", "settings_id", "setting_ids"),
     ("auths", "setting_auths_junction", "auths_id", "auth_ids"),
     (
