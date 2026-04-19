@@ -1,0 +1,10 @@
+INPUT:
+  grade_id: 019da39e-b70f-7127-96ea-8d93595a8a18
+  standard_id: 4d9deeae-9bac-5a18-9178-8e480e8c6384
+  feedback: The trainee did not adapt their approach to the student's needs. The student expressed confusion and mild frustration, but the trainee did not acknowledge or respond to these emotions, missing an opportunity to provide support or adjust their communication style.
+
+OUTPUT:
+Feedback created.
+- **Feedback ID:** ``
+- **Standard:** ``
+- **Score:**  /

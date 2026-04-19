@@ -1,0 +1,10 @@
+INPUT:
+  chat_id: 019da39e-49f7-780c-bb25-2be550a8aa2a
+  score: 7
+
+OUTPUT:
+Grading complete.
+- **Chat ID:** `019da39e-49f7-780c-bb25-2be550a8aa2a`
+- **Grade ID:** `019da39e-b70f-7127-96ea-8d93595a8a18`
+- **Score:** 7
+- **Passed:** False

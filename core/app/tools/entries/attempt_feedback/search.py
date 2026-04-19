@@ -24,7 +24,7 @@ async def search_attempt_feedback_entries(
 
     rows = await conn.fetch(
         f"""
-        SELECT feedback_id, grade_id, total, score, feedback, created_at
+        SELECT feedback_id, grade_id, standard_id, total, feedback, created_at
         FROM {source}
         WHERE ($1::uuid[] IS NULL OR grade_id = ANY($1))
         ORDER BY created_at DESC

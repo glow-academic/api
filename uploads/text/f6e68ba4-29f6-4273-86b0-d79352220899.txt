@@ -1,0 +1,10 @@
+INPUT:
+  grade_id: 019da39e-b70f-7127-96ea-8d93595a8a18
+  standard_id: 93e0c70f-2653-5e01-83bc-aa9c53e6caf0
+  feedback: The communication was not professional or effective. The trainee's only response was a generic greeting, which did not acknowledge the student's confusion or frustration. There was no attempt to clarify, empathize, or follow up on the student's concerns.
+
+OUTPUT:
+Feedback created.
+- **Feedback ID:** ``
+- **Standard:** ``
+- **Score:**  /

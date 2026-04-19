@@ -1,0 +1,10 @@
+INPUT:
+  grade_id: 019da39e-b70f-7127-96ea-8d93595a8a18
+  standard_id: 1d721b7f-de74-5a03-b83d-f58112d50304
+  feedback: The session was not managed effectively in terms of time. The only message from the trainee was a generic greeting ('Hi, how are you?'), which did not move the session forward or make use of the available time to address the student's confusion. This resulted in an early and unproductive end to the conversation.
+
+OUTPUT:
+Feedback created.
+- **Feedback ID:** ``
+- **Standard:** ``
+- **Score:**  /
