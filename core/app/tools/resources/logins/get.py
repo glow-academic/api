@@ -1,41 +1,42 @@
-"""Flags Resource GET — reusable data-access layer."""
+"""Logins Resource GET — reusable data-access layer."""
 
 from uuid import UUID
 
 import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
-from app.tools.resources.flags.types import GetFlagResponse
+from app.tools.resources.logins.types import GetLoginsResponse
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
 from app.utils.cache.set_cached import set_cached
 
 
-async def get_flags(
+async def get_logins(
     conn: asyncpg.Connection,
     ids: list[UUID],
     redis: Redis,
     bypass_cache: bool = False,
-) -> list[GetFlagResponse]:
-    """Fetch flags_resource entries by IDs."""
+) -> list[GetLoginsResponse]:
+    """Fetch logins_resource entries by IDs."""
     if not ids:
         return []
 
-    tags = ["resources", "flags"]
-    key = cache_key("/resources/flags/get", {"ids": [str(id) for id in ids]})
+    tags = ["resources", "logins"]
+    key = cache_key("/resources/logins/get", {"ids": [str(id) for id in ids]})
 
     if not bypass_cache:
         cached = await get_cached(key, redis=redis)
         if cached:
             return [
-                GetFlagResponse.model_validate(item) for item in cached.get("items", [])
+                GetLoginsResponse.model_validate(item)
+                for item in cached.get("items", [])
             ]
 
     rows = await conn.fetch(
         """
-        SELECT id, name, description, type, icon_id,
-               created_at, active, mcp, generated, value
-        FROM flags_resource
+        SELECT id, profile_id, auth_id, icon_id, display_name, login_type,
+               created_at, active, generated, mcp
+        FROM logins_resource
         WHERE id = ANY($1)
         ORDER BY array_position($1, id)
     """,
@@ -43,17 +44,17 @@ async def get_flags(
     )
 
     items = [
-        GetFlagResponse(
+        GetLoginsResponse(
             id=r["id"],
-            name=r["name"],
-            description=r["description"],
-            type=r["type"],
+            profile_id=r["profile_id"],
+            auth_id=r["auth_id"],
             icon_id=r["icon_id"],
+            display_name=r["display_name"],
+            login_type=r["login_type"],
             created_at=r["created_at"],
             active=r["active"],
-            mcp=r["mcp"],
             generated=r["generated"],
-            value=r["value"],
+            mcp=r["mcp"],
         )
         for r in rows
     ]

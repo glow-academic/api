@@ -337,3 +337,27 @@ ALTER TABLE ONLY public.setting_thresholds_junction
 
 
 --
+
+-- Name: setting_logins_junction; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.setting_logins_junction (
+    setting_id uuid NOT NULL,
+    logins_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+
+-- Name: setting_logins_junction setting_logins_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_logins_junction
+    ADD CONSTRAINT setting_logins_junction_pkey PRIMARY KEY (setting_id, logins_id);
+
+
+--

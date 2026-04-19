@@ -45,6 +45,7 @@ JUNCTIONS: list[tuple[str, str, str, str]] = [
         "auth_item_value_ids",
     ),
     ("mcp", "setting_mcp_junction", "mcp_id", "mcp_ids"),
+    ("logins", "setting_logins_junction", "logins_id", "logins_ids"),
 ]
 
 
@@ -67,6 +68,7 @@ async def get_settings(
     auths: bool = False,
     auth_item_values: bool = False,
     mcp: bool = False,
+    logins: bool = False,
 ) -> list[GetSettingsResponse]:
     """Get setting artifacts by IDs with optional junction ID fetching."""
     if not ids:
@@ -87,6 +89,7 @@ async def get_settings(
         "auths": auths,
         "auth_item_values": auth_item_values,
         "mcp": mcp,
+        "logins": logins,
     }
 
     active_junctions = [

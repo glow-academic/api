@@ -14,7 +14,7 @@ CREATE TABLE public.flags_resource (
     generated boolean DEFAULT false CONSTRAINT flags_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT flags_mcp_not_null NOT NULL,
     type text DEFAULT 'active'::text NOT NULL,
-    icon text NOT NULL,
+    icon_id uuid,
     value boolean DEFAULT true NOT NULL
 );
 

@@ -11,7 +11,7 @@ class GetFlagResponse(BaseModel):
     name: str
     description: str
     type: str
-    icon: str
+    icon_id: UUID | None
     created_at: datetime
     active: bool
     mcp: bool

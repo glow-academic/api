@@ -14,8 +14,8 @@ async def create_flag(
     conn: asyncpg.Connection,
     name: str,
     description: str,
-    icon: str,
-    redis: Redis,
+    icon_id: UUID | None = None,
+    redis: Redis = None,
     id: UUID | None = None,
     flag_type: str = "active",
     value: bool = True,
@@ -25,13 +25,13 @@ async def create_flag(
     """Create a flag resource."""
     flag_id = await conn.fetchval(
         """
-        INSERT INTO flags_resource (id, name, description, icon, type, value, active, mcp, generated)
+        INSERT INTO flags_resource (id, name, description, icon_id, type, value, active, mcp, generated)
         VALUES (COALESCE($8, uuidv7()), $1, $2, $3, $4, $5, $6, $7, $7)
         RETURNING id
     """,
         name,
         description,
-        icon,
+        icon_id,
         flag_type,
         value,
         not soft,

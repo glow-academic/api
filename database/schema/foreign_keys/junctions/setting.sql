@@ -253,3 +253,21 @@ ALTER TABLE ONLY public.setting_thresholds_junction
 
 
 --
+
+-- Name: setting_logins_junction setting_logins_junction_setting_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_logins_junction
+    ADD CONSTRAINT setting_logins_junction_setting_id_fkey FOREIGN KEY (setting_id) REFERENCES public.setting_artifact(id);
+
+
+--
+
+-- Name: setting_logins_junction setting_logins_junction_logins_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_logins_junction
+    ADD CONSTRAINT setting_logins_junction_logins_id_fkey FOREIGN KEY (logins_id) REFERENCES public.logins_resource(id);
+
+
+--

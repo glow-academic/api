@@ -134,6 +134,19 @@ class SettingMcpResource(BaseModel):
     pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
+class SettingLoginsResource(BaseModel):
+    logins_id: UUID | None = Field(None, description="Logins resource identifier")
+    profile_id: UUID | None = Field(None, description="Profile for test login")
+    auth_id: UUID | None = Field(None, description="Auth provider for OIDC login")
+    icon_id: UUID | None = Field(None, description="Icon for login button")
+    display_name: str | None = Field(None, description="Display text for login button")
+    login_type: str | None = Field(None, description="Login type: 'auth' or 'profile'")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
 class SettingProviderCatalogResource(BaseModel):
     provider_id: UUID | None = Field(None, description="Provider identifier")
     name: str | None = Field(None, description="Provider display name")
@@ -265,6 +278,7 @@ class CreateSettingItem(ScopedItem):
     auth_item_value_ids: list[UUID] | None = Field(None, description="Auth item value UUIDs")
     system_ids: list[UUID] | None = Field(None, description="System UUIDs to assign")
     mcp_ids: list[UUID] | None = Field(None, description="MCP resource UUIDs to assign")
+    logins_ids: list[UUID] | None = Field(None, description="Logins resource UUIDs to assign")
     threshold_ids: list[UUID] | None = Field(None, description="Threshold UUIDs to assign")
     setting_resource_ids: list[UUID] | None = Field(None, description="Setting resource UUIDs")
 
@@ -285,6 +299,7 @@ class CreateSettingItem(ScopedItem):
         "auth_item_value_ids": "auth_item_values",
         "system_ids": "systems",
         "mcp_ids": "mcp",
+        "logins_ids": "logins",
         "threshold_ids": "thresholds",
         "setting_resource_ids": "setting_resources",
     }

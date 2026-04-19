@@ -90,7 +90,7 @@ class SimulationScenarioFlag(BaseModel):
     flag_id: UUID | None = None
     name: str | None = None
     description: str | None = None
-    icon: str | None = None
+    icon_id: UUID | None = None
     generated: bool | None = None
 
 
@@ -452,7 +452,7 @@ async def resolve_simulation_context(
                     flag_id=flag.id,
                     name=flag.name,
                     description=flag.description,
-                    icon=flag.icon,
+                    icon_id=flag.icon_id,
                     generated=False,
                 )
             )

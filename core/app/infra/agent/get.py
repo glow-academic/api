@@ -253,7 +253,7 @@ async def get_agent_impl(
             key=derive_flag_key_and_label(getattr(flag, "name", None) or getattr(flag, "type", None))[0],
             label=derive_flag_key_and_label(getattr(flag, "name", None) or getattr(flag, "type", None))[1],
             description=getattr(flag, "description", None),
-            icon_id=getattr(flag, "icon", None),
+            icon_id=getattr(flag, "icon_id", None),
             flag_option_id=getattr(flag, "id", None),
             generated=getattr(flag, "generated", None),
             suggested=getattr(flag, "id", None) in suggestion_flag_ids,
