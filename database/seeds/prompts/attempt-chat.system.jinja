@@ -133,7 +133,7 @@ You are evaluating a training conversation against rubric standards.
 1. Call `Attempt_Get` to read the conversation and rubric
 2. Evaluate the trainee's performance against each standard group in the rubric
 3. Call `Attempt_Chat_Grade` to create the grade (total score across all groups)
-4. Call `Attempt_Chat_Feedback` for **each standard group** (score + feedback per group)
+4. Call `Attempt_Chat_Feedback` for **each standard group** — pick the standard (rubric level) that best matches performance
 5. Call `Attempt_Chat_Analyses` for an overall analysis
 6. Call `Attempt_Chat_Strengths` and `Attempt_Chat_Improvements` for specific message feedback
 
@@ -141,7 +141,7 @@ You are evaluating a training conversation against rubric standards.
 
 - **Read the full conversation first** — call `Attempt_Get`
 - **Grade → feedback → details** — create the grade first, then feedback per standard group, then strengths/improvements
-- **Use the rubric** — the Rubric section in `Attempt_Get` shows standard groups with UUIDs and max points. Score each group and call `Attempt_Chat_Feedback` with the `standard_group_id`
+- **Use the rubric** — each standard group lists standards with UUIDs and point values (e.g., Excellent 5pts, Good 4pts, Poor 1pt). For each group, pick the standard that matches the trainee's performance and pass its UUID as `standard_id`
 - **Be specific** — reference actual messages, quote what the trainee said
 - **Balance feedback** — provide both strengths AND improvements
 - **Score fairly** — base scores on demonstrated competencies, not just effort
@@ -156,11 +156,11 @@ Attempt_Get(attempt_id: "...")
 Attempt_Chat_Grade(chat_id: "...", score: 19)
 → grade_id: "grade-123"
 
-Attempt_Chat_Feedback(grade_id: "grade-123", standard_group_id: "sg-uuid-1", score: 4, feedback: "Strong active listening and empathy demonstrated throughout.")
-Attempt_Chat_Feedback(grade_id: "grade-123", standard_group_id: "sg-uuid-2", score: 3, feedback: "Policy knowledge was adequate but lacked specific citations.")
-Attempt_Chat_Feedback(grade_id: "grade-123", standard_group_id: "sg-uuid-3", score: 5, feedback: "Effective de-escalation techniques used in messages 3 and 5.")
-Attempt_Chat_Feedback(grade_id: "grade-123", standard_group_id: "sg-uuid-4", score: 4, feedback: "Good problem identification but missed root cause.")
-Attempt_Chat_Feedback(grade_id: "grade-123", standard_group_id: "sg-uuid-5", score: 3, feedback: "Partial resolution — next steps were not clearly communicated.")
+Attempt_Chat_Feedback(grade_id: "grade-123", standard_id: "std-good-uuid", feedback: "Strong active listening and empathy demonstrated throughout.")
+Attempt_Chat_Feedback(grade_id: "grade-123", standard_id: "std-acceptable-uuid", feedback: "Policy knowledge was adequate but lacked specific citations.")
+Attempt_Chat_Feedback(grade_id: "grade-123", standard_id: "std-excellent-uuid", feedback: "Effective de-escalation techniques used in messages 3 and 5.")
+Attempt_Chat_Feedback(grade_id: "grade-123", standard_id: "std-good-uuid", feedback: "Good problem identification but missed root cause.")
+Attempt_Chat_Feedback(grade_id: "grade-123", standard_id: "std-acceptable-uuid", feedback: "Partial resolution — next steps were not clearly communicated.")
 
 Attempt_Chat_Analyses(grade_id: "grade-123", content: "The trainee demonstrated strong active listening but missed opportunities to explain FERPA requirements clearly.")
 

@@ -538,6 +538,12 @@ SHARED_ARGS_OUTPUTS = {
         name="standard_group_id",
         template="{{ standard_group_id }}",
     ),
+    "standard_id": dict(
+        id=sid("args_output/standard_id"),
+        args_id=sid("arg/standard_id"),
+        name="standard_id",
+        template="{{ standard_id }}",
+    ),
     # --- Routing: additional hardcoded operations ---
     "operation_start": dict(
         id=sid("args_output/operation_start"),

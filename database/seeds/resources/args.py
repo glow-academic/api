@@ -157,6 +157,7 @@ SHARED_ARGS = {
     "simulation_show_selected": dict(id=sid("arg/simulation_show_selected"), name="simulation_show_selected", field_type="boolean"),
     "sort_by": dict(id=sid("arg/sort_by"), name="sort_by", field_type="string"),
     "standard_group_id": dict(id=sid("arg/standard_group_id"), name="standard_group_id", field_type="uuid", description="Standard group UUID for feedback criterion"),
+    "standard_id": dict(id=sid("arg/standard_id"), name="standard_id", field_type="uuid", description="Standard UUID — the rubric level that best matches performance"),
     "sort_order": dict(id=sid("arg/sort_order"), name="sort_order", field_type="string"),
     "start_date": dict(id=sid("arg/start_date"), name="start_date", field_type="string"),
     "strengths": dict(id=sid("arg/strengths"), name="strengths", field_type="object[]"),

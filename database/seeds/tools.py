@@ -3183,10 +3183,10 @@ tools = [
         id="c810b03d-ca9b-5b22-b5e5-977a621b9fd6",
         resource_id=sid("tool-resource/attempt/chat_feedback"),
         name="Attempt Chat Feedback",
-        description="Submit per-standard-group feedback — pass grade_id, standard_group_id, score (0 to group max), and feedback text. Call once per standard group in the rubric.",
+        description="Submit per-standard-group feedback — pass grade_id, the standard_id that best matches the trainee's performance, and feedback text. Call once per standard group in the rubric.",
         permission_ids=[sid("permission/attempt/chat_feedback")],
-        args=["grade_id", "score", "feedback", "standard_group_id"],
-        args_outputs=["artifact_attempt", "operation_chat_feedback", "grade_id", "score", "feedback", "standard_group_id"],
+        args=["grade_id", "standard_id", "feedback"],
+        args_outputs=["artifact_attempt", "operation_chat_feedback", "grade_id", "standard_id", "feedback"],
         instruction_id=_iid("Attempt Chat Feedback"),
     ),
     dict(

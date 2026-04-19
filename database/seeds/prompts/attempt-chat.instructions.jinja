@@ -84,9 +84,8 @@
 5. Use the returned `grade_id` for all subsequent calls
 6. For **each standard group** in the rubric, call **Attempt_Chat_Feedback** with:
    - `grade_id`: from step 5
-   - `standard_group_id`: the standard group UUID from the rubric
-   - `score`: points earned for this standard group
-   - `feedback`: detailed feedback explaining why this score was given
+   - `standard_id`: the UUID of the standard (rubric level) that best matches the trainee's performance
+   - `feedback`: detailed feedback explaining why this level was selected
 7. Call **Attempt_Chat_Analyses** with `grade_id` and an overall `content` analysis
 8. For each notable message, call **Attempt_Chat_Strengths** or **Attempt_Chat_Improvements** with:
    - `grade_id`: from step 5
@@ -98,7 +97,7 @@
 **IMPORTANT:**
 - Always call `Attempt_Get` first to read the conversation, message IDs, and rubric
 - Create the grade FIRST, then use its `grade_id` for feedback/strengths/improvements
-- Call `Attempt_Chat_Feedback` for **every** standard group — this is how scores are recorded per criterion
+- Call `Attempt_Chat_Feedback` for **every** standard group — pick the standard (rubric level) that best matches performance. The score is derived from the standard's point value.
 - Use actual `message_id` UUIDs from the conversation — do NOT invent IDs
 - Be specific — reference actual messages and behaviors
 - Balance strengths and improvements
