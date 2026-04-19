@@ -22,7 +22,7 @@ async def search_attempt_hints(
 
     rows = await conn.fetch(
         f"""
-        SELECT hint_id, message_id, hint, idx, created_at
+        SELECT hint_id, message_id, hint, created_at
         FROM {source}
         WHERE ($1::uuid[] IS NULL OR message_id = ANY($1))
         ORDER BY created_at DESC

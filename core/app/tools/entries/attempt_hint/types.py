@@ -14,5 +14,4 @@ class GetAttemptHintResponse(BaseModel):
     hint_id: UUID
     message_id: UUID
     hint: str
-    idx: int
     created_at: datetime

@@ -1,0 +1,9 @@
+INPUT:
+  group_id: 019da37e-aa47-7dad-a67e-c1f2d4c7f140
+  name: FERPA Privacy Breach
+
+OUTPUT:
+Group resolved.
+- **Group ID:** `019da37e-aa47-7dad-a67e-c1f2d4c7f140`
+- **Group Name ID:** `019da37e-c73f-7f0b-900f-8fb1fb0099e8`
+- **Name:** FERPA Privacy Breach
