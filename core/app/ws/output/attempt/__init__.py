@@ -52,7 +52,6 @@ from . import (  # noqa: F401
     stop,
     join,
     leave,
-    chat_mute,
     chat_voice,
     chat_silence,
 )

@@ -9,7 +9,6 @@ from app.routes.attempt.chat.feedback import router as feedback_router
 from app.routes.attempt.chat.grade import router as grade_router
 from app.routes.attempt.chat.hints import router as hints_router
 from app.routes.attempt.chat.improvements import router as improvements_router
-from app.routes.attempt.chat.mute import router as mute_router
 from app.routes.attempt.chat.response import router as response_router
 from app.routes.attempt.chat.send import router as send_router
 from app.routes.attempt.chat.silence import router as silence_router
@@ -31,7 +30,6 @@ router.include_router(response_router)
 
 # Voice operations
 router.include_router(voice_router)
-router.include_router(mute_router)
 router.include_router(silence_router)
 
 # Completion
