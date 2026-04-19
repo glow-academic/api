@@ -48,7 +48,6 @@ from . import (  # noqa: F401
     reports,
     # Lifecycle completed/failed handlers
     start,
-    end,
     response,
     stop,
     join,

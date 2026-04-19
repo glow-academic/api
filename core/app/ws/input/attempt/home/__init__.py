@@ -5,5 +5,4 @@ from . import (  # noqa: F401
     get,
     refresh,
     search,
-    start,
 )

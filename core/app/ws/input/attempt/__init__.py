@@ -6,7 +6,7 @@ from . import (  # noqa: F401
     audio_start,
     audio_stop,
     audio_upload,
-    end,
+    complete,
     export,
     file_download,
     file_preview,
