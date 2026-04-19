@@ -23,14 +23,14 @@
 
 {% endfor %}
 
-{% if "chat_send" in operations and "chat_create" not in operations %}
+{% if "chat_message" in operations and "chat_create" not in operations %}
 {# ── MESSAGE MODE ── #}
 
 ## Steps
 
 1. Call **Attempt_Get**(attempt_id: "{{ params.attempt_id }}") to get persona context
 2. Read the personas and find your `persona_id` from "Your Persona ID"
-3. Call **Attempt_Chat_Send** with:
+3. Call **Attempt_Chat_Message** with:
    - `chat_id`: `"{{ params.chat_id }}"`
    - `persona_id`: your persona ID from step 1
    - `text`: your in-character response

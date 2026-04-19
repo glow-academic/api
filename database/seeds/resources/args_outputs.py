@@ -707,11 +707,11 @@ SHARED_ARGS_OUTPUTS = {
         name="operation",
         template="chat_get",
     ),
-    "operation_chat_send": dict(
-        id=sid("args_output/operation_chat_send"),
+    "operation_chat_message": dict(
+        id=sid("args_output/operation_chat_message"),
         args_id=_OPERATION_ARG_ID,
         name="operation",
-        template="chat_send",
+        template="chat_message",
     ),
     "operation_chat_stop": dict(
         id=sid("args_output/operation_chat_stop"),

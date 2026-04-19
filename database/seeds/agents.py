@@ -196,7 +196,7 @@ agents = [
             sid("tool-resource/attempt/stop"),
             sid("tool-resource/attempt/chat_get"),
             sid("tool-resource/attempt/chat_create"),
-            sid("tool-resource/attempt/chat_send"),
+            sid("tool-resource/attempt/chat_message"),
             sid("tool-resource/attempt/chat_stop"),
             sid("tool-resource/attempt/chat_grade"),
             sid("tool-resource/attempt/chat_voice"),

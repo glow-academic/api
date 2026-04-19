@@ -15094,58 +15094,6 @@
         ]
       }
     },
-    "/attempt/chat/mute": {
-      "post": {
-        "tags": [
-          "attempt",
-          "attempt-chat"
-        ],
-        "summary": "Chat Mute",
-        "description": "Toggle microphone mute for a voice session.",
-        "operationId": "chat_mute_attempt_chat_mute_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChatMuteRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChatMuteResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "attempt-chat"
-        ]
-      }
-    },
     "/attempt/chat/silence": {
       "post": {
         "tags": [
@@ -47833,38 +47781,6 @@
           "improvement_ids"
         ],
         "title": "ChatImprovementsResponse"
-      },
-      "ChatMuteRequest": {
-        "properties": {
-          "chat_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Chat Id"
-          },
-          "muted": {
-            "type": "boolean",
-            "title": "Muted",
-            "default": false
-          }
-        },
-        "type": "object",
-        "required": [
-          "chat_id"
-        ],
-        "title": "ChatMuteRequest"
-      },
-      "ChatMuteResponse": {
-        "properties": {
-          "accepted": {
-            "type": "boolean",
-            "title": "Accepted"
-          }
-        },
-        "type": "object",
-        "required": [
-          "accepted"
-        ],
-        "title": "ChatMuteResponse"
       },
       "ChatNameResource": {
         "properties": {

@@ -13,7 +13,7 @@ from . import (  # noqa: F401
     chat_ended,
     complete,
     chat_grade,
-    chat_send,
+    chat_message,
     chat_started,
     ended,
     error,

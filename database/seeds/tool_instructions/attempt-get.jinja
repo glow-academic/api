@@ -21,7 +21,7 @@
 {% if r.resources and r.resources.personas -%}
 {% for pid, p in r.resources.personas.items() -%}
 {% if p.entry_id and p.entry_id != (r.attempt.user_persona_id | string if r.attempt and r.attempt.user_persona_id else '') -%}
-**You are:** **{{ p.name }}** — pass `persona_id: "{{ p.entry_id }}"` when calling Attempt_Chat_Send
+**You are:** **{{ p.name }}** — pass `persona_id: "{{ p.entry_id }}"` when calling Attempt_Chat_Message
 {% endif -%}
 {% endfor -%}
 {% endif %}

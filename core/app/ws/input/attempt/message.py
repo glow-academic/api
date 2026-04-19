@@ -1,4 +1,4 @@
-"""Input: attempt.chat.send — unified text and audio input.
+"""Input: attempt.chat.message — unified text and audio input.
 
 Accepts text, audio (raw bytes), or audio_id (uploaded file reference).
 Routes through voice pipeline when a voice session is active,
@@ -18,7 +18,7 @@ from app.infra.attempt.message import attempt_message_internal_impl
 from app.tools.entries.uploads.get import get_upload
 
 
-@sio.on("attempt.chat.send")  # type: ignore
+@sio.on("attempt.chat.message")  # type: ignore
 async def attempt_message(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:
@@ -88,7 +88,7 @@ async def attempt_message(sid: str, data: dict[str, Any]) -> None:
         pool,
         redis,
         artifact="attempt",
-        operation="chat.send",
+        operation="chat.message",
         profile_id=identity.profile_id,
         session_id=identity.session_id,
         sid=sid,

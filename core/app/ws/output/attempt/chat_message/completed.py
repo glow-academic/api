@@ -1,4 +1,4 @@
-"""Output: attempt.chat.send.failed"""
+"""Output: attempt.chat.message.completed"""
 
 from typing import Any
 from uuid import UUID
@@ -9,12 +9,12 @@ from app.infra.tools.entries.append_call_event import append_call_event
 internal_sio = get_internal_sio()
 
 
-@internal_sio.on("attempt.chat.send.failed")  # type: ignore
-async def chat_send_failed(data: dict[str, Any]) -> None:
+@internal_sio.on("attempt.chat.message.completed")  # type: ignore
+async def chat_message_completed(data: dict[str, Any]) -> None:
     sid = data.get("sid", "")
     rooms = data.get("rooms") or ([sid] if sid else [])
     call_id = data.get("call_id")
     if call_id:
-        append_call_event(UUID(call_id), "attempt.chat.send.failed", data, UPLOAD_FOLDER)
+        append_call_event(UUID(call_id), "attempt.chat.message.completed", data, UPLOAD_FOLDER)
     for room in rooms:
-        await sio.emit("attempt.chat.send.failed", data, room=room)
+        await sio.emit("attempt.chat.message.completed", data, room=room)

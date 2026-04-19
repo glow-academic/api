@@ -16,7 +16,7 @@ from database.seeds.resources.permissions import PERMISSION_IDS
 
 _READ_OPS = ["get", "search", "docs", "refresh", "export", "generations", "context"]
 _WRITE_OPS = ["create", "update", "delete", "duplicate", "draft", "drafts", "generate", "name", "grade", "feedback", "group", "problem", "csv"]
-_LIFECYCLE_OPS = ["start", "complete", "stop", "join", "leave", "response", "archive", "resolve", "chat_get", "chat_create", "chat_send", "chat_stop", "chat_complete", "chat_grade", "chat_voice", "chat_mute", "chat_silence", "chat_response", "chat_feedback", "chat_strengths", "chat_improvements", "chat_analyses", "chat_hints"]
+_LIFECYCLE_OPS = ["start", "complete", "stop", "join", "leave", "response", "archive", "resolve", "chat_get", "chat_create", "chat_message", "chat_stop", "chat_complete", "chat_grade", "chat_voice", "chat_mute", "chat_silence", "chat_response", "chat_feedback", "chat_strengths", "chat_improvements", "chat_analyses", "chat_hints"]
 _ALL_CRUD = _READ_OPS + _WRITE_OPS + _LIFECYCLE_OPS
 _MEDIA_OPS = [
     "image_upload", "image_download",
