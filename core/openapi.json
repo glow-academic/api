@@ -14634,56 +14634,6 @@
         ]
       }
     },
-    "/attempt/previous": {
-      "post": {
-        "tags": [
-          "attempt"
-        ],
-        "summary": "Attempt Previous",
-        "description": "Copy grades from a previous attempt's chats.",
-        "operationId": "attempt_previous_attempt_previous_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AttemptUsePreviousPayload"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PreviousAttemptApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt"
-        ]
-      }
-    },
     "/attempt/join": {
       "post": {
         "tags": [
@@ -51143,6 +51093,18 @@
               }
             ],
             "title": "Options Ids"
+          },
+          "previous_attempt_chat_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Attempt Chat Id"
           },
           "idempotency_key": {
             "anyOf": [
@@ -109858,30 +109820,6 @@
           "practice_id"
         ],
         "title": "PracticeStartRequest"
-      },
-      "PreviousAttemptApiResponse": {
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "title": "Success"
-          },
-          "message": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "success"
-        ],
-        "title": "PreviousAttemptApiResponse"
       },
       "PreviousChatOption": {
         "properties": {

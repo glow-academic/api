@@ -1,51 +1,51 @@
-"""Attempt start endpoint — thin HTTP adapter over internal orchestration."""
+"""Attempt start — unified endpoint for creating attempts.
+
+POST /attempt/start — accepts home_id or practice_id.
+"""
 
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
 
-from app.infra.attempt.client_types import AttemptStartPayload
-from app.infra.attempt.start import attempt_start_internal_impl
+from app.infra.attempt.start import (
+    AttemptStartRequest,
+    AttemptStartResponse,
+    attempt_start_impl,
+)
+from app.infra.globals import get_pool, get_redis_client
+from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
 
 
-class StartAttemptApiResponse(BaseModel):
-    attempt_id: str
-    chat_entry_id: str | None = None
-    attempt_chat_id: str | None = None
-
-
-@router.post("/start", response_model=StartAttemptApiResponse)
+@router.post("/start", response_model=AttemptStartResponse)
 async def start_attempt(
-    request: AttemptStartPayload,
+    request: AttemptStartRequest,
     http_request: Request,
-) -> StartAttemptApiResponse:
-    """Create a new attempt using the canonical internal attempt orchestration."""
+) -> AttemptStartResponse:
+    """Create a new attempt from a home or practice entry."""
     profile_id = getattr(http_request.state, "profile_id", None)
     session_id = getattr(http_request.state, "session_id", None)
 
     if not profile_id:
-        raise HTTPException(
-            status_code=401,
-            detail="Profile ID is required. Please sign in again.",
-        )
+        raise HTTPException(status_code=401, detail="Profile ID is required. Please sign in again.")
     if not session_id:
-        raise HTTPException(
-            status_code=401,
-            detail="Session ID is required. Please sign in again.",
-        )
+        raise HTTPException(status_code=401, detail="Session ID is required. Please sign in again.")
 
     try:
-        result = await attempt_start_internal_impl(
-            {
-                "profile_id": str(profile_id),
-                "session_id": str(session_id),
-                **request.model_dump(mode="json"),
-            }
+        return await attempt_start_impl(
+            get_pool(),
+            get_redis_client(),
+            profile_id=profile_id,
+            session_id=session_id,
+            request=request,
         )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    return StartAttemptApiResponse.model_validate(result.model_dump(mode="json"))
+    except HTTPException:
+        raise
+    except Exception as e:
+        handle_route_error(
+            error=e,
+            route_path=http_request.url.path,
+            operation="attempt_start",
+            request=http_request,
+        )
