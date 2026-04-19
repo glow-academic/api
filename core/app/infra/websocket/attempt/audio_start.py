@@ -65,15 +65,17 @@ async def attempt_audio_start_internal_impl(
         pool, profile_id, get_redis_client(), session_id=session_id
     )
     profiles_id = identity.profiles_id if identity else None
+    group_id = identity.group_id if identity else None
+    if not group_id:
+        raise ValueError(f"No group found for chat {chat_id}")
 
     async with pool.acquire() as conn:
-        # Step 1: Resolve group_id + attempt_id from attempt_chat_entry
+        # Step 1: Resolve attempt_id from attempt_chat_entry
         chat_entries = await get_attempt_chats(conn, [chat_id])
 
-        if not chat_entries or not chat_entries[0].group_id:
-            raise ValueError(f"No group found for chat {chat_id}")
+        if not chat_entries:
+            raise ValueError(f"Attempt chat {chat_id} not found")
 
-        group_id = chat_entries[0].group_id
         attempt_id = chat_entries[0].attempt_id
 
         # Step 2: Create run + call + conversation

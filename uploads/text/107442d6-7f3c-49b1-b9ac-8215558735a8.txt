@@ -1,0 +1,10 @@
+INPUT:
+  grade_id: 019da3a3-3964-791f-a55c-5004447b40b2
+  standard_id: 4d9deeae-9bac-5a18-9178-8e480e8c6384
+  feedback: The approach was not adapted to the student's needs. The trainee did not acknowledge or respond to the student's confusion and frustration, missing an opportunity to provide tailored support.
+
+OUTPUT:
+Feedback created.
+- **Feedback ID:** `019da3a3-4ad7-73c8-856a-cd4d53ff4543`
+- **Standard:** `4d9deeae-9bac-5a18-9178-8e480e8c6384`
+- **Score:** 1 / 5

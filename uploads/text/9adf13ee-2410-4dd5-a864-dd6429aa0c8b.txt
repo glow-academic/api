@@ -1,0 +1,10 @@
+INPUT:
+  grade_id: 019da3a3-3964-791f-a55c-5004447b40b2
+  standard_id: 1d721b7f-de74-5a03-b83d-f58112d50304
+  feedback: The session was not managed effectively, as the conversation did not progress beyond the initial inquiry. There was no evidence of time management or effort to structure the session, resulting in an abrupt and incomplete interaction.
+
+OUTPUT:
+Feedback created.
+- **Feedback ID:** `019da3a3-49fd-7604-964a-3b1d9356543f`
+- **Standard:** `1d721b7f-de74-5a03-b83d-f58112d50304`
+- **Score:** 1 / 5

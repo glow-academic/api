@@ -1,0 +1,7 @@
+INPUT:
+  grade_id: 019da3a3-3964-791f-a55c-5004447b40b2
+  content: The trainee did not progress the session beyond a single, generic inquiry and failed to address the student's confusion or frustration. There was no evidence of time management, interpersonal engagement, or adaptation to the student's needs. The lack of guided questioning and conceptual explanation resulted in a missed opportunity to support student-driven learning or clarify misunderstandings. Overall, the attempt did not meet expectations for effective instructional support.
+
+OUTPUT:
+Analysis created.
+- **Analysis ID:** `019da3a3-523a-7423-ae3e-27df48bc4dd8`
