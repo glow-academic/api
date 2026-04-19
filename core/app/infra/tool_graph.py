@@ -244,12 +244,12 @@ def score_tools(
         required = set(modalities)
         eligible_systems = set()
         for system_id, agent_ids in system_agents.items():
-            # Every agent in the system must support ALL requested modalities
-            all_agents_support = all(
+            # At least one agent in the system must support ALL requested modalities
+            any_agent_supports = any(
                 required <= agent_modalities.get(agent_id, set())
                 for agent_id in agent_ids
             )
-            if all_agents_support:
+            if any_agent_supports:
                 eligible_systems.add(system_id)
 
     # Filter tools to eligible systems
