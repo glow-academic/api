@@ -14838,58 +14838,6 @@
         ]
       }
     },
-    "/attempt/chat/stop": {
-      "post": {
-        "tags": [
-          "attempt",
-          "attempt-chat"
-        ],
-        "summary": "Chat Stop",
-        "description": "Stop message generation for an attempt chat.",
-        "operationId": "chat_stop_attempt_chat_stop_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AttemptStopPayload"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StopChatApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "attempt-chat"
-        ]
-      }
-    },
     "/attempt/chat/grade": {
       "post": {
         "tags": [
@@ -19999,6 +19947,45 @@
             "BearerAuth": []
           }
         ]
+      }
+    },
+    "/stop": {
+      "post": {
+        "summary": "Stop Generation",
+        "description": "Cancel an active generation by group_id.",
+        "operationId": "stop_generation_stop_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StopRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StopResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/stream/": {
@@ -125399,34 +125386,32 @@
         "title": "StarterPrompt",
         "description": "Starter prompt for the generation panel."
       },
-      "StopChatApiResponse": {
+      "StopRequest": {
         "properties": {
-          "chat_id": {
+          "group_id": {
             "type": "string",
-            "title": "Chat Id"
-          },
-          "success": {
-            "type": "boolean",
-            "title": "Success"
-          },
-          "message": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Message"
+            "format": "uuid",
+            "title": "Group Id"
           }
         },
         "type": "object",
         "required": [
-          "chat_id",
+          "group_id"
+        ],
+        "title": "StopRequest"
+      },
+      "StopResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          }
+        },
+        "type": "object",
+        "required": [
           "success"
         ],
-        "title": "StopChatApiResponse"
+        "title": "StopResponse"
       },
       "StopTestApiResponse": {
         "properties": {
