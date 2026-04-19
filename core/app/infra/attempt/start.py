@@ -1,11 +1,14 @@
-"""Internal handler: attempt_start — canonical orchestration entry."""
+"""Internal handler: attempt_start — legacy WS-based start.
+
+The canonical start flow now uses home_start.py / practice_start.py.
+This handler is kept for backward compatibility with old WS clients.
+"""
 
 from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
 
-from app.infra.attempt.workflows import attempt_start_impl
 from app.infra.events.audit import (
     build_audit_arguments,
     run_artifact_operation_with_audit,
@@ -15,6 +18,8 @@ from app.infra.stream.socket_bridge import wrap_emit_with_stream_bridge
 from app.infra.websocket.find_profile_by_socket import find_profile_by_socket
 from app.infra.websocket.find_session_by_socket import find_session_by_socket
 from app.infra.websocket.socket_event import EmitFn, SocketEvent, make_emit
+
+from app.infra.attempt.workflows import attempt_start_impl
 
 internal_sio = get_internal_sio()
 
@@ -33,9 +38,7 @@ async def attempt_start_internal_impl(
     emit: EmitFn | None = None,
     audit: bool = True,
 ) -> AttemptStartInternalResult:
-    """Run canonical attempt start orchestration for any surface."""
-    from app.infra.attempt.proceed import attempt_proceed_internal_impl
-
+    """Run legacy WS-based attempt start. Creates attempt only — no proceed."""
     sid = data.get("sid", "")
 
     profile_id = data.get("profile_id") or (
@@ -73,44 +76,19 @@ async def attempt_start_internal_impl(
             session_id=session_id,
         )
 
-        proceed_events = [
-            event
-            for event in recorded
-            if event.bus == "internal" and event.event == "attempt_proceed"
-        ]
-        created_attempt_id = (
-            proceed_events[0].data.get("attempt_id", "") if proceed_events else ""
-        )
-        for event in proceed_events:
-            await attempt_proceed_internal_impl(
-                {
-                    **event.data,
-                    "profile_id": profile_id,
-                    "session_id": session_id,
-                },
-                emit=_emit,
-            )
-
+        # Return attempt_id from the start events (no proceed)
         for event in recorded:
             if event.bus != "internal":
                 continue
-            if event.event == "attempt_started":
+            if event.event == "attempt_proceed":
                 return AttemptStartInternalResult(
                     attempt_id=event.data.get("attempt_id", ""),
                     chat_entry_id=event.data.get("chat_entry_id"),
                 )
-            if event.event == "attempt_chat_started":
-                return AttemptStartInternalResult(
-                    attempt_id=event.data.get("attempt_id", ""),
-                    attempt_chat_id=event.data.get("chat_id"),
-                )
             if event.event == "attempt_error":
                 raise ValueError(event.data.get("message", "Failed to start attempt"))
 
-        if created_attempt_id:
-            return AttemptStartInternalResult(attempt_id=created_attempt_id)
-
-        raise ValueError("Attempt start completed without a terminal start event")
+        raise ValueError("Attempt start completed without a terminal event")
 
     if not audit:
         return await _run()

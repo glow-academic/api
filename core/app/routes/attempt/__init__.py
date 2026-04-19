@@ -17,7 +17,6 @@ from app.routes.attempt.group import router as group_router
 from app.routes.attempt.image import router as image_router
 from app.routes.attempt.join import router as join_router
 from app.routes.attempt.leave import router as leave_router
-from app.routes.attempt.next import router as next_router
 from app.routes.attempt.previous import router as previous_router
 from app.routes.attempt.problem import router as problem_router
 from app.routes.attempt.refresh import router as refresh_router
@@ -52,7 +51,6 @@ router.include_router(problem_router)
 
 # Attempt-level state machine operations
 router.include_router(start_router)
-router.include_router(next_router)
 router.include_router(end_router)
 router.include_router(expire_router)
 router.include_router(previous_router)

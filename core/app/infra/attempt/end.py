@@ -1,4 +1,4 @@
-"""Internal handler: attempt_end — canonical orchestration entry."""
+"""Internal handler: attempt_end — complete a chat + optionally trigger grading."""
 
 from __future__ import annotations
 
@@ -27,6 +27,13 @@ from app.infra.websocket.attempt_types import (
     AttemptGradeStartData,
     GenerateRequestData,
 )
+from app.tools.entries.attempt_chat_completion.create import (
+    create_attempt_chat_completion,
+)
+from app.tools.entries.attempt_chat_completion.refresh import (
+    refresh_attempt_chat_completion,
+)
+from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
 from app.tools.entries.attempt_grade.create import create_attempt_grade
 from app.tools.entries.groups.create import create_group
 from app.tools.entries.runs.create import create_run
@@ -57,9 +64,10 @@ async def attempt_end_internal_impl(
     emit: EmitFn | None = None,
     audit: bool = True,
 ) -> AttemptEndInternalResult:
-    """Run canonical attempt end orchestration for any surface."""
-    from app.infra.attempt.proceed import attempt_proceed_internal_impl
+    """Complete a chat and optionally trigger grading.
 
+    Uses chat_complete primitive instead of proceed.
+    """
     payload = AttemptEndPayload(**data)
     sid = data.get("sid", "")
 
@@ -86,24 +94,36 @@ async def attempt_end_internal_impl(
             entity_id=payload.attempt_id,
             call_id=call_id,
         )
-        recorded: list[SocketEvent] = []
 
         async def _emit(events: list[SocketEvent]) -> None:
-            recorded.extend(events)
             await downstream_emit(events)
 
+        pool = get_pool()
+
+        # Step 1: Mark chat as complete (idempotent)
+        async with pool.acquire() as conn:
+            await create_attempt_chat_completion(
+                conn,
+                chat_id=payload.chat_id,
+                session_id=session_uuid,
+            )
+            await refresh_attempt_chat_completion(conn)
+            await refresh_attempt_chat(conn)
+
+        # Step 2: Optionally trigger grading generation
         grade_id: str | None = None
         if payload.grade:
             identity = await resolve_profile_identity_context(
-                get_pool(),
+                pool,
                 profile_uuid,
                 get_redis_client(),
                 session_id=session_uuid,
             )
-            profiles_id = identity.profiles_id if identity else None
 
-            async with get_pool().acquire() as conn:
-                group_result = await create_group(conn, session_id=session_uuid, artifact_type="attempt")  # TODO: fix logic
+            async with pool.acquire() as conn:
+                group_result = await create_group(
+                    conn, session_id=session_uuid, artifact_type="attempt",
+                )
                 run_result = await create_run(
                     conn,
                     session_id=session_uuid,
@@ -153,40 +173,8 @@ async def attempt_end_internal_impl(
                 ]
             )
 
-        proceed_identity = await resolve_profile_identity_context(
-            get_pool(),
-            profile_uuid,
-            get_redis_client(),
-            session_id=session_uuid,
-            attempt_id=payload.attempt_id,
-        )
-        group_id = proceed_identity.group_id if proceed_identity else None
-        if group_id is None:
-            raise ValueError(f"Group not found for attempt {payload.attempt_id}")
-
-        await attempt_proceed_internal_impl(
-            {
-                "sid": sid,
-                "profile_id": str(profile_id),
-                "session_id": str(session_id),
-                "attempt_id": str(payload.attempt_id),
-                "group_id": str(group_id),
-                "completed_chat_id": str(payload.chat_id),
-            },
-            emit=_emit,
-        )
-
-        is_attempt_finished = any(
-            event.bus == "internal" and event.event == "attempt_ended"
-            for event in recorded
-        )
-
-        # Completion is recorded when grade finalizes (in grade.py),
-        # not here — we don't know pass/fail until the grade is done.
-
         return AttemptEndInternalResult(
             chat_id=str(payload.chat_id),
-            is_attempt_finished=is_attempt_finished,
             grade_id=grade_id,
         )
 
