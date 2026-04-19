@@ -14512,13 +14512,13 @@
           "attempt"
         ],
         "summary": "Start Attempt",
-        "description": "Create a new attempt using the canonical internal attempt orchestration.",
+        "description": "Create a new attempt from a home or practice entry.",
         "operationId": "start_attempt_attempt_start_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AttemptStartPayload"
+                "$ref": "#/components/schemas/AttemptStartRequest"
               }
             }
           },
@@ -14530,7 +14530,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StartAttemptApiResponse"
+                  "$ref": "#/components/schemas/AttemptStartResponse"
                 }
               }
             }
@@ -15698,58 +15698,6 @@
         ]
       }
     },
-    "/attempt/home/start": {
-      "post": {
-        "tags": [
-          "attempt",
-          "home"
-        ],
-        "summary": "Start Home Attempt",
-        "description": "Create a new attempt from a home entry.",
-        "operationId": "start_home_attempt_attempt_home_start_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HomeStartRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AttemptStartResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "home"
-        ]
-      }
-    },
     "/attempt/home/get": {
       "post": {
         "tags": [
@@ -15915,58 +15863,6 @@
         "x-cache-tags": [
           "attempt",
           "home"
-        ]
-      }
-    },
-    "/attempt/practice/start": {
-      "post": {
-        "tags": [
-          "attempt",
-          "practice"
-        ],
-        "summary": "Start Practice Attempt",
-        "description": "Create a new attempt from a practice entry.",
-        "operationId": "start_practice_attempt_attempt_practice_start_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PracticeStartRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AttemptStartResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "practice"
         ]
       }
     },
@@ -43928,6 +43824,41 @@
         "type": "object",
         "title": "AttemptStartPayload",
         "description": "Client-to-server: create a new attempt."
+      },
+      "AttemptStartRequest": {
+        "properties": {
+          "home_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Id"
+          },
+          "practice_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Practice Id"
+          },
+          "infinite_mode": {
+            "type": "boolean",
+            "title": "Infinite Mode",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "AttemptStartRequest"
       },
       "AttemptStartResponse": {
         "properties": {
@@ -90534,20 +90465,6 @@
         "title": "HistoryResponse",
         "description": "Paginated attempt history list."
       },
-      "HomeStartRequest": {
-        "properties": {
-          "home_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Home Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "home_id"
-        ],
-        "title": "HomeStartRequest"
-      },
       "ImageDownloadAttemptApiRequest": {
         "properties": {
           "image_id": {
@@ -109802,25 +109719,6 @@
         "title": "PersonaVoiceResource",
         "description": "Voice resource for persona."
       },
-      "PracticeStartRequest": {
-        "properties": {
-          "practice_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Practice Id"
-          },
-          "infinite_mode": {
-            "type": "boolean",
-            "title": "Infinite Mode",
-            "default": false
-          }
-        },
-        "type": "object",
-        "required": [
-          "practice_id"
-        ],
-        "title": "PracticeStartRequest"
-      },
       "PreviousChatOption": {
         "properties": {
           "chat_entry_id": {
@@ -125466,41 +125364,6 @@
         "type": "object",
         "title": "StandardMeta",
         "description": "Standard metadata for rubric display."
-      },
-      "StartAttemptApiResponse": {
-        "properties": {
-          "attempt_id": {
-            "type": "string",
-            "title": "Attempt Id"
-          },
-          "chat_entry_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Chat Entry Id"
-          },
-          "attempt_chat_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Attempt Chat Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "attempt_id"
-        ],
-        "title": "StartAttemptApiResponse"
       },
       "StartTestApiResponse": {
         "properties": {

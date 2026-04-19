@@ -87,7 +87,7 @@ INFRA_OPS.update({
     ("attempt", "chat_get"): (f"{_I}.chat.get", "get_chat_impl"),
     ("attempt", "chat_send"): (f"{_I}.attempt.message", "attempt_message_internal_impl"),
     ("attempt", "chat_stop"): (f"{_I}.attempt.stop", "attempt_stop_internal_impl"),
-    ("attempt", "chat_end"): (f"{_I}.attempt.end", "attempt_end_internal_impl"),
+    ("attempt", "chat_end"): (f"{_I}.attempt.chat_complete", "chat_complete_attempt_impl"),
     ("attempt", "chat_voice"): (f"{_I}.attempt.audio_start", "audio_start_attempt_impl"),
     ("attempt", "chat_mute"): (f"{_I}.attempt.audio_mute", "audio_mute_attempt_impl"),
     ("attempt", "chat_silence"): (f"{_I}.attempt.audio_stop", "audio_stop_attempt_impl"),

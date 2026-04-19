@@ -779,6 +779,12 @@ SHARED_ARGS_OUTPUTS = {
         name="operation",
         template="chat_complete",
     ),
+    "operation_complete": dict(
+        id=sid("args_output/operation_complete"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="complete",
+    ),
     "operation_chat_hints": dict(
         id=sid("args_output/operation_chat_hints"),
         args_id=_OPERATION_ARG_ID,
