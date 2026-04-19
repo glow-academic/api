@@ -8,7 +8,7 @@
 CREATE MATERIALIZED VIEW public.problems_mv AS
  SELECT pe.id AS problem_id,
     ppc.profiles_id AS profile_id,
-    (pe.type)::text AS type,
+    pe.type,
     pe.message,
     COALESCE(re.resolved, false) AS resolved,
     pe.created_at,

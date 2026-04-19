@@ -13,7 +13,7 @@ CREATE TABLE public.flags_resource (
     active boolean DEFAULT true CONSTRAINT flags_active_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT flags_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT flags_mcp_not_null NOT NULL,
-    type text DEFAULT 'active' NOT NULL,
+    type text DEFAULT 'active'::text NOT NULL,
     icon text NOT NULL,
     value boolean DEFAULT true NOT NULL
 );

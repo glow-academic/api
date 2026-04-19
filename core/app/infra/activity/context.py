@@ -54,7 +54,7 @@ async def _resolve_profile_ids(
             SELECT 1 FROM profile_roles_junction prj
             JOIN roles_resource r ON prj.role_id = r.id
             WHERE prj.profile_id = p.id AND prj.active = true
-              AND r.role = ANY(${idx}::profile_type[])
+              AND r.role = ANY(${idx}::text[])
         )""")
         params.append(roles)
         idx += 1

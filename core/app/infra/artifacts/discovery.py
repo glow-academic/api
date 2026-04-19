@@ -279,12 +279,9 @@ async def get_agent_end_event_name(conn: asyncpg.Connection, artifact_type: str)
     Checks if artifact_type is a valid value in the artifacts enum.
     If found, returns {artifact_type}_end. Otherwise returns "text_end" as default.
     """
-    # Check if artifact_type is a valid enum value
+    # Check if artifact_type exists in permissions
     found = await conn.fetchval(
-        """
-        SELECT 1 FROM unnest(enum_range(NULL::artifact_type)) AS e
-        WHERE e::text = $1
-        """,
+        "SELECT 1 FROM permissions_resource WHERE artifact = $1 LIMIT 1",
         artifact_type,
     )
     if found:

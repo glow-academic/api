@@ -14,7 +14,7 @@ CREATE TABLE public.problems_entry (
     mcp boolean DEFAULT false CONSTRAINT problems_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT problems_active_not_null NOT NULL,
     call_id uuid NOT NULL,
-    artifact_type text DEFAULT 'activity' NOT NULL
+    artifact_type text DEFAULT 'activity'::text NOT NULL
 );
 
 
