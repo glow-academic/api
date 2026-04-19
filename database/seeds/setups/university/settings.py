@@ -9,6 +9,10 @@ Provider keys and auth item keys are created by the keys module and linked here.
 
 from database.seeds.auths import AUTH_RESOURCE_IDS
 from database.seeds.ids import sid
+from database.seeds.logins import (
+    AUTH_LOGIN_IDS,
+    build_profile_logins,
+)
 from database.seeds.setups.university.departments import (
     UNIVERSITY_DEPT,
     UNIVERSITY_DEPT_RESOURCE,
@@ -30,6 +34,17 @@ from database.seeds.setups.university.profiles import (
 # ---------------------------------------------------------------------------
 
 SETTING_PROFILE_RESOURCE_IDS = [BENCHMARK_PROFILE_RESOURCE, UNI_SUPERADMIN_RESOURCE]
+
+# ---------------------------------------------------------------------------
+# Logins — auth logins from config + profile logins from linked profiles
+# ---------------------------------------------------------------------------
+
+_PROFILE_LOGINS = build_profile_logins([
+    dict(name="Benchmark", resource_id=BENCHMARK_PROFILE_RESOURCE),
+    dict(name="Default Superadmin", resource_id=UNI_SUPERADMIN_RESOURCE),
+])
+UNI_LOGINS_IDS = AUTH_LOGIN_IDS + [lg["id"] for lg in _PROFILE_LOGINS]
+UNI_LOGINS = _PROFILE_LOGINS  # auth logins are in AUTH_LOGINS (logins.py)
 
 # ---------------------------------------------------------------------------
 # Pre-existing threshold resource IDs (from 01-resources/06-thresholds.sql)
@@ -72,5 +87,6 @@ settings = [
         threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
         color_ids=ALL_COLOR_IDS,
         profile_ids=SETTING_PROFILE_RESOURCE_IDS,
+        logins_ids=UNI_LOGINS_IDS or None,
     ),
 ]

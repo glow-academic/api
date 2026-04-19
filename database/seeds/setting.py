@@ -12,6 +12,10 @@ from database.seeds.dynamic_keys import (
     AUTH_ITEM_VALUE_IDS,
     AUTH_RESOURCE_ID_LIST,
 )
+from database.seeds.logins import (
+    AUTH_LOGIN_IDS,
+    build_profile_logins,
+)
 from database.seeds.profiles import SEED_PROFILE_RESOURCE
 from database.seeds.systems import (
     ACTIVITY_SYSTEM,
@@ -100,6 +104,16 @@ ALL_SYSTEMS = [
 DEFAULT_PROFILE_RESOURCE_IDS = [SEED_PROFILE_RESOURCE]
 
 # ---------------------------------------------------------------------------
+# Logins — auth logins from config + profile logins from linked profiles
+# ---------------------------------------------------------------------------
+
+_PROFILE_LOGINS = build_profile_logins([
+    dict(name="Bootstrap Superadmin", resource_id=SEED_PROFILE_RESOURCE),
+])
+DEFAULT_LOGINS_IDS = AUTH_LOGIN_IDS + [lg["id"] for lg in _PROFILE_LOGINS]
+DEFAULT_LOGINS = _PROFILE_LOGINS  # auth logins are in AUTH_LOGINS (logins.py)
+
+# ---------------------------------------------------------------------------
 # Deterministic IDs
 # ---------------------------------------------------------------------------
 
@@ -124,6 +138,7 @@ settings = [
         system_ids=ALL_SYSTEMS,
         threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
         profile_ids=DEFAULT_PROFILE_RESOURCE_IDS,
+        logins_ids=DEFAULT_LOGINS_IDS or None,
     ),
 ]
 

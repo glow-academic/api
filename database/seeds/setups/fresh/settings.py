@@ -12,6 +12,10 @@ from database.seeds.dynamic_keys import (
     PROVIDER_KEY_IDS,
 )
 from database.seeds.ids import sid
+from database.seeds.logins import (
+    AUTH_LOGIN_IDS,
+    build_profile_logins,
+)
 from database.seeds.setups.fresh.profiles import FRESH_SUPERADMIN_RESOURCE
 from database.seeds.systems import (
     ACTIVITY_SYSTEM,
@@ -72,6 +76,16 @@ ALL_SYSTEMS = [
 ]
 
 # ---------------------------------------------------------------------------
+# Logins — auth logins from config + profile logins from linked profiles
+# ---------------------------------------------------------------------------
+
+_PROFILE_LOGINS = build_profile_logins([
+    dict(name="Default Superadmin", resource_id=FRESH_SUPERADMIN_RESOURCE),
+])
+FRESH_LOGINS_IDS = AUTH_LOGIN_IDS + [lg["id"] for lg in _PROFILE_LOGINS]
+FRESH_LOGINS = _PROFILE_LOGINS  # auth logins are in AUTH_LOGINS (logins.py)
+
+# ---------------------------------------------------------------------------
 # Deterministic IDs
 # ---------------------------------------------------------------------------
 
@@ -97,5 +111,6 @@ settings = [
         system_ids=ALL_SYSTEMS,
         threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
         profile_ids=[FRESH_SUPERADMIN_RESOURCE],
+        logins_ids=FRESH_LOGINS_IDS or None,
     ),
 ]

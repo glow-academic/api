@@ -140,6 +140,8 @@ async def create_setting_impl(
                     auth_item_value_ids=item.auth_item_value_ids,
                     system_ids=item.system_ids,
                     threshold_ids=item.threshold_ids,
+                    mcp_ids=item.mcp_ids,
+                    logins_ids=item.logins_ids,
                     setting_ids=(
                         [snapshot_ids[idx]]
                         if snapshot_ids

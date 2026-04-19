@@ -57,6 +57,7 @@ MODULES = [
     "profile_personas",
     "cohorts",
     "colors",
+    "logins",
     "settings",
     "texts",
     "files",

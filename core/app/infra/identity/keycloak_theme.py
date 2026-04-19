@@ -12,6 +12,8 @@ from app.infra.identity.keycloak_resolvers import (
     resolve_auths_for_department,
     resolve_auths_for_realm,
     resolve_departments_for_sync,
+    resolve_logins_for_department,
+    resolve_logins_for_realm,
     resolve_setting_profiles_for_idp,
 )
 from app.utils.logging.db_logger import get_logger
@@ -39,6 +41,10 @@ async def generate_keycloak_theme_providers(pool: Any) -> None:
     profile_aliases_by_dept: dict[str, list[str]] = {}
     platform_profile_aliases: list[str] = []
 
+    # Logins data (new path — built alongside auth/profile for transition)
+    realm_logins: list[dict] = []
+    logins_by_dept: dict[str, list[dict]] = {}
+
     redis = get_redis_client()
 
     async with pool.acquire() as conn:
@@ -46,6 +52,23 @@ async def generate_keycloak_theme_providers(pool: Any) -> None:
         realm_level_auths = await resolve_auths_for_realm(conn, redis)
         platform_providers = [a.slug or "" for a in realm_level_auths]
         all_idp_aliases.update(platform_providers)
+
+        # Step 1b: Resolve realm-level logins (new logins_resource path)
+        try:
+            _realm_logins = await resolve_logins_for_realm(conn, redis)
+            realm_logins = [
+                {
+                    "id": str(lg.id),
+                    "display_name": lg.display_name,
+                    "login_type": lg.login_type,
+                    "auth_id": str(lg.auth_id) if lg.auth_id else None,
+                    "profile_id": str(lg.profile_id) if lg.profile_id else None,
+                }
+                for lg in _realm_logins
+            ]
+        except Exception as e:
+            logger.warning(f"Failed to resolve realm logins (non-fatal): {e}")
+            realm_logins = []
 
         # Step 2: Get all default-idp profile aliases (per settings)
         setting_profiles = await resolve_setting_profiles_for_idp(conn, redis)
@@ -84,6 +107,24 @@ async def generate_keycloak_theme_providers(pool: Any) -> None:
             dept_name = dept.department_name or dept_id
 
             departments_list.append({"id": dept_id, "title": dept_name})
+
+            # Get logins for this department (new path)
+            try:
+                dept_logins = await resolve_logins_for_department(
+                    conn, redis, dept.department_id
+                )
+                logins_by_dept[dept_id] = [
+                    {
+                        "id": str(lg.id),
+                        "display_name": lg.display_name,
+                        "login_type": lg.login_type,
+                        "auth_id": str(lg.auth_id) if lg.auth_id else None,
+                        "profile_id": str(lg.profile_id) if lg.profile_id else None,
+                    }
+                    for lg in dept_logins
+                ]
+            except Exception as e:
+                logger.warning(f"Failed to resolve logins for dept {dept_id} (non-fatal): {e}")
 
             # Get auths for this department
             dept_auths = await resolve_auths_for_department(
@@ -196,7 +237,24 @@ async def generate_keycloak_theme_providers(pool: Any) -> None:
     lines.append("  </#if>")
     lines.append("</#function>")
 
+    # Logins data block (transition — available for future FreeMarker use)
+    lines.append("")
+    lines.append("<#-- ═══ Logins Resource Data (transition) ═══ -->")
+    lines.append("<#--")
+    lines.append("  Realm-level logins:")
+    for lg in realm_logins:
+        lines.append(f"    - {lg['display_name']} (type={lg['login_type']}, auth={lg.get('auth_id')}, profile={lg.get('profile_id')})")
+    lines.append("")
+    lines.append("  Per-department logins:")
+    for dept_id, dept_lgs in sorted(logins_by_dept.items()):
+        lines.append(f"    {dept_id}:")
+        for lg in dept_lgs:
+            lines.append(f"      - {lg['display_name']} (type={lg['login_type']})")
+    lines.append("-->")
+
     out_path.write_text("\n".join(lines), encoding="utf-8")
     logger.info(f"✅ Generated theme provider mapping: {out_path.resolve()}")
     logger.info(f"   - {len(departments_list)} departments enumerated")
     logger.info(f"   - {len(all_idp_aliases)} IdP aliases enumerated")
+    logger.info(f"   - {len(realm_logins)} realm logins resolved")
+    logger.info(f"   - {len(logins_by_dept)} departments with logins data")

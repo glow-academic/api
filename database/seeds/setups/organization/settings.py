@@ -6,6 +6,7 @@ Provider keys and auth item keys are created by the keys module and linked here.
 
 from database.seeds.auths import AUTH_RESOURCE_IDS
 from database.seeds.ids import sid
+from database.seeds.logins import AUTH_LOGIN_IDS
 from database.seeds.setups.organization.departments import (
     ORGANIZATION_DEPT,
     ORGANIZATION_DEPT_RESOURCE,
@@ -59,5 +60,6 @@ settings = [
         auth_item_key_ids=AUTH_ITEM_KEY_IDS,
         system_ids=SYSTEMS,
         threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
+        logins_ids=AUTH_LOGIN_IDS or None,
     ),
 ]

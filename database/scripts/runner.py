@@ -1102,6 +1102,31 @@ async def _run_key_seeds(
             print(f"  OK: {len(mod.auth_item_values)} auth_item_values created")
 
 
+async def _seed_logins(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    login_defs: list[dict],
+) -> list[UUID]:
+    """Create logins_resource entries from login definitions."""
+    from app.tools.resources.logins.create import create_logins
+
+    created_ids: list[UUID] = []
+    async with pool.acquire() as conn:
+        for lg in login_defs:
+            result = await create_logins(
+                conn,
+                id=lg.get("id"),
+                profile_id=lg.get("profile_id"),
+                auth_id=lg.get("auth_id"),
+                display_name=lg.get("display_name", ""),
+                login_type=lg.get("login_type", "auth"),
+                redis=redis,
+            )
+            created_ids.append(result.id)
+    print(f"  OK: {len(created_ids)} logins created")
+    return created_ids
+
+
 async def _run_setting_seeds(
     pool: asyncpg.Pool,
     redis: Redis,
@@ -1961,6 +1986,13 @@ async def main_setup(setup: str = "university") -> None:
         import database.seeds.dynamic_keys as dk_mod
         await _run_key_seeds(pool, redis_client, dk_mod)
 
+        print("\nSeeding base auth logins...")
+        from database.seeds.logins import AUTH_LOGINS
+        if AUTH_LOGINS:
+            await _seed_logins(pool, redis_client, AUTH_LOGINS)
+        else:
+            print("  (no auth logins to seed — no auth providers in config)")
+
         # ── Phase 2: Setup-specific modules ───────────────────────────
 
         for module_name in setup_module.MODULES:
@@ -2010,6 +2042,8 @@ async def main_setup(setup: str = "university") -> None:
                 )
             elif module_name == "keys":
                 await _run_key_seeds(pool, redis_client, mod)
+            elif module_name == "logins":
+                await _seed_logins(pool, redis_client, mod.logins)
             elif module_name == "settings":
                 await _run_setting_seeds(pool, redis_client, mod.settings)
             elif module_name == "colors":

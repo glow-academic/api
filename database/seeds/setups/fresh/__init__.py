@@ -25,5 +25,6 @@ BOOTSTRAP_PROFILE = dict(
 # Each corresponds to a .py file in this package.
 MODULES = [
     "profiles",
+    "logins",
     "settings",
 ]

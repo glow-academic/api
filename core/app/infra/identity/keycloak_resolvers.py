@@ -31,6 +31,7 @@ from app.tools.resources.departments.get import (
 )
 from app.tools.resources.items.get import get_items
 from app.tools.resources.keys.get import get_keys
+from app.tools.resources.logins.get import get_logins
 from app.tools.resources.profiles.get import get_profiles
 from app.utils.logging.db_logger import get_logger
 
@@ -314,6 +315,118 @@ async def resolve_setting_profiles_for_idp(
                 )
 
     return results
+
+
+# ── Resolver 4b: Logins for a department (logins_resource via settings) ──
+
+
+@dataclass
+class LoginForSync:
+    id: UUID
+    profile_id: UUID | None
+    auth_id: UUID | None
+    display_name: str
+    login_type: str
+
+
+async def resolve_logins_for_department(
+    conn: asyncpg.Connection,
+    redis: Redis,
+    department_id: UUID,
+) -> list[LoginForSync]:
+    """Logins linked to a department via setting artifacts.
+
+    Chain: department_artifact -> resource ID -> find settings with that dept
+           -> setting_logins_junction -> logins_resource.
+    """
+    # Step 1: Get department's resource ID from self-link junction
+    dept_arts = await get_department_artifacts(conn, [department_id], departments=True)
+    if not dept_arts or not dept_arts[0].department_ids:
+        return []
+    dept_resource_id = dept_arts[0].department_ids[0]
+
+    # Step 2: Get ALL setting artifacts with departments + logins junctions
+    setting_artifact_ids, _ = await search_settings(
+        conn, active_only=True, limit_count=100000
+    )
+    if not setting_artifact_ids:
+        return []
+
+    setting_artifacts = await get_setting_artifacts(
+        conn, setting_artifact_ids, departments=True, logins=True
+    )
+
+    # Step 3: Filter to settings linked to this department's resource ID
+    logins_ids: set[UUID] = set()
+    for sa in setting_artifacts:
+        if dept_resource_id in (sa.department_ids or []):
+            if sa.logins_ids:
+                logins_ids.update(sa.logins_ids)
+
+    if not logins_ids:
+        return []
+
+    # Step 4: Fetch logins_resource entries
+    login_resources = await get_logins(conn, list(logins_ids), redis)
+    return [
+        LoginForSync(
+            id=lr.id,
+            profile_id=lr.profile_id,
+            auth_id=lr.auth_id,
+            display_name=lr.display_name,
+            login_type=lr.login_type,
+        )
+        for lr in login_resources
+        if lr.active
+    ]
+
+
+# ── Resolver 4c: Logins for realm level (default settings, no dept) ──
+
+
+async def resolve_logins_for_realm(
+    conn: asyncpg.Connection,
+    redis: Redis,
+) -> list[LoginForSync]:
+    """Logins from default settings (not linked to any department).
+
+    Finds settings with empty department_ids (realm-level/platform defaults),
+    then resolves their logins via setting_logins_junction.
+    """
+    # Step 1: Get ALL active setting artifacts with departments + logins
+    setting_artifact_ids, _ = await search_settings(
+        conn, active_only=True, limit_count=100000
+    )
+    if not setting_artifact_ids:
+        return []
+
+    setting_artifacts = await get_setting_artifacts(
+        conn, setting_artifact_ids, departments=True, logins=True
+    )
+
+    # Step 2: Filter to realm-level (no department_ids)
+    logins_ids: set[UUID] = set()
+    for sa in setting_artifacts:
+        if not sa.department_ids:  # No departments = realm-level
+            if sa.logins_ids:
+                logins_ids.update(sa.logins_ids)
+
+    if not logins_ids:
+        return []
+
+    # Step 3: Fetch logins_resource entries
+    login_resources = await get_logins(conn, list(logins_ids), redis)
+    return [
+        LoginForSync(
+            id=lr.id,
+            profile_id=lr.profile_id,
+            auth_id=lr.auth_id,
+            display_name=lr.display_name,
+            login_type=lr.login_type,
+        )
+        for lr in login_resources
+        if lr.active
+    ]
 
 
 # ── Resolver 5: Auth items (config) with dept→default fallback ────────
