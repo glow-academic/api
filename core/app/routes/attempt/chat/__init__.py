@@ -5,7 +5,6 @@ from fastapi import APIRouter
 from app.routes.attempt.chat.analyses import router as analyses_router
 from app.routes.attempt.chat.complete import router as complete_router
 from app.routes.attempt.chat.create import router as create_router
-from app.routes.attempt.chat.end import router as end_router
 from app.routes.attempt.chat.feedback import router as feedback_router
 from app.routes.attempt.chat.grade import router as grade_router
 from app.routes.attempt.chat.hints import router as hints_router
@@ -29,7 +28,6 @@ router = APIRouter(prefix="/chat", tags=["attempt-chat"])
 router.include_router(create_router)
 router.include_router(send_router)
 router.include_router(stop_router)
-router.include_router(end_router)
 router.include_router(grade_router)
 router.include_router(response_router)
 

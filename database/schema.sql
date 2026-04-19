@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 5RxZN0WEPlY9BwtXbPThFfCPoVfyMe0JbiwCMCzH9wXZHYGNltqt1SBaTDTSZXa
+\restrict eKCoGeyIyua136xveSFO3bNfTdCgL3abIh0Lz2vQiY5J2LI5eA19OcUDSKAzQZc
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -320,6 +320,7 @@ CREATE TYPE public.operation_type AS ENUM (
     'chat_analyses',
     'chat_hints',
     'chat_complete',
+    'complete',
     'join',
     'leave',
     'home_context',
@@ -14498,6 +14499,14 @@ ALTER TABLE ONLY public.attempt_chat_standards_connection
 
 ALTER TABLE ONLY public.attempt_chat_videos_connection
     ADD CONSTRAINT attempt_chat_videos_connection_pkey PRIMARY KEY (attempt_chat_id, videos_id);
+
+
+--
+-- Name: attempt_completion_entry attempt_completion_entry_attempt_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attempt_completion_entry
+    ADD CONSTRAINT attempt_completion_entry_attempt_unique UNIQUE (attempt_id);
 
 
 --
@@ -39544,5 +39553,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 5RxZN0WEPlY9BwtXbPThFfCPoVfyMe0JbiwCMCzH9wXZHYGNltqt1SBaTDTSZXa
+\unrestrict eKCoGeyIyua136xveSFO3bNfTdCgL3abIh0Lz2vQiY5J2LI5eA19OcUDSKAzQZc
 

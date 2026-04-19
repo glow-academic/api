@@ -5,8 +5,8 @@ from fastapi import APIRouter
 from app.routes.attempt.archive import router as archive_router
 from app.routes.attempt.audio import router as audio_router
 from app.routes.attempt.chat import router as chat_router
+from app.routes.attempt.complete import router as complete_router
 from app.routes.attempt.context import router as context_router
-from app.routes.attempt.end import router as end_router
 from app.routes.attempt.expire import router as expire_router
 from app.routes.attempt.export import router as export_router
 from app.routes.attempt.file import router as file_router
@@ -51,7 +51,7 @@ router.include_router(problem_router)
 
 # Attempt-level state machine operations
 router.include_router(start_router)
-router.include_router(end_router)
+router.include_router(complete_router)
 router.include_router(expire_router)
 router.include_router(previous_router)
 router.include_router(join_router)

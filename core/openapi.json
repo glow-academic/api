@@ -14556,19 +14556,19 @@
         ]
       }
     },
-    "/attempt/next": {
+    "/attempt/complete": {
       "post": {
         "tags": [
           "attempt"
         ],
-        "summary": "Next Attempt",
-        "description": "Proceed to the next scenario in an existing attempt.",
-        "operationId": "next_attempt_attempt_next_post",
+        "summary": "Attempt Complete",
+        "description": "Mark an entire attempt as completed.",
+        "operationId": "attempt_complete_attempt_complete_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AttemptNextPayload"
+                "$ref": "#/components/schemas/AttemptCompleteRequest"
               }
             }
           },
@@ -14580,57 +14580,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NextAttemptApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt"
-        ]
-      }
-    },
-    "/attempt/end": {
-      "post": {
-        "tags": [
-          "attempt"
-        ],
-        "summary": "End Attempt",
-        "description": "End all remaining chats in an attempt.",
-        "operationId": "end_attempt_attempt_end_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AttemptEndAllPayload"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EndAttemptApiResponse"
+                  "$ref": "#/components/schemas/AttemptCompleteResponse"
                 }
               }
             }
@@ -14964,58 +14914,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StopChatApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "attempt-chat"
-        ]
-      }
-    },
-    "/attempt/chat/end": {
-      "post": {
-        "tags": [
-          "attempt",
-          "attempt-chat"
-        ],
-        "summary": "Chat End",
-        "description": "End a single chat within an attempt.\n\nBrowser client: sends grade=True, internal AI generates full grade.\nAgent: can optionally provide score, feedbacks, strengths, etc. to skip AI.",
-        "operationId": "chat_end_attempt_chat_end_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EndChatApiRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EndChatApiResponse"
                 }
               }
             }
@@ -42558,6 +42456,48 @@
         "title": "AttemptChatStartedEvent",
         "description": "Server-to-client: new chat created within an attempt."
       },
+      "AttemptCompleteRequest": {
+        "properties": {
+          "attempt_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Attempt Id"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "attempt_id"
+        ],
+        "title": "AttemptCompleteRequest"
+      },
+      "AttemptCompleteResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "completion_id": {
+            "type": "string",
+            "title": "Completion Id"
+          },
+          "attempt_id": {
+            "type": "string",
+            "title": "Attempt Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "completion_id",
+          "attempt_id"
+        ],
+        "title": "AttemptCompleteResponse"
+      },
       "AttemptData": {
         "properties": {
           "id": {
@@ -63632,256 +63572,6 @@
         ],
         "title": "EmulateProfileApiResponse",
         "description": "Response model for profile emulation."
-      },
-      "EndAttemptApiResponse": {
-        "properties": {
-          "attempt_id": {
-            "type": "string",
-            "title": "Attempt Id"
-          },
-          "success": {
-            "type": "boolean",
-            "title": "Success"
-          },
-          "all_scenarios_complete": {
-            "type": "boolean",
-            "title": "All Scenarios Complete",
-            "default": false
-          },
-          "message": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "attempt_id",
-          "success"
-        ],
-        "title": "EndAttemptApiResponse"
-      },
-      "EndChatApiRequest": {
-        "properties": {
-          "attempt_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Attempt Id",
-            "description": "UUID of the attempt to end"
-          },
-          "chat_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Chat Id",
-            "description": "UUID of the chat to end"
-          },
-          "grade": {
-            "type": "boolean",
-            "title": "Grade",
-            "description": "Whether to trigger grading after ending",
-            "default": true
-          },
-          "score": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Score",
-            "description": "Pre-computed score from the agent"
-          },
-          "passed": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Passed",
-            "description": "Pre-computed pass/fail from the agent"
-          },
-          "time_taken": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Time Taken",
-            "description": "Time taken in seconds"
-          },
-          "feedbacks": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeFeedbackEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Feedbacks",
-            "description": "Pre-computed feedback entries"
-          },
-          "strengths": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeStrengthEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Strengths",
-            "description": "Pre-computed strength entries"
-          },
-          "improvements": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeImprovementEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Improvements",
-            "description": "Pre-computed improvement entries"
-          },
-          "analyses": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeAnalysisEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Analyses",
-            "description": "Pre-computed analysis entries"
-          },
-          "highlights": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeHighlightEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Highlights",
-            "description": "Pre-computed highlight entries"
-          },
-          "replacements": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeReplacementEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Replacements",
-            "description": "Pre-computed replacement entries"
-          }
-        },
-        "type": "object",
-        "required": [
-          "attempt_id",
-          "chat_id"
-        ],
-        "title": "EndChatApiRequest"
-      },
-      "EndChatApiResponse": {
-        "properties": {
-          "chat_id": {
-            "type": "string",
-            "title": "Chat Id",
-            "description": "ID of the ended chat"
-          },
-          "is_attempt_finished": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Is Attempt Finished",
-            "description": "Whether the entire attempt is finished"
-          },
-          "grade_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grade Id",
-            "description": "ID of the generated grade"
-          },
-          "score": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Score",
-            "description": "Overall score"
-          },
-          "passed": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Passed",
-            "description": "Whether the attempt passed"
-          }
-        },
-        "type": "object",
-        "required": [
-          "chat_id"
-        ],
-        "title": "EndChatApiResponse"
       },
       "EndTestApiRequest": {
         "properties": {
@@ -100818,24 +100508,6 @@
         ],
         "title": "NameGroupApiResponse",
         "description": "Response model for group name endpoint."
-      },
-      "NextAttemptApiResponse": {
-        "properties": {
-          "attempt_id": {
-            "type": "string",
-            "title": "Attempt Id"
-          },
-          "chat_id": {
-            "type": "string",
-            "title": "Chat Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "attempt_id",
-          "chat_id"
-        ],
-        "title": "NextAttemptApiResponse"
       },
       "NextTestApiResponse": {
         "properties": {

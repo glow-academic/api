@@ -480,6 +480,15 @@ ALTER TABLE ONLY public.attempt_chat_entry
 
 --
 
+-- Name: attempt_completion_entry attempt_completion_entry_attempt_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attempt_completion_entry
+    ADD CONSTRAINT attempt_completion_entry_attempt_unique UNIQUE (attempt_id);
+
+
+--
+
 -- Name: attempt_completion_entry attempt_completion_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 

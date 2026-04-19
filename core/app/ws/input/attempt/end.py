@@ -1,31 +1,15 @@
-"""Input: attempt.end"""
+"""Input: attempt.chat.end — DEPRECATED.
+
+Chat ending now uses /attempt/chat/complete + /attempt/complete primitives.
+This handler is kept as a no-op for backward compatibility.
+"""
 
 from typing import Any
 
-from app.infra.globals import get_internal_sio, sio
-from app.infra.identity.socket import resolve_socket_identity
-from app.infra.attempt.end import attempt_end_internal_impl
-
-internal_sio = get_internal_sio()
+from app.infra.globals import sio
 
 
 @sio.on("attempt.chat.end")  # type: ignore
 async def attempt_end(sid: str, data: dict[str, Any]) -> None:
-    identity = await resolve_socket_identity(sid)
-    if not identity:
-        return
-
-    try:
-        await attempt_end_internal_impl({
-            **data,
-            "sid": sid,
-            "profile_id": str(identity.profile_id),
-            "session_id": str(identity.session_id),
-        })
-    except Exception as e:
-        await internal_sio.emit("attempt.end.failed", {
-            "sid": sid,
-            "rooms": [sid],
-            "message": str(e),
-            "error_type": type(e).__name__,
-        })
+    # No-op: use /attempt/chat/complete + /attempt/complete instead
+    pass

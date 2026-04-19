@@ -11,6 +11,7 @@ from . import (  # noqa: F401
     audio_upload,
     chat_complete,
     chat_ended,
+    complete,
     chat_grade,
     chat_send,
     chat_started,
@@ -48,7 +49,6 @@ from . import (  # noqa: F401
     # Lifecycle completed/failed handlers
     start,
     end,
-    end_all,
     response,
     stop,
     use_previous,

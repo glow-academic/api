@@ -72,6 +72,7 @@ CREATE TYPE public.operation_type AS ENUM (
     'chat_analyses',
     'chat_hints',
     'chat_complete',
+    'complete',
     'join',
     'leave',
     'home_context',

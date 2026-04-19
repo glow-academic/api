@@ -25,6 +25,7 @@ async def create_attempt_completion(
         """
         INSERT INTO attempt_completion_entry (id, attempt_id, session_id, stop, error, message, active, mcp, generated)
         VALUES (COALESCE($8, uuidv7()), $1, $2, $3, $4, $5, $6, $7, true)
+        ON CONFLICT (attempt_id) DO NOTHING
         RETURNING id
         """,
         attempt_id,
@@ -36,4 +37,9 @@ async def create_attempt_completion(
         mcp,
         id,
     )
+    if entry_id is None:
+        entry_id = await conn.fetchval(
+            "SELECT id FROM attempt_completion_entry WHERE attempt_id = $1",
+            attempt_id,
+        )
     return CreateAttemptCompletionResponse(id=entry_id)

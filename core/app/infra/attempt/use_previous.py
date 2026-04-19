@@ -19,9 +19,6 @@ from app.infra.attempt.client_types import AttemptUsePreviousPayload
 from app.tools.entries.attempt_chat_bridge.create import (
     create_attempt_chat_bridge,
 )
-from app.tools.entries.attempt_chat_completion.create import (
-    create_attempt_chat_completion,
-)
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -41,12 +38,9 @@ async def attempt_use_previous_internal_impl(
     emit=None,
     audit: bool = True,
 ) -> AttemptUsePreviousInternalResult:
-    """Bridge previous attempt chats into current attempt and mark them complete."""
+    """Bridge previous attempt chats into current attempt."""
     from app.tools.entries.attempt.refresh import refresh_attempt
     from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
-    from app.tools.entries.attempt_chat_completion.refresh import (
-        refresh_attempt_chat_completion,
-    )
 
     sid = data.get("sid", "")
     payload = AttemptUsePreviousPayload(**data)
@@ -81,18 +75,11 @@ async def attempt_use_previous_internal_impl(
                     attempt_chat_id=attempt_chat_id,
                     session_id=session_uuid,
                 )
-                # Mark the bridged chat as complete (idempotent)
-                await create_attempt_chat_completion(
-                    conn,
-                    chat_id=attempt_chat_id,
-                    session_id=session_uuid,
-                )
             except Exception as exc:
                 logger.warning(
                     f"Failed to bridge attempt_chat {attempt_chat_id_str}: {exc}"
                 )
 
-        await refresh_attempt_chat_completion(conn)
         await refresh_attempt_chat(conn)
         await refresh_attempt(conn)
 
