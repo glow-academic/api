@@ -1,0 +1,9 @@
+INPUT:
+  group_id: 019da702-49ca-7720-a261-2422bb440a9b
+  name: FERPA Privacy Breach Scenario
+
+OUTPUT:
+Group resolved.
+- **Group ID:** `019da702-49ca-7720-a261-2422bb440a9b`
+- **Group Name ID:** `019da702-673c-75bf-929e-5d6f12dda53c`
+- **Name:** FERPA Privacy Breach Scenario
