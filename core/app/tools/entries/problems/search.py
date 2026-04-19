@@ -43,7 +43,7 @@ async def search_problems(
           AND ($5::timestamptz IS NULL OR {source_alias}.created_at >= $5)
           AND ($6::timestamptz IS NULL OR {source_alias}.created_at <= $6)
           AND ($7::boolean IS NULL OR {source_alias}.mcp = $7)
-          AND ($10::text IS NULL OR {source_alias}.artifact_type = $10::artifact_type)
+          AND ($10::text IS NULL OR {source_alias}.artifact_type = $10)
         ORDER BY {source_alias}.created_at DESC
         LIMIT $8 OFFSET $9
         """,

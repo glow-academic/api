@@ -22,7 +22,7 @@ async def create_quality(
     quality_id = await conn.fetchval(
         """
         INSERT INTO qualities_resource (id, quality, active, mcp, generated)
-        VALUES (COALESCE($4, uuidv7()), $1::quality_type, $2, $3, $3)
+        VALUES (COALESCE($4, uuidv7()), $1, $2, $3, $3)
         RETURNING id
         """,
         quality,

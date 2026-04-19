@@ -30,7 +30,7 @@ async def create_simulation_availability(
         """
         INSERT INTO simulation_availability_resource
             (id, simulation_id, time, type, active, mcp, generated)
-        VALUES (COALESCE($6, uuidv7()), $1, $2, $3::availability_type, $4, $5, $5)
+        VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, $5)
         ON CONFLICT (simulation_id, type) DO UPDATE SET time = EXCLUDED.time
         RETURNING id
         """,

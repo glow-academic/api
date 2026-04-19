@@ -23,7 +23,7 @@ async def create_group(
     group_id = await conn.fetchval(
         """
         INSERT INTO groups_entry (id, session_id, active, mcp, generated, artifact_type)
-        VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true, $5::artifact_type)
+        VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true, $5)
         ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
     """,

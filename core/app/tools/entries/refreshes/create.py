@@ -19,7 +19,7 @@ async def create_refresh(
     refresh_id = await conn.fetchval(
         """
         INSERT INTO refreshes_entry (operation_key, artifact_type, target, session_id, mcp, generated)
-        VALUES ($1, $2::artifact_type, $3, $4, $5, true)
+        VALUES ($1, $2, $3, $4, $5, true)
         RETURNING id
         """,
         operation_key,

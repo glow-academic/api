@@ -87,7 +87,7 @@ async def search_flags(
 
     extra_conditions: list[tuple[str, object]] = []
     if flag_type:
-        extra_conditions.append(("{alias}.type = ${idx}::flag_type", flag_type))
+        extra_conditions.append(("{alias}.type = ${idx}", flag_type))
 
     tags = ["resources", "flags"]
     key = cache_key(

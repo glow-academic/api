@@ -28,7 +28,7 @@ async def search_refreshes(
         SELECT id, operation_key, artifact_type, target, session_id, created_at
         FROM {source}
         WHERE ($1::uuid[] IS NULL OR operation_key = ANY($1))
-          AND ($2::text IS NULL OR artifact_type = $2::artifact_type)
+          AND ($2::text IS NULL OR artifact_type = $2)
           AND ($3::text IS NULL OR target = $3)
           AND ($4::uuid[] IS NULL OR session_id = ANY($4))
         ORDER BY created_at DESC

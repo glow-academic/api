@@ -21,7 +21,7 @@ async def create_run_pricing_entry_internal(
     entry_id = await conn.fetchval(
         """
         INSERT INTO run_pricing_entry (session_id, pricing_type, count, run_id, mcp, generated)
-        VALUES ($1, $2::pricing_type, $3, $4, $5, true)
+        VALUES ($1, $2, $3, $4, $5, true)
         RETURNING id
         """,
         session_id,

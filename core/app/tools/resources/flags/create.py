@@ -26,7 +26,7 @@ async def create_flag(
     flag_id = await conn.fetchval(
         """
         INSERT INTO flags_resource (id, name, description, icon, type, value, active, mcp, generated)
-        VALUES (COALESCE($8, uuidv7()), $1, $2, $3, $4::flag_type, $5, $6, $7, $7)
+        VALUES (COALESCE($8, uuidv7()), $1, $2, $3, $4, $5, $6, $7, $7)
         RETURNING id
     """,
         name,

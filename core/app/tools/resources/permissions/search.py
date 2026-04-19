@@ -51,12 +51,12 @@ async def search_permissions(
     idx = 1
 
     if artifact:
-        conditions.append(f"artifact = ${idx}::artifact_type")
+        conditions.append(f"artifact = ${idx}")
         params.append(artifact)
         idx += 1
 
     if operation:
-        conditions.append(f"operation = ${idx}::operation_type")
+        conditions.append(f"operation = ${idx}")
         params.append(operation)
         idx += 1
 

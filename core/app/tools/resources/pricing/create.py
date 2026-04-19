@@ -27,7 +27,7 @@ async def create_pricing(
         """
         INSERT INTO pricing_resource
             (id, pricing_type, price, unit_name, unit_category, unit_value, active, mcp, generated)
-        VALUES (COALESCE($8, uuidv7()), $1::pricing_type, $2, $3, $4::unit_type, $5, $6, $7, $7)
+        VALUES (COALESCE($8, uuidv7()), $1, $2, $3, $4, $5, $6, $7, $7)
         RETURNING id
         """,
         pricing_type,

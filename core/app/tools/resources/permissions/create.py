@@ -25,7 +25,7 @@ async def create_permission(
     permission_id = await conn.fetchval(
         """
         INSERT INTO permissions_resource (id, artifact, operation, name, description, active, mcp, generated)
-        VALUES (COALESCE($7, uuidv7()), $1::artifact_type, $2::operation_type, $3, $4, $5, $6, $6)
+        VALUES (COALESCE($7, uuidv7()), $1, $2, $3, $4, $5, $6, $6)
         ON CONFLICT (artifact, operation) DO UPDATE SET
             name = EXCLUDED.name,
             description = EXCLUDED.description

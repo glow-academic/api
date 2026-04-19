@@ -50,7 +50,7 @@ async def search_simulation_availability(
 
     if availability_type is not None:
         extra_conditions.append(
-            ("{alias}.type = ${idx}::availability_type", availability_type)
+            ("{alias}.type = ${idx}", availability_type)
         )
 
     tags = ["resources", "simulation_availability"]

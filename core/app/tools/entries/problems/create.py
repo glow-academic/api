@@ -24,7 +24,7 @@ async def create_problem(
     problem_id = await conn.fetchval(
         """
         INSERT INTO problems_entry (id, call_id, type, message, active, mcp, generated, artifact_type)
-        VALUES (COALESCE($6, uuidv7()), $1, $2::public.feedback_type, $3, $4, $5, true, $7::artifact_type)
+        VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, true, $7)
         ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,

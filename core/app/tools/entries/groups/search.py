@@ -35,7 +35,7 @@ async def search_groups(
           AND ($3::timestamptz IS NULL OR created_at >= $3)
           AND ($4::timestamptz IS NULL OR created_at <= $4)
           AND ($5::boolean IS NULL OR mcp = $5)
-          AND ($8::text IS NULL OR artifact_type = $8::artifact_type)
+          AND ($8::text IS NULL OR artifact_type = $8)
         ORDER BY created_at DESC
         LIMIT $6 OFFSET $7
         """,

@@ -23,7 +23,7 @@ async def create_value(
     value_id = await conn.fetchval(
         """
         INSERT INTO values_resource (id, value, type, active, mcp, generated)
-        VALUES (COALESCE($5, uuidv7()), $1, $2::value_type, $3, $4, $4)
+        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, $4)
         RETURNING id
     """,
         value,
