@@ -1,0 +1,9 @@
+INPUT:
+  chat_id: 019da36d-d94a-7e01-954f-cb8a64b6dbb4
+  text: I'm sorry, but I'm still not really getting it. I thought this was supposed to be about just following the steps in the manual, right? Or is there something else I'm missing? I feel like I'm mixing things up again.
+  persona_id: 019da36d-d946-7343-a9be-22be40e54627
+
+OUTPUT:
+Message sent.
+- **Accepted:** 
+- **Message ID:** `019da36e-0b6e-73bf-8c82-cf2aea8c3db1`

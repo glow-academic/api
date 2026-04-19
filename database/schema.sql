@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict mCD8bS5MkZ1zVFMg4nl9TIItDOQns6k5QCcwUfSNN54xMYKisXhEEE44REBP1yr
+\restrict 2fpznmtcnVekRnfgoJSNumWKgqhkwThsg436T50TTWxU9zWMB06XwqeSuSmLjlz
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -2379,43 +2379,21 @@ CREATE TABLE public.attempt_strength_entry (
 
 
 --
--- Name: messages_entry; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.messages_entry (
-    id uuid DEFAULT uuidv7() NOT NULL,
-    run_id uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    role public.message_type NOT NULL,
-    generated boolean DEFAULT false NOT NULL,
-    mcp boolean DEFAULT false NOT NULL,
-    active boolean DEFAULT true NOT NULL
-);
-
-
---
 -- Name: attempt_highlight_mv; Type: MATERIALIZED VIEW; Schema: public; Owner: -
 --
 
 CREATE MATERIALIZED VIEW public.attempt_highlight_mv AS
- SELECT h.id AS highlight_id,
-    h.strength_id,
-    h.section,
-    h.idx,
-    h.created_at
-   FROM (((((((public.attempt_highlight_entry h
-     JOIN public.attempt_strength_entry s ON ((s.id = h.strength_id)))
+ SELECT hl.id AS highlight_id,
+    hl.strength_id,
+    hl.section,
+    hl.created_at
+   FROM (((((public.attempt_highlight_entry hl
+     JOIN public.attempt_strength_entry s ON ((s.id = hl.strength_id)))
      JOIN public.attempt_message_entry sm ON ((sm.id = s.message_id)))
-     JOIN public.messages_entry m ON ((m.id = sm.id)))
      JOIN public.attempt_chat_entry c ON ((c.id = sm.chat_id)))
      JOIN public.attempt_chat_bridge_entry ac ON ((ac.attempt_chat_id = c.id)))
      JOIN public.attempt_entry a ON ((a.id = ac.attempt_id)))
-     LEFT JOIN LATERAL ( SELECT attempt_archive_entry.archived
-           FROM public.attempt_archive_entry
-          WHERE ((attempt_archive_entry.attempt_id = a.id) AND (attempt_archive_entry.active = true))
-          ORDER BY attempt_archive_entry.created_at DESC
-         LIMIT 1) sa_archive ON (true))
-  WHERE ((h.active = true) AND (s.active = true) AND (m.active = true) AND (c.active = true) AND (a.active = true) AND (COALESCE(sa_archive.archived, false) = false))
+  WHERE ((hl.active = true) AND (s.active = true) AND (c.active = true) AND (a.active = true))
   WITH NO DATA;
 
 
@@ -2444,20 +2422,13 @@ CREATE MATERIALIZED VIEW public.attempt_hint_mv AS
  SELECT h.id AS hint_id,
     h.message_id,
     h.hint,
-    ((row_number() OVER (PARTITION BY h.message_id ORDER BY h.created_at) - 1))::integer AS idx,
     h.created_at
-   FROM ((((((public.attempt_hint_entry h
+   FROM ((((public.attempt_hint_entry h
      JOIN public.attempt_message_entry sm ON ((sm.id = h.message_id)))
-     JOIN public.messages_entry m ON ((m.id = sm.id)))
      JOIN public.attempt_chat_entry c ON ((c.id = sm.chat_id)))
      JOIN public.attempt_chat_bridge_entry ac ON ((ac.attempt_chat_id = c.id)))
      JOIN public.attempt_entry a ON ((a.id = ac.attempt_id)))
-     LEFT JOIN LATERAL ( SELECT attempt_archive_entry.archived
-           FROM public.attempt_archive_entry
-          WHERE ((attempt_archive_entry.attempt_id = a.id) AND (attempt_archive_entry.active = true))
-          ORDER BY attempt_archive_entry.created_at DESC
-         LIMIT 1) sa_archive ON (true))
-  WHERE ((h.active = true) AND (m.active = true) AND (c.active = true) AND (a.active = true) AND (COALESCE(sa_archive.archived, false) = false))
+  WHERE ((h.active = true) AND (c.active = true) AND (a.active = true))
   WITH NO DATA;
 
 
@@ -2507,18 +2478,12 @@ CREATE MATERIALIZED VIEW public.attempt_improvement_mv AS
     i.name,
     i.description,
     i.created_at
-   FROM ((((((public.attempt_improvement_entry i
+   FROM ((((public.attempt_improvement_entry i
      JOIN public.attempt_message_entry sm ON ((sm.id = i.message_id)))
-     JOIN public.messages_entry m ON ((m.id = sm.id)))
      JOIN public.attempt_chat_entry c ON ((c.id = sm.chat_id)))
      JOIN public.attempt_chat_bridge_entry ac ON ((ac.attempt_chat_id = c.id)))
      JOIN public.attempt_entry a ON ((a.id = ac.attempt_id)))
-     LEFT JOIN LATERAL ( SELECT attempt_archive_entry.archived
-           FROM public.attempt_archive_entry
-          WHERE ((attempt_archive_entry.attempt_id = a.id) AND (attempt_archive_entry.active = true))
-          ORDER BY attempt_archive_entry.created_at DESC
-         LIMIT 1) sa_archive ON (true))
-  WHERE ((i.active = true) AND (m.active = true) AND (c.active = true) AND (a.active = true) AND (COALESCE(sa_archive.archived, false) = false))
+  WHERE ((i.active = true) AND (c.active = true) AND (a.active = true))
   WITH NO DATA;
 
 
@@ -2825,25 +2790,18 @@ CREATE TABLE public.attempt_replacement_entry (
 --
 
 CREATE MATERIALIZED VIEW public.attempt_replacement_mv AS
- SELECT r.id AS replacement_id,
-    r.improvement_id,
-    r.section,
-    r.replace AS replace_text,
-    r.idx,
-    r.created_at
-   FROM (((((((public.attempt_replacement_entry r
-     JOIN public.attempt_improvement_entry i ON ((i.id = r.improvement_id)))
+ SELECT rp.id AS replacement_id,
+    rp.improvement_id,
+    rp.section,
+    rp.replace,
+    rp.created_at
+   FROM (((((public.attempt_replacement_entry rp
+     JOIN public.attempt_improvement_entry i ON ((i.id = rp.improvement_id)))
      JOIN public.attempt_message_entry sm ON ((sm.id = i.message_id)))
-     JOIN public.messages_entry m ON ((m.id = sm.id)))
      JOIN public.attempt_chat_entry c ON ((c.id = sm.chat_id)))
      JOIN public.attempt_chat_bridge_entry ac ON ((ac.attempt_chat_id = c.id)))
      JOIN public.attempt_entry a ON ((a.id = ac.attempt_id)))
-     LEFT JOIN LATERAL ( SELECT attempt_archive_entry.archived
-           FROM public.attempt_archive_entry
-          WHERE ((attempt_archive_entry.attempt_id = a.id) AND (attempt_archive_entry.active = true))
-          ORDER BY attempt_archive_entry.created_at DESC
-         LIMIT 1) sa_archive ON (true))
-  WHERE ((r.active = true) AND (i.active = true) AND (m.active = true) AND (c.active = true) AND (a.active = true) AND (COALESCE(sa_archive.archived, false) = false))
+  WHERE ((rp.active = true) AND (i.active = true) AND (c.active = true) AND (a.active = true))
   WITH NO DATA;
 
 
@@ -2918,18 +2876,12 @@ CREATE MATERIALIZED VIEW public.attempt_strength_mv AS
     s.name,
     s.description,
     s.created_at
-   FROM ((((((public.attempt_strength_entry s
+   FROM ((((public.attempt_strength_entry s
      JOIN public.attempt_message_entry sm ON ((sm.id = s.message_id)))
-     JOIN public.messages_entry m ON ((m.id = sm.id)))
      JOIN public.attempt_chat_entry c ON ((c.id = sm.chat_id)))
      JOIN public.attempt_chat_bridge_entry ac ON ((ac.attempt_chat_id = c.id)))
      JOIN public.attempt_entry a ON ((a.id = ac.attempt_id)))
-     LEFT JOIN LATERAL ( SELECT attempt_archive_entry.archived
-           FROM public.attempt_archive_entry
-          WHERE ((attempt_archive_entry.attempt_id = a.id) AND (attempt_archive_entry.active = true))
-          ORDER BY attempt_archive_entry.created_at DESC
-         LIMIT 1) sa_archive ON (true))
-  WHERE ((s.active = true) AND (m.active = true) AND (c.active = true) AND (a.active = true) AND (COALESCE(sa_archive.archived, false) = false))
+  WHERE ((s.active = true) AND (c.active = true) AND (a.active = true))
   WITH NO DATA;
 
 
@@ -7598,6 +7550,21 @@ CREATE TABLE public.messages_agents_connection (
     active boolean DEFAULT true NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+-- Name: messages_entry; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.messages_entry (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    run_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    role public.message_type NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL,
+    active boolean DEFAULT true NOT NULL
 );
 
 
@@ -20415,6 +20382,27 @@ CREATE UNIQUE INDEX attempt_conversations_mv_id_idx ON public.attempt_conversati
 
 
 --
+-- Name: attempt_highlight_mv_highlight_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX attempt_highlight_mv_highlight_id_idx ON public.attempt_highlight_mv USING btree (highlight_id);
+
+
+--
+-- Name: attempt_hint_mv_hint_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX attempt_hint_mv_hint_id_idx ON public.attempt_hint_mv USING btree (hint_id);
+
+
+--
+-- Name: attempt_improvement_mv_improvement_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX attempt_improvement_mv_improvement_id_idx ON public.attempt_improvement_mv USING btree (improvement_id);
+
+
+--
 -- Name: attempt_mutes_entry_conversation_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -20450,6 +20438,13 @@ CREATE UNIQUE INDEX attempt_mutes_mv_id_idx ON public.attempt_mutes_mv USING btr
 
 
 --
+-- Name: attempt_replacement_mv_replacement_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX attempt_replacement_mv_replacement_id_idx ON public.attempt_replacement_mv USING btree (replacement_id);
+
+
+--
 -- Name: attempt_responses_entry_chat_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -20482,6 +20477,13 @@ CREATE INDEX attempt_responses_questions_connection_question_id_idx ON public.at
 --
 
 CREATE INDEX attempt_responses_questions_connection_responses_id_idx ON public.attempt_responses_questions_connection USING btree (responses_id);
+
+
+--
+-- Name: attempt_strength_mv_strength_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX attempt_strength_mv_strength_id_idx ON public.attempt_strength_mv USING btree (strength_id);
 
 
 --
@@ -21990,20 +21992,6 @@ CREATE UNIQUE INDEX idx_attempt_grade_mv_grade_id ON public.attempt_grade_mv USI
 
 
 --
--- Name: idx_attempt_highlight_mv_highlight_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_attempt_highlight_mv_highlight_id ON public.attempt_highlight_mv USING btree (highlight_id);
-
-
---
--- Name: idx_attempt_hint_mv_hint_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_attempt_hint_mv_hint_id ON public.attempt_hint_mv USING btree (hint_id);
-
-
---
 -- Name: idx_attempt_home_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -22022,13 +22010,6 @@ CREATE INDEX idx_attempt_home_home_id ON public.attempt_home_entry USING btree (
 --
 
 CREATE UNIQUE INDEX idx_attempt_home_mv_pk ON public.attempt_home_mv USING btree (attempt_id, home_id);
-
-
---
--- Name: idx_attempt_improvement_mv_improvement_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_attempt_improvement_mv_improvement_id ON public.attempt_improvement_mv USING btree (improvement_id);
 
 
 --
@@ -22109,13 +22090,6 @@ CREATE INDEX idx_attempt_practice_practice_id ON public.attempt_practice_entry U
 
 
 --
--- Name: idx_attempt_replacement_mv_replacement_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_attempt_replacement_mv_replacement_id ON public.attempt_replacement_mv USING btree (replacement_id);
-
-
---
 -- Name: idx_attempt_responses_entry_chat_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -22141,13 +22115,6 @@ CREATE INDEX idx_attempt_responses_entry_mcp ON public.attempt_responses_entry U
 --
 
 CREATE UNIQUE INDEX idx_attempt_responses_mv_response_id ON public.attempt_responses_mv USING btree (response_id);
-
-
---
--- Name: idx_attempt_strength_mv_strength_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_attempt_strength_mv_strength_id ON public.attempt_strength_mv USING btree (strength_id);
 
 
 --
@@ -39553,5 +39520,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict mCD8bS5MkZ1zVFMg4nl9TIItDOQns6k5QCcwUfSNN54xMYKisXhEEE44REBP1yr
+\unrestrict 2fpznmtcnVekRnfgoJSNumWKgqhkwThsg436T50TTWxU9zWMB06XwqeSuSmLjlz
 

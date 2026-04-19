@@ -6,24 +6,17 @@
 --
 
 CREATE MATERIALIZED VIEW public.attempt_highlight_mv AS
- SELECT h.id AS highlight_id,
-    h.strength_id,
-    h.section,
-    h.idx,
-    h.created_at
-   FROM (((((((public.attempt_highlight_entry h
-     JOIN public.attempt_strength_entry s ON ((s.id = h.strength_id)))
+ SELECT hl.id AS highlight_id,
+    hl.strength_id,
+    hl.section,
+    hl.created_at
+   FROM (((((public.attempt_highlight_entry hl
+     JOIN public.attempt_strength_entry s ON ((s.id = hl.strength_id)))
      JOIN public.attempt_message_entry sm ON ((sm.id = s.message_id)))
-     JOIN public.messages_entry m ON ((m.id = sm.id)))
      JOIN public.attempt_chat_entry c ON ((c.id = sm.chat_id)))
      JOIN public.attempt_chat_bridge_entry ac ON ((ac.attempt_chat_id = c.id)))
      JOIN public.attempt_entry a ON ((a.id = ac.attempt_id)))
-     LEFT JOIN LATERAL ( SELECT attempt_archive_entry.archived
-           FROM public.attempt_archive_entry
-          WHERE ((attempt_archive_entry.attempt_id = a.id) AND (attempt_archive_entry.active = true))
-          ORDER BY attempt_archive_entry.created_at DESC
-         LIMIT 1) sa_archive ON (true))
-  WHERE ((h.active = true) AND (s.active = true) AND (m.active = true) AND (c.active = true) AND (a.active = true) AND (COALESCE(sa_archive.archived, false) = false))
+  WHERE ((hl.active = true) AND (s.active = true) AND (c.active = true) AND (a.active = true))
   WITH NO DATA;
 
 

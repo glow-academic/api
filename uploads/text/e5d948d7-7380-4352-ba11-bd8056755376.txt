@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab Assignment - Introduction to Computer Science</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { font-size: 16px; }
+        body { font-family: "Georgia", "Times New Roman", serif; background: #ffffff; color: #111827; line-height: 1.6; }
+        .document-container { max-width: 850px; margin: 2.5rem auto 3rem; padding: 3rem 3.5rem; background: #ffffff; border: 1px solid #d4d4d8; }
+        .document-title-section { padding-bottom: 1.75rem; margin-bottom: 1.75rem; border-bottom: 1.5px solid #9ca3af; text-align: center; }
+        .document-title-section h1 { font-size: 2.25rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: #111827; margin-bottom: 0.5rem; }
+        .document-title-section .class-info { font-size: 0.95rem; color: #4b5563; }
+        .meta-section { margin-bottom: 2.5rem; }
+        .meta-grid { display: table; width: 100%; border-collapse: collapse; border-top: 1px solid #d4d4d8; border-bottom: 1px solid #d4d4d8; }
+        .meta-item { display: table-row; }
+        .meta-label, .meta-value { display: table-cell; padding: 0.5rem 0.25rem; vertical-align: top; font-size: 0.95rem; border-top: 1px solid #e5e7eb; }
+        .meta-item:first-child .meta-label, .meta-item:first-child .meta-value { border-top: none; }
+        .meta-label { width: 28%; font-weight: 600; color: #374151; padding-right: 1.5rem; white-space: nowrap; }
+        .meta-value { color: #111827; }
+        .section { margin-bottom: 2.5rem; }
+        .section h2 { font-size: 1.35rem; font-weight: 700; color: #111827; margin-bottom: 1rem; border-bottom: 1px solid #9ca3af; padding-bottom: 0.4rem; }
+        .instructions-content { border-left: 3px solid #111827; padding: 1.25rem 1.5rem; background: #f9fafb; font-size: 0.98rem; color: #111827; }
+        .lab-step { border: 1px solid #d4d4d8; padding: 1.5rem; background: #ffffff; margin-bottom: 1.5rem; }
+        .lab-step-title { font-size: 1.1rem; font-weight: 600; color: #111827; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb; }
+        .lab-step-desc { font-size: 0.95rem; margin-bottom: 0.5rem; }
+        .code-block { background: #1f2937; color: #e5e7eb; padding: 1rem 1.25rem; font-family: "Courier New", monospace; font-size: 0.9rem; border-radius: 4px; overflow-x: auto; margin-top: 0.5rem; }
+        .checkpoint { border: 1px solid #d4d4d8; padding: 1rem 1.5rem; background: #f9fafb; margin-top: 1rem; }
+        .checkpoint h3 { font-size: 1rem; font-weight: 600; color: #111827; margin-bottom: 0.5rem; }
+        .document-footer { border-top: 1px solid #d4d4d8; padding: 1.5rem 0; margin-top: 1rem; font-size: 0.8rem; color: #4b5563; }
+        .footer-content { max-width: 850px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .footer-branding { display: flex; align-items: center; gap: 0.75rem; }
+        .footer-logo { width: 32px; height: 32px; border-radius: 2px; border: 1px solid #9ca3af; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.9rem; color: #111827; }
+        .footer-org-name { font-weight: 600; color: #111827; font-size: 0.9rem; }
+        .footer-meta { font-size: 0.8rem; color: #4b5563; }
+        @media print { body { background: #ffffff; color: #000000; } .document-container { margin: 0; padding: 0; border: none; } .document-footer { border-top: 1px solid #d4d4d8; margin-top: 1.5rem; padding-top: 0.75rem; } .lab-step { border: 1px solid #c4c4c4; } }
+        @media (max-width: 768px) { .document-container { margin: 0.5rem; padding: 1.5rem 1.25rem 2rem; } .footer-content { flex-direction: column; align-items: flex-start; } }
+    </style>
+</head>
+<body>
+    <main class="document-container">
+        <section class="document-title-section">
+            <h1>Lab 5: Working with Lists and Dictionaries</h1>
+            <div class="class-info">CS 180 - Introduction to Computer Science</div>
+        </section>
+
+        <section class="meta-section">
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <div class="meta-label">Department</div>
+                    <div class="meta-value">Computer Science</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Class</div>
+                    <div class="meta-value">CS 180 - Introduction to Computer Science</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Assignment Type</div>
+                    <div class="meta-value">Lab</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Due Date</div>
+                    <div class="meta-value">End of lab session</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Total Points</div>
+                    <div class="meta-value">20</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Objectives</h2>
+            <div class="instructions-content">
+                In this lab you will practice creating, modifying, and iterating over Python lists and dictionaries. By the end of this lab, you should be able to use list comprehensions, dictionary methods, and nested data structures to solve practical problems.
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Lab Exercises</h2>
+
+            <div class="lab-step">
+                <div class="lab-step-title">Exercise 1: List Operations (5 pts)</div>
+                <div class="lab-step-desc">Create a list of 10 random integers between 1 and 100 using the <code>random</code> module. Then write code to:</div>
+                <div class="lab-step-desc">(a) Print the list sorted in descending order without modifying the original</div>
+                <div class="lab-step-desc">(b) Remove all even numbers using a list comprehension</div>
+                <div class="lab-step-desc">(c) Find the second-largest value without using <code>sort()</code></div>
+                <div class="code-block">import random<br>numbers = [random.randint(1, 100) for _ in range(10)]<br>print("Original:", numbers)</div>
+            </div>
+
+            <div class="lab-step">
+                <div class="lab-step-title">Exercise 2: Word Frequency Counter (7 pts)</div>
+                <div class="lab-step-desc">Write a function <code>word_freq(text)</code> that takes a string and returns a dictionary mapping each word (lowercase) to its frequency. Ignore punctuation. Test with the provided sample paragraph.</div>
+                <div class="code-block">sample = "The quick brown fox jumps over the lazy dog. The dog barked at the fox."<br># Expected: {'the': 4, 'quick': 1, 'brown': 1, ...}</div>
+                <div class="checkpoint">
+                    <h3>Checkpoint</h3>
+                    Show your TA the output of <code>word_freq(sample)</code> before proceeding.
+                </div>
+            </div>
+
+            <div class="lab-step">
+                <div class="lab-step-title">Exercise 3: Student Gradebook (8 pts)</div>
+                <div class="lab-step-desc">Create a dictionary-based gradebook where keys are student names and values are lists of grades. Implement functions to:</div>
+                <div class="lab-step-desc">(a) <code>add_grade(gradebook, name, grade)</code> - add a grade for a student</div>
+                <div class="lab-step-desc">(b) <code>get_average(gradebook, name)</code> - return the student's average</div>
+                <div class="lab-step-desc">(c) <code>class_average(gradebook)</code> - return the overall class average</div>
+                <div class="lab-step-desc">(d) <code>top_student(gradebook)</code> - return the name of the student with the highest average</div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Submission</h2>
+            <div class="instructions-content">
+                Have your TA verify each checkpoint during the lab session. Submit your completed Python file to Gradescope before leaving. If you do not finish during the lab, you have until 11:59 PM the same day to submit.
+            </div>
+        </section>
+    </main>
+
+    <footer class="document-footer">
+        <div class="footer-content">
+            <div class="footer-branding">
+                <div class="footer-logo">P</div>
+                <div>
+                    <div class="footer-org-name">Purdue University</div>
+                    <div class="footer-meta">Department of Computer Science</div>
+                </div>
+            </div>
+            <div class="footer-meta">Computer Science &bull; CS 180</div>
+        </div>
+    </footer>
+</body>
+</html>
