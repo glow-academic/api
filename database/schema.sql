@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict meJPUumWGfUuyjlqt6HYRpNR6haJY6GBVzUlWC98EU62gyxmQlSzAuljZZgtuqw
+\restrict cpCwvI5czOmnbQ1fhVsDnE2jPt0yXE3FL8SDZE1o8gDJZgXYVsfibsBRPQ9WtCw
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -2621,40 +2621,6 @@ CREATE MATERIALIZED VIEW public.attempt_message_tree_mv AS
     branch_path,
     depth
    FROM walk
-  WITH NO DATA;
-
-
---
--- Name: attempt_mutes_entry; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.attempt_mutes_entry (
-    id uuid DEFAULT uuidv7() CONSTRAINT mutes_entry_id_not_null NOT NULL,
-    created_at timestamp with time zone DEFAULT now() CONSTRAINT mutes_entry_created_at_not_null NOT NULL,
-    generated boolean DEFAULT false CONSTRAINT mutes_entry_generated_not_null NOT NULL,
-    mcp boolean DEFAULT false CONSTRAINT mutes_entry_mcp_not_null NOT NULL,
-    active boolean DEFAULT true CONSTRAINT mutes_entry_active_not_null NOT NULL,
-    conversation_id uuid CONSTRAINT mutes_entry_conversation_id_not_null NOT NULL,
-    muted boolean CONSTRAINT mutes_entry_muted_not_null NOT NULL,
-    session_id uuid
-);
-
-
---
--- Name: attempt_mutes_mv; Type: MATERIALIZED VIEW; Schema: public; Owner: -
---
-
-CREATE MATERIALIZED VIEW public.attempt_mutes_mv AS
- SELECT id,
-    created_at,
-    generated,
-    mcp,
-    active,
-    conversation_id,
-    muted,
-    session_id
-   FROM public.attempt_mutes_entry
-  WHERE (active = true)
   WITH NO DATA;
 
 
@@ -14546,14 +14512,6 @@ ALTER TABLE ONLY public.attempt_message_entry
 
 
 --
--- Name: attempt_mutes_entry attempt_mutes_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.attempt_mutes_entry
-    ADD CONSTRAINT attempt_mutes_entry_pkey PRIMARY KEY (id);
-
-
---
 -- Name: attempt_practice_entry attempt_practice_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -20405,41 +20363,6 @@ CREATE UNIQUE INDEX attempt_hint_mv_hint_id_idx ON public.attempt_hint_mv USING 
 --
 
 CREATE UNIQUE INDEX attempt_improvement_mv_improvement_id_idx ON public.attempt_improvement_mv USING btree (improvement_id);
-
-
---
--- Name: attempt_mutes_entry_conversation_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX attempt_mutes_entry_conversation_id_created_at_idx ON public.attempt_mutes_entry USING btree (conversation_id, created_at DESC);
-
-
---
--- Name: attempt_mutes_entry_conversation_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX attempt_mutes_entry_conversation_id_idx ON public.attempt_mutes_entry USING btree (conversation_id);
-
-
---
--- Name: attempt_mutes_entry_created_at_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX attempt_mutes_entry_created_at_idx ON public.attempt_mutes_entry USING btree (created_at);
-
-
---
--- Name: attempt_mutes_mv_conversation_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX attempt_mutes_mv_conversation_id_idx ON public.attempt_mutes_mv USING btree (conversation_id);
-
-
---
--- Name: attempt_mutes_mv_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX attempt_mutes_mv_id_idx ON public.attempt_mutes_mv USING btree (id);
 
 
 --
@@ -30882,14 +30805,6 @@ ALTER TABLE ONLY public.attempt_message_tree_entry
 
 
 --
--- Name: attempt_mutes_entry attempt_mutes_entry_conversation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.attempt_mutes_entry
-    ADD CONSTRAINT attempt_mutes_entry_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.attempt_conversations_entry(id) ON DELETE CASCADE;
-
-
---
 -- Name: attempt_practice_entry attempt_practice_entry_attempt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -39525,5 +39440,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict meJPUumWGfUuyjlqt6HYRpNR6haJY6GBVzUlWC98EU62gyxmQlSzAuljZZgtuqw
+\unrestrict cpCwvI5czOmnbQ1fhVsDnE2jPt0yXE3FL8SDZE1o8gDJZgXYVsfibsBRPQ9WtCw
 

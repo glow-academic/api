@@ -408,23 +408,6 @@ CREATE TABLE public.attempt_message_tree_entry (
 
 --
 
--- Name: attempt_mutes_entry; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.attempt_mutes_entry (
-    id uuid DEFAULT uuidv7() CONSTRAINT mutes_entry_id_not_null NOT NULL,
-    created_at timestamp with time zone DEFAULT now() CONSTRAINT mutes_entry_created_at_not_null NOT NULL,
-    generated boolean DEFAULT false CONSTRAINT mutes_entry_generated_not_null NOT NULL,
-    mcp boolean DEFAULT false CONSTRAINT mutes_entry_mcp_not_null NOT NULL,
-    active boolean DEFAULT true CONSTRAINT mutes_entry_active_not_null NOT NULL,
-    conversation_id uuid CONSTRAINT mutes_entry_conversation_id_not_null NOT NULL,
-    muted boolean CONSTRAINT mutes_entry_muted_not_null NOT NULL,
-    session_id uuid
-);
-
-
---
-
 -- Name: attempt_replacement_entry; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -548,15 +531,6 @@ ALTER TABLE ONLY public.attempt_message_completion_entry
 
 ALTER TABLE ONLY public.attempt_message_entry
     ADD CONSTRAINT attempt_message_entry_pkey PRIMARY KEY (id);
-
-
---
-
--- Name: attempt_mutes_entry attempt_mutes_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.attempt_mutes_entry
-    ADD CONSTRAINT attempt_mutes_entry_pkey PRIMARY KEY (id);
 
 
 --

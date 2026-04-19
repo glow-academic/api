@@ -18,30 +18,6 @@ CREATE INDEX attempt_conversations_entry_created_at_idx ON public.attempt_conver
 
 --
 
--- Name: attempt_mutes_entry_conversation_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX attempt_mutes_entry_conversation_id_created_at_idx ON public.attempt_mutes_entry USING btree (conversation_id, created_at DESC);
-
-
---
-
--- Name: attempt_mutes_entry_conversation_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX attempt_mutes_entry_conversation_id_idx ON public.attempt_mutes_entry USING btree (conversation_id);
-
-
---
-
--- Name: attempt_mutes_entry_created_at_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX attempt_mutes_entry_created_at_idx ON public.attempt_mutes_entry USING btree (created_at);
-
-
---
-
 -- Name: attempt_responses_entry_chat_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 

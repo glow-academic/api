@@ -218,15 +218,6 @@ ALTER TABLE ONLY public.attempt_message_tree_entry
 
 --
 
--- Name: attempt_mutes_entry attempt_mutes_entry_conversation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.attempt_mutes_entry
-    ADD CONSTRAINT attempt_mutes_entry_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.attempt_conversations_entry(id) ON DELETE CASCADE;
-
-
---
-
 -- Name: attempt_practice_entry attempt_practice_entry_attempt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 

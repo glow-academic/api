@@ -21,7 +21,6 @@ ALTER TABLE attempt_hint_entry DROP COLUMN IF EXISTS call_id CASCADE;
 ALTER TABLE attempt_improvement_entry DROP COLUMN IF EXISTS call_id CASCADE;
 ALTER TABLE attempt_message_completion_entry DROP COLUMN IF EXISTS call_id CASCADE;
 ALTER TABLE attempt_message_entry DROP COLUMN IF EXISTS call_id CASCADE;
-ALTER TABLE attempt_mutes_entry DROP COLUMN IF EXISTS call_id CASCADE;
 ALTER TABLE attempt_replacement_entry DROP COLUMN IF EXISTS call_id CASCADE;
 ALTER TABLE attempt_responses_entry DROP COLUMN IF EXISTS call_id CASCADE;
 ALTER TABLE attempt_strength_entry DROP COLUMN IF EXISTS call_id CASCADE;
@@ -66,13 +65,6 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS public.attempt_message_completion_mv AS
    FROM public.attempt_message_completion_entry WHERE (active = true) WITH NO DATA;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_attempt_message_completion_mv_id ON public.attempt_message_completion_mv USING btree (id);
 
--- attempt_mutes_mv
-CREATE MATERIALIZED VIEW IF NOT EXISTS public.attempt_mutes_mv AS
- SELECT id, created_at, generated, mcp, active, conversation_id, muted, session_id
-   FROM public.attempt_mutes_entry WHERE (active = true) WITH NO DATA;
-CREATE UNIQUE INDEX IF NOT EXISTS attempt_mutes_mv_conversation_id_idx ON public.attempt_mutes_mv USING btree (conversation_id);
-CREATE UNIQUE INDEX IF NOT EXISTS attempt_mutes_mv_id_idx ON public.attempt_mutes_mv USING btree (id);
-
 -- ============================================================================
 -- Phase 3: Recreate complex MVs from updated schema files
 -- ============================================================================
@@ -100,7 +92,6 @@ REFRESH MATERIALIZED VIEW attempt_completion_mv;
 REFRESH MATERIALIZED VIEW attempt_conversation_completion_mv;
 REFRESH MATERIALIZED VIEW attempt_conversations_mv;
 REFRESH MATERIALIZED VIEW attempt_message_completion_mv;
-REFRESH MATERIALIZED VIEW attempt_mutes_mv;
 REFRESH MATERIALIZED VIEW attempt_chat_mv;
 REFRESH MATERIALIZED VIEW attempt_message_mv;
 REFRESH MATERIALIZED VIEW attempt_content_mv;
