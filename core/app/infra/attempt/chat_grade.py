@@ -51,12 +51,22 @@ async def chat_grade_attempt_impl(
             raise ValueError(f"Attempt chat {chat_id} not found")
         chat = chats[0]
 
-        # Step 2: Derive passed from rubric threshold
+        # Step 2: Validate score + derive passed from rubric threshold
         passed = False
         if chat.rubric_id:
             rubrics = await get_rubrics(conn, [chat.rubric_id], redis)
             if rubrics:
+                total_points = rubrics[0].total_points or 0
                 pass_points = rubrics[0].pass_points or 0
+                if total_points > 0 and score > total_points:
+                    raise ValueError(
+                        f"Score {score} exceeds maximum of {total_points}. "
+                        f"Pass threshold is {pass_points}."
+                    )
+                if score < 0:
+                    raise ValueError(
+                        f"Score cannot be negative. Valid range: 0–{total_points}."
+                    )
                 passed = score >= pass_points if pass_points > 0 else score > 0
         else:
             passed = score > 0

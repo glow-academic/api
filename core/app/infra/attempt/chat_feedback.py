@@ -51,7 +51,7 @@ async def chat_feedback_attempt_impl(
     if not grade_id:
         raise ValueError("grade_id is required")
 
-    # Derive total from standard group
+    # Derive total from standard group + validate score
     total = score
     resolved_standard_ids = standard_ids
     if standard_group_id:
@@ -59,6 +59,19 @@ async def chat_feedback_attempt_impl(
             sgs = await get_standard_groups(conn, [standard_group_id], redis)
             if sgs:
                 total = sgs[0].points or score
+                if total > 0 and score > total:
+                    raise ValueError(
+                        f"Score {score} exceeds maximum of {total} for this standard group. "
+                        f"Adjust score to be between 0 and {total}."
+                    )
+                if score < 0:
+                    raise ValueError(
+                        f"Score cannot be negative. Valid range: 0–{total}."
+                    )
+    else:
+        raise ValueError(
+            "standard_group_id is required. Pass the standard group UUID from the rubric."
+        )
 
     async with pool.acquire() as conn:
         result = await create_attempt_feedback(
