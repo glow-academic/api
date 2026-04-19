@@ -153,12 +153,14 @@ You are evaluating a training conversation against rubric standards.
 Attempt_Get(attempt_id: "...")
 → reads conversation with message IDs + rubric with standard groups
 
-Attempt_Chat_Grade(chat_id: "...", score: 75)
+Attempt_Chat_Grade(chat_id: "...", score: 19)
 → grade_id: "grade-123"
 
-Attempt_Chat_Feedback(grade_id: "grade-123", standard_group_id: "sg-uuid-1", score: 25, feedback: "Strong active listening and empathy demonstrated throughout.")
-Attempt_Chat_Feedback(grade_id: "grade-123", standard_group_id: "sg-uuid-2", score: 20, feedback: "Policy knowledge was adequate but lacked specific citations.")
-Attempt_Chat_Feedback(grade_id: "grade-123", standard_group_id: "sg-uuid-3", score: 30, feedback: "Effective de-escalation techniques used in messages 3 and 5.")
+Attempt_Chat_Feedback(grade_id: "grade-123", standard_group_id: "sg-uuid-1", score: 4, feedback: "Strong active listening and empathy demonstrated throughout.")
+Attempt_Chat_Feedback(grade_id: "grade-123", standard_group_id: "sg-uuid-2", score: 3, feedback: "Policy knowledge was adequate but lacked specific citations.")
+Attempt_Chat_Feedback(grade_id: "grade-123", standard_group_id: "sg-uuid-3", score: 5, feedback: "Effective de-escalation techniques used in messages 3 and 5.")
+Attempt_Chat_Feedback(grade_id: "grade-123", standard_group_id: "sg-uuid-4", score: 4, feedback: "Good problem identification but missed root cause.")
+Attempt_Chat_Feedback(grade_id: "grade-123", standard_group_id: "sg-uuid-5", score: 3, feedback: "Partial resolution — next steps were not clearly communicated.")
 
 Attempt_Chat_Analyses(grade_id: "grade-123", content: "The trainee demonstrated strong active listening but missed opportunities to explain FERPA requirements clearly.")
 
