@@ -378,10 +378,10 @@ CREATE INDEX setting_settings_settings_id_idx ON public.setting_settings_junctio
 
 --
 
--- Name: setting_systems_junction_setting_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: setting_agents_junction_setting_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX setting_systems_junction_setting_idx ON public.setting_systems_junction USING btree (setting_id);
+CREATE INDEX setting_agents_junction_setting_idx ON public.setting_agents_junction USING btree (setting_id);
 
 
 --
