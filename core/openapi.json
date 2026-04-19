@@ -72424,11 +72424,13 @@
           },
           "is_archived": {
             "type": "boolean",
-            "title": "Is Archived"
+            "title": "Is Archived",
+            "default": false
           },
           "is_completed": {
             "type": "boolean",
-            "title": "Is Completed"
+            "title": "Is Completed",
+            "default": false
           },
           "scenario_ids": {
             "items": {
@@ -72476,8 +72478,6 @@
           "attempt_created_at",
           "infinite_mode",
           "num_chats",
-          "is_archived",
-          "is_completed",
           "scenario_ids",
           "chat_entry_id",
           "attempt_chat_id"
