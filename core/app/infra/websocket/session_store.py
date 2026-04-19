@@ -80,6 +80,8 @@ def create_session(
     _session_store[chat_id] = session
     _session_store[run_id] = session
     _session_store[group_id] = session
+    if conversation_id:
+        _session_store[conversation_id] = session
     return session
 
 
@@ -90,6 +92,8 @@ def remove_session(session_key: str) -> None:
         _session_store.pop(session.chat_id, None)
         _session_store.pop(session.run_id, None)
         _session_store.pop(session.group_id, None)
+        if session.conversation_id:
+            _session_store.pop(session.conversation_id, None)
 
 
 def get_session_by_chat_id(chat_id: str) -> AudioSession | None:
@@ -105,6 +109,11 @@ def get_session_by_run_id(run_id: str) -> AudioSession | None:
 def get_session_by_group_id(group_id: str) -> AudioSession | None:
     """Get session by group ID (internal lookup)."""
     return _session_store.get(group_id)
+
+
+def get_session_by_conversation_id(conversation_id: str) -> AudioSession | None:
+    """Get session by conversation ID (speak endpoint lookup)."""
+    return _session_store.get(conversation_id)
 
 
 def rotate_run_id(session: AudioSession, new_run_id: str) -> None:

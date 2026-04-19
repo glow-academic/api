@@ -23,6 +23,7 @@ from . import (  # noqa: F401
     refresh,
     response,
     search,
+    speak,
     start,
     stop,
     text_download,

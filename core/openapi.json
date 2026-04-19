@@ -14606,6 +14606,56 @@
         ]
       }
     },
+    "/attempt/speak": {
+      "post": {
+        "tags": [
+          "attempt"
+        ],
+        "summary": "Attempt Speak",
+        "description": "Push audio bytes into a conversation's inbound buffer.",
+        "operationId": "attempt_speak_attempt_speak_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptSpeakRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptSpeakResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt"
+        ]
+      }
+    },
     "/attempt/stop": {
       "post": {
         "tags": [
@@ -43832,6 +43882,38 @@
         ],
         "title": "AttemptResponseResultEvent",
         "description": "Server-to-client: response submission result."
+      },
+      "AttemptSpeakRequest": {
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Conversation Id"
+          },
+          "audio": {
+            "type": "string",
+            "title": "Audio"
+          }
+        },
+        "type": "object",
+        "required": [
+          "conversation_id",
+          "audio"
+        ],
+        "title": "AttemptSpeakRequest"
+      },
+      "AttemptSpeakResponse": {
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "accepted"
+        ],
+        "title": "AttemptSpeakResponse"
       },
       "AttemptStartPayload": {
         "properties": {
