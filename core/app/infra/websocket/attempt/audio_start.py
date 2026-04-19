@@ -103,6 +103,7 @@ async def attempt_audio_start_internal_impl(
             sid=sid,
             profile_id=str(profile_id),
             session_id=str(session_id),
+            profiles_id=str(profiles_id) if profiles_id else None,
             artifact_type="attempt",
             operations=["get"],
             params={"artifact_id": str(attempt_id)},
