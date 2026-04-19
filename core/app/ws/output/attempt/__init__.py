@@ -51,7 +51,6 @@ from . import (  # noqa: F401
     end,
     response,
     stop,
-    use_previous,
     join,
     leave,
     chat_mute,

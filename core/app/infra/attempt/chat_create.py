@@ -94,6 +94,9 @@ class CreateAttemptChatApiRequest(BaseModel):
     questions: list[AttemptQuestionValue] | None = None  # create with nested options
     options_ids: list[UUID] | None = None     # standalone existing options
 
+    # Reuse previous attempt_chat instead of creating new
+    previous_attempt_chat_id: UUID | None = None
+
     # Ack
     idempotency_key: UUID | None = None
     accept: bool = True
@@ -208,7 +211,30 @@ async def create_attempt_chat_impl(
     soft: bool = False,
     **_kwargs,
 ) -> CreateAttemptChatApiResponse:
-    """Create an attempt_chat entry within an attempt."""
+    """Create an attempt_chat entry within an attempt.
+
+    If previous_attempt_chat_id is provided, skips resource setup and just
+    bridges the existing attempt_chat into the current attempt.
+    """
+
+    # ── Short-circuit: reuse previous attempt_chat ───────────────────────────
+
+    if request.previous_attempt_chat_id:
+        async with pool.acquire() as conn:
+            await create_attempt_chat_bridge(
+                conn,
+                attempt_id=request.attempt_id,
+                attempt_chat_id=request.previous_attempt_chat_id,
+                session_id=session_id,
+                soft=soft,
+            )
+        async with pool.acquire() as conn:
+            await refresh_attempt_chat(conn)
+            await refresh_attempt_chat_bridge(conn)
+        return CreateAttemptChatApiResponse(
+            attempt_chat_id=request.previous_attempt_chat_id,
+            idempotency_key=request.idempotency_key,
+        )
 
     # ── Step 1: Profile context + permissions ─────────────────────────────────
 

@@ -26,7 +26,6 @@ from . import (  # noqa: F401
     start,
     stop,
     text_download,
-    use_previous,
     video_download,
     # Absorbed sub-modules
     dashboard,
