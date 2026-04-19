@@ -1,0 +1,11 @@
+INPUT:
+  grade_id: 019da380-d50d-7a37-b487-d36a6e794437
+  score: 1
+  feedback: The trainee did not adapt their approach to the student's needs. The response was generic and did not acknowledge or address the student's confusion or frustration.
+  standard_group_id: 282204f8-ca0a-5aeb-8940-e65cd1b77f3f
+
+OUTPUT:
+Feedback created.
+- **Feedback ID:** `019da380-e42e-707d-bae0-e3ba2f14ba74`
+- **Grade ID:** `019da380-d50d-7a37-b487-d36a6e794437`
+- **Score:** 1 / 1

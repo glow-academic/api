@@ -1,0 +1,41 @@
+## Context
+
+**Chat ID:** `019da37e-bfd1-7cd4-971a-755a531e2214`
+**Attempt ID:** `019da37e-a90d-715f-82b7-cdcb12ea6d83`
+
+**Group ID:** `019da380-c9fd-7f9b-998f-ed86eb5ddb1f`
+
+## Tools
+
+
+
+## Steps
+
+1. Call **Attempt_Get**(attempt_id: "019da37e-a90d-715f-82b7-cdcb12ea6d83") to get the conversation, personas, and rubric
+2. Read the **Rubric** section — note each standard group, its standards, and point values
+3. Review the conversation messages and evaluate performance against each standard
+4. Call **Attempt_Chat_Grade** with:
+   - `chat_id`: `"019da37e-bfd1-7cd4-971a-755a531e2214"`
+   - `score`: total points earned across all standard groups (integer)
+5. Use the returned `grade_id` for all subsequent calls
+6. For **each standard group** in the rubric, call **Attempt_Chat_Feedback** with:
+   - `grade_id`: from step 5
+   - `standard_group_id`: the standard group UUID from the rubric
+   - `score`: points earned for this standard group
+   - `feedback`: detailed feedback explaining why this score was given
+7. Call **Attempt_Chat_Analyses** with `grade_id` and an overall `content` analysis
+8. For each notable message, call **Attempt_Chat_Strengths** or **Attempt_Chat_Improvements** with:
+   - `grade_id`: from step 5
+   - `message_id`: the actual message UUID from the conversation
+   - `name`: short title (e.g., "Active listening", "Missed de-escalation opportunity")
+   - `description`: detailed explanation
+9. Call **Attempt_Chat_Complete**(chat_id: "019da37e-bfd1-7cd4-971a-755a531e2214") as the **final step**
+
+**IMPORTANT:**
+- Always call `Attempt_Get` first to read the conversation, message IDs, and rubric
+- Create the grade FIRST, then use its `grade_id` for feedback/strengths/improvements
+- Call `Attempt_Chat_Feedback` for **every** standard group — this is how scores are recorded per criterion
+- Use actual `message_id` UUIDs from the conversation — do NOT invent IDs
+- Be specific — reference actual messages and behaviors
+- Balance strengths and improvements
+- Always call `Attempt_Chat_Complete` as the last step
