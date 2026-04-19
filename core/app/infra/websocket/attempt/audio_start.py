@@ -102,6 +102,7 @@ async def attempt_audio_start_internal_impl(
         GenerateRequestData(
             sid=sid,
             profile_id=str(profile_id),
+            session_id=str(session_id),
             artifact_type="attempt",
             operations=["get"],
             params={"artifact_id": str(attempt_id)},
