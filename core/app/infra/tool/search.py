@@ -32,9 +32,6 @@ from app.infra.tool.types import (
 from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.tool.get import get_tools
 from app.tools.artifacts.tool.search import search_tools
-from app.tools.resources.agents.search import (
-    search_agents as search_agents_resource,
-)
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.names.get import get_names
@@ -64,11 +61,9 @@ async def search_tool_impl(
     # Main filters
     search: str | None = None,
     filter_department_ids: list[UUID] | None = None,
-    filter_agent_ids: list[UUID] | None = None,
     filter_creatable: list[str] | None = None,
     # Facet search text
     department_search: str | None = None,
-    agent_search: str | None = None,
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
@@ -92,25 +87,6 @@ async def search_tool_impl(
     # ── Step 2: Reverse lookups ────────────────────────────────────────
 
     tool_resource_ids: list[UUID] | None = None
-
-    if filter_agent_ids:
-        # agent_ids filter references agent_artifact IDs
-        # Agents have tools_junction → get tool resource IDs
-        from app.tools.artifacts.agent.get import (
-            get_agents as get_agent_artifacts,
-        )
-
-        async with pool.acquire() as conn:
-            agent_artifacts = await get_agent_artifacts(
-                conn, filter_agent_ids, tools=True
-            )
-        tids: set[UUID] = set()
-        for a in agent_artifacts:
-            tids.update(a.tool_ids or [])
-        if tids:
-            tool_resource_ids = list(tids)
-        else:
-            return _empty_response(actor_name)
 
     # ── Step 3: Search tools ────────────────────────────────────────
 
@@ -166,22 +142,14 @@ async def search_tool_impl(
                 conn, redis, search=department_search, tool=True, limit_count=100
             )
 
-    async def _fetch_agent_facet() -> list:
-        async with pool.acquire() as conn:
-            return await search_agents_resource(
-                conn, redis, search=agent_search, agent=True, limit_count=100
-            )
-
     (
         names_data,
         descriptions_data,
         department_facet,
-        agent_facet,
     ) = await asyncio.gather(
         _fetch_names(),
         _fetch_descriptions(),
         _fetch_department_facet(),
-        _fetch_agent_facet(),
     )
 
     # Build lookup maps
@@ -234,16 +202,6 @@ async def search_tool_impl(
         search=department_search,
     )
 
-    agent_filter = ListFilterSection(
-        options=[
-            ListFilterOption(id=str(a.id), name=a.name, count=0) for a in agent_facet
-        ],
-        selected_ids=[str(aid) for aid in filter_agent_ids]
-        if filter_agent_ids
-        else None,
-        search=agent_search,
-    )
-
     # Creatable filter: static boolean options
     creatable_filter = ListFilterSection(
         options=[
@@ -257,7 +215,6 @@ async def search_tool_impl(
         actor_name=actor_name,
         tools=tools_list,
         department_filter=department_filter,
-        agent_filter=agent_filter,
         creatable_filter=creatable_filter,
         total_count=total_count,
     )

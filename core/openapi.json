@@ -56864,19 +56864,6 @@
             "title": "Instruction Id",
             "description": "Response template instruction resource UUID"
           },
-          "agent_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Agent Id",
-            "description": "Delegate agent for tool execution"
-          },
           "tool_ids": {
             "anyOf": [
               {
@@ -98923,17 +98910,6 @@
             ],
             "description": "Department filter options"
           },
-          "agent_filter": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ListFilterSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Agent filter options"
-          },
           "creatable_filter": {
             "anyOf": [
               {
@@ -108355,19 +108331,6 @@
             ],
             "title": "Permission Ids",
             "description": "Permission identifiers"
-          },
-          "agent_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Agent Id",
-            "description": "Delegate agent for tool execution"
           },
           "pending_ids": {
             "anyOf": [
@@ -121881,21 +121844,6 @@
             ],
             "title": "Filter Department Ids"
           },
-          "filter_agent_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Filter Agent Ids"
-          },
           "filter_creatable": {
             "anyOf": [
               {
@@ -121920,17 +121868,6 @@
               }
             ],
             "title": "Department Search"
-          },
-          "agent_search": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Agent Search"
           },
           "page_size": {
             "anyOf": [
@@ -137671,19 +137608,6 @@
             "type": "array",
             "title": "Permission Ids",
             "description": "Permission identifiers"
-          },
-          "agent_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Agent Id",
-            "description": "Delegate agent identifier"
           },
           "pending_ids": {
             "items": {

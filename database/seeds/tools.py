@@ -2786,8 +2786,8 @@ tools = [
         name="Tool Search",
         description="Search operation for Tool",
         permission_ids=[sid("permission/tool/search")],
-        args=["search", "filter_department_ids", "filter_agent_ids", "filter_creatable", "department_search", "agent_search", "page_size", "page_offset"],
-        args_outputs=["artifact_tool", "operation_search", "search", "filter_department_ids", "filter_agent_ids", "filter_creatable", "department_search", "agent_search", "page_size", "page_offset"],
+        args=["search", "filter_department_ids", "filter_creatable", "department_search", "page_size", "page_offset"],
+        args_outputs=["artifact_tool", "operation_search", "search", "filter_department_ids", "filter_creatable", "department_search", "page_size", "page_offset"],
         instruction_id=_iid("Tool Search"),
     ),
     dict(

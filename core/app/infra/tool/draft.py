@@ -249,7 +249,6 @@ async def patch_tool_draft_impl(
                             instruction_ids=draft.instruction_ids,
                             permission_ids=draft.permission_ids,
                             profile_ids=draft.profile_ids or [profile.profiles_id],
-                            agent_ids=draft.agent_ids,
                             pending_ids=set(),
                         )
                     else:
@@ -306,7 +305,6 @@ async def patch_tool_draft_impl(
                 else request.instruction_ids,
                 permission_ids=request.permission_ids,
                 profile_ids=[profile.profiles_id],
-                agent_ids=[request.agent_id] if request.agent_id else None,
                 pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
@@ -344,7 +342,6 @@ async def patch_tool_draft_impl(
             [request.instruction_id] if request.instruction_id else []
         ),
         permission_ids=request.permission_ids or [],
-        agent_id=request.agent_id,
         pending_ids=request.pending_ids or [],
     )
 

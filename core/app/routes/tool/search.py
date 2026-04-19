@@ -26,11 +26,9 @@ class SearchToolApiRequest(BaseModel):
     # Main filters
     search: str | None = None
     filter_department_ids: list[UUID] | None = None
-    filter_agent_ids: list[UUID] | None = None
     filter_creatable: list[str] | None = None
     # Facet search text
     department_search: str | None = None
-    agent_search: str | None = None
     # Pagination
     page_size: int | None = 12
     page_offset: int | None = 0
@@ -73,10 +71,8 @@ async def search_tool(
                 profile_id=profile_id,
                 search=request.search,
                 filter_department_ids=request.filter_department_ids,
-                filter_agent_ids=request.filter_agent_ids,
                 filter_creatable=request.filter_creatable,
                 department_search=request.department_search,
-                agent_search=request.agent_search,
                 page_size=request.page_size or 12,
                 page_offset=request.page_offset or 0,
             )

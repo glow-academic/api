@@ -153,7 +153,6 @@ class ListToolApiResponse(BaseModel):
     actor_name: str | None = Field(None, description="Display name of the current actor")
     tools: list[ListToolApiTool] | None = Field(None, description="List of tool entries")
     department_filter: ListFilterSection | None = Field(None, description="Department filter options")
-    agent_filter: ListFilterSection | None = Field(None, description="Agent filter options")
     creatable_filter: ListFilterSection | None = Field(None, description="Creatable filter options")
     total_count: int | None = Field(None, description="Total number of tools")
 
@@ -200,7 +199,6 @@ class CreateToolItem(ScopedItem):
     args_outputs_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
     instruction_id: UUID | None = Field(None, description="Response template instruction resource UUID")
-    agent_id: UUID | None = Field(None, description="Delegate agent for tool execution")
     tool_ids: list[UUID] | None = Field(None, description="Related tool identifiers")
     # Value-based fields for CSV import (match-by-name resolution)
     active_flag: bool | None = Field(None, description="Whether this tool is active")
@@ -218,7 +216,6 @@ class CreateToolItem(ScopedItem):
         "args_outputs_ids": "args_outputs",
         "permission_ids": "permissions",
         "tool_ids": "tools",
-        "agent_id": "agents",
         "active_flag": "flags",
         "active_flag_id": "flags",
     }
@@ -377,7 +374,6 @@ class PatchToolDraftApiRequest(ScopedItem):
     instruction_id: UUID | None = Field(None, description="Instruction resource identifier")
     instruction_ids: list[UUID] | None = Field(None, description="Instruction resource identifiers")
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
-    agent_id: UUID | None = Field(None, description="Delegate agent for tool execution")
     pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers to preserve")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack semantics")
     accept: bool = Field(True, description="Accept or reject acknowledgement when idempotency_key is supplied")
@@ -398,7 +394,6 @@ class PatchToolDraftApiRequest(ScopedItem):
         "instruction_id": "instructions",
         "instruction_ids": "instructions",
         "permission_ids": "permissions",
-        "agent_id": "agents",
     }
 
 
@@ -419,7 +414,6 @@ class DraftFormState(BaseModel):
     instruction_id: UUID | None = Field(None, description="Instruction resource identifier")
     instruction_ids: list[UUID] = Field(default_factory=list, description="Instruction resource identifiers")
     permission_ids: list[UUID] = Field(..., description="Permission identifiers")
-    agent_id: UUID | None = Field(None, description="Delegate agent identifier")
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
 
 
