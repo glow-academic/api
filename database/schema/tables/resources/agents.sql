@@ -17,7 +17,7 @@ CREATE TABLE public.agents_resource (
     temperature real,
     reasoning text,
     tool_ids uuid[] DEFAULT ARRAY[]::uuid[],
-    quality public.quality_type,
+    quality text,
     model_id uuid,
     prompt_id uuid,
     instruction_ids uuid[] DEFAULT ARRAY[]::uuid[],

@@ -14,7 +14,7 @@ CREATE TABLE public.colors_resource (
     active boolean DEFAULT true CONSTRAINT colors_active_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT colors_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT colors_mcp_not_null NOT NULL,
-    type public.color_type DEFAULT 'primary'::public.color_type NOT NULL
+    type text DEFAULT 'primary' NOT NULL
 );
 
 

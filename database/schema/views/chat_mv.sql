@@ -112,34 +112,34 @@ CREATE MATERIALIZED VIEW public.chat_mv AS
          SELECT ss_1.chat_id,
             COALESCE(bool_or(
                 CASE
-                    WHEN (fr.type = 'video_enabled'::public.flag_type) THEN fr.value
+                    WHEN (fr.type = 'video_enabled') THEN fr.value
                     ELSE NULL::boolean
                 END), false) AS video_enabled,
             COALESCE(bool_or(
                 CASE
-                    WHEN (fr.type = 'problem_statement_enabled'::public.flag_type) THEN fr.value
+                    WHEN (fr.type = 'problem_statement_enabled') THEN fr.value
                     ELSE NULL::boolean
                 END), false) AS problem_statement_enabled,
             COALESCE(bool_or(
                 CASE
-                    WHEN (fr.type = 'objectives_enabled'::public.flag_type) THEN fr.value
+                    WHEN (fr.type = 'objectives_enabled') THEN fr.value
                     ELSE NULL::boolean
                 END), false) AS objectives_enabled,
             COALESCE(bool_or(
                 CASE
-                    WHEN (fr.type = 'images_enabled'::public.flag_type) THEN fr.value
+                    WHEN (fr.type = 'images_enabled') THEN fr.value
                     ELSE NULL::boolean
                 END), false) AS images_enabled,
             COALESCE(bool_or(
                 CASE
-                    WHEN (fr.type = 'questions_enabled'::public.flag_type) THEN fr.value
+                    WHEN (fr.type = 'questions_enabled') THEN fr.value
                     ELSE NULL::boolean
                 END), false) AS questions_enabled
            FROM (((scenario_single ss_1
              JOIN public.scenario_scenarios_junction ssj ON (((ssj.scenarios_id = ss_1.scenario_id) AND (ssj.active = true))))
              JOIN public.scenario_flags_junction sfj ON (((sfj.scenario_id = ssj.scenario_id) AND (sfj.active = true))))
              JOIN public.flags_resource fr ON ((fr.id = sfj.flags_id)))
-          WHERE (fr.type = ANY (ARRAY['video_enabled'::public.flag_type, 'problem_statement_enabled'::public.flag_type, 'objectives_enabled'::public.flag_type, 'images_enabled'::public.flag_type, 'questions_enabled'::public.flag_type]))
+          WHERE (fr.type = ANY (ARRAY['video_enabled', 'problem_statement_enabled', 'objectives_enabled', 'images_enabled', 'questions_enabled']))
           GROUP BY ss_1.chat_id
         )
  SELECT tbe.id AS chat_entry_id,

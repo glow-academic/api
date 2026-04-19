@@ -9,7 +9,7 @@ CREATE TABLE public.messages_entry (
     id uuid DEFAULT uuidv7() NOT NULL,
     run_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    role public.message_type NOT NULL,
+    role text NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL

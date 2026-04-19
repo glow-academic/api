@@ -22,21 +22,21 @@ CREATE MATERIALIZED VIEW public.runs_mv AS
             rppc.pricing_id
            FROM (public.run_pricing_entry rpe
              JOIN public.run_pricing_pricing_connection rppc ON (((rppc.run_pricing_id = rpe.id) AND (rppc.active = true))))
-          WHERE ((rpe.active = true) AND (rpe.pricing_type = 'input'::public.pricing_type))
+          WHERE ((rpe.active = true) AND (rpe.pricing_type = 'input'))
         ), pricing_output AS (
          SELECT rpe.run_id,
             rpe.count AS pricing_count,
             rppc.pricing_id
            FROM (public.run_pricing_entry rpe
              JOIN public.run_pricing_pricing_connection rppc ON (((rppc.run_pricing_id = rpe.id) AND (rppc.active = true))))
-          WHERE ((rpe.active = true) AND (rpe.pricing_type = 'output'::public.pricing_type))
+          WHERE ((rpe.active = true) AND (rpe.pricing_type = 'output'))
         ), pricing_cached AS (
          SELECT rpe.run_id,
             rpe.count AS pricing_count,
             rppc.pricing_id
            FROM (public.run_pricing_entry rpe
              JOIN public.run_pricing_pricing_connection rppc ON (((rppc.run_pricing_id = rpe.id) AND (rppc.active = true))))
-          WHERE ((rpe.active = true) AND (rpe.pricing_type = 'cached'::public.pricing_type))
+          WHERE ((rpe.active = true) AND (rpe.pricing_type = 'cached'))
         )
  SELECT r.id AS run_id,
     r.group_id,

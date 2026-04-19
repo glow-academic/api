@@ -7,7 +7,7 @@
 
 CREATE TABLE public.modalities_resource (
     id uuid DEFAULT uuidv7() NOT NULL,
-    modality public.modality_type NOT NULL,
+    modality text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     active boolean DEFAULT true NOT NULL,
     generated boolean DEFAULT false NOT NULL,

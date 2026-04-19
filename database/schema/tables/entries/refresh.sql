@@ -8,7 +8,7 @@
 CREATE TABLE public.refresh_entry (
     id uuid DEFAULT uuidv7() CONSTRAINT refresh_entry_id_not_null1 NOT NULL,
     operation_key uuid CONSTRAINT refresh_entry_operation_key_not_null1 NOT NULL,
-    artifact_type public.artifact_type CONSTRAINT refresh_entry_artifact_type_not_null1 NOT NULL,
+    artifact_type text CONSTRAINT refresh_entry_artifact_type_not_null1 NOT NULL,
     target text CONSTRAINT refresh_entry_target_not_null1 NOT NULL,
     session_id uuid CONSTRAINT refresh_entry_session_id_not_null1 NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT refresh_entry_created_at_not_null1 NOT NULL,

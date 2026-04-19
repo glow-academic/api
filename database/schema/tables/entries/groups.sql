@@ -12,7 +12,7 @@ CREATE TABLE public.groups_entry (
     mcp boolean DEFAULT false CONSTRAINT groups_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT groups_active_not_null NOT NULL,
     session_id uuid NOT NULL,
-    artifact_type public.artifact_type DEFAULT 'persona'::public.artifact_type NOT NULL
+    artifact_type text DEFAULT 'persona' NOT NULL
 );
 
 

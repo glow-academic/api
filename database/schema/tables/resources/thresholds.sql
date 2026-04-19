@@ -12,7 +12,7 @@ CREATE TABLE public.thresholds_resource (
     active boolean DEFAULT true CONSTRAINT thresholds_active_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT thresholds_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT thresholds_mcp_not_null NOT NULL,
-    type public.threshold_type DEFAULT 'success'::public.threshold_type NOT NULL
+    type text DEFAULT 'success' NOT NULL
 );
 
 

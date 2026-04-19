@@ -6,7 +6,7 @@
 --
 
 CREATE TABLE public.run_pricing_entry (
-    pricing_type public.pricing_type CONSTRAINT run_pricing_usage_pricing_type_not_null NOT NULL,
+    pricing_type text CONSTRAINT run_pricing_usage_pricing_type_not_null NOT NULL,
     count integer DEFAULT 0 CONSTRAINT run_pricing_usage_count_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT run_pricing_usage_created_at_not_null NOT NULL,
     run_id uuid CONSTRAINT run_pricing_usage_run_id_not_null NOT NULL,

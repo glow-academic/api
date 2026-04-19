@@ -9,7 +9,7 @@ CREATE TABLE public.simulation_availability_resource (
     id uuid DEFAULT uuidv7() NOT NULL,
     simulation_id uuid NOT NULL,
     "time" timestamp with time zone NOT NULL,
-    type public.availability_type NOT NULL,
+    type text NOT NULL,
     active boolean DEFAULT true NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,

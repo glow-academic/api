@@ -7,7 +7,7 @@
 
 CREATE TABLE public.qualities_resource (
     id uuid DEFAULT uuidv7() NOT NULL,
-    quality public.quality_type NOT NULL,
+    quality text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     active boolean DEFAULT true NOT NULL,
     generated boolean DEFAULT false NOT NULL,

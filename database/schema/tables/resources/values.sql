@@ -12,7 +12,7 @@ CREATE TABLE public.values_resource (
     active boolean DEFAULT true NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
-    type public.value_type NOT NULL
+    type text NOT NULL
 );
 
 

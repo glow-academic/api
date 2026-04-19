@@ -7,14 +7,14 @@
 
 CREATE TABLE public.pricing_resource (
     id uuid DEFAULT uuidv7() NOT NULL,
-    pricing_type public.pricing_type NOT NULL,
+    pricing_type text NOT NULL,
     price real NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     active boolean DEFAULT true NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     unit_name text NOT NULL,
-    unit_category public.unit_type NOT NULL,
+    unit_category text NOT NULL,
     unit_value integer NOT NULL,
     CONSTRAINT pricing_resource_unit_value_check CHECK ((unit_value > 0))
 );

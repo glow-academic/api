@@ -7,14 +7,14 @@
 
 CREATE TABLE public.problems_entry (
     created_at timestamp with time zone DEFAULT now() CONSTRAINT feedback_created_at_not_null NOT NULL,
-    type public.feedback_type CONSTRAINT feedback_type_not_null NOT NULL,
+    type text CONSTRAINT feedback_type_not_null NOT NULL,
     message text DEFAULT 'No message provided'::text CONSTRAINT feedback_message_not_null NOT NULL,
     id uuid DEFAULT uuidv7() CONSTRAINT feedback_id_v7_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT problems_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT problems_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT problems_active_not_null NOT NULL,
     call_id uuid NOT NULL,
-    artifact_type public.artifact_type DEFAULT 'activity'::public.artifact_type NOT NULL
+    artifact_type text DEFAULT 'activity' NOT NULL
 );
 
 

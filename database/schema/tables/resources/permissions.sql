@@ -7,7 +7,7 @@
 
 CREATE TABLE public.permissions_resource (
     id uuid DEFAULT uuidv7() NOT NULL,
-    artifact public.artifact_type NOT NULL,
+    artifact text NOT NULL,
     operation text NOT NULL,
     name text DEFAULT ''::text NOT NULL,
     description text DEFAULT ''::text NOT NULL,
