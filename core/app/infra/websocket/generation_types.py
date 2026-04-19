@@ -204,8 +204,11 @@ class GenerateConfig(BaseModel):
 class ArtifactGenerateRequest(BaseModel):
     """Per-artifact generate request. Artifact type is implicit from the endpoint URL."""
 
-    instructions: list[str] | None = None   # what the user wants
+    instructions: list[str] | None = None   # what the user wants (text input)
     config: GenerateConfig | None = None    # developer configuration
+    modalities: list[str] | None = None     # output modalities: ["text"], ["audio"], ["video"], ["audio", "text"]
+    audio_id: UUID | None = None            # audio input (pre-uploaded)
+    conversation_id: UUID | None = None     # continue a realtime session
     idempotency_key: UUID | None = None     # ack
     accept: bool = True                     # ack
 
@@ -267,6 +270,7 @@ class ArtifactGenerateResponse(BaseModel):
     """Response from a per-artifact generate endpoint."""
 
     group_id: str
+    run_id: str | None = None
     idempotency_key: UUID | None = None
 
 

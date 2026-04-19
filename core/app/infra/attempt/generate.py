@@ -179,5 +179,6 @@ async def generate_attempt_impl(
 
     return ArtifactGenerateResponse(
         group_id=str(group_id),
+        run_id=str(prepared.run_id),
         idempotency_key=str(generated_key),
     )

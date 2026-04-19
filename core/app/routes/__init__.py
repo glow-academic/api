@@ -29,7 +29,6 @@ from app.routes.rubric import router as rubrics_router
 from app.routes.scenario import router as scenarios_router
 from app.routes.setting import router as settings_router
 from app.routes.simulation import router as simulations_router
-from app.routes.stop import router as stop_router
 from app.routes.stream import router as stream_router
 from app.routes.system import router as system_router
 from app.routes.test import router as test_artifact_router
@@ -83,7 +82,6 @@ api_router.include_router(disconnect_router)
 router = APIRouter()
 
 router.include_router(api_router)
-router.include_router(stop_router)
 router.include_router(stream_router)
 router.include_router(well_known_router)
 router.include_router(jwks_router)

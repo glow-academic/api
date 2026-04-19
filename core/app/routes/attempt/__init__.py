@@ -21,6 +21,7 @@ from app.routes.attempt.problem import router as problem_router
 from app.routes.attempt.refresh import router as refresh_router
 from app.routes.attempt.search import router as search_router
 from app.routes.attempt.start import router as start_router
+from app.routes.attempt.stop import router as stop_router
 from app.routes.attempt.text import router as text_router
 from app.routes.attempt.video import router as video_router
 
@@ -51,6 +52,7 @@ router.include_router(problem_router)
 # Attempt-level state machine operations
 router.include_router(start_router)
 router.include_router(complete_router)
+router.include_router(stop_router)
 router.include_router(expire_router)
 router.include_router(join_router)
 router.include_router(leave_router)

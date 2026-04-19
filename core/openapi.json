@@ -14606,6 +14606,56 @@
         ]
       }
     },
+    "/attempt/stop": {
+      "post": {
+        "tags": [
+          "attempt"
+        ],
+        "summary": "Attempt Stop",
+        "description": "Cancel an active generation by group_id.",
+        "operationId": "attempt_stop_attempt_stop_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptStopRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptStopResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt"
+        ]
+      }
+    },
     "/attempt/expire": {
       "post": {
         "tags": [
@@ -19947,45 +19997,6 @@
             "BearerAuth": []
           }
         ]
-      }
-    },
-    "/stop": {
-      "post": {
-        "summary": "Stop Generation",
-        "description": "Cancel an active generation by group_id.",
-        "operationId": "stop_generation_stop_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StopRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StopResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/stream/": {
@@ -41802,6 +41813,44 @@
               }
             ]
           },
+          "modalities": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modalities"
+          },
+          "audio_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Id"
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
           "idempotency_key": {
             "anyOf": [
               {
@@ -41829,6 +41878,17 @@
           "group_id": {
             "type": "string",
             "title": "Group Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
           },
           "idempotency_key": {
             "anyOf": [
@@ -43915,6 +43975,33 @@
         ],
         "title": "AttemptStopPayload",
         "description": "Client-to-server: stop message generation."
+      },
+      "AttemptStopRequest": {
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Group Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "group_id"
+        ],
+        "title": "AttemptStopRequest"
+      },
+      "AttemptStopResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success"
+        ],
+        "title": "AttemptStopResponse"
       },
       "AttemptStoppedEvent": {
         "properties": {
@@ -125385,33 +125472,6 @@
         ],
         "title": "StarterPrompt",
         "description": "Starter prompt for the generation panel."
-      },
-      "StopRequest": {
-        "properties": {
-          "group_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Group Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "group_id"
-        ],
-        "title": "StopRequest"
-      },
-      "StopResponse": {
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "title": "Success"
-          }
-        },
-        "type": "object",
-        "required": [
-          "success"
-        ],
-        "title": "StopResponse"
       },
       "StopTestApiResponse": {
         "properties": {

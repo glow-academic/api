@@ -1,7 +1,7 @@
-"""Stop — cancel an active generation by group_id.
+"""Attempt stop — cancel an active generation.
 
-Root-level transport route (like stream.py). No DB connection needed.
-Cancels the active Runner result and sets the Redis cancel flag.
+POST /attempt/stop — cancel by group_id (will become run_id).
+No DB connection needed.
 """
 
 from __future__ import annotations
@@ -17,19 +17,19 @@ from app.infra.websocket.cancel_active_run import cancel_active_run
 router = APIRouter()
 
 
-class StopRequest(BaseModel):
+class AttemptStopRequest(BaseModel):
     group_id: UUID
 
 
-class StopResponse(BaseModel):
+class AttemptStopResponse(BaseModel):
     success: bool
 
 
-@router.post("/stop", response_model=StopResponse)
-async def stop_generation(
-    request: StopRequest,
+@router.post("/stop", response_model=AttemptStopResponse)
+async def attempt_stop(
+    request: AttemptStopRequest,
     http_request: Request,
-) -> StopResponse:
+) -> AttemptStopResponse:
     """Cancel an active generation by group_id."""
     profile_id = getattr(http_request.state, "profile_id", None)
     if not profile_id:
@@ -37,10 +37,7 @@ async def stop_generation(
 
     group_id = str(request.group_id)
 
-    # Cancel local Runner result (immediate — stops token streaming)
     await cancel_active_result(group_id)
-
-    # Set Redis cancel flag (cooperative — stops upstream/parallel workers)
     await cancel_active_run(group_id)
 
-    return StopResponse(success=True)
+    return AttemptStopResponse(success=True)
