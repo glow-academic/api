@@ -326,7 +326,6 @@ RESOURCE_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
         "create_standard_group",
     ),
     ("create", "standards"): (f"{_T}.resources.standards.create", "create_standard"),
-    ("create", "systems"): (f"{_T}.resources.systems.create", "create_system"),
     ("create", "temperature_levels"): (
         f"{_T}.resources.temperature_levels.create",
         "create_temperature_level",
@@ -488,7 +487,6 @@ RESOURCE_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
         "search_standard_groups",
     ),
     ("search", "standards"): (f"{_T}.resources.standards.search", "search_standards"),
-    ("search", "systems"): (f"{_T}.resources.systems.search", "search_systems"),
     ("search", "temperature_levels"): (
         f"{_T}.resources.temperature_levels.search",
         "_search_temperature_level_ids",
@@ -641,7 +639,6 @@ RESOURCE_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
         "get_standard_groups_docs",
     ),
     ("docs", "standards"): (f"{_T}.resources.standards.docs", "get_standards_docs"),
-    ("docs", "systems"): (f"{_T}.resources.systems.docs", "get_systems_docs"),
     ("docs", "temperature_levels"): (
         f"{_T}.resources.temperature_levels.docs",
         "get_temperature_levels_docs",

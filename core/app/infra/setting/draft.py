@@ -251,7 +251,7 @@ async def patch_setting_draft_impl(
                 session_id=session_id,
                 id=target_draft_id,
                 soft=soft,
-                agent_ids=request.system_ids,
+                agent_ids=request.agent_ids,
                 auth_item_key_ids=request.auth_item_key_ids,
                 auth_ids=request.auth_ids,
                 color_ids=request.color_ids,
@@ -289,7 +289,7 @@ async def patch_setting_draft_impl(
         auth_ids=request.auth_ids or [],
         provider_key_ids=request.provider_key_ids or [],
         auth_item_key_ids=request.auth_item_key_ids or [],
-        system_ids=request.system_ids or [],
+        agent_ids=request.agent_ids or [],
         pending_ids=sorted(pending_ids),
     )
 

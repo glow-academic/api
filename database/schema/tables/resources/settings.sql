@@ -16,7 +16,7 @@ CREATE TABLE public.settings_resource (
     department_ids uuid[] DEFAULT ARRAY[]::uuid[],
     provider_key_ids uuid[] DEFAULT ARRAY[]::uuid[],
     auth_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
-    system_ids uuid[] DEFAULT ARRAY[]::uuid[] NOT NULL
+    agent_ids uuid[] DEFAULT ARRAY[]::uuid[] NOT NULL
 );
 
 

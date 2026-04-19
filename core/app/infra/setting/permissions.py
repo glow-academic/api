@@ -24,7 +24,7 @@ SETTING_RESOURCES = {
     "auths",
     "provider_keys",
     "auth_item_keys",
-    "systems",
+    "agents",
 }
 
 SETTING_GENERATION_RESOURCES = {
@@ -142,7 +142,7 @@ def compute_show_auth_item_keys() -> bool:
     return True
 
 
-def compute_show_systems() -> bool:
+def compute_show_agents() -> bool:
     return True
 
 
@@ -182,7 +182,7 @@ def compute_auth_item_keys_required() -> bool:
     return False
 
 
-def compute_systems_required() -> bool:
+def compute_agents_required() -> bool:
     return False
 
 

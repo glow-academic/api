@@ -269,7 +269,7 @@ async def get_department_impl(
             department_ids=item.department_ids or [],
             provider_key_ids=item.provider_key_ids or [],
             auth_ids=item.auth_ids or [],
-            system_ids=item.system_ids or [],
+            agent_ids=item.agent_ids or [],
             active=item.active,
             mcp=item.mcp,
             generated=item.generated,

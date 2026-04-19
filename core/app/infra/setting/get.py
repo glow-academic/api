@@ -35,8 +35,8 @@ from app.infra.setting.permissions import (
     compute_show_name,
     compute_show_profiles,
     compute_show_provider_keys,
-    compute_show_systems,
-    compute_systems_required,
+    compute_show_agents,
+    compute_agents_required,
     derive_flag_key_and_label,
     has_access,
 )
@@ -55,7 +55,7 @@ from app.infra.setting.types import (
     SettingProfileResource,
     SettingProviderCatalogResource,
     SettingProviderKeyResource,
-    SettingSystemResource,
+    SettingAgentResource,
 )
 from app.infra.tool_graph import score_tools
 
@@ -69,7 +69,7 @@ SECTIONS = [
     "auths",
     "provider_keys",
     "auth_item_keys",
-    "systems",
+    "agents",
 ]
 
 
@@ -165,7 +165,7 @@ async def get_setting_impl(
         auths_search=_sf(resolved_filters, "auths", "search"),
         provider_keys_search=_sf(resolved_filters, "provider_keys", "search"),
         auth_item_keys_search=_sf(resolved_filters, "auth_item_keys", "search"),
-        systems_search=_sf(resolved_filters, "systems", "search"),
+        agents_search=_sf(resolved_filters, "agents", "search"),
         names_limit=_sf(resolved_filters, "names", "limit"),
         descriptions_limit=_sf(resolved_filters, "descriptions", "limit"),
         colors_limit=_sf(resolved_filters, "colors", "limit"),
@@ -175,7 +175,7 @@ async def get_setting_impl(
         auths_limit=_sf(resolved_filters, "auths", "limit"),
         provider_keys_limit=_sf(resolved_filters, "provider_keys", "limit"),
         auth_item_keys_limit=_sf(resolved_filters, "auth_item_keys", "limit"),
-        systems_limit=_sf(resolved_filters, "systems", "limit"),
+        agents_limit=_sf(resolved_filters, "agents", "limit"),
         names_selected_only=_sf(resolved_filters, "names", "selected"),
         descriptions_selected_only=_sf(resolved_filters, "descriptions", "selected"),
         colors_selected_only=_sf(resolved_filters, "colors", "selected"),
@@ -185,7 +185,7 @@ async def get_setting_impl(
         auths_selected_only=_sf(resolved_filters, "auths", "selected"),
         provider_keys_selected_only=_sf(resolved_filters, "provider_keys", "selected"),
         auth_item_keys_selected_only=_sf(resolved_filters, "auth_item_keys", "selected"),
-        systems_selected_only=_sf(resolved_filters, "systems", "selected"),
+        agents_selected_only=_sf(resolved_filters, "agents", "selected"),
         bypass_cache=bypass_cache,
     )
 
@@ -236,7 +236,7 @@ async def get_setting_impl(
     all_auths = dedupe_by_id(resource_pairs["auths"].selected + resource_pairs["auths"].suggestions)
     all_provider_keys = dedupe_by_id(resource_pairs["provider_keys"].selected + resource_pairs["provider_keys"].suggestions)
     all_auth_item_keys = dedupe_by_id(resource_pairs["auth_item_keys"].selected + resource_pairs["auth_item_keys"].suggestions)
-    all_systems = dedupe_by_id(resource_pairs["systems"].selected + resource_pairs["systems"].suggestions)
+    all_agents = dedupe_by_id(resource_pairs["agents"].selected + resource_pairs["agents"].suggestions)
 
     names = [
         SettingNameResource(
@@ -356,20 +356,17 @@ async def get_setting_impl(
         )
         for item in all_auth_item_keys
     ]
-    systems = [
-        SettingSystemResource(
-            system_id=item.id,
+    agents = [
+        SettingAgentResource(
+            agent_id=item.id,
             name=item.name,
             description=item.description,
-            agent_ids=item.agent_ids or [],
-            resolution_strategy=item.resolution_strategy,
-            resolution_threshold=item.resolution_threshold,
             generated=item.generated,
-            suggested=_decorate(item.id, "systems")[0],
-            selected=_decorate(item.id, "systems")[1],
-            pending=_decorate(item.id, "systems")[2],
+            suggested=_decorate(item.id, "agents")[0],
+            selected=_decorate(item.id, "agents")[1],
+            pending=_decorate(item.id, "agents")[2],
         )
-        for item in all_systems
+        for item in all_agents
     ]
 
     providers_catalog = [
@@ -400,7 +397,7 @@ async def get_setting_impl(
         "auths": compute_show_auths(),
         "provider_keys": compute_show_provider_keys(),
         "auth_item_keys": compute_show_auth_item_keys(),
-        "systems": compute_show_systems(),
+        "agents": compute_show_agents(),
     }
     required_flags_map = {
         "names": compute_name_required(),
@@ -412,7 +409,7 @@ async def get_setting_impl(
         "auths": compute_auths_required(),
         "provider_keys": compute_provider_keys_required(),
         "auth_item_keys": compute_auth_item_keys_required(),
-        "systems": compute_systems_required(),
+        "agents": compute_agents_required(),
     }
 
     basic_show_ai_generate = compute_can_draft(
@@ -442,7 +439,7 @@ async def get_setting_impl(
         auths=_filter_items(auths, "auths", selected_only=selected_only, suggested_only=suggested_only) if include["auths"] else None,
         provider_keys=_filter_items(provider_keys, "provider_keys", selected_only=selected_only, suggested_only=suggested_only) if include["provider_keys"] else None,
         auth_item_keys=_filter_items(auth_item_keys, "auth_item_keys", selected_only=selected_only, suggested_only=suggested_only) if include["auth_item_keys"] else None,
-        systems=_filter_items(systems, "systems", selected_only=selected_only, suggested_only=suggested_only) if include["systems"] else None,
+        agents=_filter_items(agents, "agents", selected_only=selected_only, suggested_only=suggested_only) if include["agents"] else None,
         providers=providers_catalog,
         keys=keys_catalog,
     )

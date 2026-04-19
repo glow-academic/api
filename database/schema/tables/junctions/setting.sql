@@ -167,12 +167,12 @@ CREATE TABLE public.setting_settings_junction (
 
 --
 
--- Name: setting_systems_junction; Type: TABLE; Schema: public; Owner: -
+-- Name: setting_agents_junction; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.setting_systems_junction (
+CREATE TABLE public.setting_agents_junction (
     setting_id uuid NOT NULL,
-    systems_id uuid NOT NULL,
+    agents_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     active boolean DEFAULT true NOT NULL,
     generated boolean DEFAULT false NOT NULL,
@@ -296,11 +296,11 @@ ALTER TABLE ONLY public.setting_settings_junction
 
 --
 
--- Name: setting_systems_junction setting_systems_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: setting_agents_junction setting_agents_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.setting_systems_junction
-    ADD CONSTRAINT setting_systems_junction_pkey PRIMARY KEY (setting_id, systems_id);
+ALTER TABLE ONLY public.setting_agents_junction
+    ADD CONSTRAINT setting_agents_junction_pkey PRIMARY KEY (setting_id, agents_id);
 
 
 --

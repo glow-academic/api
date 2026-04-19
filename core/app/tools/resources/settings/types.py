@@ -13,7 +13,7 @@ class GetSettingResponse(BaseModel):
     department_ids: list[UUID]
     provider_key_ids: list[UUID]
     auth_ids: list[UUID]
-    system_ids: list[UUID]
+    agent_ids: list[UUID]
     created_at: datetime
     active: bool
     mcp: bool

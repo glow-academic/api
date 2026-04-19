@@ -2,10 +2,10 @@
 
 import pytest
 
+from app.tools.resources.agents.create import create_agent
 from app.tools.resources.departments.create import create_department
 from app.tools.resources.settings.create import create_setting
 from app.tools.resources.settings.get import get_settings
-from app.tools.resources.systems.create import create_system
 
 pytestmark = pytest.mark.asyncio
 
@@ -43,19 +43,19 @@ async def test_sets_mcp_flag(conn, redis_client):
     assert result.generated is True
 
 
-async def test_round_trips_department_and_system_links(conn, redis_client):
+async def test_round_trips_department_and_agent_links(conn, redis_client):
     department = await create_department(conn, "settings-dept", redis=redis_client)
-    system = await create_system(conn, "settings-system", redis=redis_client)
+    agent = await create_agent(conn, "settings-agent", redis=redis_client)
 
     result = await create_setting(
         conn,
         "linked-setting",
         redis=redis_client,
         department_ids=[department.id],
-        system_ids=[system.id],
+        agent_ids=[agent.id],
     )
 
     items = await get_settings(conn, [result.id], redis_client, bypass_cache=True)
 
     assert items[0].department_ids == [department.id]
-    assert items[0].system_ids == [system.id]
+    assert items[0].agent_ids == [agent.id]

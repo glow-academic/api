@@ -45,7 +45,7 @@ MULTI_JUNCTIONS: list[tuple[str, str, str]] = [
         "provider_keys_id",
         "setting_provider_keys_junction_pkey",
     ),
-    ("setting_systems_junction", "systems_id", "setting_systems_junction_pkey"),
+    ("setting_agents_junction", "agents_id", "setting_agents_junction_pkey"),
     ("setting_thresholds_junction", "thresholds_id", "setting_thresholds_pkey"),
     ("setting_settings_junction", "settings_id", "setting_settings_junction_pkey"),
 ]
@@ -67,7 +67,7 @@ async def update_setting(
     color_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
     provider_key_ids: list[UUID] | None = None,
-    system_ids: list[UUID] | None = None,
+    agent_ids: list[UUID] | None = None,
     threshold_ids: list[UUID] | None = None,
     setting_ids: list[UUID] | None = None,
     # Base columns
@@ -121,7 +121,7 @@ async def update_setting(
         color_ids,
         profile_ids,
         provider_key_ids,
-        system_ids,
+        agent_ids,
         threshold_ids,
         setting_ids,
     ]

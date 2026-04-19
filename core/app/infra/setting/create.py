@@ -118,7 +118,7 @@ async def create_setting_impl(
                 department_ids=item.department_ids,
                 provider_key_ids=item.provider_key_ids,
                 auth_ids=item.auth_ids,
-                system_ids=item.system_ids,
+                agent_ids=item.agent_ids,
             )
             snapshot_ids.append(setting_resource_id)
 
@@ -138,7 +138,7 @@ async def create_setting_impl(
                     provider_key_ids=item.provider_key_ids,
                     auth_item_key_ids=item.auth_item_key_ids,
                     auth_item_value_ids=item.auth_item_value_ids,
-                    system_ids=item.system_ids,
+                    agent_ids=item.agent_ids,
                     threshold_ids=item.threshold_ids,
                     setting_ids=(
                         [snapshot_ids[idx]]

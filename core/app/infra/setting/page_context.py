@@ -50,7 +50,6 @@ from app.tools.resources.names.docs import get_names_docs
 from app.tools.resources.names.get import get_names
 from app.tools.resources.profiles.docs import get_profiles_docs
 from app.tools.resources.provider_keys.docs import get_provider_keys_docs
-from app.tools.resources.systems.docs import get_systems_docs
 
 _PAGE_METADATA = PageMetadataConfig(
     list_title="Settings",
@@ -153,10 +152,6 @@ async def page_context_setting_impl(
         async with pool.acquire() as conn:
             return await get_provider_keys_docs(conn)
 
-    async def _get_systems_docs() -> list:
-        async with pool.acquire() as conn:
-            return await get_systems_docs(conn)
-
     async def _get_entity_perms():
         if not entity_id:
             return None
@@ -184,7 +179,6 @@ async def page_context_setting_impl(
         flags,
         profiles,
         provider_keys,
-        systems,
         entity_perms,
         entity_name,
     ) = await asyncio.gather(
@@ -199,7 +193,6 @@ async def page_context_setting_impl(
         _get_flags_docs(),
         _get_profiles_docs(),
         _get_provider_keys_docs(),
-        _get_systems_docs(),
         _get_entity_perms(),
         _get_entity_name(),
     )
@@ -311,7 +304,7 @@ async def page_context_setting_impl(
             "Settings define system configuration and preferences. "
             "Each setting links to resources (names, descriptions, departments, "
             "flags, auths, auth_item_keys, colors, profiles, provider_keys, "
-            "systems) via junction tables."
+            "agents) via junction tables."
         ),
         artifact=artifact,
         entries=[drafts],
@@ -325,7 +318,6 @@ async def page_context_setting_impl(
             flags,
             profiles,
             provider_keys,
-            systems,
         ],
         permission_docs=[
             get_operation_info(

@@ -108,9 +108,6 @@ class TestResolveCommonContext:
         assert result.profile.profiles_id == fixture.profile_resource_id
         assert result.profile.primary_department_id == fixture.department_id
         assert result.profile.settings_id == fixture.setting_id
-        assert {tool.system_id for tool in result.tool_graph.tools} == {
-            fixture.system_id
-        }
         assert {tool.agent_id for tool in result.tool_graph.tools} == {fixture.agent_id}
         assert {tool.tool_id for tool in result.tool_graph.tools} == {fixture.tool_id}
         assert {

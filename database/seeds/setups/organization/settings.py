@@ -1,6 +1,6 @@
 """Organization setting seed definitions.
 
-References pre-existing auth, system, and threshold resources from modules 01-10.
+References pre-existing auth, agent, and threshold resources from modules 01-10.
 Provider keys and auth item keys are created by the keys module and linked here.
 """
 
@@ -11,7 +11,7 @@ from database.seeds.setups.organization.departments import (
     ORGANIZATION_DEPT_RESOURCE,
 )
 from database.seeds.dynamic_keys import AUTH_ITEM_KEY_IDS, PROVIDER_KEY_IDS
-from database.seeds.setting import ALL_SYSTEMS
+from database.seeds.setting import ALL_AGENTS
 
 # ---------------------------------------------------------------------------
 # Pre-existing threshold resource IDs
@@ -30,10 +30,10 @@ FLAG_PRACTICE = sid("flag/practice")
 FLAG_SCORING = sid("flag/scoring")
 
 # ---------------------------------------------------------------------------
-# System IDs
+# Agent IDs
 # ---------------------------------------------------------------------------
 
-SYSTEMS = ALL_SYSTEMS
+AGENTS = ALL_AGENTS
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs
@@ -57,7 +57,7 @@ settings = [
         auth_ids=list(AUTH_RESOURCE_IDS.values()),
         provider_key_ids=PROVIDER_KEY_IDS,
         auth_item_key_ids=AUTH_ITEM_KEY_IDS,
-        system_ids=SYSTEMS,
+        agent_ids=AGENTS,
         threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
     ),
 ]

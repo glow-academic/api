@@ -27,7 +27,7 @@ async def search_settings(
     profile_ids: list[UUID] | None = None,
     provider_key_ids: list[UUID] | None = None,
     setting_ids: list[UUID] | None = None,
-    system_ids: list[UUID] | None = None,
+    agent_ids: list[UUID] | None = None,
     threshold_ids: list[UUID] | None = None,
     exclude_ids: list[UUID] | None = None,
     active_only: bool = True,
@@ -172,15 +172,15 @@ async def search_settings(
             ids=setting_ids,
         )
 
-    if system_ids:
+    if agent_ids:
         idx = add_junction_filter(
             conditions,
             params,
             idx,
-            junction_table="setting_systems_junction",
+            junction_table="setting_agents_junction",
             owner_col=OWNER_COL,
-            resource_col="systems_id",
-            ids=system_ids,
+            resource_col="agents_id",
+            ids=agent_ids,
         )
 
     if threshold_ids:

@@ -48,11 +48,7 @@ async def search_settings(
     if agent_ids:
         extra_conditions.append(
             (
-                "(COALESCE(array_length(${idx}::uuid[], 1), 0) = 0 OR EXISTS ("
-                "SELECT 1 FROM setting_systems_junction ssj "
-                "JOIN systems_resource sr ON sr.id = ssj.systems_id "
-                "WHERE ssj.setting_id = {alias}.id AND ssj.active = true AND sr.active = true "
-                "AND sr.agent_ids && ${idx}::uuid[]))",
+                "(COALESCE(array_length(${idx}::uuid[], 1), 0) = 0 OR {alias}.agent_ids && ${idx}::uuid[])",
                 agent_ids,
             )
         )

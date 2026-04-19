@@ -200,20 +200,20 @@ ALTER TABLE ONLY public.setting_settings_junction
 
 --
 
--- Name: setting_systems_junction setting_systems_junction_setting_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: setting_agents_junction setting_agents_junction_setting_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.setting_systems_junction
-    ADD CONSTRAINT setting_systems_junction_setting_id_fkey FOREIGN KEY (setting_id) REFERENCES public.setting_artifact(id);
+ALTER TABLE ONLY public.setting_agents_junction
+    ADD CONSTRAINT setting_agents_junction_setting_id_fkey FOREIGN KEY (setting_id) REFERENCES public.setting_artifact(id);
 
 
 --
 
--- Name: setting_systems_junction setting_systems_junction_systems_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: setting_agents_junction setting_agents_junction_agents_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.setting_systems_junction
-    ADD CONSTRAINT setting_systems_junction_systems_id_fkey FOREIGN KEY (systems_id) REFERENCES public.systems_resource(id);
+ALTER TABLE ONLY public.setting_agents_junction
+    ADD CONSTRAINT setting_agents_junction_agents_id_fkey FOREIGN KEY (agents_id) REFERENCES public.agents_resource(id);
 
 
 --

@@ -40,7 +40,7 @@ def resolve_artifact_operation_tool(
     if not matches:
         return None
 
-    best = min(matches, key=lambda tool: (tool.system_id, tool.agent_id, tool.tool_id))
+    best = min(matches, key=lambda tool: (tool.agent_id, tool.tool_id))
     return best.tool_id
 
 

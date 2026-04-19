@@ -29,7 +29,6 @@ from app.infra.session.types import (
 from app.tools.resources.agents.get import get_agents
 from app.tools.resources.models.get import get_models
 from app.tools.resources.providers.get import get_providers
-from app.tools.resources.systems.get import get_systems
 from app.tools.resources.tools.get import get_tools
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
@@ -110,11 +109,10 @@ async def get_session_impl(
     config_models: list = []
     config_providers: list = []
     config_tools: list = []
-    config_systems: list = []
+    config_agents_list: list = []
     config_profile: list = []
     runs_today = None
     resource_agent_ids: dict[str, UUID | None] = {}
-    resource_system_ids: dict[str, UUID | None] = {}
 
     if common:
         scores = score_tools(common.tool_graph, SESSION_BUNDLE_ENTRIES)
@@ -122,23 +120,10 @@ async def get_session_impl(
             target: (tool.agent_id if tool else None)
             for target, tool in scores.best.items()
         }
-        resource_system_ids = {
-            target: (tool.system_id if tool else None)
-            for target, tool in scores.best.items()
-        }
 
         # Hydrate config chain from tool_graph
-        all_system_ids = list(
-            dict.fromkeys(t.system_id for t in common.tool_graph.tools)
-        )
         all_agent_ids = list(dict.fromkeys(t.agent_id for t in common.tool_graph.tools))
         all_tool_ids = list(dict.fromkeys(t.tool_id for t in common.tool_graph.tools))
-
-        async def _fetch_systems() -> list:
-            if not all_system_ids:
-                return []
-            async with pool.acquire() as c:
-                return await get_systems(c, all_system_ids, redis, bypass_cache)
 
         async def _fetch_agents() -> list:
             if not all_agent_ids:
@@ -152,8 +137,7 @@ async def get_session_impl(
             async with pool.acquire() as c:
                 return await get_tools(c, all_tool_ids, redis, bypass_cache)
 
-        config_systems, config_agents, config_tools = await asyncio.gather(
-            _fetch_systems(),
+        config_agents, config_tools = await asyncio.gather(
             _fetch_agents(),
             _fetch_tools_config(),
         )
@@ -198,11 +182,10 @@ async def get_session_impl(
         config_models=config_models,
         config_providers=config_providers,
         config_tools=config_tools,
-        config_systems=config_systems,
+        config_agents_list=config_agents_list,
         config_profile=config_profile,
         runs_today=runs_today,
         resource_agent_ids=resource_agent_ids,
-        resource_system_ids=resource_system_ids,
         group_id=None,
         actor_name=actor_name,
         profile_name=profile_name,
