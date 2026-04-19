@@ -181,7 +181,7 @@
                     <div class="action-button-content">
                       <#-- Icon: prefer inline SVG from loginEntries, fall back to CSS icon classes -->
                       <#if matchedLogin?has_content && matchedLogin.icon_svg?has_content>
-                        <span class="action-button-icon action-button-icon-inline">${matchedLogin.icon_svg}</span>
+                        <span class="action-button-icon action-button-icon-inline">${matchedLogin.icon_svg?no_esc}</span>
                       <#else>
                         <#-- Fallback: CSS icon class logic -->
                         <#assign iconClassToUse = "" />
@@ -270,7 +270,7 @@
                     <div class="action-button-content">
                       <#-- Icon: prefer inline SVG from loginEntries, fall back to existing -->
                       <#if matchedLogin?has_content && matchedLogin.icon_svg?has_content>
-                        <span class="action-button-icon action-button-icon-inline">${matchedLogin.icon_svg}</span>
+                        <span class="action-button-icon action-button-icon-inline">${matchedLogin.icon_svg?no_esc}</span>
                       <#elseif p.iconClasses?has_content>
                         <i class="${properties.kcCommonLogoIdP!} ${p.iconClasses!} action-button-icon" aria-hidden="true"></i>
                       <#else>
