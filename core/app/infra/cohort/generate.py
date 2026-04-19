@@ -108,6 +108,7 @@ async def generate_cohort_impl(
         instructions=request.instructions,
         operations=cfg.operations,
         dangerous=cfg.dangerous,
+        modalities=request.modalities,
         params=cfg.params,
     )
     generated_key = idempotency_key or uuid.uuid4()

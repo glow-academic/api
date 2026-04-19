@@ -84,6 +84,7 @@ async def generate_rubric_impl(
         instructions=request.instructions,
         operations=cfg.operations,
         dangerous=cfg.dangerous,
+        modalities=request.modalities,
         params=cfg.params,
     )
 

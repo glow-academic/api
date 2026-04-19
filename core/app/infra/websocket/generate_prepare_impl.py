@@ -352,6 +352,7 @@ async def generate_prepare_impl(
                     draft_id=draft_id,
                 )
             ],
+            modalities=payload.modalities,
             bypass_cache=bypass_cache,
         )
 

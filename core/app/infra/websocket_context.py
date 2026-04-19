@@ -140,6 +140,7 @@ async def resolve_websocket_context(
     *,
     profile_id: UUID,
     requests: list[ArtifactRequest],
+    modalities: list[str] | None = None,
     bypass_cache: bool = False,
 ) -> WebsocketContext | None:
     """Resolve context for AI generation — agent chain + tool scoring.
@@ -177,7 +178,7 @@ async def resolve_websocket_context(
         all_scoring_resources.add(req.artifact_type)
         all_scoring_resources |= config.scoring_resources
 
-    scores = score_tools(common.tool_graph, all_scoring_resources)
+    scores = score_tools(common.tool_graph, all_scoring_resources, modalities=modalities)
 
     # ── Step 3: Collect winning system_ids ────────────────────────────────
 

@@ -67510,7 +67510,21 @@
           "modality": {
             "type": "string",
             "title": "Modality",
-            "default": "call"
+            "default": "text"
+          },
+          "modalities": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modalities"
           },
           "extra_messages": {
             "anyOf": [

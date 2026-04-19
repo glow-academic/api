@@ -110,6 +110,9 @@ async def prepare_generation(
         artifact_id = uuid.UUID(payload_metadata["staff_id"])
 
     # --- Step 3: Resolve context ---
+    # Thread modalities to filter systems by capability
+    requested_modalities = payload.modalities
+
     ws_ctx = await resolve_websocket_context(
         pool,
         redis,
@@ -122,6 +125,7 @@ async def prepare_generation(
                 draft_id=draft_id,
             )
         ],
+        modalities=requested_modalities,
         bypass_cache=True,
     )
 

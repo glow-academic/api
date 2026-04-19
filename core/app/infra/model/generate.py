@@ -84,6 +84,7 @@ async def generate_model_impl(
         instructions=request.instructions,
         operations=cfg.operations,
         dangerous=cfg.dangerous,
+        modalities=request.modalities,
         params=cfg.params,
     )
 

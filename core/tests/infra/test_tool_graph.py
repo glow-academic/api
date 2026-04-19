@@ -248,7 +248,7 @@ class TestScoreToolsModality:
         )
 
         graph = SettingsToolGraph(tools=[t_a, t_b_names, t_b_images])
-        result = score_tools(graph, {"names", "images"}, modality="image")
+        result = score_tools(graph, {"names", "images"}, modalities=["image"])
 
         # Agent A filtered out — only agent B can produce images
         assert result.best["names"] is t_b_names
@@ -267,9 +267,9 @@ class TestScoreToolsModality:
         )
         graph = SettingsToolGraph(tools=[t])
 
-        result = score_tools(graph, {"names"}, modality="image")
+        result = score_tools(graph, {"names"}, modalities=["image"])
         assert result.best["names"] is None
-        assert result.has_any["names"] is True  # tool exists, just filtered out
+        assert result.has_any["names"] is False  # tool exists but system filtered out by modality
 
     def test_modality_none_behaves_as_before(self):
         """modality=None → no filtering, same behavior as before."""
@@ -284,7 +284,7 @@ class TestScoreToolsModality:
         )
         graph = SettingsToolGraph(tools=[t])
 
-        result = score_tools(graph, {"names"}, modality=None)
+        result = score_tools(graph, {"names"}, modalities=None)
         assert result.best["names"] is t
 
     def test_empty_graph_has_empty_modalities(self):

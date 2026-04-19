@@ -110,6 +110,7 @@ async def attempt_audio_start_internal_impl(
             run_id=str(run.id),
             group_id=str(group_id),
             modality="audio",
+            modalities=["audio"],
             metadata={
                 "attempt_id": str(attempt_id),
                 "chat_id": str(chat_id),

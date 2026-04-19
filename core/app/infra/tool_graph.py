@@ -194,19 +194,16 @@ async def _resolve_tool_graph_impl(
 def score_tools(
     graph: SettingsToolGraph,
     artifact_resources: set[str],
-    modality: str | None = None,
+    modalities: list[str] | None = None,
 ) -> ArtifactToolScores:
-    """Score and pick the best tool per target for a given artifact.
+    """Score and pick the winning system + all its agents for a given artifact.
 
-    Scoring (per target) — follows least privilege principle:
+    Scoring:
       1. Only consider tools whose target is in artifact_resources
-      2. If modality specified, hard-filter to agents supporting that modality
-      3. Pick the agent with the narrowest total scope (fewest distinct targets)
-      4. Tiebreak: higher coverage of requested resources, then agent_id
-
-    The narrowest-scope agent that fulfills the request wins. This ensures
-    the Persona agent (10 tools, 1 artifact) beats the Composer (19 tools,
-    28 artifacts) when the request is purely about personas.
+      2. If modalities specified, hard-filter to systems where ALL agents
+         support ALL requested modalities
+      3. Pick the system with the best coverage (most artifact_resources covered)
+      4. Return ALL agents from the winning system (enables parallel execution + evals)
 
     Returns the best ResolvedTool per target, has_any flags, and available_modalities.
     """
@@ -236,54 +233,58 @@ def score_tools(
         set().union(*agent_modalities.values()) if agent_modalities else set()
     )
 
-    # Compute per-agent coverage and scope
-    agent_targets: dict[UUID, set[str]] = {}
+    # Group agents by system
+    system_agents: dict[UUID, set[UUID]] = {}
     for t in graph.tools:
+        system_agents.setdefault(t.system_id, set()).add(t.agent_id)
+
+    # If modalities specified, filter to systems where ALL agents support ALL modalities
+    eligible_systems: set[UUID] | None = None
+    if modalities:
+        required = set(modalities)
+        eligible_systems = set()
+        for system_id, agent_ids in system_agents.items():
+            # Every agent in the system must support ALL requested modalities
+            all_agents_support = all(
+                required <= agent_modalities.get(agent_id, set())
+                for agent_id in agent_ids
+            )
+            if all_agents_support:
+                eligible_systems.add(system_id)
+
+    # Filter tools to eligible systems
+    eligible_tools = graph.tools
+    if eligible_systems is not None:
+        eligible_tools = [t for t in graph.tools if t.system_id in eligible_systems]
+
+    # Compute per-agent coverage and scope from eligible tools
+    agent_targets: dict[UUID, set[str]] = {}
+    for t in eligible_tools:
         agent_targets.setdefault(t.agent_id, set()).add(t.target)
 
-    # coverage: how many of the requested artifact_resources this agent handles
     agent_coverage: dict[UUID, int] = {
         agent_id: len(targets & artifact_resources)
         for agent_id, targets in agent_targets.items()
     }
 
-    # total_scope: how many distinct targets this agent covers overall
-    # (used for least-privilege tiebreak — fewer = more specialized)
     agent_total_scope: dict[UUID, int] = {
         agent_id: len(targets)
         for agent_id, targets in agent_targets.items()
     }
 
-    # If modality specified, determine which agents support it
-    eligible_agents: set[UUID] | None = None
-    if modality is not None:
-        eligible_agents = {
-            agent_id for agent_id, mods in agent_modalities.items() if modality in mods
-        }
-
-    # For each artifact resource, find the best tool
+    # For each artifact resource, find the best tool (from eligible systems)
     best: dict[str, ResolvedTool | None] = {}
     has_any: dict[str, bool] = {}
 
     for resource in artifact_resources:
-        candidates = [t for t in graph.tools if t.target == resource]
+        candidates = [t for t in eligible_tools if t.target == resource]
         has_any[resource] = len(candidates) > 0
 
         if not candidates:
             best[resource] = None
             continue
 
-        # Apply modality filter if specified
-        if eligible_agents is not None:
-            candidates = [t for t in candidates if t.agent_id in eligible_agents]
-
-        if not candidates:
-            best[resource] = None
-            continue
-
-        # Least privilege: among agents that cover this resource, pick the
-        # one with the narrowest total scope (fewest distinct targets).
-        # Tiebreak by coverage (higher = better fit), then agent_id.
+        # Least privilege: narrowest scope, tiebreak by coverage then agent_id
         best[resource] = min(
             candidates,
             key=lambda t: (

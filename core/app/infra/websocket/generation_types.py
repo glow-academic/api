@@ -119,7 +119,8 @@ class GeneratePayload(BaseModel):
     params: dict[str, Any] | None = None
     group_id: str | None = None
     run_id: str | None = None
-    modality: str = "call"
+    modality: str = "text"  # per-dispatch modality (used by generate_artifact_impl)
+    modalities: list[str] | None = None  # requested output modalities (used for system scoring)
     # Internal-only fields (not in client-facing request)
     extra_messages: list[dict[str, str]] | None = None
     metadata: dict[str, Any] | None = None

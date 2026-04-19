@@ -121,6 +121,7 @@ async def generate_attempt_impl(
         operations=cfg.operations,
         dangerous=cfg.dangerous,
         params=cfg.params,
+        modalities=request.modalities,
     )
 
     try:

@@ -85,6 +85,7 @@ async def generate_auth_impl(
         instructions=request.instructions,
         operations=cfg.operations,
         dangerous=cfg.dangerous,
+        modalities=request.modalities,
         params=cfg.params,
     )
 
