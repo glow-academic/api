@@ -14,6 +14,7 @@ class GetSettingResponse(BaseModel):
     provider_key_ids: list[UUID]
     auth_ids: list[UUID]
     system_ids: list[UUID]
+    mcp_agent_id: UUID | None = None
     created_at: datetime
     active: bool
     mcp: bool

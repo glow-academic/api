@@ -218,6 +218,24 @@ ALTER TABLE ONLY public.setting_systems_junction
 
 --
 
+-- Name: setting_mcp_junction setting_mcp_junction_setting_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_mcp_junction
+    ADD CONSTRAINT setting_mcp_junction_setting_id_fkey FOREIGN KEY (setting_id) REFERENCES public.setting_artifact(id);
+
+
+--
+
+-- Name: setting_mcp_junction setting_mcp_junction_mcp_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_mcp_junction
+    ADD CONSTRAINT setting_mcp_junction_mcp_id_fkey FOREIGN KEY (mcp_id) REFERENCES public.mcp_resource(id);
+
+
+--
+
 -- Name: setting_thresholds_junction setting_thresholds_setting_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 

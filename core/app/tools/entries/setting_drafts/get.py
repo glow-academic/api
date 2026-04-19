@@ -44,7 +44,9 @@ async def get_setting_drafts(
             COALESCE(ARRAY_AGG(DISTINCT pk.provider_keys_id) FILTER (WHERE pk.provider_keys_id IS NOT NULL AND pk.active = false), '{}') AS pending_provider_key_ids,
             COALESCE(ARRAY_AGG(DISTINCT th.thresholds_id) FILTER (WHERE th.thresholds_id IS NOT NULL), '{}') AS threshold_ids
             ,
-            COALESCE(ARRAY_AGG(DISTINCT th.thresholds_id) FILTER (WHERE th.thresholds_id IS NOT NULL AND th.active = false), '{}') AS pending_threshold_ids
+            COALESCE(ARRAY_AGG(DISTINCT th.thresholds_id) FILTER (WHERE th.thresholds_id IS NOT NULL AND th.active = false), '{}') AS pending_threshold_ids,
+            COALESCE(ARRAY_AGG(DISTINCT mc.mcp_id) FILTER (WHERE mc.mcp_id IS NOT NULL), '{}') AS mcp_ids,
+            COALESCE(ARRAY_AGG(DISTINCT mc.mcp_id) FILTER (WHERE mc.mcp_id IS NOT NULL AND mc.active = false), '{}') AS pending_mcp_ids
         FROM setting_drafts_entry d
         LEFT JOIN setting_drafts_agents_connection ag ON ag.draft_id = d.id
         LEFT JOIN setting_drafts_auth_item_keys_connection aik ON aik.draft_id = d.id
@@ -58,6 +60,7 @@ async def get_setting_drafts(
         LEFT JOIN setting_drafts_profiles_connection p ON p.draft_id = d.id
         LEFT JOIN setting_drafts_provider_keys_connection pk ON pk.draft_id = d.id
         LEFT JOIN setting_drafts_thresholds_connection th ON th.draft_id = d.id
+        LEFT JOIN setting_drafts_mcp_connection mc ON mc.draft_id = d.id
         WHERE d.id = ANY($1)
           AND d.active = true
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
@@ -99,6 +102,8 @@ async def get_setting_drafts(
             pending_profile_ids=r["pending_profile_ids"],
             pending_provider_key_ids=r["pending_provider_key_ids"],
             pending_threshold_ids=r["pending_threshold_ids"],
+            mcp_ids=r["mcp_ids"],
+            pending_mcp_ids=r["pending_mcp_ids"],
         )
         for r in rows
     ]

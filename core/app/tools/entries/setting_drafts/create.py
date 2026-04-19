@@ -26,6 +26,7 @@ async def create_setting_draft(
     profile_ids: list[UUID] | None = None,
     provider_key_ids: list[UUID] | None = None,
     threshold_ids: list[UUID] | None = None,
+    mcp_ids: list[UUID] | None = None,
     pending_ids: set[UUID] | None = None,
 ) -> CreateSettingDraftResponse:
     """Create or update a setting_drafts entry with optional connection links."""
@@ -76,6 +77,7 @@ async def create_setting_draft(
             provider_key_ids or [],
         ),
         ("setting_drafts_thresholds_connection", "thresholds_id", threshold_ids or []),
+        ("setting_drafts_mcp_connection", "mcp_id", mcp_ids or []),
     ]
 
     for table, col, ids in connections:

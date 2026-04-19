@@ -29,6 +29,7 @@ MULTI_JUNCTIONS: list[tuple[str, str, str]] = [
     ("setting_systems_junction", "systems_id", "setting_systems_junction_pkey"),
     ("setting_thresholds_junction", "thresholds_id", "setting_thresholds_pkey"),
     ("setting_settings_junction", "settings_id", "setting_settings_junction_pkey"),
+    ("setting_mcp_junction", "mcp_id", "setting_mcp_junction_pkey"),
 ]
 
 
@@ -49,6 +50,7 @@ async def create_setting(
     system_ids: list[UUID] | None = None,
     threshold_ids: list[UUID] | None = None,
     setting_ids: list[UUID] | None = None,
+    mcp_ids: list[UUID] | None = None,
     active: bool | None = None,
     soft: bool = False,
     generated: bool = False,
@@ -98,6 +100,7 @@ async def create_setting(
         system_ids,
         threshold_ids,
         setting_ids,
+        mcp_ids,
     ]
     for (table, col, constraint), vals in zip(MULTI_JUNCTIONS, multi_vals):
         if vals:

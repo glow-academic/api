@@ -27,6 +27,7 @@ class GetSettingsResponse(BaseModel):
     setting_ids: list[UUID] | None = Field(None, description="Associated setting junction IDs")
     auth_ids: list[UUID] | None = Field(None, description="Associated auth junction IDs")
     auth_item_value_ids: list[UUID] | None = Field(None, description="Associated auth item value junction IDs")
+    mcp_ids: list[UUID] | None = Field(None, description="Associated mcp junction IDs")
 
 
 class CreateSettingResponse(BaseModel):

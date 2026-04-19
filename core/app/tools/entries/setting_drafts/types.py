@@ -29,6 +29,7 @@ class GetSettingDraftResponse(BaseModel):
     profile_ids: list[UUID] = Field(..., description="Associated profile UUIDs")
     provider_key_ids: list[UUID] = Field(..., description="Associated provider key UUIDs")
     threshold_ids: list[UUID] = Field(..., description="Associated threshold UUIDs")
+    mcp_ids: list[UUID] | None = None
     pending_agent_ids: list[UUID] = Field(default_factory=list, description="Pending agent UUIDs")
     pending_auth_item_key_ids: list[UUID] = Field(default_factory=list, description="Pending auth item key UUIDs")
     pending_auth_ids: list[UUID] = Field(default_factory=list, description="Pending auth UUIDs")
@@ -41,3 +42,4 @@ class GetSettingDraftResponse(BaseModel):
     pending_profile_ids: list[UUID] = Field(default_factory=list, description="Pending profile UUIDs")
     pending_provider_key_ids: list[UUID] = Field(default_factory=list, description="Pending provider key UUIDs")
     pending_threshold_ids: list[UUID] = Field(default_factory=list, description="Pending threshold UUIDs")
+    pending_mcp_ids: list[UUID] | None = None

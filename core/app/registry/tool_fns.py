@@ -248,6 +248,7 @@ RESOURCE_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
         f"{_T}.resources.model_rubrics.create",
         "create_model_rubric",
     ),
+    ("create", "mcp"): (f"{_T}.resources.mcp.create", "create_mcp"),
     ("create", "models"): (f"{_T}.resources.models.create", "create_model"),
     ("create", "names"): (f"{_T}.resources.names.create", "create_name"),
     ("create", "objectives"): (f"{_T}.resources.objectives.create", "create_objective"),
@@ -401,6 +402,7 @@ RESOURCE_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
         f"{_T}.resources.model_rubrics.search",
         "search_model_rubrics",
     ),
+    ("search", "mcp"): (f"{_T}.resources.mcp.search", "search_mcp"),
     ("search", "models"): (f"{_T}.resources.models.search", "search_models"),
     ("search", "names"): (f"{_T}.resources.names.search", "search_names"),
     ("search", "objectives"): (

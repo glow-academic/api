@@ -289,3 +289,25 @@ ALTER TABLE ONLY public.setting_drafts_thresholds_connection
 
 
 --
+
+-- Name: setting_drafts_mcp_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.setting_drafts_mcp_connection (
+    draft_id uuid NOT NULL,
+    mcp_id uuid NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+
+-- Name: setting_drafts_mcp_connection setting_drafts_mcp_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_drafts_mcp_connection
+    ADD CONSTRAINT setting_drafts_mcp_connection_pkey PRIMARY KEY (draft_id, mcp_id);
+
+
+--
