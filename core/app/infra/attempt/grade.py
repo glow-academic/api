@@ -88,7 +88,6 @@ async def attempt_grade_internal_impl(
         raise ValueError("chat_id is required for attempt_grade")
 
     async def _run() -> AttemptGradeInternalResult:
-        rooms = [sid, f"attempt_{chat_id}"] if sid else []
         downstream_emit = wrap_emit_with_stream_bridge(
             artifact="attempt",
             operation="grade",
@@ -108,6 +107,8 @@ async def attempt_grade_internal_impl(
             session_id=UUID(str(session_id)),
         )
         profiles_id = identity.profiles_id if identity else None
+        _group_id = identity.group_id if identity else None
+        rooms = [sid, str(_group_id)] if sid and _group_id else ([sid] if sid else [])
 
         async with get_pool().acquire() as conn:
             group_result = await create_group(conn, session_id=UUID(str(session_id)), artifact_type="attempt")  # TODO: fix logic

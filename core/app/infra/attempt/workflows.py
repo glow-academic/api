@@ -421,7 +421,7 @@ async def audio_response_cancelled_impl(
                 "attempt_stopped",
                 AttemptStoppedData(
                     sid=sid,
-                    rooms=[sid, f"attempt_{chat_id}"],
+                    rooms=[sid, str(group_id)],
                     chat_id=chat_id,
                     success=True,
                     message=None,
@@ -598,7 +598,7 @@ async def attempt_message_impl(
             "session_id": str(session_id_uuid),
             "item_id": data.get("item_id"),
             "rooms": data.get("rooms")
-            or ([sid, f"attempt_{attempt_chat_id}"] if sid else []),
+            or ([sid, str(group_id)] if sid and group_id else []),
         },
         emit=emit,
         pool=pool,
@@ -611,7 +611,7 @@ async def attempt_message_impl(
             "session_id": str(session_id_uuid),
             "item_id": data.get("item_id"),
             "rooms": data.get("rooms")
-            or ([sid, f"attempt_{attempt_chat_id}"] if sid else []),
+            or ([sid, str(group_id)] if sid and group_id else []),
             "content": message,
         },
         emit=emit,
@@ -1485,7 +1485,7 @@ async def attempt_proceed_impl(
                             "sid": sid,
                             "attempt_id": str(attempt_id),
                             "chat_id": str(attempt_chat_id),
-                            "rooms": [sid, f"attempt_{attempt_chat_id}"]
+                            "rooms": [sid, str(group_id)]
                             if sid
                             else None,
                         },
