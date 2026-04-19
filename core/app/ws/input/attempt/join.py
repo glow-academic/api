@@ -1,11 +1,10 @@
-"""Input: attempt.join"""
+"""Input: attempt.join — subscribe to events for a group."""
 
 from typing import Any
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
-from app.infra.websocket.attempt_types import AttemptJoinedData
 
 internal_sio = get_internal_sio()
 
@@ -16,24 +15,24 @@ async def attempt_join(sid: str, data: dict[str, Any]) -> None:
     if not identity:
         return
 
-    chat_id = str(data.get("chat_id", ""))
-    if not chat_id:
+    group_id = str(data.get("group_id", ""))
+    if not group_id:
         return
 
     async def _runner() -> dict[str, Any]:
-        room_name = f"attempt_{chat_id}"
-        await sio.enter_room(sid, room_name)
+        await sio.enter_room(sid, group_id)
 
         await internal_sio.emit(
             "attempt_joined",
-            AttemptJoinedData(
-                sid=sid,
-                chat_id=chat_id,
-                success=True,
-            ).model_dump(mode="json"),
+            {
+                "sid": sid,
+                "rooms": [sid],
+                "group_id": group_id,
+                "success": True,
+            },
         )
 
-        return {"chat_id": chat_id, "success": True}
+        return {"group_id": group_id, "success": True}
 
     pool = get_pool()
     redis = get_redis_client()
@@ -48,5 +47,5 @@ async def attempt_join(sid: str, data: dict[str, Any]) -> None:
         sid=sid,
         rooms=[sid],
         runner=_runner,
-        arguments={"chat_id": chat_id},
+        arguments={"group_id": group_id},
     )

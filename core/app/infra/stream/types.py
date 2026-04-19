@@ -16,6 +16,8 @@ class EventEnvelope(BaseModel):
     artifact: str
     operation: str
     created_at: datetime
+    group_id: UUID | None = None
+    run_id: UUID | None = None
     entity_id: UUID | None = None
     call_id: UUID | None = None
     tool_id: UUID | None = None

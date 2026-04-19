@@ -22,6 +22,7 @@ from app.routes.attempt.refresh import router as refresh_router
 from app.routes.attempt.search import router as search_router
 from app.routes.attempt.speak import router as speak_router
 from app.routes.attempt.start import router as start_router
+from app.routes.attempt.stream import router as stream_router
 from app.routes.attempt.stop import router as stop_router
 from app.routes.attempt.text import router as text_router
 from app.routes.attempt.video import router as video_router
@@ -55,6 +56,7 @@ router.include_router(start_router)
 router.include_router(complete_router)
 router.include_router(speak_router)
 router.include_router(stop_router)
+router.include_router(stream_router)
 router.include_router(expire_router)
 router.include_router(join_router)
 router.include_router(leave_router)

@@ -14706,6 +14706,34 @@
         ]
       }
     },
+    "/attempt/stream": {
+      "get": {
+        "tags": [
+          "attempt"
+        ],
+        "summary": "Attempt Stream",
+        "description": "Stream events for all joined groups via SSE.",
+        "operationId": "attempt_stream_attempt_stream_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt"
+        ]
+      }
+    },
     "/attempt/expire": {
       "post": {
         "tags": [
@@ -14740,7 +14768,7 @@
           "attempt"
         ],
         "summary": "Attempt Join",
-        "description": "Join a chat room for real-time attempt updates.",
+        "description": "Subscribe to events for a group.",
         "operationId": "attempt_join_attempt_join_post",
         "requestBody": {
           "content": {
@@ -14790,7 +14818,7 @@
           "attempt"
         ],
         "summary": "Attempt Leave",
-        "description": "Leave a chat room, stopping real-time attempt updates.",
+        "description": "Unsubscribe from events for a group.",
         "operationId": "attempt_leave_attempt_leave_post",
         "requestBody": {
           "content": {
@@ -19978,74 +20006,6 @@
         "x-cache-tags": [
           "system",
           "system-video"
-        ]
-      }
-    },
-    "/connect": {
-      "post": {
-        "summary": "Connect",
-        "description": "Create a stream session for the authenticated profile.",
-        "operationId": "connect_connect_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConnectResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/disconnect": {
-      "post": {
-        "summary": "Disconnect",
-        "description": "Destroy a stream session.",
-        "operationId": "disconnect_disconnect_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DisconnectRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DisconnectResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
         ]
       }
     },
@@ -43179,20 +43139,15 @@
       },
       "AttemptJoinRequest": {
         "properties": {
-          "sid": {
-            "type": "string",
-            "title": "Sid"
-          },
-          "chat_id": {
+          "group_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Chat Id"
+            "title": "Group Id"
           }
         },
         "type": "object",
         "required": [
-          "sid",
-          "chat_id"
+          "group_id"
         ],
         "title": "AttemptJoinRequest"
       },
@@ -43201,11 +43156,16 @@
           "success": {
             "type": "boolean",
             "title": "Success"
+          },
+          "group_id": {
+            "type": "string",
+            "title": "Group Id"
           }
         },
         "type": "object",
         "required": [
-          "success"
+          "success",
+          "group_id"
         ],
         "title": "AttemptJoinResponse"
       },
@@ -43248,20 +43208,15 @@
       },
       "AttemptLeaveRequest": {
         "properties": {
-          "sid": {
-            "type": "string",
-            "title": "Sid"
-          },
-          "chat_id": {
+          "group_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Chat Id"
+            "title": "Group Id"
           }
         },
         "type": "object",
         "required": [
-          "sid",
-          "chat_id"
+          "group_id"
         ],
         "title": "AttemptLeaveRequest"
       },
@@ -50265,19 +50220,6 @@
         ],
         "title": "ComposedContextResponse",
         "description": "Page bootstrap response \u2014 docs + profile identity + evaluated permissions.\n\nSuperset of ComposedDocsResponse. A single call gives the client everything\nit needs to render the page: who you are, what you can do, and the schema."
-      },
-      "ConnectResponse": {
-        "properties": {
-          "sid": {
-            "type": "string",
-            "title": "Sid"
-          }
-        },
-        "type": "object",
-        "required": [
-          "sid"
-        ],
-        "title": "ConnectResponse"
       },
       "ConnectionConfirmedPayload": {
         "properties": {
@@ -60782,32 +60724,6 @@
         "type": "object",
         "title": "DepartmentSettingResource",
         "description": "Setting resource for department."
-      },
-      "DisconnectRequest": {
-        "properties": {
-          "sid": {
-            "type": "string",
-            "title": "Sid"
-          }
-        },
-        "type": "object",
-        "required": [
-          "sid"
-        ],
-        "title": "DisconnectRequest"
-      },
-      "DisconnectResponse": {
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "title": "Success"
-          }
-        },
-        "type": "object",
-        "required": [
-          "success"
-        ],
-        "title": "DisconnectResponse"
       },
       "DocsApiRequest": {
         "properties": {

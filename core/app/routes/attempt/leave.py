@@ -1,6 +1,6 @@
-"""Attempt leave endpoint — POST /attempt/leave.
+"""Attempt leave — unsubscribe from events for a group.
 
-Removes a chat entity from the caller's stream session.
+POST /attempt/leave { group_id }
 """
 
 from __future__ import annotations
@@ -10,14 +10,13 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from app.infra.stream.session import get_session_profile, leave_entity
+from app.infra.stream.session import leave_group
 
 router = APIRouter()
 
 
 class AttemptLeaveRequest(BaseModel):
-    sid: str
-    chat_id: UUID
+    group_id: UUID
 
 
 class AttemptLeaveResponse(BaseModel):
@@ -29,16 +28,10 @@ async def attempt_leave(
     request: AttemptLeaveRequest,
     http_request: Request,
 ) -> AttemptLeaveResponse:
-    """Leave a chat room, stopping real-time attempt updates."""
+    """Unsubscribe from events for a group."""
     profile_id: UUID | None = getattr(http_request.state, "profile_id", None)
     if not profile_id:
         raise HTTPException(status_code=401, detail="Profile ID is required.")
 
-    profile_id = UUID(str(profile_id))
-
-    session_profile = await get_session_profile(request.sid)
-    if not session_profile or session_profile != profile_id:
-        raise HTTPException(status_code=403, detail="Session not found or not owned.")
-
-    await leave_entity(request.sid, "attempt", request.chat_id)
+    await leave_group(str(profile_id), request.group_id)
     return AttemptLeaveResponse(success=True)

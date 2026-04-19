@@ -11,9 +11,7 @@ from app.routes.auth import router as auth_router
 from app.routes.authorize import router as authorize_router
 from app.routes.oidc_callback import router as oidc_callback_router
 from app.routes.cohort import router as cohorts_router
-from app.routes.connect import router as connect_router
 from app.routes.department import router as departments_router
-from app.routes.disconnect import router as disconnect_router
 from app.routes.discovery import router as discovery_router
 from app.routes.document import router as documents_router
 from app.routes.eval import router as evals_router
@@ -72,9 +70,6 @@ api_router.include_router(attempt_artifact_router)   # + home, practice, dashboa
 api_router.include_router(test_artifact_router)      # + benchmark, invocation
 api_router.include_router(system_router)             # + session, group, health, activity, pricing
 
-# Root-level actions
-api_router.include_router(connect_router)
-api_router.include_router(disconnect_router)
 
 # ============================================================================
 # Root Router
