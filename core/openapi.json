@@ -14734,34 +14734,6 @@
         ]
       }
     },
-    "/attempt/expire": {
-      "post": {
-        "tags": [
-          "attempt"
-        ],
-        "summary": "Expire",
-        "description": "Find and end all expired attempt chats.",
-        "operationId": "expire_attempt_expire_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt"
-        ]
-      }
-    },
     "/attempt/join": {
       "post": {
         "tags": [
@@ -72505,6 +72477,10 @@
             "type": "boolean",
             "title": "Is Archived"
           },
+          "is_completed": {
+            "type": "boolean",
+            "title": "Is Completed"
+          },
           "scenario_ids": {
             "items": {
               "type": "string",
@@ -72552,6 +72528,7 @@
           "infinite_mode",
           "num_chats",
           "is_archived",
+          "is_completed",
           "scenario_ids",
           "chat_entry_id",
           "attempt_chat_id"

@@ -23,6 +23,7 @@ class GetAttemptResponse(BaseModel):
     infinite_mode: bool
     num_chats: int
     is_archived: bool
+    is_completed: bool
     scenario_ids: list[UUID]
     chat_entry_id: UUID | None
     attempt_chat_id: UUID | None

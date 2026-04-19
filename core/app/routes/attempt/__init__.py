@@ -7,7 +7,6 @@ from app.routes.attempt.audio import router as audio_router
 from app.routes.attempt.chat import router as chat_router
 from app.routes.attempt.complete import router as complete_router
 from app.routes.attempt.context import router as context_router
-from app.routes.attempt.expire import router as expire_router
 from app.routes.attempt.export import router as export_router
 from app.routes.attempt.file import router as file_router
 from app.routes.attempt.generate import router as generate_router
@@ -57,7 +56,6 @@ router.include_router(complete_router)
 router.include_router(speak_router)
 router.include_router(stop_router)
 router.include_router(stream_router)
-router.include_router(expire_router)
 router.include_router(join_router)
 router.include_router(leave_router)
 

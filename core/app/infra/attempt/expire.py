@@ -1,121 +1,107 @@
-"""Auto-expire stale attempt chats.
+"""Auto-expire stale attempts — background job.
 
-Finds chats past their time_limit + grace_period and completes the attempt.
+Runs as an asyncio loop during server lifespan. Finds uncompleted attempts
+with chats past their time_limit + 60s grace, and completes them.
+
+Uses only black boxes — no raw SQL.
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
-import os
-from typing import Any
+from datetime import datetime, timezone
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.infra.attempt.complete import complete_attempt_impl
-from app.infra.globals import get_pool, get_redis_client
+from app.tools.entries.attempt.search import search_attempts
+from app.tools.entries.attempt_chat.search import search_attempt_chats
 
 logger = logging.getLogger(__name__)
 
-GRACE_PERIOD_MINUTES = int(os.getenv("GRACE_PERIOD_MINUTES", "60"))
+GRACE_SECONDS = 60  # 1 minute grace period
+CHECK_INTERVAL = 60  # check every 60 seconds
 
 
-async def expire_stale_attempts() -> list[dict[str, Any]]:
-    """Find and complete all expired attempts.
+async def expire_stale_attempts(
+    pool: asyncpg.Pool,
+    redis: Redis,
+) -> list[dict]:
+    """Find and complete all stale attempts.
 
-    An attempt is expired when any of its chats exceed:
-      - Has time_limit: elapsed > time_limit + grace_period
-      - No time_limit (infinite): elapsed > grace_period
-
-    Returns list of expired attempt info dicts.
+    An attempt is stale when any of its chats has:
+      elapsed > time_limit + GRACE_SECONDS
     """
-    pool = get_pool()
-    redis = get_redis_client()
-    if not pool:
-        logger.warning("No database pool — skipping expiry check")
-        return []
-
-    # Find active chats that are past their effective end time
-    async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            """
-            SELECT DISTINCT ON (acb.attempt_id)
-                acb.attempt_id,
-                ace.id AS chat_entry_id,
-                ace.chat_id,
-                ace.time_limit,
-                ace.created_at,
-                EXTRACT(EPOCH FROM (NOW() - ace.created_at))::int AS elapsed_seconds,
-                (
-                    SELECT ap.profile_id
-                    FROM attempt_profile_bridge_entry ap
-                    WHERE ap.attempt_id = acb.attempt_id AND ap.active = true
-                    LIMIT 1
-                ) AS profile_id,
-                (
-                    SELECT s.id
-                    FROM session_entry s
-                    JOIN session_profile_bridge_entry sp ON sp.session_id = s.id
-                    JOIN attempt_profile_bridge_entry ap ON ap.profile_id = sp.profile_id
-                    WHERE ap.attempt_id = acb.attempt_id AND s.active = true
-                    ORDER BY s.created_at DESC
-                    LIMIT 1
-                ) AS session_id
-            FROM attempt_chat_bridge_entry acb
-            JOIN attempt_chat_entry ace ON acb.attempt_chat_id = ace.chat_id
-            LEFT JOIN attempt_completion_entry acomp ON acomp.attempt_id = acb.attempt_id
-            WHERE acb.active = true
-              AND ace.active = true
-              AND acomp.id IS NULL
-              AND ace.created_at + (
-                  COALESCE(NULLIF(ace.time_limit, 0), 0) * interval '1 second'
-                  + $1 * interval '1 minute'
-              ) < NOW()
-            ORDER BY acb.attempt_id, ace.created_at
-            """,
-            GRACE_PERIOD_MINUTES,
-        )
-
-    if not rows:
-        return []
-
+    now = datetime.now(timezone.utc)
     expired = []
 
-    for row in rows:
-        attempt_id = UUID(str(row["attempt_id"]))
-        profile_id = UUID(str(row["profile_id"])) if row["profile_id"] else None
-        session_id = UUID(str(row["session_id"])) if row["session_id"] else None
-        elapsed = row["elapsed_seconds"]
-        time_limit = row["time_limit"] or 0
-
-        if not profile_id or not session_id:
-            logger.warning(
-                f"Cannot expire attempt {attempt_id} — missing profile_id or session_id"
-            )
-            continue
-
-        logger.info(
-            f"Expiring attempt {attempt_id} "
-            f"(elapsed={elapsed}s, time_limit={time_limit}s, "
-            f"grace={GRACE_PERIOD_MINUTES}m)"
+    # 1. Get all uncompleted, non-archived attempts
+    async with pool.acquire() as conn:
+        attempts, _ = await search_attempts(
+            conn,
+            is_completed=False,
+            is_archived=False,
+            limit=1000,
         )
 
+    for attempt in attempts:
+        # 2. Get chats for this attempt
+        async with pool.acquire() as conn:
+            chats, _ = await search_attempt_chats(
+                conn,
+                attempt_ids=[attempt.attempt_id],
+                limit=100,
+            )
+
+        # 3. Check if any chat is past time_limit + grace
+        stale = False
+        elapsed = 0.0
+        for chat in chats:
+            if not chat.chat_created_at:
+                continue
+            created = chat.chat_created_at
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            elapsed = (now - created).total_seconds()
+            limit = (chat.time_limit_seconds or 0) + GRACE_SECONDS
+            if limit > 0 and elapsed > limit:
+                stale = True
+                break
+
+        if not stale:
+            continue
+
+        # 4. Complete the attempt (idempotent)
         try:
             result = await complete_attempt_impl(
                 pool,
                 redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                attempt_id=attempt_id,
-                message=f"Auto-expired after {elapsed}s",
+                profile_id=attempt.profile_id or UUID(int=0),
+                session_id=UUID(int=0),
+                attempt_id=attempt.attempt_id,
+                message=f"Auto-expired after {int(elapsed)}s",
             )
             expired.append({
-                "attempt_id": str(attempt_id),
+                "attempt_id": str(attempt.attempt_id),
                 "completion_id": result["completion_id"],
-                "elapsed_seconds": elapsed,
             })
+            logger.info(f"Expired attempt {attempt.attempt_id}")
         except Exception as e:
-            logger.error(f"Failed to expire attempt {attempt_id}: {e}")
+            logger.error(f"Failed to expire attempt {attempt.attempt_id}: {e}")
 
-    logger.info(f"Expired {len(expired)} attempt(s)")
+    if expired:
+        logger.info(f"Expired {len(expired)} attempt(s)")
     return expired
+
+
+async def expire_loop(pool: asyncpg.Pool, redis: Redis) -> None:
+    """Background loop — runs expire check every CHECK_INTERVAL seconds."""
+    while True:
+        await asyncio.sleep(CHECK_INTERVAL)
+        try:
+            await expire_stale_attempts(pool, redis)
+        except Exception as e:
+            logger.error(f"Expire loop error: {e}")

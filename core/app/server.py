@@ -310,14 +310,25 @@ async def lifespan(app: FastAPI) -> AsyncIterator[Any]:
 
         monitor_task = asyncio.create_task(_periodic_monitor())
 
+        # Start attempt expiry background job
+        expire_task: asyncio.Task | None = None
+        if pool and _globals.redis_client:
+            from app.infra.attempt.expire import expire_loop
+            expire_task = asyncio.create_task(expire_loop(pool, _globals.redis_client))
+            logger.info("Attempt expiry background job started")
+
         yield
 
         # Stop background tasks
         reaper_task.cancel()
         monitor_task.cancel()
+        if expire_task:
+            expire_task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await reaper_task
             await monitor_task
+            if expire_task:
+                await expire_task
 
         await close_db_pool()
 

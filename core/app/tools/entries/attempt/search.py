@@ -21,6 +21,7 @@ async def search_attempts(
     scenario_ids: list[UUID] | None = None,
     practice: bool | None = None,
     is_archived: bool | None = None,
+    is_completed: bool | None = None,
     infinite_mode: bool | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
@@ -41,7 +42,7 @@ async def search_attempts(
         SELECT attempt_id, simulation_id, profile_id, user_persona_id,
                personas_id, cohort_id, department_id, practice,
                attempt_created_at, infinite_mode, num_chats, is_archived,
-               scenario_ids, chat_entry_id, attempt_chat_id,
+               is_completed, scenario_ids, chat_entry_id, attempt_chat_id,
                COUNT(*) OVER() AS total_count
         FROM {source}
         WHERE ($1::uuid[] IS NULL OR attempt_id = ANY($1))
@@ -52,11 +53,12 @@ async def search_attempts(
           AND ($6::uuid[] IS NULL OR scenario_ids && $6)
           AND ($7::boolean IS NULL OR practice = $7)
           AND ($8::boolean IS NULL OR is_archived = $8)
-          AND ($9::boolean IS NULL OR infinite_mode = $9)
-          AND ($10::timestamptz IS NULL OR attempt_created_at >= $10)
-          AND ($11::timestamptz IS NULL OR attempt_created_at <= $11)
+          AND ($9::boolean IS NULL OR is_completed = $9)
+          AND ($10::boolean IS NULL OR infinite_mode = $10)
+          AND ($11::timestamptz IS NULL OR attempt_created_at >= $11)
+          AND ($12::timestamptz IS NULL OR attempt_created_at <= $12)
         ORDER BY attempt_created_at {order}
-        LIMIT $12 OFFSET $13
+        LIMIT $13 OFFSET $14
         """,
         attempt_ids,
         simulation_ids,
@@ -66,6 +68,7 @@ async def search_attempts(
         scenario_ids,
         practice,
         is_archived,
+        is_completed,
         infinite_mode,
         date_from,
         date_to,

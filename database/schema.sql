@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 2fpznmtcnVekRnfgoJSNumWKgqhkwThsg436T50TTWxU9zWMB06XwqeSuSmLjlz
+\restrict meJPUumWGfUuyjlqt6HYRpNR6haJY6GBVzUlWC98EU62gyxmQlSzAuljZZgtuqw
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -2717,10 +2717,11 @@ CREATE MATERIALIZED VIEW public.attempt_mv AS
     COALESCE(a.infinite_mode, false) AS infinite_mode,
     COALESCE(a.num_chats, 1) AS num_chats,
     COALESCE(sa_archive.archived, false) AS is_archived,
+    (sa_complete.id IS NOT NULL) AS is_completed,
     COALESCE(ascn.scenario_ids, ARRAY[]::uuid[]) AS scenario_ids,
     training_ctx.chat_entry_id,
     training_ctx.attempt_chat_id
-   FROM (((((((((((((public.attempt_entry a
+   FROM ((((((((((((((public.attempt_entry a
      JOIN public.attempt_profiles_connection apc ON (((apc.attempt_id = a.id) AND (apc.active = true))))
      LEFT JOIN public.personas_personas_connection apper ON (((apper.personas_entry_id = a.user_persona_id) AND (apper.active = true))))
      LEFT JOIN public.attempt_home_entry ahe ON (((ahe.attempt_id = a.id) AND (ahe.active = true))))
@@ -2745,6 +2746,10 @@ CREATE MATERIALIZED VIEW public.attempt_mv AS
           WHERE ((attempt_archive_entry.attempt_id = a.id) AND (attempt_archive_entry.active = true))
           ORDER BY attempt_archive_entry.created_at DESC
          LIMIT 1) sa_archive ON (true))
+     LEFT JOIN LATERAL ( SELECT ace.id
+           FROM public.attempt_completion_entry ace
+          WHERE ((ace.attempt_id = a.id) AND (ace.active = true))
+         LIMIT 1) sa_complete ON (true))
   WHERE (a.active = true)
   WITH NO DATA;
 
@@ -20438,6 +20443,13 @@ CREATE UNIQUE INDEX attempt_mutes_mv_id_idx ON public.attempt_mutes_mv USING btr
 
 
 --
+-- Name: attempt_mv_attempt_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX attempt_mv_attempt_id_idx ON public.attempt_mv USING btree (attempt_id);
+
+
+--
 -- Name: attempt_replacement_mv_replacement_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -22059,13 +22071,6 @@ CREATE INDEX idx_attempt_message_tree_entry_session_id ON public.attempt_message
 --
 
 CREATE UNIQUE INDEX idx_attempt_message_tree_mv_message_id ON public.attempt_message_tree_mv USING btree (message_id);
-
-
---
--- Name: idx_attempt_mv_attempt_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_attempt_mv_attempt_id ON public.attempt_mv USING btree (attempt_id);
 
 
 --
@@ -39520,5 +39525,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 2fpznmtcnVekRnfgoJSNumWKgqhkwThsg436T50TTWxU9zWMB06XwqeSuSmLjlz
+\unrestrict meJPUumWGfUuyjlqt6HYRpNR6haJY6GBVzUlWC98EU62gyxmQlSzAuljZZgtuqw
 
