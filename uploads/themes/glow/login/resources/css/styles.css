@@ -562,6 +562,20 @@ body.login-pf .login-pf-page {
   color: white;
 }
 
+.action-button-icon-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-button-icon-inline svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: white;
+  stroke: currentColor;
+  fill: none;
+}
+
 .action-button-text {
   font-size: 1rem;
 }

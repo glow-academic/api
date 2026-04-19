@@ -1,0 +1,1 @@
+{"success": false, "message": "'GetFlagResponse' object has no attribute 'icon'"}

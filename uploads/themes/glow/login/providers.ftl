@@ -1,5 +1,5 @@
 <#-- GENERATED FILE: do not edit manually -->
-<#-- Generated at: 2026-04-19T09:57:33.667928 -->
+<#-- Generated at: 2026-04-19T13:13:04.621540 -->
 <#--
   Provider mapping: department_id -> allowed IdP aliases
 
@@ -52,3 +52,12 @@
     <#return platformProviders>
   </#if>
 </#function>
+
+<#-- ═══ Login Entries (logins_resource with inline SVG icons) ═══ -->
+<#assign loginEntries = [
+  {"alias": "auth_learnloop_b88a56ef-0a5f-57d1-bd25-f5d829028757", "display_name": "Continue with LearnLoop", "icon_svg": "", "login_type": "auth"},
+  {"alias": "auth_google_0031836e-e1cc-5619-b2f8-c88864f44a80", "display_name": "Continue with Google", "icon_svg": "", "login_type": "auth"},
+  {"alias": "default-idp-profile-3431a662-0eae-511d-b665-776ecca6a8e9", "display_name": "Continue as Default Superadmin", "icon_svg": "", "login_type": "profile"},
+  {"alias": "default-idp-profile-0507cd73-1b6f-549a-be41-4b7e093f5ce5", "display_name": "Continue as Benchmark", "icon_svg": "", "login_type": "profile"},
+  {"alias": "auth_microsoft_2ed1ab9f-eb32-5f4a-95f2-4904a4701687", "display_name": "Continue with Microsoft", "icon_svg": "", "login_type": "auth"}
+] />

@@ -325,6 +325,7 @@ class LoginForSync:
     id: UUID
     profile_id: UUID | None
     auth_id: UUID | None
+    icon_id: UUID | None
     display_name: str
     login_type: str
 
@@ -373,6 +374,7 @@ async def resolve_logins_for_department(
             id=lr.id,
             profile_id=lr.profile_id,
             auth_id=lr.auth_id,
+            icon_id=lr.icon_id,
             display_name=lr.display_name,
             login_type=lr.login_type,
         )
@@ -421,6 +423,7 @@ async def resolve_logins_for_realm(
             id=lr.id,
             profile_id=lr.profile_id,
             auth_id=lr.auth_id,
+            icon_id=lr.icon_id,
             display_name=lr.display_name,
             login_type=lr.login_type,
         )

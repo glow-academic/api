@@ -1118,6 +1118,7 @@ async def _seed_logins(
                 id=lg.get("id"),
                 profile_id=lg.get("profile_id"),
                 auth_id=lg.get("auth_id"),
+                icon_id=lg.get("icon_id"),
                 display_name=lg.get("display_name", ""),
                 login_type=lg.get("login_type", "auth"),
                 redis=redis,

@@ -56128,6 +56128,38 @@
             "title": "System Ids",
             "description": "System UUIDs to assign"
           },
+          "mcp_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Ids",
+            "description": "MCP resource UUIDs to assign"
+          },
+          "logins_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logins Ids",
+            "description": "Logins resource UUIDs to assign"
+          },
           "threshold_ids": {
             "anyOf": [
               {
@@ -84068,6 +84100,36 @@
             "title": "Threshold Ids",
             "description": "Associated threshold UUIDs"
           },
+          "mcp_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Ids"
+          },
+          "logins_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logins Ids"
+          },
           "pending_agent_ids": {
             "items": {
               "type": "string",
@@ -84175,6 +84237,36 @@
             "type": "array",
             "title": "Pending Threshold Ids",
             "description": "Pending threshold UUIDs"
+          },
+          "pending_mcp_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Mcp Ids"
+          },
+          "pending_logins_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Logins Ids"
           }
         },
         "type": "object",

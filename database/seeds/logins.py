@@ -22,6 +22,18 @@ except FileNotFoundError:
 
 _auth_providers = get_auth_providers(_config)
 
+# ---------------------------------------------------------------------------
+# Icon mapping — provider name → icon slug for auth logins
+# ---------------------------------------------------------------------------
+
+_AUTH_ICON_MAP: dict[str, str] = {
+    "google": "globe",
+    "microsoft": "grid",
+    "learnloop": "sparkles",
+}
+
+_DEFAULT_AUTH_ICON_SLUG = "key"
+
 
 # ---------------------------------------------------------------------------
 # Auth-based logins — one per auth provider
@@ -36,10 +48,12 @@ def build_auth_logins(auth_providers: list[dict]) -> list[dict]:
         auth_resource_id = AUTH_RESOURCE_IDS.get(p["name"])
         if not auth_resource_id:
             continue
+        icon_slug = _AUTH_ICON_MAP.get(p["name"].lower(), _DEFAULT_AUTH_ICON_SLUG)
         logins.append(dict(
             id=sid(f"login/auth/{slug}"),
             auth_id=auth_resource_id,
             profile_id=None,
+            icon_id=sid(f"icon/{icon_slug}"),
             login_type="auth",
             display_name=f"Continue with {name}",
         ))
@@ -66,6 +80,7 @@ def build_profile_logins(profile_entries: list[dict]) -> list[dict]:
             id=sid(f"login/profile/{slug}"),
             auth_id=None,
             profile_id=resource_id,
+            icon_id=sid("icon/user"),
             login_type="profile",
             display_name=f"Continue as {name}",
         ))

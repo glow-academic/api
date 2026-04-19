@@ -6,9 +6,11 @@ This enables dynamic IdP visibility filtering based on department selection via 
 
 from datetime import datetime
 from typing import Any
+from uuid import UUID
 
 from app.infra.globals import UPLOAD_FOLDER, get_redis_client
 from app.infra.identity.keycloak_resolvers import (
+    LoginForSync,
     resolve_auths_for_department,
     resolve_auths_for_realm,
     resolve_departments_for_sync,
@@ -16,6 +18,8 @@ from app.infra.identity.keycloak_resolvers import (
     resolve_logins_for_realm,
     resolve_setting_profiles_for_idp,
 )
+from app.tools.resources.auths.get import get_auths as get_auth_resources
+from app.tools.resources.icons.get import get_icons
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -54,8 +58,10 @@ async def generate_keycloak_theme_providers(pool: Any) -> None:
         all_idp_aliases.update(platform_providers)
 
         # Step 1b: Resolve realm-level logins (new logins_resource path)
+        _all_login_objects: list[LoginForSync] = []
         try:
             _realm_logins = await resolve_logins_for_realm(conn, redis)
+            _all_login_objects.extend(_realm_logins)
             realm_logins = [
                 {
                     "id": str(lg.id),
@@ -63,6 +69,7 @@ async def generate_keycloak_theme_providers(pool: Any) -> None:
                     "login_type": lg.login_type,
                     "auth_id": str(lg.auth_id) if lg.auth_id else None,
                     "profile_id": str(lg.profile_id) if lg.profile_id else None,
+                    "icon_id": str(lg.icon_id) if lg.icon_id else None,
                 }
                 for lg in _realm_logins
             ]
@@ -113,6 +120,7 @@ async def generate_keycloak_theme_providers(pool: Any) -> None:
                 dept_logins = await resolve_logins_for_department(
                     conn, redis, dept.department_id
                 )
+                _all_login_objects.extend(dept_logins)
                 logins_by_dept[dept_id] = [
                     {
                         "id": str(lg.id),
@@ -120,6 +128,7 @@ async def generate_keycloak_theme_providers(pool: Any) -> None:
                         "login_type": lg.login_type,
                         "auth_id": str(lg.auth_id) if lg.auth_id else None,
                         "profile_id": str(lg.profile_id) if lg.profile_id else None,
+                        "icon_id": str(lg.icon_id) if lg.icon_id else None,
                     }
                     for lg in dept_logins
                 ]
@@ -153,6 +162,11 @@ async def generate_keycloak_theme_providers(pool: Any) -> None:
             for alias in platform_profile_aliases:
                 if alias not in platform_providers:
                     platform_providers.append(alias)
+
+        # Step 6: Resolve icon SVGs and auth aliases for loginEntries
+        login_entries = await _resolve_login_entries(
+            conn, redis, _all_login_objects
+        )
 
     # Step 4: Generate FreeMarker file with department-based mapping
     # Use UPLOAD_FOLDER constant for consistent routing (works in Docker and local dev)
@@ -237,24 +251,116 @@ async def generate_keycloak_theme_providers(pool: Any) -> None:
     lines.append("  </#if>")
     lines.append("</#function>")
 
-    # Logins data block (transition — available for future FreeMarker use)
+    # Logins entries with inline SVG icons (loginEntries variable)
     lines.append("")
-    lines.append("<#-- ═══ Logins Resource Data (transition) ═══ -->")
-    lines.append("<#--")
-    lines.append("  Realm-level logins:")
-    for lg in realm_logins:
-        lines.append(f"    - {lg['display_name']} (type={lg['login_type']}, auth={lg.get('auth_id')}, profile={lg.get('profile_id')})")
-    lines.append("")
-    lines.append("  Per-department logins:")
-    for dept_id, dept_lgs in sorted(logins_by_dept.items()):
-        lines.append(f"    {dept_id}:")
-        for lg in dept_lgs:
-            lines.append(f"      - {lg['display_name']} (type={lg['login_type']})")
-    lines.append("-->")
+    lines.append("<#-- ═══ Login Entries (logins_resource with inline SVG icons) ═══ -->")
+    lines.append("<#assign loginEntries = [")
+    for i, le in enumerate(login_entries):
+        comma = "," if i < len(login_entries) - 1 else ""
+        # Escape SVG for safe embedding in FreeMarker string literal
+        escaped_svg = _escape_ftl_string(le.get("icon_svg", ""))
+        lines.append(
+            f'  {{"alias": "{le["alias"]}", '
+            f'"display_name": "{_escape_ftl_string(le["display_name"])}", '
+            f'"icon_svg": "{escaped_svg}", '
+            f'"login_type": "{le["login_type"]}"}}{comma}'
+        )
+    lines.append("] />")
 
     out_path.write_text("\n".join(lines), encoding="utf-8")
     logger.info(f"✅ Generated theme provider mapping: {out_path.resolve()}")
     logger.info(f"   - {len(departments_list)} departments enumerated")
     logger.info(f"   - {len(all_idp_aliases)} IdP aliases enumerated")
-    logger.info(f"   - {len(realm_logins)} realm logins resolved")
+    logger.info(f"   - {len(login_entries)} login entries with icons")
     logger.info(f"   - {len(logins_by_dept)} departments with logins data")
+
+
+def _escape_ftl_string(s: str) -> str:
+    """Escape a string for safe embedding in a FreeMarker string literal.
+
+    Handles backslashes, double quotes, and newlines.
+    """
+    return (
+        s.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", " ")
+        .replace("\r", "")
+    )
+
+
+async def _resolve_login_entries(
+    conn: Any,
+    redis: Any,
+    login_objects: list[LoginForSync],
+) -> list[dict]:
+    """Resolve login objects into entries with alias and icon_svg.
+
+    For auth logins: alias = auth_{slug}_{auth_resource_id}
+    For profile logins: alias = default-idp-profile-{profile_resource_id}
+    Icon SVGs are fetched from icons_resource by icon_id.
+    """
+    if not login_objects:
+        return []
+
+    # Deduplicate logins by id
+    seen_ids: set[UUID] = set()
+    unique_logins: list[LoginForSync] = []
+    for lg in login_objects:
+        if lg.id not in seen_ids:
+            seen_ids.add(lg.id)
+            unique_logins.append(lg)
+
+    # Collect all icon_ids and auth_ids to batch-fetch
+    icon_ids: list[UUID] = []
+    auth_ids: list[UUID] = []
+    for lg in unique_logins:
+        if lg.icon_id and lg.icon_id not in icon_ids:
+            icon_ids.append(lg.icon_id)
+        if lg.auth_id and lg.auth_id not in auth_ids:
+            auth_ids.append(lg.auth_id)
+
+    # Batch-fetch icons
+    icon_svg_map: dict[UUID, str] = {}
+    if icon_ids:
+        try:
+            icon_resources = await get_icons(conn, icon_ids, redis)
+            for icon in icon_resources:
+                icon_svg_map[icon.id] = icon.value or ""
+        except Exception as e:
+            logger.warning(f"Failed to fetch icons for login entries: {e}")
+
+    # Batch-fetch auth resources for slug (to construct aliases)
+    auth_slug_map: dict[UUID, str] = {}
+    auth_resource_id_map: dict[UUID, UUID] = {}
+    if auth_ids:
+        try:
+            auth_resources = await get_auth_resources(conn, auth_ids, redis)
+            for a in auth_resources:
+                auth_slug_map[a.id] = a.slug or ""
+                auth_resource_id_map[a.id] = a.id
+        except Exception as e:
+            logger.warning(f"Failed to fetch auth resources for login entries: {e}")
+
+    # Build entries
+    entries: list[dict] = []
+    for lg in unique_logins:
+        # Determine alias
+        if lg.login_type == "auth" and lg.auth_id:
+            slug = auth_slug_map.get(lg.auth_id, "")
+            alias = f"auth_{slug}_{lg.auth_id}"
+        elif lg.login_type == "profile" and lg.profile_id:
+            alias = f"default-idp-profile-{lg.profile_id}"
+        else:
+            # Unknown login type — skip
+            continue
+
+        icon_svg = icon_svg_map.get(lg.icon_id, "") if lg.icon_id else ""
+
+        entries.append({
+            "alias": alias,
+            "display_name": lg.display_name,
+            "icon_svg": icon_svg,
+            "login_type": lg.login_type,
+        })
+
+    return entries

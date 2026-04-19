@@ -161,46 +161,54 @@
                 <#-- Render non-guest providers first (all rendered, filtered client-side) -->
                 <#list nonGuestProviders as p>
                   <#assign loadingText = "Signing in..." />
-                  <a id="social-${p.alias}" 
-                     class="action-button" 
-                     href="${p.loginUrl}" 
+                  <#-- Find matching loginEntries entry for this provider -->
+                  <#assign matchedLogin = "" />
+                  <#if loginEntries??>
+                    <#list loginEntries as entry>
+                      <#if entry.alias == p.alias>
+                        <#assign matchedLogin = entry />
+                        <#break />
+                      </#if>
+                    </#list>
+                  </#if>
+                  <a id="social-${p.alias}"
+                     class="action-button"
+                     href="${p.loginUrl}"
                      <#if !allowed?seq_contains(p.alias)>style="display: none;"</#if>
                      data-loading-text="${loadingText}">
                     <div class="action-button-shine-1"></div>
                     <div class="action-button-shine-2"></div>
                     <div class="action-button-content">
-                      <#-- Icon (hidden when loading) -->
-                      <#-- Keycloak determines iconClasses based on alias matching well-known provider names -->
-                      <#-- For realm-level providers: alias="microsoft" → Keycloak provides iconClasses="kc-social-icon-microsoft" -->
-                      <#-- For department-scoped: alias="auth_microsoft_..." → Keycloak doesn't recognize it, so iconClasses is empty -->
-                      <#-- Solution: We store iconClasses in IdP config, and extract slug from alias as fallback -->
-                      <#assign iconClassToUse = "" />
-                      <#if p.iconClasses?has_content>
-                        <#-- Keycloak provided iconClasses (works for realm-level providers with well-known aliases) -->
-                        <#assign iconClassToUse = p.iconClasses />
-                      <#elseif p.config?? && p.config.iconClasses??>
-                        <#-- Try to read iconClasses from IdP config (set via Admin API) -->
-                        <#assign iconClassToUse = p.config.iconClasses />
-                      <#elseif p.alias?starts_with("auth_")>
-                        <#-- Fallback: Extract slug from pattern auth_{slug}_{auth_id} -->
-                        <#assign aliasParts = p.alias?split("_") />
-                        <#if (aliasParts?size >= 2)>
-                          <#assign iconClassToUse = "kc-social-icon-${aliasParts[1]}" />
+                      <#-- Icon: prefer inline SVG from loginEntries, fall back to CSS icon classes -->
+                      <#if matchedLogin?has_content && matchedLogin.icon_svg?has_content>
+                        <span class="action-button-icon action-button-icon-inline">${matchedLogin.icon_svg}</span>
+                      <#else>
+                        <#-- Fallback: CSS icon class logic -->
+                        <#assign iconClassToUse = "" />
+                        <#if p.iconClasses?has_content>
+                          <#assign iconClassToUse = p.iconClasses />
+                        <#elseif p.config?? && p.config.iconClasses??>
+                          <#assign iconClassToUse = p.config.iconClasses />
+                        <#elseif p.alias?starts_with("auth_")>
+                          <#assign aliasParts = p.alias?split("_") />
+                          <#if (aliasParts?size >= 2)>
+                            <#assign iconClassToUse = "kc-social-icon-${aliasParts[1]}" />
+                          </#if>
                         </#if>
-                      </#if>
-                      
-                      <#if iconClassToUse?has_content>
-                        <i class="${properties.kcCommonLogoIdP!} ${iconClassToUse} action-button-icon" aria-hidden="true"></i>
-                      <#elseif p.alias?starts_with("default-idp-")>
-                        <#-- User icon for Default Account and Guest -->
-                        <svg class="action-button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                        </svg>
+                        <#if iconClassToUse?has_content>
+                          <i class="${properties.kcCommonLogoIdP!} ${iconClassToUse} action-button-icon" aria-hidden="true"></i>
+                        <#elseif p.alias?starts_with("default-idp-")>
+                          <svg class="action-button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                          </svg>
+                        </#if>
                       </#if>
                       <#-- Spinner (hidden by default, shown when loading) -->
                       <div class="action-button-spinner"></div>
-                      <#-- Text -->
-                      <#if p.alias?starts_with("default-idp-profile-")>
+                      <#-- Text: prefer display_name from loginEntries, fall back to existing logic -->
+                      <#if matchedLogin?has_content && matchedLogin.display_name?has_content>
+                        <span class="action-button-text">${matchedLogin.display_name}</span>
+                      <#elseif p.alias?starts_with("default-idp-profile-")>
                         <span class="action-button-text">Continue as ${p.displayName!}</span>
                       <#elseif p.alias?starts_with("default-idp-")>
                         <span class="action-button-text">Continue as Default Account</span>
@@ -242,27 +250,42 @@
                 <#-- Render guest providers (all rendered, filtered client-side) -->
                 <#list guestProviders as p>
                   <#assign loadingText = "Accessing..." />
-                  <a id="social-${p.alias}" 
-                     class="action-button" 
-                     href="${p.loginUrl}" 
+                  <#-- Find matching loginEntries entry for this guest provider -->
+                  <#assign matchedLogin = "" />
+                  <#if loginEntries??>
+                    <#list loginEntries as entry>
+                      <#if entry.alias == p.alias>
+                        <#assign matchedLogin = entry />
+                        <#break />
+                      </#if>
+                    </#list>
+                  </#if>
+                  <a id="social-${p.alias}"
+                     class="action-button"
+                     href="${p.loginUrl}"
                      <#if !allowed?seq_contains(p.alias)>style="display: none;"</#if>
                      data-loading-text="${loadingText}">
                     <div class="action-button-shine-1"></div>
                     <div class="action-button-shine-2"></div>
                     <div class="action-button-content">
-                      <#-- Icon (hidden when loading) -->
-                      <#if p.iconClasses?has_content>
+                      <#-- Icon: prefer inline SVG from loginEntries, fall back to existing -->
+                      <#if matchedLogin?has_content && matchedLogin.icon_svg?has_content>
+                        <span class="action-button-icon action-button-icon-inline">${matchedLogin.icon_svg}</span>
+                      <#elseif p.iconClasses?has_content>
                         <i class="${properties.kcCommonLogoIdP!} ${p.iconClasses!} action-button-icon" aria-hidden="true"></i>
                       <#else>
-                        <#-- User icon for Guest -->
                         <svg class="action-button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                         </svg>
                       </#if>
                       <#-- Spinner (hidden by default, shown when loading) -->
                       <div class="action-button-spinner"></div>
-                      <#-- Text -->
-                      <span class="action-button-text">Continue as Guest</span>
+                      <#-- Text: prefer display_name from loginEntries, fall back -->
+                      <#if matchedLogin?has_content && matchedLogin.display_name?has_content>
+                        <span class="action-button-text">${matchedLogin.display_name}</span>
+                      <#else>
+                        <span class="action-button-text">Continue as Guest</span>
+                      </#if>
                       <#-- Loading text (hidden by default) -->
                       <span class="action-button-loading-text"></span>
                     </div>
