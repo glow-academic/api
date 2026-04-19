@@ -68,7 +68,7 @@ class DepartmentSettingResource(BaseModel):
     department_ids: list[UUID] = Field(default_factory=list, description="Associated department identifiers")
     provider_key_ids: list[UUID] = Field(default_factory=list, description="Associated provider key identifiers")
     auth_ids: list[UUID] = Field(default_factory=list, description="Associated auth identifiers")
-    agent_ids: list[UUID] = Field(default_factory=list, description="Associated agent identifiers")
+    system_ids: list[UUID] = Field(default_factory=list, description="Associated system identifiers")
     active: bool | None = Field(None, description="Whether this setting is active")
     mcp: bool | None = Field(None, description="Whether this setting used MCP")
     generated: bool | None = Field(None, description="Whether this was AI-generated")

@@ -1,7 +1,7 @@
 """University setting seed definitions.
 
 Each setting is a dict mapping directly to CreateSettingItem.
-References pre-existing auth, agent, and threshold resources from modules 01-10.
+References pre-existing auth, system, and threshold resources from modules 01-10.
 
 Names and descriptions are CREATED as new resources.
 Provider keys and auth item keys are created by the keys module and linked here.
@@ -18,7 +18,7 @@ from database.seeds.dynamic_keys import (
     AUTH_ITEM_VALUE_IDS,
     PROVIDER_KEY_IDS,
 )
-from database.seeds.setting import ALL_AGENTS
+from database.seeds.setting import ALL_SYSTEMS
 from database.seeds.setups.university.colors import ALL_COLOR_IDS
 from database.seeds.setups.university.profiles import (
     BENCHMARK_PROFILE_RESOURCE,
@@ -40,10 +40,10 @@ THRESHOLD_WARNING = sid("threshold/80")
 THRESHOLD_DANGER = sid("threshold/70")
 
 # ---------------------------------------------------------------------------
-# Pre-existing agent resource IDs (from 04-agents)
+# Pre-existing system resource IDs (from 10-systems/)
 # ---------------------------------------------------------------------------
 
-AGENTS = ALL_AGENTS
+SYSTEMS = ALL_SYSTEMS
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs
@@ -68,7 +68,7 @@ settings = [
         provider_key_ids=PROVIDER_KEY_IDS,
         auth_item_key_ids=AUTH_ITEM_KEY_IDS,
         auth_item_value_ids=AUTH_ITEM_VALUE_IDS,
-        agent_ids=AGENTS,
+        system_ids=SYSTEMS,
         threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
         color_ids=ALL_COLOR_IDS,
         profile_ids=SETTING_PROFILE_RESOURCE_IDS,

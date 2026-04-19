@@ -15,6 +15,7 @@ from app.infra.tool_graph import (
 from app.tools.resources.agents.types import GetAgentResponse
 from app.tools.resources.settings.create import create_setting
 from app.tools.resources.settings.types import GetSettingResponse
+from app.tools.resources.systems.types import GetSystemResponse
 from app.tools.resources.tools.types import GetToolResponse
 
 NOW = datetime.now(UTC)
@@ -66,7 +67,20 @@ def _agent(*, tool_ids: list | None = None) -> GetAgentResponse:
     )
 
 
-def _setting(*, agent_ids: list | None = None) -> GetSettingResponse:
+def _system(*, agent_ids: list | None = None) -> GetSystemResponse:
+    return GetSystemResponse(
+        id=uuid4(),
+        name="test-system",
+        description=None,
+        agent_ids=agent_ids or [],
+        created_at=NOW,
+        active=True,
+        mcp=False,
+        generated=False,
+    )
+
+
+def _setting(*, system_ids: list | None = None) -> GetSettingResponse:
     return GetSettingResponse(
         id=uuid4(),
         name="test-setting",
@@ -74,7 +88,7 @@ def _setting(*, agent_ids: list | None = None) -> GetSettingResponse:
         department_ids=[],
         provider_key_ids=[],
         auth_ids=[],
-        agent_ids=agent_ids or [],
+        system_ids=system_ids or [],
         created_at=NOW,
         active=True,
         mcp=False,
@@ -84,6 +98,7 @@ def _setting(*, agent_ids: list | None = None) -> GetSettingResponse:
 
 def _resolved(
     *,
+    system_id=None,
     agent_id=None,
     tool_id=None,
     operation="create",
@@ -91,6 +106,7 @@ def _resolved(
     target="names",
 ) -> ResolvedTool:
     return ResolvedTool(
+        system_id=system_id or uuid4(),
         agent_id=agent_id or uuid4(),
         tool_id=tool_id or uuid4(),
         operation=operation,
@@ -306,13 +322,13 @@ class TestResolveToolGraph:
         result = await resolve_tool_graph(pool, nonexistent_id(), redis_client)
         assert result.tools == []
 
-    async def test_setting_with_no_agents_returns_empty(self, pool, redis_client):
+    async def test_setting_with_no_systems_returns_empty(self, pool, redis_client):
         async with pool.acquire() as conn:
             setting = await create_setting(
                 conn,
                 name=f"empty-setting-{uuid4()}",
-                description="No agents",
-                agent_ids=[],
+                description="No systems",
+                system_ids=[],
                 redis=redis_client,
             )
 
@@ -330,5 +346,6 @@ class TestResolveToolGraph:
         assert {tool.target for tool in result.tools} == {"profile", "persona"}
         assert {tool.tool_id for tool in result.tools} == {fixture.tool_id}
         assert {tool.agent_id for tool in result.tools} == {fixture.agent_id}
+        assert {tool.system_id for tool in result.tools} == {fixture.system_id}
         assert {tool.operation for tool in result.tools} == {fixture.operation}
         assert {tool.target_type for tool in result.tools} == {"artifact"}

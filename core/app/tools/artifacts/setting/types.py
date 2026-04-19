@@ -23,7 +23,7 @@ class GetSettingsResponse(BaseModel):
     auth_item_keys_ids: list[UUID] | None = Field(None, description="Associated auth item keys junction IDs")
     provider_key_ids: list[UUID] | None = Field(None, description="Associated provider key junction IDs")
     threshold_ids: list[UUID] | None = Field(None, description="Associated threshold junction IDs")
-    agents_ids: list[UUID] | None = Field(None, description="Associated agent junction IDs")
+    systems_ids: list[UUID] | None = Field(None, description="Associated systems junction IDs")
     setting_ids: list[UUID] | None = Field(None, description="Associated setting junction IDs")
     auth_ids: list[UUID] | None = Field(None, description="Associated auth junction IDs")
     auth_item_value_ids: list[UUID] | None = Field(None, description="Associated auth item value junction IDs")

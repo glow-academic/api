@@ -23,6 +23,7 @@ class SettingGraphFixture:
     profile_resource_id: UUID
     department_id: UUID
     setting_id: UUID
+    system_id: UUID
     agent_id: UUID
     tool_id: UUID
     operation: str

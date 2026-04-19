@@ -27,6 +27,7 @@ def _make_context(resources=None, entries=None, group_id=None):
 
 def _make_resolved_tool(target="names"):
     return ResolvedTool(
+        system_id=uuid4(),
         agent_id=uuid4(),
         tool_id=uuid4(),
         operation="create",

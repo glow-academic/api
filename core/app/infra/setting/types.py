@@ -110,11 +110,14 @@ class SettingAuthItemKeyResource(BaseModel):
     pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
-class SettingAgentResource(BaseModel):
-    agent_id: UUID | None = Field(None, description="Agent identifier")
-    name: str | None = Field(None, description="Agent display name")
-    description: str | None = Field(None, description="Agent description")
-    generated: bool | None = Field(None, description="Whether the agent was AI-generated")
+class SettingSystemResource(BaseModel):
+    system_id: UUID | None = Field(None, description="System identifier")
+    name: str | None = Field(None, description="System display name")
+    description: str | None = Field(None, description="System description")
+    agent_ids: list[UUID] = Field(default_factory=list, description="Linked agent identifiers")
+    resolution_strategy: str | None = Field(None, description="Resolution strategy")
+    resolution_threshold: float | None = Field(None, description="Resolution threshold")
+    generated: bool | None = Field(None, description="Whether the system was AI-generated")
     suggested: bool = Field(False, description="Whether this item is suggested")
     selected: bool = Field(False, description="Whether this item is selected")
     pending: bool = Field(False, description="Whether this item is pending acceptance")
@@ -159,7 +162,7 @@ class GetSettingApiRequest(BaseModel):
     auths: SectionFilter | None = Field(None, description="Filter options for auths")
     provider_keys: SectionFilter | None = Field(None, description="Filter options for provider keys")
     auth_item_keys: SectionFilter | None = Field(None, description="Filter options for auth item keys")
-    agents: SectionFilter | None = Field(None, description="Filter options for agents")
+    systems: SectionFilter | None = Field(None, description="Filter options for systems")
 
 
 class GetSettingApiResponse(BaseModel):
@@ -182,7 +185,7 @@ class GetSettingApiResponse(BaseModel):
     auths: list[SettingAuthResource] | None = Field(None, description="Auth resources")
     provider_keys: list[SettingProviderKeyResource] | None = Field(None, description="Provider key resources")
     auth_item_keys: list[SettingAuthItemKeyResource] | None = Field(None, description="Auth item key resources")
-    agents: list[SettingAgentResource] | None = Field(None, description="Agent resources")
+    systems: list[SettingSystemResource] | None = Field(None, description="System resources")
     providers: list[SettingProviderCatalogResource] | None = Field(None, description="Provider catalog used by provider key editing")
     keys: list[SettingKeyCatalogResource] | None = Field(None, description="Key catalog used by provider key and auth item key editing")
 
@@ -249,7 +252,7 @@ class CreateSettingItem(ScopedItem):
     provider_key_ids: list[UUID] | None = Field(None, description="Provider key UUIDs")
     auth_item_key_ids: list[UUID] | None = Field(None, description="Auth item key UUIDs")
     auth_item_value_ids: list[UUID] | None = Field(None, description="Auth item value UUIDs")
-    agent_ids: list[UUID] | None = Field(None, description="Agent UUIDs to assign")
+    system_ids: list[UUID] | None = Field(None, description="System UUIDs to assign")
     threshold_ids: list[UUID] | None = Field(None, description="Threshold UUIDs to assign")
     setting_resource_ids: list[UUID] | None = Field(None, description="Setting resource UUIDs")
 
@@ -268,7 +271,7 @@ class CreateSettingItem(ScopedItem):
         "provider_key_ids": "provider_keys",
         "auth_item_key_ids": "auth_item_keys",
         "auth_item_value_ids": "auth_item_values",
-        "agent_ids": "agents",
+        "system_ids": "systems",
         "threshold_ids": "thresholds",
         "setting_resource_ids": "setting_resources",
     }
@@ -316,7 +319,7 @@ class UpdateSettingItem(ScopedItem):
     provider_key_ids: list[UUID] | None = Field(None, description="Provider key UUIDs")
     auth_item_key_ids: list[UUID] | None = Field(None, description="Auth item key UUIDs")
     auth_item_value_ids: list[UUID] | None = Field(None, description="Auth item value UUIDs")
-    agent_ids: list[UUID] | None = Field(None, description="Agent UUIDs to assign")
+    system_ids: list[UUID] | None = Field(None, description="System UUIDs to assign")
     threshold_ids: list[UUID] | None = Field(None, description="Threshold UUIDs to assign")
     setting_resource_ids: list[UUID] | None = Field(None, description="Setting resource UUIDs")
 
@@ -370,7 +373,7 @@ class PatchSettingDraftApiRequest(ScopedItem):
     auth_ids: list[UUID] | None = Field(None, description="Auth provider UUIDs")
     provider_key_ids: list[UUID] | None = Field(None, description="Provider key UUIDs")
     auth_item_key_ids: list[UUID] | None = Field(None, description="Auth item key UUIDs")
-    agent_ids: list[UUID] | None = Field(None, description="Agent UUIDs to assign")
+    system_ids: list[UUID] | None = Field(None, description="System UUIDs to assign")
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to retain as pending inactive connections")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
@@ -388,7 +391,7 @@ class PatchSettingDraftApiRequest(ScopedItem):
         "auth_ids": "auths",
         "provider_key_ids": "provider_keys",
         "auth_item_key_ids": "auth_item_keys",
-        "agent_ids": "agents",
+        "system_ids": "systems",
     }
 
 
@@ -405,7 +408,7 @@ class DraftFormState(BaseModel):
     auth_ids: list[UUID] = Field(default_factory=list, description="Assigned auth provider UUIDs")
     provider_key_ids: list[UUID] = Field(default_factory=list, description="Assigned provider key UUIDs")
     auth_item_key_ids: list[UUID] = Field(default_factory=list, description="Assigned auth item key UUIDs")
-    agent_ids: list[UUID] = Field(default_factory=list, description="Assigned agent UUIDs")
+    system_ids: list[UUID] = Field(default_factory=list, description="Assigned system UUIDs")
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
 
 

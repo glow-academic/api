@@ -135,6 +135,7 @@ class SessionInternalData:
     config_profile: list = field(default_factory=list)
     runs_today: RunsContext | None = None
     resource_agent_ids: dict[str, UUID | None] = field(default_factory=dict)
+    resource_system_ids: dict[str, UUID | None] = field(default_factory=dict)
     group_id: UUID | None = None
     # Context
     actor_name: str | None = None

@@ -134,7 +134,7 @@ async def update_setting_impl(
                 auth_item_keys=True,
                 provider_keys=True,
                 thresholds=True,
-                agents=True,
+                systems=True,
                 settings=True,
                 auths=True,
                 auth_item_values=True,
@@ -167,10 +167,10 @@ async def update_setting_impl(
                     if item.auth_ids is not None
                     else list(artifact.auth_ids or [])
                 )
-                eff_agent_ids = (
-                    item.agent_ids
-                    if item.agent_ids is not None
-                    else list(artifact.agents_ids or [])
+                eff_system_ids = (
+                    item.system_ids
+                    if item.system_ids is not None
+                    else list(artifact.systems_ids or [])
                 )
             else:
                 eff_name_id = item.name_id
@@ -178,7 +178,7 @@ async def update_setting_impl(
                 eff_department_ids = item.department_ids
                 eff_provider_key_ids = item.provider_key_ids
                 eff_auth_ids = item.auth_ids
-                eff_agent_ids = item.agent_ids
+                eff_system_ids = item.system_ids
 
             setting_resource_id = await create_denormalized_snapshot(
                 pool,
@@ -188,7 +188,7 @@ async def update_setting_impl(
                 department_ids=eff_department_ids,
                 provider_key_ids=eff_provider_key_ids,
                 auth_ids=eff_auth_ids,
-                agent_ids=eff_agent_ids,
+                system_ids=eff_system_ids,
             )
 
         async with pool.acquire() as conn:
@@ -206,7 +206,7 @@ async def update_setting_impl(
                     provider_key_ids=item.provider_key_ids,
                     auth_item_key_ids=item.auth_item_key_ids,
                     auth_item_value_ids=item.auth_item_value_ids,
-                    agent_ids=item.agent_ids,
+                    system_ids=item.system_ids,
                     threshold_ids=item.threshold_ids,
                     setting_ids=(
                         [setting_resource_id]

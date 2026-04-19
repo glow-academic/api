@@ -1,4 +1,4 @@
-"""Settings resource types — handcrafted, co-located with handler."""
+"""Systems resource types — handcrafted, co-located with handler."""
 
 from datetime import datetime
 from uuid import UUID
@@ -6,14 +6,13 @@ from uuid import UUID
 from pydantic import BaseModel
 
 
-class GetSettingResponse(BaseModel):
+class GetSystemResponse(BaseModel):
     id: UUID
     name: str | None
     description: str | None
-    department_ids: list[UUID]
-    provider_key_ids: list[UUID]
-    auth_ids: list[UUID]
-    system_ids: list[UUID]
+    agent_ids: list[UUID]
+    resolution_strategy: str | None
+    resolution_threshold: float | None
     created_at: datetime
     active: bool
     mcp: bool

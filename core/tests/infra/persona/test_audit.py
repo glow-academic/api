@@ -11,6 +11,7 @@ def test_resolve_persona_operation_tool_matches_artifact_and_operation() -> None
     graph = SettingsToolGraph(
         tools=[
             ResolvedTool(
+                system_id=uuid4(),
                 agent_id=uuid4(),
                 tool_id=uuid4(),
                 operation="get",
@@ -18,6 +19,7 @@ def test_resolve_persona_operation_tool_matches_artifact_and_operation() -> None
                 target="scenario",
             ),
             ResolvedTool(
+                system_id=uuid4(),
                 agent_id=uuid4(),
                 tool_id=expected_tool_id,
                 operation="get",
@@ -34,6 +36,7 @@ def test_resolve_persona_operation_tool_returns_none_without_match() -> None:
     graph = SettingsToolGraph(
         tools=[
             ResolvedTool(
+                system_id=uuid4(),
                 agent_id=uuid4(),
                 tool_id=uuid4(),
                 operation="update",

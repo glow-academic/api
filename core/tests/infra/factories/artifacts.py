@@ -135,7 +135,7 @@ async def create_setting_graph_fixture(
     tool_operation: str = "create",
     tool_artifacts: list[str] | None = None,
 ) -> SettingGraphFixture:
-    """Create a full profile -> setting -> agent -> tool graph."""
+    """Create a full profile -> setting -> system -> agent -> tool graph."""
     from app.tools.artifacts.profile.create import (
         create_profile as create_profile_artifact,
     )
@@ -146,6 +146,7 @@ async def create_setting_graph_fixture(
         create_profile as create_profile_resource,
     )
     from app.tools.resources.settings.create import create_setting
+    from app.tools.resources.systems.create import create_system
     from app.tools.resources.tools.create import create_tool
 
     tag = unique_tag()
@@ -173,11 +174,18 @@ async def create_setting_graph_fixture(
             tool_ids=[tool_res.id],
             redis=redis_client,
         )
+        system_res = await create_system(
+            conn,
+            name=f"system-{tag}",
+            description="Graph system",
+            agent_ids=[agent_res.id],
+            redis=redis_client,
+        )
         setting_res = await create_setting(
             conn,
             name=f"setting-{tag}",
             description="Graph setting",
-            agent_ids=[agent_res.id],
+            system_ids=[system_res.id],
             redis=redis_client,
         )
         department_res = await create_department(
@@ -201,6 +209,7 @@ async def create_setting_graph_fixture(
         profile_resource_id=profile_res.id,
         department_id=department_res.id,
         setting_id=setting_res.id,
+        system_id=system_res.id,
         agent_id=agent_res.id,
         tool_id=tool_res.id,
         operation=tool_operation,

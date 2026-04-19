@@ -1,42 +1,43 @@
-"""Settings Resource GET — reusable data-access layer."""
+"""Systems Resource GET — reusable data-access layer."""
 
 from uuid import UUID
 
 import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
-from app.tools.resources.settings.types import GetSettingResponse
+from app.tools.resources.systems.types import GetSystemResponse
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
 from app.utils.cache.set_cached import set_cached
 
 
-async def get_settings(
+async def get_systems(
     conn: asyncpg.Connection,
     ids: list[UUID],
     redis: Redis,
     bypass_cache: bool = False,
-) -> list[GetSettingResponse]:
-    """Fetch settings_resource entries by IDs."""
+) -> list[GetSystemResponse]:
+    """Fetch systems_resource entries by IDs."""
     if not ids:
         return []
 
-    tags = ["resources", "settings"]
-    key = cache_key("/resources/settings/get", {"ids": [str(id) for id in ids]})
+    tags = ["resources", "systems"]
+    key = cache_key("/resources/systems/get", {"ids": [str(id) for id in ids]})
 
     if not bypass_cache:
         cached = await get_cached(key, redis=redis)
         if cached:
             return [
-                GetSettingResponse.model_validate(item)
+                GetSystemResponse.model_validate(item)
                 for item in cached.get("items", [])
             ]
 
     rows = await conn.fetch(
         """
-        SELECT id, name, description, department_ids, provider_key_ids,
-               auth_ids, system_ids, created_at, active, mcp, generated
-        FROM settings_resource
+        SELECT id, name, description, agent_ids,
+               resolution_strategy, resolution_threshold,
+               created_at, active, mcp, generated
+        FROM systems_resource
         WHERE id = ANY($1)
         ORDER BY array_position($1, id)
     """,
@@ -44,14 +45,13 @@ async def get_settings(
     )
 
     items = [
-        GetSettingResponse(
+        GetSystemResponse(
             id=r["id"],
             name=r["name"],
             description=r["description"],
-            department_ids=r["department_ids"] or [],
-            provider_key_ids=r["provider_key_ids"] or [],
-            auth_ids=r["auth_ids"] or [],
-            system_ids=r["system_ids"] or [],
+            agent_ids=r["agent_ids"] or [],
+            resolution_strategy=r["resolution_strategy"],
+            resolution_threshold=r["resolution_threshold"],
             created_at=r["created_at"],
             active=r["active"],
             mcp=r["mcp"],

@@ -23,7 +23,7 @@ async def test_gets_created_setting(conn, redis_client):
     assert items[0].department_ids == []
     assert items[0].provider_key_ids == []
     assert items[0].auth_ids == []
-    assert items[0].agent_ids == []
+    assert items[0].system_ids == []
     assert items[0].active is True
 
 

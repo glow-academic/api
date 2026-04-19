@@ -12,7 +12,7 @@ async def test_resolve_returns_none_for_empty_graph():
 
 async def test_resolve_finds_matching_tool():
     tool = ResolvedTool(
-        agent_id=uuid4(), tool_id=uuid4(),
+        system_id=uuid4(), agent_id=uuid4(), tool_id=uuid4(),
         operation="create", target_type="artifact", target="persona",
     )
     graph = SettingsToolGraph(tools=[tool])
@@ -21,7 +21,7 @@ async def test_resolve_finds_matching_tool():
 
 async def test_resolve_ignores_wrong_operation():
     tool = ResolvedTool(
-        agent_id=uuid4(), tool_id=uuid4(),
+        system_id=uuid4(), agent_id=uuid4(), tool_id=uuid4(),
         operation="delete", target_type="artifact", target="persona",
     )
     graph = SettingsToolGraph(tools=[tool])

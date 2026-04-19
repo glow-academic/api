@@ -220,6 +220,7 @@ class InternalResponseBase(BaseModel):
     args_outputs: list[QGetArgsOutputsV4Item] | None = Field(None, description="Argument output configuration items")
     profile: list[QGetProfilesV4Item] | None = Field(None, description="Profile configuration items")
     params: BaseModel | None = Field(None, description="Additional parameters model")
+    resource_system_ids: dict[str, UUID | None] | None = Field(None, description="Mapping of resource type to system UUID")
     resource_agent_ids: dict[str, UUID | None] | None = Field(None, description="Mapping of resource type to agent UUID")
     group_id: UUID | None = Field(None, description="UUID of the owning group")
 

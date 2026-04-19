@@ -33,8 +33,8 @@ from app.tools.resources.profiles.search import search_profiles
 from app.tools.resources.provider_keys.get import get_provider_keys
 from app.tools.resources.provider_keys.search import search_provider_keys
 from app.tools.resources.providers.search import search_providers
-from app.tools.resources.agents.get import get_agents
-from app.tools.resources.agents.search import search_agents
+from app.tools.resources.systems.get import get_systems
+from app.tools.resources.systems.search import search_systems
 
 SETTING_FLAG_NAMES = {"setting_active"}
 
@@ -50,7 +50,7 @@ class _MergedIds:
     auth_ids: list[UUID]
     provider_key_ids: list[UUID]
     auth_item_key_ids: list[UUID]
-    agent_ids: list[UUID]
+    systems_ids: list[UUID]
 
 
 def _coalesce_limit(value: int | None, fallback: int) -> int:
@@ -86,7 +86,7 @@ def _merge_junction_ids(
     auth_ids = list(artifact.auth_ids or []) if artifact else []
     provider_key_ids = list(artifact.provider_key_ids or []) if artifact else []
     auth_item_key_ids = list(artifact.auth_item_keys_ids or []) if artifact else []
-    agent_ids = list(artifact.agents_ids or []) if artifact else []
+    systems_ids = list(artifact.systems_ids or []) if artifact else []
 
     if draft:
         if draft.name_ids:
@@ -112,7 +112,7 @@ def _merge_junction_ids(
         if draft.auth_item_key_ids:
             auth_item_key_ids = list(draft.auth_item_key_ids)
         if draft.agent_ids:
-            agent_ids = list(draft.agent_ids)
+            systems_ids = list(draft.agent_ids)
 
     return _MergedIds(
         name_ids=name_ids,
@@ -124,7 +124,7 @@ def _merge_junction_ids(
         auth_ids=auth_ids,
         provider_key_ids=provider_key_ids,
         auth_item_key_ids=auth_item_key_ids,
-        agent_ids=agent_ids,
+        systems_ids=systems_ids,
     )
 
 
@@ -146,7 +146,7 @@ async def resolve_setting_context(
     auths_search: str | None = None,
     provider_keys_search: str | None = None,
     auth_item_keys_search: str | None = None,
-    agents_search: str | None = None,
+    systems_search: str | None = None,
     names_limit: int | None = None,
     descriptions_limit: int | None = None,
     colors_limit: int | None = None,
@@ -156,7 +156,7 @@ async def resolve_setting_context(
     auths_limit: int | None = None,
     provider_keys_limit: int | None = None,
     auth_item_keys_limit: int | None = None,
-    agents_limit: int | None = None,
+    systems_limit: int | None = None,
     names_selected_only: bool | None = None,
     descriptions_selected_only: bool | None = None,
     colors_selected_only: bool | None = None,
@@ -166,7 +166,7 @@ async def resolve_setting_context(
     auths_selected_only: bool | None = None,
     provider_keys_selected_only: bool | None = None,
     auth_item_keys_selected_only: bool | None = None,
-    agents_selected_only: bool | None = None,
+    systems_selected_only: bool | None = None,
     bypass_cache: bool = False,
 ) -> ArtifactContext:
     """Resolve the setting artifact into fully hydrated resources."""
@@ -190,7 +190,7 @@ async def resolve_setting_context(
                 auths=True,
                 provider_keys=True,
                 auth_item_keys=True,
-                agents=True,
+                systems=True,
             )
 
     async def _fetch_drafts() -> list[Any]:
@@ -382,21 +382,21 @@ async def resolve_setting_context(
                 setting=True,
             )
 
-    async def _get_agents_selected() -> list[Any]:
+    async def _get_systems_selected() -> list[Any]:
         async with pool.acquire() as conn:
-            return await get_agents(conn, merged.agent_ids, redis, bypass_cache)
+            return await get_systems(conn, merged.systems_ids, redis, bypass_cache)
 
-    async def _search_agents_suggestions() -> list[Any]:
-        if _selected_only(agents_selected_only):
+    async def _search_systems_suggestions() -> list[Any]:
+        if _selected_only(systems_selected_only):
             return []
         async with pool.acquire() as conn:
-            return await search_agents(
+            return await search_systems(
                 conn,
                 redis,
-                search=agents_search,
-                limit_count=_coalesce_limit(agents_limit, 20),
+                search=systems_search,
+                limit_count=_coalesce_limit(systems_limit, 20),
                 offset_count=0,
-                exclude_ids=merged.agent_ids,
+                exclude_ids=merged.systems_ids,
                 bypass_cache=bypass_cache,
                 setting=True,
             )
@@ -443,8 +443,8 @@ async def resolve_setting_context(
         provider_keys_suggestions,
         auth_item_keys_selected,
         auth_item_keys_suggestions,
-        agents_selected,
-        agents_suggestions,
+        systems_selected,
+        systems_suggestions,
         providers_catalog,
         keys_catalog,
     ) = await asyncio.gather(
@@ -466,8 +466,8 @@ async def resolve_setting_context(
         _search_provider_keys_suggestions(),
         _get_auth_item_keys_selected(),
         _search_auth_item_keys_suggestions(),
-        _get_agents_selected(),
-        _search_agents_suggestions(),
+        _get_systems_selected(),
+        _search_systems_suggestions(),
         _search_provider_catalog(),
         _search_key_catalog(),
     )
@@ -518,7 +518,7 @@ async def resolve_setting_context(
             "auths": ResourcePair(selected=auths_selected, suggestions=auths_suggestions),
             "provider_keys": ResourcePair(selected=provider_keys_selected, suggestions=provider_keys_suggestions),
             "auth_item_keys": ResourcePair(selected=auth_item_keys_selected, suggestions=auth_item_keys_suggestions),
-            "agents": ResourcePair(selected=agents_selected, suggestions=agents_suggestions),
+            "systems": ResourcePair(selected=systems_selected, suggestions=systems_suggestions),
         },
         entries={
             "pending_ids": pending_ids,

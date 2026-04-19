@@ -1,8 +1,8 @@
-"""Resolve the settings → agents → tools graph.
+"""Resolve the settings → systems → agents → tools graph.
 
 Given a settings_resource ID, walks the chain using existing black-box
 resource fetchers and returns a flat list of resolved tools with full
-agent context. No raw SQL — purely composes existing functions.
+agent/system context. No raw SQL — purely composes existing functions.
 
 Two public functions:
   resolve_tool_graph()  — async, fetches the chain, returns SettingsToolGraph
@@ -23,6 +23,7 @@ from app.tools.resources.agents.types import GetAgentResponse
 from app.tools.resources.permissions.get import get_permissions
 from app.tools.resources.permissions.types import GetPermissionResponse
 from app.tools.resources.settings.get import get_settings
+from app.tools.resources.systems.get import get_systems
 from app.tools.resources.tools.get import get_tools
 from app.tools.resources.tools.types import GetToolResponse
 
@@ -33,8 +34,9 @@ from app.tools.resources.tools.types import GetToolResponse
 
 @dataclass(frozen=True)
 class ResolvedTool:
-    """A single tool fully resolved with its agent context."""
+    """A single tool fully resolved with its agent and system context."""
 
+    system_id: UUID
     agent_id: UUID
     tool_id: UUID
     operation: str | None  # "create", "link", etc.
@@ -79,7 +81,7 @@ async def resolve_tool_graph(
     redis: Redis,
     bypass_cache: bool = False,
 ) -> SettingsToolGraph:
-    """Walk settings → agents → tools and return the flat graph.
+    """Walk settings → systems → agents → tools and return the flat graph.
 
     Acquires a single connection for the entire sequential chain.
     """
@@ -94,19 +96,34 @@ async def _resolve_tool_graph_impl(
     bypass_cache: bool = False,
 ) -> SettingsToolGraph:
     """Inner implementation — always receives a Connection."""
-    # Step 1: settings_resource → agent_ids
+    # Step 1: settings_resource → system_ids
     settings_list = await get_settings(conn, [settings_id], redis, bypass_cache)
     if not settings_list:
         return SettingsToolGraph()
 
     setting = settings_list[0]
-    agent_ids = setting.agent_ids or []
-    if not agent_ids:
+    system_ids = setting.system_ids or []
+    if not system_ids:
         return SettingsToolGraph()
 
-    unique_agent_ids = list(dict.fromkeys(agent_ids))
+    # Step 2: systems → agent_ids (per system)
+    systems = await get_systems(conn, system_ids, redis, bypass_cache)
+    if not systems:
+        return SettingsToolGraph()
 
-    # Step 2: agents → tool_ids (per agent)
+    # Build system_id → agent_ids mapping, collect all unique agent IDs
+    system_agent_map: dict[UUID, list[UUID]] = {}
+    all_agent_ids: list[UUID] = []
+    for system in systems:
+        agent_ids = system.agent_ids or []
+        system_agent_map[system.id] = agent_ids
+        all_agent_ids.extend(agent_ids)
+
+    unique_agent_ids = list(dict.fromkeys(all_agent_ids))
+    if not unique_agent_ids:
+        return SettingsToolGraph()
+
+    # Step 3: agents → tool_ids (per agent)
     agents = await get_agents(conn, unique_agent_ids, redis, bypass_cache)
     if not agents:
         return SettingsToolGraph()
@@ -121,7 +138,7 @@ async def _resolve_tool_graph_impl(
     if not unique_tool_ids:
         return SettingsToolGraph()
 
-    # Step 3: tools → permission_ids
+    # Step 4: tools → permission_ids
     tools_list = await get_tools(conn, unique_tool_ids, redis, bypass_cache)
     tool_by_id: dict[UUID, GetToolResponse] = {t.id: t for t in tools_list}
 
@@ -131,7 +148,7 @@ async def _resolve_tool_graph_impl(
         all_permission_ids.extend(tool.permission_ids or [])
     unique_permission_ids = list(dict.fromkeys(all_permission_ids))
 
-    # Step 4: resolve permissions → artifact + operation strings
+    # Step 5: resolve permissions → artifact + operation strings
     permission_by_id: dict[UUID, GetPermissionResponse] = {}
     if unique_permission_ids:
         permissions_list = await get_permissions(
@@ -139,30 +156,32 @@ async def _resolve_tool_graph_impl(
         )
         permission_by_id = {p.id: p for p in permissions_list}
 
-    # Step 5: flatten into ResolvedTool list — one per permission per tool
+    # Step 6: flatten into ResolvedTool list — one per permission per tool
     resolved: list[ResolvedTool] = []
 
-    for agent_id in unique_agent_ids:
-        agent = agent_by_id.get(agent_id)
-        if not agent:
-            continue
-        for tool_id in agent.tool_ids or []:
-            tool = tool_by_id.get(tool_id)
-            if not tool:
+    for system_id, agent_ids in system_agent_map.items():
+        for agent_id in agent_ids:
+            agent = agent_by_id.get(agent_id)
+            if not agent:
                 continue
-            for perm_id in tool.permission_ids or []:
-                perm = permission_by_id.get(perm_id)
-                if not perm:
+            for tool_id in agent.tool_ids or []:
+                tool = tool_by_id.get(tool_id)
+                if not tool:
                     continue
-                resolved.append(
-                    ResolvedTool(
-                        agent_id=agent_id,
-                        tool_id=tool_id,
-                        operation=perm.operation,
-                        target_type="artifact",
-                        target=perm.artifact,
+                for perm_id in tool.permission_ids or []:
+                    perm = permission_by_id.get(perm_id)
+                    if not perm:
+                        continue
+                    resolved.append(
+                        ResolvedTool(
+                            system_id=system_id,
+                            agent_id=agent_id,
+                            tool_id=tool_id,
+                            operation=perm.operation,
+                            target_type="artifact",
+                            target=perm.artifact,
+                        )
                     )
-                )
 
     return SettingsToolGraph(tools=resolved)
 

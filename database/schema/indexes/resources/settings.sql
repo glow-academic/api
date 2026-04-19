@@ -10,10 +10,10 @@ CREATE INDEX idx_settings_resource_department_ids ON public.settings_resource US
 
 --
 
--- Name: idx_settings_resource_agent_ids; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_settings_resource_system_ids; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_settings_resource_agent_ids ON public.settings_resource USING gin (agent_ids);
+CREATE INDEX idx_settings_resource_system_ids ON public.settings_resource USING gin (system_ids);
 
 
 --
