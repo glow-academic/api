@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.common_context import resolve_common_context
-from app.infra.helpers import dedupe_by_id
+from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.model.context import resolve_model_context
 from app.infra.model.permissions import (
     MODEL_BASIC_RESOURCES,
@@ -215,8 +215,8 @@ async def get_model_impl(
         active_agent_count=active_agent_count,
     )
 
-    all_departments = dedupe_by_id(
-        model_ctx.resources["departments"].selected + model_ctx.resources["departments"].suggestions
+    all_departments = sorted_dedupe_by_id(
+        model_ctx.resources["departments"].suggestions + model_ctx.resources["departments"].selected
     )
     if model_id is None and not all_departments:
         raise HTTPException(status_code=400, detail="No accessible departments found for user")
@@ -279,18 +279,18 @@ async def get_model_impl(
     voices_selected = model_ctx.resources["voices"].selected
     voices_suggestions = model_ctx.resources["voices"].suggestions
 
-    all_names = dedupe_by_id(names_selected + names_suggestions)
-    all_descriptions = dedupe_by_id(descriptions_selected + descriptions_suggestions)
-    all_values = dedupe_by_id(values_selected + values_suggestions)
-    all_providers = dedupe_by_id(providers_selected + providers_suggestions)
-    all_flags = dedupe_by_id(flags_selected + flags_suggestions)
-    all_departments = dedupe_by_id(departments_selected + departments_suggestions)
-    all_modalities = dedupe_by_id(modalities_selected + modalities_suggestions)
-    all_temperature_levels = dedupe_by_id(temperature_levels_selected + temperature_levels_suggestions)
-    all_pricing = dedupe_by_id(pricing_selected + pricing_suggestions)
-    all_reasoning_levels = dedupe_by_id(reasoning_levels_selected + reasoning_levels_suggestions)
-    all_qualities = dedupe_by_id(qualities_selected + qualities_suggestions)
-    all_voices = dedupe_by_id(voices_selected + voices_suggestions)
+    all_names = sorted_dedupe_by_id(names_selected + names_suggestions)
+    all_descriptions = sorted_dedupe_by_id(descriptions_selected + descriptions_suggestions)
+    all_values = sorted_dedupe_by_id(values_selected + values_suggestions)
+    all_providers = sorted_dedupe_by_id(providers_selected + providers_suggestions)
+    all_flags = sorted_dedupe_by_id(flags_selected + flags_suggestions)
+    all_departments = sorted_dedupe_by_id(departments_selected + departments_suggestions)
+    all_modalities = sorted_dedupe_by_id(modalities_selected + modalities_suggestions)
+    all_temperature_levels = sorted_dedupe_by_id(temperature_levels_selected + temperature_levels_suggestions)
+    all_pricing = sorted_dedupe_by_id(pricing_selected + pricing_suggestions)
+    all_reasoning_levels = sorted_dedupe_by_id(reasoning_levels_selected + reasoning_levels_suggestions)
+    all_qualities = sorted_dedupe_by_id(qualities_selected + qualities_suggestions)
+    all_voices = sorted_dedupe_by_id(voices_selected + voices_suggestions)
 
     selected_ids = {
         "names": {item.id for item in names_selected if item.id},

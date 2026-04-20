@@ -4,7 +4,6 @@ from uuid import uuid4
 
 from app.infra.websocket.generate_artifact_impl import (
     _build_refetch_kwargs,
-    _event_name_for_modality,
     _parse_bool,
     _parse_int,
     _validate_responses_tools,
@@ -105,10 +104,6 @@ def test_build_refetch_kwargs_passthroughs_non_empty_values_for_other_artifacts(
         "agent_id": artifact_id,
         "name_search": "helper",
     }
-
-
-def test_event_name_for_modality_builds_expected_name():
-    assert _event_name_for_modality("image", "start") == "generate_image_start"
 
 
 def test_validate_responses_tools_normalizes_function_shapes():

@@ -1,18 +1,26 @@
 """Chat grade — trigger grading for an attempt chat.
 
-Was: POST /attempt/grade
-Now: POST /attempt/chat/grade
+Manual-grade HTTP entry point. Shares `chat_grade_attempt_impl` with the
+LLM tool (Attempt_Chat_Grade), so manual and AI grading go through the
+same code path.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from uuid import UUID
 
-from app.infra.attempt.grade import attempt_grade_internal_impl
-from app.infra.attempt.grade_types import GradeAttemptRequest
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, Field
+
+from app.infra.attempt.chat_grade import chat_grade_attempt_impl
+from app.infra.globals import get_pool, get_redis_client
 
 router = APIRouter()
+
+
+class GradeAttemptApiRequest(BaseModel):
+    chat_id: UUID = Field(..., description="UUID of the attempt chat to grade")
+    score: int = Field(..., description="Overall score to record for the chat")
 
 
 class GradeAttemptApiResponse(BaseModel):
@@ -20,32 +28,36 @@ class GradeAttemptApiResponse(BaseModel):
     grade_id: str | None = None
     score: int | None = None
     passed: bool | None = None
+    time_taken: int | None = None
 
 
 @router.post("/grade", response_model=GradeAttemptApiResponse)
 async def chat_grade(
-    request: GradeAttemptRequest,
+    request: GradeAttemptApiRequest,
     http_request: Request,
 ) -> GradeAttemptApiResponse:
-    """Trigger grading for an attempt chat.
-
-    Browser client: sends chat_id only, internal AI generates full grade.
-    Agent: can optionally provide score, feedbacks, strengths, etc. to skip AI.
-    """
+    """Manually grade an attempt chat with a score."""
     profile_id = getattr(http_request.state, "profile_id", None)
     session_id = getattr(http_request.state, "session_id", None)
     if not profile_id or not session_id:
         raise HTTPException(status_code=401, detail="Missing profile or session")
 
     try:
-        result = await attempt_grade_internal_impl(
-            {
-                "profile_id": str(profile_id),
-                "session_id": str(session_id),
-                **request.model_dump(mode="json"),
-            }
+        result = await chat_grade_attempt_impl(
+            get_pool(),
+            get_redis_client(),
+            profile_id=UUID(str(profile_id)),
+            session_id=UUID(str(session_id)),
+            chat_id=request.chat_id,
+            score=request.score,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    return GradeAttemptApiResponse.model_validate(result.model_dump(mode="json"))
+    return GradeAttemptApiResponse(
+        chat_id=str(result["chat_id"]),
+        grade_id=str(result["grade_id"]) if result.get("grade_id") else None,
+        score=result.get("score"),
+        passed=result.get("passed"),
+        time_taken=result.get("time_taken"),
+    )

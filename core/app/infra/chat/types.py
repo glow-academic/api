@@ -414,6 +414,7 @@ class ChatVideoResource(BaseModel):
     video_id: UUID | None = None
     name: str | None = None
     description: str | None = None
+    length_seconds: int | None = None
     generated: bool | None = None
     suggested: bool = False
     selected: bool = False

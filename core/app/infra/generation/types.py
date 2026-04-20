@@ -7,6 +7,14 @@ from typing import Any
 from uuid import UUID
 
 
+def _default_output_modalities() -> set[str]:
+    return {"text", "call"}
+
+
+def _default_input_modalities() -> set[str]:
+    return {"text"}
+
+
 @dataclass
 class AgentDispatch:
     """Everything needed to execute one agent's LLM loop."""
@@ -18,6 +26,21 @@ class AgentDispatch:
     resource_types: list[str]
     metadata: dict[str, Any] | None = None
     developer_instruction_templates: list[str] | None = None
+    # Modality pair used by the unified dispatcher. See execute.py for the
+    # (input, output) → executor rules. Defaults describe a text agentic loop
+    # with tool calls enabled ("call" is load-bearing — it signals tool use).
+    input_modalities: set[str] = field(default_factory=_default_input_modalities)
+    output_modalities: set[str] = field(default_factory=_default_output_modalities)
+    # Audio / realtime passthrough
+    chat_id: str | None = None
+    conversation_id: str | None = None
+    audios_id: str | None = None
+    # Media passthrough (pre-uploaded assets or AI output)
+    file_path: str | None = None
+    mime_type: str | None = None
+    file_size: int | None = None
+    upload_id: str | None = None
+    resource_id: str | None = None
 
 
 @dataclass

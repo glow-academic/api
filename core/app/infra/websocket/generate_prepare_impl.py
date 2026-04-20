@@ -44,6 +44,19 @@ SetupGenerationTestFn = Callable[..., Awaitable[Any]]
 ValidatePayloadFn = Callable[..., str | None]
 
 
+def _primary_modality(modalities: list[str] | None) -> str:
+    """Pick a single modality tag for legacy GenerateArtifactPayload.modality.
+
+    Matches _select_dispatch_modality priority (audio > video > image > text).
+    """
+    if not modalities:
+        return "text"
+    for m in ("audio", "video", "image"):
+        if m in modalities:
+            return m
+    return "text"
+
+
 def resolve_primary_artifact_type(data: dict[str, Any]) -> str:
     """Resolve the primary artifact type name from raw request data.
 
@@ -384,6 +397,7 @@ async def generate_prepare_impl(
             operations=payload.operations,
             artifact_type=artifact_type,
             tool_graph=getattr(ws_ctx, "tool_graph", None),
+            modalities=payload.modalities,
         )
 
         # Tools
@@ -558,7 +572,7 @@ async def generate_prepare_impl(
                     )
                     # Emit so the generation panel can show the user message live
                     await emit([internal_event(
-                        "generate_text_complete",
+                        f"{artifact_type}.generate.text.complete",
                         {
                             "sid": sid,
                             "group_id": str(group_id),
@@ -579,7 +593,7 @@ async def generate_prepare_impl(
                         agent_resource_types=agent_resource_types,
                         run_id=str(run_id),
                         group_id=group_id_str,
-                        modality=payload.modality,
+                        modality=_primary_modality(payload.modalities),
                         all_messages=all_messages,
                         llm_config=llm_config,
                         scoped_tools=dispatch.scoped_tools,
@@ -619,7 +633,7 @@ async def _emit_error(
     await emit(
         [
             internal_event(
-                "generate_call_error",
+                "generate_error",
                 GenerateErrorApiRequest(
                     sid=sid,
                     error_message=message,

@@ -168,34 +168,34 @@ questions = [
     dict(
         id=AI_Q_FIRST_STEP,
         question_text="What is the appropriate first step when you observe a potential academic integrity violation?",
-        time=60,
+        time=4,
     ),
     dict(
         id=AI_Q_CONSEQUENCE,
         question_text="Which of the following is an appropriate consequence for a first-time academic integrity offense?",
-        time=60,
+        time=8,
     ),
     # FERPA
     dict(
         id=FERPA_Q_WHAT_IS,
         question_text="What does FERPA protect?",
-        time=45,
+        time=4,
     ),
     dict(
         id=FERPA_Q_VIOLATION,
         question_text="Which of the following scenarios constitutes a FERPA violation?",
-        time=60,
+        time=8,
     ),
     # Upset Student
     dict(
         id=UPSET_Q_FIRST_RESPONSE,
         question_text="A student arrives at your office visibly upset about a grade. What should your first response be?",
-        time=60,
+        time=4,
     ),
     dict(
         id=UPSET_Q_TECHNIQUE,
         question_text="Which de-escalation technique is most appropriate when a student raises their voice?",
-        time=60,
+        time=8,
     ),
 ]
 

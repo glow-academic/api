@@ -14888,6 +14888,58 @@
         ]
       }
     },
+    "/attempt/chat/audio": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Audio",
+        "description": "Attach an audios_id to an attempt chat message.",
+        "operationId": "chat_audio_attempt_chat_audio_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatAudioRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatAudioResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
+        ]
+      }
+    },
     "/attempt/chat/grade": {
       "post": {
         "tags": [
@@ -14895,13 +14947,13 @@
           "attempt-chat"
         ],
         "summary": "Chat Grade",
-        "description": "Trigger grading for an attempt chat.\n\nBrowser client: sends chat_id only, internal AI generates full grade.\nAgent: can optionally provide score, feedbacks, strengths, etc. to skip AI.",
+        "description": "Manually grade an attempt chat with a score.",
         "operationId": "chat_grade_attempt_chat_grade_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GradeAttemptRequest"
+                "$ref": "#/components/schemas/GradeAttemptApiRequest"
               }
             }
           },
@@ -16655,7 +16707,7 @@
           "attempt-audio"
         ],
         "summary": "Upload Audio",
-        "description": "Upload an audio file for an attempt.",
+        "description": "Upload audio or promote an existing raw upload.\n\nThree shapes:\n  - **File only** \u2192 multipart ``file``: server writes bytes, creates\n    ``uploads_entry`` + full audio chain on top.\n  - **upload_id only** \u2192 ``?upload_id=<uuid>`` of an existing upload\n    (e.g. raw bytes captured by the realtime adapter). Server reuses\n    the upload and stacks resource + entry + junctions on top.\n  - **upload_id + file** \u2192 client pre-reserved via ``/attempt/audio/new``\n    and now fills the slot. Server writes bytes into that upload's\n    file and then runs the full chain.\n\nReturns ``{audio_id, audios_id, upload_id}``. Client only needs\n``audios_id``; ``upload_id`` is the primitive handed back.",
         "operationId": "upload_audio_attempt_audio_upload_post",
         "security": [
           {
@@ -16664,18 +16716,24 @@
         ],
         "parameters": [
           {
-            "name": "length_seconds",
+            "name": "upload_id",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "integer",
-              "default": 0,
-              "title": "Length Seconds"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Upload Id"
             }
           }
         ],
         "requestBody": {
-          "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
@@ -41759,7 +41817,7 @@
             ],
             "title": "Modalities"
           },
-          "audio_id": {
+          "audios_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -41769,7 +41827,7 @@
                 "type": "null"
               }
             ],
-            "title": "Audio Id"
+            "title": "Audios Id"
           },
           "conversation_id": {
             "anyOf": [
@@ -42688,20 +42746,6 @@
         "title": "AttemptErrorEvent",
         "description": "Server-to-client: attempt error."
       },
-      "AttemptGradeAnalysisEntry": {
-        "properties": {
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "Analysis text content"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content"
-        ],
-        "title": "AttemptGradeAnalysisEntry"
-      },
       "AttemptGradeCompleteEvent": {
         "properties": {
           "chat_id": {
@@ -42728,104 +42772,6 @@
         ],
         "title": "AttemptGradeCompleteEvent",
         "description": "Server-to-client: aggregate grade result."
-      },
-      "AttemptGradeFeedbackEntry": {
-        "properties": {
-          "feedback": {
-            "type": "string",
-            "title": "Feedback",
-            "description": "Feedback text content"
-          },
-          "total": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Total",
-            "description": "Total score for this feedback entry"
-          }
-        },
-        "type": "object",
-        "required": [
-          "feedback"
-        ],
-        "title": "AttemptGradeFeedbackEntry"
-      },
-      "AttemptGradeHighlightEntry": {
-        "properties": {
-          "strength_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Strength Id",
-            "description": "UUID of the parent strength"
-          },
-          "section": {
-            "type": "string",
-            "title": "Section",
-            "description": "Text section to highlight"
-          },
-          "idx": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Idx",
-            "description": "Index position of the highlight"
-          }
-        },
-        "type": "object",
-        "required": [
-          "section"
-        ],
-        "title": "AttemptGradeHighlightEntry"
-      },
-      "AttemptGradeImprovementEntry": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "Name of the identified improvement area"
-          },
-          "description": {
-            "type": "string",
-            "title": "Description",
-            "description": "Description of the improvement"
-          },
-          "message_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Message Id",
-            "description": "UUID of the related message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "description"
-        ],
-        "title": "AttemptGradeImprovementEntry"
       },
       "AttemptGradePayload": {
         "properties": {
@@ -42938,51 +42884,6 @@
         "title": "AttemptGradeProgressEvent",
         "description": "Server-to-client: per-criterion grade result."
       },
-      "AttemptGradeReplacementEntry": {
-        "properties": {
-          "improvement_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Improvement Id",
-            "description": "UUID of the parent improvement"
-          },
-          "section": {
-            "type": "string",
-            "title": "Section",
-            "description": "Original text section to replace"
-          },
-          "replace": {
-            "type": "string",
-            "title": "Replace",
-            "description": "Replacement text"
-          },
-          "idx": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Idx",
-            "description": "Index position of the replacement"
-          }
-        },
-        "type": "object",
-        "required": [
-          "section",
-          "replace"
-        ],
-        "title": "AttemptGradeReplacementEntry"
-      },
       "AttemptGradeStartEvent": {
         "properties": {
           "chat_id": {
@@ -43009,39 +42910,6 @@
         ],
         "title": "AttemptGradeStartEvent",
         "description": "Server-to-client: grading began."
-      },
-      "AttemptGradeStrengthEntry": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "Name of the identified strength"
-          },
-          "description": {
-            "type": "string",
-            "title": "Description",
-            "description": "Description of the strength"
-          },
-          "message_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Message Id",
-            "description": "UUID of the related message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "description"
-        ],
-        "title": "AttemptGradeStrengthEntry"
       },
       "AttemptJoinPayload": {
         "properties": {
@@ -44170,25 +44038,25 @@
             "type": "string",
             "title": "Chat Id"
           },
-          "run_id": {
+          "attempt_id": {
             "type": "string",
-            "title": "Run Id"
+            "title": "Attempt Id"
+          },
+          "conversation_id": {
+            "type": "string",
+            "title": "Conversation Id"
           },
           "group_id": {
             "type": "string",
             "title": "Group Id"
-          },
-          "attempt_id": {
-            "type": "string",
-            "title": "Attempt Id"
           }
         },
         "type": "object",
         "required": [
           "chat_id",
-          "run_id",
-          "group_id",
-          "attempt_id"
+          "attempt_id",
+          "conversation_id",
+          "group_id"
         ],
         "title": "AudioStartInternalResult",
         "description": "Structured result for audio start orchestration."
@@ -44218,18 +44086,25 @@
             "type": "string",
             "format": "uuid",
             "title": "Audio Id",
-            "description": "UUID of the created audios_entry"
+            "description": "UUID of the audios_entry (server plumbing; public handle is audios_id)"
+          },
+          "audios_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Audios Id",
+            "description": "UUID of the audios_resource \u2014 use this for /generate, /chat/message, download"
           },
           "upload_id": {
             "type": "string",
             "format": "uuid",
             "title": "Upload Id",
-            "description": "UUID of the uploads_entry (file on disk)"
+            "description": "UUID of the uploads_entry (primitive raw file)"
           }
         },
         "type": "object",
         "required": [
           "audio_id",
+          "audios_id",
           "upload_id"
         ],
         "title": "AudioUploadAttemptApiResponse",
@@ -45637,15 +45512,34 @@
       "Body_upload_audio_attempt_audio_upload_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
+          },
+          "length_seconds": {
+            "type": "integer",
+            "title": "Length Seconds",
+            "default": 0
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": ""
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "default": ""
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_upload_audio_attempt_audio_upload_post"
       },
       "Body_upload_file_document_file_upload_post": {
@@ -45895,6 +45789,50 @@
           "content"
         ],
         "title": "ChatAnalysisItem"
+      },
+      "ChatAudioRequest": {
+        "properties": {
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id"
+          },
+          "message_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Message Id"
+          },
+          "audios_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Audios Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_id",
+          "message_id",
+          "audios_id"
+        ],
+        "title": "ChatAudioRequest"
+      },
+      "ChatAudioResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "attempt_audio_id": {
+            "type": "string",
+            "title": "Attempt Audio Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "attempt_audio_id"
+        ],
+        "title": "ChatAudioResponse"
       },
       "ChatCompleteRequest": {
         "properties": {
@@ -47775,18 +47713,6 @@
             ],
             "title": "Persona Id"
           },
-          "audio_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Audio Id"
-          },
           "parent_message_id": {
             "anyOf": [
               {
@@ -48959,6 +48885,17 @@
               }
             ],
             "title": "Description"
+          },
+          "length_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Length Seconds"
           },
           "generated": {
             "anyOf": [
@@ -67507,11 +67444,6 @@
             ],
             "title": "Run Id"
           },
-          "modality": {
-            "type": "string",
-            "title": "Modality",
-            "default": "text"
-          },
           "modalities": {
             "anyOf": [
               {
@@ -67525,6 +67457,28 @@
               }
             ],
             "title": "Modalities"
+          },
+          "audios_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audios Id"
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
           },
           "extra_messages": {
             "anyOf": [
@@ -72009,7 +71963,7 @@
           "has_messages": {
             "type": "boolean",
             "title": "Has Messages",
-            "description": "Whether the chat has messages",
+            "description": "Whether the current chat has gradeable content (messages or quiz responses)",
             "default": false
           },
           "available_continuation_options": {
@@ -72281,7 +72235,7 @@
           "has_messages": {
             "type": "boolean",
             "title": "Has Messages",
-            "description": "Whether the chat has messages",
+            "description": "Whether the current chat has gradeable content (messages or quiz responses)",
             "default": false
           },
           "available_continuation_options": {
@@ -86987,6 +86941,27 @@
         "title": "GetToolDraftsApiResponse",
         "description": "Response model for tool drafts list endpoint."
       },
+      "GradeAttemptApiRequest": {
+        "properties": {
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id",
+            "description": "UUID of the attempt chat to grade"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score",
+            "description": "Overall score to record for the chat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_id",
+          "score"
+        ],
+        "title": "GradeAttemptApiRequest"
+      },
       "GradeAttemptApiResponse": {
         "properties": {
           "chat_id": {
@@ -87025,88 +87000,6 @@
               }
             ],
             "title": "Passed"
-          }
-        },
-        "type": "object",
-        "required": [
-          "chat_id"
-        ],
-        "title": "GradeAttemptApiResponse"
-      },
-      "GradeAttemptRequest": {
-        "properties": {
-          "attempt_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Attempt Id",
-            "description": "UUID of the attempt to grade"
-          },
-          "chat_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Chat Id",
-            "description": "UUID of the chat to grade"
-          },
-          "resource_types": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource Types",
-            "description": "Resource types to include in grading"
-          },
-          "user_instructions": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "User Instructions",
-            "description": "Custom grading instructions"
-          },
-          "score": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Score",
-            "description": "Overall score for the attempt"
-          },
-          "passed": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Passed",
-            "description": "Whether the attempt passed"
           },
           "time_taken": {
             "anyOf": [
@@ -87117,105 +87010,14 @@
                 "type": "null"
               }
             ],
-            "title": "Time Taken",
-            "description": "Time taken in seconds"
-          },
-          "feedbacks": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeFeedbackEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Feedbacks",
-            "description": "Feedback entries from the grader"
-          },
-          "strengths": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeStrengthEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Strengths",
-            "description": "Strength entries from the grader"
-          },
-          "improvements": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeImprovementEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Improvements",
-            "description": "Improvement entries from the grader"
-          },
-          "analyses": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeAnalysisEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Analyses",
-            "description": "Analysis entries from the grader"
-          },
-          "highlights": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeHighlightEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Highlights",
-            "description": "Highlight entries for strengths"
-          },
-          "replacements": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeReplacementEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Replacements",
-            "description": "Replacement entries for improvements"
+            "title": "Time Taken"
           }
         },
         "type": "object",
         "required": [
-          "attempt_id"
+          "chat_id"
         ],
-        "title": "GradeAttemptRequest"
+        "title": "GradeAttemptApiResponse"
       },
       "GradeData": {
         "properties": {
@@ -87397,7 +87199,7 @@
         },
         "type": "object",
         "title": "GroupAgentApiRequest",
-        "description": "Request model for agent group endpoint."
+        "description": "Request body for POST /agent/group."
       },
       "GroupAgentApiResponse": {
         "properties": {
@@ -87444,6 +87246,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -87451,7 +87268,7 @@
           "group_id"
         ],
         "title": "GroupAgentApiResponse",
-        "description": "Response model for agent group endpoint."
+        "description": "Response body for POST /agent/group."
       },
       "GroupAttemptApiRequest": {
         "properties": {
@@ -87479,11 +87296,30 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
         "title": "GroupAttemptApiRequest",
-        "description": "Request model for attempt group endpoint."
+        "description": "Request body for POST /attempt/group."
       },
       "GroupAttemptApiResponse": {
         "properties": {
@@ -87517,6 +87353,34 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -87524,7 +87388,7 @@
           "group_id"
         ],
         "title": "GroupAttemptApiResponse",
-        "description": "Response model for attempt group endpoint."
+        "description": "Response body for POST /attempt/group."
       },
       "GroupAuthApiRequest": {
         "properties": {
@@ -87575,7 +87439,7 @@
         },
         "type": "object",
         "title": "GroupAuthApiRequest",
-        "description": "Request model for auth group endpoint."
+        "description": "Request body for POST /auth/group."
       },
       "GroupAuthApiResponse": {
         "properties": {
@@ -87622,6 +87486,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -87629,7 +87508,7 @@
           "group_id"
         ],
         "title": "GroupAuthApiResponse",
-        "description": "Response model for auth group endpoint."
+        "description": "Response body for POST /auth/group."
       },
       "GroupCall": {
         "properties": {
@@ -87648,6 +87527,17 @@
               }
             ],
             "title": "Tool Name"
+          },
+          "template_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Name"
           }
         },
         "type": "object",
@@ -87655,7 +87545,7 @@
           "id"
         ],
         "title": "GroupCall",
-        "description": "Tool call within a message."
+        "description": "Tool call referenced by a message."
       },
       "GroupCohortApiRequest": {
         "properties": {
@@ -87706,7 +87596,7 @@
         },
         "type": "object",
         "title": "GroupCohortApiRequest",
-        "description": "Request model for cohort group endpoint."
+        "description": "Request body for POST /cohort/group."
       },
       "GroupCohortApiResponse": {
         "properties": {
@@ -87753,6 +87643,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -87760,7 +87665,7 @@
           "group_id"
         ],
         "title": "GroupCohortApiResponse",
-        "description": "Response model for cohort group endpoint."
+        "description": "Response body for POST /cohort/group."
       },
       "GroupDepartmentApiRequest": {
         "properties": {
@@ -87811,7 +87716,7 @@
         },
         "type": "object",
         "title": "GroupDepartmentApiRequest",
-        "description": "Request model for department group endpoint."
+        "description": "Request body for POST /department/group."
       },
       "GroupDepartmentApiResponse": {
         "properties": {
@@ -87858,6 +87763,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -87865,7 +87785,7 @@
           "group_id"
         ],
         "title": "GroupDepartmentApiResponse",
-        "description": "Response model for department group endpoint."
+        "description": "Response body for POST /department/group."
       },
       "GroupDetailCallItem": {
         "properties": {
@@ -88258,7 +88178,7 @@
               }
             ],
             "title": "Idempotency Key",
-            "description": "Operation key for ack - promotes or rejects a dormant group"
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
           },
           "accept": {
             "type": "boolean",
@@ -88269,7 +88189,7 @@
         },
         "type": "object",
         "title": "GroupDocumentApiRequest",
-        "description": "Request model for document group endpoint."
+        "description": "Request body for POST /document/group."
       },
       "GroupDocumentApiResponse": {
         "properties": {
@@ -88316,6 +88236,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -88323,7 +88258,7 @@
           "group_id"
         ],
         "title": "GroupDocumentApiResponse",
-        "description": "Response model for document group endpoint."
+        "description": "Response body for POST /document/group."
       },
       "GroupEvalApiRequest": {
         "properties": {
@@ -88374,7 +88309,7 @@
         },
         "type": "object",
         "title": "GroupEvalApiRequest",
-        "description": "Request model for eval group endpoint."
+        "description": "Request body for POST /eval/group."
       },
       "GroupEvalApiResponse": {
         "properties": {
@@ -88421,6 +88356,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -88428,7 +88378,7 @@
           "group_id"
         ],
         "title": "GroupEvalApiResponse",
-        "description": "Response model for eval group endpoint."
+        "description": "Response body for POST /eval/group."
       },
       "GroupFieldApiRequest": {
         "properties": {
@@ -88479,7 +88429,7 @@
         },
         "type": "object",
         "title": "GroupFieldApiRequest",
-        "description": "Request model for field group endpoint."
+        "description": "Request body for POST /field/group."
       },
       "GroupFieldApiResponse": {
         "properties": {
@@ -88526,6 +88476,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -88533,7 +88498,7 @@
           "group_id"
         ],
         "title": "GroupFieldApiResponse",
-        "description": "Response model for field group endpoint."
+        "description": "Response body for POST /field/group."
       },
       "GroupListItem": {
         "properties": {
@@ -88763,6 +88728,38 @@
             "type": "array",
             "title": "Text Ids"
           },
+          "audio_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Audio Ids"
+          },
+          "image_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Image Ids"
+          },
+          "video_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Video Ids"
+          },
+          "file_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "File Ids"
+          },
           "call_ids": {
             "items": {
               "type": "string",
@@ -88836,7 +88833,7 @@
         },
         "type": "object",
         "title": "GroupModelApiRequest",
-        "description": "Request model for model group endpoint."
+        "description": "Request body for POST /model/group."
       },
       "GroupModelApiResponse": {
         "properties": {
@@ -88883,6 +88880,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -88890,7 +88902,7 @@
           "group_id"
         ],
         "title": "GroupModelApiResponse",
-        "description": "Response model for model group endpoint."
+        "description": "Response body for POST /model/group."
       },
       "GroupParameterApiRequest": {
         "properties": {
@@ -88941,7 +88953,7 @@
         },
         "type": "object",
         "title": "GroupParameterApiRequest",
-        "description": "Request model for parameter group endpoint."
+        "description": "Request body for POST /parameter/group."
       },
       "GroupParameterApiResponse": {
         "properties": {
@@ -88988,6 +89000,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -88995,7 +89022,7 @@
           "group_id"
         ],
         "title": "GroupParameterApiResponse",
-        "description": "Response model for parameter group endpoint."
+        "description": "Response body for POST /parameter/group."
       },
       "GroupPersonaApiRequest": {
         "properties": {
@@ -89046,7 +89073,7 @@
         },
         "type": "object",
         "title": "GroupPersonaApiRequest",
-        "description": "Request model for persona group endpoint."
+        "description": "Request body for POST /persona/group."
       },
       "GroupPersonaApiResponse": {
         "properties": {
@@ -89107,7 +89134,7 @@
               }
             ],
             "title": "Runs",
-            "description": "Conversation history (populated when resolving existing group)"
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -89115,7 +89142,7 @@
           "group_id"
         ],
         "title": "GroupPersonaApiResponse",
-        "description": "Response model for persona group endpoint."
+        "description": "Response body for POST /persona/group."
       },
       "GroupProfileApiRequest": {
         "properties": {
@@ -89166,7 +89193,7 @@
         },
         "type": "object",
         "title": "GroupProfileApiRequest",
-        "description": "Request model for profile group endpoint."
+        "description": "Request body for POST /profile/group."
       },
       "GroupProfileApiResponse": {
         "properties": {
@@ -89213,6 +89240,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -89220,7 +89262,7 @@
           "group_id"
         ],
         "title": "GroupProfileApiResponse",
-        "description": "Response model for profile group endpoint."
+        "description": "Response body for POST /profile/group."
       },
       "GroupProviderApiRequest": {
         "properties": {
@@ -89271,7 +89313,7 @@
         },
         "type": "object",
         "title": "GroupProviderApiRequest",
-        "description": "Request model for provider group endpoint."
+        "description": "Request body for POST /provider/group."
       },
       "GroupProviderApiResponse": {
         "properties": {
@@ -89318,6 +89360,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -89325,7 +89382,7 @@
           "group_id"
         ],
         "title": "GroupProviderApiResponse",
-        "description": "Response model for provider group endpoint."
+        "description": "Response body for POST /provider/group."
       },
       "GroupRubricApiRequest": {
         "properties": {
@@ -89376,7 +89433,7 @@
         },
         "type": "object",
         "title": "GroupRubricApiRequest",
-        "description": "Request model for rubric group endpoint."
+        "description": "Request body for POST /rubric/group."
       },
       "GroupRubricApiResponse": {
         "properties": {
@@ -89423,6 +89480,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -89430,7 +89502,7 @@
           "group_id"
         ],
         "title": "GroupRubricApiResponse",
-        "description": "Response model for rubric group endpoint."
+        "description": "Response body for POST /rubric/group."
       },
       "GroupRun": {
         "properties": {
@@ -89464,7 +89536,7 @@
           "id"
         ],
         "title": "GroupRun",
-        "description": "Run within a group."
+        "description": "Run within a group, with its messages."
       },
       "GroupScenarioApiRequest": {
         "properties": {
@@ -89515,7 +89587,7 @@
         },
         "type": "object",
         "title": "GroupScenarioApiRequest",
-        "description": "Request model for scenario group endpoint."
+        "description": "Request body for POST /scenario/group."
       },
       "GroupScenarioApiResponse": {
         "properties": {
@@ -89562,6 +89634,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -89569,7 +89656,7 @@
           "group_id"
         ],
         "title": "GroupScenarioApiResponse",
-        "description": "Response model for scenario group endpoint."
+        "description": "Response body for POST /scenario/group."
       },
       "GroupSettingApiRequest": {
         "properties": {
@@ -89620,7 +89707,7 @@
         },
         "type": "object",
         "title": "GroupSettingApiRequest",
-        "description": "Request model for setting group endpoint."
+        "description": "Request body for POST /setting/group."
       },
       "GroupSettingApiResponse": {
         "properties": {
@@ -89667,6 +89754,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -89674,7 +89776,7 @@
           "group_id"
         ],
         "title": "GroupSettingApiResponse",
-        "description": "Response model for setting group endpoint."
+        "description": "Response body for POST /setting/group."
       },
       "GroupSimulationApiRequest": {
         "properties": {
@@ -89725,7 +89827,7 @@
         },
         "type": "object",
         "title": "GroupSimulationApiRequest",
-        "description": "Request model for simulation group endpoint."
+        "description": "Request body for POST /simulation/group."
       },
       "GroupSimulationApiResponse": {
         "properties": {
@@ -89772,6 +89874,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -89779,7 +89896,7 @@
           "group_id"
         ],
         "title": "GroupSimulationApiResponse",
-        "description": "Response model for simulation group endpoint."
+        "description": "Response body for POST /simulation/group."
       },
       "GroupTestApiRequest": {
         "properties": {
@@ -89807,11 +89924,30 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
         "title": "GroupTestApiRequest",
-        "description": "Request model for test group endpoint."
+        "description": "Request body for POST /test/group."
       },
       "GroupTestApiResponse": {
         "properties": {
@@ -89845,6 +89981,34 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -89852,7 +90016,7 @@
           "group_id"
         ],
         "title": "GroupTestApiResponse",
-        "description": "Response model for test group endpoint."
+        "description": "Response body for POST /test/group."
       },
       "GroupToolApiRequest": {
         "properties": {
@@ -89903,7 +90067,7 @@
         },
         "type": "object",
         "title": "GroupToolApiRequest",
-        "description": "Request model for tool group endpoint."
+        "description": "Request body for POST /tool/group."
       },
       "GroupToolApiResponse": {
         "properties": {
@@ -89950,6 +90114,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -89957,7 +90136,7 @@
           "group_id"
         ],
         "title": "GroupToolApiResponse",
-        "description": "Response model for tool group endpoint."
+        "description": "Response body for POST /tool/group."
       },
       "HTTPValidationError": {
         "properties": {
@@ -118031,6 +118210,19 @@
             "title": "Description",
             "description": "Document description text"
           },
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id",
+            "description": "UUID of the files_resource (used for download)"
+          },
           "file_path": {
             "anyOf": [
               {
@@ -133215,6 +133407,18 @@
             ],
             "title": "Description",
             "description": "Description of the video"
+          },
+          "length_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Length Seconds",
+            "description": "Duration of the video in seconds"
           }
         },
         "type": "object",

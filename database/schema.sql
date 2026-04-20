@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict olhnUpuZP3tkBMfIxdLIiEZXX4anv56SymbyWZgCYaXLBjdMLmuMPtAojiAjZqj
+\restrict I3YCC8hSjjvliUM57snywCqvZzGt4KcxssPn7w3wYoPyDjfebEIcHEE14k6D3SA
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -675,6 +675,23 @@ CREATE MATERIALIZED VIEW public.attempt_archive_mv AS
    FROM public.attempt_archive_entry
   WHERE (active = true)
   WITH NO DATA;
+
+
+--
+-- Name: attempt_audio_entry; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.attempt_audio_entry (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    message_id uuid NOT NULL,
+    audios_id uuid NOT NULL,
+    session_id uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
 
 
 --
@@ -1997,12 +2014,17 @@ CREATE MATERIALIZED VIEW public.attempt_message_mv AS
     mt.completed,
     NULL::uuid AS text_id,
     NULL::text AS history_file_path,
-    NULL::uuid AS audio_id,
+    latest_audio.audios_id,
     tree.parent_id AS parent_message_id,
     (row_number() OVER (PARTITION BY COALESCE(tree.parent_id, mt.chat_id) ORDER BY mt.created_at, mt.message_id))::integer AS sibling_index,
     (count(*) OVER (PARTITION BY COALESCE(tree.parent_id, mt.chat_id)))::integer AS sibling_count
-   FROM (message_type mt
+   FROM ((message_type mt
      LEFT JOIN public.attempt_message_tree_entry tree ON (((tree.child_id = mt.message_id) AND (tree.active = true))))
+     LEFT JOIN LATERAL ( SELECT aae.audios_id
+           FROM public.attempt_audio_entry aae
+          WHERE ((aae.message_id = mt.message_id) AND (aae.active = true))
+          ORDER BY aae.created_at DESC
+         LIMIT 1) latest_audio ON (true))
   WITH NO DATA;
 
 
@@ -2338,6 +2360,20 @@ CREATE MATERIALIZED VIEW public.audio_uploads_mv AS
 
 
 --
+-- Name: audios_audios_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.audios_audios_connection (
+    audio_id uuid NOT NULL,
+    audios_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
 -- Name: audios_entry; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2401,6 +2437,21 @@ CREATE MATERIALIZED VIEW public.audios_mv AS
      LEFT JOIN public.audios_voices_connection avc ON (((avc.audio_id = ae.id) AND (avc.active = true))))
   WHERE (ae.active = true)
   WITH NO DATA;
+
+
+--
+-- Name: audios_resource; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.audios_resource (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    name text NOT NULL,
+    description text DEFAULT ''::text NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
 
 
 --
@@ -3495,7 +3546,7 @@ CREATE TABLE public.flags_resource (
     generated boolean DEFAULT false CONSTRAINT flags_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT flags_mcp_not_null NOT NULL,
     type text DEFAULT 'active'::text NOT NULL,
-    icon text NOT NULL,
+    icon_id uuid,
     value boolean DEFAULT true NOT NULL
 );
 
@@ -6883,6 +6934,40 @@ CREATE MATERIALIZED VIEW public.logins_mv AS
    FROM (public.logins_entry l
      LEFT JOIN public.profiles_logins_connection plc ON (((plc.login_id = l.id) AND (plc.active = true))))
   WITH NO DATA;
+
+
+--
+-- Name: logins_resource; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.logins_resource (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    profile_id uuid,
+    auth_id uuid,
+    icon_id uuid,
+    display_name text DEFAULT ''::text NOT NULL,
+    login_type text DEFAULT 'auth'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+-- Name: mcp_resource; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mcp_resource (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    agent_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL,
+    description text DEFAULT ''::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
 
 
 --
@@ -10876,6 +10961,30 @@ CREATE TABLE public.setting_drafts_items_connection (
 
 
 --
+-- Name: setting_drafts_logins_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.setting_drafts_logins_connection (
+    draft_id uuid NOT NULL,
+    logins_id uuid NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: setting_drafts_mcp_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.setting_drafts_mcp_connection (
+    draft_id uuid NOT NULL,
+    mcp_id uuid NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: setting_drafts_mv; Type: MATERIALIZED VIEW; Schema: public; Owner: -
 --
 
@@ -10958,6 +11067,34 @@ CREATE TABLE public.setting_flags_junction (
     generated boolean DEFAULT false CONSTRAINT setting_flags_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT setting_flags_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT setting_flags_active_not_null NOT NULL
+);
+
+
+--
+-- Name: setting_logins_junction; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.setting_logins_junction (
+    setting_id uuid NOT NULL,
+    logins_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+-- Name: setting_mcp_junction; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.setting_mcp_junction (
+    setting_id uuid NOT NULL,
+    mcp_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
 );
 
 
@@ -11073,7 +11210,8 @@ CREATE TABLE public.settings_resource (
     department_ids uuid[] DEFAULT ARRAY[]::uuid[],
     provider_key_ids uuid[] DEFAULT ARRAY[]::uuid[],
     auth_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
-    system_ids uuid[] DEFAULT ARRAY[]::uuid[] NOT NULL
+    system_ids uuid[] DEFAULT ARRAY[]::uuid[] NOT NULL,
+    mcp_agent_id uuid
 );
 
 
@@ -13705,6 +13843,14 @@ ALTER TABLE ONLY public.args_resource
 
 
 --
+-- Name: attempt_audio_entry attempt_audio_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attempt_audio_entry
+    ADD CONSTRAINT attempt_audio_entry_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: attempt_chat_bridge_entry attempt_chat_bridge_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -13985,11 +14131,27 @@ ALTER TABLE ONLY public.audio_uploads_entry
 
 
 --
+-- Name: audios_audios_connection audios_audios_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audios_audios_connection
+    ADD CONSTRAINT audios_audios_connection_pkey PRIMARY KEY (audio_id, audios_id);
+
+
+--
 -- Name: audios_entry audios_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.audios_entry
     ADD CONSTRAINT audios_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: audios_resource audios_resource_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audios_resource
+    ADD CONSTRAINT audios_resource_pkey PRIMARY KEY (id);
 
 
 --
@@ -15886,6 +16048,22 @@ ALTER TABLE ONLY public.keys_resource
 
 ALTER TABLE ONLY public.logins_entry
     ADD CONSTRAINT logins_entry_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: logins_resource logins_resource_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.logins_resource
+    ADD CONSTRAINT logins_resource_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mcp_resource mcp_resource_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_resource
+    ADD CONSTRAINT mcp_resource_pkey PRIMARY KEY (id);
 
 
 --
@@ -17961,6 +18139,22 @@ ALTER TABLE ONLY public.setting_drafts_items_connection
 
 
 --
+-- Name: setting_drafts_logins_connection setting_drafts_logins_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_drafts_logins_connection
+    ADD CONSTRAINT setting_drafts_logins_connection_pkey PRIMARY KEY (draft_id, logins_id);
+
+
+--
+-- Name: setting_drafts_mcp_connection setting_drafts_mcp_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_drafts_mcp_connection
+    ADD CONSTRAINT setting_drafts_mcp_connection_pkey PRIMARY KEY (draft_id, mcp_id);
+
+
+--
 -- Name: setting_drafts_names_connection setting_drafts_names_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -17998,6 +18192,22 @@ ALTER TABLE ONLY public.setting_drafts_thresholds_connection
 
 ALTER TABLE ONLY public.setting_flags_junction
     ADD CONSTRAINT setting_flags_pkey PRIMARY KEY (setting_id, flags_id);
+
+
+--
+-- Name: setting_logins_junction setting_logins_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_logins_junction
+    ADD CONSTRAINT setting_logins_junction_pkey PRIMARY KEY (setting_id, logins_id);
+
+
+--
+-- Name: setting_mcp_junction setting_mcp_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_mcp_junction
+    ADD CONSTRAINT setting_mcp_junction_pkey PRIMARY KEY (setting_id, mcp_id);
 
 
 --
@@ -19852,6 +20062,27 @@ CREATE UNIQUE INDEX audios_mv_audio_id_idx ON public.audios_mv USING btree (audi
 
 
 --
+-- Name: audios_resource_active_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX audios_resource_active_idx ON public.audios_resource USING btree (active);
+
+
+--
+-- Name: audios_resource_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX audios_resource_created_at_idx ON public.audios_resource USING btree (created_at);
+
+
+--
+-- Name: audios_resource_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX audios_resource_name_idx ON public.audios_resource USING btree (name);
+
+
+--
 -- Name: audios_voices_connection_voice_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -21224,6 +21455,27 @@ CREATE UNIQUE INDEX idx_attempt_archive_mv_id ON public.attempt_archive_mv USING
 
 
 --
+-- Name: idx_attempt_audio_entry_audios_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_attempt_audio_entry_audios_id ON public.attempt_audio_entry USING btree (audios_id);
+
+
+--
+-- Name: idx_attempt_audio_entry_message_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_attempt_audio_entry_message_created_at ON public.attempt_audio_entry USING btree (message_id, created_at);
+
+
+--
+-- Name: idx_attempt_audio_entry_message_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_attempt_audio_entry_message_id ON public.attempt_audio_entry USING btree (message_id);
+
+
+--
 -- Name: idx_attempt_chat_bridge_entry_attempt_chat_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -21385,6 +21637,13 @@ CREATE INDEX idx_attempt_message_entry_created_at ON public.attempt_message_entr
 
 
 --
+-- Name: idx_attempt_message_mv_chat_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_attempt_message_mv_chat_id ON public.attempt_message_mv USING btree (chat_id);
+
+
+--
 -- Name: idx_attempt_message_mv_message_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -21497,6 +21756,20 @@ CREATE UNIQUE INDEX idx_audio_uploads_mv_id ON public.audio_uploads_mv USING btr
 
 
 --
+-- Name: idx_audios_audios_connection_audio_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audios_audios_connection_audio_id ON public.audios_audios_connection USING btree (audio_id);
+
+
+--
+-- Name: idx_audios_audios_connection_audios_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audios_audios_connection_audios_id ON public.audios_audios_connection USING btree (audios_id);
+
+
+--
 -- Name: idx_audios_entry_session_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -21508,6 +21781,13 @@ CREATE INDEX idx_audios_entry_session_id ON public.audios_entry USING btree (ses
 --
 
 CREATE INDEX idx_audios_mcp ON public.audios_entry USING btree (mcp);
+
+
+--
+-- Name: idx_audios_resource_mcp; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audios_resource_mcp ON public.audios_resource USING btree (mcp);
 
 
 --
@@ -29870,6 +30150,22 @@ ALTER TABLE ONLY public.attempt_archive_entry
 
 
 --
+-- Name: attempt_audio_entry attempt_audio_entry_audios_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attempt_audio_entry
+    ADD CONSTRAINT attempt_audio_entry_audios_id_fkey FOREIGN KEY (audios_id) REFERENCES public.audios_resource(id);
+
+
+--
+-- Name: attempt_audio_entry attempt_audio_entry_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attempt_audio_entry
+    ADD CONSTRAINT attempt_audio_entry_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.attempt_message_entry(id) ON DELETE CASCADE;
+
+
+--
 -- Name: attempt_chat_bridge_entry attempt_chat_bridge_entry_attempt_chat_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30339,6 +30635,22 @@ ALTER TABLE ONLY public.audio_uploads_entry
 
 ALTER TABLE ONLY public.audio_uploads_entry
     ADD CONSTRAINT audio_uploads_entry_upload_id_fkey FOREIGN KEY (upload_id) REFERENCES public.uploads_entry(id);
+
+
+--
+-- Name: audios_audios_connection audios_audios_connection_audio_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audios_audios_connection
+    ADD CONSTRAINT audios_audios_connection_audio_id_fkey FOREIGN KEY (audio_id) REFERENCES public.audios_entry(id) ON DELETE CASCADE;
+
+
+--
+-- Name: audios_audios_connection audios_audios_connection_audios_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audios_audios_connection
+    ADD CONSTRAINT audios_audios_connection_audios_id_fkey FOREIGN KEY (audios_id) REFERENCES public.audios_resource(id);
 
 
 --
@@ -36646,6 +36958,38 @@ ALTER TABLE ONLY public.setting_flags_junction
 
 
 --
+-- Name: setting_logins_junction setting_logins_junction_logins_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_logins_junction
+    ADD CONSTRAINT setting_logins_junction_logins_id_fkey FOREIGN KEY (logins_id) REFERENCES public.logins_resource(id);
+
+
+--
+-- Name: setting_logins_junction setting_logins_junction_setting_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_logins_junction
+    ADD CONSTRAINT setting_logins_junction_setting_id_fkey FOREIGN KEY (setting_id) REFERENCES public.setting_artifact(id);
+
+
+--
+-- Name: setting_mcp_junction setting_mcp_junction_mcp_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_mcp_junction
+    ADD CONSTRAINT setting_mcp_junction_mcp_id_fkey FOREIGN KEY (mcp_id) REFERENCES public.mcp_resource(id);
+
+
+--
+-- Name: setting_mcp_junction setting_mcp_junction_setting_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_mcp_junction
+    ADD CONSTRAINT setting_mcp_junction_setting_id_fkey FOREIGN KEY (setting_id) REFERENCES public.setting_artifact(id);
+
+
+--
 -- Name: setting_names_junction setting_names_name_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -38849,5 +39193,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict olhnUpuZP3tkBMfIxdLIiEZXX4anv56SymbyWZgCYaXLBjdMLmuMPtAojiAjZqj
+\unrestrict I3YCC8hSjjvliUM57snywCqvZzGt4KcxssPn7w3wYoPyDjfebEIcHEE14k6D3SA
 

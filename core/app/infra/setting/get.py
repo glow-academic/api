@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.common_context import resolve_common_context
-from app.infra.helpers import dedupe_by_id
+from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.setting.context import resolve_setting_context
 from app.infra.setting.permissions import (
     SETTING_GENERATION_RESOURCES,
@@ -227,16 +227,16 @@ async def get_setting_impl(
             bool(item_id and item_id in pending_ids),
         )
 
-    all_names = dedupe_by_id(resource_pairs["names"].selected + resource_pairs["names"].suggestions)
-    all_descriptions = dedupe_by_id(resource_pairs["descriptions"].selected + resource_pairs["descriptions"].suggestions)
-    all_colors = dedupe_by_id(resource_pairs["colors"].selected + resource_pairs["colors"].suggestions)
-    all_flags = dedupe_by_id(resource_pairs["flags"].selected + resource_pairs["flags"].suggestions)
-    all_departments = dedupe_by_id(resource_pairs["departments"].selected + resource_pairs["departments"].suggestions)
-    all_profiles = dedupe_by_id(resource_pairs["profiles"].selected + resource_pairs["profiles"].suggestions)
-    all_auths = dedupe_by_id(resource_pairs["auths"].selected + resource_pairs["auths"].suggestions)
-    all_provider_keys = dedupe_by_id(resource_pairs["provider_keys"].selected + resource_pairs["provider_keys"].suggestions)
-    all_auth_item_keys = dedupe_by_id(resource_pairs["auth_item_keys"].selected + resource_pairs["auth_item_keys"].suggestions)
-    all_systems = dedupe_by_id(resource_pairs["systems"].selected + resource_pairs["systems"].suggestions)
+    all_names = sorted_dedupe_by_id(resource_pairs["names"].suggestions + resource_pairs["names"].selected)
+    all_descriptions = sorted_dedupe_by_id(resource_pairs["descriptions"].suggestions + resource_pairs["descriptions"].selected)
+    all_colors = sorted_dedupe_by_id(resource_pairs["colors"].suggestions + resource_pairs["colors"].selected)
+    all_flags = sorted_dedupe_by_id(resource_pairs["flags"].suggestions + resource_pairs["flags"].selected)
+    all_departments = sorted_dedupe_by_id(resource_pairs["departments"].suggestions + resource_pairs["departments"].selected)
+    all_profiles = sorted_dedupe_by_id(resource_pairs["profiles"].suggestions + resource_pairs["profiles"].selected)
+    all_auths = sorted_dedupe_by_id(resource_pairs["auths"].suggestions + resource_pairs["auths"].selected)
+    all_provider_keys = sorted_dedupe_by_id(resource_pairs["provider_keys"].suggestions + resource_pairs["provider_keys"].selected)
+    all_auth_item_keys = sorted_dedupe_by_id(resource_pairs["auth_item_keys"].suggestions + resource_pairs["auth_item_keys"].selected)
+    all_systems = sorted_dedupe_by_id(resource_pairs["systems"].suggestions + resource_pairs["systems"].selected)
 
     names = [
         SettingNameResource(

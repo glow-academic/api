@@ -5,7 +5,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from app.infra.common_context import CommonContext
-from app.infra.helpers import dedupe_by_id
+from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.scenario.permissions import (
     SCENARIO_RESOURCES,
     compute_can_draft,
@@ -99,41 +99,43 @@ def build_scenario_get_result(
         user_department_ids=profile.department_ids,
     )
 
-    all_departments = dedupe_by_id(
-        scenario.resources["departments"].selected
-        + scenario.resources["departments"].suggestions
+    # suggestions first so selected items keep their DB-ordered slot instead
+    # of jumping to the top on selection toggle. sorted_dedupe_by_id keeps first.
+    all_departments = sorted_dedupe_by_id(
+        scenario.resources["departments"].suggestions
+        + scenario.resources["departments"].selected
     )
-    all_personas = dedupe_by_id(
-        scenario.resources["personas"].selected
-        + scenario.resources["personas"].suggestions
+    all_personas = sorted_dedupe_by_id(
+        scenario.resources["personas"].suggestions
+        + scenario.resources["personas"].selected
     )
-    all_documents = dedupe_by_id(
-        scenario.resources["documents"].selected
-        + scenario.resources["documents"].suggestions
+    all_documents = sorted_dedupe_by_id(
+        scenario.resources["documents"].suggestions
+        + scenario.resources["documents"].selected
     )
-    all_parameters = dedupe_by_id(
-        scenario.resources["parameters"].selected
-        + scenario.resources["parameters"].suggestions,
+    all_parameters = sorted_dedupe_by_id(
+        scenario.resources["parameters"].suggestions
+        + scenario.resources["parameters"].selected,
         id_attr="parameter_id",
     )
-    all_parameter_fields = dedupe_by_id(
-        scenario.resources["parameter_fields"].selected
-        + scenario.resources["parameter_fields"].suggestions
+    all_parameter_fields = sorted_dedupe_by_id(
+        scenario.resources["parameter_fields"].suggestions
+        + scenario.resources["parameter_fields"].selected
     )
     all_objectives = scenario.resources["objectives"].selected
-    all_images = dedupe_by_id(
-        scenario.resources["images"].selected + scenario.resources["images"].suggestions
+    all_images = sorted_dedupe_by_id(
+        scenario.resources["images"].suggestions + scenario.resources["images"].selected
     )
-    all_videos = dedupe_by_id(
-        scenario.resources["videos"].selected + scenario.resources["videos"].suggestions
+    all_videos = sorted_dedupe_by_id(
+        scenario.resources["videos"].suggestions + scenario.resources["videos"].selected
     )
-    all_questions = dedupe_by_id(
-        scenario.resources["questions"].selected
-        + scenario.resources["questions"].suggestions
+    all_questions = sorted_dedupe_by_id(
+        scenario.resources["questions"].suggestions
+        + scenario.resources["questions"].selected
     )
-    all_options = dedupe_by_id(
-        scenario.resources["options"].selected
-        + scenario.resources["options"].suggestions
+    all_options = sorted_dedupe_by_id(
+        scenario.resources["options"].suggestions
+        + scenario.resources["options"].selected
     )
 
     # Compute video_param_ids BEFORE filtering (needed for persona/document tagging)
@@ -280,6 +282,7 @@ def build_scenario_get_result(
             document_id=document.id,
             name=document.name,
             description=document.description,
+            file_id=document.file_id,
             upload_id=file_entry.upload_id if file_entry else None,
             file_path=file_entry.file_path if file_entry else None,
             mime_type=file_entry.mime_type if file_entry else None,
@@ -372,8 +375,8 @@ def build_scenario_get_result(
         )
 
     # Build flat flag list with selected marked
-    all_flags = dedupe_by_id(
-        scenario.resources["flags"].selected + scenario.resources["flags"].suggestions
+    all_flags = sorted_dedupe_by_id(
+        scenario.resources["flags"].suggestions + scenario.resources["flags"].selected
     )
     selected_flag_ids = {flag.id for flag in scenario.resources["flags"].selected}
     flags_flat = []
@@ -396,23 +399,23 @@ def build_scenario_get_result(
     # Convert all resources using _to_* converters
     all_names_conv = [
         _to_name(name)
-        for name in dedupe_by_id(
-            scenario.resources["names"].selected
-            + scenario.resources["names"].suggestions
+        for name in sorted_dedupe_by_id(
+            scenario.resources["names"].suggestions
+            + scenario.resources["names"].selected
         )
     ]
     all_descriptions_conv = [
         _to_description(description)
-        for description in dedupe_by_id(
-            scenario.resources["descriptions"].selected
-            + scenario.resources["descriptions"].suggestions
+        for description in sorted_dedupe_by_id(
+            scenario.resources["descriptions"].suggestions
+            + scenario.resources["descriptions"].selected
         )
     ]
     all_problem_statements_conv = [
         _to_problem_statement(problem_statement)
-        for problem_statement in dedupe_by_id(
-            scenario.resources["problem_statements"].selected
-            + scenario.resources["problem_statements"].suggestions
+        for problem_statement in sorted_dedupe_by_id(
+            scenario.resources["problem_statements"].suggestions
+            + scenario.resources["problem_statements"].selected
         )
     ]
     all_departments_conv = [

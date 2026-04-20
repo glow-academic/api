@@ -11,7 +11,6 @@ from app.infra.websocket.attempt_events_impl import (
     attempt_next_impl,
     attempt_proceed_impl,
     attempt_start_impl,
-    audio_delta_impl,
     audio_error_impl,
     audio_response_cancelled_impl,
     audio_session_start_impl,
@@ -38,7 +37,6 @@ async def test_re_exports_are_async_callables():
         emit_chat_generate_impl,
         audio_session_start_impl,
         audio_stop_impl,
-        audio_delta_impl,
         audio_speech_start_impl,
         audio_speech_delta_impl,
         speech_complete_impl,
@@ -62,6 +60,5 @@ async def test_audio_workflow_functions_are_async():
     for fn in [
         audio_session_start_impl,
         audio_stop_impl,
-        audio_delta_impl,
     ]:
         assert inspect.iscoroutinefunction(fn), f"{fn.__name__} should be async"

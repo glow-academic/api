@@ -39,6 +39,34 @@ from app.utils.logging.db_logger import get_logger
 logger = get_logger(__name__)
 
 
+def _resolve_modality_pair(
+    *,
+    modalities: list[str] | None,
+    audios_id: str | None,
+    conversation_id: str | None,
+) -> tuple[set[str], set[str]]:
+    """Resolve (input_modalities, output_modalities) for a dispatch.
+
+    Inputs are inferred from the request payload:
+      - conversation_id present → live streaming audio input
+      - audios_id present → one-shot audio input (STT)
+      - otherwise → text input
+
+    Outputs come directly from the client-declared modalities list, with a
+    sensible default of {text, call} when omitted so the agentic text loop
+    remains the default behavior and tool calls are always allowed.
+    """
+    if conversation_id:
+        input_set = {"audio_stream"}
+    elif audios_id:
+        input_set = {"audio"}
+    else:
+        input_set = {"text"}
+
+    output_set = set(modalities) if modalities else {"text", "call"}
+    return input_set, output_set
+
+
 def _build_work_units(
     agent_groups: dict[uuid.UUID, list[str]],
     createable_resources: set[str] | list[str],
@@ -153,6 +181,7 @@ async def prepare_generation(
         operations=payload.operations,
         artifact_type=artifact_type,
         tool_graph=getattr(ws_ctx, "tool_graph", None),
+        modalities=payload.modalities,
     )
 
     # --- Step 5: Enrich tools ---
@@ -320,6 +349,23 @@ async def prepare_generation(
             for instruction in payload.instructions:
                 all_messages.append({"role": "user", "content": instruction})
 
+        _params = payload_params or {}
+        _meta = enriched_metadata or {}
+        dispatch_chat_id = (
+            _meta.get("chat_id") or _params.get("chat_id")
+        )
+        dispatch_conversation_id = (
+            payload.conversation_id
+            or _meta.get("conversation_id")
+            or _params.get("conversation_id")
+        )
+        dispatch_audios_id = payload.audios_id or _params.get("audios_id")
+        input_mods, output_mods = _resolve_modality_pair(
+            modalities=payload.modalities,
+            audios_id=dispatch_audios_id,
+            conversation_id=dispatch_conversation_id,
+        )
+
         dispatches.append(AgentDispatch(
             agent_id=agent_group_id,
             messages=all_messages,
@@ -339,6 +385,11 @@ async def prepare_generation(
             resource_types=agent_resource_types,
             metadata=enriched_metadata or None,
             developer_instruction_templates=dispatch.developer_instruction_templates,
+            input_modalities=input_mods,
+            output_modalities=output_mods,
+            chat_id=str(dispatch_chat_id) if dispatch_chat_id else None,
+            conversation_id=str(dispatch_conversation_id) if dispatch_conversation_id else None,
+            audios_id=str(dispatch_audios_id) if dispatch_audios_id else None,
         ))
 
     return PrepareGenerationResult(

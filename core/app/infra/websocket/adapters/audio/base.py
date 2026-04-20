@@ -83,21 +83,34 @@ class AudioEventEmitter(Protocol):
         """VAD detected user started speaking."""
         ...
 
-    async def on_user_speech_delta(
-        self, group_id: str, item_id: str, transcript: str
-    ) -> None:
-        """User speech transcript chunk."""
-        ...
-
-    async def on_user_speech_complete(
+    async def on_user_audio(
         self,
         group_id: str,
-        item_id: str,
-        transcript: str,
         *,
-        audio: bytes | None = None,
+        audios_id: str,
+        duration_ms: int,
     ) -> None:
-        """User speech finalized, optionally with buffered PCM16 audio."""
+        """User finished speaking — full audio chain created server-side.
+
+        ``audios_id`` is the resource-level handle ready for STT input
+        and chat_message attachment. No upload-level plumbing needed on
+        the client.
+        """
+        ...
+
+    async def on_assistant_audio(
+        self,
+        group_id: str,
+        *,
+        audios_id: str,
+        duration_ms: int,
+    ) -> None:
+        """Assistant finished speaking for this turn — audio persisted.
+
+        Client receives ``audios_id`` plus the transcript via
+        ``attempt.generate.text.complete`` events and can attach both to
+        the assistant's chat_message without any promotion step.
+        """
         ...
 
     # -- Lifecycle --

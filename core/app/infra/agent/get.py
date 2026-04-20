@@ -37,7 +37,7 @@ from app.infra.agent.types import (
     SectionFilter,
 )
 from app.infra.common_context import resolve_common_context
-from app.infra.helpers import dedupe_by_id
+from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.tool_graph import score_tools
 
 SECTIONS = [
@@ -232,20 +232,20 @@ async def get_agent_impl(
 
     pending_ids = set(agent_ctx.entries.get("pending_ids", set()))
 
-    names_items = dedupe_by_id(agent_ctx.resources["names"].selected + agent_ctx.resources["names"].suggestions)
-    descriptions_items = dedupe_by_id(agent_ctx.resources["descriptions"].selected + agent_ctx.resources["descriptions"].suggestions)
-    models_items = dedupe_by_id(agent_ctx.resources["models"].selected + agent_ctx.resources["models"].suggestions)
-    prompts_items = dedupe_by_id(agent_ctx.resources["prompts"].selected + agent_ctx.resources["prompts"].suggestions)
-    instructions_items = dedupe_by_id(agent_ctx.resources["instructions"].selected + agent_ctx.resources["instructions"].suggestions)
-    departments_items = dedupe_by_id(agent_ctx.resources["departments"].selected + agent_ctx.resources["departments"].suggestions)
-    tools_items = dedupe_by_id(agent_ctx.resources["tools"].selected + agent_ctx.resources["tools"].suggestions)
-    temperature_levels_items = dedupe_by_id(agent_ctx.resources["temperature_levels"].selected + agent_ctx.resources["temperature_levels"].suggestions)
-    reasoning_levels_items = dedupe_by_id(agent_ctx.resources["reasoning_levels"].selected + agent_ctx.resources["reasoning_levels"].suggestions)
-    voices_items = dedupe_by_id(agent_ctx.resources["voices"].selected + agent_ctx.resources["voices"].suggestions)
-    qualities_items = dedupe_by_id(agent_ctx.resources["qualities"].selected + agent_ctx.resources["qualities"].suggestions)
-    rubrics_items = dedupe_by_id(agent_ctx.resources["rubrics"].selected + agent_ctx.resources["rubrics"].suggestions)
+    names_items = sorted_dedupe_by_id(agent_ctx.resources["names"].suggestions + agent_ctx.resources["names"].selected)
+    descriptions_items = sorted_dedupe_by_id(agent_ctx.resources["descriptions"].suggestions + agent_ctx.resources["descriptions"].selected)
+    models_items = sorted_dedupe_by_id(agent_ctx.resources["models"].suggestions + agent_ctx.resources["models"].selected)
+    prompts_items = sorted_dedupe_by_id(agent_ctx.resources["prompts"].suggestions + agent_ctx.resources["prompts"].selected)
+    instructions_items = sorted_dedupe_by_id(agent_ctx.resources["instructions"].suggestions + agent_ctx.resources["instructions"].selected)
+    departments_items = sorted_dedupe_by_id(agent_ctx.resources["departments"].suggestions + agent_ctx.resources["departments"].selected)
+    tools_items = sorted_dedupe_by_id(agent_ctx.resources["tools"].suggestions + agent_ctx.resources["tools"].selected)
+    temperature_levels_items = sorted_dedupe_by_id(agent_ctx.resources["temperature_levels"].suggestions + agent_ctx.resources["temperature_levels"].selected)
+    reasoning_levels_items = sorted_dedupe_by_id(agent_ctx.resources["reasoning_levels"].suggestions + agent_ctx.resources["reasoning_levels"].selected)
+    voices_items = sorted_dedupe_by_id(agent_ctx.resources["voices"].suggestions + agent_ctx.resources["voices"].selected)
+    qualities_items = sorted_dedupe_by_id(agent_ctx.resources["qualities"].suggestions + agent_ctx.resources["qualities"].selected)
+    rubrics_items = sorted_dedupe_by_id(agent_ctx.resources["rubrics"].suggestions + agent_ctx.resources["rubrics"].selected)
 
-    raw_flags = dedupe_by_id(agent_ctx.resources["flags"].selected + agent_ctx.resources["flags"].suggestions)
+    raw_flags = sorted_dedupe_by_id(agent_ctx.resources["flags"].suggestions + agent_ctx.resources["flags"].selected)
     selected_flag_ids = {getattr(item, "id", None) for item in agent_ctx.resources["flags"].selected}
     suggestion_flag_ids = {getattr(item, "id", None) for item in agent_ctx.resources["flags"].suggestions}
     flags_items = [

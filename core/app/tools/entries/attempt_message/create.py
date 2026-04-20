@@ -17,7 +17,9 @@ async def create_attempt_message(
     mcp: bool = False,
     soft: bool = False,
 ) -> CreateAttemptMessageResponse:
-    """Create an attempt_message_entry row."""
+    """Create an attempt_message_entry row. Text-only — audio attaches
+    are separate entries created via ``create_attempt_audio``.
+    """
     entry_id = await conn.fetchval(
         """
         INSERT INTO attempt_message_entry (id, chat_id, session_id, active, mcp, generated)

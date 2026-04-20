@@ -107,6 +107,36 @@ CREATE TABLE public.setting_flags_junction (
 
 --
 
+-- Name: setting_logins_junction; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.setting_logins_junction (
+    setting_id uuid NOT NULL,
+    logins_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+
+-- Name: setting_mcp_junction; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.setting_mcp_junction (
+    setting_id uuid NOT NULL,
+    mcp_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+
 -- Name: setting_names_junction; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -178,30 +208,6 @@ CREATE TABLE public.setting_systems_junction (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL
 );
-
-
---
-
--- Name: setting_mcp_junction; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.setting_mcp_junction (
-    setting_id uuid NOT NULL,
-    mcp_id uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    generated boolean DEFAULT false NOT NULL,
-    mcp boolean DEFAULT false NOT NULL
-);
-
-
---
-
--- Name: setting_mcp_junction setting_mcp_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.setting_mcp_junction
-    ADD CONSTRAINT setting_mcp_junction_pkey PRIMARY KEY (setting_id, mcp_id);
 
 
 --
@@ -284,6 +290,24 @@ ALTER TABLE ONLY public.setting_flags_junction
 
 --
 
+-- Name: setting_logins_junction setting_logins_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_logins_junction
+    ADD CONSTRAINT setting_logins_junction_pkey PRIMARY KEY (setting_id, logins_id);
+
+
+--
+
+-- Name: setting_mcp_junction setting_mcp_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_mcp_junction
+    ADD CONSTRAINT setting_mcp_junction_pkey PRIMARY KEY (setting_id, mcp_id);
+
+
+--
+
 -- Name: setting_names_junction setting_names_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -334,30 +358,6 @@ ALTER TABLE ONLY public.setting_systems_junction
 
 ALTER TABLE ONLY public.setting_thresholds_junction
     ADD CONSTRAINT setting_thresholds_pkey PRIMARY KEY (setting_id, thresholds_id);
-
-
---
-
--- Name: setting_logins_junction; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.setting_logins_junction (
-    setting_id uuid NOT NULL,
-    logins_id uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    generated boolean DEFAULT false NOT NULL,
-    mcp boolean DEFAULT false NOT NULL
-);
-
-
---
-
--- Name: setting_logins_junction setting_logins_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.setting_logins_junction
-    ADD CONSTRAINT setting_logins_junction_pkey PRIMARY KEY (setting_id, logins_id);
 
 
 --

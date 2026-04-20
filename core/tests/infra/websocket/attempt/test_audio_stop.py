@@ -76,7 +76,7 @@ async def test_audio_stop_emits_session_complete():
     assert result.stopped is True
     mock_sio.emit.assert_called_once()
     event_name = mock_sio.emit.call_args[0][0]
-    assert event_name == "generate_audio_session_complete"
+    assert event_name == "attempt.generate.audio.session_complete"
 
 
 async def test_audio_stop_result_serialization():

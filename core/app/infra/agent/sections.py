@@ -40,7 +40,7 @@ from app.infra.agent.permissions import (
 )
 from app.infra.agent.permissions_context import AgentPermissionsContext
 from app.infra.common_context import CommonContext
-from app.infra.helpers import dedupe_by_id
+from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.tool_graph import ArtifactToolScores
 from app.infra.types import ArtifactContext
 from app.infra.agent.types import (
@@ -127,12 +127,15 @@ def build_agent_get_result(
         agent_id=agent_id,
     )
 
-    all_departments = dedupe_by_id(
-        agent_ctx.resources["departments"].selected
-        + agent_ctx.resources["departments"].suggestions
+    # Compose suggestions first so selected items keep their natural DB-ordered
+    # slot instead of jumping to the top on selection toggle. sorted_dedupe_by_id keeps
+    # the first occurrence.
+    all_departments = sorted_dedupe_by_id(
+        agent_ctx.resources["departments"].suggestions
+        + agent_ctx.resources["departments"].selected
     )
-    all_tools = dedupe_by_id(
-        agent_ctx.resources["tools"].selected + agent_ctx.resources["tools"].suggestions
+    all_tools = sorted_dedupe_by_id(
+        agent_ctx.resources["tools"].suggestions + agent_ctx.resources["tools"].selected
     )
 
     show_flags_map = {
@@ -177,8 +180,8 @@ def build_agent_get_result(
     )
     general_show_ai_generate = any(show_ai_generate_map.values())
 
-    all_flags = dedupe_by_id(
-        agent_ctx.resources["flags"].selected + agent_ctx.resources["flags"].suggestions
+    all_flags = sorted_dedupe_by_id(
+        agent_ctx.resources["flags"].suggestions + agent_ctx.resources["flags"].selected
     )
     agent_flags = [
         AgentFlagConfig(
@@ -209,44 +212,44 @@ def build_agent_get_result(
         if flag.id
     ]
 
-    all_names = dedupe_by_id(
-        agent_ctx.resources["names"].selected + agent_ctx.resources["names"].suggestions
+    all_names = sorted_dedupe_by_id(
+        agent_ctx.resources["names"].suggestions + agent_ctx.resources["names"].selected
     )
-    all_descriptions = dedupe_by_id(
-        agent_ctx.resources["descriptions"].selected
-        + agent_ctx.resources["descriptions"].suggestions
+    all_descriptions = sorted_dedupe_by_id(
+        agent_ctx.resources["descriptions"].suggestions
+        + agent_ctx.resources["descriptions"].selected
     )
-    all_models = dedupe_by_id(
-        agent_ctx.resources["models"].selected
-        + agent_ctx.resources["models"].suggestions
+    all_models = sorted_dedupe_by_id(
+        agent_ctx.resources["models"].suggestions
+        + agent_ctx.resources["models"].selected
     )
-    all_prompts = dedupe_by_id(
-        agent_ctx.resources["prompts"].selected
-        + agent_ctx.resources["prompts"].suggestions
+    all_prompts = sorted_dedupe_by_id(
+        agent_ctx.resources["prompts"].suggestions
+        + agent_ctx.resources["prompts"].selected
     )
-    all_instructions = dedupe_by_id(
-        agent_ctx.resources["instructions"].selected
-        + agent_ctx.resources["instructions"].suggestions
+    all_instructions = sorted_dedupe_by_id(
+        agent_ctx.resources["instructions"].suggestions
+        + agent_ctx.resources["instructions"].selected
     )
-    all_temperature_levels = dedupe_by_id(
-        agent_ctx.resources["temperature_levels"].selected
-        + agent_ctx.resources["temperature_levels"].suggestions
+    all_temperature_levels = sorted_dedupe_by_id(
+        agent_ctx.resources["temperature_levels"].suggestions
+        + agent_ctx.resources["temperature_levels"].selected
     )
-    all_reasoning_levels = dedupe_by_id(
-        agent_ctx.resources["reasoning_levels"].selected
-        + agent_ctx.resources["reasoning_levels"].suggestions
+    all_reasoning_levels = sorted_dedupe_by_id(
+        agent_ctx.resources["reasoning_levels"].suggestions
+        + agent_ctx.resources["reasoning_levels"].selected
     )
-    all_voices = dedupe_by_id(
-        agent_ctx.resources["voices"].selected
-        + agent_ctx.resources["voices"].suggestions
+    all_voices = sorted_dedupe_by_id(
+        agent_ctx.resources["voices"].suggestions
+        + agent_ctx.resources["voices"].selected
     )
-    all_qualities = dedupe_by_id(
-        agent_ctx.resources["qualities"].selected
-        + agent_ctx.resources["qualities"].suggestions
+    all_qualities = sorted_dedupe_by_id(
+        agent_ctx.resources["qualities"].suggestions
+        + agent_ctx.resources["qualities"].selected
     )
-    all_rubrics = dedupe_by_id(
-        agent_ctx.resources["rubrics"].selected
-        + agent_ctx.resources["rubrics"].suggestions
+    all_rubrics = sorted_dedupe_by_id(
+        agent_ctx.resources["rubrics"].suggestions
+        + agent_ctx.resources["rubrics"].selected
     )
 
     suggestions_map = {

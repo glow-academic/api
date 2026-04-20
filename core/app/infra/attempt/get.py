@@ -287,6 +287,7 @@ async def get_attempt_internal(
                 "name": item.name,
                 "description": item.description,
                 "upload_id": entry.upload_id if entry else None,
+                "length_seconds": entry.length_seconds if entry else None,
             }
     for item in _res("documents"):
         if item.id:
@@ -392,6 +393,7 @@ async def get_attempt_internal(
                 upload_id=v.get("upload_id"),
                 name=v.get("name"),
                 description=v.get("description"),
+                length_seconds=v.get("length_seconds"),
             )
             for k, v in resource_meta["videos"].items()
         }
@@ -664,6 +666,7 @@ async def get_attempt_internal(
                 passed_standards=passed_dict if passed_dict else None,
                 feedback_by_standard_id=feedback_dict if feedback_dict else None,
             )
+        chat_responses = responses_by_chat.get(chat_item.chat_id, [])
         chats.append(
             ChatData(
                 id=chat_item.chat_id,
@@ -693,10 +696,10 @@ async def get_attempt_internal(
                         QuizResponse(
                             question_id=response.question_id,
                             option_id=response.option_id,
-                            completed=response.completed,
+                            completed=True,
                             created_at=response.created_at,
                         )
-                        for response in responses_by_chat.get(chat_item.chat_id, [])
+                        for response in chat_responses
                     ]
                     or None
                 ),
@@ -817,9 +820,11 @@ async def get_attempt_internal(
     if should_show_controls and chats and current_chat_index is not None:
         current_chat = chats[current_chat_index]
         current_chat_id = str(current_chat.id)
-        has_messages = any(
+        has_chat_messages = any(
             message.chat_id == current_chat.id for message in messages_result
         )
+        has_chat_responses = bool(current_chat.responses)
+        has_messages = has_chat_messages or has_chat_responses
 
     has_remaining = (
         expected_chat_count is not None

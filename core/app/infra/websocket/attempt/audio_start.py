@@ -1,7 +1,8 @@
 """Internal impl for attempt_audio_start — shared by WebSocket and HTTP.
 
-Resolves group_id + attempt_id from attempt_chat_entry, creates run/call/conversation,
-and emits to the generate pipeline with modality=audio.
+Canonical per generate redesign: opens a realtime conversation and returns
+its id. No AI dispatch here — the client separately calls /attempt/generate
+with the returned conversation_id.
 """
 
 import uuid
@@ -11,17 +12,11 @@ from pydantic import BaseModel
 
 from app.infra.attempt.client_types import AttemptAudioStartPayload
 from app.infra.attempt.group import group_attempt_impl
-from app.infra.globals import get_internal_sio, get_pool, get_redis_client
-from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.infra.websocket.attempt_types import (
-    GenerateRequestData,
-)
+from app.infra.globals import get_pool, get_redis_client
 from app.tools.entries.attempt_chat.get import get_attempt_chats
 from app.tools.entries.attempt_conversations.create import (
     create_attempt_conversations,
 )
-from app.tools.entries.calls.create import create_call
-from app.tools.entries.runs.create import create_run
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -31,22 +26,23 @@ class AudioStartInternalResult(BaseModel):
     """Structured result for audio start orchestration."""
 
     chat_id: str
-    run_id: str
-    group_id: str
     attempt_id: str
+    conversation_id: str
+    group_id: str
 
 
 async def attempt_audio_start_internal_impl(
     data: dict[str, Any],
 ) -> AudioStartInternalResult:
-    """Run canonical audio start orchestration for any surface.
+    """Open a realtime conversation for a chat and return its id.
 
     Required data keys: chat_id, profile_id, session_id.
-    Optional: sid (empty string for HTTP callers).
+
+    This endpoint does NOT trigger AI generation. The client calls
+    /attempt/generate with modalities + conversation_id separately.
     """
     payload = AttemptAudioStartPayload(**data)
     chat_id = payload.chat_id
-    sid = data.get("sid", "")
 
     profile_id_str = data.get("profile_id")
     if not profile_id_str:
@@ -60,14 +56,7 @@ async def attempt_audio_start_internal_impl(
     session_id = uuid.UUID(str(session_id_str))
 
     pool = get_pool()
-    internal_sio = get_internal_sio()
-
     redis = get_redis_client()
-
-    identity = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id
-    )
-    profiles_id = identity.profiles_id if identity else None
 
     group_result = await group_attempt_impl(
         pool, redis, profile_id=profile_id, session_id=session_id,
@@ -75,53 +64,20 @@ async def attempt_audio_start_internal_impl(
     group_id = group_result.group_id
 
     async with pool.acquire() as conn:
-        # Step 1: Resolve attempt_id from attempt_chat_entry
         chat_entries = await get_attempt_chats(conn, [chat_id])
-
         if not chat_entries:
             raise ValueError(f"Attempt chat {chat_id} not found")
-
         attempt_id = chat_entries[0].attempt_id
 
-        # Step 2: Create run + call + conversation
-        run = await create_run(
-            conn,
-            group_id=group_id,
-            session_id=session_id,
-        )
-        call = await create_call(conn, run_id=run.id, session_id=session_id)
         conversation = await create_attempt_conversations(
             conn,
             chat_id=chat_id,
             session_id=session_id,
         )
 
-    # Step 3: Emit to generate pipeline with modality=audio
-    await internal_sio.emit(
-        "generate",
-        GenerateRequestData(
-            sid=sid,
-            profile_id=str(profile_id),
-            session_id=str(session_id),
-            profiles_id=str(profiles_id) if profiles_id else None,
-            artifact_type="attempt",
-            operations=["get"],
-            params={"artifact_id": str(attempt_id)},
-            run_id=str(run.id),
-            group_id=str(group_id),
-            modality="audio",
-            modalities=["audio"],
-            metadata={
-                "attempt_id": str(attempt_id),
-                "chat_id": str(chat_id),
-                "conversation_id": str(conversation.id),
-            },
-        ).model_dump(mode="json"),
-    )
-
     return AudioStartInternalResult(
         chat_id=str(chat_id),
-        run_id=str(run.id),
-        group_id=str(group_id),
         attempt_id=str(attempt_id),
+        conversation_id=str(conversation.id),
+        group_id=str(group_id),
     )

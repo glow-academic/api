@@ -70,9 +70,10 @@ class TestGenerateArtifactImpl:
         )
         await generate_artifact_impl(payload, emit=emit, sid="s1", profile_id=None)
         names = [e.event for e in events]
-        assert "generate_image_start" in names
-        assert "generate_image_complete" in names
-        complete = next(e for e in events if e.event == "generate_image_complete")
+        assert "agent.generate.image.complete" in names
+        complete = next(
+            e for e in events if e.event == "agent.generate.image.complete"
+        )
         assert complete.data["file_path"] == "/uploads/img.png"
 
     async def test_video_passthrough_emits_start_and_complete(self):
@@ -86,8 +87,7 @@ class TestGenerateArtifactImpl:
         )
         await generate_artifact_impl(payload, emit=emit, sid="s1", profile_id=None)
         names = [e.event for e in events]
-        assert "generate_video_start" in names
-        assert "generate_video_complete" in names
+        assert "agent.generate.video.complete" in names
 
     # ------------------------------------------------------------------
     # Media generation via adapter
@@ -112,8 +112,6 @@ class TestGenerateArtifactImpl:
         )
         assert len(calls) == 1
         assert calls[0]["modality"] == "image"
-        # Should still emit start
-        assert any(e.event == "generate_image_start" for e in events)
 
     async def test_image_generation_error_emits_error(self):
         emit, events = recording_emit()
@@ -130,7 +128,7 @@ class TestGenerateArtifactImpl:
             profile_id=None,
             get_media_adapter_fn=lambda: FakeMediaAdapter(),
         )
-        error_events = [e for e in events if e.event == "generate_image_error"]
+        error_events = [e for e in events if e.event == "agent.generate.image.error"]
         assert len(error_events) == 1
         assert "GPU OOM" in error_events[0].data["error_message"]
 
@@ -142,7 +140,7 @@ class TestGenerateArtifactImpl:
         emit, events = recording_emit()
         payload = _payload(modality="audio", llm_config=_model_config(api_key=None))
         await generate_artifact_impl(payload, emit=emit, sid="s1", profile_id=None)
-        error_events = [e for e in events if e.event == "generate_audio_error"]
+        error_events = [e for e in events if e.event == "agent.generate.audio.error"]
         assert len(error_events) == 1
         assert "No API key" in error_events[0].data["error_message"]
 
@@ -171,7 +169,7 @@ class TestGenerateArtifactImpl:
             create_session_fn=lambda **kwargs: FakeSession(),
             remove_session_fn=lambda group_id: removed.append(group_id),
         )
-        error_events = [e for e in events if e.event == "generate_audio_error"]
+        error_events = [e for e in events if e.event == "agent.generate.audio.error"]
         assert len(error_events) == 1
         assert "voice service" in error_events[0].data["error_message"]
         assert removed == ["grp-1"]
@@ -201,7 +199,7 @@ class TestGenerateArtifactImpl:
             remove_session_fn=lambda group_id: None,
         )
         session_events = [
-            e for e in events if e.event == "generate_audio_session_start"
+            e for e in events if e.event == "attempt.generate.audio.session_start"
         ]
         assert len(session_events) == 1
         assert session_events[0].data["message"] == "Audio session ready"
@@ -264,10 +262,9 @@ class TestGenerateArtifactImpl:
         )
 
         event_names = [e.event for e in events]
-        assert "generate_call_start" in event_names
-        assert "generate_text_start" in event_names
-        assert "generate_text_progress" in event_names
-        assert "generate_text_complete" in event_names
+        assert "agent.generate.text.start" in event_names
+        assert "agent.generate.text.progress" in event_names
+        assert "agent.generate.text.complete" in event_names
         assert "generate_run_complete" in event_names
 
         run_complete = next(e for e in events if e.event == "generate_run_complete")
@@ -295,6 +292,6 @@ class TestGenerateArtifactImpl:
             call_chat_completions_api_fn=fake_call_chat_completions_api,
         )
 
-        error_events = [e for e in events if e.event == "generate_call_error"]
+        error_events = [e for e in events if e.event == "agent.generate.call.error"]
         assert len(error_events) == 1
         assert "Token factory error" in error_events[0].data["error_message"]

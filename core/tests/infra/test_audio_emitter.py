@@ -78,31 +78,34 @@ class TestSessionContext:
 @pytest.mark.asyncio
 class TestAssistantAudio:
     async def test_on_audio_start(self):
+        _create_audio_session(sid="s1", artifact_type="chat")
         emit, events = recording_emit()
         emitter = InternalBusAudioEmitter(emit=emit)
         await emitter.on_audio_start("g1")
 
         assert len(events) == 1
-        assert events[0].event == "generate_audio_start"
+        assert events[0].event == "attempt.generate.audio.start"
         assert events[0].data["type"] == "start"
         assert events[0].data["event_type"] == "audio_start"
 
     async def test_on_audio_delta(self):
+        _create_audio_session(sid="s1", artifact_type="chat")
         emit, events = recording_emit()
         emitter = InternalBusAudioEmitter(emit=emit)
         await emitter.on_audio_delta("g1", b"\x00\x01")
 
         assert len(events) == 1
-        assert events[0].event == "generate_audio_progress"
+        assert events[0].event == "attempt.chat.assistant_audio"
         assert events[0].data["audio"] == b"\x00\x01"
 
     async def test_on_audio_complete(self):
+        _create_audio_session(sid="s1", artifact_type="chat")
         emit, events = recording_emit()
         emitter = InternalBusAudioEmitter(emit=emit)
         await emitter.on_audio_complete("g1")
 
         assert len(events) == 1
-        assert events[0].event == "generate_audio_complete"
+        assert events[0].event == "attempt.generate.audio.complete"
         assert events[0].data["event_type"] == "audio_complete"
 
 
@@ -114,30 +117,33 @@ class TestAssistantAudio:
 @pytest.mark.asyncio
 class TestAssistantTranscript:
     async def test_on_transcript_start(self):
+        _create_audio_session(sid="s1", artifact_type="chat")
         emit, events = recording_emit()
         emitter = InternalBusAudioEmitter(emit=emit)
         await emitter.on_transcript_start("g1", "item1")
 
         assert len(events) == 1
-        assert events[0].event == "generate_text_start"
+        assert events[0].event == "chat.generate.text.start"
         assert events[0].data["event_type"] == "text_start"
 
     async def test_on_transcript_delta(self):
+        _create_audio_session(sid="s1", artifact_type="chat")
         emit, events = recording_emit()
         emitter = InternalBusAudioEmitter(emit=emit)
         await emitter.on_transcript_delta("g1", "hello ")
 
         assert len(events) == 1
-        assert events[0].event == "generate_text_progress"
+        assert events[0].event == "chat.generate.text.progress"
         assert events[0].data["delta"] == "hello "
 
     async def test_on_transcript_complete(self):
+        _create_audio_session(sid="s1", artifact_type="chat")
         emit, events = recording_emit()
         emitter = InternalBusAudioEmitter(emit=emit)
         await emitter.on_transcript_complete("g1", "item1", "hello world")
 
         assert len(events) == 1
-        assert events[0].event == "generate_text_complete"
+        assert events[0].event == "chat.generate.text.complete"
         assert events[0].data["text"] == "hello world"
 
 
@@ -156,7 +162,7 @@ class TestToolCalls:
         await emitter.on_tool_call_start("g1", "item1", "call1", "my_tool")
 
         assert len(events) == 1
-        assert events[0].event == "generate_call_start"
+        assert events[0].event == "chat.generate.call.start"
         assert events[0].data["tool_call_id"] == "call1"
         assert session.tool_call_states["call1"]["tool_name"] == "my_tool"
 
@@ -173,7 +179,7 @@ class TestToolCalls:
         await emitter.on_tool_call_delta("g1", "call1", 'me": "test"}')
 
         assert len(events) == 1
-        assert events[0].event == "generate_call_progress"
+        assert events[0].event == "chat.generate.call.progress"
         assert events[0].data["arguments_delta"] == 'me": "test"}'
         # Accumulated arguments should be parseable
         assert session.tool_call_states["call1"]["arguments"] == '{"name": "test"}'
@@ -193,7 +199,7 @@ class TestToolCalls:
         )
 
         assert len(events) == 1
-        assert events[0].event == "generate_call_complete"
+        assert events[0].event == "chat.generate.call.complete"
         assert events[0].data["tool_name"] == "my_tool"
         assert events[0].data["arguments"] == {"name": "test"}
         assert "call1" not in session.tool_call_states
@@ -229,37 +235,8 @@ class TestUserSpeech:
         await emitter.on_user_speech_start("g1", "item1")
 
         assert len(events) == 1
-        assert events[0].event == "generate_audio_user_speech_start"
+        assert events[0].event == "attempt.chat.user_start"
         assert events[0].data["item_id"] == "item1"
-
-    async def test_on_user_speech_delta(self):
-        emit, events = recording_emit()
-        emitter = InternalBusAudioEmitter(emit=emit)
-        await emitter.on_user_speech_delta("g1", "item1", "hello")
-
-        assert len(events) == 1
-        assert events[0].event == "generate_audio_user_speech_delta"
-        assert events[0].data["transcript"] == "hello"
-
-    async def test_on_user_speech_complete_without_audio(self):
-        emit, events = recording_emit()
-        emitter = InternalBusAudioEmitter(emit=emit)
-        await emitter.on_user_speech_complete("g1", "item1", "hello world")
-
-        assert len(events) == 1
-        assert events[0].event == "generate_audio_user_speech_complete"
-        assert events[0].data["transcript"] == "hello world"
-        assert "audio" not in events[0].data
-
-    async def test_on_user_speech_complete_with_audio(self):
-        emit, events = recording_emit()
-        emitter = InternalBusAudioEmitter(emit=emit)
-        await emitter.on_user_speech_complete(
-            "g1", "item1", "hello world", audio=b"\x00\x01"
-        )
-
-        assert len(events) == 1
-        assert events[0].data["audio"] == b"\x00\x01"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -275,7 +252,7 @@ class TestLifecycle:
         await emitter.on_error("g1", "something broke")
 
         assert len(events) == 1
-        assert events[0].event == "generate_audio_error"
+        assert events[0].event == "attempt.generate.audio.error"
         assert events[0].data["error_message"] == "something broke"
 
     async def test_on_response_cancelled(self):
@@ -286,30 +263,28 @@ class TestLifecycle:
         )
 
         assert len(events) == 1
-        assert events[0].event == "generate_audio_response_cancelled"
+        assert events[0].event == "attempt.generate.audio.response_cancelled"
         assert events[0].data["input_text_tokens"] == 10
         assert events[0].data["output_text_tokens"] == 20
 
-    async def test_on_response_done_emits_two_events(self):
+    async def test_on_response_done_emits_run_complete(self):
         emit, events = recording_emit()
         emitter = InternalBusAudioEmitter(emit=emit)
         await emitter.on_response_done(
             "g1", usage={"input_tokens": 5, "output_tokens": 15}
         )
 
-        assert len(events) == 2
+        assert len(events) == 1
         assert events[0].event == "generate_run_complete"
         assert events[0].data["input_text_tokens"] == 5
         assert events[0].data["save"] is False
-        assert events[1].event == "generate_audio_response_done"
-        assert events[1].data["usage"] == {"input_tokens": 5, "output_tokens": 15}
 
     async def test_on_response_done_default_usage(self):
         emit, events = recording_emit()
         emitter = InternalBusAudioEmitter(emit=emit)
         await emitter.on_response_done("g1")
 
-        assert len(events) == 2
+        assert len(events) == 1
         assert events[0].data["input_text_tokens"] == 0
         assert events[0].data["output_text_tokens"] == 0
 

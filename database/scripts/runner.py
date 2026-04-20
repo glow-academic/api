@@ -1314,6 +1314,7 @@ async def _run_video_seeds(
                 videos_resource_id=sv.get("videos_resource_id"),
                 name=sv.get("name", ""),
                 description=sv.get("description", ""),
+                length_seconds=sv.get("length_seconds", 0),
             )
 
         print(f"  OK: Video linked to scenario {sv['scenario_id']}")

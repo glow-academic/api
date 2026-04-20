@@ -119,8 +119,9 @@ class GeneratePayload(BaseModel):
     params: dict[str, Any] | None = None
     group_id: str | None = None
     run_id: str | None = None
-    modality: str = "text"  # per-dispatch modality (used by generate_artifact_impl)
-    modalities: list[str] | None = None  # requested output modalities (used for system scoring)
+    modalities: list[str] | None = None     # requested output modalities
+    audios_id: str | None = None            # resource-level audio handle for STT input
+    conversation_id: str | None = None      # live realtime conversation buffer
     # Internal-only fields (not in client-facing request)
     extra_messages: list[dict[str, str]] | None = None
     metadata: dict[str, Any] | None = None
@@ -208,7 +209,7 @@ class ArtifactGenerateRequest(BaseModel):
     instructions: list[str] | None = None   # what the user wants (text input)
     config: GenerateConfig | None = None    # developer configuration
     modalities: list[str] | None = None     # output modalities: ["text"], ["audio"], ["video"], ["audio", "text"]
-    audio_id: UUID | None = None            # audio input (pre-uploaded)
+    audios_id: UUID | None = None           # resource-level audio handle (STT input)
     conversation_id: UUID | None = None     # continue a realtime session
     idempotency_key: UUID | None = None     # ack
     accept: bool = True                     # ack

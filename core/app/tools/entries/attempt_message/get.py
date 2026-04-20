@@ -21,7 +21,7 @@ async def get_attempt_messages(
         f"""
         SELECT message_id, chat_id, attempt_id, type,
                created_at, completed, text_id,
-               history_file_path, audio_id
+               history_file_path, audios_id
         FROM {MV_NAME}
         WHERE message_id = ANY($1)
         """,

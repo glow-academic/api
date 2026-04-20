@@ -9,7 +9,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from app.infra.common_context import CommonContext
-from app.infra.helpers import dedupe_by_id
+from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.persona.permissions import (
     PERSONA_RESOURCES,
     compute_can_draft,
@@ -92,44 +92,63 @@ def build_persona_get_result(
         )
         for resource in PERSONA_RESOURCES
     }
-    all_names = dedupe_by_id(
-        persona.resources["names"].selected + persona.resources["names"].suggestions
+    # Compose suggestions first so the natural DB order (created_at / search column)
+    # is preserved. sorted_dedupe_by_id keeps the first occurrence, so a selected item
+    # that also appears in suggestions stays in its suggestion-order slot instead
+    # of jumping to the top. Selected items not in suggestions (e.g. filtered out)
+    # still surface at the end as a fallback.
+    all_names = sorted_dedupe_by_id(
+        persona.resources["names"].suggestions + persona.resources["names"].selected
     )
-    all_descriptions = dedupe_by_id(
-        persona.resources["descriptions"].selected
-        + persona.resources["descriptions"].suggestions
+    all_descriptions = sorted_dedupe_by_id(
+        persona.resources["descriptions"].suggestions
+        + persona.resources["descriptions"].selected
     )
-    all_colors = dedupe_by_id(
-        persona.resources["colors"].selected + persona.resources["colors"].suggestions
+    all_colors = sorted_dedupe_by_id(
+        persona.resources["colors"].suggestions + persona.resources["colors"].selected
     )
-    all_icons = dedupe_by_id(
-        persona.resources["icons"].selected + persona.resources["icons"].suggestions
+    all_icons = sorted_dedupe_by_id(
+        persona.resources["icons"].suggestions + persona.resources["icons"].selected
     )
-    all_instructions = dedupe_by_id(
-        persona.resources["instructions"].selected
-        + persona.resources["instructions"].suggestions
+    all_instructions = sorted_dedupe_by_id(
+        persona.resources["instructions"].suggestions
+        + persona.resources["instructions"].selected
     )
-    all_departments = dedupe_by_id(
-        persona.resources["departments"].selected
-        + persona.resources["departments"].suggestions
+    all_departments = sorted_dedupe_by_id(
+        persona.resources["departments"].suggestions
+        + persona.resources["departments"].selected
     )
-    all_examples = dedupe_by_id(
-        persona.resources["examples"].selected
-        + persona.resources["examples"].suggestions
+    all_examples = sorted_dedupe_by_id(
+        persona.resources["examples"].suggestions
+        + persona.resources["examples"].selected
     )
-    all_parameters = dedupe_by_id(
-        persona.resources["parameters"].selected
-        + persona.resources["parameters"].suggestions,
+    all_parameters = sorted_dedupe_by_id(
+        persona.resources["parameters"].suggestions
+        + persona.resources["parameters"].selected,
         id_attr="parameter_id",
     )
-    all_voices = dedupe_by_id(
-        persona.resources["voices"].selected + persona.resources["voices"].suggestions
+    # Root parameters (not the target of any field's conditional_parameter_id)
+    # come before conditional children. Python sort is stable, so chronological
+    # (UUID v7) order is preserved within each tier.
+    _conditional_target_ids = {
+        cp.parameter_id
+        for cp in persona.resources.get(
+            "conditional_parameters", ResourcePair([], [])
+        ).suggestions
+        if getattr(cp, "parameter_id", None)
+    }
+    all_parameters = sorted(
+        all_parameters,
+        key=lambda p: getattr(p, "parameter_id", None) in _conditional_target_ids,
+    )
+    all_voices = sorted_dedupe_by_id(
+        persona.resources["voices"].suggestions + persona.resources["voices"].selected
     )
 
     show_ai_generate = can_ai_generate
 
-    all_flags = dedupe_by_id(
-        persona.resources["flags"].selected + persona.resources["flags"].suggestions
+    all_flags = sorted_dedupe_by_id(
+        persona.resources["flags"].suggestions + persona.resources["flags"].selected
     )
 
     resolved_parameter_ids = list(
@@ -258,10 +277,11 @@ def build_persona_get_result(
             )
             flags_flat.append(fc)
 
-    # Dedupe parameter_fields: combine selected + suggestions
-    all_parameter_fields = dedupe_by_id(
-        persona.resources["parameter_fields"].selected
-        + persona.resources["parameter_fields"].suggestions
+    # Dedupe parameter_fields: suggestions first so selected items keep their
+    # natural slot (see rationale on the other dedupe calls above).
+    all_parameter_fields = sorted_dedupe_by_id(
+        persona.resources["parameter_fields"].suggestions
+        + persona.resources["parameter_fields"].selected
     )
 
     return GetPersonaApiResponse(

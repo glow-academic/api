@@ -44,7 +44,7 @@ async def test_on_start_emits_correct_event():
 
     bus.emit.assert_called_once()
     event_name, payload = bus.emit.call_args[0]
-    assert event_name == "generate_image_start"
+    assert event_name == "persona.generate.image.start"
     assert payload["modality"] == "image"
     assert payload["sid"] == "sid-1"
     assert payload["run_id"] == "run-1"
@@ -73,7 +73,7 @@ async def test_on_progress_emits_progress_event():
         )
 
     event_name, payload = bus.emit.call_args[0]
-    assert event_name == "generate_video_progress"
+    assert event_name == "generate_error"
     assert payload["message"] == "Processing frame 42/100"
     assert payload["type"] == "progress"
 
@@ -106,7 +106,7 @@ async def test_on_complete_emits_with_media_result():
         )
 
     event_name, payload = bus.emit.call_args[0]
-    assert event_name == "generate_image_complete"
+    assert event_name == "persona.generate.image.complete"
     assert payload["file_path"] == "uploads/img/abc.png"
     assert payload["mime_type"] == "image/png"
     assert payload["file_size"] == 12345
@@ -136,7 +136,7 @@ async def test_on_error_emits_error_event():
         )
 
     event_name, payload = bus.emit.call_args[0]
-    assert event_name == "generate_video_error"
+    assert event_name == "generate_error"
     assert payload["error_message"] == "Generation failed"
     assert payload["type"] == "error"
 

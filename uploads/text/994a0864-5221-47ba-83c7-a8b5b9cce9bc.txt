@@ -1,0 +1,12 @@
+INPUT:
+  attempt_id: 019dac71-3d41-76b6-b4b6-8d801051e040
+  chat_id: 019dac3f-588c-78fc-b9f2-b6f71c426a93
+  documents: ['FERPA Policy']
+  parameter_fields: ['10:00 AM', 'Professor', 'Felix Haas Hall', 'Education Records & Exceptions']
+
+OUTPUT:
+Attempt chat created successfully.
+- **Attempt Chat ID:** `019dac71-4ec6-7cf5-ae16-a4e69a8bb6ca`
+
+
+Config flags, rubrics, departments, and scenarios were auto-resolved from the chat template.

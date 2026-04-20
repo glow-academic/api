@@ -1,0 +1,87 @@
+INPUT:
+  attempt_id: 019dac40-9a82-7e52-ae71-7c610cc27508
+
+OUTPUT:
+### Attempt Detail
+- **Attempt ID:** `019dac40-9a82-7e52-ae71-7c610cc27508`
+
+- **Simulation:** General Practice
+- **Current Chat ID:** `019dac40-b233-79e2-bfbb-6ed38f3c60e9`
+
+### Personas
+- **Confused** (entry_id: `019dac40-b230-7cc7-999c-5d91d0f12b8b`) [#eab308]
+  Instructions: Your defining feature: a fundamental misunderstanding of the concept. You must stick to your wrong interpretation until the user corrects you. Mildly frustrated, but not angry. Say things like: "I thought it worked like ___? But maybe I'm wrong?" "Does it… have to do with ___? I'm honestly not sure.
+  Examples: I don't understand, Can you explain that again?, What does that mean?
+
+
+**User persona (human trainee):** `019dac40-9a7e-7acd-b9bb-786caab53ba0`
+**You are:** **Confused** — pass `persona_id: "019dac40-b230-7cc7-999c-5d91d0f12b8b"` when calling Attempt_Chat_Message
+
+
+
+
+### Rubric
+#### Manages session time effectively (5 pts, pass: 4)
+
+Efficient use of session time and respect for scheduling.
+- `bb1414c5-718a-5555-a4ab-2c1340a9362d` — **Good** (4 pts): Generally adheres to time allocations with minor deviations that do not impact session quality.
+
+- `60a13510-a10b-51ec-b420-ff70494ff811` — **Excellent** (5 pts): Begins and concludes sessions within scheduled times, maximizing productivity and respecting student availability.
+
+- `79d29eac-42d1-53a6-ac2f-f8e786a0a6c1` — **Acceptable** (3 pts): Sometimes exceeds or finishes early, slightly affecting pacing yet maintaining core engagement.
+
+- `1d721b7f-de74-5a03-b83d-f58112d50304` — **Poor** (1 pts): Ended the conversation really early, or made it last longer than needed.
+
+- `3ccdceac-e798-5f8b-8cf7-54c4f508187a` — **Marginal** (2 pts): Frequently mismanages time, leading to rushed explanations or unnecessary prolongation.
+
+#### Interpersonal communication and professionalism (5 pts, pass: 4)
+
+Flexibility in teaching approach based on student personality and needs.
+- `c7000806-6837-5cb9-87c8-666aecbc890d` — **Excellent** (5 pts): Consistently communicates with clarity and professionalism. Follows up when needed and maintains respectful boundaries in all interactions.
+
+- `72df1ac1-ff8e-54a8-ad49-c3fef31e86ae` — **Good** (4 pts): Communicates respectfully and clearly with minor lapses in tone or timing. Upholds professional standards.
+
+- `4e9ca1b8-57f9-5366-a751-bcb955031bcc` — **Acceptable** (3 pts): Communication is mostly appropriate but may occasionally be abrupt, or overly casual.
+
+- `93e0c70f-2653-5e01-83bc-aa9c53e6caf0` — **Poor** (1 pts): Demonstrates inappropriate or unprofessional behavior (e.g., sarcastic tone, dismissive responses, or failure to maintain respectful interaction).
+
+- `74dc6a85-5f68-5653-84a4-f2ed81e7c8c0` — **Marginal** (2 pts): Shows limited awareness of tone or affect. May interrupt, dismiss student concerns, or respond in ways that feel cold or reactive.
+
+#### Facilitates student-driven learning (5 pts, pass: 4)
+
+Ability to guide students to discover solutions independently through questioning.
+- `6f312f29-fc52-5f55-bc2d-b72cd52b4f42` — **Excellent** (5 pts): Consistently employs open-ended questions that empower students to discover solutions independently.
+
+- `07ba18f2-6834-59aa-82e5-91de27b313d1` — **Marginal** (2 pts): Rarely uses questioning techniques, often resorting to hints or partial solutions.
+
+- `e549d561-3c6b-5b5d-909b-c595bba30383` — **Acceptable** (3 pts): Occasionally guides students with questions but sometimes provides direct answers.
+
+- `050fabc6-3f68-5981-b886-71d4a80a9fa2` — **Good** (4 pts): Regularly uses guided questioning, encouraging student reasoning with occasional prompts.
+
+- `1718ee34-8816-52f2-ac16-f7c0a3c3989e` — **Poor** (1 pts): Directly provided the answer.
+
+#### Demonstrates understanding of core concepts (5 pts, pass: 4)
+
+Knowledge and articulation of core goals and learning outcomes.
+- `c9662715-8f97-5c91-ac9d-1a84494e29cc` — **Poor** (1 pts): Misstates or omits concepts; dumps information or skips logic, confusing students; no comprehension checks and may rely on students for content.
+
+- `608d3d37-0db8-52e4-9cbd-ff5a42547970` — **Marginal** (2 pts): Demonstrates limited awareness of core concepts and offers explanations with minor errors. Explanations frequently rushed, dense, or skip logical steps; seldom checks comprehension.
+
+- `9c7344ab-3834-58fa-978b-c6254e47d550` — **Excellent** (5 pts): States core concepts clearly; explains in clear, bite-sized steps; uses analogies/visuals to clarify when needed; consistently checks understanding.
+
+- `99d3badf-57d0-5f38-903d-493a1204a38b` — **Acceptable** (3 pts): Provides a basic overview of concepts but with occasional inaccuracies or lack of depth. Some explanations may feel rushed or cognitively dense.
+
+- `fa0426b1-d060-5012-a988-20e011f41523` — **Good** (4 pts): Explains core concepts accurately and relates examples to key learning outcomes. Generally provides step-by-step reasoning and occasionally checks for student comprehension.
+
+#### Adapts approach to individual student needs (5 pts, pass: 4)
+
+Flexibility in teaching approach based on student personality and needs.
+- `282204f8-ca0a-5aeb-8940-e65cd1b77f3f` — **Good** (4 pts): Mostly seamlessly adjusted communication and teaching style to effectively engage students across a wide range of emotions.
+
+- `a3da7039-d2a1-5bdf-b520-f5f2cd40198c` — **Excellent** (5 pts): Perfectly adapts approach to diverse student emotional and attitude types.
+
+- `6e26ba8c-ef2e-5f23-9858-2e51c380b8a0` — **Acceptable** (3 pts): Demonstrates thoughtful adjustments to support most student types, maintaining a supportive and responsive demeanor.
+
+- `4d9deeae-9bac-5a18-9178-8e480e8c6384` — **Poor** (1 pts): Fails to adapt to different student types, responding uniformly without consideration of individual emotional or behavioral needs.
+
+- `af440a98-bee0-5251-9a23-337e4b40ca24` — **Marginal** (2 pts): Shows minimal ability to adjust to varied student behaviors, occasionally missing cues or responding inappropriately.

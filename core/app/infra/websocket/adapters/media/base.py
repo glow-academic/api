@@ -7,12 +7,20 @@ from pydantic import BaseModel
 
 
 class MediaResult(BaseModel):
-    """Result of a media generation operation."""
+    """Result of a media generation operation.
+
+    ``upload_id`` is plumbing. Clients should key off ``images_id`` /
+    ``videos_id`` — the resource-level IDs produced by the full save chain
+    (uploads_entry → {images,videos}_resource → {images,videos}_entry →
+    {images,videos}_{images,videos}_connection → {image,video}_uploads_entry).
+    """
 
     file_path: str
     mime_type: str
     file_size: int
     upload_id: str
+    images_id: str | None = None
+    videos_id: str | None = None
 
 
 class MediaEventEmitter(Protocol):

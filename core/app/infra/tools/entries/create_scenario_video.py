@@ -42,6 +42,7 @@ async def create_scenario_video(
     videos_resource_id: UUID | None = None,
     name: str = "",
     description: str = "",
+    length_seconds: int = 0,
 ) -> CreateScenarioVideoResult:
     """Create a video from a source file, copying to upload folder and creating the full entry chain.
 
@@ -74,6 +75,7 @@ async def create_scenario_video(
         conn,
         session_id=session_id,
         videos_id=video_resource.id,
+        length_seconds=length_seconds,
     )
 
     # 5. Link video entry ↔ upload entry

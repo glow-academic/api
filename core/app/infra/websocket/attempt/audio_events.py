@@ -1,4 +1,4 @@
-"""Audio generation event contract — all generate_audio_* events in one place.
+"""Audio generation event contract — canonical ``attempt.*`` event emits.
 
 This module provides:
 1. InternalBusAudioEmitter — concrete AudioEventEmitter that uses EmitFn
@@ -13,40 +13,65 @@ through the same downstream handlers. The session store provides the generation
 context (sid, artifact_type, tool_output_schemas, etc.).
 
 Events emitted:
-  - generate_audio_start/progress/complete  — assistant audio (canonical audio events)
-  - generate_text_start/progress/complete   — assistant transcript (canonical text events)
-  - generate_call_start/progress/complete   — tool calls (canonical call events)
-  - generate_run_complete                   — run finished (triggers rate limit + run_id rotation)
-  - generate_audio_user_speech_start        — VAD detected user speaking
-  - generate_audio_user_speech_delta        — user speech transcript chunk
-  - generate_audio_user_speech_complete     — user speech finalized
-  - generate_audio_error                    — adapter or provider error
-  - generate_audio_response_done            — provider response completed
+  - attempt.chat.assistant_audio            — per-frame PCM16 for realtime playback
+  - attempt.chat.assistant_audio.complete   — turn-done audios_id reference
+  - attempt.chat.user_start / user_audio    — VAD + persisted user speech
+  - attempt.generate.audio.start/complete/error/response_cancelled
+                                            — assistant audio turn lifecycle
+  - generate_text_start/progress/complete   — transcript (still legacy, 1B migration)
+  - generate_call_start/progress/complete   — tool calls (still legacy, 1B migration)
+  - generate_run_complete                   — run finished (core workflow, kept)
 """
 
 import json
+import uuid
 from typing import Any
 
+from app.infra.generation.emit import canonical_generation_event
 from app.infra.websocket.session_store import get_session_by_group_id
-from app.infra.websocket.socket_event import EmitFn, internal_event, make_emit
+from app.infra.websocket.socket_event import (
+    EmitFn,
+    internal_event,
+    make_emit,
+)
 from app.infra.websocket.tool_call_utils import (
     parse_partial_json,
     resolve_output_fields,
 )
 
 
+def _canonical(ctx: dict[str, Any], sub: str, phase: str) -> str:
+    """Canonical ``{artifact}.generate.{sub}.{phase}`` name from the session
+    context, falling back to ``generate_error`` when ``artifact_type`` is
+    missing (shouldn't happen — every AudioSession carries it).
+    """
+    artifact = ctx.get("artifact_type")
+    if not artifact:
+        return "generate_error"
+    return canonical_generation_event(artifact, sub, phase)
+
+
 class InternalBusAudioEmitter:
     """Concrete AudioEventEmitter that emits via EmitFn.
 
     Satisfies the AudioEventEmitter protocol defined in
-    app.infra.websocket.adapters.audio.base.
+    app.infra.websocket.adapters.audio.base. All events emitted use the
+    canonical ``attempt.chat.*`` / ``attempt.generate.*`` names directly.
     """
 
     def __init__(self, *, emit: EmitFn) -> None:
         self._emit = emit
 
     def _session_context(self, group_id: str) -> dict[str, Any]:
-        """Build canonical generate_text_* base payload from session store."""
+        """Build canonical generate_text_* base payload from session store.
+
+        Identity (``profile_id``, ``session_id``) is surfaced so downstream
+        handlers — especially ``run_complete_impl`` — can keep the run on
+        the owning identity instead of re-emitting ``generate`` with null
+        profile_id, which bounces as "Profile not found. Please reconnect."
+        This is the WS equivalent of HTTP auth middleware: the session store
+        is the ambient identity context for realtime-initiated events.
+        """
         session = get_session_by_group_id(group_id)
         if not session:
             return {
@@ -56,6 +81,8 @@ class InternalBusAudioEmitter:
                 "resource_type": "",
                 "run_id": "",
                 "group_id": group_id,
+                "profile_id": None,
+                "session_id": None,
                 "metadata": {},
             }
         return {
@@ -65,18 +92,20 @@ class InternalBusAudioEmitter:
             "resource_type": session.resource_type or "",
             "run_id": session.run_id,
             "group_id": group_id,
+            "profile_id": session.profile_id,
+            "session_id": session.session_id,
             "metadata": session.metadata,
         }
 
-    # -- Assistant audio (emits canonical generate_audio_* events) --
+    # -- Assistant audio (canonical attempt.* events) --
 
     async def on_audio_start(self, group_id: str) -> None:
-        """Assistant started speaking — emits generate_audio_start."""
+        """Assistant started speaking — emits ``attempt.generate.audio.start``."""
         ctx = self._session_context(group_id)
         await self._emit(
             [
                 internal_event(
-                    "generate_audio_start",
+                    "attempt.generate.audio.start",
                     {
                         **ctx,
                         "type": "start",
@@ -87,23 +116,34 @@ class InternalBusAudioEmitter:
         )
 
     async def on_audio_delta(self, group_id: str, audio: bytes) -> None:
-        """Assistant audio chunk — emits generate_audio_progress."""
+        """Assistant audio chunk — fires ``attempt.chat.assistant_audio``
+        with the raw PCM16 frame. The client's ``enqueue_audio_delta``
+        decodes and pushes it into the playback ``AudioContext``.
+        """
+        session = get_session_by_group_id(group_id)
+        chat_id = session.chat_id if session else ""
+        sid = session.sid if session else ""
         await self._emit(
             [
                 internal_event(
-                    "generate_audio_progress",
-                    {"group_id": group_id, "audio": audio},
-                )
+                    "attempt.chat.assistant_audio",
+                    {
+                        "sid": sid,
+                        "chat_id": chat_id,
+                        "group_id": group_id,
+                        "audio": audio,
+                    },
+                ),
             ]
         )
 
     async def on_audio_complete(self, group_id: str) -> None:
-        """Assistant finished speaking — emits generate_audio_complete."""
+        """Assistant finished speaking — emits ``attempt.generate.audio.complete``."""
         ctx = self._session_context(group_id)
         await self._emit(
             [
                 internal_event(
-                    "generate_audio_complete",
+                    "attempt.generate.audio.complete",
                     {
                         **ctx,
                         "type": "complete",
@@ -116,12 +156,12 @@ class InternalBusAudioEmitter:
     # -- Assistant transcript (emits canonical generate_text_* events) --
 
     async def on_transcript_start(self, group_id: str, item_id: str) -> None:
-        """Assistant transcript started — emits generate_text_start."""
+        """Assistant transcript started — emits ``attempt.generate.text.start``."""
         ctx = self._session_context(group_id)
         await self._emit(
             [
                 internal_event(
-                    "generate_text_start",
+                    _canonical(ctx, "text", "start"),
                     {
                         **ctx,
                         "type": "start",
@@ -132,12 +172,12 @@ class InternalBusAudioEmitter:
         )
 
     async def on_transcript_delta(self, group_id: str, transcript: str) -> None:
-        """Assistant transcript chunk — emits generate_text_progress."""
+        """Assistant transcript chunk — emits ``attempt.generate.text.progress``."""
         ctx = self._session_context(group_id)
         await self._emit(
             [
                 internal_event(
-                    "generate_text_progress",
+                    _canonical(ctx, "text", "progress"),
                     {
                         **ctx,
                         "type": "progress",
@@ -152,12 +192,12 @@ class InternalBusAudioEmitter:
     async def on_transcript_complete(
         self, group_id: str, item_id: str, transcript: str
     ) -> None:
-        """Assistant transcript finalized — emits generate_text_complete."""
+        """Assistant transcript finalized — emits ``attempt.generate.text.complete``."""
         ctx = self._session_context(group_id)
         await self._emit(
             [
                 internal_event(
-                    "generate_text_complete",
+                    _canonical(ctx, "text", "complete"),
                     {
                         **ctx,
                         "type": "complete",
@@ -173,11 +213,22 @@ class InternalBusAudioEmitter:
     async def on_tool_call_start(
         self, group_id: str, item_id: str, call_id: str, name: str
     ) -> None:
-        """Tool call started — emits generate_call_start."""
+        """Tool call started — emits generate_call_start.
+
+        Mirrors ``generate_artifact_impl.py``: the provider's ``call_id``
+        (OpenAI ``call_<opaque>``) is kept as ``responses_call_id`` for
+        sending back ``function_call_output``. Our internal UUID (used by
+        ledger/receipt tracking and forwarded as the canonical ``call_id``
+        on ``generate_call_complete``) is minted here.
+        """
+        internal_call_id = (
+            str(uuid.uuid7()) if hasattr(uuid, "uuid7") else str(uuid.uuid4())
+        )
         session = get_session_by_group_id(group_id)
         if session:
             session.tool_call_states[call_id] = {
-                "call_id": call_id,
+                "call_id": internal_call_id,
+                "responses_call_id": call_id,
                 "tool_name": name,
                 "arguments": "",
             }
@@ -185,7 +236,7 @@ class InternalBusAudioEmitter:
         await self._emit(
             [
                 internal_event(
-                    "generate_call_start",
+                    _canonical(ctx, "call", "start"),
                     {
                         **ctx,
                         "modality": "call",
@@ -216,7 +267,7 @@ class InternalBusAudioEmitter:
         await self._emit(
             [
                 internal_event(
-                    "generate_call_progress",
+                    _canonical(ctx, "call", "progress"),
                     {
                         **ctx,
                         "modality": "call",
@@ -243,16 +294,21 @@ class InternalBusAudioEmitter:
         except json.JSONDecodeError:
             arguments_dict = {}
         resolved_fields: dict[str, Any] | None = None
+        st: dict[str, Any] = {}
         if session:
+            st = session.tool_call_states.get(call_id, {})
             resolved_fields = resolve_output_fields(
                 arguments_dict, name, session.tool_output_schemas
             )
             session.tool_call_states.pop(call_id, None)
+        internal_call_id = st.get("call_id") or (
+            str(uuid.uuid7()) if hasattr(uuid, "uuid7") else str(uuid.uuid4())
+        )
         ctx = self._session_context(group_id)
         await self._emit(
             [
                 internal_event(
-                    "generate_call_complete",
+                    _canonical(ctx, "call", "complete"),
                     {
                         **ctx,
                         "modality": "call",
@@ -262,7 +318,8 @@ class InternalBusAudioEmitter:
                         "tool_name": name,
                         "arguments": arguments_dict,
                         "arguments_delta": arguments,
-                        "call_id": call_id,
+                        "call_id": internal_call_id,
+                        "responses_call_id": st.get("responses_call_id", call_id),
                         "resolved_fields": resolved_fields,
                     },
                 )
@@ -273,53 +330,80 @@ class InternalBusAudioEmitter:
 
     async def on_user_speech_start(self, group_id: str, item_id: str) -> None:
         """VAD detected user started speaking."""
+        ctx = self._session_context(group_id)
         await self._emit(
             [
                 internal_event(
-                    "generate_audio_user_speech_start",
-                    {"group_id": group_id, "item_id": item_id},
-                )
-            ]
-        )
-
-    async def on_user_speech_delta(
-        self, group_id: str, item_id: str, transcript: str
-    ) -> None:
-        """User speech transcript chunk."""
-        await self._emit(
-            [
-                internal_event(
-                    "generate_audio_user_speech_delta",
+                    "attempt.chat.user_start",
                     {
-                        "group_id": group_id,
+                        "sid": ctx.get("sid", ""),
+                        "chat_id": (
+                            get_session_by_group_id(group_id).chat_id
+                            if get_session_by_group_id(group_id)
+                            else ""
+                        ),
                         "item_id": item_id,
-                        "transcript": transcript,
                     },
                 )
             ]
         )
 
-    async def on_user_speech_complete(
+    async def on_user_audio(
         self,
         group_id: str,
-        item_id: str,
-        transcript: str,
         *,
-        audio: bytes | None = None,
+        audios_id: str,
+        duration_ms: int,
     ) -> None:
-        """User speech finalized — triggers DB write in domain translator."""
-        payload: dict[str, Any] = {
-            "group_id": group_id,
-            "item_id": item_id,
-            "transcript": transcript,
-        }
-        if audio:
-            payload["audio"] = audio
+        """User speech persisted via the canonical audio upload chain —
+        emit the resource-level ``audios_id`` so the client can immediately
+        run STT + chat_message without any promotion step.
+        """
+        session = get_session_by_group_id(group_id)
+        chat_id = session.chat_id if session else ""
+        sid = session.sid if session else ""
         await self._emit(
             [
                 internal_event(
-                    "generate_audio_user_speech_complete",
-                    payload,
+                    "attempt.chat.user_audio",
+                    {
+                        "sid": sid,
+                        "chat_id": chat_id,
+                        "group_id": group_id,
+                        "audios_id": audios_id,
+                        "duration_ms": duration_ms,
+                    },
+                )
+            ]
+        )
+
+    async def on_assistant_audio(
+        self,
+        group_id: str,
+        *,
+        audios_id: str,
+        duration_ms: int,
+    ) -> None:
+        """Assistant turn complete — emit ``attempt.chat.assistant_audio.complete``
+        carrying the persisted ``audios_id`` so the client can attach the
+        full clip to the assistant's chat_message (transcript arrives via
+        ``attempt.generate.text.complete``). The per-frame bytes already
+        streamed via ``attempt.chat.assistant_audio`` for playback.
+        """
+        session = get_session_by_group_id(group_id)
+        chat_id = session.chat_id if session else ""
+        sid = session.sid if session else ""
+        await self._emit(
+            [
+                internal_event(
+                    "attempt.chat.assistant_audio.complete",
+                    {
+                        "sid": sid,
+                        "chat_id": chat_id,
+                        "group_id": group_id,
+                        "audios_id": audios_id,
+                        "duration_ms": duration_ms,
+                    },
                 )
             ]
         )
@@ -327,12 +411,18 @@ class InternalBusAudioEmitter:
     # -- Lifecycle --
 
     async def on_error(self, group_id: str, error_message: str) -> None:
-        """Adapter or provider error."""
+        """Adapter or provider error — emits ``attempt.generate.audio.error``."""
+        ctx = self._session_context(group_id)
         await self._emit(
             [
                 internal_event(
-                    "generate_audio_error",
-                    {"group_id": group_id, "error_message": error_message},
+                    "attempt.generate.audio.error",
+                    {
+                        **ctx,
+                        "type": "error",
+                        "event_type": "audio_error",
+                        "error_message": error_message,
+                    },
                 )
             ]
         )
@@ -340,13 +430,13 @@ class InternalBusAudioEmitter:
     async def on_response_cancelled(
         self, group_id: str, usage: dict[str, Any] | None = None
     ) -> None:
-        """Provider response cancelled (barge-in) — emits generate_audio_response_cancelled."""
+        """Provider response cancelled (barge-in) — emits ``attempt.generate.audio.response_cancelled``."""
         usage = usage or {}
         ctx = self._session_context(group_id)
         await self._emit(
             [
                 internal_event(
-                    "generate_audio_response_cancelled",
+                    "attempt.generate.audio.response_cancelled",
                     {
                         **ctx,
                         "input_text_tokens": usage.get("input_tokens", 0),
@@ -359,7 +449,13 @@ class InternalBusAudioEmitter:
     async def on_response_done(
         self, group_id: str, usage: dict[str, Any] | None = None
     ) -> None:
-        """Provider response completed — emits generate_run_complete + generate_audio_response_done."""
+        """Provider response completed — emits ``generate_run_complete``.
+
+        ``generate_run_complete`` is the core dispatch-workflow event (run
+        finalization, rate-limit gating, run_id rotation), intentionally
+        left on its legacy name until the dispatch rewrite. The legacy
+        ``generate_audio_response_done`` fanout (no subscribers) is gone.
+        """
         usage = usage or {}
         ctx = self._session_context(group_id)
 
@@ -377,10 +473,6 @@ class InternalBusAudioEmitter:
                         "tool_results": [],
                         "save": False,
                     },
-                ),
-                internal_event(
-                    "generate_audio_response_done",
-                    {"group_id": group_id, "usage": usage},
                 ),
             ]
         )

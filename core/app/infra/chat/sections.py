@@ -5,7 +5,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from app.infra.common_context import CommonContext
-from app.infra.helpers import dedupe_by_id
+from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.tool_graph import ArtifactToolScores
 from app.infra.types import ArtifactContext
 from app.infra.chat.types import (
@@ -78,7 +78,7 @@ def build_chat_get_result(
             return []
         return [
             item_id
-            for item in (getattr(item, id_attr, None) for item in pair.selected)
+            for item_id in (getattr(item, id_attr, None) for item in pair.selected)
             if item_id is not None
         ]
 
@@ -113,7 +113,8 @@ def build_chat_get_result(
         pair = context.resources.get(section)
         if pair is None:
             return None
-        all_items = dedupe_by_id(pair.selected + pair.suggestions, id_attr=id_attr)
+        # suggestions first so selected items keep their DB-ordered slot
+        all_items = sorted_dedupe_by_id(pair.suggestions + pair.selected, id_attr=id_attr)
         return _filter(
             _model_many(section, all_items, model_cls, id_attr=id_attr, rename=rename),
             section,

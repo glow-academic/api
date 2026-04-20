@@ -9,3 +9,19 @@ CREATE INDEX audios_voices_connection_voice_id_idx ON public.audios_voices_conne
 
 
 --
+
+-- Name: idx_audios_audios_connection_audio_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audios_audios_connection_audio_id ON public.audios_audios_connection USING btree (audio_id);
+
+
+--
+
+-- Name: idx_audios_audios_connection_audios_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audios_audios_connection_audios_id ON public.audios_audios_connection USING btree (audios_id);
+
+
+--

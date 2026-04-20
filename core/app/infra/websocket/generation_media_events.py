@@ -1,17 +1,28 @@
-"""Media generation event contract — all generate_image_*/generate_video_* events.
+"""Media generation event contract — canonical ``{artifact}.generate.{image|video}.*`` emits.
 
-This module provides:
-1. InternalBusMediaEmitter — concrete MediaEventEmitter that wraps internal_sio.emit()
-2. get_media_emitter() — factory for use by the media adapter singleton
-
-The adapter (litellm.py) receives a MediaEventEmitter via its constructor,
-keeping the infra layer decoupled from the socket layer.
+Provides ``InternalBusMediaEmitter`` (the concrete ``MediaEventEmitter``
+used by ``LitellmMediaAdapter``) and ``get_media_emitter`` for the
+adapter singleton. Keeps the adapter layer decoupled from socket.io —
+the adapter only knows the protocol.
 """
 
 from typing import Any
 
+from app.infra.generation.emit import canonical_generation_event
 from app.infra.globals import get_internal_sio
 from app.infra.websocket.adapters.media.base import MediaResult
+
+
+def _media_event_name(
+    modality: str, phase: str, artifact_type: str | None,
+) -> str:
+    """Canonical per-artifact name, falling back to ``generate_error`` when
+    ``artifact_type`` is missing (shouldn't happen — every dispatch carries
+    it — but keeps the emit path non-crashing).
+    """
+    if artifact_type:
+        return canonical_generation_event(artifact_type, modality, phase)
+    return "generate_error"
 
 
 class InternalBusMediaEmitter:
@@ -38,7 +49,7 @@ class InternalBusMediaEmitter:
     ) -> None:
         """Media generation started."""
         await self._bus.emit(
-            f"generate_{modality}_start",
+            _media_event_name(modality, "start", artifact_type),
             {
                 "modality": modality,
                 "sid": sid,
@@ -68,7 +79,7 @@ class InternalBusMediaEmitter:
     ) -> None:
         """Media generation progress update."""
         await self._bus.emit(
-            f"generate_{modality}_progress",
+            _media_event_name(modality, "progress", artifact_type),
             {
                 "modality": modality,
                 "sid": sid,
@@ -98,7 +109,7 @@ class InternalBusMediaEmitter:
     ) -> None:
         """Media generation completed successfully."""
         await self._bus.emit(
-            f"generate_{modality}_complete",
+            _media_event_name(modality, "complete", artifact_type),
             {
                 "modality": modality,
                 "sid": sid,
@@ -113,6 +124,8 @@ class InternalBusMediaEmitter:
                 "mime_type": result.mime_type,
                 "file_size": result.file_size,
                 "upload_id": result.upload_id,
+                "images_id": result.images_id,
+                "videos_id": result.videos_id,
                 "metadata": metadata,
             },
         )
@@ -132,7 +145,7 @@ class InternalBusMediaEmitter:
     ) -> None:
         """Media generation failed."""
         await self._bus.emit(
-            f"generate_{modality}_error",
+            _media_event_name(modality, "error", artifact_type),
             {
                 "modality": modality,
                 "sid": sid,

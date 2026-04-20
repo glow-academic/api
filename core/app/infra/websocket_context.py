@@ -255,4 +255,5 @@ async def resolve_websocket_context(
         profile=profile,
         resolution_strategy=resolution_strategy,
         resolution_threshold=resolution_threshold,
+        tool_graph=common.tool_graph,
     )

@@ -93,7 +93,7 @@ async def audio_session_start_impl(
     *,
     emit: EmitFn,
 ) -> None:
-    """Translate generate_audio_session_start → attempt_audio_ready."""
+    """Translate attempt.generate.audio.session_start → attempt_audio_ready."""
     group_id = data.get("group_id")
     sid = data.get("sid")
     if not sid or not group_id:
@@ -109,36 +109,6 @@ async def audio_session_start_impl(
                     chat_id=chat_id,
                     success=True,
                     message="Voice session ready",
-                ).model_dump(mode="json"),
-            )
-        ]
-    )
-
-
-async def audio_delta_impl(
-    data: dict[str, Any],
-    *,
-    emit: EmitFn,
-) -> None:
-    """Translate generate_audio_progress → attempt_assistant_progress(audio)."""
-    group_id = data.get("group_id")
-    if not group_id:
-        return
-    session = get_session_by_group_id(group_id)
-    if not session:
-        return
-    audio_data = data.get("audio")
-    if not audio_data:
-        return
-    await emit(
-        [
-            internal_event(
-                "attempt_assistant_progress",
-                AttemptAssistantProgressData(
-                    sid=session.sid,
-                    chat_id=session.chat_id,
-                    content_type="audio",
-                    audio=audio_data,
                 ).model_dump(mode="json"),
             )
         ]

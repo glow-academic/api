@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from app.infra.websocket.cancel_active_result import cancel_active_result
 from app.infra.websocket.cancel_active_run import cancel_active_run
+from app.infra.websocket.cancel_realtime_turn import cancel_realtime_turn
 
 router = APIRouter()
 
@@ -39,5 +40,8 @@ async def attempt_stop(
 
     await cancel_active_result(group_id)
     await cancel_active_run(group_id)
+    # Realtime: cancel the current turn without closing the session so the
+    # conversation can continue with the next /attempt/generate call.
+    await cancel_realtime_turn(group_id)
 
     return AttemptStopResponse(success=True)

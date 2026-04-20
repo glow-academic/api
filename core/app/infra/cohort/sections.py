@@ -29,7 +29,7 @@ from app.infra.cohort.permissions import (
 )
 from app.infra.cohort.permissions_context import CohortPermissionsContext
 from app.infra.common_context import CommonContext
-from app.infra.helpers import dedupe_by_id
+from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.tool_graph import ArtifactToolScores
 from app.infra.types import ArtifactContext
 from app.infra.cohort.types import (
@@ -83,16 +83,18 @@ def build_cohort_get_result(
         user_department_ids=profile.department_ids,
     )
 
-    all_departments = dedupe_by_id(
-        cohort.resources["departments"].selected
-        + cohort.resources["departments"].suggestions
+    # suggestions first so selected items keep their DB-ordered slot instead
+    # of jumping to the top on selection toggle. sorted_dedupe_by_id keeps first.
+    all_departments = sorted_dedupe_by_id(
+        cohort.resources["departments"].suggestions
+        + cohort.resources["departments"].selected
     )
-    all_simulations = dedupe_by_id(
-        cohort.resources["simulations"].selected
-        + cohort.resources["simulations"].suggestions
+    all_simulations = sorted_dedupe_by_id(
+        cohort.resources["simulations"].suggestions
+        + cohort.resources["simulations"].selected
     )
-    all_profiles = dedupe_by_id(
-        cohort.resources["profiles"].selected + cohort.resources["profiles"].suggestions
+    all_profiles = sorted_dedupe_by_id(
+        cohort.resources["profiles"].suggestions + cohort.resources["profiles"].selected
     )
     all_simulation_positions = cohort.resources["simulation_positions"].selected
     all_simulation_availability = cohort.resources["simulation_availability"].selected
@@ -236,7 +238,7 @@ def build_cohort_get_result(
         )
 
     all_flags = (
-        cohort.resources["flags"].selected + cohort.resources["flags"].suggestions
+        cohort.resources["flags"].suggestions + cohort.resources["flags"].selected
     )
     flag_configs = [
         CohortFlagConfig(
@@ -252,12 +254,12 @@ def build_cohort_get_result(
     ]
     flag_ids_set = {flag.id for flag in cohort.resources["flags"].selected}
 
-    all_names = dedupe_by_id(
-        cohort.resources["names"].selected + cohort.resources["names"].suggestions
+    all_names = sorted_dedupe_by_id(
+        cohort.resources["names"].suggestions + cohort.resources["names"].selected
     )
-    all_descriptions = dedupe_by_id(
-        cohort.resources["descriptions"].selected
-        + cohort.resources["descriptions"].suggestions
+    all_descriptions = sorted_dedupe_by_id(
+        cohort.resources["descriptions"].suggestions
+        + cohort.resources["descriptions"].selected
     )
     all_names_conv = [_to_name(item) for item in all_names]
     all_descriptions_conv = [_to_description(item) for item in all_descriptions]

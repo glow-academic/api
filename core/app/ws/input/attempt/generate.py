@@ -17,7 +17,7 @@ internal_sio = get_internal_sio()
 
 async def _emit_error(sid: str, message: str) -> None:
     await emit_to_internal(
-        "generate_call_error",
+        "generate_error",
         GenerateErrorApiRequest(sid=sid, error_message=message, artifact_type="attempt", resource_type="attempt"),
         sid=sid,
     )

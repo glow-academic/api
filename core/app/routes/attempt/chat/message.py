@@ -26,7 +26,6 @@ class ChatMessageRequest(BaseModel):
     chat_id: UUID
     text: str
     persona_id: UUID | None = None
-    audio_id: UUID | None = None
     parent_message_id: UUID | None = None
 
 

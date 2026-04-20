@@ -25,6 +25,8 @@ class AudioSession:
         run_id: str,
         group_id: str,
         conversation_id: str | None = None,
+        session_id: str | None = None,
+        profile_id: str | None = None,
         artifact_type: str | None = None,
         resource_type: str | None = None,
         metadata: dict[str, Any] | None = None,
@@ -34,26 +36,37 @@ class AudioSession:
         self.run_id = run_id
         self.group_id = group_id
         self.conversation_id = conversation_id
+        self.session_id = session_id
+        self.profile_id = profile_id
         # Generation context — set at session creation so the emitter can
         # build canonical generate_text_*/generate_call_* payloads without extra lookups.
         self.artifact_type = artifact_type
         self.resource_type = resource_type
         self.metadata = metadata or {}
         # Tool call context — schemas for resolving output fields, state for
-        # accumulating streaming arguments (same logic as generate_artifact.py).
+        # accumulating streaming arguments (same logic as execute.py).
         self.tool_output_schemas: dict[str, dict[str, str]] = {}
         self.tool_call_states: dict[str, dict[str, Any]] = {}
+        # Full tool definitions keyed by sanitized name. The realtime
+        # downlink loop uses this to look up a tool when the provider
+        # emits ``response.function_call_arguments.done`` so it can
+        # execute the tool via ``execute_infra_operation`` and feed the
+        # result back as ``conversation.item.create {function_call_output}``.
+        self.tool_def_by_name: dict[str, dict[str, Any]] = {}
         self.inbound_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(maxsize=500)
         self.outbound_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
         self.last_activity: float = time.monotonic()
         self.muted = False
         # User speech audio buffering — accumulates PCM16 frames between
-        # VAD speech_started and speech_stopped for saving to disk.
+        # VAD speech_started and speech_stopped for disk persistence.
         self.speech_buffering = False
         self.speech_audio_buffer = bytearray()
         self.oa_ws_connection: Any | None = None  # OpenAI WebSocket connection
         self.item_id_to_upload_id: dict[str, str] = {}
         self.response_id_to_upload_id: dict[str, str] = {}
+        # Accumulated assistant PCM16 deltas for the current turn, flushed
+        # to disk via audio_upload_attempt_impl on response.audio.done.
+        self.assistant_audio_buffer = bytearray()
 
 
 def create_session(
@@ -62,6 +75,8 @@ def create_session(
     run_id: str,
     group_id: str,
     conversation_id: str | None = None,
+    session_id: str | None = None,
+    profile_id: str | None = None,
     artifact_type: str | None = None,
     resource_type: str | None = None,
     metadata: dict[str, Any] | None = None,
@@ -73,6 +88,8 @@ def create_session(
         run_id,
         group_id,
         conversation_id,
+        session_id=session_id,
+        profile_id=profile_id,
         artifact_type=artifact_type,
         resource_type=resource_type,
         metadata=metadata,

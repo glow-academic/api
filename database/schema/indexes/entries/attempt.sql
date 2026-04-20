@@ -26,6 +26,30 @@ CREATE INDEX attempt_responses_entry_chat_id_idx ON public.attempt_responses_ent
 
 --
 
+-- Name: idx_attempt_audio_entry_audios_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_attempt_audio_entry_audios_id ON public.attempt_audio_entry USING btree (audios_id);
+
+
+--
+
+-- Name: idx_attempt_audio_entry_message_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_attempt_audio_entry_message_created_at ON public.attempt_audio_entry USING btree (message_id, created_at);
+
+
+--
+
+-- Name: idx_attempt_audio_entry_message_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_attempt_audio_entry_message_id ON public.attempt_audio_entry USING btree (message_id);
+
+
+--
+
 -- Name: idx_attempt_chat_bridge_entry_attempt_chat_id; Type: INDEX; Schema: public; Owner: -
 --
 

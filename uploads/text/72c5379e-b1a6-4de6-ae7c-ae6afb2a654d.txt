@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture Notes - Introduction to Computer Science</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { font-size: 16px; }
+        body { font-family: "Georgia", "Times New Roman", serif; background: #ffffff; color: #111827; line-height: 1.6; }
+        .document-container { max-width: 850px; margin: 2.5rem auto 3rem; padding: 3rem 3.5rem; background: #ffffff; border: 1px solid #d4d4d8; }
+        .document-title-section { padding-bottom: 1.75rem; margin-bottom: 1.75rem; border-bottom: 1.5px solid #9ca3af; text-align: center; }
+        .document-title-section h1 { font-size: 2.25rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: #111827; margin-bottom: 0.5rem; }
+        .document-title-section .class-info { font-size: 0.95rem; color: #4b5563; }
+        .meta-section { margin-bottom: 2.5rem; }
+        .meta-grid { display: table; width: 100%; border-collapse: collapse; border-top: 1px solid #d4d4d8; border-bottom: 1px solid #d4d4d8; }
+        .meta-item { display: table-row; }
+        .meta-label, .meta-value { display: table-cell; padding: 0.5rem 0.25rem; vertical-align: top; font-size: 0.95rem; border-top: 1px solid #e5e7eb; }
+        .meta-item:first-child .meta-label, .meta-item:first-child .meta-value { border-top: none; }
+        .meta-label { width: 28%; font-weight: 600; color: #374151; padding-right: 1.5rem; white-space: nowrap; }
+        .meta-value { color: #111827; }
+        .section { margin-bottom: 2.5rem; }
+        .section h2 { font-size: 1.35rem; font-weight: 700; color: #111827; margin-bottom: 1rem; border-bottom: 1px solid #9ca3af; padding-bottom: 0.4rem; }
+        .topic-content { border-left: 3px solid #111827; padding: 1.25rem 1.5rem; background: #f9fafb; font-size: 0.98rem; color: #111827; margin-bottom: 1.5rem; }
+        .topic-content p { margin-bottom: 0.75rem; }
+        .topic-content p:last-child { margin-bottom: 0; }
+        .concept-card { border: 1px solid #d4d4d8; padding: 1.5rem; background: #ffffff; margin-bottom: 1.5rem; }
+        .concept-title { font-size: 1.1rem; font-weight: 600; color: #111827; margin-bottom: 0.75rem; }
+        .concept-desc { font-size: 0.95rem; margin-bottom: 0.75rem; }
+        .code-block { background: #1f2937; color: #e5e7eb; padding: 1rem 1.25rem; font-family: "Courier New", monospace; font-size: 0.9rem; border-radius: 4px; overflow-x: auto; margin-top: 0.5rem; }
+        .key-point { margin-bottom: 0.75rem; padding-left: 1.5rem; position: relative; }
+        .key-point:before { content: "\25B8"; position: absolute; left: 0; color: #6b7280; }
+        .key-point:last-child { margin-bottom: 0; }
+        .document-footer { border-top: 1px solid #d4d4d8; padding: 1.5rem 0; margin-top: 1rem; font-size: 0.8rem; color: #4b5563; }
+        .footer-content { max-width: 850px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .footer-branding { display: flex; align-items: center; gap: 0.75rem; }
+        .footer-logo { width: 32px; height: 32px; border-radius: 2px; border: 1px solid #9ca3af; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.9rem; color: #111827; }
+        .footer-org-name { font-weight: 600; color: #111827; font-size: 0.9rem; }
+        .footer-meta { font-size: 0.8rem; color: #4b5563; }
+        @media print { body { background: #ffffff; color: #000000; } .document-container { margin: 0; padding: 0; border: none; } .document-footer { border-top: 1px solid #d4d4d8; margin-top: 1.5rem; padding-top: 0.75rem; } .concept-card { border: 1px solid #c4c4c4; } }
+        @media (max-width: 768px) { .document-container { margin: 0.5rem; padding: 1.5rem 1.25rem 2rem; } .footer-content { flex-direction: column; align-items: flex-start; } }
+    </style>
+</head>
+<body>
+    <main class="document-container">
+        <section class="document-title-section">
+            <h1>Lecture 7: Object-Oriented Programming</h1>
+            <div class="class-info">CS 180 - Introduction to Computer Science</div>
+        </section>
+
+        <section class="meta-section">
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <div class="meta-label">Department</div>
+                    <div class="meta-value">Computer Science</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Class</div>
+                    <div class="meta-value">CS 180 - Introduction to Computer Science</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Document Type</div>
+                    <div class="meta-value">Lecture Notes</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Date</div>
+                    <div class="meta-value">October 14, 2024</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Topics</div>
+                    <div class="meta-value">Classes, Objects, Methods, Constructors, Encapsulation</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Overview</h2>
+            <div class="topic-content">
+                <p>Object-Oriented Programming (OOP) is a programming paradigm that organizes code around objects rather than functions and logic. An object is an instance of a class, which serves as a blueprint defining the object's attributes (data) and methods (behavior).</p>
+                <p>Today we cover the four fundamental concepts: classes, objects, methods, and encapsulation.</p>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Key Concepts</h2>
+            <div class="concept-card">
+                <div class="concept-title">Classes and Objects</div>
+                <div class="concept-desc">A class defines a new data type. An object is a specific instance of that class with its own data.</div>
+                <div class="code-block">class Student:<br>&nbsp;&nbsp;&nbsp;&nbsp;def __init__(self, name, gpa):<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.name = name<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.gpa = gpa<br><br>alice = Student("Alice", 3.8)<br>bob = Student("Bob", 3.5)</div>
+            </div>
+            <div class="concept-card">
+                <div class="concept-title">Methods</div>
+                <div class="concept-desc">Methods are functions defined inside a class that operate on the object's data. The first parameter is always <code>self</code>, which refers to the current instance.</div>
+                <div class="code-block">class Student:<br>&nbsp;&nbsp;&nbsp;&nbsp;def __init__(self, name, gpa):<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.name = name<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.gpa = gpa<br><br>&nbsp;&nbsp;&nbsp;&nbsp;def is_honors(self):<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return self.gpa &gt;= 3.5<br><br>&nbsp;&nbsp;&nbsp;&nbsp;def __str__(self):<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return f"{self.name} (GPA: {self.gpa})"</div>
+            </div>
+            <div class="concept-card">
+                <div class="concept-title">Encapsulation</div>
+                <div class="concept-desc">Encapsulation is the practice of hiding internal state and requiring all interaction to happen through well-defined methods. In Python, name-mangling with double underscores provides a form of data hiding.</div>
+                <div class="key-point">Use private attributes (prefix with <code>__</code>) to prevent direct access from outside the class</div>
+                <div class="key-point">Provide getter and setter methods (or use <code>@property</code>) to control access</div>
+                <div class="key-point">Encapsulation helps maintain data integrity and makes code easier to maintain</div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Key Takeaways</h2>
+            <div class="topic-content">
+                <p><strong>1.</strong> Classes are blueprints; objects are instances of those blueprints.</p>
+                <p><strong>2.</strong> The <code>__init__</code> method is the constructor, called automatically when creating a new object.</p>
+                <p><strong>3.</strong> All instance methods take <code>self</code> as the first parameter.</p>
+                <p><strong>4.</strong> Encapsulation protects data from unintended modification.</p>
+                <p><strong>Reading:</strong> Chapter 8, Sections 8.1-8.4 of the textbook.</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="document-footer">
+        <div class="footer-content">
+            <div class="footer-branding">
+                <div class="footer-logo">P</div>
+                <div>
+                    <div class="footer-org-name">Purdue University</div>
+                    <div class="footer-meta">Department of Computer Science</div>
+                </div>
+            </div>
+            <div class="footer-meta">Computer Science &bull; CS 180</div>
+        </div>
+    </footer>
+</body>
+</html>

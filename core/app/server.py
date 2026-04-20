@@ -10,6 +10,7 @@ import contextlib
 import json
 import logging
 import os
+import re
 import time
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -42,16 +43,34 @@ class _StreamingEventFilter(logging.Filter):
     """Collapse high-frequency streaming deltas into a summary line."""
 
     _DELTA_EVENTS = (
-        "generate_text_progress",
-        "generate_call_progress",
+        "attempt.generate.text.progress",
+        "attempt.generate.call.progress",
+        # Audio streams — mic frames inbound, assistant audio outbound.
+        "attempt.chat.speak",
+        "attempt.generate.audio.progress",
+        "attempt.chat.assistant_audio",
     )
     _BOUNDARY_EVENTS = (
-        "generate_text_complete",
-        "generate_text_start",
-        "generate_call_complete",
-        "generate_call_start",
+        "attempt.generate.text.start",
+        "attempt.generate.text.complete",
+        "attempt.generate.call.start",
+        "attempt.generate.call.complete",
         "generate_run_complete",
+        "attempt.generate.audio.session_start",
+        "attempt.generate.audio.session_complete",
+        "attempt.generate.audio.complete",
+        "attempt.chat.voice_ready",
+        "attempt.chat.voice_ended",
     )
+
+    # Per-event labels used in the collapsed summary line.
+    _EVENT_LABELS = {
+        "attempt.generate.text.progress": "text deltas",
+        "attempt.generate.call.progress": "call deltas",
+        "attempt.chat.speak": "mic frames",
+        "attempt.generate.audio.progress": "assistant audio frames",
+        "attempt.chat.assistant_audio": "assistant audio frames",
+    }
 
     def __init__(self) -> None:
         super().__init__()
@@ -65,8 +84,19 @@ class _StreamingEventFilter(logging.Filter):
         record.msg = f"  ↳ [streaming] {summary}\n{record.msg}"
         self._counts.clear()
 
+    _ACK_PATTERN = re.compile(r"Sending packet MESSAGE data \d+\[\]\s*$")
+
     def filter(self, record: logging.LogRecord) -> bool:
         msg = record.getMessage()
+
+        # Binary payload lines (audio frames carried as socket.io binary
+        # attachments) — always useless in text logs.
+        if "<binary>" in msg or "Received packet MESSAGE data 51-" in msg:
+            return False
+
+        # Empty engine.io ACK frames — one per event, no useful content.
+        if self._ACK_PATTERN.search(msg):
+            return False
 
         # Suppress engineio packet logs for generate + artifact events (payload too large)
         if "Sending packet" in msg and any(
@@ -81,7 +111,7 @@ class _StreamingEventFilter(logging.Filter):
         # Count and suppress delta event emits
         for event in self._DELTA_EVENTS:
             if event in msg:
-                label = "text deltas" if "text" in event else "call deltas"
+                label = self._EVENT_LABELS.get(event, f"{event} deltas")
                 self._counts[label] = self._counts.get(label, 0) + 1
                 return False
 

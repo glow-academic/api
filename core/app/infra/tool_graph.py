@@ -12,14 +12,16 @@ Two public functions:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 from uuid import UUID
 
 import asyncpg
 from redis.asyncio import Redis
 
-from app.registry.modalities import get_tool_output_modalities
 from app.tools.resources.agents.get import get_agents
 from app.tools.resources.agents.types import GetAgentResponse
+from app.tools.resources.modalities.get import get_modalities
+from app.tools.resources.models.get import get_models
 from app.tools.resources.permissions.get import get_permissions
 from app.tools.resources.permissions.types import GetPermissionResponse
 from app.tools.resources.settings.get import get_settings
@@ -46,9 +48,15 @@ class ResolvedTool:
 
 @dataclass
 class SettingsToolGraph:
-    """Flat list of resolved tools from a settings chain."""
+    """Flat list of resolved tools from a settings chain.
+
+    agent_output_modalities maps agent_id → set of output modality names
+    (e.g. {"text", "call", "audio"}), derived from the agent's model's
+    modalities_resource entries with is_input=False.
+    """
 
     tools: list[ResolvedTool] = field(default_factory=list)
+    agent_output_modalities: dict[UUID, set[str]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -156,7 +164,37 @@ async def _resolve_tool_graph_impl(
         )
         permission_by_id = {p.id: p for p in permissions_list}
 
-    # Step 6: flatten into ResolvedTool list — one per permission per tool
+    # Step 6: resolve agent output modalities from their models
+    model_ids = list(dict.fromkeys(
+        a.model_id for a in agents if a.model_id is not None
+    ))
+    modality_by_id: dict[UUID, Any] = {}
+    model_by_id: dict[UUID, Any] = {}
+    if model_ids:
+        models_list = await get_models(conn, model_ids, redis, bypass_cache)
+        model_by_id = {m.id: m for m in models_list}
+
+        unique_modality_ids = list(dict.fromkeys(
+            mid for m in models_list for mid in (m.modality_ids or [])
+        ))
+        if unique_modality_ids:
+            modalities_list = await get_modalities(
+                conn, unique_modality_ids, redis, bypass_cache
+            )
+            modality_by_id = {m.id: m for m in modalities_list}
+
+    agent_output_modalities: dict[UUID, set[str]] = {}
+    for agent in agents:
+        mods: set[str] = set()
+        model = model_by_id.get(agent.model_id) if agent.model_id else None
+        if model:
+            for mid in model.modality_ids or []:
+                mod = modality_by_id.get(mid)
+                if mod and not mod.is_input:
+                    mods.add(mod.modality)
+        agent_output_modalities[agent.id] = mods
+
+    # Step 7: flatten into ResolvedTool list — one per permission per tool
     resolved: list[ResolvedTool] = []
 
     for system_id, agent_ids in system_agent_map.items():
@@ -183,7 +221,10 @@ async def _resolve_tool_graph_impl(
                         )
                     )
 
-    return SettingsToolGraph(tools=resolved)
+    return SettingsToolGraph(
+        tools=resolved,
+        agent_output_modalities=agent_output_modalities,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -214,20 +255,8 @@ def score_tools(
             available_modalities=set(),
         )
 
-    # Group resolved tools by (agent_id, tool_id) to reconstruct per-tool target lists
-    tool_groups: dict[tuple[UUID, UUID], list[ResolvedTool]] = {}
-    for t in graph.tools:
-        tool_groups.setdefault((t.agent_id, t.tool_id), []).append(t)
-
-    # Compute per-agent modalities from their tools
-    agent_modalities: dict[UUID, set[str]] = {}
-    for (agent_id, _tool_id), tools in tool_groups.items():
-        resources = [t.target for t in tools if t.target_type == "resource"]
-        entries = [t.target for t in tools if t.target_type == "entry"]
-        artifacts = [t.target for t in tools if t.target_type == "artifact"]
-        operation = tools[0].operation
-        tool_mods = get_tool_output_modalities(operation, resources, entries, artifacts)
-        agent_modalities.setdefault(agent_id, set()).update(tool_mods)
+    # Agent output modalities come from the model (resolved in resolve_tool_graph)
+    agent_modalities = graph.agent_output_modalities
 
     available_modalities = (
         set().union(*agent_modalities.values()) if agent_modalities else set()

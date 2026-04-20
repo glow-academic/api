@@ -122,6 +122,8 @@ async def generate_attempt_impl(
         dangerous=cfg.dangerous,
         params=cfg.params,
         modalities=request.modalities,
+        audios_id=str(request.audios_id) if request.audios_id else None,
+        conversation_id=str(request.conversation_id) if request.conversation_id else None,
     )
 
     try:

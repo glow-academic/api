@@ -11,24 +11,24 @@ from app.infra.websocket.attempt.audio_start import (
 
 
 @sio.on("attempt.chat.voice")  # type: ignore
-async def attempt_audio_start(sid: str, data: dict[str, Any]) -> None:
+async def attempt_audio_start(sid: str, data: dict[str, Any]) -> dict[str, Any]:
     identity = await resolve_socket_identity(sid)
     if not identity:
-        return
+        return {"success": False}
 
     async def _runner() -> dict[str, Any]:
-        await attempt_audio_start_internal_impl({
+        result = await attempt_audio_start_internal_impl({
             **data,
             "sid": sid,
             "profile_id": str(identity.profile_id),
             "session_id": str(identity.session_id),
         })
-        return {"success": True}
+        return {"success": True, **result.model_dump()}
 
     pool = get_pool()
     redis = get_redis_client()
 
-    await run_artifact_operation_with_audit(
+    return await run_artifact_operation_with_audit(
         pool,
         redis,
         artifact="attempt",

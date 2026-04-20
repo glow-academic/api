@@ -12,8 +12,9 @@ from pydantic import BaseModel, Field
 class AudioUploadAttemptApiResponse(BaseModel):
     """Response model for attempt audio upload endpoint."""
 
-    audio_id: UUID = Field(..., description="UUID of the created audios_entry")
-    upload_id: UUID = Field(..., description="UUID of the uploads_entry (file on disk)")
+    audio_id: UUID = Field(..., description="UUID of the audios_entry (server plumbing; public handle is audios_id)")
+    audios_id: UUID = Field(..., description="UUID of the audios_resource — use this for /generate, /chat/message, download")
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry (primitive raw file)")
 
 
 class AudioDownloadAttemptApiRequest(BaseModel):

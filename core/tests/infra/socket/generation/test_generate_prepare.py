@@ -75,7 +75,7 @@ class TestGeneratePrepareImpl:
             artifact_config=FakeArtifactConfig(),
         )
         assert len(events) == 1
-        assert events[0].event == "generate_call_error"
+        assert events[0].event == "generate_error"
         assert "Profile not found" in events[0].data["error_message"]
 
     async def test_no_profiles_id_emits_error(self):

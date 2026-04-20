@@ -1,6 +1,6 @@
 """Internal impl for attempt_audio_stop — shared by WebSocket and HTTP.
 
-Records conversation completion in DB and emits generate_audio_session_complete.
+Records conversation completion in DB and emits attempt.generate.audio.session_complete.
 """
 
 import uuid as uuid_mod
@@ -41,19 +41,25 @@ async def attempt_audio_stop_internal_impl(
 
     session = get_session_by_chat_id(str(chat_id))
     if not session:
-        raise ValueError(f"No active audio session for chat {chat_id}")
+        # Silence on a non-existent session is a no-op — the voice session
+        # already ended or never started. Still return a success result so
+        # the client doesn't need to branch on "was there a session?".
+        logger.info(
+            f"attempt_audio_stop: no session for chat_id={chat_id} (no-op)"
+        )
+        return AudioStopInternalResult(chat_id=str(chat_id), stopped=False)
 
     group_id = session.group_id
 
     # Record conversation completion in DB
-    if session.conversation_id:
+    if session.conversation_id and session.session_id:
         try:
             pool = get_pool()
             async with pool.acquire() as conn:
                 await create_attempt_conversation_completion(
                     conn,
                     conversation_id=uuid_mod.UUID(session.conversation_id),
-                    call_id=uuid_mod.uuid4(),
+                    session_id=uuid_mod.UUID(str(session.session_id)),
                     stop=True,
                 )
         except Exception as e:
@@ -61,7 +67,7 @@ async def attempt_audio_stop_internal_impl(
 
     internal_sio = get_internal_sio()
     await internal_sio.emit(
-        "generate_audio_session_complete",
+        "attempt.generate.audio.session_complete",
         {
             "group_id": group_id,
             "sid": sid,

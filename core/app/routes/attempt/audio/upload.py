@@ -5,7 +5,9 @@ Thin route handler. Core logic lives in app.infra.attempt.audio_upload.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request, Response, UploadFile
+from uuid import UUID
+
+from fastapi import APIRouter, Form, HTTPException, Query, Request, Response, UploadFile
 
 from app.infra.attempt.audio_upload import audio_upload_attempt_impl
 from app.infra.attempt.group import group_attempt_impl
@@ -33,12 +35,29 @@ ALLOWED_AUDIO_TYPES = {
 
 @router.post("/upload", response_model=AudioUploadAttemptApiResponse)
 async def upload_audio(
-    file: UploadFile,
     http_request: Request,
     response: Response,
-    length_seconds: int = 0,
+    file: UploadFile | None = None,
+    length_seconds: int = Form(0),
+    upload_id: UUID | None = Query(None),
+    name: str = Form(""),
+    description: str = Form(""),
 ) -> AudioUploadAttemptApiResponse:
-    """Upload an audio file for an attempt."""
+    """Upload audio or promote an existing raw upload.
+
+    Three shapes:
+      - **File only** → multipart ``file``: server writes bytes, creates
+        ``uploads_entry`` + full audio chain on top.
+      - **upload_id only** → ``?upload_id=<uuid>`` of an existing upload
+        (e.g. raw bytes captured by the realtime adapter). Server reuses
+        the upload and stacks resource + entry + junctions on top.
+      - **upload_id + file** → client pre-reserved via ``/attempt/audio/new``
+        and now fills the slot. Server writes bytes into that upload's
+        file and then runs the full chain.
+
+    Returns ``{audio_id, audios_id, upload_id}``. Client only needs
+    ``audios_id``; ``upload_id`` is the primitive handed back.
+    """
     try:
         profile_id = http_request.state.profile_id
         session_id = http_request.state.session_id
@@ -48,20 +67,31 @@ async def upload_audio(
                 detail="Profile ID is required. Please sign in again.",
             )
 
-        # -- Validate file -----------------------------------------------------
-        if not file.filename:
-            raise HTTPException(status_code=400, detail="Missing filename")
-
-        content_type = file.content_type or get_content_type(file.filename)
-        if content_type not in ALLOWED_AUDIO_TYPES:
+        if upload_id is None and file is None:
             raise HTTPException(
                 status_code=400,
-                detail=f"Unsupported audio type: {content_type}",
+                detail="Either a multipart 'file' or an 'upload_id' query param is required.",
             )
 
-        file_bytes = await file.read()
-        if not file_bytes:
-            raise HTTPException(status_code=400, detail="Empty file")
+        file_bytes: bytes | None = None
+        filename: str = ""
+        content_type: str = "audio/pcm"
+
+        if file is not None:
+            if not file.filename:
+                raise HTTPException(status_code=400, detail="Missing filename")
+
+            filename = file.filename
+            content_type = file.content_type or get_content_type(filename)
+            if content_type not in ALLOWED_AUDIO_TYPES:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unsupported audio type: {content_type}",
+                )
+
+            file_bytes = await file.read()
+            if not file_bytes:
+                raise HTTPException(status_code=400, detail="Empty file")
 
         # -- Run with audit ----------------------------------------------------
         pool = get_pool()
@@ -81,10 +111,29 @@ async def upload_audio(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
+                upload_id=upload_id,
                 file_bytes=file_bytes,
-                filename=file.filename,
+                filename=filename,
                 content_type=content_type,
                 length_seconds=length_seconds,
+                name=name,
+                description=description,
+            )
+
+        audit_arguments: dict = {
+            "length_seconds": length_seconds,
+        }
+        if upload_id is not None:
+            audit_arguments["upload_id"] = str(upload_id)
+            audit_arguments["mode"] = "promote"
+        else:
+            audit_arguments.update(
+                {
+                    "filename": filename,
+                    "content_type": content_type,
+                    "size": len(file_bytes or b""),
+                    "mode": "file",
+                }
             )
 
         response_data = await run_artifact_operation_with_audit(
@@ -95,12 +144,7 @@ async def upload_audio(
             session_id=session_id,
             group_id=group_id,
             operation="audio_upload",
-            arguments={
-                "filename": file.filename,
-                "content_type": content_type,
-                "size": len(file_bytes),
-                "length_seconds": length_seconds,
-            },
+            arguments=audit_arguments,
             response_model=AudioUploadAttemptApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

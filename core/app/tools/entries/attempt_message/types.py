@@ -19,7 +19,7 @@ class GetAttemptMessageResponse(BaseModel):
     completed: bool | None
     text_id: UUID | None
     history_file_path: str | None
-    audio_id: UUID | None
+    audios_id: UUID | None
     parent_message_id: UUID | None = None
     sibling_index: int | None = None
     sibling_count: int | None = None

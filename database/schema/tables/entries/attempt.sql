@@ -37,6 +37,24 @@ CREATE TABLE public.attempt_archive_entry (
 
 --
 
+-- Name: attempt_audio_entry; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.attempt_audio_entry (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    message_id uuid NOT NULL,
+    audios_id uuid NOT NULL,
+    session_id uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+
 -- Name: attempt_chat_bridge_entry; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -441,6 +459,15 @@ CREATE TABLE public.attempt_responses_entry (
     active boolean DEFAULT true CONSTRAINT responses_entry_active_not_null NOT NULL,
     session_id uuid
 );
+
+
+--
+
+-- Name: attempt_audio_entry attempt_audio_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attempt_audio_entry
+    ADD CONSTRAINT attempt_audio_entry_pkey PRIMARY KEY (id);
 
 
 --

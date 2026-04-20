@@ -2,13 +2,12 @@
 
 import logging
 import uuid
-from pathlib import Path
 from typing import Any
 
-from app.infra.globals import IMAGE_FOLDER, UPLOAD_FOLDER, VIDEO_FOLDER, get_pool
+from app.infra.globals import get_pool, get_redis_client
+from app.infra.media.upload import media_upload_impl
 from app.infra.websocket.adapters.media.base import BaseMediaAdapter, MediaResult
 from app.infra.websocket.find_session_by_socket import find_session_by_socket
-from app.tools.entries.uploads.create import create_upload
 
 try:
     import litellm  # type: ignore
@@ -160,7 +159,6 @@ class LitellmMediaAdapter(BaseMediaAdapter):
 
         return await self._save_media(
             media_bytes=image_bytes,
-            folder=IMAGE_FOLDER,
             modality="image",
             context=ctx,
         )
@@ -285,7 +283,6 @@ class LitellmMediaAdapter(BaseMediaAdapter):
 
         return await self._save_media(
             media_bytes=video_bytes,
-            folder=VIDEO_FOLDER,
             modality="video",
             context=ctx,
         )
@@ -293,55 +290,47 @@ class LitellmMediaAdapter(BaseMediaAdapter):
     async def _save_media(
         self,
         media_bytes: bytes,
-        folder: "Path",
         modality: str,
         context: dict[str, Any],
     ) -> MediaResult:
-        """Save media bytes to disk and create upload record."""
-        # Detect format and determine extension/mime
+        """Persist generated media via the canonical media upload chain.
+
+        Format detection happens here; the full chain (uploads_entry →
+        <m>s_resource → <m>s_entry + junction → <m>_uploads_entry) runs
+        inside ``media_upload_impl``.
+        """
         if modality == "image":
             file_ext, mime_type = self._detect_image_format(media_bytes)
         else:
             file_ext, mime_type = self._detect_video_format(media_bytes)
 
-        # Generate UUID filename and save
-        upload_uuid = uuid.uuid4()
-        file_path = f"{upload_uuid}{file_ext}"
-        full_path = folder / file_path
+        filename = f"{uuid.uuid4()}{file_ext}"
 
-        folder.mkdir(parents=True, exist_ok=True)
-
-        with open(full_path, "wb") as f:
-            f.write(media_bytes)
-
-        file_size = len(media_bytes)
-
-        # Relative path from UPLOAD_FOLDER for storage
-        relative_path = str(full_path.relative_to(UPLOAD_FOLDER))
-
-        # Resolve session from socket context
         sid = context.get("sid", "")
         session_id_str = await find_session_by_socket(sid) if sid else None
         if not session_id_str:
             raise RuntimeError("Session not found for socket — cannot create upload")
+        session_uuid = uuid.UUID(session_id_str)
 
-        pool = get_pool()
-        async with pool.acquire() as conn:
-            upload_result = await create_upload(
-                conn,
-                session_id=uuid.UUID(session_id_str),
-                file_path=relative_path,
-                mime_type=mime_type,
-                size=file_size,
-            )
+        upload_result = await media_upload_impl(
+            get_pool(), get_redis_client(),
+            modality=modality,
+            session_id=session_uuid,
+            file_bytes=media_bytes,
+            filename=filename,
+            content_type=mime_type,
+        )
 
-        upload_id = str(upload_result.id)
+        images_id = str(upload_result.resource_id) if modality == "image" else None
+        videos_id = str(upload_result.resource_id) if modality == "video" else None
 
         result = MediaResult(
-            file_path=relative_path,
-            mime_type=mime_type,
-            file_size=file_size,
-            upload_id=upload_id,
+            file_path=upload_result.file_path,
+            mime_type=upload_result.mime_type,
+            file_size=upload_result.file_size,
+            upload_id=str(upload_result.upload_id),
+            images_id=images_id,
+            videos_id=videos_id,
         )
 
         # Emit completion
@@ -367,7 +356,8 @@ class LitellmMediaAdapter(BaseMediaAdapter):
 
         logger.info(
             f"Media generation completed: modality={modality}, "
-            f"upload_id={upload_id}, file_path={relative_path}, size={file_size}"
+            f"upload_id={upload_id}, images_id={images_id}, videos_id={videos_id}, "
+            f"file_path={relative_path}, size={file_size}"
         )
 
         return result

@@ -33,8 +33,15 @@ from app.infra.tools.execute_infra_operation import (
     InfraContext,
     execute_infra_operation,
 )
+from app.infra.generation.audio import execute_audio_dispatch
+from app.infra.generation.dispatch import resolve_executor
+from app.infra.generation.emit import emit_modality_event
+from app.infra.generation.media import execute_media_dispatch
+from app.infra.generation.stt import execute_stt_dispatch
+from app.infra.generation.tts import execute_tts_dispatch
 from app.infra.tools.resolve_tool_spec import resolve_tool_spec
-from app.infra.websocket.socket_event import internal_event
+from app.infra.websocket.generation_types import GenerateErrorApiRequest
+from app.infra.websocket.socket_event import internal_event, make_emit
 from app.infra.websocket.tool_call_utils import (
     build_tool_output_schemas,
     parse_partial_json,
@@ -166,52 +173,92 @@ async def execute_generation(
     Returns ExecuteGenerationResult with token usage and tool results.
     """
     internal_sio = get_internal_sio()
-    artifact_type = prepared.artifact_type
+    emit = make_emit()
     run_id = prepared.run_id
 
     total_result = ExecuteGenerationResult(run_id=run_id)
+
+    async def _run_one(dispatch: AgentDispatch) -> ExecuteGenerationResult | None:
+        executor = resolve_executor(
+            dispatch.input_modalities, dispatch.output_modalities,
+        )
+        logger.info(
+            f"DISPATCH executor={executor} in={sorted(dispatch.input_modalities)} "
+            f"out={sorted(dispatch.output_modalities)}"
+        )
+
+        if executor == "realtime":
+            await execute_audio_dispatch(
+                dispatch=dispatch, prepared=prepared, sid=sid, emit=emit,
+            )
+            return None
+        if executor == "tts":
+            await execute_tts_dispatch(
+                dispatch=dispatch, prepared=prepared, sid=sid, emit=emit,
+            )
+            return None
+        if executor == "stt":
+            await execute_stt_dispatch(
+                dispatch=dispatch, prepared=prepared, sid=sid, emit=emit,
+            )
+            return None
+        if executor in ("image", "video"):
+            # execute_media_dispatch inspects dispatch.output_modalities itself
+            # for the concrete modality; pass through as-is.
+            await execute_media_dispatch(
+                dispatch=dispatch, prepared=prepared, sid=sid, emit=emit,
+            )
+            return None
+        if executor == "agentic_text":
+            return await _execute_agent_dispatch(
+                pool, redis,
+                dispatch=dispatch,
+                prepared=prepared,
+                sid=sid,
+                tool_soft=tool_soft,
+                max_iterations=max_iterations,
+                internal_sio=internal_sio,
+            )
+
+        await emit_modality_event(
+            emit, "text", "error",
+            GenerateErrorApiRequest(
+                sid=sid,
+                error_message=(
+                    f"Unsupported modality pair: in={sorted(dispatch.input_modalities)}, "
+                    f"out={sorted(dispatch.output_modalities)}"
+                ),
+                artifact_type=prepared.artifact_type,
+                group_id=str(prepared.group_id),
+            ).model_dump(), artifact_type=artifact_type,
+        )
+        return None
 
     # Run all agent dispatches in parallel (enables A/B evals when
     # multiple agents in the winning system handle the same operations)
     if len(prepared.dispatches) > 1:
         import asyncio
         agent_results = await asyncio.gather(
-            *[
-                _execute_agent_dispatch(
-                    pool, redis,
-                    dispatch=dispatch,
-                    prepared=prepared,
-                    sid=sid,
-                    tool_soft=tool_soft,
-                    max_iterations=max_iterations,
-                    internal_sio=internal_sio,
-                )
-                for dispatch in prepared.dispatches
-            ],
+            *[_run_one(dispatch) for dispatch in prepared.dispatches],
             return_exceptions=True,
         )
         for agent_result in agent_results:
             if isinstance(agent_result, Exception):
                 logger.error(f"Agent dispatch failed: {agent_result}")
                 continue
+            if agent_result is None:
+                continue
             total_result.total_input_tokens += agent_result.total_input_tokens
             total_result.total_output_tokens += agent_result.total_output_tokens
             total_result.tool_results.extend(agent_result.tool_results)
             total_result.assistant_output = agent_result.assistant_output
     elif prepared.dispatches:
-        agent_result = await _execute_agent_dispatch(
-            pool, redis,
-            dispatch=prepared.dispatches[0],
-            prepared=prepared,
-            sid=sid,
-            tool_soft=tool_soft,
-            max_iterations=max_iterations,
-            internal_sio=internal_sio,
-        )
-        total_result.total_input_tokens += agent_result.total_input_tokens
-        total_result.total_output_tokens += agent_result.total_output_tokens
-        total_result.tool_results.extend(agent_result.tool_results)
-        total_result.assistant_output = agent_result.assistant_output
+        agent_result = await _run_one(prepared.dispatches[0])
+        if agent_result is not None:
+            total_result.total_input_tokens += agent_result.total_input_tokens
+            total_result.total_output_tokens += agent_result.total_output_tokens
+            total_result.tool_results.extend(agent_result.tool_results)
+            total_result.assistant_output = agent_result.assistant_output
 
     return total_result
 

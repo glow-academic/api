@@ -29,6 +29,7 @@ scenario_videos = [
         mime_type="video/mp4",
         name="Academic Integrity",
         description="Video demonstrating an academic integrity violation scenario",
+        length_seconds=8,
     ),
     dict(
         scenario_id=FERPA_SCENARIO,
@@ -37,6 +38,7 @@ scenario_videos = [
         mime_type="video/mp4",
         name="FERPA Compliance",
         description="Video demonstrating a FERPA privacy violation scenario",
+        length_seconds=8,
     ),
     dict(
         scenario_id=UPSET_STUDENT_SCENARIO,
@@ -45,5 +47,6 @@ scenario_videos = [
         mime_type="video/mp4",
         name="Upset Student",
         description="Video demonstrating an upset student scenario requiring de-escalation",
+        length_seconds=8,
     ),
 ]

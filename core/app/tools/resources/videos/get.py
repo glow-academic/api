@@ -34,11 +34,13 @@ async def get_videos(
 
     rows = await conn.fetch(
         """
-        SELECT id, name, description,
-               created_at, active, generated, mcp
-        FROM videos_resource
-        WHERE id = ANY($1)
-        ORDER BY array_position($1, id)
+        SELECT r.id, r.name, r.description,
+               r.created_at, r.active, r.generated, r.mcp,
+               mv.length_seconds
+        FROM videos_resource r
+        LEFT JOIN videos_mv mv ON mv.videos_id = r.id
+        WHERE r.id = ANY($1)
+        ORDER BY array_position($1, r.id)
     """,
         ids,
     )
@@ -52,6 +54,7 @@ async def get_videos(
             active=r["active"],
             generated=r["generated"],
             mcp=r["mcp"],
+            length_seconds=r["length_seconds"],
         )
         for r in rows
     ]

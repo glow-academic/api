@@ -182,23 +182,9 @@ def _build_refetch_kwargs(
 # ---------------------------------------------------------------------------
 
 
-def _event_name_for_modality(modality: str, phase: str) -> str:
-    """Return event name for a modality/phase pair."""
-    return f"generate_{modality}_{phase}"
-
-
-async def _emit_modality_event(
-    emit: EmitFn,
-    modality: str,
-    phase: str,
-    payload: dict[str, Any],
-) -> None:
-    """Emit a modality-scoped event, falling back to generate_error if unknown."""
-    supported = {"text", "audio", "image", "video", "call"}
-    if modality not in supported:
-        await emit([internal_event("generate_error", payload)])
-        return
-    await emit([internal_event(_event_name_for_modality(modality, phase), payload)])
+from app.infra.generation.emit import (
+    emit_modality_event as _emit_modality_event,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -467,164 +453,94 @@ async def generate_artifact_impl(
         # NOTE: generation_started is emitted by generate_prepare_impl.
         # No duplicate call_start here — that event name is for actual tool calls.
 
-        if data.modality in ("image", "video"):
-            if data.file_path:
-                # Pre-uploaded media passthrough
-                await _emit_modality_event(
-                    emit,
-                    data.modality,
-                    "complete",
-                    {
-                        "modality": data.modality,
-                        "sid": sid,
-                        "artifact_type": data.artifact_type,
-                        "type": "complete",
-                        "event_type": "media_complete",
-                        "resource_type": resource_type,
-                        "resource_id": data.resource_id,
-                        "run_id": data.run_id,
-                        "group_id": data.group_id,
-                        "file_path": data.file_path,
-                        "mime_type": data.mime_type,
-                        "file_size": data.file_size,
-                        "upload_id": data.upload_id,
-                        "metadata": data.metadata,
-                    },
+        if data.modality in ("image", "video") or data.modality == "audio":
+            # Canonical path: delegate to the shared executors in
+            # app.infra.generation so both HTTP and bus-event callers run
+            # the same logic. We adapt GenerateArtifactPayload → AgentDispatch
+            # + a minimal PrepareGenerationResult stub carrying identifiers.
+            from app.infra.generation.audio import execute_audio_dispatch
+            from app.infra.generation.media import execute_media_dispatch
+            from app.infra.generation.types import (
+                AgentDispatch,
+                PrepareGenerationResult,
+            )
+
+            # Map legacy singular modality → (input, output) sets so the new
+            # executors see the same pairing the canonical path would.
+            _meta = data.metadata or {}
+            _conv_id = _meta.get("conversation_id")
+            if _conv_id:
+                _in_mods = {"audio_stream"}
+            elif data.modality == "audio":
+                # Bus-event audio with no conversation_id falls back to TTS
+                _in_mods = {"text"}
+            else:
+                _in_mods = {"text"}
+
+            if data.modality == "audio":
+                _out_mods = (
+                    {"audio", "call", "text"} if _conv_id else {"audio"}
                 )
-                return
+            elif data.modality == "image":
+                _out_mods = {"image"}
+            elif data.modality == "video":
+                _out_mods = {"video"}
+            else:
+                _out_mods = {"text", "call"}
 
-            # AI-generated media via adapter
-            if get_media_adapter_fn is None:
-                from app.infra.websocket.media_lifecycle import get_media_adapter
-
-                get_media_adapter_fn = get_media_adapter
-
-            adapter = get_media_adapter_fn()
-            prompt = data.messages[-1]["content"] if data.messages else ""
-            context = {
-                "sid": sid,
-                "run_id": data.run_id,
-                "group_id": data.group_id,
-                "artifact_type": data.artifact_type,
-                "resource_type": resource_type,
-                "resource_id": data.resource_id,
-                "metadata": data.metadata,
-            }
-
-            try:
-                await adapter.generate(
-                    modality=data.modality,
-                    prompt=prompt,
-                    model=model_config.model,
-                    api_key=decrypted_api_key or "",
-                    base_url=model_config.base_url,
-                    quality=model_config.quality,
-                    extra_body=extra_body or None,
-                    context=context,
-                )
-            except Exception as e:
-                await _emit_modality_event(
-                    emit,
-                    data.modality,
-                    "error",
-                    GenerateErrorApiRequest(
-                        sid=sid,
-                        error_message=f"Media generation failed: {str(e)}",
-                        artifact_type=data.artifact_type,
-                        group_id=data.group_id,
-                        resource_type=resource_type,
-                        resource_id=data.resource_id,
-                    ).model_dump(),
-                )
-            return
-
-        if data.modality == "audio":
-            if get_audio_adapter_fn is None:
-                from app.infra.websocket.audio_lifecycle import get_audio_adapter
-
-                get_audio_adapter_fn = get_audio_adapter
-            if create_session_fn is None or remove_session_fn is None:
-                from app.infra.websocket.session_store import (
-                    create_session,
-                    remove_session,
-                )
-
-                create_session_fn = create_session
-                remove_session_fn = remove_session
-
-            if not decrypted_api_key:
-                await _emit_modality_event(
-                    emit,
-                    "audio",
-                    "error",
-                    GenerateErrorApiRequest(
-                        sid=sid,
-                        error_message="No API key configured for voice mode",
-                        artifact_type=data.artifact_type,
-                        group_id=data.group_id,
-                    ).model_dump(),
-                )
-                return
-
-            voice = model_config.voice or "alloy"
-            group_id = data.group_id or str(uuid.uuid4())
-
-            # Create session -- keyed by chat_id, run_id, group_id
-            chat_id = data.chat_id or group_id
-            metadata = data.metadata or {}
-            session = create_session_fn(
-                sid=sid,
-                chat_id=chat_id,
-                run_id=data.run_id,
-                group_id=group_id,
-                conversation_id=metadata.get("conversation_id"),
+            bridged_dispatch = AgentDispatch(
+                agent_id=uuid.UUID(data.agent_id) if data.agent_id else uuid.UUID(int=0),
+                messages=list(data.messages or []),
+                tools=list(data.tools or []),
+                llm_config={
+                    "model": model_config.model,
+                    "api_key": model_config.api_key,
+                    "base_url": model_config.base_url,
+                    "temperature": model_config.temperature,
+                    "reasoning": model_config.reasoning,
+                    "provider": model_config.provider,
+                    "voice": model_config.voice,
+                    "quality": model_config.quality,
+                    "length_seconds": model_config.length_seconds,
+                    "response_format": model_config.response_format,
+                    "extra_body": model_config.extra_body,
+                    "tool_choice": tool_choice,
+                },
+                resource_types=[resource_type] if resource_type else [],
+                metadata=data.metadata,
+                input_modalities=_in_mods,
+                output_modalities=_out_mods,
+                chat_id=data.chat_id,
+                conversation_id=_conv_id,
+                file_path=data.file_path,
+                mime_type=data.mime_type,
+                file_size=data.file_size,
+                upload_id=data.upload_id,
+                resource_id=data.resource_id,
+            )
+            bridged_prepared = PrepareGenerationResult(
+                run_id=uuid.UUID(data.run_id) if data.run_id else uuid.UUID(int=0),
+                group_id=uuid.UUID(data.group_id) if data.group_id else uuid.UUID(int=0),
+                session_id=uuid.UUID(data.session_id) if data.session_id else uuid.UUID(int=0),
+                profile_id=uuid.UUID(data.profile_id) if data.profile_id else uuid.UUID(int=0),
+                profiles_id=uuid.UUID(data.profiles_id) if data.profiles_id else uuid.UUID(int=0),
                 artifact_type=data.artifact_type,
-                resource_type=resource_type,
-                metadata=metadata,
             )
-            session.tool_output_schemas = tool_output_schemas
-            adapter = get_audio_adapter_fn()
 
-            try:
-                await adapter.initialize_session(
-                    session=session,
-                    api_key=decrypted_api_key,
-                    base_url=model_config.base_url,
-                    model=model_config.model,
-                    voice=voice,
-                    instructions=None,
+            if data.modality == "audio":
+                await execute_audio_dispatch(
+                    dispatch=bridged_dispatch,
+                    prepared=bridged_prepared,
+                    sid=sid,
+                    emit=emit,
                 )
-            except Exception as e:
-                remove_session_fn(group_id)
-                await _emit_modality_event(
-                    emit,
-                    "audio",
-                    "error",
-                    GenerateErrorApiRequest(
-                        sid=sid,
-                        error_message=f"Failed to connect to voice service: {str(e)}",
-                        artifact_type=data.artifact_type,
-                        group_id=group_id,
-                    ).model_dump(),
+            else:
+                await execute_media_dispatch(
+                    dispatch=bridged_dispatch,
+                    prepared=bridged_prepared,
+                    sid=sid,
+                    emit=emit,
                 )
-                return
-
-            # Only emit group_id -- domain translators resolve chat_id from session
-            await emit(
-                [
-                    internal_event(
-                        "generate_audio_session_start",
-                        {
-                            "sid": sid,
-                            "group_id": group_id,
-                            "artifact_type": data.artifact_type,
-                            "type": "start",
-                            "message": "Audio session ready",
-                            "metadata": data.metadata,
-                        },
-                    )
-                ]
-            )
             return
 
         # Agentic loop - allows model to see tool results and retry on errors

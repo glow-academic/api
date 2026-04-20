@@ -285,10 +285,10 @@ async def get_cohort_impl(
         CohortSimulationAvailability,
         CohortSimulationPosition,
     )
-    from app.infra.helpers import dedupe_by_id
+    from app.infra.helpers import sorted_dedupe_by_id
 
     names = _with_flags(
-        items=dedupe_by_id(cohort.resources["names"].selected + cohort.resources["names"].suggestions),
+        items=sorted_dedupe_by_id(cohort.resources["names"].suggestions + cohort.resources["names"].selected),
         selected_ids=selected_names,
         suggested_ids=suggested_names,
         pending_ids=pending_ids,
@@ -302,9 +302,9 @@ async def get_cohort_impl(
         filters=effective_filters,
     )
     descriptions = _with_flags(
-        items=dedupe_by_id(
-            cohort.resources["descriptions"].selected
-            + cohort.resources["descriptions"].suggestions
+        items=sorted_dedupe_by_id(
+            cohort.resources["descriptions"].suggestions
+            + cohort.resources["descriptions"].selected
         ),
         selected_ids=selected_descriptions,
         suggested_ids=suggested_descriptions,
@@ -319,7 +319,7 @@ async def get_cohort_impl(
         filters=effective_filters,
     )
     flags = _with_flags(
-        items=dedupe_by_id(cohort.resources["flags"].selected + cohort.resources["flags"].suggestions),
+        items=sorted_dedupe_by_id(cohort.resources["flags"].suggestions + cohort.resources["flags"].selected),
         selected_ids=selected_flags,
         suggested_ids=suggested_flags,
         pending_ids=pending_ids,
@@ -338,9 +338,9 @@ async def get_cohort_impl(
         filters=effective_filters,
     )
     departments = _with_flags(
-        items=dedupe_by_id(
-            cohort.resources["departments"].selected
-            + cohort.resources["departments"].suggestions
+        items=sorted_dedupe_by_id(
+            cohort.resources["departments"].suggestions
+            + cohort.resources["departments"].selected
         ),
         selected_ids=selected_departments,
         suggested_ids=suggested_departments,
@@ -356,9 +356,9 @@ async def get_cohort_impl(
         filters=effective_filters,
     )
     simulations = _with_flags(
-        items=dedupe_by_id(
-            cohort.resources["simulations"].selected
-            + cohort.resources["simulations"].suggestions
+        items=sorted_dedupe_by_id(
+            cohort.resources["simulations"].suggestions
+            + cohort.resources["simulations"].selected
         ),
         selected_ids=selected_simulations,
         suggested_ids=suggested_simulations,
@@ -374,9 +374,9 @@ async def get_cohort_impl(
         filters=effective_filters,
     )
     simulation_positions = _with_flags(
-        items=dedupe_by_id(
-            cohort.resources["simulation_positions"].selected
-            + cohort.resources["simulation_positions"].suggestions
+        items=sorted_dedupe_by_id(
+            cohort.resources["simulation_positions"].suggestions
+            + cohort.resources["simulation_positions"].selected
         ),
         selected_ids=selected_simulation_positions,
         suggested_ids=suggested_simulation_positions,
@@ -393,9 +393,9 @@ async def get_cohort_impl(
         filters=effective_filters,
     )
     simulation_availability = _with_flags(
-        items=dedupe_by_id(
-            cohort.resources["simulation_availability"].selected
-            + cohort.resources["simulation_availability"].suggestions
+        items=sorted_dedupe_by_id(
+            cohort.resources["simulation_availability"].suggestions
+            + cohort.resources["simulation_availability"].selected
         ),
         selected_ids=selected_simulation_availability,
         suggested_ids=suggested_simulation_availability,
@@ -413,8 +413,8 @@ async def get_cohort_impl(
         filters=effective_filters,
     )
     profiles = _with_flags(
-        items=dedupe_by_id(
-            cohort.resources["profiles"].selected + cohort.resources["profiles"].suggestions
+        items=sorted_dedupe_by_id(
+            cohort.resources["profiles"].suggestions + cohort.resources["profiles"].selected
         ),
         selected_ids=selected_profiles,
         suggested_ids=suggested_profiles,
@@ -431,9 +431,9 @@ async def get_cohort_impl(
         filters=effective_filters,
     )
     profile_personas = _with_flags(
-        items=dedupe_by_id(
-            cohort.resources["profile_personas"].selected
-            + cohort.resources["profile_personas"].suggestions
+        items=sorted_dedupe_by_id(
+            cohort.resources["profile_personas"].suggestions
+            + cohort.resources["profile_personas"].selected
         ),
         selected_ids=selected_profile_personas,
         suggested_ids=set(),
@@ -450,7 +450,7 @@ async def get_cohort_impl(
         filters=effective_filters,
     )
     personas = _with_flags(
-        items=dedupe_by_id(cohort.resources["personas"].suggestions),
+        items=sorted_dedupe_by_id(cohort.resources["personas"].suggestions),
         selected_ids=set(),
         suggested_ids={item.id for item in cohort.resources["personas"].suggestions if item.id},
         pending_ids=pending_ids,

@@ -1,0 +1,25 @@
+## Context
+
+**Chat ID:** `019daaca-5137-7ea7-a817-f2d6039df0f8`
+**Attempt ID:** `019daaca-38a7-7a31-88fa-5c69851951ee`
+
+**Group ID:** `019daacc-af6f-72c6-b226-177e4bbf20ca`
+
+## Tools
+
+
+
+## Steps
+
+1. Call **Attempt_Get**(attempt_id: "019daaca-38a7-7a31-88fa-5c69851951ee") to get persona context
+2. Read the personas and find your `persona_id` from "Your Persona ID"
+3. Call **Attempt_Chat_Message** with:
+   - `chat_id`: `"019daaca-5137-7ea7-a817-f2d6039df0f8"`
+   - `persona_id`: your persona ID from step 1
+   - `text`: your in-character response
+
+**Rules:**
+- Stay in character — you are the persona assigned to this chat
+- Respond naturally to what the user said
+- Always pass `persona_id` — get it from `Attempt_Get`
+- Do NOT output plain text — use the tool call

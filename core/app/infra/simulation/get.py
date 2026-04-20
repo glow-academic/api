@@ -10,7 +10,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.common_context import resolve_common_context
-from app.infra.helpers import dedupe_by_id
+from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.simulation.context import resolve_simulation_context
 from app.infra.simulation.permissions import (
     SIMULATION_RESOURCES,
@@ -306,35 +306,35 @@ async def get_simulation_impl(
 
     pending_ids = set(simulation.entries.get("pending_ids", set()) or set())
 
-    all_names = dedupe_by_id(
-        simulation.resources["names"].selected + simulation.resources["names"].suggestions
+    all_names = sorted_dedupe_by_id(
+        simulation.resources["names"].suggestions + simulation.resources["names"].selected
     )
-    all_descriptions = dedupe_by_id(
-        simulation.resources["descriptions"].selected
-        + simulation.resources["descriptions"].suggestions
+    all_descriptions = sorted_dedupe_by_id(
+        simulation.resources["descriptions"].suggestions
+        + simulation.resources["descriptions"].selected
     )
-    all_flags = dedupe_by_id(
-        simulation.resources["flags"].selected + simulation.resources["flags"].suggestions
+    all_flags = sorted_dedupe_by_id(
+        simulation.resources["flags"].suggestions + simulation.resources["flags"].selected
     )
-    all_departments = dedupe_by_id(
-        simulation.resources["departments"].selected
-        + simulation.resources["departments"].suggestions
+    all_departments = sorted_dedupe_by_id(
+        simulation.resources["departments"].suggestions
+        + simulation.resources["departments"].selected
     )
-    all_scenarios = dedupe_by_id(
-        simulation.resources["scenarios"].selected
-        + simulation.resources["scenarios"].suggestions
+    all_scenarios = sorted_dedupe_by_id(
+        simulation.resources["scenarios"].suggestions
+        + simulation.resources["scenarios"].selected
     )
-    all_scenario_positions = dedupe_by_id(
-        simulation.resources["scenario_positions"].selected
-        + simulation.resources["scenario_positions"].suggestions
+    all_scenario_positions = sorted_dedupe_by_id(
+        simulation.resources["scenario_positions"].suggestions
+        + simulation.resources["scenario_positions"].selected
     )
-    all_scenario_rubrics = dedupe_by_id(
-        simulation.resources["scenario_rubrics"].selected
-        + simulation.resources["scenario_rubrics"].suggestions
+    all_scenario_rubrics = sorted_dedupe_by_id(
+        simulation.resources["scenario_rubrics"].suggestions
+        + simulation.resources["scenario_rubrics"].selected
     )
-    all_scenario_time_limits = dedupe_by_id(
-        simulation.resources["scenario_time_limits"].selected
-        + simulation.resources["scenario_time_limits"].suggestions
+    all_scenario_time_limits = sorted_dedupe_by_id(
+        simulation.resources["scenario_time_limits"].suggestions
+        + simulation.resources["scenario_time_limits"].selected
     )
 
     suggested_sets = {

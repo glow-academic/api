@@ -1,4 +1,8 @@
-"""Output: generate_call_complete (test grade) — bridge into test grading."""
+"""Output: test.generate.call.complete (grade bridge).
+
+Subscribes to the canonical ``test.generate.call.complete`` and — when
+the payload is scoped to test grading — drives ``test_grade_complete_impl``.
+"""
 
 from typing import Any
 from uuid import UUID
@@ -13,10 +17,8 @@ from app.infra.websocket.socket_event import make_emit
 internal_sio = get_internal_sio()
 
 
-@internal_sio.on("generate_call_complete")  # type: ignore
-async def generate_grade_output(data: dict[str, Any]) -> None:
-    if data.get("artifact_type") != "test":
-        return
+@internal_sio.on("test.generate.call.complete")  # type: ignore
+async def test_generate_call_complete_grade(data: dict[str, Any]) -> None:
     if data.get("resource_type") != "grade":
         return
 
@@ -31,7 +33,10 @@ async def generate_grade_output(data: dict[str, Any]) -> None:
     call_id = data.get("call_id")
     if call_id:
         append_call_event(
-            UUID(call_id), "generate_call_complete_grade", data, UPLOAD_FOLDER
+            UUID(call_id),
+            "test.generate.call.complete.grade",
+            data,
+            UPLOAD_FOLDER,
         )
 
     invocation_id = data.get("invocation_id") or data.get("chat_id")

@@ -14,3 +14,4 @@ class GetVideoResponse(BaseModel):
     active: bool
     generated: bool
     mcp: bool
+    length_seconds: int | None = None

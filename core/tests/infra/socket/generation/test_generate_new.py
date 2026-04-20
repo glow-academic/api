@@ -186,7 +186,7 @@ class TestGenerateNewImpl:
         assert events[0].event == "attempt_error"
         assert events[0].data["error_type"] == "rate_limit"
         assert events[0].data["chat_id"] == "c1"
-        assert events[1].event == "generate_audio_session_complete"
+        assert events[1].event == "attempt.generate.audio.session_complete"
 
     async def test_audio_continuation_rotates_run_id(self, pool):
         emit, events = recording_emit()

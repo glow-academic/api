@@ -29,7 +29,6 @@ from app.infra.websocket.prepare_types import (
     LLMConfig,
     MessageSpec,
 )
-from app.registry.modalities import get_tool_output_modalities
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -55,33 +54,6 @@ def validate_payload(
         return f"draft_id is required for {artifact_type} generation"
 
     return None
-
-
-# ---------------------------------------------------------------------------
-# Agent group building
-# ---------------------------------------------------------------------------
-
-
-def compute_agent_modalities(
-    agent_id: UUID,
-    agents_by_id: dict[UUID, Any],
-    tools_by_id: dict[UUID, Any],
-) -> frozenset[str]:
-    """Compute output modalities an agent supports from its tools."""
-    agent = agents_by_id.get(agent_id)
-    if not agent:
-        return frozenset({"call"})
-    modalities: set[str] = set()
-    for tid in getattr(agent, "tool_ids", None) or []:
-        tool = tools_by_id.get(tid)
-        if tool:
-            modalities |= get_tool_output_modalities(
-                getattr(tool, "operation", None),
-                getattr(tool, "resources", None),
-                getattr(tool, "entries", None),
-                getattr(tool, "artifacts", None),
-            )
-    return frozenset(modalities) if modalities else frozenset({"call"})
 
 
 # ---------------------------------------------------------------------------
@@ -507,11 +479,17 @@ def build_agent_groups_from_scores(
     operations: list[str] | None = None,
     artifact_type: str = "",
     tool_graph: Any | None = None,
+    modalities: list[str] | None = None,
 ) -> dict[UUID, list[str]]:
     """Map to agent_id groups using operations or resource_types.
 
     New path (operations): convert to (artifact_type, operation) pairs and match
     against the tool graph's ResolvedTools. Groups by agent_id → [targets...].
+
+    When ``modalities`` is provided, agents are additionally filtered so that
+    only those whose model's output modalities cover every requested modality
+    are eligible — preventing e.g. a text-only agent from being dispatched for
+    an audio-modality request.
 
     Fallback path (resource_types): match resource_types against
     ArtifactToolScores.best. Groups by agent_id → [resource_types...].
@@ -526,6 +504,17 @@ def build_agent_groups_from_scores(
                 winning_system_id = best_tool.system_id
                 break
 
+    # Per-agent modality eligibility
+    agent_out_mods: dict[UUID, set[str]] = (
+        getattr(tool_graph, "agent_output_modalities", {}) or {}
+    )
+    required_mods = set(modalities or [])
+
+    def _agent_eligible(agent_id: UUID) -> bool:
+        if not required_mods:
+            return True
+        return required_mods <= agent_out_mods.get(agent_id, set())
+
     # Operations-based matching via tool graph
     # Include ALL agents from the winning system that can handle the operations
     if operations and tool_graph and hasattr(tool_graph, "tools"):
@@ -533,6 +522,8 @@ def build_agent_groups_from_scores(
         for resolved_tool in tool_graph.tools:
             # Filter to winning system only
             if winning_system_id and resolved_tool.system_id != winning_system_id:
+                continue
+            if not _agent_eligible(resolved_tool.agent_id):
                 continue
             if (resolved_tool.target, resolved_tool.operation) in perm_set:
                 agent_groups.setdefault(resolved_tool.agent_id, []).append(
@@ -548,7 +539,7 @@ def build_agent_groups_from_scores(
     # Fallback: resource_type scoring (winning system only)
     for rt in resource_types:
         best = scores.best.get(rt)
-        if best is not None:
+        if best is not None and _agent_eligible(best.agent_id):
             agent_groups.setdefault(best.agent_id, []).append(rt)
 
     return agent_groups

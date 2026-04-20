@@ -27,7 +27,7 @@ from app.infra.auth.permissions import (
 )
 from app.infra.auth.permissions_context import resolve_auth_permissions_context
 from app.infra.common_context import resolve_common_context
-from app.infra.helpers import dedupe_by_id
+from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.tool_graph import score_tools
 from app.infra.auth.types import (
     AuthDepartmentResource,
@@ -163,7 +163,7 @@ async def get_auth_impl(
     if include["names"]:
         selected_ids = {item.id for item in auth_ctx.resources["names"].selected if item.id}
         suggested_ids = {item.id for item in auth_ctx.resources["names"].suggestions if item.id}
-        merged = dedupe_by_id(auth_ctx.resources["names"].selected + auth_ctx.resources["names"].suggestions)
+        merged = sorted_dedupe_by_id(auth_ctx.resources["names"].suggestions + auth_ctx.resources["names"].selected)
         names = _filter_resources(
             [
                 AuthNameResource(
@@ -184,7 +184,7 @@ async def get_auth_impl(
     if include["descriptions"]:
         selected_ids = {item.id for item in auth_ctx.resources["descriptions"].selected if item.id}
         suggested_ids = {item.id for item in auth_ctx.resources["descriptions"].suggestions if item.id}
-        merged = dedupe_by_id(auth_ctx.resources["descriptions"].selected + auth_ctx.resources["descriptions"].suggestions)
+        merged = sorted_dedupe_by_id(auth_ctx.resources["descriptions"].suggestions + auth_ctx.resources["descriptions"].selected)
         descriptions = _filter_resources(
             [
                 AuthDescriptionResource(
@@ -205,7 +205,7 @@ async def get_auth_impl(
     if include["flags"]:
         selected_ids = {item.id for item in auth_ctx.resources["flags"].selected if item.id}
         suggested_ids = {item.id for item in auth_ctx.resources["flags"].suggestions if item.id}
-        merged = dedupe_by_id(auth_ctx.resources["flags"].selected + auth_ctx.resources["flags"].suggestions)
+        merged = sorted_dedupe_by_id(auth_ctx.resources["flags"].suggestions + auth_ctx.resources["flags"].selected)
         flags = _filter_resources(
             [
                 AuthFlagConfig(
@@ -232,7 +232,7 @@ async def get_auth_impl(
     if include["departments"]:
         selected_ids = {item.id for item in auth_ctx.resources["departments"].selected if item.id}
         suggested_ids = {item.id for item in auth_ctx.resources["departments"].suggestions if item.id}
-        merged = dedupe_by_id(auth_ctx.resources["departments"].selected + auth_ctx.resources["departments"].suggestions)
+        merged = sorted_dedupe_by_id(auth_ctx.resources["departments"].suggestions + auth_ctx.resources["departments"].selected)
         departments = _filter_resources(
             [
                 AuthDepartmentResource(
@@ -254,7 +254,7 @@ async def get_auth_impl(
     if include["protocols"]:
         selected_ids = {item.id for item in auth_ctx.resources["protocols"].selected if item.id}
         suggested_ids = {item.id for item in auth_ctx.resources["protocols"].suggestions if item.id}
-        merged = dedupe_by_id(auth_ctx.resources["protocols"].selected + auth_ctx.resources["protocols"].suggestions)
+        merged = sorted_dedupe_by_id(auth_ctx.resources["protocols"].suggestions + auth_ctx.resources["protocols"].selected)
         protocols = _filter_resources(
             [
                 AuthProtocolResource(
@@ -275,7 +275,7 @@ async def get_auth_impl(
     if include["slugs"]:
         selected_ids = {item.id for item in auth_ctx.resources["slugs"].selected if item.id}
         suggested_ids = {item.id for item in auth_ctx.resources["slugs"].suggestions if item.id}
-        merged = dedupe_by_id(auth_ctx.resources["slugs"].selected + auth_ctx.resources["slugs"].suggestions)
+        merged = sorted_dedupe_by_id(auth_ctx.resources["slugs"].suggestions + auth_ctx.resources["slugs"].selected)
         slugs = _filter_resources(
             [
                 AuthSlugResource(
@@ -296,7 +296,7 @@ async def get_auth_impl(
     if include["items"]:
         selected_ids = {item.id for item in auth_ctx.resources["items"].selected if item.id}
         suggested_ids = {item.id for item in auth_ctx.resources["items"].suggestions if item.id}
-        merged = dedupe_by_id(auth_ctx.resources["items"].selected + auth_ctx.resources["items"].suggestions)
+        merged = sorted_dedupe_by_id(auth_ctx.resources["items"].suggestions + auth_ctx.resources["items"].selected)
         items = _filter_resources(
             [
                 AuthItemResource(

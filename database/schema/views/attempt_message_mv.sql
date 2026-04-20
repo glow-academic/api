@@ -48,12 +48,17 @@ CREATE MATERIALIZED VIEW public.attempt_message_mv AS
     mt.completed,
     NULL::uuid AS text_id,
     NULL::text AS history_file_path,
-    NULL::uuid AS audio_id,
+    latest_audio.audios_id,
     tree.parent_id AS parent_message_id,
     (row_number() OVER (PARTITION BY COALESCE(tree.parent_id, mt.chat_id) ORDER BY mt.created_at, mt.message_id))::integer AS sibling_index,
     (count(*) OVER (PARTITION BY COALESCE(tree.parent_id, mt.chat_id)))::integer AS sibling_count
-   FROM (message_type mt
+   FROM ((message_type mt
      LEFT JOIN public.attempt_message_tree_entry tree ON (((tree.child_id = mt.message_id) AND (tree.active = true))))
+     LEFT JOIN LATERAL ( SELECT aae.audios_id
+           FROM public.attempt_audio_entry aae
+          WHERE ((aae.message_id = mt.message_id) AND (aae.active = true))
+          ORDER BY aae.created_at DESC
+         LIMIT 1) latest_audio ON (true))
   WITH NO DATA;
 
 

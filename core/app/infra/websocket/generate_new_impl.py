@@ -105,7 +105,7 @@ async def generate_new_impl(
                                     },
                                 ),
                                 internal_event(
-                                    "generate_audio_session_complete",
+                                    "attempt.generate.audio.session_complete",
                                     {"group_id": group_id, "sid": sid},
                                 ),
                             ]

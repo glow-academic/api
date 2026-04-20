@@ -20,6 +20,24 @@ ALTER TABLE ONLY public.attempt_archive_entry
 
 --
 
+-- Name: attempt_audio_entry attempt_audio_entry_audios_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attempt_audio_entry
+    ADD CONSTRAINT attempt_audio_entry_audios_id_fkey FOREIGN KEY (audios_id) REFERENCES public.audios_resource(id);
+
+
+--
+
+-- Name: attempt_audio_entry attempt_audio_entry_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attempt_audio_entry
+    ADD CONSTRAINT attempt_audio_entry_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.attempt_message_entry(id) ON DELETE CASCADE;
+
+
+--
+
 -- Name: attempt_chat_bridge_entry attempt_chat_bridge_entry_attempt_chat_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 

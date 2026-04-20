@@ -15,31 +15,31 @@ async def test_audio_start_result_model_fields():
     """AudioStartInternalResult carries expected fields."""
     result = AudioStartInternalResult(
         chat_id="chat-1",
-        run_id="run-1",
-        group_id="group-1",
         attempt_id="attempt-1",
+        conversation_id="conv-1",
+        group_id="group-1",
     )
 
     assert result.chat_id == "chat-1"
-    assert result.run_id == "run-1"
-    assert result.group_id == "group-1"
     assert result.attempt_id == "attempt-1"
+    assert result.conversation_id == "conv-1"
+    assert result.group_id == "group-1"
 
 
 async def test_audio_start_result_serialization():
     """AudioStartInternalResult serializes to dict correctly."""
     result = AudioStartInternalResult(
         chat_id="c1",
-        run_id="r1",
-        group_id="g1",
         attempt_id="a1",
+        conversation_id="v1",
+        group_id="g1",
     )
     data = result.model_dump()
 
     assert data["chat_id"] == "c1"
-    assert data["run_id"] == "r1"
-    assert data["group_id"] == "g1"
     assert data["attempt_id"] == "a1"
+    assert data["conversation_id"] == "v1"
+    assert data["group_id"] == "g1"
 
 
 async def test_audio_start_internal_impl_raises_without_profile(monkeypatch):

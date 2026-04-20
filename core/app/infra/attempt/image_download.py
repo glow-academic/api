@@ -20,11 +20,10 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.attempt.media_types import ImageDownloadAttemptApiResult
-from app.infra.globals import IMAGE_FOLDER
+from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.tools.entries.image_uploads.search import search_image_uploads
-from app.tools.entries.uploads.get import get_upload
+from app.tools.entries.images.search import search_images
 
 
 async def image_download_attempt_impl(
@@ -35,14 +34,13 @@ async def image_download_attempt_impl(
     image_id: UUID,
     session_id: UUID | None = None,
 ) -> ImageDownloadAttemptApiResult:
-    """Resolve an image entry to its file on disk.
+    """Resolve an image resource to its file on disk.
 
     Flow:
       1. resolve_profile_identity_context -> role, permissions
       2. has_permission check (attempt:image_download)
-      3. search_image_uploads(image_ids=[image_id]) -> upload_id
-      4. get_upload(upload_id) -> file_path, mime_type, size
-      5. Verify file exists on disk
+      3. search_images(images_ids=[image_id]) -> file_path, mime_type, size
+      4. Verify file exists on disk
     """
     # -- Step 1: Profile context -----------------------------------------------
     profile = await resolve_profile_identity_context(
@@ -61,34 +59,28 @@ async def image_download_attempt_impl(
             detail="You don't have permission to download attempt images.",
         )
 
-    # -- Step 3: Resolve image_id -> upload_id ---------------------------------
+    # -- Step 3: Resolve images_id -> file metadata via images_mv --------------
     async with pool.acquire() as conn:
-        junctions = await search_image_uploads(conn, image_ids=[image_id], limit=1)
+        results = await search_images(conn, images_ids=[image_id], limit=1)
 
-        if not junctions:
-            raise HTTPException(
-                status_code=404,
-                detail="No upload found for this image.",
-            )
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="No upload found for this image.",
+        )
 
-        upload_id = junctions[0].upload_id
+    image_record = results[0]
 
-        # -- Step 4: Resolve upload_id -> file metadata ------------------------
-        upload = await get_upload(conn, upload_id)
-
-    if upload is None:
-        raise HTTPException(status_code=404, detail="Upload record not found.")
-
-    # -- Step 5: Verify file on disk -------------------------------------------
-    file_path = os.path.join(IMAGE_FOLDER, os.path.basename(upload.file_path))
+    # -- Step 4: Verify file on disk -------------------------------------------
+    file_path = os.path.join(UPLOAD_FOLDER, image_record.file_path)
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Image file not found on disk.")
 
     return ImageDownloadAttemptApiResult(
-        upload_id=upload.id,
+        upload_id=image_record.upload_id,
         file_path=file_path,
-        content_type=upload.mime_type,
-        filename=os.path.basename(upload.file_path),
-        size=upload.size,
+        content_type=image_record.mime_type,
+        filename=os.path.basename(image_record.file_path),
+        size=image_record.size,
     )
