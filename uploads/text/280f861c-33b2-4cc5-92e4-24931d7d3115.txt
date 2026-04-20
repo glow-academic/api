@@ -1,9 +1,0 @@
-INPUT:
-  chat_id: 019da14b-45f8-7e5f-b10a-223ae4264147
-  text: Wait, so I’m still not sure I get it. I thought it was supposed to work the other way around? Like, isn’t it that you only have to do that if something else happens first? Or am I just totally off? Can you maybe explain it one more time, but a bit simpler?
-  persona_id: 019da14b-45f5-7ecb-a606-e7d8bd1e700e
-
-OUTPUT:
-Message sent.
-- **Accepted:** 
-- **Message ID:** `019da14b-9a7d-7c0e-a6a8-46597bb94951`

@@ -1,1 +1,0 @@
-{"upload_id": "019d835f-d8d5-7196-8bdd-31965ec398ec", "file_path": "/Users/ashoksaravanan/Coding/learnloopllc-glow-api/uploads/text/ebbadcfa-99e1-4bac-b9f0-f248a61655c2.txt", "content_type": "text/plain", "filename": "ebbadcfa-99e1-4bac-b9f0-f248a61655c2.txt", "size": 77, "content": "Color generated and saved: #4A90D9. Group name set to \"Blue Color Selection\"."}

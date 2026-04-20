@@ -1,3 +1,0 @@
-{
-  "result": "Grading complete. All rubric categories scored 1/5 due to inability to retrieve the agent's output (404 errors on both tool calls). No evidence was available to evaluate any aspect of the persona resource."
-}

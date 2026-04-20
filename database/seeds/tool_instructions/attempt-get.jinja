@@ -35,6 +35,32 @@
 {% endfor -%}
 {% endif %}
 
+{% if r.entries and r.entries.attempt_chat and r.resources and (r.resources.questions or {}) -%}
+### Quiz Responses
+{% for chat in r.entries.attempt_chat -%}
+{% set chat_qids = chat.question_ids or [] -%}
+{% if chat_qids -%}
+**Chat `{{ chat.id }}`:**
+{% set response_map = {} -%}
+{% for resp in (chat.responses or []) -%}
+{% if response_map.update({ (resp.question_id | string): (resp.option_id | string) }) -%}{% endif -%}
+{% endfor -%}
+{% for qid in chat_qids -%}
+{% set q = r.resources.questions.get(qid | string) if r.resources.questions else none -%}
+{% if q -%}
+- `{{ qid }}` — {{ q.question_text }}{% if q.times %} [t={{ q.times | join(',') }}s]{% endif %}
+{% set picked_oid = response_map.get(qid | string) -%}
+{% for oid, opt in (r.resources.options or {}).items() -%}
+{% if (opt.question_id | string) == (qid | string) -%}
+  - `{{ oid }}` — {{ opt.option_text }} {% if opt.is_correct %}**(correct)**{% else %}(incorrect){% endif %}{% if oid == picked_oid %} **← user picked**{% endif %}
+{% endif -%}
+{% endfor -%}
+{% endif -%}
+{% endfor -%}
+{% endif -%}
+{% endfor %}
+{% endif -%}
+
 {% if r.rubric_structure and r.rubric_structure.standard_groups -%}
 ### Rubric
 {% for group_id, standard_ids in r.rubric_structure.standard_groups.items() -%}

@@ -1,1 +1,0 @@
-{"success": false, "message": "'GetTestGradeResponse' object has no attribute 'grade_id'"}

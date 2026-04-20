@@ -1,1 +1,0 @@
-{"success": true, "message": "Response submitted", "is_correct": null, "response_id": "019dab05-8046-7e09-8a04-8fe275923652"}

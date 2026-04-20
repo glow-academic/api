@@ -1,2 +1,0 @@
-- Selected color: Blue (#3b82f6) has been set for the persona draft.
-- Group named: "Blue Color Selection"

@@ -1,9 +1,0 @@
-INPUT:
-  chat_id: 019da174-1ae6-7a29-97e3-8f45aa5c3233
-  text: Wait, so I’m still not sure I get it. I thought you just had to follow the steps exactly as they’re written, and then it always works out? But you’re saying there’s more to it? Does it have to do with, like, using your own judgment or something? I’m honestly confused.
-  persona_id: 019da174-1ae3-7f26-9d4d-011b2481e10f
-
-OUTPUT:
-Message sent.
-- **Accepted:** 
-- **Message ID:** `019da174-877b-7138-b6dd-539f0040dee6`

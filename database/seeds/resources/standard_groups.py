@@ -35,7 +35,7 @@ standard_groups = [
         id=sid("standard-group/communication"),
         name="Interpersonal communication and professionalism",
         short_name="Communication",
-        description="Flexibility in teaching approach based on student personality and needs.",
+        description="Clarity, respect, and professionalism in all student interactions, including tone, boundaries, and timing.",
         points=5,
         pass_points=4,
     ),

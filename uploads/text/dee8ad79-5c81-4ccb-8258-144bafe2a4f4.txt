@@ -1,1 +1,0 @@
-{"success": true, "draft_id": "019d7db9-1b47-779b-a826-0f82075c7e2d", "message": "Draft created successfully", "form_state": {"name_id": null, "description_id": null, "instructions_id": null, "color_id": "019d7db9-1b45-759c-984f-54734848f234", "icon_id": null, "active_flag_id": null, "department_ids": [], "example_ids": [], "parameter_field_ids": [], "voice_ids": []}}

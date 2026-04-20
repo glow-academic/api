@@ -1,9 +1,0 @@
-INPUT:
-  group_id: 019d8d16-47a2-795c-b698-f09a700382f0
-  name: Blue Color Selection
-
-OUTPUT:
-### Group Resolved
-- **Group ID:** `019d8d16-47a2-795c-b698-f09a700382f0`
-- **Group Name ID:** `019d8d16-93f3-7970-9a85-a12fcea1ce62`
-- **Name:** Blue Color Selection

@@ -1,6 +1,0 @@
-INPUT:
-  chat_entry_id: 019d96a0-5b01-7a77-8055-78389e55f4d5
-  draft_id: 019d96a0-5b01-7a77-8055-78389e55f4d5
-
-OUTPUT:
-Get the full configuration for a chat within an attempt. Pass chat_entry_id to see the scenario setup, resource IDs, and flags.

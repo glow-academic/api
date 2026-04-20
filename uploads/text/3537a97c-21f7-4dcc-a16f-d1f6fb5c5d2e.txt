@@ -1,9 +1,0 @@
-INPUT:
-  group_id: 019daab5-a426-71d1-95cb-fd3449f42ebe
-  name: FERPA Office Hours Scenario
-
-OUTPUT:
-Group resolved.
-- **Group ID:** `019daab5-a426-71d1-95cb-fd3449f42ebe`
-- **Group Name ID:** `019daab5-bcb9-78f7-98c3-472350e342f8`
-- **Name:** FERPA Office Hours Scenario

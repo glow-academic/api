@@ -1,1 +1,0 @@
-{"success": false, "message": "cannot refresh materialized view \"public.persona_drafts_mv\" concurrently\nHINT:  Create a unique index with no WHERE clause on one or more columns of the materialized view."}

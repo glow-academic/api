@@ -1,9 +1,0 @@
-INPUT:
-  chat_id: 019d9e76-950f-786b-97dc-e4b8344db649
-  text: Thank you for bringing this to my attention. Can you tell me exactly what happened and who was involved? I want to make sure we address this properly and follow the correct procedures.
-  persona_id: 019d9e76-8e7e-7e2d-8e7e-7e2d8e7e7e2d
-
-OUTPUT:
-Message sent.
-- **Accepted:** 
-- **Message ID:** ``

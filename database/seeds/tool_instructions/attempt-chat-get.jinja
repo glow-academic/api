@@ -77,8 +77,20 @@
 {{ render_compressed(r.problem_statements, 'Problem Statements (pick 1)', 'problem_statement', 500) -}}
 {{ render_compressed(r.objectives, 'Objectives (pass texts or create new)', 'objective', 200) -}}
 {{ render_with_ids(r.videos, 'Videos (pass video_id — required for questions)', 'video_id', 'name', 60) -}}
+{% set selected_questions = (r.questions | selectattr('selected') | list) if r.questions else [] -%}
+{% if selected_questions -%}
+**Questions & Options (with `is_correct` flags — use for grading):**
+{% for q in selected_questions -%}
+- `{{ q.question_id }}` — {{ q.question_text }}{% if q.time is not none %} [t={{ q.time }}s]{% endif %}
+{% set q_options = (r.options | selectattr('question_id', 'equalto', q.question_id) | list) if r.options else [] -%}
+{% for opt in q_options -%}
+  - `{{ opt.option_id }}` — {{ opt.option_text }} {% if opt.is_correct %}**(correct)**{% else %}(incorrect){% endif %}
+{% endfor -%}
+{% endfor -%}
+{% else -%}
 {{ render_compressed(r.questions, 'Questions (pass texts or create new — require video)', 'question_text', 200) -}}
 {{ render_compressed(r.options, 'Options', 'option_text', 60) -}}
+{% endif -%}
 {{ render_with_ids(r.images, 'Images (pass image_id — chat mode only)', 'image_id', 'name', 60) -}}
 {% elif results and results[0] and results[0].error %}
 Error fetching chat bundle: {{ results[0].error }}

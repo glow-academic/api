@@ -1,7 +1,0 @@
-INPUT:
-  grade_id: 019da380-d50d-7a37-b487-d36a6e794437
-  content: The trainee did not engage meaningfully with the student's confusion or needs. The only response was a generic greeting, which did not address the student's misunderstanding, frustration, or request for clarification. There was no evidence of time management, interpersonal communication, student-driven learning, conceptual explanation, or adaptation to the student's needs. To improve, the trainee should acknowledge the student's concerns, ask clarifying questions, and provide guidance tailored to the student's level of understanding.
-
-OUTPUT:
-Analysis created.
-- **Analysis ID:** `019da380-ebd8-7159-b77c-c9e1b74c06c5`

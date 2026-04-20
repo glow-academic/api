@@ -1,1 +1,0 @@
-{"success": true, "group_name_id": "019d8300-964a-7c49-a09e-f16ac48d0839", "name": "Blue Color Selection"}

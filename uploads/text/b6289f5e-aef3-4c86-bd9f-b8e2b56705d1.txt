@@ -1,5 +1,0 @@
-INPUT:
-  practice: False
-
-OUTPUT:
-### Attempt State

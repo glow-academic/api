@@ -1,9 +1,0 @@
-INPUT:
-  group_id: 019d8cd7-2fc3-7820-8e3f-a575201120dc
-  name: Blue Color Selection
-
-OUTPUT:
-### Group Name Updated
-- **Success:** True
-- **Group Name ID:** `019d8cd7-ff5b-7099-95bd-b72b1ff75712`
-- **Name:** Blue Color Selection

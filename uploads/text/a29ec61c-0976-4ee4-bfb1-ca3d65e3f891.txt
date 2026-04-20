@@ -1,1 +1,0 @@
-{"success": false, "message": "Failed to run test: null value in column \"group_id\" of relation \"runs_entry\" violates not-null constraint\nDETAIL:  Failing row contains (2026-04-12 10:23:27.68862-05, 019d824a-6848-7b65-a8bf-8fb02c7fba8f, t, f, null, 019d81ee-e7b0-7274-8d20-6bbfb52c2952, t)."}

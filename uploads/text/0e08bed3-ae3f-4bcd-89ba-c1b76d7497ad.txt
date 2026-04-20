@@ -1,9 +1,0 @@
-INPUT:
-  grade_id: 019da174-c60d-75b2-b47b-360b85418665
-  message_id: 019da174-1b0e-7e2d-8e7e-6e2e2e7e2e7e
-  name: Supportive Tone
-  description: The trainee maintained a patient and supportive tone throughout the conversation, which helped create a safe environment for the confused persona.
-
-OUTPUT:
-Strengths created.
-- **Success:** False

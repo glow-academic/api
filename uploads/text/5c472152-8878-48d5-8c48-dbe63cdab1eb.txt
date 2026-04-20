@@ -1,1 +1,0 @@
-{"attempt_id": "019da39e-3406-79d7-85f5-6fea7e71e356", "chat_id": "019da393-b234-7f2e-b367-2afd1a70c3e9", "department_id": null}

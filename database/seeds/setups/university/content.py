@@ -209,6 +209,7 @@ options = [
         id=AI_OPT_FIRST_STEP_A,
         option_text="Document the observation and report to the department chair",
         question_id=AI_Q_FIRST_STEP,
+        is_correct=True,
     ),
     dict(
         id=AI_OPT_FIRST_STEP_B,
@@ -225,6 +226,7 @@ options = [
         id=AI_OPT_CONSEQUENCE_A,
         option_text="A formal warning and required academic integrity seminar",
         question_id=AI_Q_CONSEQUENCE,
+        is_correct=True,
     ),
     dict(
         id=AI_OPT_CONSEQUENCE_B,
@@ -241,6 +243,7 @@ options = [
         id=FERPA_OPT_WHAT_IS_A,
         option_text="The privacy of student education records",
         question_id=FERPA_Q_WHAT_IS,
+        is_correct=True,
     ),
     dict(
         id=FERPA_OPT_WHAT_IS_B,
@@ -257,6 +260,7 @@ options = [
         id=FERPA_OPT_VIOLATION_A,
         option_text="Discussing a student's grades with their parent without consent",
         question_id=FERPA_Q_VIOLATION,
+        is_correct=True,
     ),
     dict(
         id=FERPA_OPT_VIOLATION_B,
@@ -273,6 +277,7 @@ options = [
         id=UPSET_OPT_FIRST_A,
         option_text="Acknowledge their feelings and invite them to share their concerns",
         question_id=UPSET_Q_FIRST_RESPONSE,
+        is_correct=True,
     ),
     dict(
         id=UPSET_OPT_FIRST_B,
@@ -289,6 +294,7 @@ options = [
         id=UPSET_OPT_TECHNIQUE_A,
         option_text="Speak calmly, lower your voice, and use open body language",
         question_id=UPSET_Q_TECHNIQUE,
+        is_correct=True,
     ),
     dict(
         id=UPSET_OPT_TECHNIQUE_B,

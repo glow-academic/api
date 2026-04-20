@@ -1,1 +1,0 @@
-Respond to the user's latest message in character.

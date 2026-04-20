@@ -1,2 +1,0 @@
-- Selected color: #4A90D9
-- Group name set: "Blue Color Selection"

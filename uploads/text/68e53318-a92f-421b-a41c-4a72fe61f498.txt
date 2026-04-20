@@ -1,9 +1,0 @@
-INPUT:
-  grade_id: 019da39e-b70f-7127-96ea-8d93595a8a18
-  message_id: 019da39e-7bea-7c12-8c39-c7798b835a1e
-  name: Missed opportunity for engagement
-  description: Instead of a generic greeting, the trainee should have acknowledged the student's confusion and asked clarifying or supportive questions to guide the conversation.
-
-OUTPUT:
-Improvement created.
-- **Improvement ID:** `019da39e-e12d-74dd-badf-42e151429ca9`

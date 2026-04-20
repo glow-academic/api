@@ -1,9 +1,0 @@
-INPUT:
-  chat_id: 019d9e76-950f-786b-97dc-e4b8344db649
-  text: Thank you for bringing this up. Could you please describe exactly what happened and who was present? I want to make sure we handle this situation appropriately and according to our policies.
-  persona_id: 019d9e76-8e7e-7c0a-8466-fd0d530b122d
-
-OUTPUT:
-Message sent.
-- **Accepted:** 
-- **Message ID:** ``

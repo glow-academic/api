@@ -1,1 +1,0 @@
-{"chat_id": "019da174-1ae6-7a29-97e3-8f45aa5c3233", "is_attempt_finished": true, "grade_id": "019da174-c66c-73b3-a51d-d96a4f86e424", "score": null, "passed": null}

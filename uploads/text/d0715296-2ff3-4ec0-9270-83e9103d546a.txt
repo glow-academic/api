@@ -1,1 +1,0 @@
-{"actor_name": "Default Superadmin", "departments": [{"department_id": "a2b369c1-a81e-5e02-98d5-dd42af15ae4a", "name": "University", "description": "Innovative base of knowledge in the emerging field of computing.", "staff_count": 9, "is_inactive": false, "can_edit": true, "can_duplicate": true, "can_delete": true, "updated_at": "2026-04-16T12:18:43.926419Z"}], "total_count": 1}

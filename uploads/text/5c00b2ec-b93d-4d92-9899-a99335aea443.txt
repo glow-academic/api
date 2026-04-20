@@ -1,8 +1,0 @@
-INPUT:
-  chat_id: 019d9bdb-19b2-7c81-aae2-0c36289004bf
-  text: I'm here to assist you. Could you please share more details or let me know how I can help you today?
-
-OUTPUT:
-Message sent.
-- **Accepted:** 
-- **Message ID:** ``

@@ -1,9 +1,0 @@
-INPUT:
-  chat_id: 019d9e8d-5645-70d4-94da-f90e7e4dc088
-  text: Thank you for letting me know about this. Can you walk me through exactly what happened and what information was exposed? I want to make sure we handle this correctly and take the appropriate next steps.
-  persona_id: 019d9e8d-41db-77da-aa59-4fc028c3dd9e
-
-OUTPUT:
-Message sent.
-- **Accepted:** 
-- **Message ID:** ``

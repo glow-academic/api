@@ -1,7 +1,0 @@
-INPUT:
-  group_id: 019d9d77-490f-7b4d-bf6e-406606c6550c
-  name: Training Scenario Setup
-
-OUTPUT:
-Group resolved.
-- **Group ID:** ``

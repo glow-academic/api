@@ -1,7 +1,0 @@
-INPUT:
-  (none)
-
-OUTPUT:
-Message sent.
-- **Accepted:** 
-- **Message ID:** ``

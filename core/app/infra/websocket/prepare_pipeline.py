@@ -516,23 +516,93 @@ def build_agent_groups_from_scores(
         return required_mods <= agent_out_mods.get(agent_id, set())
 
     # Operations-based matching via tool graph
-    # Include ALL agents from the winning system that can handle the operations
+    # Greedy minimum-cover + modality-diversify:
+    #   1. Build per-agent operation coverage (within winning system, modality-eligible).
+    #   2. Greedy set cover: pick the agent covering the most uncovered operations until
+    #      all operations are covered (ties broken by scores.best, then agent_id).
+    #   3. Diversify: also dispatch any agent that contributes an output modality the
+    #      already-chosen cover set doesn't produce — preserves parallel voice+text.
     if operations and tool_graph and hasattr(tool_graph, "tools"):
         perm_set = {(artifact_type, op) for op in operations}
+
+        # Step 1: per-agent coverage (op_target pairs) and target list
+        agent_coverage: dict[UUID, set[tuple[str, str]]] = {}
+        agent_targets: dict[UUID, list[str]] = {}
         for resolved_tool in tool_graph.tools:
-            # Filter to winning system only
             if winning_system_id and resolved_tool.system_id != winning_system_id:
                 continue
             if not _agent_eligible(resolved_tool.agent_id):
                 continue
-            if (resolved_tool.target, resolved_tool.operation) in perm_set:
-                agent_groups.setdefault(resolved_tool.agent_id, []).append(
-                    resolved_tool.target
-                )
-        # Dedupe resource lists per agent
+            pair = (resolved_tool.target, resolved_tool.operation)
+            if pair not in perm_set:
+                continue
+            agent_coverage.setdefault(resolved_tool.agent_id, set()).add(pair)
+            agent_targets.setdefault(resolved_tool.agent_id, []).append(
+                resolved_tool.target
+            )
+
+        if not agent_coverage:
+            return {}
+
+        # Scores for tiebreakers (best-tool score per agent, summed)
+        agent_score: dict[UUID, float] = {}
+        if hasattr(scores, "best"):
+            for best_tool in scores.best.values():
+                if best_tool is not None:
+                    aid = best_tool.agent_id
+                    agent_score[aid] = agent_score.get(aid, 0.0) + float(
+                        getattr(best_tool, "score", 0.0) or 0.0
+                    )
+
+        def _tiebreak_key(aid: UUID) -> tuple[float, str]:
+            # Higher score wins; fallback deterministic by agent_id
+            return (-agent_score.get(aid, 0.0), str(aid))
+
+        # Step 2: greedy cover
+        uncovered = set(perm_set)
+        chosen: list[UUID] = []
+        candidates = set(agent_coverage.keys())
+        while uncovered and candidates:
+            best_agent = max(
+                candidates,
+                key=lambda aid: (
+                    len(agent_coverage[aid] & uncovered),
+                    -_tiebreak_key(aid)[0],
+                    _tiebreak_key(aid)[1],
+                ),
+            )
+            gain = agent_coverage[best_agent] & uncovered
+            if not gain:
+                break
+            chosen.append(best_agent)
+            uncovered -= gain
+            candidates.discard(best_agent)
+
+        # Step 3: modality diversify — only relevant when the caller requested
+        # specific modalities. Add agents that contribute a *requested* modality
+        # the chosen cover set doesn't already produce. Skipped when no modalities
+        # were requested (e.g. grading) so we don't over-dispatch voice agents.
+        if required_mods:
+            chosen_set = set(chosen)
+            covered_mods: set[str] = set()
+            for aid in chosen_set:
+                covered_mods |= agent_out_mods.get(aid, set())
+            for aid in sorted(agent_coverage.keys(), key=_tiebreak_key):
+                if aid in chosen_set:
+                    continue
+                new_req_mods = (
+                    agent_out_mods.get(aid, set()) & required_mods
+                ) - covered_mods
+                if new_req_mods:
+                    chosen.append(aid)
+                    chosen_set.add(aid)
+                    covered_mods |= agent_out_mods.get(aid, set())
+
+        # Build result: only chosen agents, their matching targets, deduped
         agent_groups = {
-            aid: list(dict.fromkeys(rts))
-            for aid, rts in agent_groups.items()
+            aid: list(dict.fromkeys(agent_targets[aid]))
+            for aid in chosen
+            if aid in agent_targets
         }
         return agent_groups
 

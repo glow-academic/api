@@ -1,9 +1,0 @@
-INPUT:
-  group_id: 019d8d81-362b-73e5-baf7-558e8acf8b1e
-  name: Red Color Selection
-
-OUTPUT:
-### Group Resolved
-- **Group ID:** `019d8d81-362b-73e5-baf7-558e8acf8b1e`
-- **Group Name ID:** `019d8d81-db03-7626-b25b-5d97ba747582`
-- **Name:** Red Color Selection

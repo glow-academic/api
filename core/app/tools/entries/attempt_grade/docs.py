@@ -25,7 +25,7 @@ async def get_attempt_grade_docs(conn: asyncpg.Connection) -> DocsResponse:
         description=(
             "Grade records containing score, pass status, and time taken metrics. "
             "Each grade references a chat and run, and optionally links to rubrics "
-            "via attempt_chat_rubrics_connection. "
+            "via attempt_grade_rubrics_connection. "
             "Reads are served from the attempt_grade_mv materialized view."
         ),
         materialized_view=mv_info,
@@ -35,7 +35,7 @@ async def get_attempt_grade_docs(conn: asyncpg.Connection) -> DocsResponse:
                 create_attempt_grade,
                 description=(
                     "Creates a new attempt_grade entry with metrics and "
-                    "optionally populates attempt_chat_rubrics_connection."
+                    "optionally populates attempt_grade_rubrics_connection."
                 ),
             ),
             get_operation_info(

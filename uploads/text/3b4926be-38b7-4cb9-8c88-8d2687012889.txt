@@ -1,1 +1,0 @@
-Grading complete. The agent's output could not be retrieved (404 error) for both tool calls, so all rubric categories have been scored as 1/5 with feedback indicating that no evaluation was possible due to missing data.

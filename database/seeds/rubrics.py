@@ -214,7 +214,7 @@ rubrics = [
     ),
     _rubric(
         "training-rubric",
-        "Training Rubric",
-        "Rubric for evaluating training performance",
+        "TA Rubric",
+        "Evaluates teaching assistants on their pedagogical effectiveness, student interaction quality, and session management",
     ),
 ]

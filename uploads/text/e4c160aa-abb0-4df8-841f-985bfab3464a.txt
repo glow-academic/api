@@ -1,1 +1,0 @@
-{"success": false, "message": "litellm.BadRequestError: OpenAIException - litellm.BadRequestError: OpenAIException - This is not a chat model and thus not supported in the v1/chat/completions endpoint. Did you mean to use v1/completions?. Received Model Group=glow-realtime\nAvailable Model Group Fallbacks=None"}

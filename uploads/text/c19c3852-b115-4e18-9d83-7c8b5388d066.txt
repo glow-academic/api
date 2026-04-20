@@ -1,7 +1,0 @@
-INPUT:
-  chat_id: 019d9bb9-50b2-7465-b1c2-093e8afec04c
-
-OUTPUT:
-Message sent.
-- **Accepted:** 
-- **Message ID:** ``

@@ -1,5 +1,0 @@
-INPUT:
-  attempt_id: 019d9e8d-41db-77da-aa59-4fc028c3dd9e
-
-OUTPUT:
-### Attempt Detail

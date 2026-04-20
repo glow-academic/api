@@ -1,1 +1,0 @@
-{"chat_id": "019d9ba8-47ab-7706-a8b6-c1d92ded48ac", "user_message_id": "019d9ba8-8996-7616-bda8-aa4f0bb977e9", "assistant_message_id": null, "assistant_content": null}

@@ -1,7 +1,0 @@
-INPUT:
-  chat_id: 019da37e-bfd1-7cd4-971a-755a531e2214
-
-OUTPUT:
-Chat marked as complete.
-- **Chat ID:** `019da37e-bfd1-7cd4-971a-755a531e2214`
-- **Completion ID:** `019da380-fd62-7bf3-969d-93bc9af6092e`

@@ -1,3 +1,0 @@
-{
-  "result": "Grading complete. All rubric criteria scored 1/5 due to lack of persona content. Only a color value and group name were provided; no persona identity, instructions, parameters, coherence, or completeness."
-}

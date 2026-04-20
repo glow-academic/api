@@ -1,1 +1,0 @@
-{"upload_id": "019dabbb-1487-7e17-afac-3e2ed2353250", "file_path": "/Users/ashoksaravanan/Coding/learnloopllc-glow-api/uploads/f2006fd2-b549-4115-9374-fcffe06a7099.pdf", "content_type": "application/pdf", "filename": "f2006fd2-b549-4115-9374-fcffe06a7099.pdf", "size": 786105}

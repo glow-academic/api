@@ -1,4 +1,0 @@
-- Selected color: #4A90D9
-- Group renamed: Blue Color Selection
-
-(Color has been generated and saved as requested.)

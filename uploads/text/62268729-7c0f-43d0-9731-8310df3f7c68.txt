@@ -1,9 +1,0 @@
-INPUT:
-  chat_id: 019d9ea1-9a3c-7b20-8d75-29f19f2dfdc9
-  text: Wait, so I thought the whole point was just to memorize the steps, right? Like, if I just remember the order, that’s enough? Or does it have to do with something else? I’m honestly not sure—I keep getting confused about what actually matters here.
-  persona_id: eab308
-
-OUTPUT:
-Message sent.
-- **Accepted:** 
-- **Message ID:** ``

@@ -1,1 +1,0 @@
-{"success": false, "message": "'GetAttemptResponsesResponse' object has no attribute 'completed'"}

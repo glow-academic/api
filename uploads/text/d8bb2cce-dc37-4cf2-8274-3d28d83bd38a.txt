@@ -1,3 +1,0 @@
-{
-  "result": "Grading complete. The output did not meet any of the persona rubric criteria. All standard groups scored 1/5 due to the absence of persona identity, behavioral instructions, parameter fields, coherence, and relevant resource population. The output only included a color selection and group rename, with no persona-related content."
-}

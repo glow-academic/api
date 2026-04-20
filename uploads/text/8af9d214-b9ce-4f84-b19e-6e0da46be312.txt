@@ -1,1 +1,0 @@
-Set up this training scenario based on the draft configuration.
