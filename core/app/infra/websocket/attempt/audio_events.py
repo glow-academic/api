@@ -7,8 +7,9 @@ This module provides:
 The adapter (realtime.py) receives an AudioEventEmitter via its constructor,
 keeping the infra layer decoupled from the socket layer.
 
-Assistant transcript and tool call events emit canonical generate_text_* and
-generate_call_* events (same shape as generate_artifact.py) so they flow
+Assistant transcript and tool call events emit the canonical
+``<artifact>.generate.text.*`` and ``<artifact>.generate.call.*`` events
+(same shape as the text agentic loop in ``execute.py``) so they flow
 through the same downstream handlers. The session store provides the generation
 context (sid, artifact_type, tool_output_schemas, etc.).
 
@@ -18,16 +19,19 @@ Events emitted:
   - attempt.chat.user_start / user_audio    — VAD + persisted user speech
   - attempt.generate.audio.start/complete/error/response_cancelled
                                             — assistant audio turn lifecycle
-  - generate_text_start/progress/complete   — transcript (still legacy, 1B migration)
-  - generate_call_start/progress/complete   — tool calls (still legacy, 1B migration)
-  - generate_run_complete                   — run finished (core workflow, kept)
+  - attempt.generate.text.*                 — transcript
+  - attempt.generate.call.*                 — tool calls
+  (run completion is handled by a direct run_complete_impl call, not an event.)
 """
 
 import json
+import logging
 import uuid
 from typing import Any
 
 from app.infra.generation.emit import canonical_generation_event
+
+logger = logging.getLogger(__name__)
 from app.infra.websocket.session_store import get_session_by_group_id
 from app.infra.websocket.socket_event import (
     EmitFn,
@@ -40,14 +44,36 @@ from app.infra.websocket.tool_call_utils import (
 )
 
 
-def _canonical(ctx: dict[str, Any], sub: str, phase: str) -> str:
-    """Canonical ``{artifact}.generate.{sub}.{phase}`` name from the session
-    context, falling back to ``generate_error`` when ``artifact_type`` is
-    missing (shouldn't happen — every AudioSession carries it).
+def _resolve_tool_route(
+    tool_def: dict[str, Any] | None,
+) -> tuple[str, str] | None:
+    """Return the single (artifact, operation) pair this tool resolves to.
+
+    Per-op progress events are only meaningful for single-op tools.
+    Multi-op tools skip the per-op emit (operation isn't known until
+    args finalize).
     """
-    artifact = ctx.get("artifact_type")
-    if not artifact:
-        return "generate_error"
+    if not tool_def:
+        return None
+    perms = tool_def.get("_permissions") or []
+    pairs = {
+        (p.get("artifact"), p.get("operation"))
+        for p in perms
+        if isinstance(p, dict) and p.get("artifact") and p.get("operation")
+    }
+    if len(pairs) == 1:
+        return next(iter(pairs))  # type: ignore[return-value]
+    return None
+
+
+def _canonical(ctx: dict[str, Any], sub: str, phase: str) -> str:
+    """Canonical ``{artifact}.generate.{sub}.{phase}`` from session context.
+
+    Falls back to ``unknown.generate.<sub>.<phase>`` if ``artifact_type`` is
+    missing — shouldn't happen (every AudioSession carries it), but keeps
+    the emit path non-crashing.
+    """
+    artifact = ctx.get("artifact_type") or "unknown"
     return canonical_generation_event(artifact, sub, phase)
 
 
@@ -213,18 +239,17 @@ class InternalBusAudioEmitter:
     async def on_tool_call_start(
         self, group_id: str, item_id: str, call_id: str, name: str
     ) -> None:
-        """Tool call started — emits generate_call_start.
-
-        Mirrors ``generate_artifact_impl.py``: the provider's ``call_id``
-        (OpenAI ``call_<opaque>``) is kept as ``responses_call_id`` for
-        sending back ``function_call_output``. Our internal UUID (used by
-        ledger/receipt tracking and forwarded as the canonical ``call_id``
-        on ``generate_call_complete``) is minted here.
+        """Tool call started — emits generic ``call.start`` and, when the
+        tool resolves to a single (artifact, operation), a per-op
+        ``{artifact}.{operation}.started`` event carrying the pre-minted
+        DB call_id. The provider's ``call_id`` (OpenAI ``call_<opaque>``)
+        stays internal as ``responses_call_id``.
         """
         internal_call_id = (
             str(uuid.uuid7()) if hasattr(uuid, "uuid7") else str(uuid.uuid4())
         )
         session = get_session_by_group_id(group_id)
+        tool_def: dict[str, Any] | None = None
         if session:
             session.tool_call_states[call_id] = {
                 "call_id": internal_call_id,
@@ -232,30 +257,49 @@ class InternalBusAudioEmitter:
                 "tool_name": name,
                 "arguments": "",
             }
+            tool_def = session.tool_def_by_name.get(name)
         ctx = self._session_context(group_id)
-        await self._emit(
-            [
+        events = [
+            internal_event(
+                _canonical(ctx, "call", "start"),
+                {
+                    **ctx,
+                    "modality": "call",
+                    "type": "start",
+                    "event_type": "tool_call_start",
+                    "tool_call_id": call_id,
+                },
+            )
+        ]
+
+        route = _resolve_tool_route(tool_def)
+        if route is not None:
+            route_artifact, route_op = route
+            events.append(
                 internal_event(
-                    _canonical(ctx, "call", "start"),
+                    f"{route_artifact}.{route_op}.started",
                     {
                         **ctx,
-                        "modality": "call",
-                        "type": "start",
-                        "event_type": "tool_call_start",
-                        "tool_call_id": call_id,
+                        "call_id": internal_call_id,
+                        "tool_name": name,
                     },
                 )
-            ]
-        )
+            )
+
+        await self._emit(events)
 
     async def on_tool_call_delta(
         self, group_id: str, call_id: str, arguments_delta: str
     ) -> None:
-        """Tool call arguments streaming — emits generate_call_progress."""
+        """Tool call arguments streaming — emits generic call.progress and,
+        when the tool resolves to a single (artifact, operation), a per-op
+        ``{artifact}.{operation}.progress`` event so consumers can listen
+        for just the tool they care about."""
         session = get_session_by_group_id(group_id)
         st: dict[str, Any] = {}
         parsed_args: dict[str, Any] | None = None
         resolved_fields: dict[str, Any] | None = None
+        tool_def: dict[str, Any] | None = None
         if session:
             st = session.tool_call_states.get(call_id, {})
             st["arguments"] = st.get("arguments", "") + arguments_delta
@@ -263,26 +307,57 @@ class InternalBusAudioEmitter:
             resolved_fields = resolve_output_fields(
                 parsed_args, st.get("tool_name"), session.tool_output_schemas
             )
+            tool_name = st.get("tool_name")
+            if tool_name:
+                tool_def = session.tool_def_by_name.get(tool_name)
         ctx = self._session_context(group_id)
-        await self._emit(
-            [
+        events = [
+            internal_event(
+                _canonical(ctx, "call", "progress"),
+                {
+                    **ctx,
+                    "modality": "call",
+                    "type": "progress",
+                    "event_type": "tool_call_delta",
+                    "tool_call_id": call_id,
+                    "delta": arguments_delta,
+                    "tool_name": st.get("tool_name"),
+                    "arguments_delta": arguments_delta,
+                    "arguments": parsed_args,
+                    "resolved_fields": resolved_fields,
+                },
+            )
+        ]
+
+        route = _resolve_tool_route(tool_def)
+        if route is not None:
+            route_artifact, route_op = route
+            events.append(
                 internal_event(
-                    _canonical(ctx, "call", "progress"),
+                    f"{route_artifact}.{route_op}.progress",
                     {
                         **ctx,
-                        "modality": "call",
-                        "type": "progress",
-                        "event_type": "tool_call_delta",
-                        "tool_call_id": call_id,
-                        "delta": arguments_delta,
+                        # ``call_id`` is the unified handle across streaming
+                        # progress and audit .started/.completed. Provider
+                        # ``call_id`` (the OpenAI ``call_xxx`` string) stays
+                        # server-internal on ``session.tool_call_states``.
+                        "call_id": st.get("call_id"),
                         "tool_name": st.get("tool_name"),
-                        "arguments_delta": arguments_delta,
+                        "delta": arguments_delta,
                         "arguments": parsed_args,
                         "resolved_fields": resolved_fields,
+                        # Unpack parsed args to top-level (consistent with
+                        # audit .started/.completed payload shape).
+                        **(
+                            {k: v for k, v in parsed_args.items() if isinstance(k, str)}
+                            if isinstance(parsed_args, dict)
+                            else {}
+                        ),
                     },
                 )
-            ]
-        )
+            )
+
+        await self._emit(events)
 
     async def on_tool_call_complete(
         self, group_id: str, call_id: str, name: str, arguments: str
@@ -449,33 +524,44 @@ class InternalBusAudioEmitter:
     async def on_response_done(
         self, group_id: str, usage: dict[str, Any] | None = None
     ) -> None:
-        """Provider response completed — emits ``generate_run_complete``.
+        """Provider response completed — finalize the run directly.
 
-        ``generate_run_complete`` is the core dispatch-workflow event (run
-        finalization, rate-limit gating, run_id rotation), intentionally
-        left on its legacy name until the dispatch rewrite. The legacy
-        ``generate_audio_response_done`` fanout (no subscribers) is gone.
+        Calls ``run_complete_impl`` as a shared infra function rather than
+        routing through a top-level internal event. Run finalization,
+        rate-limit gating, and run_id rotation all happen inside that impl.
         """
+        from app.infra.globals import UPLOAD_FOLDER, get_pool, get_redis_client
+        from app.infra.websocket.run_complete_impl import run_complete_impl
+
         usage = usage or {}
         ctx = self._session_context(group_id)
 
-        await self._emit(
-            [
-                internal_event(
-                    "generate_run_complete",
-                    {
-                        **ctx,
-                        "type": "complete",
-                        "event_type": "run_complete",
-                        "input_text_tokens": usage.get("input_tokens", 0),
-                        "output_text_tokens": usage.get("output_tokens", 0),
-                        "assistant_output": "",
-                        "tool_results": [],
-                        "save": False,
-                    },
-                ),
-            ]
-        )
+        payload = {
+            **ctx,
+            "type": "complete",
+            "event_type": "run_complete",
+            "modality": "audio",
+            "input_text_tokens": usage.get("input_tokens", 0),
+            "output_text_tokens": usage.get("output_tokens", 0),
+            "assistant_output": "",
+            "tool_results": [],
+            "save": False,
+        }
+
+        try:
+            pool = get_pool()
+            async with pool.acquire() as conn:
+                await run_complete_impl(
+                    payload,
+                    emit=self._emit,
+                    conn=conn,
+                    redis=get_redis_client(),
+                    upload_folder=UPLOAD_FOLDER,
+                )
+        except Exception:
+            logger.exception(
+                f"run_complete_impl failed on audio response_done (group_id={group_id})"
+            )
 
 
 def get_audio_emitter() -> InternalBusAudioEmitter:

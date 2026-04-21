@@ -1,9 +1,10 @@
-"""Output: test.group.started"""
+"""Output: test.group.started — forwards to client + runs orchestration."""
 
 from typing import Any
 from uuid import UUID
 
 from app.infra.globals import UPLOAD_FOLDER, get_internal_sio, sio
+from app.infra.test.group import test_group_internal_impl
 from app.infra.tools.entries.append_call_event import append_call_event
 
 internal_sio = get_internal_sio()
@@ -18,3 +19,6 @@ async def test_group_started(data: dict[str, Any]) -> None:
         append_call_event(UUID(call_id), "test.group.started", data, UPLOAD_FOLDER)
     for room in rooms:
         await sio.emit("test.group.started", data, room=room)
+
+    # Orchestration: compose sequential test_runs in a group
+    await test_group_internal_impl(data)

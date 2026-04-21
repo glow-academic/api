@@ -73,7 +73,7 @@ async def test_on_progress_emits_progress_event():
         )
 
     event_name, payload = bus.emit.call_args[0]
-    assert event_name == "generate_error"
+    assert event_name == "unknown.generate.video.progress"
     assert payload["message"] == "Processing frame 42/100"
     assert payload["type"] == "progress"
 
@@ -136,7 +136,7 @@ async def test_on_error_emits_error_event():
         )
 
     event_name, payload = bus.emit.call_args[0]
-    assert event_name == "generate_error"
+    assert event_name == "unknown.generate.video.error"
     assert payload["error_message"] == "Generation failed"
     assert payload["type"] == "error"
 

@@ -77,7 +77,6 @@ async def update_document_impl(
         profile_id,
         redis,
         session_id=session_id,
-        draft_id=draft_id,
     )
 
     if profile is None:

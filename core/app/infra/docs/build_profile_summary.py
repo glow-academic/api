@@ -85,7 +85,6 @@ async def build_profile_summary(
         is_active=profile.is_active,
         active=profile.is_active,
         theme=theme,
-        group_id=profile.group_id,
         session_id=profile.session_id,
         is_emulation=is_emulation,
         role_resources=role_resources,

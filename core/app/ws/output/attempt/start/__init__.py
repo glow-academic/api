@@ -1,3 +1,3 @@
 """Output: attempt.start.* events."""
 
-from . import completed, failed  # noqa: F401
+from . import completed, error, failed  # noqa: F401

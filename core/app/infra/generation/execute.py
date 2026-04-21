@@ -1,8 +1,6 @@
 """Generation execute — deterministic infra function.
 
 Runs the agentic LLM loop for text + tool call modality.
-Extracted from generate_artifact_impl — uses the same proven LLM
-streaming and tool execution patterns.
 
 Events emitted are artifact-scoped:
   {artifact_type}.generate.progress — text/tool streaming
@@ -60,6 +58,78 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
+# Tool → (artifact, operation) route resolution
+# ---------------------------------------------------------------------------
+
+
+def _resolve_tool_route(
+    tool_def: dict[str, Any] | None,
+) -> tuple[str, str] | None:
+    """Return the single (artifact, operation) pair this tool resolves to.
+
+    Per-operation progress events are only meaningful when the tool maps
+    to a single operation. Multi-op tools route dynamically at exec time
+    and can't pre-commit a progress channel — return None.
+    """
+    if not tool_def:
+        return None
+    perms = tool_def.get("_permissions") or []
+    pairs = {
+        (p.get("artifact"), p.get("operation"))
+        for p in perms
+        if isinstance(p, dict) and p.get("artifact") and p.get("operation")
+    }
+    if len(pairs) == 1:
+        return next(iter(pairs))  # type: ignore[return-value]
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Tool format validation (Responses API)
+# ---------------------------------------------------------------------------
+
+
+def _validate_responses_tools(
+    tools: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Validate and convert tools to Responses API format."""
+    validated_tools: list[dict[str, Any]] = []
+    for tool in tools:
+        tool_dict: dict[str, Any] | None = None
+        if isinstance(tool, dict):
+            tool_dict = cast(dict[str, Any], tool)
+        elif hasattr(tool, "model_dump"):
+            tool_dict = tool.model_dump()
+        elif hasattr(tool, "dict"):
+            tool_dict = tool.dict()
+        if not tool_dict:
+            continue
+        if tool_dict.get("type") == "function" and "name" in tool_dict:
+            tool_copy = {**tool_dict}
+            if tool_copy.get("strict") and isinstance(
+                tool_copy.get("parameters"), dict
+            ):
+                tool_copy["parameters"] = {
+                    **tool_copy["parameters"],
+                    "additionalProperties": False,
+                }
+            validated_tools.append(tool_copy)
+        elif tool_dict.get("type") == "function" and "function" in tool_dict:
+            func = tool_dict.get("function")
+            if isinstance(func, dict) and func.get("name"):
+                validated_tools.append(
+                    {
+                        "type": "function",
+                        "name": func.get("name"),
+                        "parameters": func.get("parameters", {}),
+                        "description": func.get("description"),
+                        "strict": func.get("strict"),
+                    }
+                )
+    return validated_tools
+
+
+# ---------------------------------------------------------------------------
 # Result type
 # ---------------------------------------------------------------------------
 
@@ -76,7 +146,7 @@ class ExecuteGenerationResult:
 
 
 # ---------------------------------------------------------------------------
-# LLM API calls (extracted from generate_artifact_impl)
+# LLM API calls
 # ---------------------------------------------------------------------------
 
 
@@ -108,8 +178,6 @@ async def _call_responses_api(
         "timeout": 120.0,
     }
     if tools:
-        # Validate tools for Responses API format
-        from app.infra.websocket.generate_artifact_impl import _validate_responses_tools
         kwargs["tools"] = _validate_responses_tools(tools)
         kwargs["tool_choice"] = tool_choice
     if base_url:
@@ -426,6 +494,10 @@ async def _execute_agent_dispatch(
                         "tool_call_id": tool_call_id,
                         "tool_name": event.get("tool_name"),
                         "arguments": "",
+                        # Pre-mint the DB call row id now so every downstream
+                        # event — progress, audit .started/.completed — shares
+                        # the same handle. create_call will reuse this id.
+                        "call_id": uuid.uuid4(),
                     },
                 )
                 if event_type == "tool_call_start":
@@ -441,11 +513,68 @@ async def _execute_agent_dispatch(
                             "tool_name": st.get("tool_name"),
                         },
                     )
+                    # Per-tool .started fires as soon as the AI picks a
+                    # tool (before any args stream). Carries the pre-minted
+                    # call_id so every subsequent progress/completed event
+                    # for this same tool call shares the same handle.
+                    route = _resolve_tool_route(
+                        tool_def_by_name.get(st.get("tool_name") or "")
+                    )
+                    if route is not None:
+                        route_artifact, route_op = route
+                        await internal_sio.emit(
+                            f"{route_artifact}.{route_op}.started",
+                            {
+                                "sid": sid,
+                                "rooms": [sid] if sid else [],
+                                "artifact_type": artifact_type,
+                                "run_id": str(run_id),
+                                "group_id": str(group_id),
+                                "call_id": str(st["call_id"]),
+                                "tool_name": st.get("tool_name"),
+                            },
+                        )
                 if event_type == "tool_call_delta":
                     delta = event.get("delta", "") or ""
                     if event.get("tool_name") and not st["tool_name"]:
                         st["tool_name"] = event["tool_name"]
                     st["arguments"] += delta
+
+                    # Per-tool progress event: if the tool resolves to a
+                    # single (artifact, operation) pair, emit a scoped
+                    # ``{artifact}.{operation}.progress`` event carrying
+                    # the *parsed* partial args so consumers can read
+                    # fields (e.g. ``text``) directly. Multi-op tools
+                    # skip this emit (op isn't known until finalize).
+                    route = _resolve_tool_route(
+                        tool_def_by_name.get(st.get("tool_name") or "")
+                    )
+                    if route is not None:
+                        route_artifact, route_op = route
+                        parsed_args = parse_partial_json(st["arguments"]) or {}
+                        await internal_sio.emit(
+                            f"{route_artifact}.{route_op}.progress",
+                            {
+                                "sid": sid,
+                                "rooms": [sid] if sid else [],
+                                "artifact_type": artifact_type,
+                                "run_id": str(run_id),
+                                "group_id": str(group_id),
+                                # ``call_id`` is the unified handle across
+                                # streaming progress and audit .started/
+                                # .completed. Provider ``tool_call_id`` is
+                                # server-internal (kept on tool_call_states)
+                                # and not exposed to the client.
+                                "call_id": str(st["call_id"]),
+                                "tool_name": st.get("tool_name"),
+                                "arguments": parsed_args,
+                                "delta": delta,
+                                # Unpack args to top-level so consumers read
+                                # ``data.text`` / ``data.chat_id`` directly,
+                                # matching the audit .started/.completed shape.
+                                **{k: v for k, v in parsed_args.items() if isinstance(k, str)},
+                            },
+                        )
 
             elif event_type == "tool_call_complete":
                 raw_id = cast(str, event.get("tool_call_id"))
@@ -487,6 +616,7 @@ async def _execute_agent_dispatch(
                             soft=tool_soft,
                             operation_key=uuid.uuid4(),
                             instruction_template=td.get("_instruction_template"),
+                            call_id=st.get("call_id"),
                         )
                         results = await execute_infra_operation(ctx, spec)
                         tool_result_str = json.dumps({
@@ -602,6 +732,40 @@ async def _execute_agent_dispatch(
 
         if tool_choice == "required":
             tool_choice = "auto"
+
+    # Finalize: persist assistant text + tokens, run multi-agent coordination
+    # and the rubric eval gate, then emit the final completion channel.
+    # ``run_complete_impl`` is called directly (not via an internal event)
+    # so nothing top-level needs to exist to carry the workflow.
+    from app.infra.globals import UPLOAD_FOLDER
+    from app.infra.websocket.run_complete_impl import run_complete_impl
+
+    run_complete_payload: dict[str, Any] = {
+        "sid": sid,
+        "run_id": str(run_id),
+        "group_id": str(group_id),
+        "session_id": str(session_id),
+        "profile_id": str(profile_id),
+        "profiles_id": str(prepared.profiles_id),
+        "artifact_type": artifact_type,
+        "modality": "text",
+        "input_text_tokens": total_input_tokens,
+        "output_text_tokens": total_output_tokens,
+        "assistant_output": final_assistant_output,
+        "tool_results": all_tool_results,
+        "metadata": dispatch.metadata or {},
+    }
+    try:
+        async with pool.acquire() as conn:
+            await run_complete_impl(
+                run_complete_payload,
+                emit=make_emit(),
+                conn=conn,
+                redis=redis,
+                upload_folder=UPLOAD_FOLDER,
+            )
+    except Exception as exc:
+        logger.exception(f"run_complete_impl failed for run {run_id}: {exc}")
 
     return ExecuteGenerationResult(
         run_id=run_id,

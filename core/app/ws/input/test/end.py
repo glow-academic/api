@@ -21,7 +21,7 @@ async def test_end(sid: str, data: dict[str, Any]) -> None:
         profile_id_str = await find_profile_by_socket(sid)
         if not profile_id_str:
             await internal_sio.emit(
-                "test_error",
+                "test.end.error",
                 TestErrorData(sid=sid, message="Profile not found. Please reconnect.", error_type="auth").model_dump(mode="json"),
             )
             return
@@ -29,7 +29,7 @@ async def test_end(sid: str, data: dict[str, Any]) -> None:
         session_id_str = await find_session_by_socket(sid)
         if not session_id_str:
             await internal_sio.emit(
-                "test_error",
+                "test.end.error",
                 TestErrorData(sid=sid, message="Session not found. Please reconnect.", error_type="auth").model_dump(mode="json"),
             )
             return
@@ -41,6 +41,6 @@ async def test_end(sid: str, data: dict[str, Any]) -> None:
     except Exception as e:
         logger.exception(f"Error in test_end: {e}")
         await internal_sio.emit(
-            "test_error",
+            "test.end.error",
             TestErrorData(sid=sid, message=f"Failed to end invocation: {e}", error_type="end").model_dump(mode="json"),
         )

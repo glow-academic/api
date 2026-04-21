@@ -27,6 +27,7 @@ from app.infra.auth.permissions import (
 )
 from app.infra.auth.permissions_context import resolve_auth_permissions_context
 from app.infra.common_context import resolve_common_context
+from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.tool_graph import score_tools
 from app.infra.auth.types import (
@@ -92,14 +93,21 @@ async def get_auth_impl(
         profile_id=profile_id,
         session_id=session_id,
         group_id=group_id,
-        draft_id=draft_id,
-        artifact_type="auth",
         bypass_cache=bypass_cache,
     )
     if common is None:
         raise HTTPException(status_code=401, detail="Profile not found. Please sign in again.")
 
-    effective_group_id = group_id or common.profile.group_id
+    if group_id is None:
+        _gr = await resolve_group_impl(
+            pool, redis,
+            artifact_type="auth",
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
+        group_id = _gr.group_id
+    effective_group_id = group_id
     profile = common.profile
 
     if resolved_auth_id is not None:

@@ -9,9 +9,10 @@ No Redis state. Everything derived from DB records:
   - search_messages → completed agents (assistant messages)
   - search_calls → what tools were called
 
-Each agent dispatched for a run gets its own generate_artifact_impl loop.
-When each completes, it emits generate_run_complete. This function checks
-if all expected agents have completed by looking at persisted messages.
+Each agent dispatched for a run gets its own execute_generation loop.
+When each completes, it calls run_complete_impl directly, which uses
+this function to check if all expected agents have completed by
+looking at persisted messages.
 """
 
 from __future__ import annotations

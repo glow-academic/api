@@ -1,7 +1,8 @@
 """Shared utilities for tool call processing.
 
-Used by both generate_artifact.py (text/call modality) and the audio emitter
-(realtime adapter) to parse streaming tool call arguments and resolve output fields.
+Used by both the text agentic loop (``app.infra.generation.execute``) and
+the audio emitter (realtime adapter) to parse streaming tool call arguments
+and resolve output fields.
 """
 
 import json

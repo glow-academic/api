@@ -3,7 +3,7 @@
 Maps artifact_type → ArtifactGenerateConfig, encapsulating per-artifact
 metadata (valid resource types, entry types, draft requirements).
 
-Used by the generation pipeline (generate_prepare_impl) to validate
+Used by the generation pipeline (prepare_generation) to validate
 and configure generation requests per artifact type.
 """
 

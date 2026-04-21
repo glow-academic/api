@@ -16,13 +16,12 @@ from app.infra.websocket.adapters.media.base import MediaResult
 def _media_event_name(
     modality: str, phase: str, artifact_type: str | None,
 ) -> str:
-    """Canonical per-artifact name, falling back to ``generate_error`` when
-    ``artifact_type`` is missing (shouldn't happen — every dispatch carries
-    it — but keeps the emit path non-crashing).
+    """Canonical per-artifact name. ``artifact_type`` should always be set;
+    if it isn't, use ``unknown.generate.<modality>.<phase>`` so the emit
+    doesn't crash — no registered handler will pick it up, but it's logged
+    at the dispatch level as an upstream bug.
     """
-    if artifact_type:
-        return canonical_generation_event(artifact_type, modality, phase)
-    return "generate_error"
+    return canonical_generation_event(artifact_type or "unknown", modality, phase)
 
 
 class InternalBusMediaEmitter:

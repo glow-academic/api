@@ -85,11 +85,15 @@ async def archive_attempts(
             session_id=session_id,
         )
         profiles_id = identity.profiles_id if identity else None
-        group_id = identity.group_id if identity else None
-        if group_id is None:
-            raise HTTPException(
-                status_code=400, detail="Group ID could not be resolved"
-            )
+
+        from app.infra.attempt.group import group_attempt_impl
+        group_result = await group_attempt_impl(
+            pool, redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
+        group_id = group_result.group_id
 
         async with pool.acquire() as conn:
             attempts, _ = await search_attempts(

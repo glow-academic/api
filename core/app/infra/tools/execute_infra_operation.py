@@ -82,6 +82,7 @@ class InfraContext(BaseModel):
     accept: bool | None = Field(default=None, description="Ack phase: True=promote dormant state, False=reject (no-op or restore for delete)")
     operation_key: UUID | None = Field(default=None, description="Universal key for call dedup — idempotency_key for writes, snapshot_key for reads")
     instruction_template: str | None = Field(default=None, description="Tool response template (Layer 3) for rendered saves")
+    call_id: UUID | None = Field(default=None, description="Pre-minted UUID for the calls_entry row — reused by create_call so the same id flows through streaming progress events, audit .started/.completed/.failed, and the DB call record")
 
 
 # ---------------------------------------------------------------------------
@@ -387,6 +388,10 @@ async def execute_infra_operation(
                 arguments=kwargs if accepted is None else filtered,
                 instruction_template=ctx.instruction_template,
                 operation_key=ctx.operation_key,
+                call_id=ctx.call_id,
+                # If the caller pre-minted a call_id, they also emitted
+                # ``.started`` upstream (streaming path). Don't double-fire.
+                suppress_started=ctx.call_id is not None,
             )
 
             results.append(InfraOperationResult(

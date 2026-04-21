@@ -16,14 +16,14 @@ The old generation_tracker.py is left in place — callers migrate incrementally
 
 TODOs (input modality & resolution):
     - TODO: Resolve agent input modalities from model → modalities_resource (is_input)
-            and pass to post_process_media_sentinels in generate_prepare.
+            and pass to post_process_media_sentinels in prepare_generation.
     - TODO: Persist multipart messages (text + image blocks) instead of text-only
             in persist_run_message when input modality includes non-text media.
     - Resolution phase implemented: find_contested_targets / find_uncontested_targets
-            + promote_unit / fail_unit wired in generate_run_complete_new + generation_ended.
-    - TODO: Build entry_actions alongside resource_actions in generate_run_complete
+            + promote_unit / fail_unit wired in run_complete_impl + generation_ended.
+    - TODO: Build entry_actions alongside resource_actions in run_complete_impl
             (currently only resource_type/resource_id are extracted from tool_results).
-    - TODO: Emit per-unit modality metadata in generation_channel progress events
+    - TODO: Emit per-unit modality metadata in <artifact>.generate.progress events
             so the client can show "Generating images…" vs "Generating text…".
 """
 

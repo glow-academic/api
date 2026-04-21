@@ -16,13 +16,16 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.refresh.types import RefreshResponse
 
 # Black-box entry refresh tools
+from app.tools.entries.calls.refresh import refresh_calls_internal
+from app.tools.entries.messages.refresh import refresh_messages_internal
+from app.tools.entries.runs.refresh import refresh_runs_internal
 from app.tools.entries.test.refresh import refresh_test
 
 # Tags to invalidate — artifact cache + resource caches
 _TAGS = ["test", "artifacts"]
 
 # Views refreshed by this endpoint
-_VIEWS = ["test_mv"]
+_VIEWS = ["test_mv", "runs_mv", "messages_mv", "calls_mv"]
 
 
 async def refresh_test_impl(
@@ -56,8 +59,23 @@ async def refresh_test_impl(
         async with pool.acquire() as conn:
             await refresh_test(conn)
 
+    async def _refresh_runs() -> None:
+        async with pool.acquire() as conn:
+            await refresh_runs_internal(conn, redis=redis)
+
+    async def _refresh_messages() -> None:
+        async with pool.acquire() as conn:
+            await refresh_messages_internal(conn, redis=redis)
+
+    async def _refresh_calls() -> None:
+        async with pool.acquire() as conn:
+            await refresh_calls_internal(conn, redis=redis)
+
     await asyncio.gather(
         _refresh_test(),
+        _refresh_runs(),
+        _refresh_messages(),
+        _refresh_calls(),
     )
 
     # ── Step 3: Invalidate cache tags ────────────────────────────────────

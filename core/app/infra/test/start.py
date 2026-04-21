@@ -76,7 +76,7 @@ async def test_start_internal_impl(
         proceed_events = [
             event
             for event in recorded
-            if event.bus == "internal" and event.event == "test_proceed"
+            if event.bus == "internal" and event.event == "test.proceed.completed"
         ]
         created_test_id = (
             proceed_events[0].data.get("test_id", "") if proceed_events else ""
@@ -96,22 +96,22 @@ async def test_start_internal_impl(
         for event in recorded:
             if event.bus != "internal":
                 continue
-            if event.event == "test_started":
+            if event.event == "test.start.completed":
                 return TestStartInternalResult(
                     test_id=event.data.get("test_id", ""),
                     invocation_id=event.data.get("invocation_entry_id"),
                 )
-            if event.event == "test_invocation_started":
+            if event.event == "test.run.invocation_started":
                 return TestStartInternalResult(
                     test_id=event.data.get("test_id", ""),
                     invocation_id=event.data.get("test_invocation_id"),
                 )
-            if event.event == "test_ended":
+            if event.event == "test.end.completed":
                 return TestStartInternalResult(
                     test_id=event.data.get("test_id", ""),
                     success=bool(event.data.get("success", True)),
                 )
-            if event.event == "test_error":
+            if event.event.startswith("test.") and event.event.endswith(".error"):
                 error = TestErrorData(**event.data)
                 raise ValueError(error.message)
 

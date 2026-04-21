@@ -116,7 +116,6 @@ async def _resolve_profile(
         profile_id,
         redis,
         session_id=session_id,
-        draft_id=draft_id,
     )
 
 

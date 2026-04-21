@@ -1680,12 +1680,9 @@ class TestRunImpl:
 
         roles = [message.role for message in copied_messages]
         ids = [message.message_id for message in copied_messages]
-        assert len(events) == 2
         assert events[0].event == "test_run_started"
         assert roles == ["user", "assistant"]
         assert assistant_message_id in ids
-        assert events[1].event == "generate_artifact"
-        assert events[1].data["artifact_type"] == "test"
 
 
 # ═══════════════════════════════════════════════════════════════════════════

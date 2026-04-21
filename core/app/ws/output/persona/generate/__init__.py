@@ -4,6 +4,7 @@ from . import (  # noqa: F401
     call_complete,
     call_start,
     completed,
+    error,
     failed,
     progress,
     started,

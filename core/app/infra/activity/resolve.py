@@ -9,8 +9,8 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.activity.types import ResolveProblemApiResponse
+from app.infra.group.resolve import resolve_group_impl
 from app.tools.entries.calls.create import create_call
-from app.tools.entries.groups.create import create_group
 from app.tools.entries.resolves.create import create_resolve
 from app.tools.entries.runs.create import create_run
 from app.utils.cache.invalidate_tags import invalidate_tags
@@ -36,10 +36,17 @@ async def resolve_activity_impl(
     """
     # -- Create entry chain ---------------------------------------------------
 
+    group_result = await resolve_group_impl(
+        pool, redis,
+        artifact_type="activity",
+        profile_id=profile_id,
+        session_id=session_id,
+        include_history=False,
+    )
+
     async with pool.acquire() as conn:
-        group_result = await create_group(conn, session_id=session_id, artifact_type="activity")  # TODO: fix logic
         run_result = await create_run(
-            conn, group_id=group_result.id, session_id=session_id
+            conn, group_id=group_result.group_id, session_id=session_id
         )
         call_result = await create_call(
             conn, run_id=run_result.id, session_id=session_id

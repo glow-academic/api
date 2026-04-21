@@ -1,3 +1,3 @@
 """Output: profile.generate.* events."""
 
-from . import completed, failed, progress, started  # noqa: F401
+from . import completed, error, failed, progress, started  # noqa: F401

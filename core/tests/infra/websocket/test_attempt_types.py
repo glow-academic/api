@@ -6,7 +6,6 @@ from app.infra.websocket.attempt_types import (
     GenerateRequestData,
 )
 from app.infra.websocket.generation_types import (
-    GenerateArtifactPayload,
     GenerateErrorApiRequest,
     GenerationErrorData,
 )
@@ -59,18 +58,6 @@ def test_generate_error_api_request_allows_optional_context_fields():
 
     assert payload.artifact_type is None
     assert payload.resource_types == ["documents", "images"]
-
-
-def test_generate_artifact_payload_defaults_modality_and_timeout_fields():
-    payload = GenerateArtifactPayload(
-        run_id="run-1",
-        messages=[{"role": "user", "content": "hello"}],
-        llm_config={"model": "gpt-test"},
-    )
-
-    assert payload.modality == "text"
-    assert payload.tool_timeout_seconds == 60.0
-    assert payload.tools is None
 
 
 def test_test_progress_and_completion_models_have_expected_defaults():

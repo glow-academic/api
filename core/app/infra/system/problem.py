@@ -16,7 +16,6 @@ from app.infra.system.types import ProblemSystemApiResponse
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.calls.create import create_call
-from app.tools.entries.groups.create import create_group
 from app.tools.entries.problems.create import create_problem as create_problem_entry
 from app.tools.entries.runs.create import create_run
 from app.utils.cache.invalidate_tags import invalidate_tags
@@ -52,9 +51,17 @@ async def problem_system_impl(
     if not has_permission(identity.role_permissions, ARTIFACT_TYPE, "problem"):
         raise HTTPException(status_code=403, detail="You don't have permission to report system problems.")
 
+    from app.infra.group.resolve import resolve_group_impl
+    group_result = await resolve_group_impl(
+        pool, redis,
+        artifact_type=ARTIFACT_TYPE,
+        profile_id=profile_id,
+        session_id=session_id,
+        include_history=False,
+    )
+
     async with pool.acquire() as conn:
-        group_result = await create_group(conn, session_id=session_id, artifact_type=ARTIFACT_TYPE)
-        run_result = await create_run(conn, group_id=group_result.id, session_id=session_id)
+        run_result = await create_run(conn, group_id=group_result.group_id, session_id=session_id)
         call_result = await create_call(conn, run_id=run_result.id, session_id=session_id)
         problem_result = await create_problem_entry(
             conn,

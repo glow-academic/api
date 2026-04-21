@@ -24,18 +24,18 @@ async def test_run(sid: str, data: dict[str, Any]) -> None:
         profile_id_str = await find_profile_by_socket(sid)
         if not profile_id_str:
             await internal_sio.emit(
-                "test_error",
+                "test.run.error",
                 TestErrorData(sid=sid, message="Profile not found. Please reconnect.", error_type="auth").model_dump(mode="json"),
             )
             return
 
         await internal_sio.emit(
-            "test_run",
+            "test.run.triggered",
             {"sid": sid, "profile_id": profile_id_str, **payload.model_dump(mode="json")},
         )
     except Exception as e:
         logger.exception(f"Invalid request in test_run: {e}")
         await internal_sio.emit(
-            "test_error",
+            "test.run.error",
             TestErrorData(sid=sid, message=f"Invalid request: {e}", error_type="run").model_dump(mode="json"),
         )

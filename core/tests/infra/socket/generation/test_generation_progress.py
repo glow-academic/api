@@ -101,7 +101,7 @@ class TestGenerationProgressImpl:
             globals_mod.redis_client = previous
 
         assert len(events) == 1
-        assert events[0].event == "generation_channel"
+        assert events[0].event == "agent.generate.progress"
         assert events[0].data["type"] == "progress"
         assert events[0].data["completed_resources"] == 1
         assert events[0].data["total_resources"] == 5

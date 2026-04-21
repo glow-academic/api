@@ -73,13 +73,13 @@ async def test_run_internal_impl(
         for event in recorded:
             if event.bus != "internal":
                 continue
-            if event.event == "test_run_started":
+            if event.event == "test.run.started":
                 return TestRunInternalResult(
                     test_id=event.data.get("test_id", ""),
                     invocation_id=event.data.get("test_invocation_id", ""),
                     run_id=event.data.get("run_id", ""),
                 )
-            if event.event == "test_error":
+            if event.event.startswith("test.") and event.event.endswith(".error"):
                 error = TestErrorData(**event.data)
                 raise ValueError(error.message)
 

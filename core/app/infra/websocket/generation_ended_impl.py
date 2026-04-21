@@ -6,8 +6,8 @@ importable without triggering the socket tree.
 
 Flow:
   1. Derive run_id from test → call → run chain (DB black boxes)
-  2. Re-emit generate_run_complete so run_complete_impl re-runs
-  3. On second pass, run_complete_impl sees eval is graded → emits completion
+  2. Call run_complete_impl directly so it re-runs with the graded eval
+  3. run_complete_impl sees eval is graded → emits completion
 
 No Redis resolution context. No duplicate emit logic. run_complete_impl
 is the single completion gate — this function just re-triggers it.
@@ -122,12 +122,13 @@ async def generation_ended_impl(
 ) -> None:
     """Re-trigger run_complete after eval grading finishes.
 
-    Derives run context from DB (test → call → run), then re-emits
-    generate_run_complete. run_complete_impl sees the eval is graded
-    and emits the final completion.
+    Derives run context from DB (test → call → run), then calls
+    ``run_complete_impl`` directly so it can see the eval is now graded
+    and emit the final completion. No top-level internal event involved.
 
     All I/O dependencies are injected — no globals accessed.
     """
+    from app.infra.websocket.run_complete_impl import run_complete_impl
     test_id = data.get("test_id")
     sid = data.get("sid", "")
     if not test_id:
@@ -162,23 +163,21 @@ async def generation_ended_impl(
         f"for run {run_id} (group {run.group_id})"
     )
 
-    # Re-emit generate_run_complete — run_complete_impl will see
-    # the eval is graded and proceed to final completion emit
-    await emit(
-        [
-            internal_event(
-                "generate_run_complete",
-                {
-                    "sid": sid,
-                    "run_id": str(run_id),
-                    "group_id": str(run.group_id),
-                    "session_id": str(run.session_id),
-                    "metadata": {
-                        "generation_test_id": test_id,
-                    },
-                },
-            )
-        ]
+    # Direct call — run_complete_impl sees the eval is graded and emits
+    # the final completion channel.
+    await run_complete_impl(
+        {
+            "sid": sid,
+            "run_id": str(run_id),
+            "group_id": str(run.group_id),
+            "session_id": str(run.session_id),
+            "metadata": {
+                "generation_test_id": test_id,
+            },
+        },
+        emit=emit,
+        conn=conn,
+        redis=redis,
     )
 
 

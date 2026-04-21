@@ -2,7 +2,6 @@
 
 from app.infra.websocket.run_complete_impl import (
     _table_name,
-    build_audio_continue_payload,
     build_run_complete_payload,
 )
 
@@ -13,30 +12,6 @@ def test_table_name_uses_resource_suffix():
 
 def test_table_name_uses_entry_suffix():
     assert _table_name("entry", "contents") == "contents_entry"
-
-
-def test_build_audio_continue_payload_uses_default_operations_when_missing():
-    payload = build_audio_continue_payload(
-        {"metadata": {"step": 1}},
-        sid="sid-1",
-        artifact_type="agent",
-        group_id="group-1",
-        profile_id="profile-1",
-        profiles_id="profiles-1",
-        session_id="session-1",
-    )
-
-    assert payload == {
-        "sid": "sid-1",
-        "profile_id": "profile-1",
-        "profiles_id": "profiles-1",
-        "session_id": "session-1",
-        "artifact_type": "agent",
-        "operations": ["get"],
-        "group_id": "group-1",
-        "modality": "audio",
-        "metadata": {"step": 1},
-    }
 
 
 def test_build_run_complete_payload_serializes_generation_complete_shape():

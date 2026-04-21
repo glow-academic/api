@@ -75,7 +75,7 @@ async def user_progress_impl(
     await emit(
         [
             internal_event(
-                "attempt_user_progress",
+                "attempt.message.user.progress",
                 AttemptUserProgressData(
                     sid=sid,
                     chat_id=chat_id,
@@ -103,7 +103,7 @@ async def audio_session_start_impl(
     await emit(
         [
             internal_event(
-                "attempt_audio_ready",
+                "attempt.audio_start.completed",
                 AttemptAudioReadyData(
                     sid=sid,
                     chat_id=chat_id,
@@ -137,7 +137,7 @@ async def audio_speech_start_impl(
     await emit(
         [
             internal_event(
-                "attempt_user_received_start",
+                "attempt.response.started",
                 AttemptUserReceivedStartData(
                     sid=session.sid,
                     chat_id=session.chat_id,
@@ -170,7 +170,7 @@ async def audio_speech_delta_impl(
     await emit(
         [
             internal_event(
-                "attempt_user_received_progress",
+                "attempt.response.progress",
                 AttemptUserReceivedProgressData(
                     sid=session.sid,
                     chat_id=session.chat_id,
@@ -197,7 +197,7 @@ async def audio_error_impl(
     await emit(
         [
             internal_event(
-                "attempt_error",
+                "attempt.audio.error",
                 AttemptErrorData(
                     sid=session.sid,
                     error_type="audio",
@@ -229,19 +229,14 @@ async def attempt_next_impl(
         return
 
     try:
-        resolve_profile_identity_fn = (
-            resolve_profile_identity_fn or resolve_profile_identity_context
-        )
-        identity = await resolve_profile_identity_fn(
-            pool,
-            uuid.UUID(profile_id),
-            redis or Redis(),
+        from app.infra.attempt.group import group_attempt_impl
+        group_result = await group_attempt_impl(
+            pool, redis or Redis(),
+            profile_id=uuid.UUID(profile_id),
             session_id=uuid.UUID(session_id),
-            attempt_id=uuid.UUID(attempt_id),
+            include_history=False,
         )
-        group_id = identity.group_id if identity else None
-        if group_id is None:
-            raise ValueError(f"Group not found for attempt {attempt_id}")
+        group_id = group_result.group_id
 
         await emit(
             [
@@ -264,7 +259,7 @@ async def attempt_next_impl(
         await emit(
             [
                 internal_event(
-                    "attempt_error",
+                    "attempt.next.error",
                     AttemptErrorData(
                         sid=sid,
                         error_type="next",
@@ -314,7 +309,7 @@ async def user_start_impl(
         await emit(
             [
                 internal_event(
-                    "attempt_user_start",
+                    "attempt.message.user.started",
                     AttemptUserStartData(
                         sid=sid,
                         chat_id=chat_id,
@@ -355,7 +350,7 @@ async def audio_stop_impl(
     await emit(
         [
             internal_event(
-                "attempt_audio_ended",
+                "attempt.audio_stop.completed",
                 AttemptAudioEndedData(
                     sid=sid,
                     chat_id=chat_id,
@@ -388,7 +383,7 @@ async def audio_response_cancelled_impl(
     await emit(
         [
             internal_event(
-                "attempt_stopped",
+                "attempt.stop.completed",
                 AttemptStoppedData(
                     sid=sid,
                     rooms=[sid, str(group_id)],
@@ -488,7 +483,7 @@ async def user_complete_impl(
         await emit(
             [
                 internal_event(
-                    "attempt_user_complete",
+                    "attempt.message.user.completed",
                     AttemptUserCompleteData(
                         sid=sid,
                         chat_id=chat_id,
@@ -543,15 +538,20 @@ async def attempt_message_impl(
         profile_id_uuid,
         redis or Redis(),
         session_id=session_id_uuid,
-        attempt_id=attempt_id_uuid,
     )
     profiles_id = identity.profiles_id if identity else None
-    group_id = identity.group_id if identity else None
+
+    from app.infra.attempt.group import group_attempt_impl
+    group_result = await group_attempt_impl(
+        pool, redis or Redis(),
+        profile_id=profile_id_uuid,
+        session_id=session_id_uuid,
+        include_history=False,
+    )
+    group_id = group_result.group_id
 
     run_id = data.get("run_id")
     if run_id is None:
-        if group_id is None:
-            raise ValueError(f"Group not found for attempt {attempt_id}")
         async with pool.acquire() as conn:
             run = await create_run(
                 conn,
@@ -660,7 +660,7 @@ async def speech_complete_impl(
     await emit(
         [
             internal_event(
-                "attempt_user_received_complete",
+                "attempt.response.completed",
                 AttemptUserReceivedCompleteData(
                     sid=session.sid,
                     chat_id=session.chat_id,
@@ -797,7 +797,7 @@ async def attempt_start_impl(
         await emit(
             [
                 internal_event(
-                    "attempt_error",
+                    "attempt.start.error",
                     AttemptErrorData(
                         sid=sid,
                         error_type="start",
@@ -812,7 +812,7 @@ async def attempt_start_impl(
         await emit(
             [
                 internal_event(
-                    "attempt_error",
+                    "attempt.start.error",
                     AttemptErrorData(
                         sid=sid,
                         error_type="start",
@@ -834,11 +834,17 @@ async def attempt_start_impl(
             session_id=session_id_uuid,
         )
         profiles_resource_id = identity.profiles_id if identity else None
-        group_id = identity.group_id if identity else None
         if not profiles_resource_id:
             raise ValueError(f"Profile resource not found for profile_id {profile_id}")
-        if not group_id:
-            raise ValueError("Group could not be resolved for attempt start")
+
+        from app.infra.attempt.group import group_attempt_impl
+        group_result = await group_attempt_impl(
+            pool, redis or Redis(),
+            profile_id=profile_id_uuid,
+            session_id=session_id_uuid,
+            include_history=False,
+        )
+        group_id = group_result.group_id
 
         parent_id = payload.practice_id if is_practice else payload.home_id
         if not parent_id:
@@ -971,7 +977,7 @@ async def attempt_start_impl(
         await emit(
             [
                 internal_event(
-                    "attempt_error",
+                    "attempt.start.error",
                     AttemptErrorData(
                         sid=sid,
                         error_type="start",
@@ -986,6 +992,7 @@ async def emit_chat_generate_impl(
     *,
     emit: EmitFn,
     pool: asyncpg.Pool,
+    redis: Redis,
     sid: str,
     profile_id: uuid.UUID,
     profiles_id: uuid.UUID | None,
@@ -1000,7 +1007,7 @@ async def emit_chat_generate_impl(
     chat_started_emitted: bool = False,
 ) -> None:
     """Create group + run, then emit to generate pipeline."""
-    from app.tools.entries.groups.create import create_group
+    from app.infra.group.resolve import resolve_group_impl
     from app.tools.entries.runs.create import create_run
 
     resolved_operations = operations or [
@@ -1010,10 +1017,16 @@ async def emit_chat_generate_impl(
         "fields",
     ]
 
-    async with pool.acquire() as conn:
-        group_result = await create_group(conn, session_id=session_id, artifact_type="attempt")  # TODO: fix logic
-        group_id = group_result.id
+    group_result = await resolve_group_impl(
+        pool, redis,
+        artifact_type="attempt",
+        profile_id=profile_id,
+        session_id=session_id,
+        include_history=False,
+    )
+    group_id = group_result.group_id
 
+    async with pool.acquire() as conn:
         run_result = await create_run(
             conn,
             session_id=session_id,
@@ -1154,7 +1167,7 @@ async def attempt_proceed_impl(
                 await emit(
                     [
                         internal_event(
-                            "attempt_ended",
+                            "attempt.complete.completed",
                             AttemptEndedData(
                                 sid=sid,
                                 attempt_id=str(attempt_id),
@@ -1245,7 +1258,7 @@ async def attempt_proceed_impl(
             await emit(
                 [
                     internal_event(
-                        "attempt_ended",
+                        "attempt.complete.completed",
                         AttemptEndedData(
                             sid=sid,
                             attempt_id=str(attempt_id),
@@ -1270,7 +1283,7 @@ async def attempt_proceed_impl(
             await emit(
                 [
                     internal_event(
-                        "attempt_error",
+                        "attempt.proceed.error",
                         AttemptErrorData(
                             sid=sid,
                             error_type="proceed",
@@ -1295,7 +1308,7 @@ async def attempt_proceed_impl(
             await emit(
                 [
                     internal_event(
-                        "attempt_started",
+                        "attempt.start.completed",
                         AttemptStartedData(
                             sid=sid,
                             attempt_id=str(attempt_id),
@@ -1435,6 +1448,7 @@ async def attempt_proceed_impl(
             await emit_chat_generate_impl(
                 emit=emit,
                 pool=pool,
+                redis=redis or Redis(),
                 sid=sid,
                 profile_id=profile_id_uuid,
                 profiles_id=profiles_id,
@@ -1450,7 +1464,7 @@ async def attempt_proceed_impl(
             await emit(
                 [
                     internal_event(
-                        "attempt_chat_started",
+                        "attempt.chat_create.completed",
                         {
                             "sid": sid,
                             "attempt_id": str(attempt_id),
@@ -1471,7 +1485,7 @@ async def attempt_proceed_impl(
         await emit(
             [
                 internal_event(
-                    "attempt_error",
+                    "attempt.proceed.error",
                     AttemptErrorData(
                         sid=sid,
                         error_type="proceed",

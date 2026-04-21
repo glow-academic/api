@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.common_context import resolve_common_context
+from app.infra.group.resolve import resolve_group_impl
 from app.infra.department.context import resolve_department_context
 from app.infra.department.permissions import (
     DEPARTMENT_BASIC_RESOURCES,
@@ -102,8 +103,6 @@ async def get_department_impl(
         profile_id=profile_id,
         session_id=session_id,
         group_id=group_id,
-        draft_id=draft_id,
-        artifact_type="department",
         bypass_cache=bypass_cache,
     )
     if common is None:
@@ -113,8 +112,16 @@ async def get_department_impl(
         )
 
     profile = common.profile
-    effective_group_id = group_id or profile.group_id
-
+    if group_id is None:
+        _gr = await resolve_group_impl(
+            pool, redis,
+            artifact_type="department",
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
+        group_id = _gr.group_id
+    effective_group_id = group_id
     perms = None
     if department_id is not None:
         async with pool.acquire() as conn:

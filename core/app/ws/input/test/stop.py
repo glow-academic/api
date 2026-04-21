@@ -20,7 +20,7 @@ async def test_stop(sid: str, data: dict[str, Any]) -> None:
         profile_id_str = await find_profile_by_socket(sid)
         if not profile_id_str:
             await internal_sio.emit(
-                "test_error",
+                "test.stop.error",
                 TestErrorData(sid=sid, rooms=[sid], invocation_id=str(payload.invocation_id), message="Profile not found. Please reconnect.", error_type="auth").model_dump(mode="json"),
             )
             return
@@ -32,6 +32,6 @@ async def test_stop(sid: str, data: dict[str, Any]) -> None:
     except Exception as e:
         logger.exception(f"Error in test_stop: {e}")
         await internal_sio.emit(
-            "test_error",
+            "test.stop.error",
             TestErrorData(sid=sid, rooms=[sid], invocation_id=str(data.get("invocation_id", "")), message=f"Failed to stop test: {e}", error_type="stop").model_dump(mode="json"),
         )

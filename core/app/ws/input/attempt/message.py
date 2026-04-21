@@ -7,14 +7,15 @@ otherwise uses the standard text generation pipeline.
 
 from typing import Any
 
+from app.infra.attempt.message import attempt_message_internal_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder, sio
+from app.infra.group.resolve import resolve_group_impl
 from app.infra.identity.socket import resolve_socket_identity
 from app.infra.websocket.attempt.audio_frame import (
     attempt_audio_frame_internal_impl,
 )
 from app.infra.websocket.session_store import get_session_by_chat_id
-from app.infra.attempt.message import attempt_message_internal_impl
 from app.tools.entries.uploads.get import get_upload
 
 
@@ -67,8 +68,19 @@ async def attempt_message(sid: str, data: dict[str, Any]) -> None:
     pool = get_pool()
     redis = get_redis_client()
 
+    # Resolve group so audit can fire proper lifecycle events
+    # (without group_id the audit layer falls to its non-audit branch).
+    group_resolve = await resolve_group_impl(
+        pool,
+        redis,
+        artifact_type="attempt",
+        profile_id=identity.profile_id,
+        session_id=identity.session_id,
+        include_history=False,
+    )
+
     async def _runner() -> dict[str, Any]:
-        await attempt_message_internal_impl(
+        result = await attempt_message_internal_impl(
             pool,
             redis,
             profile_id=identity.profile_id,
@@ -82,17 +94,18 @@ async def attempt_message(sid: str, data: dict[str, Any]) -> None:
             parent_message_id=data.get("parent_message_id"),
             sid=sid,
         )
-        return {"chat_id": chat_id, "success": True}
+        return result.model_dump(mode="json")
 
     await run_artifact_operation_with_audit(
         pool,
         redis,
         artifact="attempt",
-        operation="chat.message",
+        operation="chat_message",
         profile_id=identity.profile_id,
         session_id=identity.session_id,
+        group_id=group_resolve.group_id,
         sid=sid,
         rooms=[sid],
         runner=_runner,
-        arguments={"chat_id": chat_id},
+        arguments={"chat_id": chat_id, "text": text, "persona_id": data.get("persona_id")},
     )

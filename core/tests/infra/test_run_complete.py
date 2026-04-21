@@ -76,7 +76,12 @@ class TestRunCompleteImpl:
         await run_complete_impl({"sid": ""}, emit=emit, conn=conn, redis=redis_client)
         assert events == []
 
-    async def test_audio_modality_emits_generate_and_returns(self, conn, redis_client):
+    async def test_audio_modality_returns_without_emitting(self, conn, redis_client):
+        """Audio branch is now side-effect-only (rotate_run_id on live session).
+
+        No session exists in this test, so nothing to rotate — just verify the
+        branch returns cleanly without emitting anything.
+        """
         emit, events = recording_emit()
         data = {
             "sid": "sid-1",
@@ -91,9 +96,7 @@ class TestRunCompleteImpl:
 
         await run_complete_impl(data, emit=emit, conn=conn, redis=redis_client)
 
-        assert len(events) == 1
-        assert events[0].event == "generate"
-        assert events[0].data["group_id"] == "g1"
+        assert events == []
 
     async def test_incomplete_run_returns_without_events(self, conn, redis_client):
         profile, session, _group, run = await _run_graph(conn, redis_client)

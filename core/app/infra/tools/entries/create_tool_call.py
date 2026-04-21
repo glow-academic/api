@@ -36,6 +36,7 @@ async def create_tool_call(
     raise_on_error: bool = False,
     instruction_template: str | None = None,
     on_call_created: Callable[[UUID | None], Any] | None = None,
+    pre_minted_call_id: UUID | None = None,
 ) -> CreateToolSetupResponse:
     """Execute a tool and persist the full entry chain + files.
 
@@ -66,6 +67,7 @@ async def create_tool_call(
             tool_id=tool_id,
             operation_key=operation_key,
             mcp=mcp,
+            id=pre_minted_call_id,
         )
         call_id = call_result.id
 
@@ -101,8 +103,7 @@ async def create_tool_call(
             from jinja2 import Environment, Undefined
             env = Environment(undefined=Undefined, autoescape=False)
             tmpl = env.from_string(instruction_template)
-            # Match the rendering context from generate_artifact_impl:
-            # wrap in {success, results} structure that templates expect
+            # Wrap in {success, results} structure that templates expect.
             result_dict = (
                 json.loads(output_raw) if isinstance(output_raw, str)
                 else output_raw

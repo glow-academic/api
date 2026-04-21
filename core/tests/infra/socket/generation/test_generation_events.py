@@ -32,7 +32,7 @@ class TestGenerationError:
         await generation_error_impl({"sid": ""}, emit=emit)
         assert events == []
 
-    async def test_emits_error_to_generation_channel(self):
+    async def test_emits_artifact_namespaced_error(self):
         emit, events = recording_emit()
         await generation_error_impl(
             {
@@ -45,7 +45,7 @@ class TestGenerationError:
         )
         assert len(events) == 1
         e = events[0]
-        assert e.event == "generation_channel"
+        assert e.event == "agent.generate.error"
         assert e.data["type"] == "error"
         assert e.data["message"] == "boom"
         assert e.data["artifact_type"] == "agent"
@@ -93,7 +93,7 @@ class TestTextProgress:
             emit=emit,
         )
         assert len(events) == 1
-        assert events[0].event == "attempt_assistant_progress"
+        assert events[0].event == "attempt.message.assistant.progress"
         assert events[0].data["content"] == "hello"
         assert events[0].data["chat_id"] == "c1"
 
@@ -131,7 +131,7 @@ class TestCallComplete:
             emit=emit,
         )
         assert len(events) == 1
-        assert events[0].event == "attempt_assistant_hints"
+        assert events[0].event == "attempt.chat_hints.completed"
         assert events[0].data["hints"] == [{"text": "try this"}]
 
     async def test_grade_progress_emitted(self):
@@ -147,7 +147,7 @@ class TestCallComplete:
             emit=emit,
         )
         assert len(events) == 1
-        assert events[0].event == "attempt_grade_progress"
+        assert events[0].event == "attempt.chat_grade.progress"
         assert events[0].data["grade_id"] == "g1"
 
     async def test_hints_and_grade_both_emitted(self):
@@ -164,8 +164,8 @@ class TestCallComplete:
             emit=emit,
         )
         assert len(events) == 2
-        assert events[0].event == "attempt_assistant_hints"
-        assert events[1].event == "attempt_grade_progress"
+        assert events[0].event == "attempt.chat_hints.completed"
+        assert events[1].event == "attempt.chat_grade.progress"
 
 
 # ═══════════════════════════════════════════════════════════════════════════

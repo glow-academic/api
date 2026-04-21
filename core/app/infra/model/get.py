@@ -123,8 +123,6 @@ async def get_model_impl(
         profile_id=profile_id,
         session_id=session_id,
         group_id=group_id,
-        draft_id=draft_id,
-        artifact_type="model",
         bypass_cache=bypass_cache,
     )
     if common is None:

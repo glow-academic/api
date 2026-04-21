@@ -141,9 +141,6 @@ async def get_invocation_impl(
         redis,
         profile_id=profile_id,
         session_id=session_id,
-        draft_id=draft_id,
-        test_id=test_id,
-        artifact_type="invocation",
         bypass_cache=bypass_cache,
     )
     if common is None:
@@ -152,9 +149,15 @@ async def get_invocation_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    group_id = common.profile.group_id
-    if group_id is None:
-        raise HTTPException(status_code=400, detail="Failed to resolve group context.")
+    # Invocation is test-scoped — use the canonical test group.
+    from app.infra.test.group import group_test_impl
+    group_result = await group_test_impl(
+        pool, redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        include_history=False,
+    )
+    group_id = group_result.group_id
 
     ctx = await resolve_invocation_context(
         pool,

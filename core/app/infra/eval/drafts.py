@@ -58,7 +58,7 @@ async def list_eval_drafts_impl(
     return ArtifactContext(
         artifact_id=None,
         active=True,
-        group_id=profile.group_id or UUID(int=0),
+        group_id=UUID(int=0),
         resources={},
         entries={"drafts": drafts},
     )

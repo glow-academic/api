@@ -76,8 +76,6 @@ async def get_chat_impl(
         redis,
         profile_id=profile_id,
         session_id=session_id,
-        attempt_id=attempt_id,
-        draft_id=draft_id,
         bypass_cache=bypass_cache,
     )
 
@@ -87,9 +85,15 @@ async def get_chat_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    group_id = common.profile.group_id
-    if group_id is None:
-        raise HTTPException(status_code=400, detail="Failed to resolve group context.")
+    # Chat is an attempt-scoped resource — use the canonical attempt group.
+    from app.infra.attempt.group import group_attempt_impl
+    group_result = await group_attempt_impl(
+        pool, redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        include_history=False,
+    )
+    group_id = group_result.group_id
 
     context = await resolve_chat_context(
         pool,

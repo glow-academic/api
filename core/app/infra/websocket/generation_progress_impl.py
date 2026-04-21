@@ -1,7 +1,7 @@
 """Generation progress tracking — pure business logic with emit: EmitFn.
 
 Tracks resource/entry completions via run_tracker.record_unit_soft
-and emits progress percentage to generation_channel.
+and emits progress percentage as ``<artifact>.generate.progress``.
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ def build_generation_progress_payload(
     total: int,
     last_completed_resource: str,
 ) -> dict[str, Any]:
-    """Build the generation_channel progress payload."""
+    """Build the ``<artifact>.generate.progress`` payload."""
     percentage = round((completed / total) * 100) if total > 0 else 0
     return GenerationProgressData(
         sid=data.get("sid", ""),
@@ -100,10 +100,11 @@ async def generation_progress_impl(
         except Exception:
             pass  # Best-effort legacy compat
 
+    artifact_type = data.get("artifact_type", "unknown")
     await emit(
         [
             internal_event(
-                "generation_channel",
+                f"{artifact_type}.generate.progress",
                 build_generation_progress_payload(
                     data,
                     completed=completed,

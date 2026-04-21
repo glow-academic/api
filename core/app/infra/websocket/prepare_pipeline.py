@@ -1,7 +1,7 @@
 """Pure functions for the generation preparation pipeline.
 
-Extracted from generate_prepare.py — all functions are pure (no I/O, no globals).
-They accept resolved data and return structured results.
+All functions here are pure (no I/O, no globals); they accept resolved
+data and return structured results.
 
 TODOs:
     - TODO: Resolve agent input modalities from model → modalities_resource (is_input)
@@ -613,6 +613,27 @@ def build_agent_groups_from_scores(
             agent_groups.setdefault(best.agent_id, []).append(rt)
 
     return agent_groups
+
+
+def resolve_primary_artifact_type(data: dict[str, Any]) -> str:
+    """Resolve the primary artifact type name from raw request data.
+
+    Reads ``artifact_type`` directly, with legacy fallbacks for older
+    payload shapes that carried ``permissions`` or ``artifact_types``.
+    """
+    at = data.get("artifact_type")
+    if at and at != "unknown":
+        return at
+
+    permissions_raw = data.get("permissions") or []
+    if permissions_raw and isinstance(permissions_raw[0], dict):
+        return permissions_raw[0].get("artifact", "unknown")
+
+    artifact_types_raw = data.get("artifact_types") or []
+    if artifact_types_raw and isinstance(artifact_types_raw[0], dict):
+        return artifact_types_raw[0].get("name", "unknown")
+
+    return "unknown"
 
 
 # Re-export from canonical location

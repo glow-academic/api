@@ -267,27 +267,6 @@ class TestLifecycle:
         assert events[0].data["input_text_tokens"] == 10
         assert events[0].data["output_text_tokens"] == 20
 
-    async def test_on_response_done_emits_run_complete(self):
-        emit, events = recording_emit()
-        emitter = InternalBusAudioEmitter(emit=emit)
-        await emitter.on_response_done(
-            "g1", usage={"input_tokens": 5, "output_tokens": 15}
-        )
-
-        assert len(events) == 1
-        assert events[0].event == "generate_run_complete"
-        assert events[0].data["input_text_tokens"] == 5
-        assert events[0].data["save"] is False
-
-    async def test_on_response_done_default_usage(self):
-        emit, events = recording_emit()
-        emitter = InternalBusAudioEmitter(emit=emit)
-        await emitter.on_response_done("g1")
-
-        assert len(events) == 1
-        assert events[0].data["input_text_tokens"] == 0
-        assert events[0].data["output_text_tokens"] == 0
-
     async def test_on_response_cancelled_default_usage(self):
         emit, events = recording_emit()
         emitter = InternalBusAudioEmitter(emit=emit)

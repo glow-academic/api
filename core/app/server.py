@@ -55,7 +55,6 @@ class _StreamingEventFilter(logging.Filter):
         "attempt.generate.text.complete",
         "attempt.generate.call.start",
         "attempt.generate.call.complete",
-        "generate_run_complete",
         "attempt.generate.audio.session_start",
         "attempt.generate.audio.session_complete",
         "attempt.generate.audio.complete",

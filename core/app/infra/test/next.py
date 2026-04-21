@@ -62,7 +62,7 @@ async def test_next_internal_impl(
         group_events = [
             event
             for event in recorded
-            if event.bus == "internal" and event.event == "test_group"
+            if event.bus == "internal" and event.event == "test.group.started"
         ]
         for event in group_events:
             await test_group_internal_impl(event.data, emit=_emit)
@@ -70,7 +70,7 @@ async def test_next_internal_impl(
         run_events = [
             event
             for event in recorded
-            if event.bus == "internal" and event.event == "test_run"
+            if event.bus == "internal" and event.event == "test.run.triggered"
         ]
         for event in run_events:
             result = await test_run_internal_impl(
@@ -92,7 +92,7 @@ async def test_next_internal_impl(
         for event in recorded:
             if event.bus != "internal":
                 continue
-            if event.event == "test_error":
+            if event.event.startswith("test.") and event.event.endswith(".error"):
                 error = TestErrorData(**event.data)
                 raise ValueError(error.message)
 

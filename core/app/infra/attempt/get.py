@@ -550,17 +550,19 @@ async def get_attempt_internal(
         if msg_contents:
             contents = []
             for content in msg_contents:
-                # Resolve entry_id → resource_id → persona metadata
+                # Resolve entry_id → resource_id → persona metadata.
+                # Both query (user) and response (assistant) messages carry a
+                # persona_entry_id. Render the persona card identically on
+                # both sides — no hardcoded "You" fallback when a user persona
+                # exists. Fall back to the profile label only if no persona
+                # is attached.
                 _res_id = persona_entry_reverse.get(content.persona_entry_id) if content.persona_entry_id else None
                 persona_meta = resource_meta["personas"].get(_res_id, {}) if _res_id else {}
-                if msg.type == "query":
-                    name = "You" if is_own_attempt else profile_name
-                    color = None
-                    icon = "User"
-                else:
-                    name = persona_meta.get("name")
-                    color = persona_meta.get("color")
-                    icon = persona_meta.get("icon")
+                name = persona_meta.get("name")
+                color = persona_meta.get("color")
+                icon = persona_meta.get("icon")
+                if msg.type == "query" and not name:
+                    name = profile_name if not is_own_attempt else None
                 contents.append(
                     ContentEntry(
                         content=content.content,

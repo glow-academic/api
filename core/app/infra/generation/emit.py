@@ -7,16 +7,19 @@ Events are emitted on the internal bus using the canonical artifact-scoped
 name: ``{artifact_type}.generate.{modality}.{phase}``. Forwarders under
 ``app/ws/output/attempt/generate/*`` (etc.) translate to client sockets.
 
-Callers must supply ``artifact_type`` (or include it in the payload). If it
-is missing we fall back to ``generate_error`` — the only remaining non-
-artifact-scoped name, carved out as a pre-dispatch error channel.
+Callers must supply ``artifact_type`` (or include it in the payload).
+Missing ``artifact_type`` or an unsupported modality is a programmer
+error — logged and swallowed, nothing emitted.
 """
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from app.infra.websocket.socket_event import EmitFn, internal_event
+
+logger = logging.getLogger(__name__)
 
 _SUPPORTED_MODALITIES = {"text", "audio", "image", "video", "call"}
 
@@ -44,42 +47,34 @@ async def emit_modality_event(
 ) -> None:
     """Emit a modality-scoped generation event on the internal bus.
 
-    Canonical only — no legacy ``generate_{modality}_{phase}`` twin. When
-    the modality is unsupported, falls back to ``generate_error`` (the
-    pre-dispatch error channel); if ``artifact_type`` is also known, the
-    artifact-scoped ``{artifact}.generate.error`` is fired alongside.
+    Canonical only — event name is always
+    ``{artifact}.generate.{modality}.{phase}``. Missing artifact_type or an
+    unsupported modality is a programmer error; logged and swallowed so an
+    upstream bug can't crash the pipeline.
     """
     effective_artifact = artifact_type or (
         payload.get("artifact_type") if isinstance(payload, dict) else None
     )
     if modality not in _SUPPORTED_MODALITIES:
-        events = [internal_event("generate_error", payload)]
+        logger.error(
+            f"emit_modality_event: unsupported modality={modality} phase={phase} "
+            f"artifact_type={effective_artifact}"
+        )
         if effective_artifact:
-            events.append(
-                internal_event(
-                    canonical_generation_event(effective_artifact, "error"),
-                    payload,
-                )
+            await emit(
+                [
+                    internal_event(
+                        canonical_generation_event(effective_artifact, "error"),
+                        payload,
+                    )
+                ]
             )
-        await emit(events)
         return
 
     if not effective_artifact:
-        # No artifact_type → nothing to scope the canonical name to. Flag
-        # on the error channel so the call isn't invisible.
-        await emit(
-            [
-                internal_event(
-                    "generate_error",
-                    {
-                        **payload,
-                        "error_message": (
-                            "emit_modality_event called without artifact_type "
-                            f"(modality={modality}, phase={phase})"
-                        ),
-                    },
-                )
-            ]
+        logger.error(
+            f"emit_modality_event called without artifact_type "
+            f"(modality={modality}, phase={phase})"
         )
         return
 

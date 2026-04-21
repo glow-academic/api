@@ -102,11 +102,15 @@ async def generate_attempt_impl(
 
     group_id = cfg.group_id
     if not group_id:
-        # Resolve group from Redis time window (same as persona)
-        from app.tools.entries.groups.create import create_group
-        async with pool.acquire() as conn:
-            group_result = await create_group(conn, session_id=session_id, artifact_type=ARTIFACT_TYPE)
-            group_id = group_result.id
+        from app.infra.group.resolve import resolve_group_impl
+        group_result = await resolve_group_impl(
+            pool, redis,
+            artifact_type=ARTIFACT_TYPE,
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
+        group_id = group_result.group_id
 
     config = REGISTRY.get(ARTIFACT_TYPE)
     if not config:

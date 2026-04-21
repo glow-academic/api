@@ -13,7 +13,7 @@ flags = [
         name="active",
         description="Active flag",
         type="active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -21,7 +21,7 @@ flags = [
         name="guest_login_enabled",
         description="Guest login enabled",
         type="guest_login_enabled",
-        icon_id=None,
+        icon_id=sid("icon/user-check"),
         value=True,
     ),
     dict(
@@ -29,7 +29,7 @@ flags = [
         name="Practice",
         description="Practice flag",
         type="practice",
-        icon_id=None,
+        icon_id=sid("icon/target"),
         value=True,
     ),
     dict(
@@ -37,7 +37,7 @@ flags = [
         name="Video",
         description="Video enabled",
         type="video_enabled",
-        icon_id=None,
+        icon_id=sid("icon/film"),
         value=True,
     ),
     dict(
@@ -45,7 +45,7 @@ flags = [
         name="Problem Statement",
         description="Problem statement enabled",
         type="problem_statement_enabled",
-        icon_id=None,
+        icon_id=sid("icon/message-square"),
         value=True,
     ),
     dict(
@@ -53,7 +53,7 @@ flags = [
         name="Objectives",
         description="Objectives enabled",
         type="objectives_enabled",
-        icon_id=None,
+        icon_id=sid("icon/target"),
         value=True,
     ),
     dict(
@@ -61,7 +61,7 @@ flags = [
         name="Questions",
         description="Questions enabled",
         type="questions_enabled",
-        icon_id=None,
+        icon_id=sid("icon/help-circle"),
         value=True,
     ),
     dict(
@@ -69,7 +69,7 @@ flags = [
         name="Images",
         description="Images enabled",
         type="images_enabled",
-        icon_id=None,
+        icon_id=sid("icon/image"),
         value=True,
     ),
     dict(
@@ -77,7 +77,7 @@ flags = [
         name="groups",
         description="Groups flag",
         type="groups",
-        icon_id=None,
+        icon_id=sid("icon/users"),
         value=True,
     ),
     dict(
@@ -85,7 +85,7 @@ flags = [
         name="dynamic",
         description="Dynamic flag",
         type="dynamic",
-        icon_id=None,
+        icon_id=sid("icon/zap"),
         value=True,
     ),
     dict(
@@ -93,7 +93,7 @@ flags = [
         name="template",
         description="Template flag",
         type="template",
-        icon_id=None,
+        icon_id=sid("icon/clipboard"),
         value=True,
     ),
     dict(
@@ -101,7 +101,7 @@ flags = [
         name="Audio Enabled",
         description="Audio enabled flag for simulation scenario",
         type="audio_enabled",
-        icon_id=None,
+        icon_id=sid("icon/volume"),
         value=True,
     ),
     dict(
@@ -109,7 +109,7 @@ flags = [
         name="Text Enabled",
         description="Text enabled flag for simulation scenario",
         type="text_enabled",
-        icon_id=None,
+        icon_id=sid("icon/file-text"),
         value=True,
     ),
     dict(
@@ -117,7 +117,7 @@ flags = [
         name="Show Problem Statement",
         description="Show problem statement flag for simulation scenario",
         type="show_problem_statement",
-        icon_id=None,
+        icon_id=sid("icon/message-square"),
         value=True,
     ),
     dict(
@@ -125,7 +125,7 @@ flags = [
         name="Show Objectives",
         description="Show objectives flag for simulation scenario",
         type="show_objectives",
-        icon_id=None,
+        icon_id=sid("icon/target"),
         value=True,
     ),
     dict(
@@ -133,7 +133,7 @@ flags = [
         name="Show Images",
         description="Show images flag for simulation scenario",
         type="show_images",
-        icon_id=None,
+        icon_id=sid("icon/image"),
         value=True,
     ),
     dict(
@@ -141,7 +141,7 @@ flags = [
         name="Hints Enabled",
         description="Hints enabled flag for simulation scenario",
         type="hints_enabled",
-        icon_id=None,
+        icon_id=sid("icon/lightbulb"),
         value=True,
     ),
     dict(
@@ -149,7 +149,7 @@ flags = [
         name="Copy Paste Allowed",
         description="Copy paste allowed flag for simulation scenario",
         type="copy_paste_allowed",
-        icon_id=None,
+        icon_id=sid("icon/copy"),
         value=True,
     ),
     dict(
@@ -157,7 +157,7 @@ flags = [
         name="use_templates",
         description="Use templates flag for scenarios",
         type="use_templates",
-        icon_id=None,
+        icon_id=sid("icon/clipboard"),
         value=True,
     ),
     dict(
@@ -165,7 +165,7 @@ flags = [
         name="mcp",
         description="Enable or disable the use of the MCP server",
         type="mcp",
-        icon_id=None,
+        icon_id=sid("icon/server"),
         value=True,
     ),
     dict(
@@ -173,7 +173,7 @@ flags = [
         name="Active",
         description="Controls whether this scenario is published and available for simulations",
         type="scenario_active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -181,7 +181,7 @@ flags = [
         name="field_active",
         description="Controls whether this field is visible and editable in forms",
         type="field_active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -189,7 +189,7 @@ flags = [
         name="model_active",
         description="Controls whether this AI model is available for selection by agents",
         type="model_active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -197,7 +197,7 @@ flags = [
         name="profile_active",
         description="Controls whether this user profile is active and can access the system",
         type="profile_active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -205,7 +205,7 @@ flags = [
         name="provider_active",
         description="Controls whether this AI provider is available for use",
         type="provider_active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -213,7 +213,7 @@ flags = [
         name="rubric_active",
         description="Controls whether this rubric is available for grading simulations",
         type="rubric_active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -221,7 +221,7 @@ flags = [
         name="setting_active",
         description="Controls whether this setting is enabled and applied",
         type="setting_active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -229,7 +229,7 @@ flags = [
         name="tool_active",
         description="Controls whether this tool is available for use by AI agents",
         type="tool_active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -237,7 +237,7 @@ flags = [
         name="Active",
         description="Controls whether this cohort is active and can run simulations",
         type="cohort_active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -245,7 +245,7 @@ flags = [
         name="Active",
         description="Controls whether this persona is available for use in scenarios",
         type="persona_active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -253,7 +253,7 @@ flags = [
         name="Active",
         description="Controls whether this simulation is active and can be started",
         type="simulation_active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -261,7 +261,7 @@ flags = [
         name="agent_active",
         description="Controls whether this AI agent is available for use in simulations",
         type="agent_active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -269,7 +269,7 @@ flags = [
         name="auth_active",
         description="Controls whether this authentication method is enabled for login",
         type="auth_active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -277,7 +277,7 @@ flags = [
         name="department_active",
         description="Controls whether this department is visible in the organization structure",
         type="department_active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -285,7 +285,7 @@ flags = [
         name="document_active",
         description="Controls whether this document is available for reference in scenarios",
         type="document_active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -293,7 +293,7 @@ flags = [
         name="eval_active",
         description="Controls whether this evaluation configuration is active and can be used",
         type="eval_active",
-        icon_id=None,
+        icon_id=sid("icon/power"),
         value=True,
     ),
     dict(
@@ -301,7 +301,7 @@ flags = [
         name="simulation_rubric",
         description="Rubric used for simulation grading",
         type="simulation_rubric",
-        icon_id=None,
+        icon_id=sid("icon/clipboard"),
         value=True,
     ),
     dict(
@@ -309,7 +309,7 @@ flags = [
         name="video_rubric",
         description="Rubric used for video grading",
         type="video_rubric",
-        icon_id=None,
+        icon_id=sid("icon/film"),
         value=True,
     ),
     dict(
@@ -317,7 +317,7 @@ flags = [
         name="Infinite Mode",
         description="Enable infinite mode for unlimited attempts",
         type="infinite_mode",
-        icon_id=None,
+        icon_id=sid("icon/infinity"),
         value=True,
     ),
     dict(
@@ -325,7 +325,7 @@ flags = [
         name="Strengths Enabled",
         description="Enable strengths feedback for scenarios",
         type="strengths_enabled",
-        icon_id=None,
+        icon_id=sid("icon/star"),
         value=True,
     ),
     dict(
@@ -333,7 +333,7 @@ flags = [
         name="Use Custom",
         description="Allow custom configuration for scenarios",
         type="use_custom",
-        icon_id=None,
+        icon_id=sid("icon/settings"),
         value=True,
     ),
     dict(
@@ -341,7 +341,7 @@ flags = [
         name="Analyses Enabled",
         description="Enable analysis feedback for scenarios",
         type="analyses_enabled",
-        icon_id=None,
+        icon_id=sid("icon/bar-chart"),
         value=True,
     ),
     dict(
@@ -349,7 +349,7 @@ flags = [
         name="Use Previous",
         description="Use previous attempt context for scenarios",
         type="use_previous",
-        icon_id=None,
+        icon_id=sid("icon/rewind"),
         value=True,
     ),
     dict(
@@ -357,7 +357,7 @@ flags = [
         name="Replacements Enabled",
         description="Enable replacement suggestions for scenarios",
         type="replacements_enabled",
-        icon_id=None,
+        icon_id=sid("icon/edit"),
         value=True,
     ),
     dict(
@@ -365,7 +365,7 @@ flags = [
         name="Improvements Enabled",
         description="Enable improvements feedback for scenarios",
         type="improvements_enabled",
-        icon_id=None,
+        icon_id=sid("icon/trending-up"),
         value=True,
     ),
 ]

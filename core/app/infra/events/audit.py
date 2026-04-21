@@ -69,6 +69,8 @@ async def run_artifact_operation_with_audit(
     upload_folder: Path | None = None,
     instruction_template: str | None = None,
     operation_key: UUID | None = None,
+    call_id: UUID | None = None,
+    suppress_started: bool = False,
 ) -> T:
     """Execute an artifact operation with lifecycle emission and optional audit.
 
@@ -89,10 +91,6 @@ async def run_artifact_operation_with_audit(
         profile_id=profile_id,
         session_id=session_id,
         group_id=group_id,
-        draft_id=draft_id,
-        attempt_id=attempt_id,
-        test_id=test_id,
-        artifact_type=artifact,
         bypass_cache=bypass_cache,
     )
     if common is None:
@@ -104,7 +102,7 @@ async def run_artifact_operation_with_audit(
         operation=operation,
     )
     effective_session_id = session_id or common.profile.session_id
-    effective_group_id = group_id or common.profile.group_id
+    effective_group_id = group_id
     effective_profiles_id = common.profile.profiles_id
     effective_upload_folder = upload_folder or UPLOAD_FOLDER
 
@@ -139,7 +137,14 @@ async def run_artifact_operation_with_audit(
             return result
 
         async def _on_call_created(cid: UUID | None) -> None:
-            """Emit started event as soon as call record exists, before execution."""
+            """Emit started event as soon as call record exists, before execution.
+
+            Skipped when the caller already owns the `.started` semantic
+            (e.g. the streaming text/realtime path emits at ``tool_call_start``
+            — before args stream — so audit shouldn't double-fire).
+            """
+            if suppress_started:
+                return
             await internal_sio.emit(f"{event_prefix}.started", {
                 "sid": sid,
                 "rooms": effective_rooms,
@@ -165,6 +170,7 @@ async def run_artifact_operation_with_audit(
                 instruction_template=instruction_template,
                 raise_on_error=False,
                 on_call_created=_on_call_created,
+                pre_minted_call_id=call_id,
             )
         result_data = audit_result.result
         call_upload_id = audit_result.call_upload_id
@@ -179,6 +185,7 @@ async def run_artifact_operation_with_audit(
             await internal_sio.emit(f"{event_prefix}.failed", {
                 "sid": sid,
                 "rooms": effective_rooms,
+                "call_id": str(call_id) if call_id else None,
                 "message": str(exc),
                 "error_type": type(exc).__name__,
             })

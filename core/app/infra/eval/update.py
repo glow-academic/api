@@ -52,7 +52,6 @@ async def update_eval_impl(
         profile_id,
         redis,
         session_id=session_id,
-        draft_id=draft_id,
     )
     if profile is None:
         raise HTTPException(

@@ -1,8 +1,5 @@
 """Generation prepare — deterministic infra function.
 
-Extracts the proven prepare logic from generate_prepare_impl into a
-callable function. Uses the exact same helper functions — no new logic.
-
 Creates all DB state needed for execution:
   1. resolve_websocket_context → agents, tools, prompts, models
   2. Enrich tools (args, args_outputs, permissions, instruction templates)
@@ -99,7 +96,6 @@ async def prepare_generation(
 ) -> PrepareGenerationResult:
     """Resolve context, create run, build agent dispatches, persist messages.
 
-    Uses the same proven pipeline functions as generate_prepare_impl.
     Returns PrepareGenerationResult with all dispatches ready for execution.
 
     When soft=True, run is created with active=false — everything is set up

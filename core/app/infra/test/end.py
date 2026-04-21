@@ -25,8 +25,8 @@ from app.infra.websocket.socket_event import (
     make_emit,
 )
 from app.infra.websocket.test_types import TestErrorData, TestProceedData
+from app.infra.group.resolve import resolve_group_impl
 from app.tools.entries.calls.create import create_call
-from app.tools.entries.groups.create import create_group
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.test_grade.create import create_test_grade
 
@@ -84,11 +84,19 @@ async def test_end_internal_impl(
             )
             profiles_id = identity.profiles_id if identity else None
 
+            group_result = await resolve_group_impl(
+                get_pool(),
+                get_redis_client(),
+                artifact_type="test",
+                profile_id=UUID(str(profile_id)),
+                session_id=UUID(str(session_id)),
+                include_history=False,
+            )
+
             async with get_pool().acquire() as conn:
-                group = await create_group(conn, session_id=UUID(str(session_id)), artifact_type="test")  # TODO: fix logic
                 run = await create_run(
                     conn,
-                    group_id=group.id,
+                    group_id=group_result.group_id,
                     session_id=UUID(str(session_id)),
                 )
                 call = await create_call(
@@ -109,7 +117,7 @@ async def test_end_internal_impl(
             await _emit(
                 [
                     internal_event(
-                        "test_grade_start",
+                        "test.grade.started",
                         {
                             "sid": sid,
                             "test_id": str(payload.test_id),
@@ -136,7 +144,7 @@ async def test_end_internal_impl(
         for event in recorded:
             if event.bus != "internal":
                 continue
-            if event.event == "test_error":
+            if event.event.startswith("test.") and event.event.endswith(".error"):
                 error = TestErrorData(**event.data)
                 raise ValueError(error.message)
 

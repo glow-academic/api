@@ -30,7 +30,7 @@ async def test_progress_impl(
     await emit(
         [
             internal_event(
-                "test_grade_start",
+                "test.grade.started",
                 TestProgressData(
                     sid=sid,
                     rooms=rooms,
@@ -67,7 +67,7 @@ async def test_run_done_impl(
     await emit(
         [
             internal_event(
-                "test_run_complete",
+                "test.run.completed",
                 TestRunCompleteData(
                     sid=sid,
                     rooms=rooms,
@@ -107,7 +107,7 @@ async def test_error_impl(
     await emit(
         [
             internal_event(
-                "test_error",
+                "test.end.error",
                 TestErrorData(
                     sid=sid,
                     rooms=rooms,
@@ -201,7 +201,7 @@ async def test_grade_complete_impl(
         await emit(
             [
                 internal_event(
-                    "test_grade_progress",
+                    "test.grade.progress",
                     TestGradedData(
                         sid=data.get("sid"),
                         rooms=[r for r in rooms if r],
@@ -286,7 +286,7 @@ async def test_group_impl(
             await emit(
                 [
                     internal_event(
-                        "test_group_complete",
+                        "test.group.completed",
                         {
                             "sid": sid,
                             "test_id": str(test_id),
@@ -301,7 +301,7 @@ async def test_group_impl(
         await emit(
             [
                 internal_event(
-                    "test_run",
+                    "test.run.triggered",
                     {
                         "sid": sid,
                         "profile_id": profile_id_str,
@@ -318,7 +318,7 @@ async def test_group_impl(
         await emit(
             [
                 internal_event(
-                    "test_error",
+                    "test.group.error",
                     TestErrorData(
                         sid=sid,
                         message=f"Failed to run group: {e}",
@@ -355,7 +355,7 @@ async def test_next_impl(
         await emit(
             [
                 client_event(
-                    "test_error",
+                    "test.next.error",
                     {
                         "message": f"Failed to find next run: {e}",
                         "error_type": "internal",
@@ -379,7 +379,7 @@ async def test_next_impl(
         await emit(
             [
                 client_event(
-                    "test_error",
+                    "test.next.error",
                     {
                         "message": f"Failed to find next run: {e}",
                         "error_type": "internal",
@@ -413,7 +413,7 @@ async def test_next_impl(
                 await emit(
                     [
                         client_event(
-                            "test_error",
+                            "test.next.error",
                             {
                                 "message": "Failed to find group for next test invocation",
                                 "error_type": "internal",
@@ -426,7 +426,7 @@ async def test_next_impl(
             await emit(
                 [
                     internal_event(
-                        "test_group",
+                        "test.group.started",
                         {
                             "sid": sid,
                             "profile_id": data.get("profile_id"),
@@ -465,10 +465,10 @@ async def test_start_impl(
     redis: Redis | None = None,
 ) -> None:
     """Create test via black boxes, optional benchmark bridge, delegate to test_proceed."""
+    from app.infra.group.resolve import resolve_group_impl
     from app.infra.websocket.test_types import TestErrorData, TestProceedData
     from app.tools.entries.benchmark_test.create import create_benchmark_test
     from app.tools.entries.calls.create import create_call
-    from app.tools.entries.groups.create import create_group
     from app.tools.entries.runs.create import create_run
     from app.tools.entries.sessions.create import create_session
     from app.tools.entries.test.create import create_test
@@ -504,13 +504,26 @@ async def test_start_impl(
     try:
         profiles_id = uuid.UUID(profiles_id_str)
 
+        if session_id_str:
+            session_id = uuid.UUID(session_id_str)
+        else:
+            async with pool.acquire() as conn:
+                session_id = (await create_session(conn, profile_id=profiles_id)).id
+
+        if redis is None:
+            logger.error("test_start_impl requires redis for canonical group resolve")
+            return
+
+        group_result = await resolve_group_impl(
+            pool, redis,
+            artifact_type="test",
+            profile_id=profiles_id,
+            session_id=session_id,
+            include_history=False,
+        )
+        group_id = group_result.group_id
+
         async with pool.acquire() as conn:
-            session_id = (
-                uuid.UUID(session_id_str)
-                if session_id_str
-                else (await create_session(conn, profile_id=profiles_id)).id
-            )
-            group_id = (await create_group(conn, session_id=session_id, artifact_type="test")).id  # TODO: fix logic
             run_id = (
                 await create_run(
                     conn,
@@ -555,7 +568,7 @@ async def test_start_impl(
         await emit(
             [
                 internal_event(
-                    "test_proceed",
+                    "test.proceed.completed",
                     TestProceedData(sid=sid, test_id=str(test_id)).model_dump(
                         mode="json"
                     ),
@@ -568,7 +581,7 @@ async def test_start_impl(
         await emit(
             [
                 internal_event(
-                    "test_error",
+                    "test.start.error",
                     TestErrorData(
                         sid=sid,
                         message=f"Failed to start test: {e}",
@@ -589,13 +602,13 @@ async def test_proceed_impl(
     """Shared core: resolve context, check done, resolve invocation, emit."""
     from app.infra.websocket.test_types import TestErrorData, TestProceedData
     from app.tools.entries.calls.create import create_call
-    from app.tools.entries.groups.create import create_group
+    from app.tools.entries.groups.get import get_groups
     from app.tools.entries.runs.create import create_run
-    from app.tools.entries.sessions.create import create_session
     from app.tools.entries.test.get import get_tests
     from app.tools.entries.test_invocation.create import (
         create_test_invocation,
     )
+    from app.tools.entries.test_invocation.get import get_test_invocations
     from app.tools.entries.test_invocation.refresh import (
         refresh_test_invocation,
     )
@@ -613,30 +626,20 @@ async def test_proceed_impl(
     async def _create_run_call(
         conn: asyncpg.Connection,
         *,
-        invocation_id: uuid.UUID | None = None,
-        group_id: uuid.UUID | None = None,
+        group_id: uuid.UUID,
     ) -> uuid.UUID:
-        if invocation_id is not None:
-            invocation_call_id = await conn.fetchval(
-                "SELECT call_id FROM test_invocation_entry WHERE id = $1",
-                invocation_id,
-            )
-            if invocation_call_id is not None:
-                return invocation_call_id
+        """Create a fresh run + call bound to the group's session.
 
-        session_id = None
-        if group_id is not None:
-            session_id = await conn.fetchval(
-                "SELECT session_id FROM groups_entry WHERE id = $1",
-                group_id,
-            )
-
+        Uses canonical black boxes only. test_invocation_entry.call_id is
+        write-only now — we still populate it on invocation creation, but
+        never read it back (the MV deliberately omits it).
+        """
+        groups = await get_groups(conn, [group_id])
+        if not groups:
+            raise ValueError(f"Group {group_id} not found")
+        session_id = groups[0].session_id
         if session_id is None:
-            session = await create_session(conn)
-            group = await create_group(conn, session_id=session.id, artifact_type="test")  # TODO: fix logic
-            run = await create_run(conn, group_id=group.id, session_id=session.id)
-            call = await create_call(conn, run_id=run.id, session_id=session.id)
-            return call.id
+            raise ValueError(f"Group {group_id} has no session_id — cannot bind a run")
 
         run = await create_run(conn, group_id=group_id, session_id=session_id)
         call = await create_call(conn, run_id=run.id, session_id=session_id)
@@ -663,9 +666,15 @@ async def test_proceed_impl(
         async with pool.acquire() as conn:
             if completed_invocation_id:
                 try:
+                    invs = await get_test_invocations(conn, [completed_invocation_id])
+                    inv_group_id = invs[0].group_id if invs else None
+                    if inv_group_id is None:
+                        raise ValueError(
+                            f"Invocation {completed_invocation_id} has no group_id"
+                        )
                     completion_call_id = await _create_run_call(
                         conn,
-                        invocation_id=completed_invocation_id,
+                        group_id=inv_group_id,
                     )
                     await create_test_invocation_completion(
                         conn,
@@ -691,9 +700,11 @@ async def test_proceed_impl(
                 for inv in all_invocations:
                     if not inv.invocation_completed:
                         try:
+                            if inv.group_id is None:
+                                continue
                             completion_call_id = await _create_run_call(
                                 conn,
-                                invocation_id=inv.invocation_id,
+                                group_id=inv.group_id,
                             )
                             await create_test_invocation_completion(
                                 conn,
@@ -709,7 +720,7 @@ async def test_proceed_impl(
                 await emit(
                     [
                         internal_event(
-                            "test_ended",
+                            "test.end.completed",
                             {
                                 "sid": sid,
                                 "test_id": str(test_id),
@@ -744,7 +755,7 @@ async def test_proceed_impl(
             await emit(
                 [
                     internal_event(
-                        "test_error",
+                        "test.proceed.error",
                         TestErrorData(
                             sid=sid,
                             message="Failed to resolve test context",
@@ -759,7 +770,7 @@ async def test_proceed_impl(
             await emit(
                 [
                     internal_event(
-                        "test_ended",
+                        "test.end.completed",
                         {
                             "sid": sid,
                             "test_id": str(test_id),
@@ -777,7 +788,7 @@ async def test_proceed_impl(
             await emit(
                 [
                     internal_event(
-                        "test_started",
+                        "test.start.completed",
                         {
                             "sid": sid,
                             "test_id": str(test_id),
@@ -817,7 +828,7 @@ async def test_proceed_impl(
         await emit(
             [
                 internal_event(
-                    "test_invocation_started",
+                    "test.run.invocation_started",
                     {
                         "sid": sid,
                         "test_id": str(test_id),
@@ -855,7 +866,7 @@ async def test_proceed_impl(
                 await emit(
                     [
                         internal_event(
-                            "test_run",
+                            "test.run.triggered",
                             {
                                 "sid": sid,
                                 "test_id": str(test_id),
@@ -875,7 +886,7 @@ async def test_proceed_impl(
         await emit(
             [
                 internal_event(
-                    "test_error",
+                    "test.proceed.error",
                     TestErrorData(
                         sid=sid,
                         message=f"Failed to proceed: {e}",
@@ -892,7 +903,9 @@ async def test_run_impl(
     emit: EmitFn,
     pool: asyncpg.Pool,
 ) -> None:
-    """Copy conversation from original run, create new run, emit generate_artifact."""
+    """Copy conversation from original run, create new run, run grading generation."""
+    from app.infra.generation.run_from_payload import run_generation_from_payload
+    from app.infra.globals import get_redis_client
     from app.infra.websocket.test_types import TestErrorData
     from app.infra.test.client_types import TestRunPayload
     from app.tools.entries.messages.create import create_message
@@ -927,7 +940,7 @@ async def test_run_impl(
                 await emit(
                     [
                         internal_event(
-                            "test_error",
+                            "test.run.error",
                             TestErrorData(
                                 sid=sid,
                                 invocation_id=str(test_invocation_id),
@@ -948,7 +961,7 @@ async def test_run_impl(
                 await emit(
                     [
                         internal_event(
-                            "test_error",
+                            "test.run.error",
                             TestErrorData(
                                 sid=sid,
                                 invocation_id=str(test_invocation_id),
@@ -984,7 +997,7 @@ async def test_run_impl(
                 await emit(
                     [
                         internal_event(
-                            "test_error",
+                            "test.run.error",
                             TestErrorData(
                                 sid=sid,
                                 invocation_id=str(test_invocation_id),
@@ -1014,7 +1027,7 @@ async def test_run_impl(
         await emit(
             [
                 internal_event(
-                    "test_run_started",
+                    "test.run.started",
                     {
                         "sid": sid,
                         "test_id": str(test_id),
@@ -1027,42 +1040,35 @@ async def test_run_impl(
             ]
         )
 
-        # Emit generate_prepare (not generate_artifact) so the prepare pipeline
-        # resolves the grading agent, model, and tools from system config.
-        await emit(
-            [
-                internal_event(
-                    "generate_prepare",
-                    {
-                        "sid": sid,
-                        "profile_id": profile_id_str,
-                        "profiles_id": data.get("profiles_id"),
-                        "session_id": data.get("session_id"),
-                        "group_id": str(group_id),
-                        "permissions": [
-                            {"artifact": "test", "operation": "get"},
-                            {"artifact": "test", "operation": "grade"},
-                            {"artifact": "test", "operation": "feedback"},
-                            {"artifact": "test", "operation": "text_download"},
-                            {"artifact": "test", "operation": "call_download"},
-                        ],
-                        "resources": [],
-                        "user_instructions": [],
-                        "modality": "text",
-                        "run_id": str(new_run_id),
-                        "params": {
-                            "test_id": str(test_id),
-                            "invocation_id": str(test_invocation_id),
-                            "run_id": str(original_run_id),
-                        },
-                        "metadata": {
-                            "test_id": str(test_id),
-                            "test_invocation_id": str(test_invocation_id),
-                            "original_run_id": str(original_run_id),
-                        },
-                    },
-                )
-            ]
+        # Direct call into the canonical prepare → execute pipeline — resolves
+        # the grading agent, model, and tools from system config. No bus event.
+        await run_generation_from_payload(
+            {
+                "sid": sid,
+                "artifact_type": "test",
+                "profile_id": profile_id_str,
+                "profiles_id": data.get("profiles_id"),
+                "session_id": data.get("session_id"),
+                "group_id": str(group_id),
+                "operations": [
+                    "get", "grade", "feedback", "text_download", "call_download",
+                ],
+                "modalities": ["text"],
+                "run_id": str(new_run_id),
+                "params": {
+                    "test_id": str(test_id),
+                    "invocation_id": str(test_invocation_id),
+                    "run_id": str(original_run_id),
+                },
+                "metadata": {
+                    "test_id": str(test_id),
+                    "test_invocation_id": str(test_invocation_id),
+                    "original_run_id": str(original_run_id),
+                },
+            },
+            emit=emit,
+            pool=pool,
+            redis=get_redis_client(),
         )
 
         logger.info(
@@ -1076,7 +1082,7 @@ async def test_run_impl(
         await emit(
             [
                 internal_event(
-                    "test_error",
+                    "test.run.error",
                     TestErrorData(
                         sid=sid,
                         invocation_id=str(payload.test_invocation_id),

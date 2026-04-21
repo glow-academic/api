@@ -85,7 +85,7 @@ async def attempt_response_internal_impl(
                     [
                         SocketEvent(
                             bus="internal",
-                            event="attempt_error",
+                            event="attempt.quiz.error",
                             data=AttemptErrorData(
                                 sid=sid,
                                 error_type="quiz",
@@ -110,7 +110,7 @@ async def attempt_response_internal_impl(
                         [
                             SocketEvent(
                                 bus="internal",
-                                event="attempt_error",
+                                event="attempt.quiz.error",
                                 data=AttemptErrorData(
                                     sid=sid,
                                     error_type="quiz",

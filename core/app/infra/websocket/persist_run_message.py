@@ -1,7 +1,7 @@
 """Persist a text message on an existing run — for generation input messages.
 
 Composes: save_text_upload + create_upload + create_run_message.
-Used by the generate_prepare handler to persist system/developer/user messages.
+Used by prepare_generation to persist system/developer/user messages.
 """
 
 from __future__ import annotations

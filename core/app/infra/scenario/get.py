@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.common_context import resolve_common_context
+from app.infra.group.resolve import resolve_group_impl
 from app.infra.persona.types import SectionFilter
 from app.infra.scenario.context import resolve_scenario_context
 from app.infra.scenario.permissions import SCENARIO_RESOURCES, has_access
@@ -60,8 +61,6 @@ async def get_scenario_impl(
         profile_id=profile_id,
         session_id=session_id,
         group_id=group_id,
-        draft_id=draft_id,
-        artifact_type="scenario",
         bypass_cache=bypass_cache,
     )
     if common is None:
@@ -70,8 +69,16 @@ async def get_scenario_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    effective_group_id = group_id or common.profile.group_id
-
+    if group_id is None:
+        _gr = await resolve_group_impl(
+            pool, redis,
+            artifact_type="scenario",
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
+        group_id = _gr.group_id
+    effective_group_id = group_id
     perms = None
     if scenario_id is not None:
         perms = await resolve_scenario_permissions_context(pool, scenario_id)

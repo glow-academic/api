@@ -512,7 +512,6 @@ class ProfileContextApiResponse(BaseModel):
 
     # Session
     session_id: UUID | None = Field(None, description="Current session UUID")
-    group_id: UUID | None = Field(None, description="Active group UUID for generation panel")
 
     # Emulation
     is_emulation: bool | None = Field(None, description="Whether user is in emulation mode")

@@ -72,11 +72,17 @@ async def attempt_start_impl(
         raise HTTPException(status_code=403, detail="You don't have permission to start attempts.")
 
     profiles_resource_id = identity.profiles_id
-    group_id = identity.group_id
     if not profiles_resource_id:
         raise HTTPException(status_code=400, detail="Profile resource not found.")
-    if not group_id:
-        raise HTTPException(status_code=400, detail="Group could not be resolved.")
+
+    from app.infra.attempt.group import group_attempt_impl
+    group_result = await group_attempt_impl(
+        pool, redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        include_history=False,
+    )
+    group_id = group_result.group_id
 
     # ── Step 2: Resolve parent entry ─────────────────────────────────────────
 

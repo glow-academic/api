@@ -5,7 +5,7 @@ the legacy generation_tracker init functions into one call with
 redis as an explicit parameter for testability.
 
 During migration, both old and new trackers are initialized so that
-existing callers (generate_run_complete, generation_progress) continue
+existing callers (run_complete_impl, generation_progress) continue
 to work while new callers can use the work-unit model.
 """
 

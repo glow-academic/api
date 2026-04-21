@@ -740,6 +740,11 @@ class RealtimeAudioAdapter(BaseAudioAdapter):
                 # audit layer. Leave run_id unset for realtime-originated
                 # tool calls; we lose the per-turn run correlation but keep
                 # the tool execution working.
+                # Pass the pre-minted DB call_id (stashed at
+                # ``on_tool_call_start``) so create_call reuses it — same id
+                # flows through streaming progress, audit started/completed.
+                st = session.tool_call_states.get(call_id, {})
+                pre_minted_call_id = st.get("call_id")
                 ctx = InfraContext(
                     pool=get_pool(),
                     redis=get_redis_client(),
@@ -757,6 +762,7 @@ class RealtimeAudioAdapter(BaseAudioAdapter):
                     soft=True,
                     operation_key=uuid_mod.uuid4(),
                     instruction_template=tool_def.get("_instruction_template"),
+                    call_id=UUID(pre_minted_call_id) if pre_minted_call_id else None,
                 )
                 results = await execute_infra_operation(ctx, spec)
                 tool_result_str = json.dumps(

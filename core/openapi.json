@@ -112401,19 +112401,6 @@
             "title": "Session Id",
             "description": "Current session UUID"
           },
-          "group_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Group Id",
-            "description": "Active group UUID for generation panel"
-          },
           "is_emulation": {
             "anyOf": [
               {
@@ -113023,19 +113010,6 @@
               }
             ],
             "description": "Theme primitives (ThemeHydrator)"
-          },
-          "group_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Group Id",
-            "description": "Active generation group UUID (GroupProvider)"
           },
           "session_id": {
             "anyOf": [

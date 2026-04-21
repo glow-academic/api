@@ -77,7 +77,7 @@ async def test_group(sid: str, data: dict[str, Any]) -> None:
         profile_id_str = await find_profile_by_socket(sid)
         if not profile_id_str:
             await internal_sio.emit(
-                "test_error",
+                "test.group.error",
                 TestErrorData(sid=sid, message="Profile not found. Please reconnect.", error_type="auth").model_dump(mode="json"),
             )
             return
@@ -85,26 +85,27 @@ async def test_group(sid: str, data: dict[str, Any]) -> None:
         session_id_str = await find_session_by_socket(sid)
         if not session_id_str:
             await internal_sio.emit(
-                "test_error",
+                "test.group.error",
                 TestErrorData(sid=sid, message="Session not found. Please reconnect.", error_type="auth").model_dump(mode="json"),
             )
             return
 
-        identity = await resolve_profile_identity_context(
-            get_pool(), UUID(profile_id_str), get_redis_client(),
-            session_id=UUID(session_id_str), test_id=payload.test_id,
+        from app.infra.test.group import group_test_impl
+        group_result = await group_test_impl(
+            get_pool(), get_redis_client(),
+            profile_id=UUID(profile_id_str),
+            session_id=UUID(session_id_str),
+            include_history=False,
         )
-        group_id = identity.group_id if identity else None
-        if group_id is None:
-            raise ValueError(f"Group not found for test {payload.test_id}")
+        group_id = group_result.group_id
 
         await internal_sio.emit(
-            "test_group",
+            "test.group.started",
             {"sid": sid, "profile_id": profile_id_str, **payload.model_dump(mode="json"), "group_id": str(group_id)},
         )
     except Exception as e:
         logger.exception(f"Invalid request in test_group: {e}")
         await internal_sio.emit(
-            "test_error",
+            "test.group.error",
             TestErrorData(sid=sid, message=f"Invalid request: {e}", error_type="group").model_dump(mode="json"),
         )

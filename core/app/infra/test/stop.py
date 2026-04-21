@@ -49,7 +49,7 @@ async def test_stop_internal_impl(
             [
                 SocketEvent(
                     bus="internal",
-                    event="test_stopped",
+                    event="test.stop.completed",
                     data={
                         "sid": sid,
                         "rooms": [sid, f"test_{payload.invocation_id}"] if sid else [],

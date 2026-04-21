@@ -9,7 +9,7 @@ from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
 from app.infra.invocation.export import export_invocation_impl
-from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.test.group import group_test_impl
 
 internal_sio = get_internal_sio()
 
@@ -42,24 +42,14 @@ async def invocation_export(sid: str, data: dict[str, Any]) -> None:
     pool = get_pool()
     redis = get_redis_client()
 
-    # Resolve group_id like the HTTP route does
-    pic = await resolve_profile_identity_context(
-        pool,
-        identity.profile_id,
-        redis,
+    # Canonical group for test artifact — threaded to export_invocation_impl.
+    group_result = await group_test_impl(
+        pool, redis,
+        profile_id=identity.profile_id,
         session_id=identity.session_id,
-        draft_id=payload.draft_id,
-        test_id=payload.test_id,
+        include_history=False,
     )
-    group_id = pic.group_id if pic else None
-    if group_id is None:
-        await internal_sio.emit("invocation.export.failed", {
-            "sid": sid,
-            "rooms": [sid],
-            "message": "Group ID could not be resolved for invocation export",
-            "error_type": "validation",
-        })
-        return
+    group_id = group_result.group_id
 
     await run_artifact_operation_with_audit(
         pool,

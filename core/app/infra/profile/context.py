@@ -350,7 +350,6 @@ async def context_profile_impl(
         settings_id=str(identity.settings_id) if identity.settings_id else None,
         theme=theme,
         session_id=identity.session_id,
-        group_id=identity.group_id,
         is_emulation=is_emulation or None,
         emulation_depth=emulation_depth or None,
         role_resources=role_resources,

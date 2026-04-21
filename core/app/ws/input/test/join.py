@@ -19,7 +19,7 @@ async def test_join(sid: str, data: dict[str, Any]) -> None:
         profile_id_str = await find_profile_by_socket(sid)
         if not profile_id_str:
             await internal_sio.emit(
-                "test_error",
+                "test.join.error",
                 {"sid": sid, "rooms": [sid], "invocation_id": str(payload.invocation_id), "message": "Profile not found. Please reconnect.", "error_type": "join"},
             )
             return
@@ -35,6 +35,6 @@ async def test_join(sid: str, data: dict[str, Any]) -> None:
     except Exception as e:
         logger.exception(f"Error in test_join: {e}")
         await internal_sio.emit(
-            "test_error",
+            "test.join.error",
             {"sid": sid, "rooms": [sid], "invocation_id": str(data.get("invocation_id", "")), "message": f"Failed to join room: {e}", "error_type": "join"},
         )

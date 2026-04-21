@@ -31,17 +31,14 @@ async def export_invocation(
     session_id = http_request.state.session_id
     pool = get_pool()
     redis = get_redis_client()
-    identity = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
+    from app.infra.test.group import group_test_impl
+    group_result = await group_test_impl(
+        pool, redis,
+        profile_id=profile_id,
         session_id=session_id,
-        draft_id=body.draft_id,
-        test_id=body.test_id,
+        include_history=False,
     )
-    group_id = identity.group_id if identity else None
-    if group_id is None:
-        raise ValueError("Group ID could not be resolved for invocation export")
+    group_id = group_result.group_id
 
     return await export_invocation_impl(
         pool,

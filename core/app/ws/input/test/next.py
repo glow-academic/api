@@ -20,7 +20,7 @@ async def test_next(sid: str, data: dict[str, Any]) -> None:
         profile_id_str = await find_profile_by_socket(sid)
         if not profile_id_str:
             await internal_sio.emit(
-                "test_error",
+                "test.next.error",
                 TestErrorData(sid=sid, rooms=[sid], message="Profile not found. Please reconnect.", error_type="auth").model_dump(mode="json"),
             )
             return
@@ -32,6 +32,6 @@ async def test_next(sid: str, data: dict[str, Any]) -> None:
     except Exception as e:
         logger.exception(f"Invalid request in test_next: {e}")
         await internal_sio.emit(
-            "test_error",
+            "test.next.error",
             TestErrorData(sid=sid, rooms=[sid], message=f"Invalid request: {e}", error_type="validation").model_dump(mode="json"),
         )

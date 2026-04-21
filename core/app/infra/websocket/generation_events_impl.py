@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 
 
 def build_generation_error_payload(data: dict[str, Any]) -> dict[str, Any]:
-    """Build the generation_channel error payload."""
+    """Build the ``<artifact>.generate.error`` payload."""
     error_message = data.get("error_message") or data.get(
         "message", "An error occurred during generation"
     )
@@ -79,15 +79,16 @@ def build_grade_progress_payload(data: dict[str, Any]) -> dict[str, Any]:
 
 
 async def generation_error_impl(data: dict[str, Any], *, emit: EmitFn) -> None:
-    """Re-emit generation errors to generation_channel for the server layer."""
+    """Re-emit generation errors as ``<artifact>.generate.error``."""
     sid = data.get("sid", "")
     if not sid:
         return
 
+    artifact_type = data.get("artifact_type", "unknown")
     await emit(
         [
             internal_event(
-                "generation_channel",
+                f"{artifact_type}.generate.error",
                 build_generation_error_payload(data),
             )
         ]
@@ -110,7 +111,7 @@ async def text_progress_impl(data: dict[str, Any], *, emit: EmitFn) -> None:
     await emit(
         [
             internal_event(
-                "attempt_assistant_progress",
+                "attempt.message.assistant.progress",
                 build_text_progress_payload(data),
             )
         ]
@@ -141,7 +142,7 @@ async def call_complete_impl(data: dict[str, Any], *, emit: EmitFn) -> None:
     if data.get("entry_type") == "hints":
         events.append(
             internal_event(
-                "attempt_assistant_hints",
+                "attempt.chat_hints.completed",
                 build_hints_payload(data),
             )
         )
@@ -150,7 +151,7 @@ async def call_complete_impl(data: dict[str, Any], *, emit: EmitFn) -> None:
     if metadata.get("grade_id"):
         events.append(
             internal_event(
-                "attempt_grade_progress",
+                "attempt.chat_grade.progress",
                 build_grade_progress_payload(data),
             )
         )
@@ -203,14 +204,15 @@ def _media_complete_payload(data: dict[str, Any], *, modality: str) -> dict[str,
 
 
 async def image_start_impl(data: dict[str, Any], *, emit: EmitFn) -> None:
-    """Emit media progress for image generation start."""
+    """Emit ``<artifact>.generate.image.start``."""
     sid = data.get("sid", "")
     if not sid:
         return
+    artifact_type = data.get("artifact_type", "unknown")
     await emit(
         [
             internal_event(
-                "generation_channel",
+                f"{artifact_type}.generate.image.start",
                 _media_progress_payload(
                     data,
                     modality="image",
@@ -223,14 +225,15 @@ async def image_start_impl(data: dict[str, Any], *, emit: EmitFn) -> None:
 
 
 async def image_complete_impl(data: dict[str, Any], *, emit: EmitFn) -> None:
-    """Emit media complete for image generation."""
+    """Emit ``<artifact>.generate.image.complete``."""
     sid = data.get("sid", "")
     if not sid:
         return
+    artifact_type = data.get("artifact_type", "unknown")
     await emit(
         [
             internal_event(
-                "generation_channel",
+                f"{artifact_type}.generate.image.complete",
                 _media_complete_payload(data, modality="image"),
             )
         ]
@@ -238,14 +241,15 @@ async def image_complete_impl(data: dict[str, Any], *, emit: EmitFn) -> None:
 
 
 async def video_start_impl(data: dict[str, Any], *, emit: EmitFn) -> None:
-    """Emit media progress for video generation start."""
+    """Emit ``<artifact>.generate.video.start``."""
     sid = data.get("sid", "")
     if not sid:
         return
+    artifact_type = data.get("artifact_type", "unknown")
     await emit(
         [
             internal_event(
-                "generation_channel",
+                f"{artifact_type}.generate.video.start",
                 _media_progress_payload(
                     data,
                     modality="video",
@@ -258,14 +262,15 @@ async def video_start_impl(data: dict[str, Any], *, emit: EmitFn) -> None:
 
 
 async def video_progress_impl(data: dict[str, Any], *, emit: EmitFn) -> None:
-    """Emit media progress for video generation polling."""
+    """Emit ``<artifact>.generate.video.progress`` (polling)."""
     sid = data.get("sid", "")
     if not sid:
         return
+    artifact_type = data.get("artifact_type", "unknown")
     await emit(
         [
             internal_event(
-                "generation_channel",
+                f"{artifact_type}.generate.video.progress",
                 _media_progress_payload(
                     data,
                     modality="video",
@@ -278,14 +283,15 @@ async def video_progress_impl(data: dict[str, Any], *, emit: EmitFn) -> None:
 
 
 async def video_complete_impl(data: dict[str, Any], *, emit: EmitFn) -> None:
-    """Emit media complete for video generation."""
+    """Emit ``<artifact>.generate.video.complete``."""
     sid = data.get("sid", "")
     if not sid:
         return
+    artifact_type = data.get("artifact_type", "unknown")
     await emit(
         [
             internal_event(
-                "generation_channel",
+                f"{artifact_type}.generate.video.complete",
                 _media_complete_payload(data, modality="video"),
             )
         ]
