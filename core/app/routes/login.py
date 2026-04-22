@@ -104,7 +104,7 @@ async def logout(
         f"&client_id={client_id or _client_id}"
     )
     # Translate Glow id_token → KC id_token for silent logout
-    kc_token = get_kc_id_token_for_logout(id_token_hint)
+    kc_token = await get_kc_id_token_for_logout(id_token_hint)
     if kc_token:
         logout_url += f"&id_token_hint={kc_token}"
     return RedirectResponse(logout_url)

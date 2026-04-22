@@ -42,7 +42,7 @@ async def authorize(
     try:
         # Flow 1: Standard OIDC (client initiated, no profile_id)
         if profile_id is None and emulation_grant is None and login_hint is None:
-            redirect_url = create_browser_session(
+            redirect_url = await create_browser_session(
                 redirect_uri=redirect_uri,
                 state=state,
                 nonce=nonce,

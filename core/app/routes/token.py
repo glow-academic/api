@@ -44,7 +44,7 @@ async def token(request: Request) -> dict[str, Any]:
         raise HTTPException(400, "client_id is required")
 
     try:
-        return exchange_code_for_tokens(
+        return await exchange_code_for_tokens(
             grant_type=grant_type,
             code=code,
             redirect_uri=redirect_uri,

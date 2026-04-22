@@ -10,6 +10,7 @@ Two authorization flows:
   2. Profile login (with profile_id): Keycloak broker calls /authorize → issue code directly
 """
 
+import json
 import os
 import secrets
 import time
@@ -20,6 +21,7 @@ from uuid import UUID
 
 from jose import jwt
 
+from app.infra.globals import get_redis_client
 from app.infra.identity.jwks import get_key_id, get_private_key
 from app.infra.identity.keycloak_sync import get_idp_public_url
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -28,18 +30,40 @@ from app.tools.entries.grant_consumptions.create import create_grant_consumption
 from app.tools.entries.grant_consumptions.search import search_grant_consumptions
 from app.tools.entries.grants.get import get_grants
 
-# In-memory store for authorization codes (profile_id flow)
-_authorization_codes: dict[str, dict[str, Any]] = {}
-_code_ttl = 600  # 10 minutes
-
-# In-memory store for pending browser sessions (OIDC proxy flow)
-_pending_sessions: dict[str, dict[str, Any]] = {}
-
-# In-memory store for KC id_tokens (keyed by KC sub → used for logout)
-_kc_id_tokens: dict[str, str] = {}
+# OIDC state storage — Redis-backed so auth codes / pending sessions / KC id
+# tokens survive container restarts and blue/green switches. Previously these
+# were in-memory dicts which dropped all flows in-flight on redeploy (users
+# saw "Unexpected error when authenticating with identity provider").
+_CODE_TTL = 600  # 10 minutes (authorization codes)
+_SESSION_TTL = 600  # 10 minutes (pending browser sessions)
+_KC_TOKEN_TTL = 86400  # 24 hours (KC id_token for federated logout)
 
 
-def get_kc_id_token_for_logout(glow_id_token_hint: str | None) -> str | None:
+async def _redis_set(key: str, value: Any, ttl: int) -> None:
+    r = get_redis_client()
+    if r is None:
+        raise RuntimeError(
+            "Redis client not initialized — required for OIDC state storage. "
+            "Ensure REDIS_URL is set and the container can reach Redis."
+        )
+    await r.set(key, json.dumps(value), ex=ttl)
+
+
+async def _redis_pop(key: str) -> Any | None:
+    """Atomic get-and-delete. Returns None if key is missing (or expired)."""
+    r = get_redis_client()
+    if r is None:
+        return None
+    async with r.pipeline() as pipe:
+        pipe.get(key)
+        pipe.delete(key)
+        value, _ = await pipe.execute()
+    if value is None:
+        return None
+    return json.loads(value)
+
+
+async def get_kc_id_token_for_logout(glow_id_token_hint: str | None) -> str | None:
     """Look up the KC id_token for a Glow-issued id_token.
 
     Decodes the Glow id_token to get the sub claim, then looks up the
@@ -55,7 +79,9 @@ def get_kc_id_token_for_logout(glow_id_token_hint: str | None) -> str | None:
             options={"verify_signature": False, "verify_aud": False},
         )
         kc_sub = claims.get("sub", "")
-        return _kc_id_tokens.pop(kc_sub, None)  # pop to clean up
+        if not kc_sub:
+            return None
+        return await _redis_pop(f"oidc:kc_id_token:{kc_sub}")
     except Exception:
         return None
 
@@ -158,7 +184,7 @@ class AuthorizationError(Exception):
 # ── Flow 1: Browser OIDC (no profile_id) ────────────────────────────────
 
 
-def create_browser_session(
+async def create_browser_session(
     *,
     redirect_uri: str,
     state: str | None,
@@ -172,12 +198,16 @@ def create_browser_session(
     and go directly to that profile's default-idp.
     """
     internal_state = secrets.token_urlsafe(32)
-    _pending_sessions[internal_state] = {
-        "redirect_uri": redirect_uri,
-        "state": state,
-        "nonce": nonce,
-        "client_id": client_id,
-    }
+    await _redis_set(
+        f"oidc:session:{internal_state}",
+        {
+            "redirect_uri": redirect_uri,
+            "state": state,
+            "nonce": nonce,
+            "client_id": client_id,
+        },
+        _SESSION_TTL,
+    )
 
     kc_base = _get_keycloak_base_url()
     glow_base = _get_glow_base_url()
@@ -205,7 +235,7 @@ async def handle_oidc_callback(
     """Handle Keycloak's callback: exchange code, create Glow auth code, return redirect URL."""
     import httpx
 
-    session = _pending_sessions.pop(state, None)
+    session = await _redis_pop(f"oidc:session:{state}")
     if not session:
         raise AuthorizationError(400, "Invalid or expired session")
 
@@ -240,25 +270,28 @@ async def handle_oidc_callback(
     # Store KC's id_token for federated logout (keyed by KC sub)
     kc_id_token = kc_tokens.get("id_token")
     if kc_id_token and claims.get("sub"):
-        _kc_id_tokens[claims["sub"]] = kc_id_token
+        await _redis_set(f"oidc:kc_id_token:{claims['sub']}", kc_id_token, _KC_TOKEN_TTL)
 
     # Create a Glow-issued authorization code
     glow_code = secrets.token_urlsafe(32)
-    _authorization_codes[glow_code] = {
-        "profile_id": claims.get("profile_id"),
-        "email": claims.get("email", ""),
-        "name": claims.get("name", claims.get("preferred_username", "")),
-        "role": claims.get("role"),
-        "nonce": session.get("nonce"),
-        "expires_at": int(time.time()) + _code_ttl,
-        "client_id": session["client_id"],
-        "redirect_uri": session["redirect_uri"],
-        "is_emulation": claims.get("is_emulation", False),
-        "actor_profile_id": claims.get("actor_profile_id"),
-        "identity_provider": claims.get("identity_provider"),
-        "sub": claims.get("sub", ""),
-        "flow": "browser",
-    }
+    await _redis_set(
+        f"oidc:authz:{glow_code}",
+        {
+            "profile_id": claims.get("profile_id"),
+            "email": claims.get("email", ""),
+            "name": claims.get("name", claims.get("preferred_username", "")),
+            "role": claims.get("role"),
+            "nonce": session.get("nonce"),
+            "client_id": session["client_id"],
+            "redirect_uri": session["redirect_uri"],
+            "is_emulation": claims.get("is_emulation", False),
+            "actor_profile_id": claims.get("actor_profile_id"),
+            "identity_provider": claims.get("identity_provider"),
+            "sub": claims.get("sub", ""),
+            "flow": "browser",
+        },
+        _CODE_TTL,
+    )
 
     # Redirect back to the client's original callback
     redirect_params = {"code": glow_code}
@@ -358,29 +391,23 @@ async def resolve_authorization(
         )
 
     code = secrets.token_urlsafe(32)
-    expires_at = int(time.time()) + _code_ttl
-
     is_emulation = emulation_grant is not None
-    _authorization_codes[code] = {
-        "profile_id": str(resolved_profile_id),
-        "email": resolved_email,
-        "name": profile.name or "",
-        "role": None,  # role column dropped from profiles_resource
-        "nonce": nonce,
-        "expires_at": expires_at,
-        "client_id": client_id,
-        "redirect_uri": redirect_uri,
-        "is_emulation": is_emulation,
-        "actor_profile_id": str(actor_profile_id) if actor_profile_id else None,
-    }
-
-    # Garbage-collect expired codes
-    current_time = int(time.time())
-    expired_codes = [
-        k for k, v in _authorization_codes.items() if v["expires_at"] < current_time
-    ]
-    for expired_code in expired_codes:
-        del _authorization_codes[expired_code]
+    await _redis_set(
+        f"oidc:authz:{code}",
+        {
+            "profile_id": str(resolved_profile_id),
+            "email": resolved_email,
+            "name": profile.name or "",
+            "role": None,  # role column dropped from profiles_resource
+            "nonce": nonce,
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "is_emulation": is_emulation,
+            "actor_profile_id": str(actor_profile_id) if actor_profile_id else None,
+        },
+        _CODE_TTL,
+    )
+    # No garbage collection needed — Redis enforces TTL per-key.
 
     return f"{redirect_uri}?code={code}&state={state}"
 
@@ -388,7 +415,7 @@ async def resolve_authorization(
 # ── Token exchange (both flows) ──────────────────────────────────────────
 
 
-def exchange_code_for_tokens(
+async def exchange_code_for_tokens(
     *,
     grant_type: str,
     code: str,
@@ -416,18 +443,15 @@ def exchange_code_for_tokens(
     if client_secret != expected_secret:
         raise AuthorizationError(401, "Invalid client_secret")
 
-    code_data = _authorization_codes.get(code)
+    # Atomic one-shot consume — even on validation failure below, the code
+    # can't be replayed (security > ergonomics here).
+    # Redis TTL handles expiry automatically, so no explicit expires_at check.
+    code_data = await _redis_pop(f"oidc:authz:{code}")
     if not code_data:
         raise AuthorizationError(400, "Invalid authorization code")
 
-    if code_data["expires_at"] < int(time.time()):
-        del _authorization_codes[code]
-        raise AuthorizationError(400, "Authorization code has expired")
-
     if code_data["redirect_uri"] != redirect_uri:
         raise AuthorizationError(400, "Invalid redirect_uri")
-
-    del _authorization_codes[code]
 
     base_url = _get_glow_base_url()
     now = int(time.time())
