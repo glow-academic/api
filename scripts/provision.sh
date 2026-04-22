@@ -48,7 +48,12 @@ case "$COMMAND" in
     # Discover services
     SERVICES=$(docker compose config --services 2>/dev/null || echo "${ENTRY_SERVICE:-nginx}")
 
-    # Build server network entries (glow-api alias for client access)
+    # Build server network entries — NOTE: intentionally no glow-api alias here.
+    # Aliasing both server-blue AND server-green as glow-api causes Docker DNS
+    # round-robin → traffic from client/docs splits across active + inactive envs
+    # during blue/green switches (breaking OIDC flows mid-login). The glow-api
+    # alias is instead managed dynamically by switch-traffic.sh at switch time,
+    # always pointing only at the currently-active server container.
     SERVER_ENTRIES=""
     for svc in $SERVICES; do
       case "$svc" in
@@ -56,9 +61,7 @@ case "$COMMAND" in
           SERVER_ENTRIES="${SERVER_ENTRIES}
   ${svc}:
     networks:
-      deployment:
-        aliases:
-        - glow-api"
+      deployment: {}"
           ;;
       esac
     done
@@ -74,7 +77,9 @@ case "$COMMAND" in
       ${LEARNLOOP_HOST}: host-gateway"
       fi
 
-      # Build server entries with extra_hosts for airgapped mode
+      # Build server entries with extra_hosts for airgapped mode.
+      # No glow-api alias here — managed dynamically in switch-traffic.sh
+      # (see note in the exposed branch above).
       AIRGAP_SERVER_ENTRIES=""
       for svc in $SERVICES; do
         case "$svc" in
@@ -82,9 +87,7 @@ case "$COMMAND" in
             AIRGAP_SERVER_ENTRIES="${AIRGAP_SERVER_ENTRIES}
   ${svc}:${AIRGAP_HOSTS}
     networks:
-      deployment:
-        aliases:
-        - glow-api"
+      deployment: {}"
             ;;
           keycloak-blue|keycloak-green)
             if [ -n "$AIRGAP_HOSTS" ]; then
@@ -146,7 +149,8 @@ OVERRIDE
 ${HOSTS_BLOCK}"
       done
 
-      # Server entries need both extra_hosts AND deployment network
+      # Server entries need both extra_hosts AND deployment network.
+      # No glow-api alias — managed dynamically in switch-traffic.sh.
       SERVER_WITH_HOSTS=""
       for svc in $SERVICES; do
         case "$svc" in
@@ -156,9 +160,7 @@ ${HOSTS_BLOCK}"
     extra_hosts:
 ${HOSTS_BLOCK}
     networks:
-      deployment:
-        aliases:
-        - glow-api"
+      deployment: {}"
             ;;
         esac
       done
