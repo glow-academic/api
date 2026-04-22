@@ -10,6 +10,19 @@
 --   settings_resource.mcp_id -> mcp_resource.agent_id -> agents_resource
 -- at read time. Both hops are redis-cached black boxes, so the cost is
 -- negligible and the setting always sees the MCP's current agent.
+--
+-- Idempotent: fresh DBs seed from schema.sql which already has mcp_id, so
+-- this migration is a no-op there. Only runs on legacy DBs with mcp_agent_id.
 
-ALTER TABLE public.settings_resource
-    RENAME COLUMN mcp_agent_id TO mcp_id;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'settings_resource'
+          AND column_name = 'mcp_agent_id'
+    ) THEN
+        ALTER TABLE public.settings_resource
+            RENAME COLUMN mcp_agent_id TO mcp_id;
+    END IF;
+END $$;
