@@ -31,14 +31,9 @@ on:
         description: 'Seed template to generate (fresh/university/organization). Always runs.'
         required: false
         default: 'fresh'
-      encrypted_payload:
-        description: 'Encrypted deploy config (hybrid RSA+Fernet) — required for initial deploy'
-        required: false
-        default: ''
-      deployment_token:
-        description: 'Deployment token for light redeploys (when encrypted_payload is empty)'
-        required: false
-        default: ''
+      provision_token:
+        description: 'One-time token to claim DEPLOYMENT_TOKEN from LearnLoop'
+        required: true
       learnloop_api_url:
         description: 'LearnLoop API URL for license validation'
         required: false
@@ -120,85 +115,73 @@ jobs:
       - name: Stage release
         run: make stage-release DEST=${{ env.DEPLOY_DIR }} SHA=${{ github.sha }}
 
-      - name: Decrypt deploy config
+      - name: Claim DEPLOYMENT_TOKEN from LearnLoop
         run: |
-          if [ -n "$ENCRYPTED_PAYLOAD" ]; then
-            echo "Decrypting encrypted_payload..."
-            python3 - <<'PYEOF'
-          import json, base64, os, sys
-          from cryptography.fernet import Fernet
-          from cryptography.hazmat.primitives import hashes, serialization
-          from cryptography.hazmat.primitives.asymmetric import padding
-
-          private_key = serialization.load_pem_private_key(
-              os.environ['PROVISION_PRIVATE_KEY'].encode(), password=None
-          )
-          raw = base64.b64decode(os.environ['ENCRYPTED_PAYLOAD'])
-          key_len = int.from_bytes(raw[:4], 'big')
-          encrypted_key = raw[4:4+key_len]
-          encrypted_data = raw[4+key_len:]
-
-          sym_key = private_key.decrypt(
-              encrypted_key,
-              padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None)
-          )
-          f = Fernet(sym_key)
-          config = json.loads(f.decrypt(encrypted_data))
-
-          # Write all config values to GITHUB_ENV
-          with open(os.environ['GITHUB_ENV'], 'a') as env:
-              for k, v in config.items():
-                  if isinstance(v, dict):
-                      v = json.dumps(v)
-                  env.write(f'{k}={v}\n')
-          PYEOF
-
-          else
-            echo "No encrypted_payload — using deployment_token input for light redeploy"
-            DEPLOYMENT_TOKEN="${{ inputs.deployment_token }}"
-            if [ -z "$DEPLOYMENT_TOKEN" ]; then
-              echo "::error::Neither encrypted_payload nor deployment_token provided"
-              exit 1
-            fi
-            echo "DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN}" >> $GITHUB_ENV
-          fi
-          echo "LEARNLOOP_API_URL=${{ inputs.learnloop_api_url }}" >> $GITHUB_ENV
-        env:
-          PROVISION_PRIVATE_KEY: ${{ secrets.PROVISION_PRIVATE_KEY }}
-          ENCRYPTED_PAYLOAD: ${{ inputs.encrypted_payload }}
-
-      - name: Validate deployment token
-        run: |
-          if [ -z "$DEPLOYMENT_TOKEN" ]; then
-            echo "::error::DEPLOYMENT_TOKEN is empty after decryption"
+          API_URL="${{ inputs.learnloop_api_url }}"
+          HOST=$(echo "$API_URL" | sed 's|https\?://||' | sed 's|/.*||')
+          LOCAL_URL="https://localhost/provision/claim"
+          # Write to file to avoid shell expansion of ${...} in YAML config
+          CLAIM_FILE=$(mktemp)
+          curl -sfk -X POST "$LOCAL_URL" \
+            -H "Host: $HOST" \
+            -H "Content-Type: application/json" \
+            -d '{"token": "${{ inputs.provision_token }}"}' \
+            -o "$CLAIM_FILE"
+          DEPLOYMENT_TOKEN=$(jq -r '.deployment_token' < "$CLAIM_FILE")
+          if [ -z "$DEPLOYMENT_TOKEN" ] || [ "$DEPLOYMENT_TOKEN" = "null" ]; then
+            echo "::error::Failed to claim deployment token from LearnLoop"
+            echo "::error::Response: $(cat "$CLAIM_FILE")"
+            rm -f "$CLAIM_FILE"
             exit 1
           fi
-          echo "DEPLOYMENT_TOKEN is set"
-
-          # Log what was received (without leaking values)
-          [ -n "$SECRET_KEY" ] && echo "SECRET_KEY received"
-          [ -n "$AI_API_KEY" ] && echo "AI API key received — using LearnLoop AI Gateway"
-          [ -n "$LEARNLOOP_CLIENT_ID" ] && echo "LearnLoop OAuth credentials received"
-          [ -n "$SEED_SETUP" ] && echo "Seed setup: $SEED_SETUP"
-          [ -n "$DEPLOY_CONFIG_B64" ] && echo "Deploy config received"
-
-          # Set AI_PROVIDER if AI key came from payload
-          if [ -n "$AI_API_KEY" ] && [ -z "$AI_PROVIDER" ]; then
+          SECRET_KEY=$(jq -r '.secret_key // empty' < "$CLAIM_FILE")
+          AI_API_KEY=$(jq -r '.ai_config.api_key // empty' < "$CLAIM_FILE")
+          echo "DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN}" >> $GITHUB_ENV
+          echo "LEARNLOOP_API_URL=${{ inputs.learnloop_api_url }}" >> $GITHUB_ENV
+          if [ -n "$SECRET_KEY" ]; then
+            echo "SECRET_KEY=${SECRET_KEY}" >> $GITHUB_ENV
+            echo "SECRET_KEY received"
+          fi
+          if [ -n "$AI_API_KEY" ]; then
+            echo "AI_API_KEY=${AI_API_KEY}" >> $GITHUB_ENV
             echo "AI_PROVIDER=learnloop" >> $GITHUB_ENV
-          fi
-          # Set AUTH_PROVIDER if LearnLoop OAuth came from payload
-          if [ -n "$LEARNLOOP_CLIENT_ID" ] && [ -z "$AUTH_PROVIDER" ]; then
-            echo "AUTH_PROVIDER=learnloop" >> $GITHUB_ENV
+            echo "AI API key received — using LearnLoop AI Gateway"
           fi
 
-          # grace_period_minutes from deploy config
-          if [ -n "$DEPLOY_CONFIG_B64" ]; then
-            GRACE_PERIOD=$(echo "$DEPLOY_CONFIG_B64" | base64 -d | python3 -c "import sys,yaml; d=yaml.safe_load(sys.stdin); print(d.get('grace_period_minutes', 60) if d else 60)" 2>/dev/null || echo "60")
-          else
-            GRACE_PERIOD="60"
+          # Extract auth config (Login with LearnLoop)
+          LEARNLOOP_CLIENT_ID=$(jq -r '.auth_config.oauth_client_id // empty' < "$CLAIM_FILE")
+          LEARNLOOP_CLIENT_SECRET=$(jq -r '.auth_config.oauth_client_secret // empty' < "$CLAIM_FILE")
+          AUTH_ISSUER=$(jq -r '.auth_config.issuer // empty' < "$CLAIM_FILE")
+          AUTH_ISSUER_INTERNAL=$(jq -r '.auth_config.issuer_internal // empty' < "$CLAIM_FILE")
+          SEED_SETUP_CLAIMED=$(jq -r '.seed_setup // empty' < "$CLAIM_FILE")
+
+          if [ -n "$LEARNLOOP_CLIENT_ID" ]; then
+            echo "AUTH_PROVIDER=learnloop" >> $GITHUB_ENV
+            echo "LEARNLOOP_CLIENT_ID=${LEARNLOOP_CLIENT_ID}" >> $GITHUB_ENV
+            echo "LEARNLOOP_CLIENT_SECRET=${LEARNLOOP_CLIENT_SECRET}" >> $GITHUB_ENV
+            echo "AUTH_ISSUER=${AUTH_ISSUER}" >> $GITHUB_ENV
+            echo "AUTH_ISSUER_INTERNAL=${AUTH_ISSUER_INTERNAL}" >> $GITHUB_ENV
+            echo "LearnLoop OAuth credentials received"
           fi
+
+          if [ -n "$SEED_SETUP_CLAIMED" ]; then
+            echo "SEED_SETUP=${SEED_SETUP_CLAIMED}" >> $GITHUB_ENV
+            echo "Seed setup from claim: $SEED_SETUP_CLAIMED"
+          fi
+
+          # Base64-encode deploy config directly from file to avoid shell expansion
+          DEPLOY_CONFIG_B64=$(jq -r '.deploy_config_yaml // empty' < "$CLAIM_FILE" | base64 -w0)
+          if [ -n "$DEPLOY_CONFIG_B64" ] && [ "$DEPLOY_CONFIG_B64" != "" ]; then
+            echo "DEPLOY_CONFIG_B64=$DEPLOY_CONFIG_B64" >> $GITHUB_ENV
+            echo "Deploy config received from claim"
+          fi
+
+          # grace_period_minutes = simulation idle timeout
+          GRACE_PERIOD=$(jq -r '.deploy_config_yaml // empty' < "$CLAIM_FILE" | python3 -c "import sys,yaml; d=yaml.safe_load(sys.stdin); print(d.get('grace_period_minutes', 60) if d else 60)" 2>/dev/null || echo "60")
           echo "GRACE_PERIOD_MINUTES=${GRACE_PERIOD}" >> $GITHUB_ENV
-          echo "Deploy config processed successfully"
+
+          rm -f "$CLAIM_FILE"
+          echo "Deployment token claimed successfully"
 
       - name: Derive auth client secret
         if: env.SECRET_KEY != ''
