@@ -1,239 +1,177 @@
-"""MCP tool registration — introspects route handlers to build MCP tools dynamically.
+"""MCP tool registration — dispatches through execute_infra_operation.
 
-Given a tool graph of (artifact, operation) pairs, this module:
-  1. Registers a tool for each pair with name = {operation}_{artifact}
-  2. At call time, imports app.routes.{artifact}.{operation}
-  3. Finds the handler function via the module's router
-  4. Extracts the Pydantic request model from its signature
-  5. Calls the handler with proper Identity(is_mcp=True) context
+Each MCP tool registered here maps to an (artifact, operation) pair in
+INFRA_OPS. At call time the handler:
+
+  1. Resolves the caller's MCP context (profile → primary department →
+     setting → mcp_resource → agent → enriched tool_defs).
+  2. Rejects if the caller's agent doesn't expose this (artifact, operation)
+     or the caller lacks the permission.
+  3. Builds an InfraOperationSpec via resolve_tool_spec() and dispatches
+     through execute_infra_operation() — the canonical path also used by
+     HTTP routes, WebSocket handlers, and the generate pipeline.
+
+Startup registration covers the superset of INFRA_OPS pairs. Per-caller
+scoping happens at call time, not at registration (FastMCP stateless_http
+doesn't expose per-session registration hooks).
 """
 
 from __future__ import annotations
 
-import importlib
-import inspect
 import logging
-from typing import Any, get_type_hints
+from typing import Any
+from uuid import UUID
 
-from fastapi import Response
 from mcp.server.fastmcp import FastMCP
-from pydantic import BaseModel
-from starlette.requests import Request as StarletteRequest
+from mcp.types import ToolAnnotations
 
-from app.infra.globals import get_db
+from app.infra.mcp.resolve import resolve_mcp_context
+from app.infra.tools.execute_infra_operation import (
+    InfraContext,
+    execute_infra_operation,
+)
+from app.infra.tools.resolve_tool_spec import resolve_tool_spec
+from app.registry.operations import is_write_operation
 
 logger = logging.getLogger(__name__)
 
-# Cache imported handlers + models to avoid repeated imports
-_handler_cache: dict[str, Any] = {}
-_model_cache: dict[str, type[BaseModel] | None] = {}
 
-
-def _import_handler(module_path: str) -> Any:
-    """Import the route handler from a module.
-
-    Strategy: look at the module's router.routes to find the actual endpoint
-    function (not utility imports). Falls back to first public async function.
-    """
-    if module_path in _handler_cache:
-        return _handler_cache[module_path]
-
-    mod = importlib.import_module(module_path)
-
-    # Strategy 1: Find the endpoint registered on the router
-    router = getattr(mod, "router", None)
-    if router and hasattr(router, "routes"):
-        for route in router.routes:
-            endpoint = getattr(route, "endpoint", None)
-            if endpoint and inspect.iscoroutinefunction(endpoint):
-                _handler_cache[module_path] = endpoint
-                return endpoint
-
-    # Strategy 2: Fall back to first public async function defined in the module
-    for name, obj in inspect.getmembers(mod, inspect.isfunction):
-        if name.startswith("_"):
-            continue
-        if inspect.iscoroutinefunction(obj) and obj.__module__ == mod.__name__:
-            _handler_cache[module_path] = obj
-            return obj
-
-    raise ValueError(f"No async handler found in {module_path}")
-
-
-def _get_request_model(handler: Any) -> type[BaseModel] | None:
-    """Extract the Pydantic request model from a handler's first parameter."""
-    try:
-        hints = get_type_hints(handler)
-        sig = inspect.signature(handler)
-        first_param = list(sig.parameters.values())[0]
-        model = hints.get(first_param.name, first_param.annotation)
-        if isinstance(model, type) and issubclass(model, BaseModel):
-            return model
-    except Exception:
-        pass
+def _find_tool_def(
+    tool_defs: list[dict[str, Any]],
+    artifact: str,
+    operation: str,
+) -> dict[str, Any] | None:
+    """Return the first tool_def whose _permissions include (artifact, operation)."""
+    target = (artifact, operation)
+    for td in tool_defs:
+        perms = td.get("_permissions") or []
+        for p in perms:
+            if (p.get("artifact"), p.get("operation")) == target:
+                return td
     return None
 
 
-def _build_tool_args(
-    request_model: type[BaseModel],
-) -> list[dict[str, Any]]:
-    """Extract arg definitions from Pydantic model fields.
-
-    Returns a list of dicts with name, type, description, required, default.
-    Filters out internal fields like 'mcp'.
-    """
-    args = []
-    schema = request_model.model_json_schema()
-    properties = schema.get("properties", {})
-    required_fields = set(schema.get("required", []))
-
-    for field_name, field_schema in properties.items():
-        # Skip internal fields
-        if field_name in ("mcp",):
-            continue
-
-        args.append(
-            {
-                "name": field_name,
-                "description": field_schema.get("description", ""),
-                "type": field_schema.get("type", "string"),
-                "required": field_name in required_fields,
-                "default": field_schema.get("default"),
-                "schema": field_schema,
-            }
-        )
-
-    return args
+def _annotations_for(operation: str, title: str) -> ToolAnnotations:
+    is_write = is_write_operation(operation)
+    return ToolAnnotations(
+        title=title,
+        readOnlyHint=not is_write,
+        destructiveHint=operation == "delete",
+        idempotentHint=operation in {"get", "search", "update", "delete"},
+    )
 
 
-def _resolve_handler_and_model(
-    module_path: str,
-) -> tuple[Any, type[BaseModel]]:
-    """Import handler and extract request model. Raises on failure."""
-    handler = _import_handler(module_path)
-
-    if module_path not in _model_cache:
-        _model_cache[module_path] = _get_request_model(handler)
-
-    model = _model_cache[module_path]
-    if model is None:
-        raise ValueError(f"No Pydantic request model for {module_path}")
-
-    return handler, model
-
-
-async def _call_handler(
-    handler: Any,
-    request_model: type[BaseModel],
-    payload: dict[str, Any],
-    profile_id: str,
+async def _dispatch(
+    artifact: str,
+    operation: str,
+    inputs: dict[str, Any],
 ) -> dict[str, Any]:
-    """Call an endpoint handler with proper Request/Response/DB context.
+    """Resolve caller context, validate, and dispatch via execute_infra_operation."""
+    from app.infra.globals import get_pool, get_redis_client
+    from app.utils.mcp.get_mcp_profile_id import get_mcp_profile_id
 
-    Creates a request with an Identity(is_mcp=True) — no synthetic X-MCP header.
-    """
-    from uuid import UUID
-
-    from app.infra.identity.resolve_identity import Identity
+    pool = get_pool()
+    redis = get_redis_client()
+    if pool is None or redis is None:
+        return {"error": "server_unavailable", "status": "error"}
 
     try:
-        scope = {
-            "type": "http",
-            "method": "POST",
-            "path": "/mcp",
-            "headers": [],
-            "query_string": b"",
-            "server": ("localhost", 8000),
-        }
-        http_request = StarletteRequest(scope)
-
-        # Set identity with is_mcp=True — single source of truth
-        identity = Identity(
-            profile_id=UUID(profile_id),
-            session_id=UUID(int=0),
-            is_mcp=True,
-        )
-        http_request.state.identity = identity
-        http_request.state.profile_id = profile_id
-        http_request.state.session_id = None
-
-        http_response = Response()
-
-        # Auto-inject mcp: true if request model has mcp field
-        if "mcp" in request_model.model_fields:
-            payload = {**payload, "mcp": True}
-
-        # Filter out None values to let Pydantic defaults apply
-        payload = {k: v for k, v in payload.items() if v is not None}
-
-        api_request = request_model(**payload)
-
-        # Detect if handler expects conn parameter
-        handler_params = inspect.signature(handler).parameters
-        if "conn" in handler_params:
-            result = None
-            async for conn in get_db():
-                result = await handler(
-                    request=api_request,
-                    http_request=http_request,
-                    response=http_response,
-                    conn=conn,
-                )
-            if result is None:
-                return {"error": "Database connection not available", "status": "error"}
-        else:
-            result = await handler(
-                request=api_request,
-                http_request=http_request,
-                response=http_response,
-            )
-
-        if hasattr(result, "model_dump"):
-            return result.model_dump(mode="json")
-        elif hasattr(result, "dict"):
-            return result.dict()
-        else:
-            return {"data": result}
-
+        profile_id = UUID(get_mcp_profile_id())
     except Exception as e:
+        return {"error": f"profile_unavailable: {e}", "status": "error"}
+
+    mcp_ctx = await resolve_mcp_context(pool, redis, profile_id)
+
+    if mcp_ctx.agent_id is None:
+        return {
+            "error": "mcp_not_configured",
+            "status": "error",
+            "detail": "No MCP resource configured on this caller's primary department setting.",
+        }
+
+    if (artifact, operation) not in set(mcp_ctx.role_permissions):
+        return {
+            "error": "permission_denied",
+            "status": "error",
+            "artifact": artifact,
+            "operation": operation,
+        }
+
+    tool_def = _find_tool_def(mcp_ctx.tool_defs, artifact, operation)
+    if tool_def is None:
+        return {
+            "error": "tool_not_on_agent",
+            "status": "error",
+            "artifact": artifact,
+            "operation": operation,
+            "agent_id": str(mcp_ctx.agent_id),
+        }
+
+    # Routing templates in _args_outputs may use {{ artifact }} / {{ operation }};
+    # inject them so multi-permission tools route correctly. Single-permission
+    # tools hardcode the values in their templates and ignore these.
+    routed_inputs = {**inputs, "artifact": artifact, "operation": operation}
+
+    try:
+        spec = resolve_tool_spec(tool_def, routed_inputs)
+    except ValueError as e:
+        return {"error": f"spec_invalid: {e}", "status": "error"}
+
+    ctx = InfraContext(pool=pool, redis=redis, profile_id=profile_id)
+
+    try:
+        results = await execute_infra_operation(ctx, spec)
+    except Exception as e:
+        logger.exception(f"MCP dispatch failed for ({artifact}, {operation})")
         return {"error": str(e), "status": "error", "type": type(e).__name__}
+
+    if not results:
+        return {"status": "ok"}
+    first = results[0]
+    return first.model_dump(mode="json")
 
 
 def register_tools(
     server: FastMCP,
     tool_graph: list[tuple[str, str]],
 ) -> None:
-    """Register MCP tools from a tool graph.
+    """Register one FastMCP tool per (artifact, operation) in the catalog.
 
-    Handler import and model introspection are deferred to call time
-    to avoid circular imports at module load. Each tool is registered
-    with a generic (kwargs, **kw) signature.
+    Each tool's handler closes over its (artifact, operation) and dispatches
+    through execute_infra_operation at call time. Per-caller agent-scope
+    and permission-scope enforcement also happen at call time.
     """
     for artifact, operation in tool_graph:
-        module_path = f"app.routes.{artifact}.{operation}"
-        tool_name = f"{operation}_{artifact}"
-        description = f"{operation} {artifact}"
+        _register_one(server, artifact, operation)
 
-        # Capture in closure via default args
-        async def make_tool(
-            kwargs: dict[str, Any] | None = None,
-            *,
-            mod_path: str = module_path,
-            **kw: Any,
-        ) -> dict[str, Any]:
-            from app.utils.mcp.get_mcp_profile_id import get_mcp_profile_id
 
-            handler, model = _resolve_handler_and_model(mod_path)
-            profile_id = get_mcp_profile_id()
-            payload = {**(kwargs or {}), **kw}
-            return await _call_handler(handler, model, payload, profile_id)
+def _register_one(server: FastMCP, artifact: str, operation: str) -> None:
+    """Register a single (artifact, operation) tool on the FastMCP server.
 
-        # Set function metadata for FastMCP
-        make_tool.__name__ = tool_name
-        make_tool.__qualname__ = tool_name
-        make_tool.__doc__ = description
+    Factored out so artifact/operation are captured by closure in a fresh
+    scope — avoids late-binding bugs and keeps handler signature clean
+    (FastMCP rejects parameter names starting with '_').
+    """
+    tool_name = f"{operation}_{artifact}"
+    title = f"{artifact.title()} {operation.title()}"
+    description = f"{operation} {artifact}"
 
-        # Register with FastMCP
-        server.tool()(make_tool)
+    async def handler(
+        kwargs: dict[str, Any] | None = None,
+        **kw: Any,
+    ) -> dict[str, Any]:
+        payload = {**(kwargs or {}), **kw}
+        return await _dispatch(artifact, operation, payload)
 
-        logger.debug(f"Registered MCP tool: {tool_name}")
+    handler.__name__ = tool_name
+    handler.__qualname__ = tool_name
+    handler.__doc__ = description
+
+    server.tool(
+        name=tool_name,
+        title=title,
+        description=description,
+        annotations=_annotations_for(operation, title),
+    )(handler)
+
+    logger.debug(f"Registered MCP tool: {tool_name}")

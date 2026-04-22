@@ -12,6 +12,7 @@ from database.seeds.logins import (
     AUTH_LOGIN_IDS,
     build_profile_logins,
 )
+from database.seeds.mcps import MCP_COMPOSER
 from database.seeds.setups.university.departments import (
     UNIVERSITY_DEPT,
     UNIVERSITY_DEPT_RESOURCE,
@@ -79,5 +80,6 @@ settings = [
         threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
         color_ids=ALL_COLOR_IDS,
         logins_ids=UNI_LOGINS_IDS or None,
+        mcp_id=MCP_COMPOSER,
     ),
 ]

@@ -37,6 +37,7 @@ JUNCTIONS: list[tuple[str, str, str, str]] = [
     ("voices", "agent_voices_junction", "voices_id", "voice_ids"),
     ("qualities", "agent_qualities_junction", "qualities_id", "quality_ids"),
     ("rubrics", "agent_rubrics_junction", "rubrics_id", "rubric_ids"),
+    ("prompts", "agent_prompts_junction", "prompts_id", "prompt_ids"),
     ("agents", "agent_agents_junction", "agents_id", "agent_ids"),
 ]
 
@@ -57,6 +58,7 @@ async def get_agents(
     voices: bool = False,
     qualities: bool = False,
     rubrics: bool = False,
+    prompts: bool = False,
     agents: bool = False,
 ) -> list[GetAgentsResponse]:
     """Get agent artifacts by IDs with optional junction ID fetching."""
@@ -75,6 +77,7 @@ async def get_agents(
         "voices": voices,
         "qualities": qualities,
         "rubrics": rubrics,
+        "prompts": prompts,
         "agents": agents,
     }
 

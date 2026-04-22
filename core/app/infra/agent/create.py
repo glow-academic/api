@@ -173,6 +173,11 @@ async def create_agent_impl(
                     tool_ids=item.tool_ids,
                     voice_ids=item.voice_ids,
                     rubric_ids=item.rubric_ids,
+                    # Seed the junction from the per-embodiment
+                    # primary prompt — matches the pre-junction
+                    # derivation and keeps new agents discoverable
+                    # through the prompts section.
+                    prompt_ids=[item.prompt_id] if item.prompt_id else None,
                     agent_ids=[snapshot_ids[idx]] if snapshot_ids else None,
                     soft=soft,
                 )

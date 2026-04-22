@@ -1,35 +1,16 @@
-"""Tests for introspection-based MCP tool registration."""
+"""Tests for MCP tool registration + dispatch via execute_infra_operation."""
 
 from __future__ import annotations
 
-from uuid import uuid4
-
-import pytest
-import pytest_asyncio
-
 from app.infra.mcp.register import (
-    _build_tool_args,
-    _get_request_model,
-    _import_handler,
+    _annotations_for,
+    _find_tool_def,
     register_tools,
 )
 from app.infra.mcp.tool_graph import get_mcp_tool_graph
-from tests.infra.route_helpers import create_admin_route_actor
 
 
-@pytest_asyncio.fixture
-async def mcp_actor(pool, redis_client, setting_graph_factory):
-    return await create_admin_route_actor(
-        pool,
-        redis_client,
-        setting_graph_factory,
-        tool_artifacts=["persona"],
-        group_name="mcp-endpoints",
-        role_name_prefix="MCP Endpoint Admin",
-    )
-
-
-def test_tool_graph_returns_non_empty_list():
+def test_tool_graph_returns_pairs_from_infra_ops():
     graph = get_mcp_tool_graph()
 
     assert len(graph) > 20
@@ -38,48 +19,71 @@ def test_tool_graph_returns_non_empty_list():
     assert ("scenario", "search") in graph
 
 
-def test_import_handler_finds_router_endpoint():
-    handler = _import_handler("app.routes.persona.get")
+def test_annotations_mark_read_ops_as_read_only():
+    ann = _annotations_for("get", "Persona Get")
 
-    assert callable(handler)
-    assert handler.__name__ != "_"
-
-
-def test_import_handler_raises_for_unknown_module():
-    with pytest.raises(ModuleNotFoundError):
-        _import_handler("app.routes.not_real.missing")
+    assert ann.readOnlyHint is True
+    assert ann.destructiveHint is False
+    assert ann.idempotentHint is True
+    assert ann.title == "Persona Get"
 
 
-def test_get_request_model_extracts_pydantic_model():
-    handler = _import_handler("app.routes.persona.get")
-    model = _get_request_model(handler)
+def test_annotations_mark_write_ops_as_not_read_only():
+    create_ann = _annotations_for("create", "Persona Create")
+    delete_ann = _annotations_for("delete", "Persona Delete")
+    update_ann = _annotations_for("update", "Persona Update")
 
-    assert model is not None
-    assert hasattr(model, "model_json_schema")
-
-
-def test_build_tool_args_excludes_mcp_field():
-    handler = _import_handler("app.routes.persona.get")
-    model = _get_request_model(handler)
-    assert model is not None
-
-    args = _build_tool_args(model)
-
-    arg_names = [a["name"] for a in args]
-    assert "mcp" not in arg_names
-    assert "persona_id" in arg_names
+    assert create_ann.readOnlyHint is False
+    assert delete_ann.readOnlyHint is False
+    assert delete_ann.destructiveHint is True
+    assert update_ann.readOnlyHint is False
+    assert update_ann.idempotentHint is True
 
 
-def test_register_tools_registers_all_graph_entries():
-    """All graph entries get registered — failures are deferred to call time."""
+def test_find_tool_def_matches_on_permission_pair():
+    tool_defs = [
+        {
+            "name": "Persona Get",
+            "_permissions": [{"artifact": "persona", "operation": "get"}],
+        },
+        {
+            "name": "Activity Search",
+            "_permissions": [{"artifact": "activity", "operation": "search"}],
+        },
+    ]
 
+    assert _find_tool_def(tool_defs, "persona", "get") is tool_defs[0]
+    assert _find_tool_def(tool_defs, "activity", "search") is tool_defs[1]
+    assert _find_tool_def(tool_defs, "persona", "delete") is None
+
+
+def test_find_tool_def_handles_multi_permission_tool():
+    td = {
+        "name": "Cross Artifact Create",
+        "_permissions": [
+            {"artifact": "persona", "operation": "create"},
+            {"artifact": "scenario", "operation": "create"},
+        ],
+    }
+
+    assert _find_tool_def([td], "persona", "create") is td
+    assert _find_tool_def([td], "scenario", "create") is td
+    assert _find_tool_def([td], "cohort", "create") is None
+
+
+def test_register_tools_registers_every_catalog_entry():
     class FakeServer:
         def __init__(self):
-            self.tools: dict[str, object] = {}
+            self.registrations: dict[str, dict] = {}
 
-        def tool(self):
+        def tool(self, *, name, title, description, annotations, **_):
             def _decorator(fn):
-                self.tools[fn.__name__] = fn
+                self.registrations[name] = {
+                    "fn": fn,
+                    "title": title,
+                    "description": description,
+                    "annotations": annotations,
+                }
                 return fn
 
             return _decorator
@@ -89,49 +93,10 @@ def test_register_tools_registers_all_graph_entries():
 
     register_tools(server, graph)
 
-    assert len(server.tools) == len(graph)
-    assert "get_persona" in server.tools
-    assert "search_scenario" in server.tools
-    assert "draft_simulation" in server.tools
+    assert len(server.registrations) == len(graph)
+    assert "get_persona" in server.registrations
+    assert "search_scenario" in server.registrations
 
-
-@pytest.mark.asyncio
-async def test_call_handler_executes_real_persona_get(
-    pool,
-    redis_client,
-    mcp_actor,
-):
-    import app.infra.globals as globals_mod
-    from app.infra.mcp.register import _call_handler, _resolve_handler_and_model
-
-    handler, model = _resolve_handler_and_model("app.routes.persona.get")
-
-    # Create a persona to query
-    from app.tools.artifacts.persona.create import create_persona
-    from app.tools.resources.names.create import create_name
-
-    async with pool.acquire() as conn:
-        name = await create_name(conn, f"mcp-persona-{uuid4()}", redis_client)
-        persona = await create_persona(
-            conn,
-            name_id=name.id,
-            department_ids=[mcp_actor.department_id],
-        )
-
-    prior_pool = globals_mod._db_pool
-    prior_redis = globals_mod.redis_client
-    globals_mod._db_pool = pool
-    globals_mod.redis_client = redis_client
-    try:
-        result = await _call_handler(
-            handler,
-            model,
-            {"persona_id": str(persona.id)},
-            str(mcp_actor.profile_id),
-        )
-    finally:
-        globals_mod._db_pool = prior_pool
-        globals_mod.redis_client = prior_redis
-
-    assert "error" not in result
-    assert result["persona_exists"] is True
+    get_persona = server.registrations["get_persona"]
+    assert get_persona["annotations"].readOnlyHint is True
+    assert get_persona["title"] == "Persona Get"

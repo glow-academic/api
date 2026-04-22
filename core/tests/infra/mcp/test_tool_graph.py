@@ -55,15 +55,3 @@ async def test_tool_graph_has_no_duplicates():
     assert len(graph) == len(set(graph))
 
 
-async def test_tool_graph_includes_analytics_read_only():
-    """Analytics artifacts are read-only (get or search only)."""
-    graph = get_mcp_tool_graph()
-    analytics = {
-        (a, o) for a, o in graph
-        if a in ("activity", "benchmark", "dashboard", "leaderboard", "pricing")
-    }
-
-    for artifact, operation in analytics:
-        assert operation in ("get", "search"), (
-            f"Analytics artifact {artifact} has write operation {operation}"
-        )

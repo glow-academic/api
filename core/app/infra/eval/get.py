@@ -157,8 +157,6 @@ async def get_eval_impl(
         departments_search=_sf(resolved_filters, "departments", "search"),
         models_search=_sf(resolved_filters, "models", "search"),
         model_flags_search=_sf(resolved_filters, "model_flags", "search"),
-        model_rubrics_search=_sf(resolved_filters, "model_rubrics", "search"),
-        model_positions_search=_sf(resolved_filters, "model_positions", "search"),
         names_limit=_sf(resolved_filters, "names", "limit"),
         descriptions_limit=_sf(resolved_filters, "descriptions", "limit"),
         flags_limit=_sf(resolved_filters, "flags", "limit"),
@@ -375,7 +373,7 @@ async def get_eval_impl(
     ]
 
     return GetEvalApiResponse(
-        actor_name=profile.actor_name,
+        actor_name=profile.name,
         eval_exists=perms.exists if perms else None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,

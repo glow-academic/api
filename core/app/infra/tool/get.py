@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.common_context import resolve_common_context
+from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
 from app.infra.tool.context import resolve_tool_context
 from app.infra.tool.permissions import (
@@ -102,7 +103,16 @@ async def get_tool_impl(
         )
 
     actor = common.profile
-    effective_group_id = group_id or actor.group_id
+    if group_id is None:
+        _gr = await resolve_group_impl(
+            pool, redis,
+            artifact_type="tool",
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
+        group_id = _gr.group_id
+    effective_group_id = group_id
 
     perms = None
     if tool_id is not None:

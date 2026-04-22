@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "2.12.0"
+    "version": "2.14.1"
   },
   "paths": {
     "/persona/get": {
@@ -18753,6 +18753,58 @@
         ],
         "x-cache-tags": [
           "system"
+        ]
+      }
+    },
+    "/system/group": {
+      "post": {
+        "tags": [
+          "system",
+          "group"
+        ],
+        "summary": "Group System",
+        "description": "Resolve or create the session's system group, optionally naming it.",
+        "operationId": "group_system_system_group_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupSystemApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupSystemApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group"
         ]
       }
     },
@@ -90294,6 +90346,126 @@
         ],
         "title": "GroupSimulationApiResponse",
         "description": "Response body for POST /simulation/group."
+      },
+      "GroupSystemApiRequest": {
+        "properties": {
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id",
+            "description": "Existing group UUID (omit to create or reuse via time window)"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "GroupSystemApiRequest",
+        "description": "Request body for POST /system/group."
+      },
+      "GroupSystemApiResponse": {
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Group Id",
+            "description": "Resolved or newly created group UUID"
+          },
+          "group_name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Name Id",
+            "description": "UUID of the created group_names entry (if name was provided)"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          }
+        },
+        "type": "object",
+        "required": [
+          "group_id"
+        ],
+        "title": "GroupSystemApiResponse",
+        "description": "Response body for POST /system/group."
       },
       "GroupTestApiRequest": {
         "properties": {

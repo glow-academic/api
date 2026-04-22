@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.common_context import resolve_common_context
+from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.model.context import resolve_model_context
 from app.infra.model.permissions import (
@@ -132,7 +133,16 @@ async def get_model_impl(
         )
 
     actor = common.profile
-    effective_group_id = group_id or actor.group_id
+    if group_id is None:
+        _gr = await resolve_group_impl(
+            pool, redis,
+            artifact_type="model",
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
+        group_id = _gr.group_id
+    effective_group_id = group_id
 
     perms = None
     if model_id is not None:
@@ -477,7 +487,7 @@ async def get_model_impl(
     ]
 
     return GetModelApiResponse(
-        actor_name=actor.display_name,
+        actor_name=actor.name,
         model_exists=perms.exists if perms else (model_id is None),
         can_edit=can_edit,
         disabled_reason=disabled_reason,

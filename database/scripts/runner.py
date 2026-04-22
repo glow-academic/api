@@ -1540,6 +1540,28 @@ async def _run_tool_instruction_seeds(
     print(f"  OK: {len(instructions)} tool instructions created")
 
 
+async def _run_mcp_module_seeds(
+    pool: asyncpg.Pool,
+    redis: Redis,
+) -> None:
+    """Create mcp_resource rows. Runs after agents (FK is an agents_resource id)
+    and before the setup-specific loop that seeds settings referencing them."""
+    from app.tools.resources.mcp.create import create_mcp
+    from database.seeds.mcps import mcp_resources
+
+    async with pool.acquire() as conn:
+        for m in mcp_resources:
+            await create_mcp(
+                conn,
+                agent_id=m["agent_id"],
+                name=m["name"],
+                description=m["description"],
+                id=m["id"],
+                redis=redis,
+            )
+    print(f"  OK: {len(mcp_resources)} mcp resources created")
+
+
 async def _run_tool_module_seeds(
     pool: asyncpg.Pool,
     redis: Redis,
@@ -1983,6 +2005,9 @@ async def main_setup(setup: str = "university") -> None:
 
         print("\nSeeding tools...")
         await _run_tool_module_seeds(pool, redis_client)
+
+        print("\nSeeding mcp resources...")
+        await _run_mcp_module_seeds(pool, redis_client)
 
         print("\nSeeding dynamic keys...")
         import database.seeds.dynamic_keys as dk_mod

@@ -25,6 +25,7 @@ class GetAgentsResponse(BaseModel):
     voice_ids: list[UUID] | None = Field(None, description="Associated voice junction IDs")
     quality_ids: list[UUID] | None = Field(None, description="Associated quality junction IDs")
     rubric_ids: list[UUID] | None = Field(None, description="Associated rubric junction IDs")
+    prompt_ids: list[UUID] | None = Field(None, description="Associated prompt junction IDs")
     agent_ids: list[UUID] | None = Field(None, description="Associated agent junction IDs")
 
 

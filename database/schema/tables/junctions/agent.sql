@@ -92,6 +92,21 @@ CREATE TABLE public.agent_names_junction (
 
 --
 
+-- Name: agent_prompts_junction; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.agent_prompts_junction (
+    agent_id uuid NOT NULL,
+    prompts_id uuid NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+
 -- Name: agent_qualities_junction; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -232,6 +247,15 @@ ALTER TABLE ONLY public.agent_models_junction
 
 ALTER TABLE ONLY public.agent_names_junction
     ADD CONSTRAINT agent_names_pkey PRIMARY KEY (agent_id, names_id);
+
+
+--
+
+-- Name: agent_prompts_junction agent_prompts_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.agent_prompts_junction
+    ADD CONSTRAINT agent_prompts_junction_pkey PRIMARY KEY (agent_id, prompts_id);
 
 
 --

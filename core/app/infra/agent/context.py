@@ -57,6 +57,7 @@ class _MergedIds:
     voice_ids: list[UUID]
     quality_ids: list[UUID]
     rubric_ids: list[UUID]
+    prompt_ids: list[UUID]
     agent_ids: list[UUID]
 
 
@@ -72,6 +73,7 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
     voice_ids = list(artifact.voice_ids or []) if artifact else []
     quality_ids = list(artifact.quality_ids or []) if artifact else []
     rubric_ids = list(artifact.rubric_ids or []) if artifact else []
+    prompt_ids = list(artifact.prompt_ids or []) if artifact else []
     agent_ids = list(artifact.agent_ids or []) if artifact else []
 
     if draft:
@@ -97,6 +99,8 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
             quality_ids = list(draft.quality_ids)
         if draft.rubric_ids:
             rubric_ids = list(draft.rubric_ids)
+        if draft.prompt_ids:
+            prompt_ids = list(draft.prompt_ids)
         if draft.agent_ids:
             agent_ids = list(draft.agent_ids)
 
@@ -112,6 +116,7 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
         voice_ids=voice_ids,
         quality_ids=quality_ids,
         rubric_ids=rubric_ids,
+        prompt_ids=prompt_ids,
         agent_ids=agent_ids,
     )
 
@@ -221,7 +226,13 @@ async def resolve_agent_context(
             return await get_agent_resources(conn, merged.agent_ids, redis, bypass_cache)
 
     selected_agent_resources = await _get_selected_agent_resources()
-    prompt_ids = _dedupe_ids([getattr(item, "prompt_id", None) for item in selected_agent_resources])
+    # prompts now live on the agent_prompts_junction (migration 008).
+    # `merged.prompt_ids` already folds the artifact row + draft
+    # pending_ids together — no need to walk each agents_resource
+    # and union its scalar prompt_id any more. agents_resource.prompt_id
+    # remains the per-embodiment primary prompt but isn't the read
+    # path for the artifact's prompts section.
+    prompt_ids = list(merged.prompt_ids)
     instruction_ids = _dedupe_ids(
         [instruction_id for item in selected_agent_resources for instruction_id in (getattr(item, "instruction_ids", None) or [])]
     )
@@ -239,12 +250,13 @@ async def resolve_agent_context(
         pending_ids.update(draft.pending_voice_ids or [])
         pending_ids.update(draft.pending_quality_ids or [])
         pending_ids.update(draft.pending_rubric_ids or [])
+        pending_ids.update(draft.pending_prompt_ids or [])
     for item in selected_agent_resources:
         if getattr(item, "id", None) not in pending_agent_ids:
             continue
-        prompt_id = getattr(item, "prompt_id", None)
-        if prompt_id:
-            pending_ids.add(prompt_id)
+        # instructions still live on the per-embodiment agents_resource;
+        # prompts moved to the junction so draft.pending_prompt_ids is
+        # the source of truth for the pending-badge state.
         pending_ids.update(getattr(item, "instruction_ids", None) or [])
 
     async def _get_names() -> list:

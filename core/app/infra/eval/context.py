@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from uuid import UUID
 
 import asyncpg
+from pydantic import BaseModel
 from redis.asyncio import Redis
 
 from app.infra.flag_icons import hydrate_flag_icons
@@ -33,6 +34,28 @@ from app.tools.resources.names.search import search_names
 EVAL_FLAG_NAMES = {"eval_active", "dynamic", ""}
 
 
+class EvalModelFlagEnriched(BaseModel):
+    """Enriched model_flag shape for downstream assembly.
+
+    Raw `GetModelFlagResponse` junction rows carry only {id, model_id,
+    flag_id, …} — no name/description/icon. The eval/get builder reads
+    those display fields directly off each item, so selected rows come
+    back with null metadata and the client picker drops them (same class
+    of bug fixed for simulation.scenario_flags). We enrich in the
+    context layer by looking up each flag_id in the flags_resource
+    metadata we already fetch.
+    """
+
+    id: UUID | None = None
+    model_id: UUID | None = None
+    flag_id: UUID | None = None
+    name: str | None = None
+    description: str | None = None
+    icon_id: UUID | None = None
+    icon: str | None = None
+    generated: bool | None = None
+
+
 def _limit(value: int | None, default: int) -> int:
     return default if value is None else max(value, 0)
 
@@ -51,8 +74,6 @@ async def resolve_eval_context(
     departments_search: str | None = None,
     models_search: str | None = None,
     model_flags_search: str | None = None,
-    model_rubrics_search: str | None = None,
-    model_positions_search: str | None = None,
     names_limit: int | None = None,
     descriptions_limit: int | None = None,
     flags_limit: int | None = None,
@@ -208,7 +229,6 @@ async def resolve_eval_context(
             return await search_model_rubrics(
                 conn,
                 redis,
-                search=model_rubrics_search,
                 limit_count=_limit(model_rubrics_limit, 20),
                 exclude_ids=merged.model_rubric_ids,
                 bypass_cache=bypass_cache,
@@ -224,7 +244,6 @@ async def resolve_eval_context(
             return await search_model_positions(
                 conn,
                 redis,
-                search=model_positions_search,
                 limit_count=_limit(model_positions_limit, 20),
                 exclude_ids=merged.model_position_ids,
                 bypass_cache=bypass_cache,
@@ -280,11 +299,51 @@ async def resolve_eval_context(
         pending_ids.update(draft.pending_model_ids or [])
         pending_ids.update(draft.pending_rubric_ids or [])
 
-    # Hydrate SVG icons onto each flag (icon_id → icon markup).
+    # Collect unique flag_ids referenced by model_flag junction rows so we
+    # can pull their flag-type metadata (name / description / icon_id) and
+    # enrich the junction rows before they hit the response builder.
+    model_flag_flag_ids: list[UUID] = list({
+        mf.flag_id for mf in (model_flags_selected + model_flags_suggestions)
+        if mf.flag_id
+    })
+    if model_flag_flag_ids:
+        async with pool.acquire() as conn:
+            model_flag_types = await get_flags(
+                conn, model_flag_flag_ids, redis, bypass_cache
+            )
+    else:
+        model_flag_types = []
+
+    # Hydrate SVG icons onto each flag (icon_id → icon markup). Include the
+    # model_flag type rows so the enriched junction rows carry an `icon`
+    # SVG for the picker.
     async with pool.acquire() as conn:
         await hydrate_flag_icons(
-            list(flags_selected) + list(flags_suggestions_filtered,), conn, redis, bypass_cache
+            list(flags_selected)
+            + list(flags_suggestions_filtered)
+            + list(model_flag_types),
+            conn,
+            redis,
+            bypass_cache,
         )
+
+    flag_type_by_id = {ft.id: ft for ft in model_flag_types if ft.id}
+
+    def _enrich_model_flag(mf) -> EvalModelFlagEnriched:
+        ft = flag_type_by_id.get(mf.flag_id) if mf.flag_id else None
+        return EvalModelFlagEnriched(
+            id=mf.id,
+            model_id=mf.model_id,
+            flag_id=mf.flag_id,
+            name=ft.name if ft else None,
+            description=ft.description if ft else None,
+            icon_id=ft.icon_id if ft else None,
+            icon=getattr(ft, "icon", None) if ft else None,
+            generated=mf.generated,
+        )
+
+    model_flags_selected = [_enrich_model_flag(mf) for mf in model_flags_selected]
+    model_flags_suggestions = [_enrich_model_flag(mf) for mf in model_flags_suggestions]
 
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,

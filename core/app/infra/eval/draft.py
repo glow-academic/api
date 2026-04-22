@@ -128,7 +128,13 @@ async def patch_eval_draft_impl(
     request.input_draft_id = request.input_draft_id or request.draft_id
 
     resolved_draft_id = request.draft_id or request.input_draft_id
-    idempotency_key = idempotency_key or request.idempotency_key or resolved_draft_id
+    # Idempotency key must be EXPLICIT — either passed by the generation
+    # pipeline as a kwarg or sent on the request. Falling back to the
+    # request's draft_id here caused subsequent autosaves (which always
+    # include the existing draft_id but never set idempotency_key) to be
+    # misrouted into the `accept` branch below, which copies the OLD
+    # draft's junction IDs forward and drops the client's new model_ids.
+    idempotency_key = idempotency_key or request.idempotency_key
     if idempotency_key is not None and accept is None:
         accept = request.accept
 
