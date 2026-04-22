@@ -246,12 +246,9 @@ jobs:
           SETUP="${SEED_SETUP:-fresh}"
           echo "Running seed-gen with setup=$SETUP"
 
-          if [ "$SETUP" = "fresh" ]; then
-            PYTHONPATH=core python3 -m database.scripts.runner --modules
-          else
-            PYTHONPATH=core python3 -m database.scripts.runner --modules
-            PYTHONPATH=core python3 -m database.scripts.runner --setup "$SETUP"
-          fi
+          # Each setup is fully independent (includes base modules 01-10).
+          # The obsolete `--modules` flag was removed in 96671815.
+          PYTHONPATH=core python3 -m database.scripts.runner --setup "$SETUP"
 
           echo "Seed backup generated: $(ls -lh database/history/*.sql.gz | tail -1)"
 

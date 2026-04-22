@@ -258,7 +258,7 @@ jobs:
               AUTH_ISSUER_INTERNAL=${AUTH_ISSUER_INTERNAL:-} \
               AI_PROVIDER=${AI_PROVIDER:-direct} \
               AI_API_KEY=${AI_API_KEY:-} \
-              python3 -m database.scripts.runner --modules
+              python3 -m database.scripts.runner --setup "$SEED_SETUP"
             GENERATED=$(ls -t database/history/*.sql.gz 2>/dev/null | head -1)
             if [ -n "$GENERATED" ]; then
               BACKUP_NAME=$(basename "$GENERATED")
