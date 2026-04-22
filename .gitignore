@@ -63,6 +63,16 @@ uploads/text/*
 !uploads/text/c27ec685-ca41-445a-9f51-ea383b32df54.txt
 !uploads/text/d060952e-f68b-4a67-a231-1dd224937206.txt
 !uploads/text/f6f82c39-2db2-439b-9501-1124821f7c6c.txt
+!uploads/video/
+uploads/video/*
+!uploads/video/cheating.mp4
+!uploads/video/ferpa.mp4
+!uploads/video/upset.mp4
+!uploads/image/
+uploads/image/*
+!uploads/image/classroom.jpg
+!uploads/image/ferpa-policy-page1.png
+!uploads/image/academic-integrity-policy-page1.png
 
 # Database seeds (legacy generated files)
 database/seeds/seed_modules*.sql
