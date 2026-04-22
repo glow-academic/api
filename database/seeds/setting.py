@@ -10,7 +10,6 @@ from database.seeds.ids import sid
 from database.seeds.dynamic_keys import (
     AUTH_ITEM_KEY_IDS,
     AUTH_ITEM_VALUE_IDS,
-    AUTH_RESOURCE_ID_LIST,
 )
 from database.seeds.logins import (
     AUTH_LOGIN_IDS,
@@ -98,12 +97,6 @@ ALL_SYSTEMS = [
 ]
 
 # ---------------------------------------------------------------------------
-# Default profile artifact IDs to link (for "Login as X" on Keycloak)
-# ---------------------------------------------------------------------------
-
-DEFAULT_PROFILE_RESOURCE_IDS = [SEED_PROFILE_RESOURCE]
-
-# ---------------------------------------------------------------------------
 # Logins — auth logins from config + profile logins from linked profiles
 # ---------------------------------------------------------------------------
 
@@ -132,12 +125,10 @@ settings = [
         description="Platform default settings — active on fresh deployments with no departments configured.",
         active_flag=True,
         department_ids=None,
-        auth_ids=AUTH_RESOURCE_ID_LIST or None,
         auth_item_key_ids=AUTH_ITEM_KEY_IDS or None,
         auth_item_value_ids=AUTH_ITEM_VALUE_IDS or None,
         system_ids=ALL_SYSTEMS,
         threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
-        profile_ids=DEFAULT_PROFILE_RESOURCE_IDS,
         logins_ids=DEFAULT_LOGINS_IDS or None,
     ),
 ]

@@ -246,6 +246,7 @@ def build_cohort_get_result(
             label=flag.name,
             description=flag.description,
             icon_id=flag.icon_id,
+            icon=flag.icon,
             flag_option_id=flag.id,
             generated=flag.generated,
         )

@@ -381,6 +381,7 @@ async def get_model_impl(
             label=derive_flag_key_and_label(item.name)[1],
             description=item.description,
             icon_id=item.icon_id,
+            icon=getattr(item, "icon", None),
             flag_option_id=item.id,
             show=show_flags_map["flags"],
             required=required_flags_map["flags"],

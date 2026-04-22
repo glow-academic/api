@@ -17,11 +17,12 @@ class RubricExportPayload(BaseModel):
     """Payload for rubric.export socket event."""
 
     rubric_id: UUID = Field(..., description="Rubric UUID to export")
-    grade_id: UUID | None = Field(
+    chat_id: UUID | None = Field(
         None,
         description=(
-            "Optional grade UUID. Fills the rubric PDF with per-standard "
-            "highlights and feedback. Without it, an empty template is "
+            "Optional attempt chat UUID. Fills the rubric PDF with "
+            "per-standard highlights and feedback resolved from the "
+            "chat's latest grade. Without it, an empty template is "
             "returned."
         ),
     )
@@ -60,7 +61,7 @@ async def rubric_export(sid: str, data: dict[str, Any]) -> None:
             redis,
             profile_id=identity.profile_id,
             rubric_id=payload.rubric_id,
-            grade_id=payload.grade_id,
+            chat_id=payload.chat_id,
         ),
         arguments=payload.model_dump(mode="json"),
     )

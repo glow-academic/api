@@ -10,6 +10,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.helpers import dedupe_by_id
+from app.infra.flag_icons import hydrate_flag_icons
 from app.infra.types import ArtifactContext, ResourcePair
 from app.tools.artifacts.tool.get import get_tools as get_tool_artifacts
 from app.tools.entries.tool_drafts.get import get_tool_drafts
@@ -315,6 +316,12 @@ async def resolve_tool_context(
         pending_ids.update(draft.pending_arg_position_ids or [])
         pending_ids.update(draft.pending_args_output_ids or [])
         pending_ids.update(draft.pending_permission_ids or [])
+
+    # Hydrate SVG icons onto each flag (icon_id → icon markup).
+    async with pool.acquire() as conn:
+        await hydrate_flag_icons(
+            list(flags_selected) + list(flags_suggestions), conn, redis, bypass_cache
+        )
 
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,

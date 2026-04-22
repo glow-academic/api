@@ -252,6 +252,7 @@ async def get_tool_impl(
             label=derive_flag_key_and_label(item.name)[1],
             description=item.description,
             icon_id=item.icon_id,
+            icon=getattr(item, "icon", None),
             flag_option_id=item.id,
             show=compute_show_flag(),
             required=compute_flag_required(),

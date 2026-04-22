@@ -7,7 +7,6 @@ Names and descriptions are CREATED as new resources.
 Provider keys and auth item keys are created by the keys module and linked here.
 """
 
-from database.seeds.auths import AUTH_RESOURCE_IDS
 from database.seeds.ids import sid
 from database.seeds.logins import (
     AUTH_LOGIN_IDS,
@@ -28,12 +27,6 @@ from database.seeds.setups.university.profiles import (
     BENCHMARK_PROFILE_RESOURCE,
     UNI_SUPERADMIN_RESOURCE,
 )
-
-# ---------------------------------------------------------------------------
-# Profile resource IDs for setting linkage
-# ---------------------------------------------------------------------------
-
-SETTING_PROFILE_RESOURCE_IDS = [BENCHMARK_PROFILE_RESOURCE, UNI_SUPERADMIN_RESOURCE]
 
 # ---------------------------------------------------------------------------
 # Logins — auth logins from config + profile logins from linked profiles
@@ -79,14 +72,12 @@ settings = [
         description="Department-specific settings for the University, linking authentication, AI systems, and grading thresholds.",
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        auth_ids=list(AUTH_RESOURCE_IDS.values()),
         provider_key_ids=PROVIDER_KEY_IDS,
         auth_item_key_ids=AUTH_ITEM_KEY_IDS,
         auth_item_value_ids=AUTH_ITEM_VALUE_IDS,
         system_ids=SYSTEMS,
         threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
         color_ids=ALL_COLOR_IDS,
-        profile_ids=SETTING_PROFILE_RESOURCE_IDS,
         logins_ids=UNI_LOGINS_IDS or None,
     ),
 ]

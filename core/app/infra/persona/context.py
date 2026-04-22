@@ -17,6 +17,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.flag_icons import hydrate_flag_icons
 from app.infra.types import ArtifactContext, ResourcePair
 
 # Artifact + draft fetchers
@@ -438,6 +439,12 @@ async def resolve_persona_context(
     flags_suggestions_filtered = [
         f for f in flags_suggestions if getattr(f, "type", None) in PERSONA_FLAG_TYPES
     ]
+
+    # Hydrate SVG icons onto each flag (icon_id → icon markup).
+    async with pool.acquire() as conn:
+        await hydrate_flag_icons(
+            flags_selected + flags_suggestions_filtered, conn, redis, bypass_cache
+        )
 
     # Fetch conditional_parameters for field→parameter nesting
     all_cond_ids: list[UUID] = []

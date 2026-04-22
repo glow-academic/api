@@ -116,7 +116,6 @@ async def create_setting_impl(
                 description_id=item.description_id,
                 department_ids=item.department_ids,
                 provider_key_ids=item.provider_key_ids,
-                auth_ids=item.auth_ids,
                 system_ids=item.system_ids,
             )
             snapshot_ids.append(setting_resource_id)
@@ -132,15 +131,13 @@ async def create_setting_impl(
                     department_ids=item.department_ids,
                     flag_ids=[item.active_flag_id] if item.active_flag_id else None,
                     color_ids=item.color_ids,
-                    profile_ids=item.profile_ids,
-                    auth_ids=item.auth_ids,
+                    logins_ids=item.logins_ids,
+                    system_ids=item.system_ids,
+                    mcp_ids=[item.mcp_id] if item.mcp_id else None,
+                    threshold_ids=item.threshold_ids,
                     provider_key_ids=item.provider_key_ids,
                     auth_item_key_ids=item.auth_item_key_ids,
                     auth_item_value_ids=item.auth_item_value_ids,
-                    system_ids=item.system_ids,
-                    threshold_ids=item.threshold_ids,
-                    mcp_ids=item.mcp_ids,
-                    logins_ids=item.logins_ids,
                     setting_ids=(
                         [snapshot_ids[idx]]
                         if snapshot_ids

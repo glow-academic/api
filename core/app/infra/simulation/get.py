@@ -146,6 +146,10 @@ def _flag_payload(item, *, selected: bool, suggested: bool, pending: bool) -> di
         "label": item.name,
         "description": item.description,
         "icon_id": item.icon_id,
+        # Hydrated SVG markup from flag_icons.hydrate_flag_icons. Without
+        # this, SimulationFlagConfig.icon stays None and the client falls
+        # back to the Power placeholder icon.
+        "icon": getattr(item, "icon", None),
         "flag_option_id": item.id,
         "generated": item.generated,
         "show": True,

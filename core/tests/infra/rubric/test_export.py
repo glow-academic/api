@@ -6,13 +6,26 @@ doesn't exist. Deeper rendering tests would mock the full rubric shape
 and assert on the PDF header magic bytes, which is brittle — left out.
 """
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
 
 pytestmark = pytest.mark.asyncio
+
+
+def _async_pool_with_conn(conn: object) -> MagicMock:
+    """Build a pool mock whose `pool.acquire()` yields `conn` via the
+    async-context-manager protocol. Regular AsyncMock doesn't model
+    ``async with pool.acquire() as conn:`` correctly.
+    """
+    pool = MagicMock()
+    cm = MagicMock()
+    cm.__aenter__ = AsyncMock(return_value=conn)
+    cm.__aexit__ = AsyncMock(return_value=False)
+    pool.acquire.return_value = cm
+    return pool
 
 
 async def test_export_function_exists():
@@ -23,15 +36,21 @@ async def test_export_function_exists():
 
 async def test_export_raises_404_when_rubric_missing(monkeypatch):
     import app.infra.rubric.export as mod
-    from app.infra.rubric.types import GetRubricApiResponse
 
-    # get_rubric_impl returns rubric_exists=False when the id is unknown;
-    # export_rubric_impl should surface that as 404.
-    missing = GetRubricApiResponse(rubric_exists=False)
+    # The impl composes tool-layer black boxes directly. An empty
+    # `get_rubrics` result for the supplied id should surface as 404
+    # before we ever attempt resource hydration.
     monkeypatch.setattr(
-        mod, "get_rubric_impl", AsyncMock(return_value=missing)
+        mod,
+        "resolve_profile_identity_context",
+        AsyncMock(return_value=object()),  # any truthy profile
     )
-    pool, redis = AsyncMock(), AsyncMock()
+    monkeypatch.setattr(
+        mod, "get_rubrics_resource", AsyncMock(return_value=[])
+    )
+
+    pool = _async_pool_with_conn(MagicMock())
+    redis = AsyncMock()
 
     with pytest.raises(HTTPException) as exc:
         await mod.export_rubric_impl(

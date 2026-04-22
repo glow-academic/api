@@ -68,3 +68,6 @@ uploads/text/*
 database/seeds/seed_modules*.sql
 history/*.sql.gz
 .claude/worktrees/
+
+# Claude Code runtime state (personal tooling, never ship)
+.claude/

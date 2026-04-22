@@ -8,7 +8,6 @@ This gives a working login screen out of the box.
 from database.seeds.dynamic_keys import (
     AUTH_ITEM_KEY_IDS,
     AUTH_ITEM_VALUE_IDS,
-    AUTH_RESOURCE_ID_LIST,
     PROVIDER_KEY_IDS,
 )
 from database.seeds.ids import sid
@@ -104,13 +103,11 @@ settings = [
         description="Platform default settings — active on fresh deployments with no departments configured.",
         active_flag=True,
         department_ids=None,
-        auth_ids=AUTH_RESOURCE_ID_LIST or None,
         auth_item_key_ids=AUTH_ITEM_KEY_IDS or None,
         auth_item_value_ids=AUTH_ITEM_VALUE_IDS or None,
         provider_key_ids=PROVIDER_KEY_IDS or None,
         system_ids=ALL_SYSTEMS,
         threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
-        profile_ids=[FRESH_SUPERADMIN_RESOURCE],
         logins_ids=FRESH_LOGINS_IDS or None,
     ),
 ]

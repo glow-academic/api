@@ -17,6 +17,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.flag_icons import hydrate_flag_icons
 from app.infra.types import ArtifactContext, ResourcePair
 from app.tools.artifacts.cohort.get import get_cohorts as get_cohort_artifacts
 from app.tools.entries.cohort_drafts.get import get_cohort_drafts
@@ -396,6 +397,12 @@ async def resolve_cohort_context(
     flags_suggestions = [
         flag for flag in flags_suggestions if getattr(flag, "type", None) in COHORT_FLAG_TYPES
     ]
+
+    # Hydrate SVG icons onto each flag (icon_id → icon markup).
+    async with pool.acquire() as conn:
+        await hydrate_flag_icons(
+            flags_selected + flags_suggestions, conn, redis, bypass_cache
+        )
 
     # Cohort draft black-boxes do not expose inactive connections, so pending_ids
     # remain empty until the draft layer grows that support.

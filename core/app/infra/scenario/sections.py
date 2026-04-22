@@ -319,6 +319,7 @@ def build_scenario_get_result(
             if resolved:
                 resolved_cond_param_ids = resolved
         return ScenarioField(
+            id=getattr(field, "id", None),
             field_id=field_id,
             name=catalog_field.name if catalog_field else None,
             description=catalog_field.description if catalog_field else None,
@@ -387,6 +388,7 @@ def build_scenario_get_result(
                 label=flag.name,
                 description=flag.description,
                 icon_id=flag.icon_id,
+                icon=flag.icon,
                 flag_option_id=flag.id,
                 generated=flag.generated,
                 video_flag=flag.type == "questions_enabled",
@@ -477,7 +479,11 @@ def build_scenario_get_result(
     _mark_flags(all_personas_conv, sug["personas"], sel["personas"], id_attr="persona_id")
     _mark_flags(all_documents_conv, sug["documents"], sel["documents"], id_attr="document_id")
     _mark_flags(all_parameters_conv, sug["parameters"], sel["parameters"], id_attr="parameter_id")
-    _mark_flags(all_fields_conv, sug["parameter_fields"], sel["parameter_fields"], id_attr="field_id")
+    # parameter_fields are keyed by the junction row id (parameter_fields_resource.id):
+    # selected_sets["parameter_fields"] collects pf.id, and the client picker
+    # emits those same ids. Matching by field_id would never align, so
+    # selected/suggested flags never got set.
+    _mark_flags(all_fields_conv, sug["parameter_fields"], sel["parameter_fields"], id_attr="id")
     _mark_flags(all_objectives_conv, sug["objectives"], sel["objectives"])
     _mark_flags(all_images_conv, sug["images"], sel["images"], id_attr="image_id")
     _mark_flags(all_videos_conv, sug["videos"], sel["videos"], id_attr="video_id")

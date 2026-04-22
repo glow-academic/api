@@ -39,7 +39,6 @@ from app.tools.entries.setting_drafts.docs import get_setting_drafts_docs
 
 # Resource tool docs
 from app.tools.resources.auth_item_keys.docs import get_auth_item_keys_docs
-from app.tools.resources.auths.docs import get_auths_docs
 from app.tools.resources.colors.docs import get_colors_docs
 from app.tools.resources.departments.docs import get_departments_docs
 from app.tools.resources.descriptions.docs import get_descriptions_docs
@@ -48,9 +47,9 @@ from app.tools.resources.names.docs import get_names_docs
 
 # Name hydration
 from app.tools.resources.names.get import get_names
-from app.tools.resources.profiles.docs import get_profiles_docs
 from app.tools.resources.provider_keys.docs import get_provider_keys_docs
 from app.tools.resources.systems.docs import get_systems_docs
+from app.tools.resources.thresholds.docs import get_thresholds_docs
 
 _PAGE_METADATA = PageMetadataConfig(
     list_title="Settings",
@@ -129,10 +128,6 @@ async def page_context_setting_impl(
         async with pool.acquire() as conn:
             return await get_auth_item_keys_docs(conn)
 
-    async def _get_auths_docs() -> list:
-        async with pool.acquire() as conn:
-            return await get_auths_docs(conn)
-
     async def _get_colors_docs() -> list:
         async with pool.acquire() as conn:
             return await get_colors_docs(conn)
@@ -145,10 +140,6 @@ async def page_context_setting_impl(
         async with pool.acquire() as conn:
             return await get_flags_docs(conn)
 
-    async def _get_profiles_docs() -> list:
-        async with pool.acquire() as conn:
-            return await get_profiles_docs(conn)
-
     async def _get_provider_keys_docs() -> list:
         async with pool.acquire() as conn:
             return await get_provider_keys_docs(conn)
@@ -156,6 +147,10 @@ async def page_context_setting_impl(
     async def _get_systems_docs() -> list:
         async with pool.acquire() as conn:
             return await get_systems_docs(conn)
+
+    async def _get_thresholds_docs() -> list:
+        async with pool.acquire() as conn:
+            return await get_thresholds_docs(conn)
 
     async def _get_entity_perms():
         if not entity_id:
@@ -178,13 +173,12 @@ async def page_context_setting_impl(
         names,
         descriptions,
         auth_item_keys,
-        auths,
         colors,
         departments,
         flags,
-        profiles,
         provider_keys,
         systems,
+        thresholds,
         entity_perms,
         entity_name,
     ) = await asyncio.gather(
@@ -193,13 +187,12 @@ async def page_context_setting_impl(
         _get_names_docs(),
         _get_descriptions_docs(),
         _get_auth_item_keys_docs(),
-        _get_auths_docs(),
         _get_colors_docs(),
         _get_departments_docs(),
         _get_flags_docs(),
-        _get_profiles_docs(),
         _get_provider_keys_docs(),
         _get_systems_docs(),
+        _get_thresholds_docs(),
         _get_entity_perms(),
         _get_entity_name(),
     )
@@ -310,8 +303,8 @@ async def page_context_setting_impl(
         description=(
             "Settings define system configuration and preferences. "
             "Each setting links to resources (names, descriptions, departments, "
-            "flags, auths, auth_item_keys, colors, profiles, provider_keys, "
-            "systems) via junction tables."
+            "flags, colors, logins, systems, mcp, thresholds, provider_keys, "
+            "auth_item_keys, auth_item_values) via junction tables."
         ),
         artifact=artifact,
         entries=[drafts],
@@ -319,13 +312,12 @@ async def page_context_setting_impl(
             names,
             descriptions,
             auth_item_keys,
-            auths,
             colors,
             departments,
             flags,
-            profiles,
             provider_keys,
             systems,
+            thresholds,
         ],
         permission_docs=[
             get_operation_info(

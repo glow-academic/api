@@ -9,6 +9,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.flag_icons import hydrate_flag_icons
 from app.infra.types import ArtifactContext, ResourcePair
 from app.tools.artifacts.model.get import get_models as get_model_artifacts
 from app.tools.entries.model_drafts.get import get_model_drafts
@@ -437,6 +438,12 @@ async def resolve_model_context(
         pending_ids.update(draft.pending_reasoning_level_ids or [])
         pending_ids.update(draft.pending_quality_ids or [])
         pending_ids.update(draft.pending_voice_ids or [])
+
+    # Hydrate SVG icons onto each flag (icon_id → icon markup).
+    async with pool.acquire() as conn:
+        await hydrate_flag_icons(
+            list(flags_selected) + list(flags_suggestions_filtered), conn, redis, bypass_cache
+        )
 
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,

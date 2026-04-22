@@ -64,6 +64,7 @@ UPSET_STUDENT_TRAINING_RESOURCE = sid("uni/simulation-resource/upset-student-tra
 # ---------------------------------------------------------------------------
 
 PRACTICE_FLAG = sid("flag/practice")
+SIMULATION_ACTIVE_FLAG = sid("flag/simulation-active")
 
 # ---------------------------------------------------------------------------
 # Simulation definitions
@@ -78,8 +79,9 @@ simulations = [
         description="Seeks to understand by asking questions and exploring ideas.",
         scenario_ids=[CONFUSED_SCENARIO_RESOURCE],
         scenario_rubric_ids=CONFUSED_RUBRICS,
-        flag_ids=[PRACTICE_FLAG],
+        flag_ids=[PRACTICE_FLAG, SIMULATION_ACTIVE_FLAG],
         practice_flag_id=PRACTICE_FLAG,
+        active_flag_id=SIMULATION_ACTIVE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -89,8 +91,9 @@ simulations = [
         description="Provides uplifting feedback and cheerful responses.",
         scenario_ids=[HAPPY_SCENARIO_RESOURCE],
         scenario_rubric_ids=HAPPY_RUBRICS,
-        flag_ids=[PRACTICE_FLAG],
+        flag_ids=[PRACTICE_FLAG, SIMULATION_ACTIVE_FLAG],
         practice_flag_id=PRACTICE_FLAG,
+        active_flag_id=SIMULATION_ACTIVE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -100,8 +103,9 @@ simulations = [
         description="Responds with minimal engagement and requires prompting.",
         scenario_ids=[PASSIVE_SCENARIO_RESOURCE],
         scenario_rubric_ids=PASSIVE_RUBRICS,
-        flag_ids=[PRACTICE_FLAG],
+        flag_ids=[PRACTICE_FLAG, SIMULATION_ACTIVE_FLAG],
         practice_flag_id=PRACTICE_FLAG,
+        active_flag_id=SIMULATION_ACTIVE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -111,8 +115,9 @@ simulations = [
         description="Challenges with confrontational and resistant responses.",
         scenario_ids=[AGGRESSIVE_SCENARIO_RESOURCE],
         scenario_rubric_ids=AGGRESSIVE_RUBRICS,
-        flag_ids=[PRACTICE_FLAG],
+        flag_ids=[PRACTICE_FLAG, SIMULATION_ACTIVE_FLAG],
         practice_flag_id=PRACTICE_FLAG,
+        active_flag_id=SIMULATION_ACTIVE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -122,8 +127,9 @@ simulations = [
         description="A flexible simulation for open-ended practice with any persona.",
         scenario_ids=[GENERAL_SCENARIO_RESOURCE],
         scenario_rubric_ids=GENERAL_RUBRICS,
-        flag_ids=[PRACTICE_FLAG],
+        flag_ids=[PRACTICE_FLAG, SIMULATION_ACTIVE_FLAG],
         practice_flag_id=PRACTICE_FLAG,
+        active_flag_id=SIMULATION_ACTIVE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Training Simulations (multiple scenarios, structured) ──────────────
@@ -134,6 +140,8 @@ simulations = [
         description="Training simulation for practicing responses to academic integrity violations.",
         scenario_ids=[ACADEMIC_INTEGRITY_SCENARIO_RESOURCE],
         scenario_rubric_ids=ACADEMIC_INTEGRITY_RUBRICS,
+        flag_ids=[SIMULATION_ACTIVE_FLAG],
+        active_flag_id=SIMULATION_ACTIVE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -143,6 +151,8 @@ simulations = [
         description="Training simulation for practicing FERPA compliance and student privacy protection.",
         scenario_ids=[FERPA_SCENARIO_RESOURCE],
         scenario_rubric_ids=FERPA_RUBRICS,
+        flag_ids=[SIMULATION_ACTIVE_FLAG],
+        active_flag_id=SIMULATION_ACTIVE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -152,6 +162,8 @@ simulations = [
         description="Training simulation for practicing de-escalation techniques with upset students.",
         scenario_ids=[UPSET_STUDENT_SCENARIO_RESOURCE],
         scenario_rubric_ids=UPSET_STUDENT_RUBRICS,
+        flag_ids=[SIMULATION_ACTIVE_FLAG],
+        active_flag_id=SIMULATION_ACTIVE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
 ]

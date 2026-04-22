@@ -92,6 +92,7 @@ async def attempt_message(sid: str, data: dict[str, Any]) -> None:
             persona_id=data.get("persona_id"),
             contents=data.get("contents"),
             parent_message_id=data.get("parent_message_id"),
+            auto_link_parent=data.get("auto_link_parent", True),
             sid=sid,
         )
         return result.model_dump(mode="json")

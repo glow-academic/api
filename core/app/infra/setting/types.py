@@ -44,7 +44,8 @@ class SettingFlagConfig(BaseModel):
     key: str = Field(..., description="Flag key identifier")
     label: str = Field(..., description="Human-readable flag label")
     description: str | None = Field(None, description="Flag description text")
-    icon_id: str | None = Field(None, description="Icon identifier for the flag")
+    icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
+    icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
     flag_option_id: UUID | None = Field(None, description="UUID of the flag option to use when enabling")
     show: bool = Field(True, description="Whether the flag is visible to the client")
     required: bool = Field(False, description="Whether the flag is required")
@@ -59,28 +60,6 @@ class SettingDepartmentResource(BaseModel):
     name: str | None = Field(None, description="Department name")
     description: str | None = Field(None, description="Department description")
     generated: bool | None = Field(None, description="Whether the department was AI-generated")
-    suggested: bool = Field(False, description="Whether this item is suggested")
-    selected: bool = Field(False, description="Whether this item is selected")
-    pending: bool = Field(False, description="Whether this item is pending acceptance")
-
-
-class SettingProfileResource(BaseModel):
-    profile_id: UUID | None = Field(None, description="Profile identifier")
-    name: str | None = Field(None, description="Profile display name")
-    description: str | None = Field(None, description="Profile description")
-    generated: bool | None = Field(None, description="Whether the profile was AI-generated")
-    suggested: bool = Field(False, description="Whether this item is suggested")
-    selected: bool = Field(False, description="Whether this item is selected")
-    pending: bool = Field(False, description="Whether this item is pending acceptance")
-
-
-class SettingAuthResource(BaseModel):
-    auth_id: UUID | None = Field(None, description="Auth identifier")
-    name: str | None = Field(None, description="Auth display name")
-    description: str | None = Field(None, description="Auth description")
-    slug: str | None = Field(None, description="Auth slug")
-    protocol: str | None = Field(None, description="Auth protocol")
-    generated: bool | None = Field(None, description="Whether the auth was AI-generated")
     suggested: bool = Field(False, description="Whether this item is suggested")
     selected: bool = Field(False, description="Whether this item is selected")
     pending: bool = Field(False, description="Whether this item is pending acceptance")
@@ -134,11 +113,68 @@ class SettingMcpResource(BaseModel):
     pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
+class SettingThresholdResource(BaseModel):
+    id: UUID | None = Field(None, description="Threshold resource identifier")
+    type: str | None = Field(None, description="Threshold type (e.g. 'success')")
+    value: int | None = Field(None, description="Threshold integer value")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class SettingAuthItemValueResource(BaseModel):
+    id: UUID | None = Field(None, description="Auth item value identifier")
+    auth_id: UUID | None = Field(None, description="Auth provider identifier")
+    item_id: UUID | None = Field(None, description="Claim item identifier")
+    value: str | None = Field(None, description="Literal claim value")
+    generated: bool | None = Field(None, description="Whether the value was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
+class SettingItemCatalogResource(BaseModel):
+    item_id: UUID | None = Field(None, description="Claim item identifier")
+    name: str | None = Field(None, description="Claim item display name (e.g. clientId)")
+    description: str | None = Field(None, description="Claim item description")
+    encrypted: bool | None = Field(None, description="Whether the item value must be stored encrypted")
+    position: int | None = Field(None, description="Display ordering position")
+
+
+class SettingProfileCatalogResource(BaseModel):
+    profile_id: UUID | None = Field(None, description="Profile identifier")
+    name: str | None = Field(None, description="Profile display name")
+    description: str | None = Field(None, description="Profile description")
+
+
+class SettingAuthCatalogResource(BaseModel):
+    auth_id: UUID | None = Field(None, description="Auth provider identifier")
+    name: str | None = Field(None, description="Auth display name")
+    description: str | None = Field(None, description="Auth description")
+    slug: str | None = Field(None, description="Auth slug")
+    protocol: str | None = Field(None, description="Auth protocol")
+
+
+class SettingIconCatalogResource(BaseModel):
+    icon_id: UUID | None = Field(None, description="Icon identifier")
+    name: str | None = Field(None, description="Icon display name")
+    description: str | None = Field(None, description="Icon description")
+    value: str | None = Field(None, description="Icon value (SVG markup or slug)")
+
+
+class SettingAgentCatalogResource(BaseModel):
+    agent_id: UUID | None = Field(None, description="Agent identifier")
+    name: str | None = Field(None, description="Agent display name")
+    description: str | None = Field(None, description="Agent description")
+
+
 class SettingLoginsResource(BaseModel):
     logins_id: UUID | None = Field(None, description="Logins resource identifier")
     profile_id: UUID | None = Field(None, description="Profile for test login")
     auth_id: UUID | None = Field(None, description="Auth provider for OIDC login")
     icon_id: UUID | None = Field(None, description="Icon for login button")
+    icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
     display_name: str | None = Field(None, description="Display text for login button")
     login_type: str | None = Field(None, description="Login type: 'auth' or 'profile'")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
@@ -182,11 +218,13 @@ class GetSettingApiRequest(BaseModel):
     colors: SectionFilter | None = Field(None, description="Filter options for colors")
     flags: SectionFilter | None = Field(None, description="Filter options for flags")
     departments: SectionFilter | None = Field(None, description="Filter options for departments")
-    profiles: SectionFilter | None = Field(None, description="Filter options for profiles")
-    auths: SectionFilter | None = Field(None, description="Filter options for auths")
+    logins: SectionFilter | None = Field(None, description="Filter options for logins")
+    systems: SectionFilter | None = Field(None, description="Filter options for systems")
+    mcp: SectionFilter | None = Field(None, description="Filter options for MCP configs")
+    thresholds: SectionFilter | None = Field(None, description="Filter options for thresholds")
     provider_keys: SectionFilter | None = Field(None, description="Filter options for provider keys")
     auth_item_keys: SectionFilter | None = Field(None, description="Filter options for auth item keys")
-    systems: SectionFilter | None = Field(None, description="Filter options for systems")
+    auth_item_values: SectionFilter | None = Field(None, description="Filter options for auth item values")
 
 
 class GetSettingApiResponse(BaseModel):
@@ -205,13 +243,20 @@ class GetSettingApiResponse(BaseModel):
     colors: list[SettingColorResource] | None = Field(None, description="Color resources")
     flags: list[SettingFlagConfig] | None = Field(None, description="Flag configs")
     departments: list[SettingDepartmentResource] | None = Field(None, description="Department resources")
-    profiles: list[SettingProfileResource] | None = Field(None, description="Profile resources")
-    auths: list[SettingAuthResource] | None = Field(None, description="Auth resources")
+    logins: list[SettingLoginsResource] | None = Field(None, description="Logins resources")
+    systems: list[SettingSystemResource] | None = Field(None, description="System resources")
+    mcp: list[SettingMcpResource] | None = Field(None, description="MCP resources")
+    thresholds: list[SettingThresholdResource] | None = Field(None, description="Threshold resources")
     provider_keys: list[SettingProviderKeyResource] | None = Field(None, description="Provider key resources")
     auth_item_keys: list[SettingAuthItemKeyResource] | None = Field(None, description="Auth item key resources")
-    systems: list[SettingSystemResource] | None = Field(None, description="System resources")
+    auth_item_values: list[SettingAuthItemValueResource] | None = Field(None, description="Auth item value resources")
     providers: list[SettingProviderCatalogResource] | None = Field(None, description="Provider catalog used by provider key editing")
     keys: list[SettingKeyCatalogResource] | None = Field(None, description="Key catalog used by provider key and auth item key editing")
+    items: list[SettingItemCatalogResource] | None = Field(None, description="Claim item catalog used by auth item key/value editing")
+    profiles: list[SettingProfileCatalogResource] | None = Field(None, description="Profile catalog used by logins editing")
+    auths: list[SettingAuthCatalogResource] | None = Field(None, description="Auth catalog used by logins and auth item editing")
+    icons: list[SettingIconCatalogResource] | None = Field(None, description="Icon catalog used by logins editing")
+    agents: list[SettingAgentCatalogResource] | None = Field(None, description="Agent catalog used by mcp and systems editing")
 
 
 # ========== Generation Completion Event ==========
@@ -271,15 +316,13 @@ class CreateSettingItem(ScopedItem):
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     departments: list[str] | None = Field(None, description="Department names to resolve")
     color_ids: list[UUID] | None = Field(None, description="Color resource UUIDs")
-    profile_ids: list[UUID] | None = Field(None, description="Profile UUIDs to assign")
-    auth_ids: list[UUID] | None = Field(None, description="Auth provider UUIDs")
+    logins_ids: list[UUID] | None = Field(None, description="Logins resource UUIDs to assign")
+    system_ids: list[UUID] | None = Field(None, description="System UUIDs to assign")
+    mcp_id: UUID | None = Field(None, description="MCP resource UUID to assign (single)")
+    threshold_ids: list[UUID] | None = Field(None, description="Threshold UUIDs to assign")
     provider_key_ids: list[UUID] | None = Field(None, description="Provider key UUIDs")
     auth_item_key_ids: list[UUID] | None = Field(None, description="Auth item key UUIDs")
     auth_item_value_ids: list[UUID] | None = Field(None, description="Auth item value UUIDs")
-    system_ids: list[UUID] | None = Field(None, description="System UUIDs to assign")
-    mcp_ids: list[UUID] | None = Field(None, description="MCP resource UUIDs to assign")
-    logins_ids: list[UUID] | None = Field(None, description="Logins resource UUIDs to assign")
-    threshold_ids: list[UUID] | None = Field(None, description="Threshold UUIDs to assign")
     setting_resource_ids: list[UUID] | None = Field(None, description="Setting resource UUIDs")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
@@ -292,15 +335,13 @@ class CreateSettingItem(ScopedItem):
         "department_ids": "departments",
         "departments": "departments",
         "color_ids": "colors",
-        "profile_ids": "profiles",
-        "auth_ids": "auths",
+        "logins_ids": "logins",
+        "system_ids": "systems",
+        "mcp_id": "mcp",
+        "threshold_ids": "thresholds",
         "provider_key_ids": "provider_keys",
         "auth_item_key_ids": "auth_item_keys",
         "auth_item_value_ids": "auth_item_values",
-        "system_ids": "systems",
-        "mcp_ids": "mcp",
-        "logins_ids": "logins",
-        "threshold_ids": "thresholds",
         "setting_resource_ids": "setting_resources",
     }
 
@@ -342,13 +383,13 @@ class UpdateSettingItem(ScopedItem):
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     departments: list[str] | None = Field(None, description="Department names to resolve")
     color_ids: list[UUID] | None = Field(None, description="Color resource UUIDs")
-    profile_ids: list[UUID] | None = Field(None, description="Profile UUIDs to assign")
-    auth_ids: list[UUID] | None = Field(None, description="Auth provider UUIDs")
+    logins_ids: list[UUID] | None = Field(None, description="Logins resource UUIDs to assign")
+    system_ids: list[UUID] | None = Field(None, description="System UUIDs to assign")
+    mcp_id: UUID | None = Field(None, description="MCP resource UUID to assign (single)")
+    threshold_ids: list[UUID] | None = Field(None, description="Threshold UUIDs to assign")
     provider_key_ids: list[UUID] | None = Field(None, description="Provider key UUIDs")
     auth_item_key_ids: list[UUID] | None = Field(None, description="Auth item key UUIDs")
     auth_item_value_ids: list[UUID] | None = Field(None, description="Auth item value UUIDs")
-    system_ids: list[UUID] | None = Field(None, description="System UUIDs to assign")
-    threshold_ids: list[UUID] | None = Field(None, description="Threshold UUIDs to assign")
     setting_resource_ids: list[UUID] | None = Field(None, description="Setting resource UUIDs")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateSettingItem.RESOURCE_TYPE_MAP
@@ -397,11 +438,13 @@ class PatchSettingDraftApiRequest(ScopedItem):
     departments: list[str] | None = Field(None, description="Department names to resolve")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     color_ids: list[UUID] | None = Field(None, description="Color resource UUIDs")
-    profile_ids: list[UUID] | None = Field(None, description="Profile UUIDs to assign")
-    auth_ids: list[UUID] | None = Field(None, description="Auth provider UUIDs")
+    logins_ids: list[UUID] | None = Field(None, description="Logins resource UUIDs to assign")
+    system_ids: list[UUID] | None = Field(None, description="System UUIDs to assign")
+    mcp_id: UUID | None = Field(None, description="MCP resource UUID to assign (single)")
+    threshold_ids: list[UUID] | None = Field(None, description="Threshold UUIDs to assign")
     provider_key_ids: list[UUID] | None = Field(None, description="Provider key UUIDs")
     auth_item_key_ids: list[UUID] | None = Field(None, description="Auth item key UUIDs")
-    system_ids: list[UUID] | None = Field(None, description="System UUIDs to assign")
+    auth_item_value_ids: list[UUID] | None = Field(None, description="Auth item value UUIDs")
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to retain as pending inactive connections")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
@@ -415,11 +458,13 @@ class PatchSettingDraftApiRequest(ScopedItem):
         "departments": "departments",
         "department_ids": "departments",
         "color_ids": "colors",
-        "profile_ids": "profiles",
-        "auth_ids": "auths",
+        "logins_ids": "logins",
+        "system_ids": "systems",
+        "mcp_id": "mcp",
+        "threshold_ids": "thresholds",
         "provider_key_ids": "provider_keys",
         "auth_item_key_ids": "auth_item_keys",
-        "system_ids": "systems",
+        "auth_item_value_ids": "auth_item_values",
     }
 
 
@@ -432,11 +477,13 @@ class DraftFormState(BaseModel):
     flag_id: UUID | None = Field(None, description="Legacy alias for the active flag option UUID")
     department_ids: list[UUID] = Field(default_factory=list, description="Assigned department UUIDs")
     color_ids: list[UUID] = Field(default_factory=list, description="Assigned color UUIDs")
-    profile_ids: list[UUID] = Field(default_factory=list, description="Assigned profile UUIDs")
-    auth_ids: list[UUID] = Field(default_factory=list, description="Assigned auth provider UUIDs")
+    logins_ids: list[UUID] = Field(default_factory=list, description="Assigned logins resource UUIDs")
+    system_ids: list[UUID] = Field(default_factory=list, description="Assigned system UUIDs")
+    mcp_id: UUID | None = Field(None, description="Assigned MCP resource UUID")
+    threshold_ids: list[UUID] = Field(default_factory=list, description="Assigned threshold UUIDs")
     provider_key_ids: list[UUID] = Field(default_factory=list, description="Assigned provider key UUIDs")
     auth_item_key_ids: list[UUID] = Field(default_factory=list, description="Assigned auth item key UUIDs")
-    system_ids: list[UUID] = Field(default_factory=list, description="Assigned system UUIDs")
+    auth_item_value_ids: list[UUID] = Field(default_factory=list, description="Assigned auth item value UUIDs")
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
 
 

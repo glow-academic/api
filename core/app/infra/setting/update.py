@@ -129,13 +129,13 @@ async def update_setting_impl(
                 descriptions=True,
                 departments=True,
                 colors=True,
-                profiles=True,
+                logins=True,
                 auth_item_keys=True,
                 provider_keys=True,
                 thresholds=True,
                 systems=True,
+                mcp=True,
                 settings=True,
-                auths=True,
                 auth_item_values=True,
             )
 
@@ -161,11 +161,6 @@ async def update_setting_impl(
                     if item.provider_key_ids is not None
                     else list(artifact.provider_key_ids or [])
                 )
-                eff_auth_ids = (
-                    item.auth_ids
-                    if item.auth_ids is not None
-                    else list(artifact.auth_ids or [])
-                )
                 eff_system_ids = (
                     item.system_ids
                     if item.system_ids is not None
@@ -176,7 +171,6 @@ async def update_setting_impl(
                 eff_description_id = item.description_id
                 eff_department_ids = item.department_ids
                 eff_provider_key_ids = item.provider_key_ids
-                eff_auth_ids = item.auth_ids
                 eff_system_ids = item.system_ids
 
             setting_resource_id = await create_denormalized_snapshot(
@@ -186,7 +180,6 @@ async def update_setting_impl(
                 description_id=eff_description_id,
                 department_ids=eff_department_ids,
                 provider_key_ids=eff_provider_key_ids,
-                auth_ids=eff_auth_ids,
                 system_ids=eff_system_ids,
             )
 
@@ -200,13 +193,13 @@ async def update_setting_impl(
                     department_ids=item.department_ids,
                     flag_ids=[item.active_flag_id] if item.active_flag_id else None,
                     color_ids=item.color_ids,
-                    profile_ids=item.profile_ids,
-                    auth_ids=item.auth_ids,
+                    logins_ids=item.logins_ids,
+                    system_ids=item.system_ids,
+                    mcp_ids=[item.mcp_id] if item.mcp_id else None,
+                    threshold_ids=item.threshold_ids,
                     provider_key_ids=item.provider_key_ids,
                     auth_item_key_ids=item.auth_item_key_ids,
                     auth_item_value_ids=item.auth_item_value_ids,
-                    system_ids=item.system_ids,
-                    threshold_ids=item.threshold_ids,
                     setting_ids=(
                         [setting_resource_id]
                         if setting_resource_id

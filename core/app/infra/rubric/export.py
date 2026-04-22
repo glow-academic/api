@@ -1,18 +1,28 @@
 """Rubric export — PDF generation with optional grading overlay.
 
-Canonical infra impl: `export_rubric_impl` composes black-box tools to
-produce a filled-or-empty rubric PDF.
+`export_rubric_impl` composes tool-layer black boxes directly — it does
+NOT route through `get_rubric_impl`. Reason: the editor composer
+auto-creates a group for the caller's session (drafts, pending ops),
+which a read-only PDF export doesn't need and fails when called
+without a session_id.
+
+The `rubric_id` on an attempt chat is a `rubrics_resource.id` (a
+denormalised snapshot), not a `rubric_artifact.id`. The resource row
+already carries the name, total_points, pass_points, and the list of
+`standard_group_ids`, so we read from the resource layer and then fan
+out to the standard_group + standard tool tools. No artifact/junction
+hydration needed for PDF export.
 
 Flow:
-  1. get_rubric_impl            — hydrated rubric (names, descriptions,
-                                   standard_groups, standards, points).
-  2. (optional) grading hydration when grade_id is provided:
-       - search_attempt_feedback_entries → per-standard feedback rows
-       - get_attempt_grades              → grade-level score/passed
-       → derive achieved_standards, passed_standards, feedback map.
-  3. _render_rubric_pdf         — ReportLab (ported from v1 layout).
-
-Returns: raw PDF bytes + suggested filename.
+  1. resolve_profile_identity_context    → 401 if profile missing.
+  2. get_rubrics (resource layer)        → 404 if not found; carries
+                                            name + standard_group_ids.
+  3. get_standard_groups + search_standards → structural bundle.
+  4. Optional grading overlay when chat_id is provided:
+       - search_attempt_grades             → latest grade_id for chat.
+       - search_attempt_feedback_entries   → per-standard feedback.
+       → derive achieved / passed / feedback maps.
+  5. _render_rubric_pdf  — ReportLab (ported from v1 layout).
 """
 
 from __future__ import annotations
@@ -25,11 +35,16 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
-from app.infra.rubric.get import get_rubric_impl
-from app.infra.rubric.types import ExportRubricApiResponse, GetRubricApiResponse
+from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.rubric.types import ExportRubricApiResponse
 from app.tools.entries.attempt_feedback.search import search_attempt_feedback_entries
 from app.tools.entries.attempt_feedback.types import GetAttemptFeedbackResponse
-from app.tools.entries.attempt_grade.get import get_attempt_grades
+from app.tools.entries.attempt_grade.search import search_attempt_grades
+from app.tools.resources.rubrics.get import get_rubrics as get_rubrics_resource
+from app.tools.resources.standard_groups.get import get_standard_groups
+from app.tools.resources.standard_groups.types import GetStandardGroupResponse
+from app.tools.resources.standards.search import search_standards
+from app.tools.resources.standards.types import GetStandardResponse
 
 
 class _GradingState:
@@ -55,7 +70,8 @@ class _GradingState:
 async def _load_grading_state(
     pool: asyncpg.Pool,
     grade_id: UUID,
-    rubric: GetRubricApiResponse,
+    standards: list[GetStandardResponse],
+    standard_groups: list[GetStandardGroupResponse],
 ) -> _GradingState:
     """Hydrate grading overlay via feedback entries (black-box impls)."""
     async with pool.acquire() as conn:
@@ -80,18 +96,14 @@ async def _load_grading_state(
     # Passed per-group: sum feedback totals within each group, compare
     # to group.pass_points. Mark every standard in a group as passed
     # when the group total crosses its threshold. Mirrors v1 semantics.
-    # Build group_id → [standard_ids] and group_id → pass_points maps
-    # from the rubric structure.
     group_of_standard: dict[UUID, UUID] = {}
-    standards_in_group: dict[UUID, list[UUID]] = {}
-    for s in rubric.standards or []:
+    for s in standards:
         if s.id is None or s.standard_group_id is None:
             continue
         group_of_standard[s.id] = s.standard_group_id
-        standards_in_group.setdefault(s.standard_group_id, []).append(s.id)
 
     pass_points_of_group: dict[UUID, int] = {}
-    for sg in rubric.standard_groups or []:
+    for sg in standard_groups:
         if sg.id is not None and sg.pass_points is not None:
             pass_points_of_group[sg.id] = sg.pass_points
 
@@ -121,19 +133,9 @@ async def _load_grading_state(
     )
 
 
-def _selected_name(rubric: GetRubricApiResponse) -> str:
-    """Pick the selected rubric name, falling back to 'rubric'."""
-    for n in rubric.names or []:
-        if n.selected and n.name:
-            return n.name
-    for n in rubric.names or []:
-        if n.name:
-            return n.name
-    return "rubric"
-
-
 def _render_rubric_pdf(
-    rubric: GetRubricApiResponse,
+    standard_groups: list[GetStandardGroupResponse],
+    standards: list[GetStandardResponse],
     grading: _GradingState | None,
     title: str,
 ) -> bytes:
@@ -154,13 +156,13 @@ def _render_rubric_pdf(
     # TableRubric's client-side ordering — highest-scoring standard
     # becomes the leftmost column within each group's row).
     standards_by_group: dict[UUID, list] = {}
-    for s in rubric.standards or []:
+    for s in standards:
         if s.standard_group_id is None or s.id is None:
             continue
         standards_by_group.setdefault(s.standard_group_id, []).append(s)
 
     grouped: list[tuple] = []
-    for sg in rubric.standard_groups or []:
+    for sg in standard_groups:
         if sg.id is None:
             continue
         stds = standards_by_group.get(sg.id, [])
@@ -300,7 +302,7 @@ async def export_rubric_impl(
     *,
     profile_id: UUID,
     rubric_id: UUID,
-    grade_id: UUID | None = None,
+    chat_id: UUID | None = None,
 ) -> ExportRubricApiResponse:
     """Export a single rubric as a PDF (optionally filled with grades).
 
@@ -313,39 +315,81 @@ async def export_rubric_impl(
 
     Args:
         pool: database pool
-        redis: redis client (used by get_rubric_impl's cache)
-        profile_id: authenticated caller
+        redis: redis client (threaded through resource hydrators for
+               per-request caching — no side effects here)
+        profile_id: authenticated caller (existence check only)
         rubric_id: rubric to export
-        grade_id: when provided, highlight achieved/passed cells and
-                  render feedback text; otherwise render an empty
-                  template.
+        chat_id: when provided, resolve the chat's latest grade and
+                 overlay achieved/passed highlights + feedback on the
+                 rendered cells. Without it, an empty rubric template
+                 is returned. The chat concept scales to carry more
+                 downstream context (analyses, notes, etc.) in future.
     """
-    rubric = await get_rubric_impl(
-        pool, redis, profile_id=profile_id, rubric_id=rubric_id
-    )
-    if rubric.rubric_exists is False:
+    # 1. Auth — just verify the profile exists. No group/session work.
+    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    if profile is None:
+        raise HTTPException(
+            status_code=401, detail="Profile not found. Please sign in again."
+        )
+
+    # 2. Resolve the rubric from `rubrics_resource` (the denormalised
+    #    resource). The chat's `rubric_id` is a resource id (FK from
+    #    attempt_chat_rubrics_connection), NOT a `rubric_artifact.id`,
+    #    so we stay at the resource layer here. The resource row
+    #    already carries name + standard_group_ids — no junction fan-
+    #    out needed.
+    async with pool.acquire() as conn:
+        rubrics = await get_rubrics_resource(conn, [rubric_id], redis)
+    if not rubrics:
         raise HTTPException(status_code=404, detail="Rubric not found")
+    resource = rubrics[0]
+    name = resource.name or "rubric"
 
+    # 3. Hydrate standard_groups by id and standards by group filter.
+    #    Standards are looked up via the group ids (search_standards
+    #    accepts a standard_group_ids filter) — more direct than
+    #    chasing another junction table.
+    async with pool.acquire() as conn:
+        standard_groups = await get_standard_groups(
+            conn, list(resource.standard_group_ids or []), redis
+        )
+        standards = await search_standards(
+            conn,
+            redis,
+            standard_group_ids=list(resource.standard_group_ids or []),
+            limit_count=1000,
+        )
+
+    # 4. Optional grading overlay — resolve chat_id → latest grade.
     grading: _GradingState | None = None
-    if grade_id is not None:
-        # Validate grade_id exists before touching feedbacks.
+    if chat_id is not None:
+        # search_attempt_grades returns newest first (ORDER BY
+        # created_at DESC); pick the head so retried gradings surface
+        # the most recent attempt.
         async with pool.acquire() as conn:
-            grades = await get_attempt_grades(conn, [grade_id])
+            grades = await search_attempt_grades(
+                conn, chat_ids=[chat_id], limit=1
+            )
         if not grades:
-            raise HTTPException(status_code=404, detail="Grade not found")
-        grading = await _load_grading_state(pool, grade_id, rubric)
+            raise HTTPException(
+                status_code=404, detail="No grade found for chat"
+            )
+        grade_id = grades[0].grade_id
+        grading = await _load_grading_state(
+            pool, grade_id, standards, standard_groups
+        )
 
-    name = _selected_name(rubric)
-    pdf_bytes = _render_rubric_pdf(rubric, grading, title=name)
+    # 5. Render. `name` was resolved from the resource row above.
+    pdf_bytes = _render_rubric_pdf(
+        standard_groups, standards, grading, title=name
+    )
 
-    # Row count loses its CSV meaning here; we keep the field for
+    # row_count loses its CSV meaning here; we keep the field for
     # schema stability and populate it with the standard count, which
     # is the closest analogue ("rows of the rubric table body").
-    row_count = len(rubric.standards or [])
-
     return ExportRubricApiResponse(
         content=base64.b64encode(pdf_bytes).decode("ascii"),
         file_name=f"{name}.pdf",
         mime_type="application/pdf",
-        row_count=row_count,
+        row_count=len(standards),
     )

@@ -27,8 +27,6 @@ from app.tools.resources.colors.get import get_colors
 from app.tools.resources.departments.get import get_departments
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.names.get import get_names
-from app.tools.resources.profiles.get import get_profiles
-
 PIPE = "|"
 
 CSV_COLUMNS = [
@@ -38,7 +36,6 @@ CSV_COLUMNS = [
     "active",
     "departments",
     "colors",
-    "profiles",
 ]
 
 
@@ -104,7 +101,6 @@ async def export_setting_impl(
             departments=True,
             flags=True,
             colors=True,
-            profiles=True,
         )
 
     # -- Step 4: Parallel resource hydration --
@@ -113,14 +109,12 @@ async def export_setting_impl(
     all_description_ids: list[UUID] = []
     all_department_ids: list[UUID] = []
     all_color_ids: list[UUID] = []
-    all_profile_ids: list[UUID] = []
 
     for a in artifacts:
         all_name_ids.extend(a.name_ids or [])
         all_description_ids.extend(a.description_ids or [])
         all_department_ids.extend(a.department_ids or [])
         all_color_ids.extend(a.color_ids or [])
-        all_profile_ids.extend(a.profile_ids or [])
 
     async def _fetch_names() -> list:
         if not all_name_ids:
@@ -146,24 +140,16 @@ async def export_setting_impl(
         async with pool.acquire() as conn:
             return await get_colors(conn, all_color_ids, redis)
 
-    async def _fetch_profiles() -> list:
-        if not all_profile_ids:
-            return []
-        async with pool.acquire() as conn:
-            return await get_profiles(conn, all_profile_ids, redis)
-
     (
         names_data,
         descriptions_data,
         departments_data,
         colors_data,
-        profiles_data,
     ) = await asyncio.gather(
         _fetch_names(),
         _fetch_descriptions(),
         _fetch_departments(),
         _fetch_colors(),
-        _fetch_profiles(),
     )
 
     # Build lookup maps
@@ -171,7 +157,6 @@ async def export_setting_impl(
     description_map = {d.id: d.description for d in descriptions_data}
     department_map = {d.id: d.name for d in departments_data}
     color_map = {c.id: c.name for c in colors_data}
-    profile_map = {p.id: p.name for p in profiles_data}
 
     # -- Step 5: Generate CSV + upload --
 
@@ -194,9 +179,6 @@ async def export_setting_impl(
             department_map.get(did, "") for did in (a.department_ids or [])
         )
         colors_str = PIPE.join(color_map.get(cid, "") for cid in (a.color_ids or []))
-        profiles_str = PIPE.join(
-            profile_map.get(pid, "") or "" for pid in (a.profile_ids or [])
-        )
 
         writer.writerow(
             [
@@ -206,7 +188,6 @@ async def export_setting_impl(
                 active,
                 departments_str,
                 colors_str,
-                profiles_str,
             ]
         )
 

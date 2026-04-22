@@ -59,7 +59,8 @@ class ScenarioFlagConfig(BaseModel):
     key: str = Field(..., description="Flag config key identifier")
     label: str = Field(..., description="Display label for the flag")
     description: str | None = Field(None, description="Flag description text")
-    icon_id: str | None = Field(None, description="UUID of the selected icon resource")
+    icon_id: UUID | None = Field(None, description="UUID of the selected icon resource")
+    icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
     flag_option_id: UUID | None = Field(None, description="UUID of the flag option to use when enabling")
     show: bool = Field(True, description="Whether to show this flag in the UI")
     required: bool = Field(False, description="Whether this flag is required")
@@ -164,6 +165,7 @@ class ScenarioParameter(BaseModel):
 class ScenarioField(BaseModel):
     """Field for scenario."""
 
+    id: UUID | None = Field(None, description="UUID of the parameter_fields_resource junction row; required by the client picker to select a field")
     field_id: UUID | None = Field(None, description="UUID of the field")
     name: str | None = Field(None, description="Field name")
     description: str | None = Field(None, description="Field description text")

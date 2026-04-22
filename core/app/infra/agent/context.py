@@ -9,6 +9,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.flag_icons import hydrate_flag_icons
 from app.infra.types import ArtifactContext, ResourcePair
 from app.tools.artifacts.agent.get import get_agents as get_agent_artifacts
 from app.tools.entries.agent_drafts.get import get_agent_drafts
@@ -532,6 +533,12 @@ async def resolve_agent_context(
         if getattr(item, "name", None) in AGENT_FLAG_NAMES
         or getattr(item, "type", None) in AGENT_FLAG_NAMES
     ]
+
+    # Hydrate SVG icons onto each flag (icon_id → icon markup).
+    async with pool.acquire() as conn:
+        await hydrate_flag_icons(
+            flags_selected + flags_suggestions_filtered, conn, redis, bypass_cache
+        )
 
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,

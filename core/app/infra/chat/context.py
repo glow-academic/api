@@ -20,6 +20,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.flag_icons import hydrate_flag_icons
 from app.infra.types import ArtifactContext, ResourcePair
 
 # Template fetcher
@@ -619,6 +620,12 @@ async def resolve_chat_context(
     flags_suggestions_filtered = [
         f for f in flags_suggestions if getattr(f, "name", None) in CHAT_FLAG_NAMES
     ]
+
+    # Hydrate SVG icons onto each flag (icon_id → icon markup).
+    async with pool.acquire() as conn:
+        await hydrate_flag_icons(
+            list(flags_selected) + list(flags_suggestions_filtered), conn, redis, bypass_cache
+        )
 
     # Enrich parameter_fields with field name + parameter group name
     all_pf_items = list(parameter_fields_selected) + list(parameter_fields_suggestions)

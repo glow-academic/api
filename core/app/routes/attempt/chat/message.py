@@ -32,6 +32,11 @@ class ChatMessageRequest(BaseModel):
     text: str
     persona_id: UUID | None = None
     parent_message_id: UUID | None = None
+    # When True (default), the server auto-links the new message to
+    # the chat's latest prior message if `parent_message_id` is None.
+    # Fork callers pass False to force an explicit root (parent stays
+    # null) when the fork target has no parent of its own.
+    auto_link_parent: bool = True
 
 
 class ChatMessageResponse(BaseModel):
@@ -84,6 +89,7 @@ async def chat_message(
             text=request.text,
             persona_id=request.persona_id,
             parent_message_id=request.parent_message_id,
+            auto_link_parent=request.auto_link_parent,
         )
 
     try:

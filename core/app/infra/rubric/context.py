@@ -10,6 +10,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.flag_icons import hydrate_flag_icons
 from app.infra.types import ArtifactContext, ResourcePair
 from app.tools.artifacts.rubric.get import get_rubrics as get_rubric_artifacts
 from app.tools.entries.rubric_drafts.get import get_rubric_drafts
@@ -314,6 +315,12 @@ async def resolve_rubric_context(
         pending_ids.update(draft.pending_point_ids or [])
         pending_ids.update(draft.pending_standard_group_ids or [])
         pending_ids.update(draft.pending_standard_ids or [])
+
+    # Hydrate SVG icons onto each flag (icon_id → icon markup).
+    async with pool.acquire() as conn:
+        await hydrate_flag_icons(
+            list(filtered_flags_selected) + list(filtered_flags_suggestions,), conn, redis, bypass_cache
+        )
 
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,

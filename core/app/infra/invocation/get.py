@@ -286,6 +286,7 @@ async def get_invocation_impl(
                 label=label,
                 description=item.description,
                 icon_id=item.icon_id,
+                icon=getattr(item, "icon", None),
                 flag_option_id=item.id,
                 show=True,
                 required=False,

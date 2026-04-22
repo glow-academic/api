@@ -20,11 +20,13 @@ SETTING_RESOURCES = {
     "colors",
     "flags",
     "departments",
-    "profiles",
-    "auths",
+    "logins",
+    "systems",
+    "mcp",
+    "thresholds",
     "provider_keys",
     "auth_item_keys",
-    "systems",
+    "auth_item_values",
 }
 
 SETTING_GENERATION_RESOURCES = {
@@ -126,11 +128,19 @@ def compute_show_departments(departments_count: int) -> bool:
     return departments_count > 0
 
 
-def compute_show_profiles() -> bool:
+def compute_show_logins() -> bool:
     return True
 
 
-def compute_show_auths() -> bool:
+def compute_show_systems() -> bool:
+    return True
+
+
+def compute_show_mcp() -> bool:
+    return True
+
+
+def compute_show_thresholds() -> bool:
     return True
 
 
@@ -142,7 +152,7 @@ def compute_show_auth_item_keys() -> bool:
     return True
 
 
-def compute_show_systems() -> bool:
+def compute_show_auth_item_values() -> bool:
     return True
 
 
@@ -166,11 +176,19 @@ def compute_departments_required(show_departments: bool) -> bool:
     return show_departments
 
 
-def compute_profiles_required() -> bool:
+def compute_logins_required() -> bool:
     return False
 
 
-def compute_auths_required() -> bool:
+def compute_systems_required() -> bool:
+    return False
+
+
+def compute_mcp_required() -> bool:
+    return False
+
+
+def compute_thresholds_required() -> bool:
     return False
 
 
@@ -182,7 +200,7 @@ def compute_auth_item_keys_required() -> bool:
     return False
 
 
-def compute_systems_required() -> bool:
+def compute_auth_item_values_required() -> bool:
     return False
 
 

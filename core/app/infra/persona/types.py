@@ -211,7 +211,8 @@ class PersonaFlagConfig(BaseModel):
     key: str  # e.g., "active"
     label: str  # e.g., "Active"
     description: str | None = None
-    icon_id: str | None = None
+    icon_id: UUID | None = None
+    icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
     flag_option_id: UUID | None = None  # ID to use when enabling
     show: bool = True
     required: bool = False
@@ -443,6 +444,7 @@ class CreatePersonaItem(ScopedItem):
     color_id: UUID | None = Field(None, description="UUID of an existing color resource")
     color: str | None = Field(None, description="Hex color code, e.g. '#FF5733' (creates new resource if color_id not provided)")
     icon_id: UUID | None = Field(None, description="UUID of an existing icon resource")
+    icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
     icon: str | None = Field(None, description="Icon identifier value (creates new resource if icon_id not provided)")
     instructions_id: UUID | None = Field(None, description="UUID of an existing instruction resource")
     instructions: str | None = Field(None, description="System instruction template (creates new resource if instructions_id not provided)")
@@ -518,6 +520,7 @@ class UpdatePersonaItem(ScopedItem):
     color_id: UUID | None = Field(None, description="UUID of an existing color resource to select")
     color: str | None = Field(None, description="Hex color code (creates new resource if color_id not provided)")
     icon_id: UUID | None = Field(None, description="UUID of an existing icon resource to select")
+    icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
     icon: str | None = Field(None, description="Icon identifier value (creates new resource if icon_id not provided)")
     instructions_id: UUID | None = Field(None, description="UUID of an existing instruction resource to select")
     instructions: str | None = Field(None, description="System instruction template (creates new resource if instructions_id not provided)")
@@ -633,6 +636,7 @@ class PatchPersonaDraftApiRequest(ScopedItem):
     color_id: UUID | None = Field(None, description="UUID of a color resource to select")
     icon: str | None = Field(None, description="Icon identifier value (creates new resource if icon_id not provided)")
     icon_id: UUID | None = Field(None, description="UUID of an icon resource to select")
+    icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
     instructions: str | None = Field(None, description="Instruction template text (creates new instruction resource)")
     instructions_id: UUID | None = Field(None, description="UUID of an existing instruction resource to select")
     active_flag_id: UUID | None = Field(None, description="UUID of the flag option to set active status")
@@ -695,6 +699,7 @@ class DraftFormState(BaseModel):
     color_id: UUID | None = Field(None, description="Currently selected color resource UUID")
     color: str | None = Field(None, description="Color value that was saved (hex code)")
     icon_id: UUID | None = Field(None, description="Currently selected icon resource UUID")
+    icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
     icon: str | None = Field(None, description="Icon value that was saved")
     active_flag_id: UUID | None = Field(None, description="Currently selected flag option UUID")
     department_ids: list[UUID] = Field(default_factory=list, description="Currently associated department UUIDs")

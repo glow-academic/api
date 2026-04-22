@@ -26,12 +26,13 @@ class ExportRubricApiRequest(BaseModel):
     """Request model for rubric export."""
 
     rubric_id: UUID = Field(..., description="Rubric UUID to export")
-    grade_id: UUID | None = Field(
+    chat_id: UUID | None = Field(
         None,
         description=(
-            "Optional grade UUID. When provided, the PDF highlights "
-            "achieved/passed standards and renders per-standard feedback. "
-            "Without it, an empty rubric template is returned."
+            "Optional attempt chat UUID. When provided, the PDF "
+            "highlights achieved/passed standards and renders "
+            "per-standard feedback resolved from the chat's latest "
+            "grade. Without it, an empty rubric template is returned."
         ),
     )
 
@@ -55,7 +56,7 @@ async def export_rubrics(
         redis,
         profile_id=profile_id,
         rubric_id=body.rubric_id,
-        grade_id=body.grade_id,
+        chat_id=body.chat_id,
     )
 
     pdf_bytes = base64.b64decode(envelope.content)

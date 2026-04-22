@@ -99,7 +99,7 @@ async def resolve_auths_for_department(
     """Auths linked to a department via setting artifacts.
 
     Chain: department_artifact → resource ID → find settings with that dept
-           → setting_auths_junction → auth resources (slug/name).
+           → setting_logins_junction → logins_resource.auth_id → auth resources.
     """
     # Step 1: Get department's resource ID from self-link junction
     dept_arts = await get_department_artifacts(conn, [department_id], departments=True)
@@ -107,7 +107,7 @@ async def resolve_auths_for_department(
         return []
     dept_resource_id = dept_arts[0].department_ids[0]
 
-    # Step 2: Get ALL setting artifacts with departments + auths junctions
+    # Step 2: Get ALL setting artifacts with departments + logins junctions
     setting_artifact_ids, _ = await search_settings(
         conn, active_only=True, limit_count=100000
     )
@@ -115,20 +115,28 @@ async def resolve_auths_for_department(
         return []
 
     setting_artifacts = await get_setting_artifacts(
-        conn, setting_artifact_ids, departments=True, auths=True
+        conn, setting_artifact_ids, departments=True, logins=True
     )
 
     # Step 3: Filter to settings linked to this department's resource ID
-    auth_ids: set[UUID] = set()
+    logins_ids: set[UUID] = set()
     for sa in setting_artifacts:
         if dept_resource_id in (sa.department_ids or []):
-            if sa.auth_ids:
-                auth_ids.update(sa.auth_ids)
+            if sa.logins_ids:
+                logins_ids.update(sa.logins_ids)
 
+    if not logins_ids:
+        return []
+
+    # Step 4: Resolve logins → collect auth_ids (login_type = 'auth')
+    login_resources = await get_logins(conn, list(logins_ids), redis)
+    auth_ids: set[UUID] = {
+        lg.auth_id for lg in login_resources if lg.auth_id and lg.login_type == "auth"
+    }
     if not auth_ids:
         return []
 
-    # Step 4: Auth resources for slug/name
+    # Step 5: Auth resources for slug/name
     auths = await get_auth_resources(conn, list(auth_ids), redis)
     return [
         AuthForSync(id=a.id, slug=a.slug, provider_id=a.protocol, name=a.name)
@@ -148,9 +156,9 @@ async def resolve_auths_for_realm(
     """Auths from default settings (not linked to any department).
 
     Finds settings with empty department_ids (realm-level/platform defaults),
-    then resolves their auths via setting_auths_junction.
+    then resolves their logins via setting_logins_junction and extracts auth IDs.
     """
-    # Step 1: Get ALL active setting artifacts with departments + auths
+    # Step 1: Get ALL active setting artifacts with departments + logins
     setting_artifact_ids, _ = await search_settings(
         conn, active_only=True, limit_count=100000
     )
@@ -158,20 +166,28 @@ async def resolve_auths_for_realm(
         return []
 
     setting_artifacts = await get_setting_artifacts(
-        conn, setting_artifact_ids, departments=True, auths=True
+        conn, setting_artifact_ids, departments=True, logins=True
     )
 
     # Step 2: Filter to realm-level (no department_ids)
-    auth_ids: set[UUID] = set()
+    logins_ids: set[UUID] = set()
     for sa in setting_artifacts:
         if not sa.department_ids:  # No departments = realm-level
-            if sa.auth_ids:
-                auth_ids.update(sa.auth_ids)
+            if sa.logins_ids:
+                logins_ids.update(sa.logins_ids)
 
+    if not logins_ids:
+        return []
+
+    # Step 3: Resolve logins → collect auth_ids (login_type = 'auth')
+    login_resources = await get_logins(conn, list(logins_ids), redis)
+    auth_ids: set[UUID] = {
+        lg.auth_id for lg in login_resources if lg.auth_id and lg.login_type == "auth"
+    }
     if not auth_ids:
         return []
 
-    # Step 3: Get auth resources for slug/name
+    # Step 4: Get auth resources for slug/name
     auths = await get_auth_resources(conn, list(auth_ids), redis)
     return [
         AuthForSync(id=a.id, slug=a.slug, provider_id=a.protocol, name=a.name)
@@ -224,7 +240,7 @@ async def resolve_setting_profiles_for_idp(
                     dept_setting_ids.add(sid)
                     dept_setting_map.setdefault(sid, []).append(artifact_id)
 
-    # Step 2: Get ALL active setting artifacts with profiles junction
+    # Step 2: Get ALL active setting artifacts with logins + settings junctions
     setting_artifact_ids, _ = await search_settings(
         conn, active_only=True, limit_count=100000
     )
@@ -232,17 +248,36 @@ async def resolve_setting_profiles_for_idp(
         return []
 
     setting_artifacts = await get_setting_artifacts(
-        conn, setting_artifact_ids, profiles=True, settings=True
+        conn, setting_artifact_ids, logins=True, settings=True
     )
 
-    # Step 3: Build setting_artifact → (profile_resource_ids, settings_resource_ids)
-    # and collect all profile resource IDs
+    # Step 3: Resolve logins → extract profile_resource_ids per setting
+    # (login_type = 'profile' → login.profile_id is the profile resource ID)
+    all_logins_ids: set[UUID] = set()
+    for sa in setting_artifacts:
+        if sa.logins_ids:
+            all_logins_ids.update(sa.logins_ids)
+
+    login_map: dict[UUID, UUID] = {}  # logins_id → profile_resource_id
+    if all_logins_ids:
+        login_resources = await get_logins(conn, list(all_logins_ids), redis)
+        login_map = {
+            lg.id: lg.profile_id
+            for lg in login_resources
+            if lg.profile_id and lg.login_type == "profile"
+        }
+
+    # Build setting_artifact → (profile_resource_ids, settings_resource_ids)
     all_profile_resource_ids: set[UUID] = set()
     # (profile_resource_id, setting_artifact_id, settings_resource_id)
     profile_setting_links: list[tuple[UUID, UUID, UUID | None]] = []
 
     for sa in setting_artifacts:
-        profile_resource_ids = sa.profile_ids or []
+        profile_resource_ids: list[UUID] = []
+        for lid in sa.logins_ids or []:
+            prid = login_map.get(lid)
+            if prid and prid not in profile_resource_ids:
+                profile_resource_ids.append(prid)
         settings_resource_ids = sa.setting_ids or []
 
         for prid in profile_resource_ids:

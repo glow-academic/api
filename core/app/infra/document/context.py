@@ -9,6 +9,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.flag_icons import hydrate_flag_icons
 from app.infra.types import ArtifactContext, ResourcePair
 from app.tools.artifacts.document.get import get_documents as get_document_artifacts
 from app.tools.entries.document_drafts.get import get_document_drafts
@@ -375,6 +376,12 @@ async def resolve_document_context(
         pending_ids.update(draft.pending_file_ids or [])
         pending_ids.update(draft.pending_image_ids or [])
         pending_ids.update(draft.pending_text_ids or [])
+
+    # Hydrate SVG icons onto each flag (icon_id → icon markup).
+    async with pool.acquire() as conn:
+        await hydrate_flag_icons(
+            list(flags_selected) + list(flags_suggestions), conn, redis, bypass_cache
+        )
 
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,

@@ -288,6 +288,7 @@ async def get_parameter_impl(
                     label=label,
                     description=item.description,
                     icon_id=str(item.icon_id) if item.icon_id else None,
+                    icon=getattr(item, "icon", None),
                     flag_option_id=item.id,
                     show=True,
                     required=False,

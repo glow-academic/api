@@ -6147,7 +6147,7 @@
           "rubric"
         ],
         "summary": "Export Rubrics",
-        "description": "Export all rubrics as a clean, denormalized CSV.",
+        "description": "Export a rubric as a PDF (optionally filled with grade data).",
         "operationId": "export_rubrics_rubric_export_post",
         "requestBody": {
           "content": {
@@ -6163,11 +6163,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExportRubricApiResponse"
-                }
-              }
+              "application/pdf": {}
             }
           },
           "422": {
@@ -13610,13 +13606,13 @@
           "attempt"
         ],
         "summary": "Start Attempt",
-        "description": "Create a new attempt using the canonical internal attempt orchestration.",
+        "description": "Create a new attempt from a home or practice entry.",
         "operationId": "start_attempt_attempt_start_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AttemptStartPayload"
+                "$ref": "#/components/schemas/AttemptStartRequest"
               }
             }
           },
@@ -13628,7 +13624,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StartAttemptApiResponse"
+                  "$ref": "#/components/schemas/AttemptStartResponse"
                 }
               }
             }
@@ -13651,19 +13647,19 @@
         ]
       }
     },
-    "/attempt/next": {
+    "/attempt/complete": {
       "post": {
         "tags": [
           "attempt"
         ],
-        "summary": "Next Attempt",
-        "description": "Proceed to the next scenario in an existing attempt.",
-        "operationId": "next_attempt_attempt_next_post",
+        "summary": "Attempt Complete",
+        "description": "Mark an entire attempt as completed.",
+        "operationId": "attempt_complete_attempt_complete_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AttemptNextPayload"
+                "$ref": "#/components/schemas/AttemptCompleteRequest"
               }
             }
           },
@@ -13675,7 +13671,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NextAttemptApiResponse"
+                  "$ref": "#/components/schemas/AttemptCompleteResponse"
                 }
               }
             }
@@ -13698,19 +13694,19 @@
         ]
       }
     },
-    "/attempt/end": {
+    "/attempt/stop": {
       "post": {
         "tags": [
           "attempt"
         ],
-        "summary": "End Attempt",
-        "description": "End all remaining chats in an attempt.",
-        "operationId": "end_attempt_attempt_end_post",
+        "summary": "Attempt Stop",
+        "description": "Cancel an active generation by group_id.",
+        "operationId": "attempt_stop_attempt_stop_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AttemptEndAllPayload"
+                "$ref": "#/components/schemas/AttemptStopRequest"
               }
             }
           },
@@ -13722,7 +13718,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EndAttemptApiResponse"
+                  "$ref": "#/components/schemas/AttemptStopResponse"
                 }
               }
             }
@@ -13745,14 +13741,14 @@
         ]
       }
     },
-    "/attempt/expire": {
-      "post": {
+    "/attempt/stream": {
+      "get": {
         "tags": [
           "attempt"
         ],
-        "summary": "Expire",
-        "description": "Find and end all expired attempt chats.",
-        "operationId": "expire_attempt_expire_post",
+        "summary": "Attempt Stream",
+        "description": "Stream events for all joined groups via SSE.",
+        "operationId": "attempt_stream_attempt_stream_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -13770,60 +13766,13 @@
         ]
       }
     },
-    "/attempt/previous": {
-      "post": {
-        "tags": [
-          "attempt"
-        ],
-        "summary": "Attempt Previous",
-        "description": "Copy grades from a previous attempt's chats.",
-        "operationId": "attempt_previous_attempt_previous_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AttemptUsePreviousPayload"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PreviousAttemptApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
     "/attempt/join": {
       "post": {
         "tags": [
           "attempt"
         ],
         "summary": "Attempt Join",
-        "description": "Join a chat room for real-time attempt updates.",
+        "description": "Subscribe to events for a group.",
         "operationId": "attempt_join_attempt_join_post",
         "requestBody": {
           "content": {
@@ -13870,7 +13819,7 @@
           "attempt"
         ],
         "summary": "Attempt Leave",
-        "description": "Leave a chat room, stopping real-time attempt updates.",
+        "description": "Unsubscribe from events for a group.",
         "operationId": "attempt_leave_attempt_leave_post",
         "requestBody": {
           "content": {
@@ -13959,20 +13908,20 @@
         ]
       }
     },
-    "/attempt/chat/send": {
+    "/attempt/chat/message": {
       "post": {
         "tags": [
           "attempt",
           "attempt-chat"
         ],
-        "summary": "Chat Send",
-        "description": "Send text or audio input to an attempt chat.\n\nRouting logic:\n- Voice session active + audio_id \u2192 feed audio to voice pipeline\n- Voice session active + text \u2192 feed text to voice pipeline (TTS)\n- No voice session + text \u2192 standard text generation pipeline\n- No voice session + audio_id \u2192 STT \u2192 standard text pipeline",
-        "operationId": "chat_send_attempt_chat_send_post",
+        "summary": "Chat Message",
+        "description": "Create a message in an attempt chat.",
+        "operationId": "chat_message_attempt_chat_message_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ChatSendRequest"
+                "$ref": "#/components/schemas/ChatMessageRequest"
               }
             }
           },
@@ -13984,7 +13933,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ChatSendResponse"
+                  "$ref": "#/components/schemas/ChatMessageResponse"
                 }
               }
             }
@@ -14007,20 +13956,20 @@
         ]
       }
     },
-    "/attempt/chat/stop": {
+    "/attempt/chat/audio": {
       "post": {
         "tags": [
           "attempt",
           "attempt-chat"
         ],
-        "summary": "Chat Stop",
-        "description": "Stop message generation for an attempt chat.",
-        "operationId": "chat_stop_attempt_chat_stop_post",
+        "summary": "Chat Audio",
+        "description": "Attach an audios_id to an attempt chat message.",
+        "operationId": "chat_audio_attempt_chat_audio_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AttemptStopPayload"
+                "$ref": "#/components/schemas/ChatAudioRequest"
               }
             }
           },
@@ -14032,55 +13981,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StopChatApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/attempt/chat/end": {
-      "post": {
-        "tags": [
-          "attempt",
-          "attempt-chat"
-        ],
-        "summary": "Chat End",
-        "description": "End a single chat within an attempt.\n\nBrowser client: sends grade=True, internal AI generates full grade.\nAgent: can optionally provide score, feedbacks, strengths, etc. to skip AI.",
-        "operationId": "chat_end_attempt_chat_end_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EndChatApiRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EndChatApiResponse"
+                  "$ref": "#/components/schemas/ChatAudioResponse"
                 }
               }
             }
@@ -14110,13 +14011,13 @@
           "attempt-chat"
         ],
         "summary": "Chat Grade",
-        "description": "Trigger grading for an attempt chat.\n\nBrowser client: sends chat_id only, internal AI generates full grade.\nAgent: can optionally provide score, feedbacks, strengths, etc. to skip AI.",
+        "description": "Manually grade an attempt chat with a score.",
         "operationId": "chat_grade_attempt_chat_grade_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GradeAttemptRequest"
+                "$ref": "#/components/schemas/GradeAttemptApiRequest"
               }
             }
           },
@@ -14247,20 +14148,20 @@
         ]
       }
     },
-    "/attempt/chat/mute": {
+    "/attempt/chat/speak": {
       "post": {
         "tags": [
           "attempt",
           "attempt-chat"
         ],
-        "summary": "Chat Mute",
-        "description": "Toggle microphone mute for a voice session.",
-        "operationId": "chat_mute_attempt_chat_mute_post",
+        "summary": "Chat Speak",
+        "description": "Push audio bytes into a conversation's inbound buffer.",
+        "operationId": "chat_speak_attempt_chat_speak_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ChatMuteRequest"
+                "$ref": "#/components/schemas/ChatSpeakRequest"
               }
             }
           },
@@ -14272,7 +14173,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ChatMuteResponse"
+                  "$ref": "#/components/schemas/ChatSpeakResponse"
                 }
               }
             }
@@ -14321,6 +14222,54 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AudioStopInternalResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/attempt/chat/complete": {
+      "post": {
+        "tags": [
+          "attempt",
+          "attempt-chat"
+        ],
+        "summary": "Chat Complete",
+        "description": "Mark an attempt chat as completed \u2014 final step after grading.",
+        "operationId": "chat_complete_attempt_chat_complete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatCompleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatCompleteResponse"
                 }
               }
             }
@@ -14801,54 +14750,6 @@
         ]
       }
     },
-    "/attempt/home/start": {
-      "post": {
-        "tags": [
-          "attempt",
-          "home"
-        ],
-        "summary": "Start Home Attempt",
-        "description": "Create a new attempt from a home entry.",
-        "operationId": "start_home_attempt_attempt_home_start_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HomeStartRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AttemptStartResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
     "/attempt/home/get": {
       "post": {
         "tags": [
@@ -14989,54 +14890,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ExportHomeApiResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/attempt/practice/start": {
-      "post": {
-        "tags": [
-          "attempt",
-          "practice"
-        ],
-        "summary": "Start Practice Attempt",
-        "description": "Create a new attempt from a practice entry.",
-        "operationId": "start_practice_attempt_attempt_practice_start_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PracticeStartRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AttemptStartResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -15764,7 +15617,7 @@
           "attempt-audio"
         ],
         "summary": "Upload Audio",
-        "description": "Upload an audio file for an attempt.",
+        "description": "Upload audio or promote an existing raw upload.\n\nThree shapes:\n  - **File only** \u2192 multipart ``file``: server writes bytes, creates\n    ``uploads_entry`` + full audio chain on top.\n  - **upload_id only** \u2192 ``?upload_id=<uuid>`` of an existing upload\n    (e.g. raw bytes captured by the realtime adapter). Server reuses\n    the upload and stacks resource + entry + junctions on top.\n  - **upload_id + file** \u2192 client pre-reserved via ``/attempt/audio/new``\n    and now fills the slot. Server writes bytes into that upload's\n    file and then runs the full chain.\n\nReturns ``{audio_id, audios_id, upload_id}``. Client only needs\n``audios_id``; ``upload_id`` is the primitive handed back.",
         "operationId": "upload_audio_attempt_audio_upload_post",
         "security": [
           {
@@ -15773,18 +15626,24 @@
         ],
         "parameters": [
           {
-            "name": "length_seconds",
+            "name": "upload_id",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "integer",
-              "default": 0,
-              "title": "Length Seconds"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Upload Id"
             }
           }
         ],
         "requestBody": {
-          "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
@@ -18768,74 +18627,6 @@
             "content": {
               "application/json": {
                 "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/connect": {
-      "post": {
-        "summary": "Connect",
-        "description": "Create a stream session for the authenticated profile.",
-        "operationId": "connect_connect_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConnectResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/disconnect": {
-      "post": {
-        "summary": "Disconnect",
-        "description": "Destroy a stream session.",
-        "operationId": "disconnect_disconnect_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DisconnectRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DisconnectResponse"
-                }
               }
             }
           },
@@ -37651,7 +37442,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -37659,6 +37451,18 @@
             ],
             "title": "Icon Id",
             "description": "UUID of the selected icon resource"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -39277,6 +39081,44 @@
               }
             ]
           },
+          "modalities": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modalities"
+          },
+          "audios_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audios Id"
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
           "idempotency_key": {
             "anyOf": [
               {
@@ -39304,6 +39146,17 @@
           "group_id": {
             "type": "string",
             "title": "Group Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
           },
           "idempotency_key": {
             "anyOf": [
@@ -39764,6 +39617,48 @@
         "title": "AttemptChatStartedEvent",
         "description": "Server-to-client: new chat created within an attempt."
       },
+      "AttemptCompleteRequest": {
+        "properties": {
+          "attempt_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Attempt Id"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "attempt_id"
+        ],
+        "title": "AttemptCompleteRequest"
+      },
+      "AttemptCompleteResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "completion_id": {
+            "type": "string",
+            "title": "Completion Id"
+          },
+          "attempt_id": {
+            "type": "string",
+            "title": "Attempt Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "completion_id",
+          "attempt_id"
+        ],
+        "title": "AttemptCompleteResponse"
+      },
       "AttemptData": {
         "properties": {
           "id": {
@@ -39820,6 +39715,19 @@
             ],
             "title": "Profile Name",
             "description": "Display name of the user profile"
+          },
+          "user_persona_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Persona Id",
+            "description": "UUID of the user's persona entry for this attempt"
           },
           "department_id": {
             "anyOf": [
@@ -40116,20 +40024,6 @@
         "title": "AttemptErrorEvent",
         "description": "Server-to-client: attempt error."
       },
-      "AttemptGradeAnalysisEntry": {
-        "properties": {
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "Analysis text content"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content"
-        ],
-        "title": "AttemptGradeAnalysisEntry"
-      },
       "AttemptGradeCompleteEvent": {
         "properties": {
           "chat_id": {
@@ -40156,104 +40050,6 @@
         ],
         "title": "AttemptGradeCompleteEvent",
         "description": "Server-to-client: aggregate grade result."
-      },
-      "AttemptGradeFeedbackEntry": {
-        "properties": {
-          "feedback": {
-            "type": "string",
-            "title": "Feedback",
-            "description": "Feedback text content"
-          },
-          "total": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Total",
-            "description": "Total score for this feedback entry"
-          }
-        },
-        "type": "object",
-        "required": [
-          "feedback"
-        ],
-        "title": "AttemptGradeFeedbackEntry"
-      },
-      "AttemptGradeHighlightEntry": {
-        "properties": {
-          "strength_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Strength Id",
-            "description": "UUID of the parent strength"
-          },
-          "section": {
-            "type": "string",
-            "title": "Section",
-            "description": "Text section to highlight"
-          },
-          "idx": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Idx",
-            "description": "Index position of the highlight"
-          }
-        },
-        "type": "object",
-        "required": [
-          "section"
-        ],
-        "title": "AttemptGradeHighlightEntry"
-      },
-      "AttemptGradeImprovementEntry": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "Name of the identified improvement area"
-          },
-          "description": {
-            "type": "string",
-            "title": "Description",
-            "description": "Description of the improvement"
-          },
-          "message_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Message Id",
-            "description": "UUID of the related message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "description"
-        ],
-        "title": "AttemptGradeImprovementEntry"
       },
       "AttemptGradePayload": {
         "properties": {
@@ -40366,51 +40162,6 @@
         "title": "AttemptGradeProgressEvent",
         "description": "Server-to-client: per-criterion grade result."
       },
-      "AttemptGradeReplacementEntry": {
-        "properties": {
-          "improvement_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Improvement Id",
-            "description": "UUID of the parent improvement"
-          },
-          "section": {
-            "type": "string",
-            "title": "Section",
-            "description": "Original text section to replace"
-          },
-          "replace": {
-            "type": "string",
-            "title": "Replace",
-            "description": "Replacement text"
-          },
-          "idx": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Idx",
-            "description": "Index position of the replacement"
-          }
-        },
-        "type": "object",
-        "required": [
-          "section",
-          "replace"
-        ],
-        "title": "AttemptGradeReplacementEntry"
-      },
       "AttemptGradeStartEvent": {
         "properties": {
           "chat_id": {
@@ -40438,39 +40189,6 @@
         "title": "AttemptGradeStartEvent",
         "description": "Server-to-client: grading began."
       },
-      "AttemptGradeStrengthEntry": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "Name of the identified strength"
-          },
-          "description": {
-            "type": "string",
-            "title": "Description",
-            "description": "Description of the strength"
-          },
-          "message_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Message Id",
-            "description": "UUID of the related message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "description"
-        ],
-        "title": "AttemptGradeStrengthEntry"
-      },
       "AttemptJoinPayload": {
         "properties": {
           "chat_id": {
@@ -40489,20 +40207,15 @@
       },
       "AttemptJoinRequest": {
         "properties": {
-          "sid": {
-            "type": "string",
-            "title": "Sid"
-          },
-          "chat_id": {
+          "group_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Chat Id"
+            "title": "Group Id"
           }
         },
         "type": "object",
         "required": [
-          "sid",
-          "chat_id"
+          "group_id"
         ],
         "title": "AttemptJoinRequest"
       },
@@ -40511,11 +40224,16 @@
           "success": {
             "type": "boolean",
             "title": "Success"
+          },
+          "group_id": {
+            "type": "string",
+            "title": "Group Id"
           }
         },
         "type": "object",
         "required": [
-          "success"
+          "success",
+          "group_id"
         ],
         "title": "AttemptJoinResponse"
       },
@@ -40558,20 +40276,15 @@
       },
       "AttemptLeaveRequest": {
         "properties": {
-          "sid": {
-            "type": "string",
-            "title": "Sid"
-          },
-          "chat_id": {
+          "group_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Chat Id"
+            "title": "Group Id"
           }
         },
         "type": "object",
         "required": [
-          "sid",
-          "chat_id"
+          "group_id"
         ],
         "title": "AttemptLeaveRequest"
       },
@@ -41232,6 +40945,41 @@
         "title": "AttemptStartPayload",
         "description": "Client-to-server: create a new attempt."
       },
+      "AttemptStartRequest": {
+        "properties": {
+          "home_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Id"
+          },
+          "practice_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Practice Id"
+          },
+          "infinite_mode": {
+            "type": "boolean",
+            "title": "Infinite Mode",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "AttemptStartRequest"
+      },
       "AttemptStartResponse": {
         "properties": {
           "attempt_id": {
@@ -41300,6 +41048,33 @@
         ],
         "title": "AttemptStopPayload",
         "description": "Client-to-server: stop message generation."
+      },
+      "AttemptStopRequest": {
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Group Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "group_id"
+        ],
+        "title": "AttemptStopRequest"
+      },
+      "AttemptStopResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success"
+        ],
+        "title": "AttemptStopResponse"
       },
       "AttemptStoppedEvent": {
         "properties": {
@@ -41541,25 +41316,25 @@
             "type": "string",
             "title": "Chat Id"
           },
-          "run_id": {
+          "attempt_id": {
             "type": "string",
-            "title": "Run Id"
+            "title": "Attempt Id"
+          },
+          "conversation_id": {
+            "type": "string",
+            "title": "Conversation Id"
           },
           "group_id": {
             "type": "string",
             "title": "Group Id"
-          },
-          "attempt_id": {
-            "type": "string",
-            "title": "Attempt Id"
           }
         },
         "type": "object",
         "required": [
           "chat_id",
-          "run_id",
-          "group_id",
-          "attempt_id"
+          "attempt_id",
+          "conversation_id",
+          "group_id"
         ],
         "title": "AudioStartInternalResult",
         "description": "Structured result for audio start orchestration."
@@ -41589,18 +41364,25 @@
             "type": "string",
             "format": "uuid",
             "title": "Audio Id",
-            "description": "UUID of the created audios_entry"
+            "description": "UUID of the audios_entry (server plumbing; public handle is audios_id)"
+          },
+          "audios_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Audios Id",
+            "description": "UUID of the audios_resource \u2014 use this for /generate, /chat/message, download"
           },
           "upload_id": {
             "type": "string",
             "format": "uuid",
             "title": "Upload Id",
-            "description": "UUID of the uploads_entry (file on disk)"
+            "description": "UUID of the uploads_entry (primitive raw file)"
           }
         },
         "type": "object",
         "required": [
           "audio_id",
+          "audios_id",
           "upload_id"
         ],
         "title": "AudioUploadAttemptApiResponse",
@@ -41790,7 +41572,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -41798,6 +41581,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -43008,15 +42803,34 @@
       "Body_upload_audio_attempt_audio_upload_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
+          },
+          "length_seconds": {
+            "type": "integer",
+            "title": "Length Seconds",
+            "default": 0
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": ""
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "default": ""
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_upload_audio_attempt_audio_upload_post"
       },
       "Body_upload_file_document_file_upload_post": {
@@ -43266,6 +43080,92 @@
           "content"
         ],
         "title": "ChatAnalysisItem"
+      },
+      "ChatAudioRequest": {
+        "properties": {
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id"
+          },
+          "message_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Message Id"
+          },
+          "audios_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Audios Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_id",
+          "message_id",
+          "audios_id"
+        ],
+        "title": "ChatAudioRequest"
+      },
+      "ChatAudioResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "attempt_audio_id": {
+            "type": "string",
+            "title": "Attempt Audio Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "attempt_audio_id"
+        ],
+        "title": "ChatAudioResponse"
+      },
+      "ChatCompleteRequest": {
+        "properties": {
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_id"
+        ],
+        "title": "ChatCompleteRequest"
+      },
+      "ChatCompleteResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "completion_id": {
+            "type": "string",
+            "title": "Completion Id"
+          },
+          "chat_id": {
+            "type": "string",
+            "title": "Chat Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "completion_id",
+          "chat_id"
+        ],
+        "title": "ChatCompleteResponse"
       },
       "ChatData-Input": {
         "properties": {
@@ -45081,37 +44981,74 @@
         ],
         "title": "ChatImprovementsResponse"
       },
-      "ChatMuteRequest": {
+      "ChatMessageRequest": {
         "properties": {
           "chat_id": {
             "type": "string",
             "format": "uuid",
             "title": "Chat Id"
           },
-          "muted": {
-            "type": "boolean",
-            "title": "Muted",
-            "default": false
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "persona_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Persona Id"
+          },
+          "parent_message_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Message Id"
           }
         },
         "type": "object",
         "required": [
-          "chat_id"
+          "chat_id",
+          "text"
         ],
-        "title": "ChatMuteRequest"
+        "title": "ChatMessageRequest"
       },
-      "ChatMuteResponse": {
+      "ChatMessageResponse": {
         "properties": {
-          "accepted": {
+          "success": {
             "type": "boolean",
-            "title": "Accepted"
+            "title": "Success"
+          },
+          "message_id": {
+            "type": "string",
+            "title": "Message Id"
+          },
+          "content_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Content Ids"
           }
         },
         "type": "object",
         "required": [
-          "accepted"
+          "success",
+          "message_id",
+          "content_ids"
         ],
-        "title": "ChatMuteResponse"
+        "title": "ChatMessageResponse"
       },
       "ChatNameResource": {
         "properties": {
@@ -45717,74 +45654,6 @@
         "type": "object",
         "title": "ChatScenarioResource"
       },
-      "ChatSendRequest": {
-        "properties": {
-          "chat_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Chat Id"
-          },
-          "text": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Text"
-          },
-          "audio_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Audio Id"
-          },
-          "parent_message_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parent Message Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "chat_id"
-        ],
-        "title": "ChatSendRequest"
-      },
-      "ChatSendResponse": {
-        "properties": {
-          "accepted": {
-            "type": "boolean",
-            "title": "Accepted"
-          },
-          "message_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Message Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "accepted",
-          "message_id"
-        ],
-        "title": "ChatSendResponse"
-      },
       "ChatSilenceRequest": {
         "properties": {
           "chat_id": {
@@ -46105,6 +45974,56 @@
         "title": "ChatSimulationOperational",
         "description": "Simulation data for starting a chat session.\n\nContains data needed to start a simulation AND card display stats.\nNow serves as the unified type for home/practice simulation cards."
       },
+      "ChatSpeakRequest": {
+        "properties": {
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
+          "chat_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chat Id"
+          },
+          "audio": {
+            "type": "string",
+            "title": "Audio"
+          }
+        },
+        "type": "object",
+        "required": [
+          "audio"
+        ],
+        "title": "ChatSpeakRequest"
+      },
+      "ChatSpeakResponse": {
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "accepted"
+        ],
+        "title": "ChatSpeakResponse"
+      },
       "ChatStrengthItem": {
         "properties": {
           "name": {
@@ -46257,6 +46176,17 @@
               }
             ],
             "title": "Description"
+          },
+          "length_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Length Seconds"
           },
           "generated": {
             "anyOf": [
@@ -46500,7 +46430,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -46508,6 +46439,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -47440,19 +47383,6 @@
         "title": "ComposedContextResponse",
         "description": "Page bootstrap response \u2014 docs + profile identity + evaluated permissions.\n\nSuperset of ComposedDocsResponse. A single call gives the client everything\nit needs to render the page: who you are, what you can do, and the schema."
       },
-      "ConnectResponse": {
-        "properties": {
-          "sid": {
-            "type": "string",
-            "title": "Sid"
-          }
-        },
-        "type": "object",
-        "required": [
-          "sid"
-        ],
-        "title": "ConnectResponse"
-      },
       "ConnectionConfirmedPayload": {
         "properties": {
           "sid": {
@@ -48354,6 +48284,18 @@
               }
             ],
             "title": "Options Ids"
+          },
+          "previous_attempt_chat_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Attempt Chat Id"
           },
           "idempotency_key": {
             "anyOf": [
@@ -49670,6 +49612,32 @@
             ],
             "title": "Text Ids",
             "description": "Text resource UUIDs"
+          },
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id",
+            "description": "Files resource UUID for document file"
+          },
+          "text_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Id",
+            "description": "Texts resource UUID for document text"
           }
         },
         "type": "object",
@@ -53305,7 +53273,7 @@
             "title": "Color Ids",
             "description": "Color resource UUIDs"
           },
-          "profile_ids": {
+          "logins_ids": {
             "anyOf": [
               {
                 "items": {
@@ -53318,10 +53286,10 @@
                 "type": "null"
               }
             ],
-            "title": "Profile Ids",
-            "description": "Profile UUIDs to assign"
+            "title": "Logins Ids",
+            "description": "Logins resource UUIDs to assign"
           },
-          "auth_ids": {
+          "system_ids": {
             "anyOf": [
               {
                 "items": {
@@ -53334,8 +53302,37 @@
                 "type": "null"
               }
             ],
-            "title": "Auth Ids",
-            "description": "Auth provider UUIDs"
+            "title": "System Ids",
+            "description": "System UUIDs to assign"
+          },
+          "mcp_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Id",
+            "description": "MCP resource UUID to assign (single)"
+          },
+          "threshold_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold Ids",
+            "description": "Threshold UUIDs to assign"
           },
           "provider_key_ids": {
             "anyOf": [
@@ -53384,38 +53381,6 @@
             ],
             "title": "Auth Item Value Ids",
             "description": "Auth item value UUIDs"
-          },
-          "system_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "System Ids",
-            "description": "System UUIDs to assign"
-          },
-          "threshold_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Threshold Ids",
-            "description": "Threshold UUIDs to assign"
           },
           "setting_resource_ids": {
             "anyOf": [
@@ -54081,19 +54046,6 @@
             ],
             "title": "Instruction Id",
             "description": "Response template instruction resource UUID"
-          },
-          "agent_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Agent Id",
-            "description": "Delegate agent for tool execution"
           },
           "tool_ids": {
             "anyOf": [
@@ -57614,7 +57566,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -57622,6 +57575,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -57931,32 +57896,6 @@
         "type": "object",
         "title": "DepartmentSettingResource",
         "description": "Setting resource for department."
-      },
-      "DisconnectRequest": {
-        "properties": {
-          "sid": {
-            "type": "string",
-            "title": "Sid"
-          }
-        },
-        "type": "object",
-        "required": [
-          "sid"
-        ],
-        "title": "DisconnectRequest"
-      },
-      "DisconnectResponse": {
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "title": "Success"
-          }
-        },
-        "type": "object",
-        "required": [
-          "success"
-        ],
-        "title": "DisconnectResponse"
       },
       "DocsApiRequest": {
         "properties": {
@@ -60758,256 +60697,6 @@
         "title": "EmulateProfileApiResponse",
         "description": "Response model for profile emulation."
       },
-      "EndAttemptApiResponse": {
-        "properties": {
-          "attempt_id": {
-            "type": "string",
-            "title": "Attempt Id"
-          },
-          "success": {
-            "type": "boolean",
-            "title": "Success"
-          },
-          "all_scenarios_complete": {
-            "type": "boolean",
-            "title": "All Scenarios Complete",
-            "default": false
-          },
-          "message": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "attempt_id",
-          "success"
-        ],
-        "title": "EndAttemptApiResponse"
-      },
-      "EndChatApiRequest": {
-        "properties": {
-          "attempt_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Attempt Id",
-            "description": "UUID of the attempt to end"
-          },
-          "chat_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Chat Id",
-            "description": "UUID of the chat to end"
-          },
-          "grade": {
-            "type": "boolean",
-            "title": "Grade",
-            "description": "Whether to trigger grading after ending",
-            "default": true
-          },
-          "score": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Score",
-            "description": "Pre-computed score from the agent"
-          },
-          "passed": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Passed",
-            "description": "Pre-computed pass/fail from the agent"
-          },
-          "time_taken": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Time Taken",
-            "description": "Time taken in seconds"
-          },
-          "feedbacks": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeFeedbackEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Feedbacks",
-            "description": "Pre-computed feedback entries"
-          },
-          "strengths": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeStrengthEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Strengths",
-            "description": "Pre-computed strength entries"
-          },
-          "improvements": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeImprovementEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Improvements",
-            "description": "Pre-computed improvement entries"
-          },
-          "analyses": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeAnalysisEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Analyses",
-            "description": "Pre-computed analysis entries"
-          },
-          "highlights": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeHighlightEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Highlights",
-            "description": "Pre-computed highlight entries"
-          },
-          "replacements": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeReplacementEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Replacements",
-            "description": "Pre-computed replacement entries"
-          }
-        },
-        "type": "object",
-        "required": [
-          "attempt_id",
-          "chat_id"
-        ],
-        "title": "EndChatApiRequest"
-      },
-      "EndChatApiResponse": {
-        "properties": {
-          "chat_id": {
-            "type": "string",
-            "title": "Chat Id",
-            "description": "ID of the ended chat"
-          },
-          "is_attempt_finished": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Is Attempt Finished",
-            "description": "Whether the entire attempt is finished"
-          },
-          "grade_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grade Id",
-            "description": "ID of the generated grade"
-          },
-          "score": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Score",
-            "description": "Overall score"
-          },
-          "passed": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Passed",
-            "description": "Whether the attempt passed"
-          }
-        },
-        "type": "object",
-        "required": [
-          "chat_id"
-        ],
-        "title": "EndChatApiResponse"
-      },
       "EndTestApiRequest": {
         "properties": {
           "test_id": {
@@ -61311,7 +61000,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -61319,6 +61009,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -63114,6 +62816,12 @@
       "ExportRubricApiRequest": {
         "properties": {
           "rubric_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Rubric Id",
+            "description": "Rubric UUID to export"
+          },
+          "chat_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -63123,10 +62831,14 @@
                 "type": "null"
               }
             ],
-            "title": "Rubric Id"
+            "title": "Chat Id",
+            "description": "Optional attempt chat UUID. When provided, the PDF highlights achieved/passed standards and renders per-standard feedback resolved from the chat's latest grade. Without it, an empty rubric template is returned."
           }
         },
         "type": "object",
+        "required": [
+          "rubric_id"
+        ],
         "title": "ExportRubricApiRequest",
         "description": "Request model for rubric export."
       },
@@ -63911,7 +63623,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -63919,6 +63632,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -65037,10 +64762,41 @@
             ],
             "title": "Run Id"
           },
-          "modality": {
-            "type": "string",
-            "title": "Modality",
-            "default": "call"
+          "modalities": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modalities"
+          },
+          "audios_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audios Id"
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
           },
           "extra_messages": {
             "anyOf": [
@@ -69525,7 +69281,7 @@
           "has_messages": {
             "type": "boolean",
             "title": "Has Messages",
-            "description": "Whether the chat has messages",
+            "description": "Whether the current chat has gradeable content (messages or quiz responses)",
             "default": false
           },
           "available_continuation_options": {
@@ -69575,6 +69331,19 @@
             ],
             "title": "Chat Entry Id",
             "description": "UUID of the chat entry"
+          },
+          "next_chat_entry_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Chat Entry Id",
+            "description": "UUID of the next chat entry to set up, None when all chats are complete"
           },
           "resources": {
             "anyOf": [
@@ -69784,7 +69553,7 @@
           "has_messages": {
             "type": "boolean",
             "title": "Has Messages",
-            "description": "Whether the chat has messages",
+            "description": "Whether the current chat has gradeable content (messages or quiz responses)",
             "default": false
           },
           "available_continuation_options": {
@@ -69834,6 +69603,19 @@
             ],
             "title": "Chat Entry Id",
             "description": "UUID of the chat entry"
+          },
+          "next_chat_entry_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Chat Entry Id",
+            "description": "UUID of the next chat entry to set up, None when all chats are complete"
           },
           "resources": {
             "anyOf": [
@@ -69960,7 +69742,13 @@
           },
           "is_archived": {
             "type": "boolean",
-            "title": "Is Archived"
+            "title": "Is Archived",
+            "default": false
+          },
+          "is_completed": {
+            "type": "boolean",
+            "title": "Is Completed",
+            "default": false
           },
           "scenario_ids": {
             "items": {
@@ -70008,7 +69796,6 @@
           "attempt_created_at",
           "infinite_mode",
           "num_chats",
-          "is_archived",
           "scenario_ids",
           "chat_entry_id",
           "attempt_chat_id"
@@ -81108,7 +80895,7 @@
             ],
             "description": "Filter options for departments"
           },
-          "profiles": {
+          "logins": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
@@ -81117,9 +80904,9 @@
                 "type": "null"
               }
             ],
-            "description": "Filter options for profiles"
+            "description": "Filter options for logins"
           },
-          "auths": {
+          "systems": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
@@ -81128,7 +80915,29 @@
                 "type": "null"
               }
             ],
-            "description": "Filter options for auths"
+            "description": "Filter options for systems"
+          },
+          "mcp": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for MCP configs"
+          },
+          "thresholds": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for thresholds"
           },
           "provider_keys": {
             "anyOf": [
@@ -81152,7 +80961,7 @@
             ],
             "description": "Filter options for auth item keys"
           },
-          "systems": {
+          "auth_item_values": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
@@ -81161,7 +80970,7 @@
                 "type": "null"
               }
             ],
-            "description": "Filter options for systems"
+            "description": "Filter options for auth item values"
           }
         },
         "type": "object",
@@ -81346,11 +81155,11 @@
             "title": "Departments",
             "description": "Department resources"
           },
-          "profiles": {
+          "logins": {
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/SettingProfileResource"
+                  "$ref": "#/components/schemas/SettingLoginsResource"
                 },
                 "type": "array"
               },
@@ -81358,14 +81167,14 @@
                 "type": "null"
               }
             ],
-            "title": "Profiles",
-            "description": "Profile resources"
+            "title": "Logins",
+            "description": "Logins resources"
           },
-          "auths": {
+          "systems": {
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/SettingAuthResource"
+                  "$ref": "#/components/schemas/SettingSystemResource"
                 },
                 "type": "array"
               },
@@ -81373,8 +81182,38 @@
                 "type": "null"
               }
             ],
-            "title": "Auths",
-            "description": "Auth resources"
+            "title": "Systems",
+            "description": "System resources"
+          },
+          "mcp": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingMcpResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp",
+            "description": "MCP resources"
+          },
+          "thresholds": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingThresholdResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thresholds",
+            "description": "Threshold resources"
           },
           "provider_keys": {
             "anyOf": [
@@ -81406,11 +81245,11 @@
             "title": "Auth Item Keys",
             "description": "Auth item key resources"
           },
-          "systems": {
+          "auth_item_values": {
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/SettingSystemResource"
+                  "$ref": "#/components/schemas/SettingAuthItemValueResource"
                 },
                 "type": "array"
               },
@@ -81418,8 +81257,8 @@
                 "type": "null"
               }
             ],
-            "title": "Systems",
-            "description": "System resources"
+            "title": "Auth Item Values",
+            "description": "Auth item value resources"
           },
           "providers": {
             "anyOf": [
@@ -81450,6 +81289,81 @@
             ],
             "title": "Keys",
             "description": "Key catalog used by provider key and auth item key editing"
+          },
+          "items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingItemCatalogResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Items",
+            "description": "Claim item catalog used by auth item key/value editing"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingProfileCatalogResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "Profile catalog used by logins editing"
+          },
+          "auths": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingAuthCatalogResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auths",
+            "description": "Auth catalog used by logins and auth item editing"
+          },
+          "icons": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingIconCatalogResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icons",
+            "description": "Icon catalog used by logins editing"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingAgentCatalogResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "Agent catalog used by mcp and systems editing"
           }
         },
         "type": "object",
@@ -81599,6 +81513,36 @@
             "title": "Threshold Ids",
             "description": "Associated threshold UUIDs"
           },
+          "mcp_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Ids"
+          },
+          "logins_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logins Ids"
+          },
           "pending_agent_ids": {
             "items": {
               "type": "string",
@@ -81706,6 +81650,36 @@
             "type": "array",
             "title": "Pending Threshold Ids",
             "description": "Pending threshold UUIDs"
+          },
+          "pending_mcp_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Mcp Ids"
+          },
+          "pending_logins_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Logins Ids"
           }
         },
         "type": "object",
@@ -84412,6 +84386,27 @@
         "title": "GetToolDraftsApiResponse",
         "description": "Response model for tool drafts list endpoint."
       },
+      "GradeAttemptApiRequest": {
+        "properties": {
+          "chat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chat Id",
+            "description": "UUID of the attempt chat to grade"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score",
+            "description": "Overall score to record for the chat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_id",
+          "score"
+        ],
+        "title": "GradeAttemptApiRequest"
+      },
       "GradeAttemptApiResponse": {
         "properties": {
           "chat_id": {
@@ -84450,88 +84445,6 @@
               }
             ],
             "title": "Passed"
-          }
-        },
-        "type": "object",
-        "required": [
-          "chat_id"
-        ],
-        "title": "GradeAttemptApiResponse"
-      },
-      "GradeAttemptRequest": {
-        "properties": {
-          "attempt_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Attempt Id",
-            "description": "UUID of the attempt to grade"
-          },
-          "chat_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Chat Id",
-            "description": "UUID of the chat to grade"
-          },
-          "resource_types": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resource Types",
-            "description": "Resource types to include in grading"
-          },
-          "user_instructions": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "User Instructions",
-            "description": "Custom grading instructions"
-          },
-          "score": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Score",
-            "description": "Overall score for the attempt"
-          },
-          "passed": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Passed",
-            "description": "Whether the attempt passed"
           },
           "time_taken": {
             "anyOf": [
@@ -84542,105 +84455,14 @@
                 "type": "null"
               }
             ],
-            "title": "Time Taken",
-            "description": "Time taken in seconds"
-          },
-          "feedbacks": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeFeedbackEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Feedbacks",
-            "description": "Feedback entries from the grader"
-          },
-          "strengths": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeStrengthEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Strengths",
-            "description": "Strength entries from the grader"
-          },
-          "improvements": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeImprovementEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Improvements",
-            "description": "Improvement entries from the grader"
-          },
-          "analyses": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeAnalysisEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Analyses",
-            "description": "Analysis entries from the grader"
-          },
-          "highlights": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeHighlightEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Highlights",
-            "description": "Highlight entries for strengths"
-          },
-          "replacements": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AttemptGradeReplacementEntry"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Replacements",
-            "description": "Replacement entries for improvements"
+            "title": "Time Taken"
           }
         },
         "type": "object",
         "required": [
-          "attempt_id"
+          "chat_id"
         ],
-        "title": "GradeAttemptRequest"
+        "title": "GradeAttemptApiResponse"
       },
       "GradeData": {
         "properties": {
@@ -84822,7 +84644,7 @@
         },
         "type": "object",
         "title": "GroupAgentApiRequest",
-        "description": "Request model for agent group endpoint."
+        "description": "Request body for POST /agent/group."
       },
       "GroupAgentApiResponse": {
         "properties": {
@@ -84869,6 +84691,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -84876,7 +84713,7 @@
           "group_id"
         ],
         "title": "GroupAgentApiResponse",
-        "description": "Response model for agent group endpoint."
+        "description": "Response body for POST /agent/group."
       },
       "GroupAttemptApiRequest": {
         "properties": {
@@ -84904,11 +84741,30 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
         "title": "GroupAttemptApiRequest",
-        "description": "Request model for attempt group endpoint."
+        "description": "Request body for POST /attempt/group."
       },
       "GroupAttemptApiResponse": {
         "properties": {
@@ -84942,6 +84798,34 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -84949,7 +84833,7 @@
           "group_id"
         ],
         "title": "GroupAttemptApiResponse",
-        "description": "Response model for attempt group endpoint."
+        "description": "Response body for POST /attempt/group."
       },
       "GroupAuthApiRequest": {
         "properties": {
@@ -85000,7 +84884,7 @@
         },
         "type": "object",
         "title": "GroupAuthApiRequest",
-        "description": "Request model for auth group endpoint."
+        "description": "Request body for POST /auth/group."
       },
       "GroupAuthApiResponse": {
         "properties": {
@@ -85047,6 +84931,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -85054,7 +84953,7 @@
           "group_id"
         ],
         "title": "GroupAuthApiResponse",
-        "description": "Response model for auth group endpoint."
+        "description": "Response body for POST /auth/group."
       },
       "GroupCall": {
         "properties": {
@@ -85073,6 +84972,17 @@
               }
             ],
             "title": "Tool Name"
+          },
+          "template_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Name"
           }
         },
         "type": "object",
@@ -85080,7 +84990,7 @@
           "id"
         ],
         "title": "GroupCall",
-        "description": "Tool call within a message."
+        "description": "Tool call referenced by a message."
       },
       "GroupCohortApiRequest": {
         "properties": {
@@ -85131,7 +85041,7 @@
         },
         "type": "object",
         "title": "GroupCohortApiRequest",
-        "description": "Request model for cohort group endpoint."
+        "description": "Request body for POST /cohort/group."
       },
       "GroupCohortApiResponse": {
         "properties": {
@@ -85178,6 +85088,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -85185,7 +85110,7 @@
           "group_id"
         ],
         "title": "GroupCohortApiResponse",
-        "description": "Response model for cohort group endpoint."
+        "description": "Response body for POST /cohort/group."
       },
       "GroupDepartmentApiRequest": {
         "properties": {
@@ -85236,7 +85161,7 @@
         },
         "type": "object",
         "title": "GroupDepartmentApiRequest",
-        "description": "Request model for department group endpoint."
+        "description": "Request body for POST /department/group."
       },
       "GroupDepartmentApiResponse": {
         "properties": {
@@ -85283,6 +85208,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -85290,7 +85230,7 @@
           "group_id"
         ],
         "title": "GroupDepartmentApiResponse",
-        "description": "Response model for department group endpoint."
+        "description": "Response body for POST /department/group."
       },
       "GroupDetailCallItem": {
         "properties": {
@@ -85683,7 +85623,7 @@
               }
             ],
             "title": "Idempotency Key",
-            "description": "Operation key for ack - promotes or rejects a dormant group"
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
           },
           "accept": {
             "type": "boolean",
@@ -85694,7 +85634,7 @@
         },
         "type": "object",
         "title": "GroupDocumentApiRequest",
-        "description": "Request model for document group endpoint."
+        "description": "Request body for POST /document/group."
       },
       "GroupDocumentApiResponse": {
         "properties": {
@@ -85741,6 +85681,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -85748,7 +85703,7 @@
           "group_id"
         ],
         "title": "GroupDocumentApiResponse",
-        "description": "Response model for document group endpoint."
+        "description": "Response body for POST /document/group."
       },
       "GroupEvalApiRequest": {
         "properties": {
@@ -85799,7 +85754,7 @@
         },
         "type": "object",
         "title": "GroupEvalApiRequest",
-        "description": "Request model for eval group endpoint."
+        "description": "Request body for POST /eval/group."
       },
       "GroupEvalApiResponse": {
         "properties": {
@@ -85846,6 +85801,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -85853,7 +85823,7 @@
           "group_id"
         ],
         "title": "GroupEvalApiResponse",
-        "description": "Response model for eval group endpoint."
+        "description": "Response body for POST /eval/group."
       },
       "GroupFieldApiRequest": {
         "properties": {
@@ -85904,7 +85874,7 @@
         },
         "type": "object",
         "title": "GroupFieldApiRequest",
-        "description": "Request model for field group endpoint."
+        "description": "Request body for POST /field/group."
       },
       "GroupFieldApiResponse": {
         "properties": {
@@ -85951,6 +85921,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -85958,7 +85943,7 @@
           "group_id"
         ],
         "title": "GroupFieldApiResponse",
-        "description": "Response model for field group endpoint."
+        "description": "Response body for POST /field/group."
       },
       "GroupListItem": {
         "properties": {
@@ -86188,6 +86173,38 @@
             "type": "array",
             "title": "Text Ids"
           },
+          "audio_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Audio Ids"
+          },
+          "image_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Image Ids"
+          },
+          "video_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Video Ids"
+          },
+          "file_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "File Ids"
+          },
           "call_ids": {
             "items": {
               "type": "string",
@@ -86261,7 +86278,7 @@
         },
         "type": "object",
         "title": "GroupModelApiRequest",
-        "description": "Request model for model group endpoint."
+        "description": "Request body for POST /model/group."
       },
       "GroupModelApiResponse": {
         "properties": {
@@ -86308,6 +86325,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -86315,7 +86347,7 @@
           "group_id"
         ],
         "title": "GroupModelApiResponse",
-        "description": "Response model for model group endpoint."
+        "description": "Response body for POST /model/group."
       },
       "GroupParameterApiRequest": {
         "properties": {
@@ -86366,7 +86398,7 @@
         },
         "type": "object",
         "title": "GroupParameterApiRequest",
-        "description": "Request model for parameter group endpoint."
+        "description": "Request body for POST /parameter/group."
       },
       "GroupParameterApiResponse": {
         "properties": {
@@ -86413,6 +86445,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -86420,7 +86467,7 @@
           "group_id"
         ],
         "title": "GroupParameterApiResponse",
-        "description": "Response model for parameter group endpoint."
+        "description": "Response body for POST /parameter/group."
       },
       "GroupPersonaApiRequest": {
         "properties": {
@@ -86471,7 +86518,7 @@
         },
         "type": "object",
         "title": "GroupPersonaApiRequest",
-        "description": "Request model for persona group endpoint."
+        "description": "Request body for POST /persona/group."
       },
       "GroupPersonaApiResponse": {
         "properties": {
@@ -86532,7 +86579,7 @@
               }
             ],
             "title": "Runs",
-            "description": "Conversation history (populated when resolving existing group)"
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -86540,7 +86587,7 @@
           "group_id"
         ],
         "title": "GroupPersonaApiResponse",
-        "description": "Response model for persona group endpoint."
+        "description": "Response body for POST /persona/group."
       },
       "GroupProfileApiRequest": {
         "properties": {
@@ -86591,7 +86638,7 @@
         },
         "type": "object",
         "title": "GroupProfileApiRequest",
-        "description": "Request model for profile group endpoint."
+        "description": "Request body for POST /profile/group."
       },
       "GroupProfileApiResponse": {
         "properties": {
@@ -86638,6 +86685,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -86645,7 +86707,7 @@
           "group_id"
         ],
         "title": "GroupProfileApiResponse",
-        "description": "Response model for profile group endpoint."
+        "description": "Response body for POST /profile/group."
       },
       "GroupProviderApiRequest": {
         "properties": {
@@ -86696,7 +86758,7 @@
         },
         "type": "object",
         "title": "GroupProviderApiRequest",
-        "description": "Request model for provider group endpoint."
+        "description": "Request body for POST /provider/group."
       },
       "GroupProviderApiResponse": {
         "properties": {
@@ -86743,6 +86805,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -86750,7 +86827,7 @@
           "group_id"
         ],
         "title": "GroupProviderApiResponse",
-        "description": "Response model for provider group endpoint."
+        "description": "Response body for POST /provider/group."
       },
       "GroupRubricApiRequest": {
         "properties": {
@@ -86801,7 +86878,7 @@
         },
         "type": "object",
         "title": "GroupRubricApiRequest",
-        "description": "Request model for rubric group endpoint."
+        "description": "Request body for POST /rubric/group."
       },
       "GroupRubricApiResponse": {
         "properties": {
@@ -86848,6 +86925,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -86855,7 +86947,7 @@
           "group_id"
         ],
         "title": "GroupRubricApiResponse",
-        "description": "Response model for rubric group endpoint."
+        "description": "Response body for POST /rubric/group."
       },
       "GroupRun": {
         "properties": {
@@ -86889,7 +86981,7 @@
           "id"
         ],
         "title": "GroupRun",
-        "description": "Run within a group."
+        "description": "Run within a group, with its messages."
       },
       "GroupScenarioApiRequest": {
         "properties": {
@@ -86940,7 +87032,7 @@
         },
         "type": "object",
         "title": "GroupScenarioApiRequest",
-        "description": "Request model for scenario group endpoint."
+        "description": "Request body for POST /scenario/group."
       },
       "GroupScenarioApiResponse": {
         "properties": {
@@ -86987,6 +87079,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -86994,7 +87101,7 @@
           "group_id"
         ],
         "title": "GroupScenarioApiResponse",
-        "description": "Response model for scenario group endpoint."
+        "description": "Response body for POST /scenario/group."
       },
       "GroupSettingApiRequest": {
         "properties": {
@@ -87045,7 +87152,7 @@
         },
         "type": "object",
         "title": "GroupSettingApiRequest",
-        "description": "Request model for setting group endpoint."
+        "description": "Request body for POST /setting/group."
       },
       "GroupSettingApiResponse": {
         "properties": {
@@ -87092,6 +87199,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -87099,7 +87221,7 @@
           "group_id"
         ],
         "title": "GroupSettingApiResponse",
-        "description": "Response model for setting group endpoint."
+        "description": "Response body for POST /setting/group."
       },
       "GroupSimulationApiRequest": {
         "properties": {
@@ -87150,7 +87272,7 @@
         },
         "type": "object",
         "title": "GroupSimulationApiRequest",
-        "description": "Request model for simulation group endpoint."
+        "description": "Request body for POST /simulation/group."
       },
       "GroupSimulationApiResponse": {
         "properties": {
@@ -87197,6 +87319,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -87204,7 +87341,7 @@
           "group_id"
         ],
         "title": "GroupSimulationApiResponse",
-        "description": "Response model for simulation group endpoint."
+        "description": "Response body for POST /simulation/group."
       },
       "GroupTestApiRequest": {
         "properties": {
@@ -87232,11 +87369,30 @@
             ],
             "title": "Name",
             "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
           }
         },
         "type": "object",
         "title": "GroupTestApiRequest",
-        "description": "Request model for test group endpoint."
+        "description": "Request body for POST /test/group."
       },
       "GroupTestApiResponse": {
         "properties": {
@@ -87270,6 +87426,34 @@
             ],
             "title": "Name",
             "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -87277,7 +87461,7 @@
           "group_id"
         ],
         "title": "GroupTestApiResponse",
-        "description": "Response model for test group endpoint."
+        "description": "Response body for POST /test/group."
       },
       "GroupToolApiRequest": {
         "properties": {
@@ -87328,7 +87512,7 @@
         },
         "type": "object",
         "title": "GroupToolApiRequest",
-        "description": "Request model for tool group endpoint."
+        "description": "Request body for POST /tool/group."
       },
       "GroupToolApiResponse": {
         "properties": {
@@ -87375,6 +87559,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           }
         },
         "type": "object",
@@ -87382,7 +87581,7 @@
           "group_id"
         ],
         "title": "GroupToolApiResponse",
-        "description": "Response model for tool group endpoint."
+        "description": "Response body for POST /tool/group."
       },
       "HTTPValidationError": {
         "properties": {
@@ -87981,20 +88180,6 @@
         "title": "HistoryResponse",
         "description": "Paginated attempt history list."
       },
-      "HomeStartRequest": {
-        "properties": {
-          "home_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Home Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "home_id"
-        ],
-        "title": "HomeStartRequest"
-      },
       "ImageDownloadAttemptApiRequest": {
         "properties": {
           "image_id": {
@@ -88345,7 +88530,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -88353,6 +88539,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -96379,17 +96577,6 @@
             ],
             "description": "Department filter options"
           },
-          "agent_filter": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ListFilterSection"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Agent filter options"
-          },
           "creatable_filter": {
             "anyOf": [
               {
@@ -97078,7 +97265,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -97086,6 +97274,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -97918,24 +98118,6 @@
         "title": "NameGroupApiResponse",
         "description": "Response model for group name endpoint."
       },
-      "NextAttemptApiResponse": {
-        "properties": {
-          "attempt_id": {
-            "type": "string",
-            "title": "Attempt Id"
-          },
-          "chat_id": {
-            "type": "string",
-            "title": "Chat Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "attempt_id",
-          "chat_id"
-        ],
-        "title": "NextAttemptApiResponse"
-      },
       "NextTestApiResponse": {
         "properties": {
           "invocation_id": {
@@ -98511,7 +98693,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -98519,6 +98702,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -103288,7 +103483,7 @@
               }
             ],
             "title": "Icon",
-            "description": "Icon identifier value (creates new resource if icon_id not provided)"
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "icon_id": {
             "anyOf": [
@@ -105058,7 +105253,7 @@
             "title": "Color Ids",
             "description": "Color resource UUIDs"
           },
-          "profile_ids": {
+          "logins_ids": {
             "anyOf": [
               {
                 "items": {
@@ -105071,10 +105266,10 @@
                 "type": "null"
               }
             ],
-            "title": "Profile Ids",
-            "description": "Profile UUIDs to assign"
+            "title": "Logins Ids",
+            "description": "Logins resource UUIDs to assign"
           },
-          "auth_ids": {
+          "system_ids": {
             "anyOf": [
               {
                 "items": {
@@ -105087,8 +105282,37 @@
                 "type": "null"
               }
             ],
-            "title": "Auth Ids",
-            "description": "Auth provider UUIDs"
+            "title": "System Ids",
+            "description": "System UUIDs to assign"
+          },
+          "mcp_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Id",
+            "description": "MCP resource UUID to assign (single)"
+          },
+          "threshold_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold Ids",
+            "description": "Threshold UUIDs to assign"
           },
           "provider_key_ids": {
             "anyOf": [
@@ -105122,7 +105346,7 @@
             "title": "Auth Item Key Ids",
             "description": "Auth item key UUIDs"
           },
-          "system_ids": {
+          "auth_item_value_ids": {
             "anyOf": [
               {
                 "items": {
@@ -105135,8 +105359,8 @@
                 "type": "null"
               }
             ],
-            "title": "System Ids",
-            "description": "System UUIDs to assign"
+            "title": "Auth Item Value Ids",
+            "description": "Auth item value UUIDs"
           },
           "pending_ids": {
             "anyOf": [
@@ -105830,19 +106054,6 @@
             "title": "Permission Ids",
             "description": "Permission identifiers"
           },
-          "agent_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Agent Id",
-            "description": "Delegate agent for tool execution"
-          },
           "pending_ids": {
             "anyOf": [
               {
@@ -106255,7 +106466,20 @@
               }
             ],
             "title": "Id",
-            "description": "UUID of the persona"
+            "description": "UUID of the persona resource"
+          },
+          "entry_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Id",
+            "description": "UUID of the personas_entry (pass as persona_id)"
           },
           "name": {
             "anyOf": [
@@ -106426,13 +106650,26 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Icon Id"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -107253,49 +107490,6 @@
         "type": "object",
         "title": "PersonaVoiceResource",
         "description": "Voice resource for persona."
-      },
-      "PracticeStartRequest": {
-        "properties": {
-          "practice_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Practice Id"
-          },
-          "infinite_mode": {
-            "type": "boolean",
-            "title": "Infinite Mode",
-            "default": false
-          }
-        },
-        "type": "object",
-        "required": [
-          "practice_id"
-        ],
-        "title": "PracticeStartRequest"
-      },
-      "PreviousAttemptApiResponse": {
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "title": "Success"
-          },
-          "message": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "success"
-        ],
-        "title": "PreviousAttemptApiResponse"
       },
       "PreviousChatOption": {
         "properties": {
@@ -109733,19 +109927,6 @@
             "title": "Session Id",
             "description": "Current session UUID"
           },
-          "group_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Group Id",
-            "description": "Active group UUID for generation panel"
-          },
           "is_emulation": {
             "anyOf": [
               {
@@ -109974,7 +110155,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -109982,6 +110164,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -110222,6 +110416,18 @@
             "title": "Icon Id",
             "description": "Icon identifier for the role"
           },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
+          },
           "color_id": {
             "anyOf": [
               {
@@ -110355,19 +110561,6 @@
               }
             ],
             "description": "Theme primitives (ThemeHydrator)"
-          },
-          "group_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Group Id",
-            "description": "Active generation group UUID (GroupProvider)"
           },
           "session_id": {
             "anyOf": [
@@ -110744,7 +110937,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -110752,6 +110946,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -114342,7 +114548,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -114350,6 +114557,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -115542,6 +115761,19 @@
             "title": "Description",
             "description": "Document description text"
           },
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id",
+            "description": "UUID of the files_resource (used for download)"
+          },
           "file_path": {
             "anyOf": [
               {
@@ -115884,6 +116116,19 @@
       },
       "ScenarioField": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "UUID of the parameter_fields_resource junction row; required by the client picker to select a field"
+          },
           "field_id": {
             "anyOf": [
               {
@@ -116042,7 +116287,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -116050,6 +116296,18 @@
             ],
             "title": "Icon Id",
             "description": "UUID of the selected icon resource"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -119385,21 +119643,6 @@
             ],
             "title": "Filter Department Ids"
           },
-          "filter_agent_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Filter Agent Ids"
-          },
           "filter_creatable": {
             "anyOf": [
               {
@@ -119424,17 +119667,6 @@
               }
             ],
             "title": "Department Search"
-          },
-          "agent_search": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Agent Search"
           },
           "page_size": {
             "anyOf": [
@@ -120418,6 +120650,116 @@
         "title": "SessionTimelineItem",
         "description": "Single event in the unified session timeline."
       },
+      "SettingAgentCatalogResource": {
+        "properties": {
+          "agent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Id",
+            "description": "Agent identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Agent display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Agent description"
+          }
+        },
+        "type": "object",
+        "title": "SettingAgentCatalogResource"
+      },
+      "SettingAuthCatalogResource": {
+        "properties": {
+          "auth_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Id",
+            "description": "Auth provider identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Auth display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Auth description"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "Auth slug"
+          },
+          "protocol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol",
+            "description": "Auth protocol"
+          }
+        },
+        "type": "object",
+        "title": "SettingAuthCatalogResource"
+      },
       "SettingAuthItemKeyResource": {
         "properties": {
           "id": {
@@ -120506,8 +120848,21 @@
         "type": "object",
         "title": "SettingAuthItemKeyResource"
       },
-      "SettingAuthResource": {
+      "SettingAuthItemValueResource": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Auth item value identifier"
+          },
           "auth_id": {
             "anyOf": [
               {
@@ -120519,9 +120874,22 @@
               }
             ],
             "title": "Auth Id",
-            "description": "Auth identifier"
+            "description": "Auth provider identifier"
           },
-          "name": {
+          "item_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Id",
+            "description": "Claim item identifier"
+          },
+          "value": {
             "anyOf": [
               {
                 "type": "string"
@@ -120530,44 +120898,8 @@
                 "type": "null"
               }
             ],
-            "title": "Name",
-            "description": "Auth display name"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description",
-            "description": "Auth description"
-          },
-          "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Slug",
-            "description": "Auth slug"
-          },
-          "protocol": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Protocol",
-            "description": "Auth protocol"
+            "title": "Value",
+            "description": "Literal claim value"
           },
           "generated": {
             "anyOf": [
@@ -120579,7 +120911,7 @@
               }
             ],
             "title": "Generated",
-            "description": "Whether the auth was AI-generated"
+            "description": "Whether the value was AI-generated"
           },
           "suggested": {
             "type": "boolean",
@@ -120601,7 +120933,7 @@
           }
         },
         "type": "object",
-        "title": "SettingAuthResource"
+        "title": "SettingAuthItemValueResource"
       },
       "SettingColorResource": {
         "properties": {
@@ -120870,7 +121202,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -120878,6 +121211,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -120942,6 +121287,128 @@
         ],
         "title": "SettingFlagConfig"
       },
+      "SettingIconCatalogResource": {
+        "properties": {
+          "icon_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Id",
+            "description": "Icon identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Icon display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Icon description"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Icon value (SVG markup or slug)"
+          }
+        },
+        "type": "object",
+        "title": "SettingIconCatalogResource"
+      },
+      "SettingItemCatalogResource": {
+        "properties": {
+          "item_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Id",
+            "description": "Claim item identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Claim item display name (e.g. clientId)"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Claim item description"
+          },
+          "encrypted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encrypted",
+            "description": "Whether the item value must be stored encrypted"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position",
+            "description": "Display ordering position"
+          }
+        },
+        "type": "object",
+        "title": "SettingItemCatalogResource"
+      },
       "SettingKeyCatalogResource": {
         "properties": {
           "key_id": {
@@ -120996,6 +121463,216 @@
         },
         "type": "object",
         "title": "SettingKeyCatalogResource"
+      },
+      "SettingLoginsResource": {
+        "properties": {
+          "logins_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logins Id",
+            "description": "Logins resource identifier"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id",
+            "description": "Profile for test login"
+          },
+          "auth_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Id",
+            "description": "Auth provider for OIDC login"
+          },
+          "icon_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Id",
+            "description": "Icon for login button"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "Display text for login button"
+          },
+          "login_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Login Type",
+            "description": "Login type: 'auth' or 'profile'"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "SettingLoginsResource"
+      },
+      "SettingMcpResource": {
+        "properties": {
+          "mcp_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Id",
+            "description": "MCP resource identifier"
+          },
+          "agent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Id",
+            "description": "Agent providing MCP tools"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "MCP config display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "MCP config description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "SettingMcpResource"
       },
       "SettingNameResource": {
         "properties": {
@@ -121058,7 +121735,7 @@
         "type": "object",
         "title": "SettingNameResource"
       },
-      "SettingProfileResource": {
+      "SettingProfileCatalogResource": {
         "properties": {
           "profile_id": {
             "anyOf": [
@@ -121096,40 +121773,10 @@
             ],
             "title": "Description",
             "description": "Profile description"
-          },
-          "generated": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Generated",
-            "description": "Whether the profile was AI-generated"
-          },
-          "suggested": {
-            "type": "boolean",
-            "title": "Suggested",
-            "description": "Whether this item is suggested",
-            "default": false
-          },
-          "selected": {
-            "type": "boolean",
-            "title": "Selected",
-            "description": "Whether this item is selected",
-            "default": false
-          },
-          "pending": {
-            "type": "boolean",
-            "title": "Pending",
-            "description": "Whether this item is pending acceptance",
-            "default": false
           }
         },
         "type": "object",
-        "title": "SettingProfileResource"
+        "title": "SettingProfileCatalogResource"
       },
       "SettingProviderCatalogResource": {
         "properties": {
@@ -121439,6 +122086,79 @@
         },
         "type": "object",
         "title": "SettingSystemResource"
+      },
+      "SettingThresholdResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Threshold resource identifier"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Threshold type (e.g. 'success')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Threshold integer value"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "SettingThresholdResource"
       },
       "SimulationData": {
         "properties": {
@@ -121753,7 +122473,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -121761,6 +122482,18 @@
             ],
             "title": "Icon Id",
             "description": "UUID of the selected icon resource"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -122943,41 +123676,6 @@
         "title": "StandardMeta",
         "description": "Standard metadata for rubric display."
       },
-      "StartAttemptApiResponse": {
-        "properties": {
-          "attempt_id": {
-            "type": "string",
-            "title": "Attempt Id"
-          },
-          "chat_entry_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Chat Entry Id"
-          },
-          "attempt_chat_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Attempt Chat Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "attempt_id"
-        ],
-        "title": "StartAttemptApiResponse"
-      },
       "StartTestApiResponse": {
         "properties": {
           "test_id": {
@@ -123011,35 +123709,6 @@
         ],
         "title": "StarterPrompt",
         "description": "Starter prompt for the generation panel."
-      },
-      "StopChatApiResponse": {
-        "properties": {
-          "chat_id": {
-            "type": "string",
-            "title": "Chat Id"
-          },
-          "success": {
-            "type": "boolean",
-            "title": "Success"
-          },
-          "message": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "chat_id",
-          "success"
-        ],
-        "title": "StopChatApiResponse"
       },
       "StopTestApiResponse": {
         "properties": {
@@ -129918,7 +130587,7 @@
             "title": "Color Ids",
             "description": "Color resource UUIDs"
           },
-          "profile_ids": {
+          "logins_ids": {
             "anyOf": [
               {
                 "items": {
@@ -129931,10 +130600,10 @@
                 "type": "null"
               }
             ],
-            "title": "Profile Ids",
-            "description": "Profile UUIDs to assign"
+            "title": "Logins Ids",
+            "description": "Logins resource UUIDs to assign"
           },
-          "auth_ids": {
+          "system_ids": {
             "anyOf": [
               {
                 "items": {
@@ -129947,8 +130616,37 @@
                 "type": "null"
               }
             ],
-            "title": "Auth Ids",
-            "description": "Auth provider UUIDs"
+            "title": "System Ids",
+            "description": "System UUIDs to assign"
+          },
+          "mcp_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Id",
+            "description": "MCP resource UUID to assign (single)"
+          },
+          "threshold_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold Ids",
+            "description": "Threshold UUIDs to assign"
           },
           "provider_key_ids": {
             "anyOf": [
@@ -129997,38 +130695,6 @@
             ],
             "title": "Auth Item Value Ids",
             "description": "Auth item value UUIDs"
-          },
-          "system_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "System Ids",
-            "description": "System UUIDs to assign"
-          },
-          "threshold_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Threshold Ids",
-            "description": "Threshold UUIDs to assign"
           },
           "setting_resource_ids": {
             "anyOf": [
@@ -130816,6 +131482,18 @@
             ],
             "title": "Description",
             "description": "Description of the video"
+          },
+          "length_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Length Seconds",
+            "description": "Duration of the video in seconds"
           }
         },
         "type": "object",
@@ -134732,23 +135410,45 @@
             "title": "Color Ids",
             "description": "Assigned color UUIDs"
           },
-          "profile_ids": {
+          "logins_ids": {
             "items": {
               "type": "string",
               "format": "uuid"
             },
             "type": "array",
-            "title": "Profile Ids",
-            "description": "Assigned profile UUIDs"
+            "title": "Logins Ids",
+            "description": "Assigned logins resource UUIDs"
           },
-          "auth_ids": {
+          "system_ids": {
             "items": {
               "type": "string",
               "format": "uuid"
             },
             "type": "array",
-            "title": "Auth Ids",
-            "description": "Assigned auth provider UUIDs"
+            "title": "System Ids",
+            "description": "Assigned system UUIDs"
+          },
+          "mcp_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Id",
+            "description": "Assigned MCP resource UUID"
+          },
+          "threshold_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Threshold Ids",
+            "description": "Assigned threshold UUIDs"
           },
           "provider_key_ids": {
             "items": {
@@ -134768,14 +135468,14 @@
             "title": "Auth Item Key Ids",
             "description": "Assigned auth item key UUIDs"
           },
-          "system_ids": {
+          "auth_item_value_ids": {
             "items": {
               "type": "string",
               "format": "uuid"
             },
             "type": "array",
-            "title": "System Ids",
-            "description": "Assigned system UUIDs"
+            "title": "Auth Item Value Ids",
+            "description": "Assigned auth item value UUIDs"
           },
           "pending_ids": {
             "items": {
@@ -135239,19 +135939,6 @@
             "type": "array",
             "title": "Permission Ids",
             "description": "Permission identifiers"
-          },
-          "agent_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Agent Id",
-            "description": "Delegate agent identifier"
           },
           "pending_ids": {
             "items": {

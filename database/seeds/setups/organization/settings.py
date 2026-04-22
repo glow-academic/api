@@ -4,7 +4,6 @@ References pre-existing auth, system, and threshold resources from modules 01-10
 Provider keys and auth item keys are created by the keys module and linked here.
 """
 
-from database.seeds.auths import AUTH_RESOURCE_IDS
 from database.seeds.ids import sid
 from database.seeds.logins import AUTH_LOGIN_IDS
 from database.seeds.setups.organization.departments import (
@@ -55,7 +54,6 @@ settings = [
         description="Settings for the Organization department",
         active_flag=True,
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
-        auth_ids=list(AUTH_RESOURCE_IDS.values()),
         provider_key_ids=PROVIDER_KEY_IDS,
         auth_item_key_ids=AUTH_ITEM_KEY_IDS,
         system_ids=SYSTEMS,

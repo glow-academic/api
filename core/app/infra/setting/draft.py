@@ -203,16 +203,17 @@ async def patch_setting_draft_impl(
                             soft=False,
                             agent_ids=draft.agent_ids,
                             auth_item_key_ids=draft.auth_item_key_ids,
-                            auth_ids=draft.auth_ids,
                             color_ids=draft.color_ids,
                             department_ids=draft.department_ids,
                             description_ids=draft.description_ids,
                             flag_ids=draft.flag_ids,
                             item_ids=draft.item_ids,
                             name_ids=draft.name_ids,
-                            profile_ids=draft.profile_ids or [profile.profiles_id],
+                            profile_ids=[profile.profiles_id],
                             provider_key_ids=draft.provider_key_ids,
                             threshold_ids=draft.threshold_ids,
+                            mcp_ids=draft.mcp_ids,
+                            logins_ids=draft.logins_ids,
                             pending_ids=set(),
                         )
             await refresh_setting_impl(
@@ -238,11 +239,6 @@ async def patch_setting_draft_impl(
 
     pending_ids = set(request.pending_ids or [])
     target_draft_id = resolved_draft_id or idempotency_key
-    draft_profile_ids = list(
-        dict.fromkeys(
-            [profile.profiles_id] + list(request.profile_ids or [])
-        )
-    )
 
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -253,14 +249,16 @@ async def patch_setting_draft_impl(
                 soft=soft,
                 agent_ids=request.system_ids,
                 auth_item_key_ids=request.auth_item_key_ids,
-                auth_ids=request.auth_ids,
                 color_ids=request.color_ids,
                 department_ids=request.department_ids,
                 description_ids=[request.description_id] if request.description_id else None,
                 flag_ids=[request.active_flag_id] if request.active_flag_id else None,
                 name_ids=[request.name_id] if request.name_id else None,
-                profile_ids=draft_profile_ids,
+                profile_ids=[profile.profiles_id],
                 provider_key_ids=request.provider_key_ids,
+                threshold_ids=request.threshold_ids,
+                mcp_ids=[request.mcp_id] if request.mcp_id else None,
+                logins_ids=request.logins_ids,
                 pending_ids=pending_ids,
             )
 
@@ -285,11 +283,13 @@ async def patch_setting_draft_impl(
         flag_id=request.active_flag_id,
         department_ids=request.department_ids or [],
         color_ids=request.color_ids or [],
-        profile_ids=request.profile_ids or [],
-        auth_ids=request.auth_ids or [],
+        logins_ids=request.logins_ids or [],
+        system_ids=request.system_ids or [],
+        mcp_id=request.mcp_id,
+        threshold_ids=request.threshold_ids or [],
         provider_key_ids=request.provider_key_ids or [],
         auth_item_key_ids=request.auth_item_key_ids or [],
-        system_ids=request.system_ids or [],
+        auth_item_value_ids=request.auth_item_value_ids or [],
         pending_ids=sorted(pending_ids),
     )
 

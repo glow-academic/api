@@ -16,6 +16,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.flag_icons import hydrate_flag_icons
 from app.infra.types import ArtifactContext, ResourcePair
 
 # Artifact + draft fetchers
@@ -344,9 +345,14 @@ async def resolve_scenario_context(
         if not param_ids:
             return []
         async with pool.acquire() as conn:
+            # Each expanded parameter can have many fields; the default 20
+            # truncates multi-parameter pages (e.g. 7 params × 6 fields = 42
+            # → last parameters render empty). Raise to a ceiling that
+            # covers any realistic scenario.
             return await search_parameter_fields(
                 conn,
                 redis,
+                limit_count=500,
                 parameter_ids=param_ids,
                 bypass_cache=bypass_cache,
             )
@@ -499,6 +505,13 @@ async def resolve_scenario_context(
     flags_suggestions_filtered = [
         f for f in flags_suggestions if getattr(f, "type", None) in SCENARIO_FLAG_TYPES
     ]
+
+    # Hydrate SVG icons onto each flag (icon_id → icon markup). Kept separate
+    # from get_flags so the tool stays a pure data-access layer.
+    async with pool.acquire() as conn:
+        await hydrate_flag_icons(
+            flags_selected + flags_suggestions_filtered, conn, redis, bypass_cache
+        )
 
     # Fetch conditional_parameters for field→parameter nesting
     all_cond_ids: list[UUID] = []

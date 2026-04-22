@@ -319,6 +319,8 @@ async def get_document_impl(
                     key=key,
                     label=label,
                     description=getattr(item, "description", None),
+                    icon_id=getattr(item, "icon_id", None),
+                    icon=getattr(item, "icon", None),
                     flag_option_id=item.id,
                     generated=getattr(item, "generated", None),
                     suggested=suggested,

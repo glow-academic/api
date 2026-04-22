@@ -318,6 +318,7 @@ async def get_rubric_impl(
             label=_derive_flag_key_and_label(getattr(item, "name", None) or getattr(item, "type", None))[1],
             description=item.description,
             icon_id=item.icon_id,
+            icon=getattr(item, "icon", None),
             flag_option_id=item.id,
             show=show_flags_map["flags"],
             required=required_flags_map["flags"],

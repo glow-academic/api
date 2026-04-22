@@ -6558,7 +6558,7 @@
           "rubric"
         ],
         "summary": "Export Rubrics",
-        "description": "Export all rubrics as a clean, denormalized CSV.",
+        "description": "Export a rubric as a PDF (optionally filled with grade data).",
         "operationId": "export_rubrics_rubric_export_post",
         "requestBody": {
           "content": {
@@ -6574,11 +6574,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExportRubricApiResponse"
-                }
-              }
+              "application/pdf": {}
             }
           },
           "422": {
@@ -40177,7 +40173,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -40185,6 +40182,18 @@
             ],
             "title": "Icon Id",
             "description": "UUID of the selected icon resource"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -44294,7 +44303,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -44302,6 +44312,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -46033,6 +46055,114 @@
             "title": "Audio Enabled",
             "description": "Whether audio input is enabled"
           },
+          "hints_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hints Enabled",
+            "description": "Whether hints should be generated on replies"
+          },
+          "analyses_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyses Enabled",
+            "description": "Whether chat-level analyses run during grading"
+          },
+          "strengths_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strengths Enabled",
+            "description": "Whether strengths are captured during grading"
+          },
+          "improvements_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Improvements Enabled",
+            "description": "Whether improvements are captured during grading"
+          },
+          "problem_statement_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Statement Enabled",
+            "description": "Whether this chat has a problem statement capability"
+          },
+          "objectives_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objectives Enabled",
+            "description": "Whether this chat has objectives capability"
+          },
+          "video_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Enabled",
+            "description": "Whether this chat has a video capability"
+          },
+          "images_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Images Enabled",
+            "description": "Whether this chat has an images capability"
+          },
+          "questions_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questions Enabled",
+            "description": "Whether this chat has a quiz/questions capability"
+          },
           "grading_state": {
             "anyOf": [
               {
@@ -46417,6 +46547,114 @@
             ],
             "title": "Audio Enabled",
             "description": "Whether audio input is enabled"
+          },
+          "hints_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hints Enabled",
+            "description": "Whether hints should be generated on replies"
+          },
+          "analyses_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyses Enabled",
+            "description": "Whether chat-level analyses run during grading"
+          },
+          "strengths_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strengths Enabled",
+            "description": "Whether strengths are captured during grading"
+          },
+          "improvements_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Improvements Enabled",
+            "description": "Whether improvements are captured during grading"
+          },
+          "problem_statement_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Statement Enabled",
+            "description": "Whether this chat has a problem statement capability"
+          },
+          "objectives_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objectives Enabled",
+            "description": "Whether this chat has objectives capability"
+          },
+          "video_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Enabled",
+            "description": "Whether this chat has a video capability"
+          },
+          "images_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Images Enabled",
+            "description": "Whether this chat has an images capability"
+          },
+          "questions_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questions Enabled",
+            "description": "Whether this chat has a quiz/questions capability"
           },
           "grading_state": {
             "anyOf": [
@@ -47724,6 +47962,11 @@
               }
             ],
             "title": "Parent Message Id"
+          },
+          "auto_link_parent": {
+            "type": "boolean",
+            "title": "Auto Link Parent",
+            "default": true
           }
         },
         "type": "object",
@@ -49139,7 +49382,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -49147,6 +49391,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -55969,7 +56225,7 @@
             "title": "Color Ids",
             "description": "Color resource UUIDs"
           },
-          "profile_ids": {
+          "logins_ids": {
             "anyOf": [
               {
                 "items": {
@@ -55982,10 +56238,10 @@
                 "type": "null"
               }
             ],
-            "title": "Profile Ids",
-            "description": "Profile UUIDs to assign"
+            "title": "Logins Ids",
+            "description": "Logins resource UUIDs to assign"
           },
-          "auth_ids": {
+          "system_ids": {
             "anyOf": [
               {
                 "items": {
@@ -55998,8 +56254,37 @@
                 "type": "null"
               }
             ],
-            "title": "Auth Ids",
-            "description": "Auth provider UUIDs"
+            "title": "System Ids",
+            "description": "System UUIDs to assign"
+          },
+          "mcp_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Id",
+            "description": "MCP resource UUID to assign (single)"
+          },
+          "threshold_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold Ids",
+            "description": "Threshold UUIDs to assign"
           },
           "provider_key_ids": {
             "anyOf": [
@@ -56048,70 +56333,6 @@
             ],
             "title": "Auth Item Value Ids",
             "description": "Auth item value UUIDs"
-          },
-          "system_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "System Ids",
-            "description": "System UUIDs to assign"
-          },
-          "mcp_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Mcp Ids",
-            "description": "MCP resource UUIDs to assign"
-          },
-          "logins_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Logins Ids",
-            "description": "Logins resource UUIDs to assign"
-          },
-          "threshold_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Threshold Ids",
-            "description": "Threshold UUIDs to assign"
           },
           "setting_resource_ids": {
             "anyOf": [
@@ -60297,7 +60518,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -60305,6 +60527,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -63718,7 +63952,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -63726,6 +63961,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -65521,6 +65768,12 @@
       "ExportRubricApiRequest": {
         "properties": {
           "rubric_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Rubric Id",
+            "description": "Rubric UUID to export"
+          },
+          "chat_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -65530,10 +65783,14 @@
                 "type": "null"
               }
             ],
-            "title": "Rubric Id"
+            "title": "Chat Id",
+            "description": "Optional attempt chat UUID. When provided, the PDF highlights achieved/passed standards and renders per-standard feedback resolved from the chat's latest grade. Without it, an empty rubric template is returned."
           }
         },
         "type": "object",
+        "required": [
+          "rubric_id"
+        ],
         "title": "ExportRubricApiRequest",
         "description": "Request model for rubric export."
       },
@@ -66318,7 +66575,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -66326,6 +66584,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -83577,7 +83847,7 @@
             ],
             "description": "Filter options for departments"
           },
-          "profiles": {
+          "logins": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
@@ -83586,9 +83856,9 @@
                 "type": "null"
               }
             ],
-            "description": "Filter options for profiles"
+            "description": "Filter options for logins"
           },
-          "auths": {
+          "systems": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
@@ -83597,7 +83867,29 @@
                 "type": "null"
               }
             ],
-            "description": "Filter options for auths"
+            "description": "Filter options for systems"
+          },
+          "mcp": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for MCP configs"
+          },
+          "thresholds": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for thresholds"
           },
           "provider_keys": {
             "anyOf": [
@@ -83621,7 +83913,7 @@
             ],
             "description": "Filter options for auth item keys"
           },
-          "systems": {
+          "auth_item_values": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/app__infra__setting__types__SectionFilter"
@@ -83630,7 +83922,7 @@
                 "type": "null"
               }
             ],
-            "description": "Filter options for systems"
+            "description": "Filter options for auth item values"
           }
         },
         "type": "object",
@@ -83815,11 +84107,11 @@
             "title": "Departments",
             "description": "Department resources"
           },
-          "profiles": {
+          "logins": {
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/SettingProfileResource"
+                  "$ref": "#/components/schemas/SettingLoginsResource"
                 },
                 "type": "array"
               },
@@ -83827,14 +84119,14 @@
                 "type": "null"
               }
             ],
-            "title": "Profiles",
-            "description": "Profile resources"
+            "title": "Logins",
+            "description": "Logins resources"
           },
-          "auths": {
+          "systems": {
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/SettingAuthResource"
+                  "$ref": "#/components/schemas/SettingSystemResource"
                 },
                 "type": "array"
               },
@@ -83842,8 +84134,38 @@
                 "type": "null"
               }
             ],
-            "title": "Auths",
-            "description": "Auth resources"
+            "title": "Systems",
+            "description": "System resources"
+          },
+          "mcp": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingMcpResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp",
+            "description": "MCP resources"
+          },
+          "thresholds": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingThresholdResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thresholds",
+            "description": "Threshold resources"
           },
           "provider_keys": {
             "anyOf": [
@@ -83875,11 +84197,11 @@
             "title": "Auth Item Keys",
             "description": "Auth item key resources"
           },
-          "systems": {
+          "auth_item_values": {
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/SettingSystemResource"
+                  "$ref": "#/components/schemas/SettingAuthItemValueResource"
                 },
                 "type": "array"
               },
@@ -83887,8 +84209,8 @@
                 "type": "null"
               }
             ],
-            "title": "Systems",
-            "description": "System resources"
+            "title": "Auth Item Values",
+            "description": "Auth item value resources"
           },
           "providers": {
             "anyOf": [
@@ -83919,6 +84241,81 @@
             ],
             "title": "Keys",
             "description": "Key catalog used by provider key and auth item key editing"
+          },
+          "items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingItemCatalogResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Items",
+            "description": "Claim item catalog used by auth item key/value editing"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingProfileCatalogResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "Profile catalog used by logins editing"
+          },
+          "auths": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingAuthCatalogResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auths",
+            "description": "Auth catalog used by logins and auth item editing"
+          },
+          "icons": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingIconCatalogResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icons",
+            "description": "Icon catalog used by logins editing"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingAgentCatalogResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "Agent catalog used by mcp and systems editing"
           }
         },
         "type": "object",
@@ -91085,7 +91482,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -91093,6 +91491,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -99807,7 +100217,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -99815,6 +100226,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -101222,7 +101645,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -101230,6 +101654,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -105999,7 +106435,7 @@
               }
             ],
             "title": "Icon",
-            "description": "Icon identifier value (creates new resource if icon_id not provided)"
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "icon_id": {
             "anyOf": [
@@ -107769,7 +108205,7 @@
             "title": "Color Ids",
             "description": "Color resource UUIDs"
           },
-          "profile_ids": {
+          "logins_ids": {
             "anyOf": [
               {
                 "items": {
@@ -107782,10 +108218,10 @@
                 "type": "null"
               }
             ],
-            "title": "Profile Ids",
-            "description": "Profile UUIDs to assign"
+            "title": "Logins Ids",
+            "description": "Logins resource UUIDs to assign"
           },
-          "auth_ids": {
+          "system_ids": {
             "anyOf": [
               {
                 "items": {
@@ -107798,8 +108234,37 @@
                 "type": "null"
               }
             ],
-            "title": "Auth Ids",
-            "description": "Auth provider UUIDs"
+            "title": "System Ids",
+            "description": "System UUIDs to assign"
+          },
+          "mcp_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Id",
+            "description": "MCP resource UUID to assign (single)"
+          },
+          "threshold_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold Ids",
+            "description": "Threshold UUIDs to assign"
           },
           "provider_key_ids": {
             "anyOf": [
@@ -107833,7 +108298,7 @@
             "title": "Auth Item Key Ids",
             "description": "Auth item key UUIDs"
           },
-          "system_ids": {
+          "auth_item_value_ids": {
             "anyOf": [
               {
                 "items": {
@@ -107846,8 +108311,8 @@
                 "type": "null"
               }
             ],
-            "title": "System Ids",
-            "description": "System UUIDs to assign"
+            "title": "Auth Item Value Ids",
+            "description": "Auth item value UUIDs"
           },
           "pending_ids": {
             "anyOf": [
@@ -109137,13 +109602,26 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Icon Id"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -112629,7 +113107,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -112637,6 +113116,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -112876,6 +113367,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the role"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "color_id": {
             "anyOf": [
@@ -113386,7 +113889,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -113394,6 +113898,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -116984,7 +117500,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -116992,6 +117509,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -118539,6 +119068,19 @@
       },
       "ScenarioField": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "UUID of the parameter_fields_resource junction row; required by the client picker to select a field"
+          },
           "field_id": {
             "anyOf": [
               {
@@ -118697,7 +119239,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -118705,6 +119248,18 @@
             ],
             "title": "Icon Id",
             "description": "UUID of the selected icon resource"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -123047,6 +123602,116 @@
         "title": "SessionTimelineItem",
         "description": "Single event in the unified session timeline."
       },
+      "SettingAgentCatalogResource": {
+        "properties": {
+          "agent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Id",
+            "description": "Agent identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Agent display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Agent description"
+          }
+        },
+        "type": "object",
+        "title": "SettingAgentCatalogResource"
+      },
+      "SettingAuthCatalogResource": {
+        "properties": {
+          "auth_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Id",
+            "description": "Auth provider identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Auth display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Auth description"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "Auth slug"
+          },
+          "protocol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol",
+            "description": "Auth protocol"
+          }
+        },
+        "type": "object",
+        "title": "SettingAuthCatalogResource"
+      },
       "SettingAuthItemKeyResource": {
         "properties": {
           "id": {
@@ -123135,8 +123800,21 @@
         "type": "object",
         "title": "SettingAuthItemKeyResource"
       },
-      "SettingAuthResource": {
+      "SettingAuthItemValueResource": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Auth item value identifier"
+          },
           "auth_id": {
             "anyOf": [
               {
@@ -123148,9 +123826,22 @@
               }
             ],
             "title": "Auth Id",
-            "description": "Auth identifier"
+            "description": "Auth provider identifier"
           },
-          "name": {
+          "item_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Id",
+            "description": "Claim item identifier"
+          },
+          "value": {
             "anyOf": [
               {
                 "type": "string"
@@ -123159,44 +123850,8 @@
                 "type": "null"
               }
             ],
-            "title": "Name",
-            "description": "Auth display name"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description",
-            "description": "Auth description"
-          },
-          "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Slug",
-            "description": "Auth slug"
-          },
-          "protocol": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Protocol",
-            "description": "Auth protocol"
+            "title": "Value",
+            "description": "Literal claim value"
           },
           "generated": {
             "anyOf": [
@@ -123208,7 +123863,7 @@
               }
             ],
             "title": "Generated",
-            "description": "Whether the auth was AI-generated"
+            "description": "Whether the value was AI-generated"
           },
           "suggested": {
             "type": "boolean",
@@ -123230,7 +123885,7 @@
           }
         },
         "type": "object",
-        "title": "SettingAuthResource"
+        "title": "SettingAuthItemValueResource"
       },
       "SettingColorResource": {
         "properties": {
@@ -123499,7 +124154,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -123507,6 +124163,18 @@
             ],
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -123571,6 +124239,128 @@
         ],
         "title": "SettingFlagConfig"
       },
+      "SettingIconCatalogResource": {
+        "properties": {
+          "icon_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Id",
+            "description": "Icon identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Icon display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Icon description"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Icon value (SVG markup or slug)"
+          }
+        },
+        "type": "object",
+        "title": "SettingIconCatalogResource"
+      },
+      "SettingItemCatalogResource": {
+        "properties": {
+          "item_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Id",
+            "description": "Claim item identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Claim item display name (e.g. clientId)"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Claim item description"
+          },
+          "encrypted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encrypted",
+            "description": "Whether the item value must be stored encrypted"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position",
+            "description": "Display ordering position"
+          }
+        },
+        "type": "object",
+        "title": "SettingItemCatalogResource"
+      },
       "SettingKeyCatalogResource": {
         "properties": {
           "key_id": {
@@ -123625,6 +124415,216 @@
         },
         "type": "object",
         "title": "SettingKeyCatalogResource"
+      },
+      "SettingLoginsResource": {
+        "properties": {
+          "logins_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logins Id",
+            "description": "Logins resource identifier"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id",
+            "description": "Profile for test login"
+          },
+          "auth_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Id",
+            "description": "Auth provider for OIDC login"
+          },
+          "icon_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Id",
+            "description": "Icon for login button"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "Display text for login button"
+          },
+          "login_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Login Type",
+            "description": "Login type: 'auth' or 'profile'"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "SettingLoginsResource"
+      },
+      "SettingMcpResource": {
+        "properties": {
+          "mcp_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Id",
+            "description": "MCP resource identifier"
+          },
+          "agent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Id",
+            "description": "Agent providing MCP tools"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "MCP config display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "MCP config description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "SettingMcpResource"
       },
       "SettingNameResource": {
         "properties": {
@@ -123687,7 +124687,7 @@
         "type": "object",
         "title": "SettingNameResource"
       },
-      "SettingProfileResource": {
+      "SettingProfileCatalogResource": {
         "properties": {
           "profile_id": {
             "anyOf": [
@@ -123725,40 +124725,10 @@
             ],
             "title": "Description",
             "description": "Profile description"
-          },
-          "generated": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Generated",
-            "description": "Whether the profile was AI-generated"
-          },
-          "suggested": {
-            "type": "boolean",
-            "title": "Suggested",
-            "description": "Whether this item is suggested",
-            "default": false
-          },
-          "selected": {
-            "type": "boolean",
-            "title": "Selected",
-            "description": "Whether this item is selected",
-            "default": false
-          },
-          "pending": {
-            "type": "boolean",
-            "title": "Pending",
-            "description": "Whether this item is pending acceptance",
-            "default": false
           }
         },
         "type": "object",
-        "title": "SettingProfileResource"
+        "title": "SettingProfileCatalogResource"
       },
       "SettingProviderCatalogResource": {
         "properties": {
@@ -124068,6 +125038,79 @@
         },
         "type": "object",
         "title": "SettingSystemResource"
+      },
+      "SettingThresholdResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Threshold resource identifier"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Threshold type (e.g. 'success')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Threshold integer value"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "SettingThresholdResource"
       },
       "SimulationData": {
         "properties": {
@@ -124382,7 +125425,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -124390,6 +125434,18 @@
             ],
             "title": "Icon Id",
             "description": "UUID of the selected icon resource"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
           "flag_option_id": {
             "anyOf": [
@@ -132483,7 +133539,7 @@
             "title": "Color Ids",
             "description": "Color resource UUIDs"
           },
-          "profile_ids": {
+          "logins_ids": {
             "anyOf": [
               {
                 "items": {
@@ -132496,10 +133552,10 @@
                 "type": "null"
               }
             ],
-            "title": "Profile Ids",
-            "description": "Profile UUIDs to assign"
+            "title": "Logins Ids",
+            "description": "Logins resource UUIDs to assign"
           },
-          "auth_ids": {
+          "system_ids": {
             "anyOf": [
               {
                 "items": {
@@ -132512,8 +133568,37 @@
                 "type": "null"
               }
             ],
-            "title": "Auth Ids",
-            "description": "Auth provider UUIDs"
+            "title": "System Ids",
+            "description": "System UUIDs to assign"
+          },
+          "mcp_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Id",
+            "description": "MCP resource UUID to assign (single)"
+          },
+          "threshold_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold Ids",
+            "description": "Threshold UUIDs to assign"
           },
           "provider_key_ids": {
             "anyOf": [
@@ -132562,38 +133647,6 @@
             ],
             "title": "Auth Item Value Ids",
             "description": "Auth item value UUIDs"
-          },
-          "system_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "System Ids",
-            "description": "System UUIDs to assign"
-          },
-          "threshold_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Threshold Ids",
-            "description": "Threshold UUIDs to assign"
           },
           "setting_resource_ids": {
             "anyOf": [
@@ -137309,23 +138362,45 @@
             "title": "Color Ids",
             "description": "Assigned color UUIDs"
           },
-          "profile_ids": {
+          "logins_ids": {
             "items": {
               "type": "string",
               "format": "uuid"
             },
             "type": "array",
-            "title": "Profile Ids",
-            "description": "Assigned profile UUIDs"
+            "title": "Logins Ids",
+            "description": "Assigned logins resource UUIDs"
           },
-          "auth_ids": {
+          "system_ids": {
             "items": {
               "type": "string",
               "format": "uuid"
             },
             "type": "array",
-            "title": "Auth Ids",
-            "description": "Assigned auth provider UUIDs"
+            "title": "System Ids",
+            "description": "Assigned system UUIDs"
+          },
+          "mcp_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Id",
+            "description": "Assigned MCP resource UUID"
+          },
+          "threshold_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Threshold Ids",
+            "description": "Assigned threshold UUIDs"
           },
           "provider_key_ids": {
             "items": {
@@ -137345,14 +138420,14 @@
             "title": "Auth Item Key Ids",
             "description": "Assigned auth item key UUIDs"
           },
-          "system_ids": {
+          "auth_item_value_ids": {
             "items": {
               "type": "string",
               "format": "uuid"
             },
             "type": "array",
-            "title": "System Ids",
-            "description": "Assigned system UUIDs"
+            "title": "Auth Item Value Ids",
+            "description": "Assigned auth item value UUIDs"
           },
           "pending_ids": {
             "items": {
