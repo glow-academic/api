@@ -38,6 +38,10 @@ on:
         description: 'LearnLoop API URL for license validation'
         required: false
         default: 'https://api.learn-loop.org'
+      ai_base_url:
+        description: 'LearnLoop AI gateway base URL (scope to prod/beta). Defaults to ${learnloop_api_url}/ai/v1.'
+        required: false
+        default: ''
       airgapped:
         description: 'If true, server has no public URL (internal only)'
         required: false
@@ -138,6 +142,12 @@ jobs:
           AI_API_KEY=$(jq -r '.ai_config.api_key // empty' < "$CLAIM_FILE")
           echo "DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN}" >> $GITHUB_ENV
           echo "LEARNLOOP_API_URL=${{ inputs.learnloop_api_url }}" >> $GITHUB_ENV
+          # AI base URL: explicit input > derived from learnloop_api_url (prod/beta scope)
+          if [ -n "${{ inputs.ai_base_url }}" ]; then
+            echo "AI_BASE_URL=${{ inputs.ai_base_url }}" >> $GITHUB_ENV
+          else
+            echo "AI_BASE_URL=${{ inputs.learnloop_api_url }}/ai/v1" >> $GITHUB_ENV
+          fi
           if [ -n "$SECRET_KEY" ]; then
             echo "SECRET_KEY=${SECRET_KEY}" >> $GITHUB_ENV
             echo "SECRET_KEY received"
