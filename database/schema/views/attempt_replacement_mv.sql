@@ -10,6 +10,7 @@ CREATE MATERIALIZED VIEW public.attempt_replacement_mv AS
     rp.improvement_id,
     rp.section,
     rp.replace,
+    rp.idx,
     rp.created_at
    FROM (((((public.attempt_replacement_entry rp
      JOIN public.attempt_improvement_entry i ON ((i.id = rp.improvement_id)))

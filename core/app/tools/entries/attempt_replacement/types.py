@@ -15,4 +15,5 @@ class GetAttemptReplacementResponse(BaseModel):
     improvement_id: UUID
     section: str
     replace_text: str
+    idx: int
     created_at: datetime

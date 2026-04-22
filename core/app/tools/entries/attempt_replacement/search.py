@@ -24,7 +24,7 @@ async def search_attempt_replacements(
 
     rows = await conn.fetch(
         f"""
-        SELECT replacement_id, improvement_id, section, replace AS replace_text, created_at
+        SELECT replacement_id, improvement_id, section, replace AS replace_text, idx, created_at
         FROM {source}
         WHERE ($1::uuid[] IS NULL OR improvement_id = ANY($1))
         ORDER BY created_at DESC

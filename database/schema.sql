@@ -1810,6 +1810,7 @@ CREATE MATERIALIZED VIEW public.attempt_highlight_mv AS
  SELECT hl.id AS highlight_id,
     hl.strength_id,
     hl.section,
+    hl.idx,
     hl.created_at
    FROM (((((public.attempt_highlight_entry hl
      JOIN public.attempt_strength_entry s ON ((s.id = hl.strength_id)))
@@ -2194,6 +2195,7 @@ CREATE MATERIALIZED VIEW public.attempt_replacement_mv AS
     rp.improvement_id,
     rp.section,
     rp.replace,
+    rp.idx,
     rp.created_at
    FROM (((((public.attempt_replacement_entry rp
      JOIN public.attempt_improvement_entry i ON ((i.id = rp.improvement_id)))

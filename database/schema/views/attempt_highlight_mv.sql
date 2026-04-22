@@ -9,6 +9,7 @@ CREATE MATERIALIZED VIEW public.attempt_highlight_mv AS
  SELECT hl.id AS highlight_id,
     hl.strength_id,
     hl.section,
+    hl.idx,
     hl.created_at
    FROM (((((public.attempt_highlight_entry hl
      JOIN public.attempt_strength_entry s ON ((s.id = hl.strength_id)))
