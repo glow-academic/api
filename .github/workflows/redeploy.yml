@@ -47,6 +47,10 @@ on:
         description: 'Custom domain (e.g. glow.example.com) — added to Traefik Host rule'
         required: false
         default: ''
+      airgapped:
+        description: 'If true, server has no public URL (internal only). Must match the deploy-time value, otherwise redeploy will un-airgap the instance and steal the client hostname via Traefik.'
+        required: false
+        default: 'false'
 
 permissions:
   contents: read
@@ -217,20 +221,25 @@ jobs:
           echo "subdomain=$SUBDOMAIN" >> $GITHUB_OUTPUT
           echo "base-domain=$BASE_DOMAIN" >> $GITHUB_OUTPUT
 
-      - name: Provision Traefik labels
+      - name: Provision deployment
         working-directory: ${{ env.DEPLOY_DIR }}
         run: |
+          ARGS="--name ${{ inputs.deployment_id }} --compose-dir ${{ env.DEPLOY_DIR }}"
           LL_HOST=$(echo "${LEARNLOOP_API_URL:-}" | sed 's|https\?://||' | sed 's|/.*||')
           CUSTOM_DOMAIN="${{ inputs.custom_domain }}"
-          bash scripts/provision.sh deploy \
-            --name "${{ inputs.deployment_id }}" \
-            --subdomain "${{ steps.parse-origin.outputs.subdomain }}" \
-            --base-domain "${{ steps.parse-origin.outputs.base-domain }}" \
-            --compose-dir ${{ env.DEPLOY_DIR }} \
-            --entry-service nginx \
-            --entry-port 80 \
-            ${LL_HOST:+--learnloop-host "$LL_HOST"} \
-            ${CUSTOM_DOMAIN:+--custom-domain "$CUSTOM_DOMAIN"}
+          if [ "${{ inputs.airgapped }}" = "true" ]; then
+            bash scripts/provision.sh deploy $ARGS --airgapped \
+              ${LL_HOST:+--learnloop-host "$LL_HOST"} \
+              ${CUSTOM_DOMAIN:+--custom-domain "$CUSTOM_DOMAIN"}
+          else
+            bash scripts/provision.sh deploy $ARGS \
+              --subdomain "${{ steps.parse-origin.outputs.subdomain }}" \
+              --base-domain "${{ steps.parse-origin.outputs.base-domain }}" \
+              --entry-service nginx \
+              --entry-port 80 \
+              ${LL_HOST:+--learnloop-host "$LL_HOST"} \
+              ${CUSTOM_DOMAIN:+--custom-domain "$CUSTOM_DOMAIN"}
+          fi
 
       - name: Pre-deploy backup
         working-directory: ${{ env.DEPLOY_DIR }}
