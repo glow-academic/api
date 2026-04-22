@@ -17,12 +17,14 @@ the tool covers more than one pair.
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
+from pydantic import Field
 
 from app.infra.mcp.resolve import resolve_mcp_context
 from app.infra.mcp.tool_catalog import slugify_tool_name
@@ -34,6 +36,28 @@ from app.infra.tools.resolve_tool_spec import resolve_tool_spec
 from app.registry.operations import is_write_operation
 
 logger = logging.getLogger(__name__)
+
+# Map args_resource.field_type values to Python types for inputSchema inference.
+_FIELD_TYPE_MAP: dict[str, type] = {
+    "string": str,
+    "str": str,
+    "text": str,
+    "uuid": str,
+    "integer": int,
+    "int": int,
+    "number": float,
+    "float": float,
+    "boolean": bool,
+    "bool": bool,
+    "array": list,
+    "list": list,
+    "object": dict,
+    "dict": dict,
+}
+
+
+def _py_type_for(field_type: str | None) -> type:
+    return _FIELD_TYPE_MAP.get((field_type or "string").lower(), str)
 
 _ensure_lock = asyncio.Lock()
 _ensured = False
@@ -162,8 +186,74 @@ async def _dispatch(tool_name: str, inputs: dict[str, Any]) -> dict[str, Any]:
     return results[0].model_dump(mode="json")
 
 
+def _routing_args(td: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Return `artifact`/`operation` args for multi-target tools.
+
+    When a tool's permissions cover more than one artifact (or more than
+    one operation), the LLM must specify which target it wants. These
+    aren't in `td["arguments"]` — they're routing inputs consumed by the
+    Jinja templates in `td["_args_outputs"]`. We surface them explicitly.
+    """
+    perms = td.get("_permissions") or []
+    artifacts = sorted({p.get("artifact") for p in perms if p.get("artifact")})
+    operations = sorted({p.get("operation") for p in perms if p.get("operation")})
+
+    extras: dict[str, dict[str, Any]] = {}
+    if len(artifacts) > 1:
+        extras["artifact"] = {
+            "type": "string",
+            "required": True,
+            "description": f"Target artifact. Allowed: {', '.join(artifacts)}.",
+        }
+    if len(operations) > 1:
+        extras["operation"] = {
+            "type": "string",
+            "required": True,
+            "description": f"Target operation. Allowed: {', '.join(operations)}.",
+        }
+    return extras
+
+
+def _build_signature_params(td: dict[str, Any]) -> list[inspect.Parameter]:
+    """Build the typed keyword-only parameters FastMCP introspects.
+
+    Each arg from `td["arguments"]` becomes a top-level parameter annotated
+    with `Annotated[T, Field(description=..., default=...)]`. Multi-target
+    tools also get `artifact` and `operation` surfaced explicitly.
+    """
+    arg_specs = td.get("arguments") or {}
+    arg_descs = td.get("argument_descriptions") or {}
+    arg_defaults = td.get("argument_defaults") or {}
+    params: list[inspect.Parameter] = []
+
+    # Routing args first — they're always the first thing the LLM picks.
+    routing = _routing_args(td)
+    for arg_name, info in {**routing, **arg_specs}.items():
+        # `routing` wins for artifact/operation; otherwise arg_specs is authoritative.
+        py_type = _py_type_for(info.get("type"))
+        required = bool(info.get("required", False))
+        description = info.get("description") or arg_descs.get(arg_name, "")
+        default_value = arg_defaults.get(arg_name)
+        annotation = Annotated[py_type, Field(description=description)]
+
+        if required and default_value is None:
+            default = inspect.Parameter.empty
+        else:
+            default = default_value
+
+        params.append(
+            inspect.Parameter(
+                name=arg_name,
+                kind=inspect.Parameter.KEYWORD_ONLY,
+                annotation=annotation,
+                default=default,
+            )
+        )
+    return params
+
+
 def _register_one(server: FastMCP, td: dict[str, Any]) -> None:
-    """Register a single FastMCP tool for this tool_def."""
+    """Register a single FastMCP tool with a typed, introspectable signature."""
     name = td.get("name")
     if not name:
         return
@@ -172,16 +262,22 @@ def _register_one(server: FastMCP, td: dict[str, Any]) -> None:
         return
     description = td.get("description") or name
 
-    async def handler(
-        kwargs: dict[str, Any] | None = None,
-        **kw: Any,
-    ) -> dict[str, Any]:
-        payload = {**(kwargs or {}), **kw}
-        return await _dispatch(tool_slug, payload)
+    params = _build_signature_params(td)
+
+    async def handler(**kwargs: Any) -> dict[str, Any]:
+        # Drop None-valued kwargs so resolve_tool_spec + downstream Pydantic
+        # defaults apply cleanly. FastMCP passes absent-but-optional fields
+        # as None by default, which would otherwise overwrite defaults.
+        inputs = {k: v for k, v in kwargs.items() if v is not None}
+        return await _dispatch(tool_slug, inputs)
 
     handler.__name__ = tool_slug
     handler.__qualname__ = tool_slug
     handler.__doc__ = description
+    handler.__signature__ = inspect.Signature(  # type: ignore[attr-defined]
+        parameters=params, return_annotation=dict
+    )
+    handler.__annotations__ = {p.name: p.annotation for p in params} | {"return": dict}
 
     server.tool(
         name=tool_slug,
