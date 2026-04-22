@@ -86,7 +86,12 @@ server {
     # HTTP clients strip Authorization headers on redirects (security feature)
     # ChatGPT sends Authorization header, but redirects cause it to be dropped
     location = ${APP_PREFIX}/mcp {
-        proxy_pass         http://$server_backend/mcp$is_args$args;
+        # Rewrite /mcp → /mcp/ at the upstream hop. FastAPI mounts the MCP
+        # streamable-http app at /mcp/ and returns 404 for the bare /mcp path.
+        # Clients (Claude.ai, ChatGPT) that follow the PRM `resource` URL land
+        # on /mcp without a trailing slash; a 3xx redirect would cause them
+        # to drop the Authorization header, so we rewrite in-proxy instead.
+        proxy_pass         http://$server_backend/mcp/$is_args$args;
         proxy_http_version 1.1;
         proxy_set_header   Host              $http_host;
         proxy_set_header   X-Real-IP         $remote_addr;
