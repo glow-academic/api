@@ -43,7 +43,6 @@ FLAG_NAME_TO_COLUMN: dict[str, str] = {
     "Show Problem Statement": "show_problem_statement",
     "Analyses Enabled": "analyses_enabled",
     "Improvements Enabled": "improvements_enabled",
-    "Replacements Enabled": "replacements_enabled",
     "Strengths Enabled": "strengths_enabled",
     "Use Custom": "use_custom",
     "Use Previous": "use_previous",
@@ -453,9 +452,6 @@ async def sync_home_practice_entries(
                     "improvements_enabled": flag_bools.get(
                         "improvements_enabled", True
                     ),
-                    "replacements_enabled": flag_bools.get(
-                        "replacements_enabled", True
-                    ),
                     "strengths_enabled": flag_bools.get("strengths_enabled", True),
                     "use_custom": flag_bools.get("use_custom", False),
                     "use_previous": flag_bools.get("use_previous", False),
@@ -568,7 +564,6 @@ async def sync_home_practice_entries(
                     show_problem_statement=chat_data["show_problem_statement"],
                     analyses_enabled=chat_data["analyses_enabled"],
                     improvements_enabled=chat_data["improvements_enabled"],
-                    replacements_enabled=chat_data["replacements_enabled"],
                     strengths_enabled=chat_data["strengths_enabled"],
                     use_custom=chat_data["use_custom"],
                     use_previous=chat_data["use_previous"],

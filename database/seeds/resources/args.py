@@ -528,7 +528,6 @@ SHARED_ARGS = {
     "position": dict(id=sid("arg/position"), name="position", field_type="integer", description="Chat position"),
     "problem_statements_ids": dict(id=sid("arg/problem_statements_ids"), name="problem_statements_ids", field_type="uuid[]", description="Problem statement identifiers"),
     "questions_ids": dict(id=sid("arg/questions_ids"), name="questions_ids", field_type="uuid[]", description="Question identifiers"),
-    "replacements_enabled": dict(id=sid("arg/replacements_enabled"), name="replacements_enabled", field_type="boolean", description="Whether replacements are enabled"),
     "rubrics_ids": dict(id=sid("arg/rubrics_ids"), name="rubrics_ids", field_type="uuid[]", description="Rubric identifiers"),
     "standard_groups_ids": dict(id=sid("arg/standard_groups_ids"), name="standard_groups_ids", field_type="uuid[]", description="Standard group identifiers"),
     "standards_ids": dict(id=sid("arg/standards_ids"), name="standards_ids", field_type="uuid[]", description="Standard identifiers"),

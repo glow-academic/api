@@ -18,6 +18,7 @@ import asyncpg
 from pydantic import BaseModel
 from redis.asyncio import Redis
 
+from app.infra.flag_icons import hydrate_flag_icons
 from app.infra.types import ArtifactContext, ResourcePair
 
 # Artifact + draft fetchers
@@ -76,7 +77,6 @@ SCENARIO_FLAG_TYPES_ORDERED = [
     "analyses_enabled",
     "strengths_enabled",
     "improvements_enabled",
-    "replacements_enabled",
     "use_custom",
     "use_previous",
 ]
@@ -91,6 +91,11 @@ class SimulationScenarioFlag(BaseModel):
     name: str | None = None
     description: str | None = None
     icon_id: UUID | None = None
+    # Hydrated SVG markup copied from the flag resource. Without this
+    # field, the `icon=flag.icon` construction at line ~463 silently drops
+    # the hydrated value (pydantic v2 extra="ignore"), and the picker
+    # renders the fallback Power icon for every scenario flag.
+    icon: str | None = None
     generated: bool | None = None
 
 
@@ -423,6 +428,12 @@ async def resolve_simulation_context(
     ]
     flags_selected = [f for f in flags_ordered if f.id in set(merged.flag_ids)]
 
+    # Hydrate SVG icons onto simulation + scenario flag types.
+    async with pool.acquire() as conn:
+        await hydrate_flag_icons(
+            list(flags_all) + list(scenario_flag_types_all), conn, redis, bypass_cache
+        )
+
     # Order scenario flag types by SCENARIO_FLAG_TYPES_ORDERED
     sf_types_by_type = {f.type: f for f in scenario_flag_types_all}
     scenario_flag_types_ordered = [
@@ -440,6 +451,30 @@ async def resolve_simulation_context(
         if sf.scenario_id and sf.flag_id:
             sf_existing.add((sf.scenario_id, sf.flag_id))
 
+    # Enrich selected scenario flag rows with flag-type metadata
+    # (name/description/icon). The junction row on its own has only IDs —
+    # without this hydration the client filters out any flag missing a
+    # name, so selected flags "disappear" from the Scenario Flags picker
+    # the moment they're saved.
+    flag_type_by_id = {f.id: f for f in scenario_flag_types_all if f.id}
+    scenario_flags_selected_enriched: list[SimulationScenarioFlag] = [
+        SimulationScenarioFlag(
+            id=sf.id,
+            scenario_id=sf.scenario_id,
+            flag_id=sf.flag_id,
+            name=(flag_type_by_id[sf.flag_id].name
+                  if sf.flag_id in flag_type_by_id else None),
+            description=(flag_type_by_id[sf.flag_id].description
+                         if sf.flag_id in flag_type_by_id else None),
+            icon_id=(flag_type_by_id[sf.flag_id].icon_id
+                     if sf.flag_id in flag_type_by_id else None),
+            icon=(flag_type_by_id[sf.flag_id].icon
+                  if sf.flag_id in flag_type_by_id else None),
+            generated=sf.generated,
+        )
+        for sf in scenario_flags_selected
+    ]
+
     scenario_flags_suggestions: list[SimulationScenarioFlag] = []
     for sid in all_scenario_ids:
         for flag in scenario_flag_types_ordered:
@@ -453,6 +488,7 @@ async def resolve_simulation_context(
                     name=flag.name,
                     description=flag.description,
                     icon_id=flag.icon_id,
+                    icon=flag.icon,
                     generated=False,
                 )
             )
@@ -488,7 +524,7 @@ async def resolve_simulation_context(
                 selected=scenarios_selected, suggestions=scenarios_suggestions
             ),
             "scenario_flags": ResourcePair(
-                selected=list(scenario_flags_selected),
+                selected=scenario_flags_selected_enriched,
                 suggestions=scenario_flags_suggestions,
             ),
             "scenario_positions": ResourcePair(

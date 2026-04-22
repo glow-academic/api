@@ -3747,12 +3747,6 @@ SHARED_ARGS_OUTPUTS = {
         name="questions_ids",
         template="{{ questions_ids }}",
     ),
-    "replacements_enabled": dict(
-        id=sid("args_output/replacements_enabled"),
-        args_id=sid("arg/replacements_enabled"),
-        name="replacements_enabled",
-        template="{{ replacements_enabled }}",
-    ),
     "rubrics_ids": dict(
         id=sid("args_output/rubrics_ids"),
         args_id=sid("arg/rubrics_ids"),

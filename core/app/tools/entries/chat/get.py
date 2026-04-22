@@ -139,7 +139,6 @@ async def get_chat_entries_internal(
                 m.show_problem_statement,
                 m.analyses_enabled,
                 m.improvements_enabled,
-                m.replacements_enabled,
                 m.strengths_enabled,
                 m.generate_problem_statements,
                 m.generate_objectives,

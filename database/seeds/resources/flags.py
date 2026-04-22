@@ -353,14 +353,6 @@ flags = [
         value=True,
     ),
     dict(
-        id=sid("flag/replacements-enabled"),
-        name="Replacements Enabled",
-        description="Enable replacement suggestions for scenarios",
-        type="replacements_enabled",
-        icon_id=sid("icon/edit"),
-        value=True,
-    ),
-    dict(
         id=sid("flag/improvements-enabled"),
         name="Improvements Enabled",
         description="Enable improvements feedback for scenarios",

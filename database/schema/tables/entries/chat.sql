@@ -21,7 +21,6 @@ CREATE TABLE public.chat_entry (
     show_problem_statement boolean DEFAULT true NOT NULL,
     analyses_enabled boolean DEFAULT true NOT NULL,
     improvements_enabled boolean DEFAULT true NOT NULL,
-    replacements_enabled boolean DEFAULT true NOT NULL,
     strengths_enabled boolean DEFAULT true NOT NULL,
     use_custom boolean DEFAULT false NOT NULL,
     use_previous boolean DEFAULT false NOT NULL,

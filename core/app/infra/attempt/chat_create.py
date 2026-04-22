@@ -298,7 +298,6 @@ async def create_attempt_chat_impl(
     cfg_show_problem_statement = tmpl.get("show_problem_statement", False) or False
     cfg_analyses_enabled = tmpl.get("analyses_enabled", False) or False
     cfg_improvements_enabled = tmpl.get("improvements_enabled", False) or False
-    cfg_replacements_enabled = tmpl.get("replacements_enabled", False) or False
     cfg_strengths_enabled = tmpl.get("strengths_enabled", False) or False
     cfg_use_custom = tmpl.get("use_custom", False) or False
     cfg_use_previous = tmpl.get("use_previous", False) or False
@@ -511,7 +510,6 @@ async def create_attempt_chat_impl(
                 show_problem_statement=cfg_show_problem_statement,
                 analyses_enabled=cfg_analyses_enabled,
                 improvements_enabled=cfg_improvements_enabled,
-                replacements_enabled=cfg_replacements_enabled,
                 strengths_enabled=cfg_strengths_enabled,
                 use_custom=cfg_use_custom,
                 use_previous=cfg_use_previous,

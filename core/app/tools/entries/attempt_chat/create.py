@@ -26,7 +26,6 @@ async def create_attempt_chat(
     show_problem_statement: bool = False,
     analyses_enabled: bool = False,
     improvements_enabled: bool = False,
-    replacements_enabled: bool = False,
     strengths_enabled: bool = False,
     use_custom: bool = False,
     use_previous: bool = False,
@@ -62,20 +61,20 @@ async def create_attempt_chat(
             negative_time, audio_enabled, text_enabled, hints_enabled,
             copy_paste_allowed, show_images, show_objectives,
             show_problem_statement, analyses_enabled, improvements_enabled,
-            replacements_enabled, strengths_enabled, use_custom, use_previous,
+            strengths_enabled, use_custom, use_previous,
             problem_statement_enabled, objectives_enabled, video_enabled,
             images_enabled, questions_enabled,
             assistant_persona_ids, active, mcp, generated
         )
         VALUES (
-            COALESCE($28, uuidv7()), $1, $2, $3, $4, $5,
+            COALESCE($27, uuidv7()), $1, $2, $3, $4, $5,
             $6, $7, $8, $9,
             $10, $11, $12,
             $13, $14, $15,
-            $16, $17, $18, $19,
-            $20, $21, $22,
-            $23, $24,
-            $25, $26, $27, true
+            $16, $17, $18,
+            $19, $20, $21,
+            $22, $23,
+            $24, $25, $26, true
         )
         RETURNING id
         """,
@@ -94,7 +93,6 @@ async def create_attempt_chat(
         show_problem_statement,
         analyses_enabled,
         improvements_enabled,
-        replacements_enabled,
         strengths_enabled,
         use_custom,
         use_previous,

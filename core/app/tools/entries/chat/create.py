@@ -31,7 +31,6 @@ async def create_chat(
     show_problem_statement: bool = True,
     analyses_enabled: bool = True,
     improvements_enabled: bool = True,
-    replacements_enabled: bool = True,
     strengths_enabled: bool = True,
     use_custom: bool = False,
     use_previous: bool = False,
@@ -79,7 +78,7 @@ async def create_chat(
             audio_enabled, text_enabled, hints_enabled,
             copy_paste_allowed, show_images, show_objectives,
             show_problem_statement, analyses_enabled,
-            improvements_enabled, replacements_enabled,
+            improvements_enabled,
             strengths_enabled, use_custom, use_previous,
             problem_statement_enabled, objectives_enabled,
             video_enabled, images_enabled, questions_enabled,
@@ -90,20 +89,20 @@ async def create_chat(
             generate_descriptions
         )
         VALUES (
-            COALESCE($38, uuidv7()), $1, $2, $3, $4, true,
+            COALESCE($37, uuidv7()), $1, $2, $3, $4, true,
             $5, $6, $7, $8,
             $9, $10, $11,
             $12, $13, $14,
             $15, $16,
-            $17, $18,
-            $19, $20, $21,
-            $22, $23,
-            $24, $25, $26,
-            $27, $28,
-            $29, $30, $31,
-            $32, $33, $34,
-            $35, $36,
-            $37
+            $17,
+            $18, $19, $20,
+            $21, $22,
+            $23, $24, $25,
+            $26, $27,
+            $28, $29, $30,
+            $31, $32, $33,
+            $34, $35,
+            $36
         )
         RETURNING id
         """,
@@ -124,7 +123,6 @@ async def create_chat(
         show_problem_statement,
         analyses_enabled,
         improvements_enabled,
-        replacements_enabled,
         strengths_enabled,
         use_custom,
         use_previous,
