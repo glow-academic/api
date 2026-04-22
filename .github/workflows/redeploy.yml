@@ -108,7 +108,11 @@ jobs:
           clean: true
 
       - name: Login GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: |
+          export DOCKER_CONFIG="$DEPLOY_DIR/.docker"
+          mkdir -p "$DOCKER_CONFIG"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> $GITHUB_ENV
 
       - name: Stage release
         run: make stage-release DEST=${{ env.DEPLOY_DIR }} SHA=${{ github.sha }}
