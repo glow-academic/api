@@ -964,6 +964,64 @@ async def ensure_dynamic_clients_no_consent(kc_admin: Any) -> None:
         )
 
 
+async def ensure_identity_scopes_on_all_clients(kc_admin: Any) -> None:
+    """Force `email` + `profile` as default client scopes on every client.
+
+    Dynamic Client Registration (Claude.ai's MCP connector, ChatGPT, etc.)
+    creates clients with a minimal default-scope set. Without `email` as
+    default, Keycloak issues tokens lacking an email claim, which breaks
+    profile resolution for callers that don't also carry a `profile_id`
+    claim (only glow-issued id_tokens have that).
+
+    This is a belt-and-suspenders sweep alongside the `sub`-based fallback
+    in `_resolve_profile_id`: the fallback makes glow robust to tokens
+    without email, and this sweep ensures tokens contain email whenever
+    the scope machinery works correctly.
+    """
+    if not is_mcp_enabled():
+        return
+
+    try:
+        kc_admin.change_current_realm(realm_name="master")
+        scopes_by_name = {s["name"]: s["id"] for s in kc_admin.get_client_scopes()}
+        wanted = [name for name in ("email", "profile") if name in scopes_by_name]
+        if not wanted:
+            return
+
+        for client in kc_admin.get_clients():
+            client_uuid = client["id"]
+            client_id_display = client.get("clientId", "?")
+            try:
+                current = {
+                    s["name"]
+                    for s in kc_admin.get_client_default_client_scopes(
+                        client_id=client_uuid
+                    )
+                }
+            except Exception:
+                continue
+            for name in wanted:
+                if name in current:
+                    continue
+                try:
+                    kc_admin.add_client_default_client_scope(
+                        client_id=client_uuid,
+                        client_scope_id=scopes_by_name[name],
+                        payload={},
+                    )
+                    logger.info(
+                        f"✅ Added '{name}' as default client scope on '{client_id_display}'"
+                    )
+                except Exception as e:
+                    logger.debug(
+                        f"Skipping default scope '{name}' on '{client_id_display}': {e}"
+                    )
+    except Exception as e:
+        logger.warning(
+            f"Could not ensure identity scopes on all clients: {e}", exc_info=True
+        )
+
+
 async def ensure_default_scopes_no_consent(kc_admin: Any) -> None:
     """Disable consent screen display for all default client scopes.
 
@@ -2011,6 +2069,11 @@ async def sync_keycloak(
 
         # Post-process dynamically registered MCP clients to disable consent
         await ensure_dynamic_clients_no_consent(kc_admin)
+
+        # Force email + profile as default client scopes on every client, so
+        # DCR-registered clients (Claude.ai, ChatGPT, etc.) issue tokens that
+        # identify the user. Complements the sub-fallback in _resolve_profile_id.
+        await ensure_identity_scopes_on_all_clients(kc_admin)
 
         # Sync identity providers (realm-level + department-scoped)
         # All IdPs are hidden, theme controls visibility based on client_id

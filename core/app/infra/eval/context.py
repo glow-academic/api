@@ -26,6 +26,7 @@ from app.tools.resources.model_positions.get import get_model_positions
 from app.tools.resources.model_positions.search import search_model_positions
 from app.tools.resources.model_rubrics.get import get_model_rubrics
 from app.tools.resources.model_rubrics.search import search_model_rubrics
+from app.tools.resources.rubrics.search import search_rubrics
 from app.tools.resources.models.get import get_models
 from app.tools.resources.models.search import search_models
 from app.tools.resources.names.get import get_names
@@ -225,6 +226,17 @@ async def resolve_eval_context(
                 eval=True,
             )
 
+    async def _search_rubrics_all() -> list:
+        # Top-level rubric catalog for the ModelRubrics picker (each
+        # selected model picks a rubric from this list).
+        async with pool.acquire() as conn:
+            return await search_rubrics(
+                conn,
+                redis,
+                limit_count=200,
+                bypass_cache=bypass_cache,
+            )
+
     async def _search_model_flag_types() -> list:
         # All flag resources that can appear per-model (model_active today).
         # Used to build the cross-product of selected-model × flag-type
@@ -290,6 +302,7 @@ async def resolve_eval_context(
         model_positions_selected,
         model_positions_suggestions,
         model_flag_types_all,
+        rubrics_all,
     ) = await asyncio.gather(
         _get_names(),
         _search_names(),
@@ -308,6 +321,7 @@ async def resolve_eval_context(
         _get_model_positions(),
         _search_model_positions(),
         _search_model_flag_types(),
+        _search_rubrics_all(),
     )
 
     flags_suggestions_filtered = [
@@ -436,6 +450,13 @@ async def resolve_eval_context(
             "model_positions": ResourcePair(
                 selected=model_positions_selected,
                 suggestions=model_positions_suggestions,
+            ),
+            # Top-level rubric catalog (the ModelRubrics picker reads this
+            # as its full list of choices; per-model selections live in
+            # model_rubrics).
+            "rubrics": ResourcePair(
+                selected=[],
+                suggestions=rubrics_all,
             ),
         },
         entries={"pending_ids": pending_ids},

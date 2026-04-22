@@ -286,6 +286,68 @@ async def resolve_identity(token: str, pool: asyncpg.Pool) -> Identity:
     )
 
 
+_kc_admin_singleton: Any = None
+
+
+def _get_keycloak_admin() -> Any:
+    """Return a lazy module-level KeycloakAdmin instance.
+
+    python-keycloak refreshes its own admin token, so a singleton is safe.
+    Used by the sub-fallback in _resolve_profile_id for DCR-issued tokens
+    that lack an email claim.
+    """
+    global _kc_admin_singleton
+    if _kc_admin_singleton is None:
+        from keycloak import KeycloakAdmin  # type: ignore
+
+        _kc_admin_singleton = KeycloakAdmin(
+            server_url=KEYCLOAK_INTERNAL_URL + "/auth/",
+            username=os.getenv("KEYCLOAK_ADMIN", "admin"),
+            password=os.getenv("KEYCLOAK_ADMIN_PASSWORD", "admin"),
+            realm_name=KEYCLOAK_REALM,
+            verify=False,
+        )
+    return _kc_admin_singleton
+
+
+async def _email_from_keycloak_sub(sub: str) -> str | None:
+    """Resolve a Keycloak user id (`sub` claim) to the user's email.
+
+    Used when a token has no email claim (minimal DCR clients like Claude's
+    MCP connector issue bare tokens with only sub/aud/iss/etc). Keycloak
+    user records carry email (populated by keycloak_sync when glow profiles
+    are synced). Cached briefly in redis to avoid hitting the admin API on
+    every MCP request.
+    """
+    from app.infra.globals import get_redis_client
+
+    redis = get_redis_client()
+    cache_key = f"glow:kc_sub_email:{sub}"
+
+    if redis is not None:
+        try:
+            cached = await redis.get(cache_key)
+            if cached is not None:
+                value = cached.decode() if isinstance(cached, bytes) else cached
+                return value or None  # empty string = cached negative result
+        except Exception:
+            pass
+
+    try:
+        user = _get_keycloak_admin().get_user(user_id=sub)
+        email = (user or {}).get("email") or ""
+    except Exception:
+        email = ""
+
+    if redis is not None:
+        try:
+            await redis.set(cache_key, email, ex=60)
+        except Exception:
+            pass
+
+    return email or None
+
+
 async def _resolve_profile_id(
     claims: dict[str, Any], pool: asyncpg.Pool
 ) -> UUID | None:
@@ -293,7 +355,9 @@ async def _resolve_profile_id(
 
     Strategy:
     1. Direct profile_id claim (from default_idp tokens)
-    2. Email lookup via black box functions (from external IdP tokens)
+    2. Email claim → glow profile lookup (standard OIDC scopes)
+    3. Keycloak sub → Keycloak user email → glow profile lookup
+       (for DCR clients that omit the email scope)
     """
     # Strategy 1: Direct profile_id in claims (default_idp puts it there)
     direct_id = claims.get("profile_id")
@@ -303,8 +367,12 @@ async def _resolve_profile_id(
         except ValueError:
             pass
 
-    # Strategy 2: Look up by email using black box functions
+    # Strategy 2: Email claim (fully-scoped OIDC clients put it there)
+    # Strategy 3: Fetch email from Keycloak by sub when the token lacks it
     email = claims.get("email")
+    sub = claims.get("sub")
+    if not email and sub:
+        email = await _email_from_keycloak_sub(sub)
     if not email:
         return None
 

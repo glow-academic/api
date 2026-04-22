@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "2.15.0"
+    "version": "2.15.2"
   },
   "paths": {
     "/persona/get": {
@@ -64551,6 +64551,50 @@
         "title": "EvalResultItem",
         "description": "Per-item result within a bulk create/update response."
       },
+      "EvalRubricResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Rubric resource UUID"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Rubric display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Rubric description"
+          }
+        },
+        "type": "object",
+        "title": "EvalRubricResource",
+        "description": "Top-level rubric catalog entry. The ModelRubrics picker renders\none of these per option (alongside a \"no rubric\" clear state)."
+      },
       "ExportActivityApiResponse": {
         "properties": {
           "content": {
@@ -76776,6 +76820,21 @@
             ],
             "title": "Model Positions",
             "description": "Model position resources"
+          },
+          "rubrics": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/EvalRubricResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubrics",
+            "description": "Top-level rubric catalog for the ModelRubrics picker"
           }
         },
         "type": "object",

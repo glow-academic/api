@@ -44,6 +44,7 @@ from app.infra.eval.types import (
     EvalModelPositionResource,
     EvalModelResource,
     EvalModelRubricResource,
+    EvalRubricResource,
     EvalNameResource,
     GetEvalApiResponse,
     SectionFilter,
@@ -215,15 +216,38 @@ async def get_eval_impl(
     all_flags = dedupe_by_id(flags_selected + flags_suggestions)
     all_departments = dedupe_by_id(departments_selected + departments_suggestions)
     all_models = dedupe_by_id(models_selected + models_suggestions)
-    all_model_flags = dedupe_by_id(model_flags_selected + model_flags_suggestions)
-    all_model_rubrics = dedupe_by_id(model_rubrics_selected + model_rubrics_suggestions)
-    all_model_positions = dedupe_by_id(model_positions_selected + model_positions_suggestions)
+    # model_flags/rubrics/positions suggestion rows from the context are
+    # cross-product entries with `id=None` (no junction row yet). The
+    # generic dedupe_by_id drops null ids, which collapses every fresh
+    # per-model flag suggestion to nothing. Dedupe by the natural key for
+    # each resource instead so the cross-product survives.
+    def _dedup_by_keys(items: list, keys: tuple[str, ...]) -> list:
+        seen: set[tuple] = set()
+        out: list = []
+        for item in items:
+            key = tuple(getattr(item, k, None) for k in keys)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(item)
+        return out
+
+    all_model_flags = _dedup_by_keys(
+        model_flags_selected + model_flags_suggestions, ("model_id", "flag_id")
+    )
+    all_model_rubrics = _dedup_by_keys(
+        model_rubrics_selected + model_rubrics_suggestions,
+        ("model_id", "rubric_id"),
+    )
+    all_model_positions = _dedup_by_keys(
+        model_positions_selected + model_positions_suggestions, ("model_id",)
+    )
 
     selected_ids = {
         "names": {item.id for item in names_selected if item.id},
         "descriptions": {item.id for item in descriptions_selected if item.id},
         "flags": {item.id for item in flags_selected if item.id},
-        "departments": {getattr(item, "department_id", None) for item in departments_selected if getattr(item, "department_id", None)},
+        "departments": {item.id for item in departments_selected if item.id},
         "models": {item.id for item in models_selected if item.id},
         "model_flags": {item.id for item in model_flags_selected if item.id},
         "model_rubrics": {item.id for item in model_rubrics_selected if item.id},
@@ -233,7 +257,7 @@ async def get_eval_impl(
         "names": {item.id for item in names_suggestions if item.id},
         "descriptions": {item.id for item in descriptions_suggestions if item.id},
         "flags": {item.id for item in flags_suggestions if item.id},
-        "departments": {getattr(item, "department_id", None) for item in departments_suggestions if getattr(item, "department_id", None)},
+        "departments": {item.id for item in departments_suggestions if item.id},
         "models": {item.id for item in models_suggestions if item.id},
         "model_flags": {item.id for item in model_flags_suggestions if item.id},
         "model_rubrics": {item.id for item in model_rubrics_suggestions if item.id},
@@ -309,13 +333,13 @@ async def get_eval_impl(
     ]
     departments = [
         EvalDepartmentResource(
-            department_id=getattr(item, "department_id", None),
+            department_id=item.id,
             name=item.name,
             description=item.description,
             generated=item.generated,
-            suggested=_decorate(getattr(item, "department_id", None), "departments")[0],
-            selected=_decorate(getattr(item, "department_id", None), "departments")[1],
-            pending=_decorate(getattr(item, "department_id", None), "departments")[2],
+            suggested=_decorate(item.id, "departments")[0],
+            selected=_decorate(item.id, "departments")[1],
+            pending=_decorate(item.id, "departments")[2],
         )
         for item in all_departments
     ]
@@ -372,6 +396,20 @@ async def get_eval_impl(
         for item in all_model_positions
     ]
 
+    rubrics_pair = eval_ctx.resources.get("rubrics")
+    rubrics_catalog = (
+        [
+            EvalRubricResource(
+                id=getattr(r, "id", None),
+                name=getattr(r, "name", None),
+                description=getattr(r, "description", None),
+            )
+            for r in rubrics_pair.suggestions
+        ]
+        if rubrics_pair
+        else []
+    )
+
     return GetEvalApiResponse(
         actor_name=profile.name,
         eval_exists=perms.exists if perms else None,
@@ -390,4 +428,5 @@ async def get_eval_impl(
         model_flags=_filter_items(model_flags, "model_flags", selected_only=selected_only, suggested_only=suggested_only) if include["model_flags"] else None,
         model_rubrics=_filter_items(model_rubrics, "model_rubrics", selected_only=selected_only, suggested_only=suggested_only) if include["model_rubrics"] else None,
         model_positions=_filter_items(model_positions, "model_positions", selected_only=selected_only, suggested_only=suggested_only) if include["model_positions"] else None,
+        rubrics=rubrics_catalog or None,
     )

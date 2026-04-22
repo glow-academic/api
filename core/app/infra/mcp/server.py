@@ -68,7 +68,14 @@ async def _current_mcp_context() -> McpContext | None:
 class ScopedFastMCP(FastMCP):
     """FastMCP that filters discovery by the authenticated caller's MCP scope."""
 
+    async def _ensure_catalog(self) -> None:
+        """Lazy-register the DB-driven tool catalog on first MCP request."""
+        from app.infra.mcp.register import ensure_registered
+
+        await ensure_registered(self)
+
     async def list_tools(self) -> list[MCPTool]:
+        await self._ensure_catalog()
         tools = await super().list_tools()
         ctx = await _current_mcp_context()
         if ctx is None or ctx.agent_id is None:
@@ -77,6 +84,10 @@ class ScopedFastMCP(FastMCP):
             return []
         allowed = allowed_tool_names(ctx)
         return [t for t in tools if t.name in allowed]
+
+    async def call_tool(self, name: str, arguments: dict[str, Any]):
+        await self._ensure_catalog()
+        return await super().call_tool(name, arguments)
 
     async def list_prompts(self) -> list[MCPPrompt]:
         prompts = await super().list_prompts()

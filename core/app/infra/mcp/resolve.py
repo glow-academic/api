@@ -94,17 +94,29 @@ async def resolve_mcp_context(
 
 
 def allowed_tool_names(ctx: McpContext) -> set[str]:
-    """Return the MCP tool names the caller is actually authorized to call.
+    """Return the MCP tool slugs the caller can see/call.
 
-    A tool is allowed when its (artifact, operation) is on the agent AND
-    in the profile's role permissions. Uses the canonical MCP tool naming
-    convention: "{operation}_{artifact}".
+    One slug per agent tool_def (deduped by name). A tool is included
+    when the profile holds at least one of its permissions — the caller
+    can invoke the tool with that specific (artifact, operation). The
+    per-call permission check in register._dispatch enforces the exact
+    resolved pair against role permissions, so showing a tool with any
+    overlap is safe.
     """
+    from app.infra.mcp.tool_catalog import slugify_tool_name
+
     role_perms = set(ctx.role_permissions)
     allowed: set[str] = set()
     for td in ctx.tool_defs:
-        for perm in td.get("_permissions") or []:
-            pair = (perm.get("artifact"), perm.get("operation"))
-            if pair in role_perms:
-                allowed.add(f"{pair[1]}_{pair[0]}")
+        name = td.get("name")
+        if not name:
+            continue
+        tool_perms = td.get("_permissions") or []
+        if not tool_perms:
+            continue
+        if any(
+            (p.get("artifact"), p.get("operation")) in role_perms
+            for p in tool_perms
+        ):
+            allowed.add(slugify_tool_name(name))
     return allowed

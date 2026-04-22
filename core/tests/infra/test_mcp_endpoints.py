@@ -4,74 +4,122 @@ from __future__ import annotations
 
 from app.infra.mcp.register import (
     _annotations_for,
-    _find_tool_def,
     register_tools,
 )
-from app.infra.mcp.tool_graph import get_mcp_tool_graph
+from app.infra.mcp.resolve import McpContext, allowed_tool_names
+from app.infra.mcp.tool_catalog import slugify_tool_name
 
 
-def test_tool_graph_returns_pairs_from_infra_ops():
-    graph = get_mcp_tool_graph()
-
-    assert len(graph) > 20
-    assert all(isinstance(pair, tuple) and len(pair) == 2 for pair in graph)
-    assert ("persona", "get") in graph
-    assert ("scenario", "search") in graph
+def test_slugify_tool_name_handles_common_shapes():
+    assert slugify_tool_name("Activity Export") == "activity_export"
+    assert slugify_tool_name("Create Content") == "create_content"
+    assert slugify_tool_name("Test Grade - A") == "test_grade_a"
+    assert slugify_tool_name("") == ""
 
 
-def test_annotations_mark_read_ops_as_read_only():
-    ann = _annotations_for("get", "Persona Get")
-
-    assert ann.readOnlyHint is True
-    assert ann.destructiveHint is False
-    assert ann.idempotentHint is True
-    assert ann.title == "Persona Get"
-
-
-def test_annotations_mark_write_ops_as_not_read_only():
-    create_ann = _annotations_for("create", "Persona Create")
-    delete_ann = _annotations_for("delete", "Persona Delete")
-    update_ann = _annotations_for("update", "Persona Update")
-
-    assert create_ann.readOnlyHint is False
-    assert delete_ann.readOnlyHint is False
-    assert delete_ann.destructiveHint is True
-    assert update_ann.readOnlyHint is False
-    assert update_ann.idempotentHint is True
-
-
-def test_find_tool_def_matches_on_permission_pair():
-    tool_defs = [
-        {
-            "name": "Persona Get",
-            "_permissions": [{"artifact": "persona", "operation": "get"}],
-        },
-        {
-            "name": "Activity Search",
-            "_permissions": [{"artifact": "activity", "operation": "search"}],
-        },
-    ]
-
-    assert _find_tool_def(tool_defs, "persona", "get") is tool_defs[0]
-    assert _find_tool_def(tool_defs, "activity", "search") is tool_defs[1]
-    assert _find_tool_def(tool_defs, "persona", "delete") is None
-
-
-def test_find_tool_def_handles_multi_permission_tool():
+def test_annotations_mark_write_tool_as_not_read_only():
     td = {
-        "name": "Cross Artifact Create",
+        "name": "Create Content",
         "_permissions": [
             {"artifact": "persona", "operation": "create"},
             {"artifact": "scenario", "operation": "create"},
         ],
     }
+    ann = _annotations_for(td, "Create Content")
 
-    assert _find_tool_def([td], "persona", "create") is td
-    assert _find_tool_def([td], "scenario", "create") is td
-    assert _find_tool_def([td], "cohort", "create") is None
+    assert ann.readOnlyHint is False
+    assert ann.destructiveHint is False
+    assert ann.title == "Create Content"
 
 
-def test_register_tools_registers_every_catalog_entry():
+def test_annotations_mark_delete_tool_as_destructive():
+    td = {
+        "name": "Delete Content",
+        "_permissions": [
+            {"artifact": "persona", "operation": "delete"},
+        ],
+    }
+    ann = _annotations_for(td, "Delete Content")
+
+    assert ann.readOnlyHint is False
+    assert ann.destructiveHint is True
+
+
+def test_annotations_mark_read_only_tool_correctly():
+    td = {
+        "name": "Search Content",
+        "_permissions": [
+            {"artifact": "persona", "operation": "search"},
+            {"artifact": "scenario", "operation": "search"},
+        ],
+    }
+    ann = _annotations_for(td, "Search Content")
+
+    assert ann.readOnlyHint is True
+    assert ann.destructiveHint is False
+
+
+def test_allowed_tool_names_emits_one_slug_per_tool_def():
+    ctx = McpContext(
+        profile_id=None,  # type: ignore[arg-type]
+        agent_id=None,
+        tool_defs=[
+            {
+                "name": "Create Content",
+                "_permissions": [
+                    {"artifact": "persona", "operation": "create"},
+                    {"artifact": "scenario", "operation": "create"},
+                    {"artifact": "cohort", "operation": "create"},
+                ],
+            },
+            {
+                "name": "Search Content",
+                "_permissions": [
+                    {"artifact": "persona", "operation": "search"},
+                ],
+            },
+            {
+                "name": "Delete Infrastructure",
+                "_permissions": [
+                    {"artifact": "agent", "operation": "delete"},
+                ],
+            },
+        ],
+        role_permissions=[
+            ("persona", "create"),
+            ("persona", "search"),
+            ("scenario", "create"),
+            # ("agent", "delete") deliberately omitted → Delete Infrastructure filtered out
+        ],
+    )
+
+    names = allowed_tool_names(ctx)
+
+    # Three tools on agent but one is filtered because profile lacks agent/delete.
+    assert names == {"create_content", "search_content"}
+
+
+def test_allowed_tool_names_requires_at_least_one_overlap():
+    """A single permission overlap is enough to expose a multi-target tool."""
+    ctx = McpContext(
+        profile_id=None,  # type: ignore[arg-type]
+        agent_id=None,
+        tool_defs=[
+            {
+                "name": "Create Content",
+                "_permissions": [
+                    {"artifact": "persona", "operation": "create"},
+                    {"artifact": "scenario", "operation": "create"},
+                ],
+            }
+        ],
+        role_permissions=[("persona", "create")],  # only one overlap
+    )
+
+    assert allowed_tool_names(ctx) == {"create_content"}
+
+
+def test_register_tools_registers_each_tool_def_once():
     class FakeServer:
         def __init__(self):
             self.registrations: dict[str, dict] = {}
@@ -79,7 +127,6 @@ def test_register_tools_registers_every_catalog_entry():
         def tool(self, *, name, title, description, annotations, **_):
             def _decorator(fn):
                 self.registrations[name] = {
-                    "fn": fn,
                     "title": title,
                     "description": description,
                     "annotations": annotations,
@@ -89,14 +136,21 @@ def test_register_tools_registers_every_catalog_entry():
             return _decorator
 
     server = FakeServer()
-    graph = get_mcp_tool_graph()
+    tool_defs = [
+        {
+            "name": "Create Content",
+            "description": "create content resources",
+            "_permissions": [{"artifact": "persona", "operation": "create"}],
+        },
+        {
+            "name": "Search Content",
+            "description": "search content resources",
+            "_permissions": [{"artifact": "persona", "operation": "search"}],
+        },
+    ]
 
-    register_tools(server, graph)
+    register_tools(server, tool_defs)
 
-    assert len(server.registrations) == len(graph)
-    assert "get_persona" in server.registrations
-    assert "search_scenario" in server.registrations
-
-    get_persona = server.registrations["get_persona"]
-    assert get_persona["annotations"].readOnlyHint is True
-    assert get_persona["title"] == "Persona Get"
+    assert set(server.registrations.keys()) == {"create_content", "search_content"}
+    assert server.registrations["create_content"]["annotations"].readOnlyHint is False
+    assert server.registrations["search_content"]["annotations"].readOnlyHint is True

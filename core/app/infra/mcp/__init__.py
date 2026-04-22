@@ -11,9 +11,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 from app.infra.globals import get_client_origins
 
 from .prompt import get_agent_system_prompt
-from .register import register_tools
 from .server import SYSTEM_PROMPT_NAME, ScopedFastMCP, _current_mcp_context
-from .tool_graph import get_mcp_tool_graph
 
 logger = logging.getLogger(__name__)
 
@@ -70,9 +68,10 @@ mcp_server = ScopedFastMCP(
     transport_security=transport_security,
 )
 
-# Register the INFRA_OPS catalog. Per-caller scoping happens in ScopedFastMCP.
-tool_graph = get_mcp_tool_graph()
-register_tools(mcp_server, tool_graph)
+# Tool catalog is registered lazily on first MCP request (see ScopedFastMCP).
+# It's built from tools_resource — one MCP tool per unique tool.name — so
+# multi-target tools surface as a single entry that routes internally via
+# resolve_tool_spec, same as the generate pipeline.
 
 
 @mcp_server.prompt(

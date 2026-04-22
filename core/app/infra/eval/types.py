@@ -109,6 +109,15 @@ class EvalModelPositionResource(BaseModel):
     pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
+class EvalRubricResource(BaseModel):
+    """Top-level rubric catalog entry. The ModelRubrics picker renders
+    one of these per option (alongside a "no rubric" clear state)."""
+
+    id: UUID | None = Field(None, description="Rubric resource UUID")
+    name: str | None = Field(None, description="Rubric display name")
+    description: str | None = Field(None, description="Rubric description")
+
+
 class SectionFilter(BaseModel):
     search: str | None = Field(None, description="Filter options by search text")
     limit: int | None = Field(None, description="Max options to return")
@@ -158,6 +167,7 @@ class GetEvalApiResponse(BaseModel):
     model_flags: list[EvalModelFlagResource] | None = Field(None, description="Model flag resources")
     model_rubrics: list[EvalModelRubricResource] | None = Field(None, description="Model rubric resources")
     model_positions: list[EvalModelPositionResource] | None = Field(None, description="Model position resources")
+    rubrics: list[EvalRubricResource] | None = Field(None, description="Top-level rubric catalog for the ModelRubrics picker")
 
 
 # ========== List Endpoint Types ==========
