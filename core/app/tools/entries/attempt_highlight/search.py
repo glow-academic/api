@@ -24,7 +24,7 @@ async def search_attempt_highlights(
 
     rows = await conn.fetch(
         f"""
-        SELECT highlight_id, strength_id, section, idx, created_at
+        SELECT highlight_id, strength_id, section, created_at
         FROM {source}
         WHERE ($1::uuid[] IS NULL OR strength_id = ANY($1))
         ORDER BY created_at DESC
