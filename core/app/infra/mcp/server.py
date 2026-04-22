@@ -30,14 +30,15 @@ SYSTEM_PROMPT_NAME = "agent_system_prompt"
 
 
 def _current_profile_id() -> UUID | None:
-    """Best-effort lookup of the caller's profile_id from request state."""
-    try:
-        from fastmcp.server.dependencies import get_http_request
+    """Best-effort lookup of the caller's profile_id from the OAuth middleware.
 
-        request = get_http_request()
-    except Exception:
-        return None
-    value = getattr(getattr(request, "state", None), "profile_id", None)
+    McpOAuthMiddleware resolves the bearer token and calls set_profile_id(),
+    which writes profile_id_context — a ContextVar that propagates through
+    the async task into FastMCP's list_tools / list_prompts / prompt handlers.
+    """
+    from app.utils.logging.db_logger import profile_id_context
+
+    value = profile_id_context.get(None)
     if not value:
         return None
     try:

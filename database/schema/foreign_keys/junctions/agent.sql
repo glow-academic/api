@@ -101,6 +101,24 @@ ALTER TABLE ONLY public.agent_names_junction
 
 --
 
+-- Name: agent_prompts_junction agent_prompts_junction_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.agent_prompts_junction
+    ADD CONSTRAINT agent_prompts_junction_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.agent_artifact(id) ON DELETE CASCADE;
+
+
+--
+
+-- Name: agent_prompts_junction agent_prompts_junction_prompts_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.agent_prompts_junction
+    ADD CONSTRAINT agent_prompts_junction_prompts_id_fkey FOREIGN KEY (prompts_id) REFERENCES public.prompts_resource(id) ON DELETE CASCADE;
+
+
+--
+
 -- Name: agent_qualities_junction agent_qualities_junction_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -133,24 +151,6 @@ ALTER TABLE ONLY public.agent_reasoning_levels_junction
 
 ALTER TABLE ONLY public.agent_reasoning_levels_junction
     ADD CONSTRAINT agent_reasoning_levels_junction_reasoning_level_id_fkey FOREIGN KEY (reasoning_levels_id) REFERENCES public.reasoning_levels_resource(id) ON DELETE CASCADE;
-
-
---
-
--- Name: agent_prompts_junction agent_prompts_junction_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.agent_prompts_junction
-    ADD CONSTRAINT agent_prompts_junction_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.agent_artifact(id) ON DELETE CASCADE;
-
-
---
-
--- Name: agent_prompts_junction agent_prompts_junction_prompts_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.agent_prompts_junction
-    ADD CONSTRAINT agent_prompts_junction_prompts_id_fkey FOREIGN KEY (prompts_id) REFERENCES public.prompts_resource(id) ON DELETE CASCADE;
 
 
 --

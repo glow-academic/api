@@ -19,7 +19,7 @@ async def create_setting(
     provider_key_ids: list[UUID] | None = None,
     auth_ids: list[UUID] | None = None,
     system_ids: list[UUID] | None = None,
-    mcp_agent_id: UUID | None = None,
+    mcp_id: UUID | None = None,
     id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
@@ -28,7 +28,7 @@ async def create_setting(
     setting_id = await conn.fetchval(
         """
         INSERT INTO settings_resource (
-            id, name, description, department_ids, provider_key_ids, auth_ids, system_ids, mcp_agent_id, active, mcp, generated
+            id, name, description, department_ids, provider_key_ids, auth_ids, system_ids, mcp_id, active, mcp, generated
         )
         VALUES (COALESCE($10, uuidv7()), $1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
         RETURNING id
@@ -39,7 +39,7 @@ async def create_setting(
         provider_key_ids or [],
         auth_ids or [],
         system_ids or [],
-        mcp_agent_id,
+        mcp_id,
         not soft,
         mcp,
         id,

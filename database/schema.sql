@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict HwP8f3m1bF1qdMFxh4BTbwH0Fa8s3sE2DhxStnDZe4MGWpmRlJ8uXRjJBDklI1a
+\restrict thIKsdl1sXBgrTevnzucfRImt2ddqgVWEqumhkqTJPV75gfFc2R9zhTpsYheb1T
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -439,6 +439,20 @@ CREATE TABLE public.agent_names_junction (
     generated boolean DEFAULT false CONSTRAINT agent_names_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT agent_names_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT agent_names_active_not_null NOT NULL
+);
+
+
+--
+-- Name: agent_prompts_junction; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.agent_prompts_junction (
+    agent_id uuid NOT NULL,
+    prompts_id uuid NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
 );
 
 
@@ -1402,6 +1416,14 @@ CREATE MATERIALIZED VIEW public.attempt_chat_mv AS
     COALESCE(tb.show_images, true) AS show_images,
     COALESCE(tb.show_objectives, true) AS show_objectives,
     COALESCE(tb.show_problem_statement, true) AS show_problem_statement,
+    c.analyses_enabled,
+    c.strengths_enabled,
+    c.improvements_enabled,
+    c.problem_statement_enabled,
+    c.objectives_enabled,
+    c.video_enabled,
+    c.images_enabled,
+    c.questions_enabled,
     COALESCE(ctl.time_limit_seconds, 0) AS time_limit_seconds,
     COALESCE(ctl.negative, false) AS negative,
     cps.problem_statement_id,
@@ -11210,7 +11232,7 @@ CREATE TABLE public.settings_resource (
     provider_key_ids uuid[] DEFAULT ARRAY[]::uuid[],
     auth_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
     system_ids uuid[] DEFAULT ARRAY[]::uuid[] NOT NULL,
-    mcp_agent_id uuid
+    mcp_id uuid
 );
 
 
@@ -13735,6 +13757,14 @@ ALTER TABLE ONLY public.agent_models_junction
 
 ALTER TABLE ONLY public.agent_names_junction
     ADD CONSTRAINT agent_names_pkey PRIMARY KEY (agent_id, names_id);
+
+
+--
+-- Name: agent_prompts_junction agent_prompts_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.agent_prompts_junction
+    ADD CONSTRAINT agent_prompts_junction_pkey PRIMARY KEY (agent_id, prompts_id);
 
 
 --
@@ -22238,20 +22268,6 @@ CREATE INDEX idx_chat_entry_session_id ON public.chat_entry USING btree (session
 
 
 --
--- Name: idx_chat_mv_chat_entry_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_chat_mv_chat_entry_id ON public.chat_mv USING btree (chat_entry_id);
-
-
---
--- Name: idx_chat_mv_session_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_chat_mv_session_id ON public.chat_mv USING btree (session_id);
-
-
---
 -- Name: idx_cohort_departments_generated; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29994,6 +30010,22 @@ ALTER TABLE ONLY public.agent_names_junction
 
 ALTER TABLE ONLY public.agent_names_junction
     ADD CONSTRAINT agent_names_name_id_fkey FOREIGN KEY (names_id) REFERENCES public.names_resource(id) ON DELETE CASCADE;
+
+
+--
+-- Name: agent_prompts_junction agent_prompts_junction_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.agent_prompts_junction
+    ADD CONSTRAINT agent_prompts_junction_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.agent_artifact(id) ON DELETE CASCADE;
+
+
+--
+-- Name: agent_prompts_junction agent_prompts_junction_prompts_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.agent_prompts_junction
+    ADD CONSTRAINT agent_prompts_junction_prompts_id_fkey FOREIGN KEY (prompts_id) REFERENCES public.prompts_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -39192,5 +39224,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict HwP8f3m1bF1qdMFxh4BTbwH0Fa8s3sE2DhxStnDZe4MGWpmRlJ8uXRjJBDklI1a
+\unrestrict thIKsdl1sXBgrTevnzucfRImt2ddqgVWEqumhkqTJPV75gfFc2R9zhTpsYheb1T
 

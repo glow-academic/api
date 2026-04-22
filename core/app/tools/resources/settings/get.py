@@ -35,7 +35,7 @@ async def get_settings(
     rows = await conn.fetch(
         """
         SELECT id, name, description, department_ids, provider_key_ids,
-               auth_ids, system_ids, mcp_agent_id, created_at, active, mcp, generated
+               auth_ids, system_ids, mcp_id, created_at, active, mcp, generated
         FROM settings_resource
         WHERE id = ANY($1)
         ORDER BY array_position($1, id)
@@ -52,7 +52,7 @@ async def get_settings(
             provider_key_ids=r["provider_key_ids"] or [],
             auth_ids=r["auth_ids"] or [],
             system_ids=r["system_ids"] or [],
-            mcp_agent_id=r["mcp_agent_id"],
+            mcp_id=r["mcp_id"],
             created_at=r["created_at"],
             active=r["active"],
             mcp=r["mcp"],

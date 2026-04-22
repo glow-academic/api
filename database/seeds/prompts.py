@@ -40,7 +40,7 @@ def _read(filename: str) -> str | None:
 # All agent names that should have prompts
 AGENT_NAMES = [
     "Activity", "Agent", "Attempt Chat", "Attempt Grade", "Attempt Realtime",
-    "Auth", "Benchmark", "Chat", "Cohort",
+    "Auth", "Benchmark", "Chat", "Cohort", "Composer",
     "Dashboard", "Department", "Document", "Eval",
     "Field", "Group", "Health", "Home",
     "Invocation", "Leaderboard", "Model", "Parameter",

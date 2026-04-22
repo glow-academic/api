@@ -156,6 +156,7 @@ async def create_denormalized_snapshot(
     department_ids: list[UUID] | None = None,
     provider_key_ids: list[UUID] | None = None,
     system_ids: list[UUID] | None = None,
+    mcp_id: UUID | None = None,
 ) -> UUID:
     """Create a settings_resource snapshot by hydrating IDs to values.
 
@@ -190,6 +191,7 @@ async def create_denormalized_snapshot(
             department_ids=department_ids,
             provider_key_ids=provider_key_ids,
             system_ids=system_ids,
+            mcp_id=mcp_id,
             redis=redis,
         )
     return result.id

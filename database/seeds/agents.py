@@ -934,6 +934,8 @@ agents = [
             sid("tool-resource/update/infrastructure"),
             sid("tool-resource/view/dashboards"),
         ],
+        prompt_id=_prompt_id("Composer"),
+        instruction_ids=[_instruction_id("Composer")] if _instruction_id("Composer") else None,
     ),
 ]
 

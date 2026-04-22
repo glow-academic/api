@@ -117,6 +117,7 @@ async def create_setting_impl(
                 department_ids=item.department_ids,
                 provider_key_ids=item.provider_key_ids,
                 system_ids=item.system_ids,
+                mcp_id=item.mcp_id,
             )
             snapshot_ids.append(setting_resource_id)
 

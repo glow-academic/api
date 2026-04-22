@@ -1,14 +1,14 @@
 """Resolve an MCP caller's context from profile_id.
 
-Walks the black-box chain:
-  profile → primary department's settings_id
-          → get_settings(mcp=True).mcp_ids (junction)
-          → get_mcp() → mcp_resource.agent_id
-          → build_agent_tool_defs(agent_id) → enriched tool_defs
+Canonical two-hop read, all through resource-level black boxes:
 
-Returns an McpContext with the profile's role_permissions alongside the
-agent's tool_defs, so the MCP call handler can enforce both agent-scope
-and permission-scope before dispatching through execute_infra_operation.
+  profile_identity_context  → primary department → dept.setting_ids[0]
+  get_settings (resource)   → settings_resource.mcp_id
+  get_mcp (resource)        → mcp_resource.agent_id (agents_resource.id)
+  build_agent_tool_defs     → enriched tool_defs
+
+The MCP call handler enforces agent-scope + permission-scope using the
+returned McpContext.
 """
 
 from __future__ import annotations
@@ -21,8 +21,8 @@ from redis.asyncio import Redis
 
 from app.infra.mcp.tool_setup import build_agent_tool_defs
 from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.tools.artifacts.setting.get import get_settings
 from app.tools.resources.mcp.get import get_mcp
+from app.tools.resources.settings.get import get_settings
 
 
 @dataclass(frozen=True)
@@ -54,58 +54,42 @@ async def resolve_mcp_context(
     if identity is None:
         return McpContext(profile_id=profile_id)
 
-    primary_department_id = identity.primary_department_id
-    role_permissions = list(identity.role_permissions)
+    base = McpContext(
+        profile_id=profile_id,
+        primary_department_id=identity.primary_department_id,
+        role_permissions=list(identity.role_permissions),
+    )
 
     if identity.settings_id is None:
-        return McpContext(
-            profile_id=profile_id,
-            primary_department_id=primary_department_id,
-            role_permissions=role_permissions,
-        )
+        return base
 
     async with pool.acquire() as conn:
         settings = await get_settings(
-            conn, [identity.settings_id], mcp=True
+            conn, [identity.settings_id], redis, bypass_cache
         )
-    if not settings:
-        return McpContext(
-            profile_id=profile_id,
-            primary_department_id=primary_department_id,
-            role_permissions=role_permissions,
-        )
-
-    mcp_ids = list(settings[0].mcp_ids or [])
-    if not mcp_ids:
-        return McpContext(
-            profile_id=profile_id,
-            primary_department_id=primary_department_id,
-            role_permissions=role_permissions,
-        )
+    mcp_id = settings[0].mcp_id if settings else None
+    if mcp_id is None:
+        return base
 
     async with pool.acquire() as conn:
-        mcp_resources = await get_mcp(conn, mcp_ids, redis, bypass_cache)
-    agent_id = next(
+        mcp_resources = await get_mcp(conn, [mcp_id], redis, bypass_cache)
+    agent_resource_id = next(
         (m.agent_id for m in mcp_resources if m.active and m.agent_id),
         None,
     )
-    if agent_id is None:
-        return McpContext(
-            profile_id=profile_id,
-            primary_department_id=primary_department_id,
-            role_permissions=role_permissions,
-        )
+    if agent_resource_id is None:
+        return base
 
     tool_defs = await build_agent_tool_defs(
-        pool, redis, agent_id, bypass_cache=bypass_cache
+        pool, redis, agent_resource_id, bypass_cache=bypass_cache
     )
 
     return McpContext(
         profile_id=profile_id,
-        primary_department_id=primary_department_id,
-        agent_id=agent_id,
+        primary_department_id=identity.primary_department_id,
+        agent_id=agent_resource_id,
         tool_defs=tool_defs,
-        role_permissions=role_permissions,
+        role_permissions=list(identity.role_permissions),
     )
 
 

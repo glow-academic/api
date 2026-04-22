@@ -33,6 +33,11 @@ from app.tools.resources.names.search import search_names
 
 EVAL_FLAG_NAMES = {"eval_active", "dynamic", ""}
 
+# Flag types that can appear per-model on an eval (cross-product with
+# selected models to build the ModelFlags picker suggestions). Mirrors
+# SCENARIO_FLAG_TYPES_ORDERED in simulation/context.py.
+MODEL_FLAG_TYPES_ORDERED = ["model_active"]
+
 
 class EvalModelFlagEnriched(BaseModel):
     """Enriched model_flag shape for downstream assembly.
@@ -220,6 +225,23 @@ async def resolve_eval_context(
                 eval=True,
             )
 
+    async def _search_model_flag_types() -> list:
+        # All flag resources that can appear per-model (model_active today).
+        # Used to build the cross-product of selected-model × flag-type
+        # suggestion rows — without this, a freshly selected model has no
+        # flag options in the picker because `model_flags_junction` has no
+        # row for that (model, flag) pair yet.
+        async with pool.acquire() as conn:
+            return await search_flags(
+                conn,
+                redis,
+                limit_count=50,
+                offset_count=0,
+                exclude_ids=None,
+                bypass_cache=bypass_cache,
+                model=True,
+            )
+
     async def _get_model_rubrics() -> list:
         async with pool.acquire() as conn:
             return await get_model_rubrics(conn, merged.model_rubric_ids, redis, bypass_cache)
@@ -267,6 +289,7 @@ async def resolve_eval_context(
         model_rubrics_suggestions,
         model_positions_selected,
         model_positions_suggestions,
+        model_flag_types_all,
     ) = await asyncio.gather(
         _get_names(),
         _search_names(),
@@ -284,6 +307,7 @@ async def resolve_eval_context(
         _search_model_rubrics(),
         _get_model_positions(),
         _search_model_positions(),
+        _search_model_flag_types(),
     )
 
     flags_suggestions_filtered = [
@@ -299,36 +323,33 @@ async def resolve_eval_context(
         pending_ids.update(draft.pending_model_ids or [])
         pending_ids.update(draft.pending_rubric_ids or [])
 
-    # Collect unique flag_ids referenced by model_flag junction rows so we
-    # can pull their flag-type metadata (name / description / icon_id) and
-    # enrich the junction rows before they hit the response builder.
-    model_flag_flag_ids: list[UUID] = list({
-        mf.flag_id for mf in (model_flags_selected + model_flags_suggestions)
-        if mf.flag_id
-    })
-    if model_flag_flag_ids:
-        async with pool.acquire() as conn:
-            model_flag_types = await get_flags(
-                conn, model_flag_flag_ids, redis, bypass_cache
-            )
-    else:
-        model_flag_types = []
+    # Order model-scoped flag types by the client-preferred order so the
+    # picker lists them consistently (today just "model_active").
+    model_flag_types_by_type = {f.type: f for f in model_flag_types_all}
+    model_flag_types_ordered = [
+        model_flag_types_by_type[t]
+        for t in MODEL_FLAG_TYPES_ORDERED
+        if t in model_flag_types_by_type
+    ]
 
     # Hydrate SVG icons onto each flag (icon_id → icon markup). Include the
-    # model_flag type rows so the enriched junction rows carry an `icon`
-    # SVG for the picker.
+    # model_flag type rows so the cross-product suggestions carry icon SVG
+    # through to the picker.
     async with pool.acquire() as conn:
         await hydrate_flag_icons(
             list(flags_selected)
             + list(flags_suggestions_filtered)
-            + list(model_flag_types),
+            + list(model_flag_types_all),
             conn,
             redis,
             bypass_cache,
         )
 
-    flag_type_by_id = {ft.id: ft for ft in model_flag_types if ft.id}
+    flag_type_by_id = {ft.id: ft for ft in model_flag_types_all if ft.id}
 
+    # Enrich SELECTED junction rows with their flag-type metadata so the
+    # client picker (which filters on flag.name) keeps them instead of
+    # dropping silently.
     def _enrich_model_flag(mf) -> EvalModelFlagEnriched:
         ft = flag_type_by_id.get(mf.flag_id) if mf.flag_id else None
         return EvalModelFlagEnriched(
@@ -342,8 +363,45 @@ async def resolve_eval_context(
             generated=mf.generated,
         )
 
-    model_flags_selected = [_enrich_model_flag(mf) for mf in model_flags_selected]
-    model_flags_suggestions = [_enrich_model_flag(mf) for mf in model_flags_suggestions]
+    model_flags_selected_enriched = [
+        _enrich_model_flag(mf) for mf in model_flags_selected
+    ]
+
+    # Cross-product: for each selected/suggested model × each model-scoped
+    # flag type, emit a suggestion row (unless the pair is already in
+    # selected). This matches simulation's scenario_flags pattern and is
+    # what lets the picker show "Active" on a freshly selected model that
+    # doesn't yet have a junction row.
+    all_model_ids_for_flags = [
+        getattr(m, "id", None)
+        for m in (models_selected + models_suggestions)
+        if getattr(m, "id", None)
+    ]
+    mf_existing: set[tuple[UUID, UUID]] = {
+        (mf.model_id, mf.flag_id)
+        for mf in model_flags_selected_enriched
+        if mf.model_id and mf.flag_id
+    }
+    model_flags_suggestions_enriched: list[EvalModelFlagEnriched] = []
+    for mid in all_model_ids_for_flags:
+        for ft in model_flag_types_ordered:
+            if not ft.id or (mid, ft.id) in mf_existing:
+                continue
+            model_flags_suggestions_enriched.append(
+                EvalModelFlagEnriched(
+                    id=None,
+                    model_id=mid,
+                    flag_id=ft.id,
+                    name=ft.name,
+                    description=ft.description,
+                    icon_id=ft.icon_id,
+                    icon=getattr(ft, "icon", None),
+                    generated=False,
+                )
+            )
+
+    model_flags_selected = model_flags_selected_enriched
+    model_flags_suggestions = model_flags_suggestions_enriched
 
     return ArtifactContext(
         artifact_id=artifact.id if artifact else None,

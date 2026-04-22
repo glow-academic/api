@@ -181,6 +181,7 @@ async def update_setting_impl(
                 department_ids=eff_department_ids,
                 provider_key_ids=eff_provider_key_ids,
                 system_ids=eff_system_ids,
+                mcp_id=item.mcp_id,
             )
 
         async with pool.acquire() as conn:
