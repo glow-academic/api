@@ -260,7 +260,7 @@ jobs:
           # The obsolete `--modules` flag was removed in 96671815.
           PYTHONPATH=core python3 -m database.scripts.runner --setup "$SETUP"
 
-          echo "Seed backup generated: $(ls -lh database/history/*.sql.gz | tail -1)"
+          echo "Seed backup generated: $(ls -lh history/*.sql.gz | tail -1)"
 
           # If no explicit restore target, use the seed output for first deploy
           if [ -z "$DB_RESTORE" ]; then
