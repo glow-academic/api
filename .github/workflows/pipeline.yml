@@ -103,7 +103,7 @@ jobs:
     runs-on: [self-hosted, Linux, X64, deploy]
     if: |
       always() &&
-      needs.test.result == 'success' &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (needs.schema-check.result == 'success' || needs.schema-check.result == 'skipped') &&
       github.event_name != 'pull_request'
     outputs:
