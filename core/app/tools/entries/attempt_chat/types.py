@@ -36,7 +36,7 @@ class GetAttemptChatResponse(BaseModel):
     is_archived: bool | None
     infinite_mode: bool | None
     document_ids: list[UUID] | None
-    # Training config flags
+    # Training config flags (sourced from chat_entry template)
     copy_paste_allowed: bool | None = None
     text_enabled: bool | None = None
     audio_enabled: bool | None = None
@@ -44,6 +44,17 @@ class GetAttemptChatResponse(BaseModel):
     show_images: bool | None = None
     show_objectives: bool | None = None
     show_problem_statement: bool | None = None
+    # Per-attempt runtime flags (sourced from attempt_chat_entry).
+    # Clients use these to decide which ops to fire and whether to
+    # render capability surfaces (grading sections, video panel, etc.)
+    analyses_enabled: bool | None = None
+    strengths_enabled: bool | None = None
+    improvements_enabled: bool | None = None
+    problem_statement_enabled: bool | None = None
+    objectives_enabled: bool | None = None
+    video_enabled: bool | None = None
+    images_enabled: bool | None = None
+    questions_enabled: bool | None = None
     time_limit_seconds: int | None = None
     negative: bool | None = None
     # Resource ID arrays

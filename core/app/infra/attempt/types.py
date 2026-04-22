@@ -507,12 +507,24 @@ class ChatData(BaseModel):
     feedbacks: list[FeedbackEntry] | None = Field(None, description="Standard-level feedback entries")
     analyses: list[AnalysisEntry] | None = Field(None, description="Chat-level analysis content")
 
-    # Chat-level flags
+    # Chat-level flags (sourced from chat_entry template)
     show_problem_statement: bool | None = Field(None, description="Whether to show the problem statement")
     show_objectives: bool | None = Field(None, description="Whether to show objectives")
     copy_paste_allowed: bool | None = Field(None, description="Whether copy-paste is allowed")
     text_enabled: bool | None = Field(None, description="Whether text input is enabled")
     audio_enabled: bool | None = Field(None, description="Whether audio input is enabled")
+    # Per-attempt runtime flags (sourced from attempt_chat_entry).
+    # Feed into client op-list composition (grading + generation) and
+    # UI capability gates.
+    hints_enabled: bool | None = Field(None, description="Whether hints should be generated on replies")
+    analyses_enabled: bool | None = Field(None, description="Whether chat-level analyses run during grading")
+    strengths_enabled: bool | None = Field(None, description="Whether strengths are captured during grading")
+    improvements_enabled: bool | None = Field(None, description="Whether improvements are captured during grading")
+    problem_statement_enabled: bool | None = Field(None, description="Whether this chat has a problem statement capability")
+    objectives_enabled: bool | None = Field(None, description="Whether this chat has objectives capability")
+    video_enabled: bool | None = Field(None, description="Whether this chat has a video capability")
+    images_enabled: bool | None = Field(None, description="Whether this chat has an images capability")
+    questions_enabled: bool | None = Field(None, description="Whether this chat has a quiz/questions capability")
 
     # Extended fields for full feature support
     grading_state: GradingStateData | None = Field(None, description="Current grading state data")
