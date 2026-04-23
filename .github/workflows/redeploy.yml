@@ -305,35 +305,45 @@ jobs:
         working-directory: ${{ env.DEPLOY_DIR }}
         run: make migrate-docker TYPE=add
 
-      - name: Write .env
+      - name: Update .env (merge — do not clobber)
         working-directory: ${{ env.DEPLOY_DIR }}
         run: |
-          cat > .env <<EOF
-          COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
-          API_VERSION=${API_VERSION}
-          ORIGIN=${ORIGIN}
-          CLIENT_ORIGINS=${CLIENT_ORIGINS}
-          APP_PREFIX=${APP_PREFIX}
-          DB_BACKUP=${DB_BACKUP}
-          SECRET_KEY=${SECRET_KEY:-}
-          DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN:-}
-          LEARNLOOP_API_URL=${LEARNLOOP_API_URL:-}
-          AI_PROVIDER=${AI_PROVIDER:-direct}
-          AI_API_KEY=${AI_API_KEY:-}
-          AI_BASE_URL=${AI_BASE_URL:-https://api.learn-loop.org/ai/v1}
-          AUTH_PROVIDER=${AUTH_PROVIDER:-keycloak}
-          AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET:-}
-          LEARNLOOP_CLIENT_ID=${LEARNLOOP_CLIENT_ID:-}
-          LEARNLOOP_CLIENT_SECRET=${LEARNLOOP_CLIENT_SECRET:-}
-          AUTH_ISSUER=${AUTH_ISSUER:-}
-          AUTH_ISSUER_INTERNAL=${AUTH_ISSUER_INTERNAL:-}
-          ACTIVE_ENV=${ACTIVE_ENV}
-          ACTIVE_KC_ENV=${ACTIVE_KC_ENV}
-          GRACE_PERIOD_MINUTES=${GRACE_PERIOD_MINUTES:-60}
-          EOF
-          sed -i 's/^          //' .env
-
-          # Deploy config YAML is written in the "Write deploy config" step above
+          # Merge known vars into the existing .env instead of overwriting it.
+          # The prior clobber approach dropped POSTGRES_DB, KEYCLOAK_ADMIN_PASSWORD,
+          # DB_USER/DB_PASSWORD, AUTH_SECRET, NEXT_PUBLIC_* and other vars set at
+          # initial Deploy (New). Redeploys only need to refresh versions/tokens.
+          touch .env
+          upsert() {
+            local key="$1" val="$2"
+            if grep -qE "^${key}=" .env 2>/dev/null; then
+              # Portable in-place sed with | delimiter to avoid slash collisions
+              sed -i "s|^${key}=.*|${key}=${val}|" .env
+            else
+              echo "${key}=${val}" >> .env
+            fi
+          }
+          upsert COMPOSE_PROJECT_NAME "${COMPOSE_PROJECT_NAME}"
+          upsert API_VERSION          "${API_VERSION}"
+          upsert ORIGIN               "${ORIGIN}"
+          upsert CLIENT_ORIGINS       "${CLIENT_ORIGINS}"
+          upsert APP_PREFIX           "${APP_PREFIX}"
+          upsert DB_BACKUP            "${DB_BACKUP}"
+          upsert ACTIVE_ENV           "${ACTIVE_ENV}"
+          upsert ACTIVE_KC_ENV        "${ACTIVE_KC_ENV}"
+          [ -n "${SECRET_KEY:-}" ]              && upsert SECRET_KEY              "${SECRET_KEY}"
+          [ -n "${DEPLOYMENT_TOKEN:-}" ]        && upsert DEPLOYMENT_TOKEN        "${DEPLOYMENT_TOKEN}"
+          [ -n "${LEARNLOOP_API_URL:-}" ]       && upsert LEARNLOOP_API_URL       "${LEARNLOOP_API_URL}"
+          [ -n "${AI_BASE_URL:-}" ]             && upsert AI_BASE_URL             "${AI_BASE_URL}"
+          [ -n "${AUTH_CLIENT_SECRET:-}" ]      && upsert AUTH_CLIENT_SECRET      "${AUTH_CLIENT_SECRET}"
+          [ -n "${LEARNLOOP_CLIENT_ID:-}" ]     && upsert LEARNLOOP_CLIENT_ID     "${LEARNLOOP_CLIENT_ID}"
+          [ -n "${LEARNLOOP_CLIENT_SECRET:-}" ] && upsert LEARNLOOP_CLIENT_SECRET "${LEARNLOOP_CLIENT_SECRET}"
+          [ -n "${AUTH_ISSUER:-}" ]             && upsert AUTH_ISSUER             "${AUTH_ISSUER}"
+          [ -n "${AUTH_ISSUER_INTERNAL:-}" ]    && upsert AUTH_ISSUER_INTERNAL    "${AUTH_ISSUER_INTERNAL}"
+          [ -n "${AUTH_PROVIDER:-}" ]           && upsert AUTH_PROVIDER           "${AUTH_PROVIDER}"
+          [ -n "${AI_PROVIDER:-}" ]             && upsert AI_PROVIDER             "${AI_PROVIDER}"
+          [ -n "${AI_API_KEY:-}" ]              && upsert AI_API_KEY              "${AI_API_KEY}"
+          [ -n "${GRACE_PERIOD_MINUTES:-}" ]    && upsert GRACE_PERIOD_MINUTES    "${GRACE_PERIOD_MINUTES}"
+          echo "Merged .env ($(wc -l < .env) lines)"
 
       - name: Deploy target environment
         working-directory: ${{ env.DEPLOY_DIR }}

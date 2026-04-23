@@ -54,6 +54,34 @@ if [[ -n "$DB_BACKUP" ]]; then
     done
     exit 1
   fi
+
+  # Restore-once guard: if we've already restored from this exact backup,
+  # don't wipe on every container recreate. `make migrate-docker` recreates
+  # the database container every redeploy, and without this guard every
+  # redeploy would nuke the volume and re-restore from seed — destroying
+  # all user data (which is how we lost glowapi during the v2.15.9 test).
+  RESTORE_MARKER="$PGDATA/.restore_complete"
+  if [[ -f "$RESTORE_MARKER" ]]; then
+    LAST_RESTORE=$(cat "$RESTORE_MARKER" 2>/dev/null || echo "")
+    if [[ "$LAST_RESTORE" == "$DB_BACKUP" ]]; then
+      log_info "Already restored from $DB_BACKUP — skipping (PGDATA preserved)"
+      log_info "To force re-restore, delete $RESTORE_MARKER and recreate container"
+      # Fall through to normal startup without wiping
+      log_info "Starting PostgreSQL server..."
+      docker-entrypoint.sh "$@" &
+      PG_PID=$!
+      until pg_isready -U "$DB_USER" -d "$DB_NAME" > /dev/null 2>&1; do
+        sleep 1
+      done
+      sleep 3
+      psql -U "$DB_USER" -d "$DB_NAME" -c "CREATE SCHEMA IF NOT EXISTS keycloak; CREATE SCHEMA IF NOT EXISTS migrations;" 2>/dev/null || true
+      log_success "Database is ready!"
+      wait "$PG_PID"
+      exit 0
+    fi
+    log_info "Restore marker says '$LAST_RESTORE' but DB_BACKUP='$DB_BACKUP' — re-restoring"
+  fi
+
   log_info "Will restore from: $DB_BACKUP"
 
   # Wipe data dir so Postgres runs init scripts on fresh start
@@ -99,11 +127,12 @@ if [[ -n "$DB_BACKUP" ]]; then
   fi
   chmod 644 /docker-entrypoint-initdb.d/10-restore.sql
 
-  # Mark restore complete
-  cat > /docker-entrypoint-initdb.d/99-mark-ready.sh << 'EOF'
+  # Mark restore complete with the backup filename so subsequent container
+  # recreates with the same DB_BACKUP are no-ops instead of destructive wipes.
+  cat > /docker-entrypoint-initdb.d/99-mark-ready.sh <<EOF
 #!/bin/bash
-touch /var/lib/postgresql/.restore_complete 2>/dev/null || true
-echo "[DB] Restore complete at $(date)"
+echo "$DB_BACKUP" > "$PGDATA/.restore_complete" 2>/dev/null || true
+echo "[DB] Restore complete at \$(date) (backup: $DB_BACKUP)"
 EOF
   chmod +x /docker-entrypoint-initdb.d/99-mark-ready.sh
 
