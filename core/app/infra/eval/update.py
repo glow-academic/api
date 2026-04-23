@@ -61,11 +61,11 @@ async def update_eval_impl(
 
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
-            perms = await resolve_eval_permissions_context(conn, item.eval_id)
+            perms = await resolve_eval_permissions_context(conn, item.id)
             if not perms.exists:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Item {idx}: Eval {item.eval_id} not found.",
+                    detail=f"Item {idx}: Eval {item.id} not found.",
                 )
             if not compute_can_edit(
                 role_level=profile.role_level,
@@ -82,7 +82,7 @@ async def update_eval_impl(
                 results=[
                     EvalResultItem(
                         success=True,
-                        eval_id=item.eval_id,
+                        eval_id=item.id,
                         message="Update rejected",
                     )
                     for item in items
@@ -122,7 +122,7 @@ async def update_eval_impl(
         async with pool.acquire() as conn:
             existing = await get_eval_artifacts(
                 conn,
-                [item.eval_id],
+                [item.id],
                 names=True,
                 descriptions=True,
                 departments=True,
@@ -173,7 +173,7 @@ async def update_eval_impl(
             async with conn.transaction():
                 await update_eval_artifact(
                     conn,
-                    item.eval_id,
+                    item.id,
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id if item.description_id else _UNSET,
                     department_ids=item.department_ids,
@@ -189,7 +189,7 @@ async def update_eval_impl(
         results.append(
             EvalResultItem(
                 success=True,
-                eval_id=item.eval_id,
+                eval_id=item.id,
                 message=(
                     "Eval update accepted"
                     if accept is not None and idempotency_key is not None

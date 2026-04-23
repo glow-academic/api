@@ -1,363 +1,348 @@
 """Flag resource seeds.
 
-46 rows of feature flags and toggles used across different artifact types.
-Flags control behaviors like active state, audio/text/video modes, rubric types,
-and various scenario configuration options.
+Every flag type is seeded as a **pair**: one row with `value=True` and one row
+with `value=False`, so the server and UI can represent both states explicitly
+rather than encoding "off" as the absence of a junction row.
+
+Deterministic sid convention:
+    - True  variant: sid(f"flag/{slug}")          ← canonical; existing refs use this
+    - False variant: sid(f"flag/{slug}/false")    ← new
+
+Callers that look up "the active/on/true version of flag X" MUST disambiguate
+by `value=True`, since `search_flags(flag_type=...)` now returns two rows.
 """
 
 from database.seeds.ids import sid
 
+
+def _flag_pair(
+    slug: str,
+    *,
+    name: str,
+    description: str,
+    type_: str,
+    icon_id,
+) -> list[dict]:
+    """Emit True + False variants of a flag type with deterministic sids."""
+    common = dict(
+        name=name,
+        description=description,
+        type=type_,
+        icon_id=icon_id,
+    )
+    return [
+        dict(id=sid(f"flag/{slug}"), value=True, **common),
+        dict(id=sid(f"flag/{slug}/false"), value=False, **common),
+    ]
+
+
 flags = [
-    dict(
-        id=sid("flag/active"),
+    *_flag_pair(
+        "active",
         name="active",
         description="Active flag",
-        type="active",
+        type_="active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/guest-login-enabled"),
+    *_flag_pair(
+        "guest-login-enabled",
         name="guest_login_enabled",
         description="Guest login enabled",
-        type="guest_login_enabled",
+        type_="guest_login_enabled",
         icon_id=sid("icon/user-check"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/practice"),
+    *_flag_pair(
+        "practice",
         name="Practice",
         description="Practice flag",
-        type="practice",
+        type_="practice",
         icon_id=sid("icon/target"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/video"),
+    *_flag_pair(
+        "video",
         name="Video",
         description="Video enabled",
-        type="video_enabled",
+        type_="video_enabled",
         icon_id=sid("icon/film"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/problem-statement"),
+    *_flag_pair(
+        "problem-statement",
         name="Problem Statement",
         description="Problem statement enabled",
-        type="problem_statement_enabled",
+        type_="problem_statement_enabled",
         icon_id=sid("icon/message-square"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/objectives"),
+    *_flag_pair(
+        "objectives",
         name="Objectives",
         description="Objectives enabled",
-        type="objectives_enabled",
+        type_="objectives_enabled",
         icon_id=sid("icon/target"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/questions"),
+    *_flag_pair(
+        "questions",
         name="Questions",
         description="Questions enabled",
-        type="questions_enabled",
+        type_="questions_enabled",
         icon_id=sid("icon/help-circle"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/images"),
+    *_flag_pair(
+        "images",
         name="Images",
         description="Images enabled",
-        type="images_enabled",
+        type_="images_enabled",
         icon_id=sid("icon/image"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/groups"),
+    *_flag_pair(
+        "groups",
         name="groups",
         description="Groups flag",
-        type="groups",
+        type_="groups",
         icon_id=sid("icon/users"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/dynamic"),
+    *_flag_pair(
+        "dynamic",
         name="dynamic",
         description="Dynamic flag",
-        type="dynamic",
+        type_="dynamic",
         icon_id=sid("icon/zap"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/template"),
+    *_flag_pair(
+        "template",
         name="template",
         description="Template flag",
-        type="template",
+        type_="template",
         icon_id=sid("icon/clipboard"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/audio-enabled"),
+    *_flag_pair(
+        "audio-enabled",
         name="Audio Enabled",
         description="Audio enabled flag for simulation scenario",
-        type="audio_enabled",
+        type_="audio_enabled",
         icon_id=sid("icon/volume"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/text-enabled"),
+    *_flag_pair(
+        "text-enabled",
         name="Text Enabled",
         description="Text enabled flag for simulation scenario",
-        type="text_enabled",
+        type_="text_enabled",
         icon_id=sid("icon/file-text"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/show-problem-statement"),
+    *_flag_pair(
+        "show-problem-statement",
         name="Show Problem Statement",
         description="Show problem statement flag for simulation scenario",
-        type="show_problem_statement",
+        type_="show_problem_statement",
         icon_id=sid("icon/message-square"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/show-objectives"),
+    *_flag_pair(
+        "show-objectives",
         name="Show Objectives",
         description="Show objectives flag for simulation scenario",
-        type="show_objectives",
+        type_="show_objectives",
         icon_id=sid("icon/target"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/show-images"),
+    *_flag_pair(
+        "show-images",
         name="Show Images",
         description="Show images flag for simulation scenario",
-        type="show_images",
+        type_="show_images",
         icon_id=sid("icon/image"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/hints-enabled"),
+    *_flag_pair(
+        "hints-enabled",
         name="Hints Enabled",
         description="Hints enabled flag for simulation scenario",
-        type="hints_enabled",
+        type_="hints_enabled",
         icon_id=sid("icon/lightbulb"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/copy-paste-allowed"),
+    *_flag_pair(
+        "copy-paste-allowed",
         name="Copy Paste Allowed",
         description="Copy paste allowed flag for simulation scenario",
-        type="copy_paste_allowed",
+        type_="copy_paste_allowed",
         icon_id=sid("icon/copy"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/use-templates"),
+    *_flag_pair(
+        "use-templates",
         name="use_templates",
         description="Use templates flag for scenarios",
-        type="use_templates",
+        type_="use_templates",
         icon_id=sid("icon/clipboard"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/mcp"),
+    *_flag_pair(
+        "mcp",
         name="mcp",
         description="Enable or disable the use of the MCP server",
-        type="mcp",
+        type_="mcp",
         icon_id=sid("icon/server"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/scenario-active"),
+    *_flag_pair(
+        "scenario-active",
         name="Active",
         description="Controls whether this scenario is published and available for simulations",
-        type="scenario_active",
+        type_="scenario_active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/field-active"),
+    *_flag_pair(
+        "field-active",
         name="field_active",
         description="Controls whether this field is visible and editable in forms",
-        type="field_active",
+        type_="field_active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/model-active"),
+    *_flag_pair(
+        "model-active",
         name="model_active",
         description="Controls whether this AI model is available for selection by agents",
-        type="model_active",
+        type_="model_active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/profile-active"),
+    *_flag_pair(
+        "profile-active",
         name="profile_active",
         description="Controls whether this user profile is active and can access the system",
-        type="profile_active",
+        type_="profile_active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/provider-active"),
+    *_flag_pair(
+        "provider-active",
         name="provider_active",
         description="Controls whether this AI provider is available for use",
-        type="provider_active",
+        type_="provider_active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/rubric-active"),
+    *_flag_pair(
+        "rubric-active",
         name="rubric_active",
         description="Controls whether this rubric is available for grading simulations",
-        type="rubric_active",
+        type_="rubric_active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/setting-active"),
+    *_flag_pair(
+        "setting-active",
         name="setting_active",
         description="Controls whether this setting is enabled and applied",
-        type="setting_active",
+        type_="setting_active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/tool-active"),
+    *_flag_pair(
+        "tool-active",
         name="tool_active",
         description="Controls whether this tool is available for use by AI agents",
-        type="tool_active",
+        type_="tool_active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/cohort-active"),
+    *_flag_pair(
+        "cohort-active",
         name="Active",
         description="Controls whether this cohort is active and can run simulations",
-        type="cohort_active",
+        type_="cohort_active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/persona-active"),
+    *_flag_pair(
+        "persona-active",
         name="Active",
         description="Controls whether this persona is available for use in scenarios",
-        type="persona_active",
+        type_="persona_active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/simulation-active"),
+    *_flag_pair(
+        "simulation-active",
         name="Active",
         description="Controls whether this simulation is active and can be started",
-        type="simulation_active",
+        type_="simulation_active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/agent-active"),
+    *_flag_pair(
+        "agent-active",
         name="agent_active",
         description="Controls whether this AI agent is available for use in simulations",
-        type="agent_active",
+        type_="agent_active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/auth-active"),
+    *_flag_pair(
+        "auth-active",
         name="auth_active",
         description="Controls whether this authentication method is enabled for login",
-        type="auth_active",
+        type_="auth_active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/department-active"),
+    *_flag_pair(
+        "department-active",
         name="department_active",
         description="Controls whether this department is visible in the organization structure",
-        type="department_active",
+        type_="department_active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/document-active"),
+    *_flag_pair(
+        "document-active",
         name="document_active",
         description="Controls whether this document is available for reference in scenarios",
-        type="document_active",
+        type_="document_active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/eval-active"),
+    *_flag_pair(
+        "eval-active",
         name="eval_active",
         description="Controls whether this evaluation configuration is active and can be used",
-        type="eval_active",
+        type_="eval_active",
         icon_id=sid("icon/power"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/simulation-rubric"),
+    *_flag_pair(
+        "simulation-rubric",
         name="simulation_rubric",
         description="Rubric used for simulation grading",
-        type="simulation_rubric",
+        type_="simulation_rubric",
         icon_id=sid("icon/clipboard"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/video-rubric"),
+    *_flag_pair(
+        "video-rubric",
         name="video_rubric",
         description="Rubric used for video grading",
-        type="video_rubric",
+        type_="video_rubric",
         icon_id=sid("icon/film"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/infinite-mode"),
+    *_flag_pair(
+        "infinite-mode",
         name="Infinite Mode",
         description="Enable infinite mode for unlimited attempts",
-        type="infinite_mode",
+        type_="infinite_mode",
         icon_id=sid("icon/infinity"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/strengths-enabled"),
+    *_flag_pair(
+        "strengths-enabled",
         name="Strengths Enabled",
         description="Enable strengths feedback for scenarios",
-        type="strengths_enabled",
+        type_="strengths_enabled",
         icon_id=sid("icon/star"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/use-custom"),
+    *_flag_pair(
+        "use-custom",
         name="Use Custom",
         description="Allow custom configuration for scenarios",
-        type="use_custom",
+        type_="use_custom",
         icon_id=sid("icon/settings"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/analyses-enabled"),
+    *_flag_pair(
+        "analyses-enabled",
         name="Analyses Enabled",
         description="Enable analysis feedback for scenarios",
-        type="analyses_enabled",
+        type_="analyses_enabled",
         icon_id=sid("icon/bar-chart"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/use-previous"),
+    *_flag_pair(
+        "use-previous",
         name="Use Previous",
         description="Use previous attempt context for scenarios",
-        type="use_previous",
+        type_="use_previous",
         icon_id=sid("icon/rewind"),
-        value=True,
     ),
-    dict(
-        id=sid("flag/improvements-enabled"),
+    *_flag_pair(
+        "improvements-enabled",
         name="Improvements Enabled",
         description="Enable improvements feedback for scenarios",
-        type="improvements_enabled",
+        type_="improvements_enabled",
         icon_id=sid("icon/trending-up"),
-        value=True,
     ),
 ]

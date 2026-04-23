@@ -57,7 +57,7 @@ async def duplicate_provider(
                 pool,
                 redis,
                 profile_id=profile_id,
-                provider_id=request.provider_id,
+                id=request.provider_id,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

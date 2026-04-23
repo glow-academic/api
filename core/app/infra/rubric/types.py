@@ -201,7 +201,8 @@ class CreateRubricItem(ScopedItem):
         "video_rubric_flag_id": "flags",
         "department_ids": "departments",
         "departments": "departments",
-        "point_ids": "points",
+        "pass_points_id": "points",
+        "pass_points": "points",
         "standard_group_ids": "standard_groups",
         "standard_ids": "standards",
     }
@@ -224,11 +225,11 @@ class CreateRubricItem(ScopedItem):
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for resolution")
-    # Denormalized point values
-    total_points: int | None = Field(None, description="Total points for rubric")
-    pass_points: int | None = Field(None, description="Points required to pass")
-    # ID-only fields
-    point_ids: list[UUID] | None = Field(None, description="Point UUIDs")
+    # Pass points — dual-mode (value or ID). `pass_points` resolves to a
+    # pass-type Points resource and is junctioned as `pass_points_id`. Total
+    # is derived server-side from standards; not writeable.
+    pass_points_id: UUID | None = Field(None, description="Pass-type Points resource UUID")
+    pass_points: int | None = Field(None, description="Pass points value (resolves to a pass-type Points resource)")
     standard_group_ids: list[UUID] | None = Field(None, description="Standard group UUIDs")
     standard_ids: list[UUID] | None = Field(None, description="Standard UUIDs")
 
@@ -256,7 +257,7 @@ class UpdateRubricItem(ScopedItem):
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateRubricItem.RESOURCE_TYPE_MAP
 
-    rubric_id: UUID = Field(..., description="Rubric UUID to update")  # Required — which rubric to update
+    id: UUID = Field(..., description="Rubric UUID to update")  # Required — which rubric to update
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="Name resource UUID")
     name: str | None = Field(None, description="Name value for resolution")
@@ -271,8 +272,9 @@ class UpdateRubricItem(ScopedItem):
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for resolution")
-    # ID-only fields
-    point_ids: list[UUID] | None = Field(None, description="Point UUIDs")
+    # Pass points — dual-mode (value or ID). Total is derived server-side.
+    pass_points_id: UUID | None = Field(None, description="Pass-type Points resource UUID")
+    pass_points: int | None = Field(None, description="Pass points value (resolves to a pass-type Points resource)")
     standard_group_ids: list[UUID] | None = Field(None, description="Standard group UUIDs")
     standard_ids: list[UUID] | None = Field(None, description="Standard UUIDs")
 
@@ -375,9 +377,12 @@ class PatchRubricDraftApiRequest(ScopedItem):
         "active_flag": "flags",
         "active_flag_id": "flags",
         "flag_id": "flags",
+        "simulation_rubric_flag_id": "flags",
+        "video_rubric_flag_id": "flags",
         "departments": "departments",
         "department_ids": "departments",
-        "point_ids": "points",
+        "pass_points_id": "points",
+        "pass_points": "points",
         "standard_group_ids": "standard_groups",
         "standard_ids": "standards",
         "standards": "standards",
@@ -395,9 +400,18 @@ class PatchRubricDraftApiRequest(ScopedItem):
     active_flag: bool | None = Field(None, description="Whether the rubric is active")
     active_flag_id: UUID | None = Field(None, description="Active flag option UUID")
     flag_id: UUID | None = Field(None, description="Flag option UUID")
+    simulation_rubric_flag_id: UUID | None = Field(
+        None, description="Simulation rubric flag resource UUID"
+    )
+    video_rubric_flag_id: UUID | None = Field(
+        None, description="Video rubric flag resource UUID"
+    )
     departments: list[str] | None = Field(None, description="Department names to resolve")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
-    point_ids: list[UUID] | None = Field(None, description="Point UUIDs")
+    # Pass points — dual-mode. Total is computed server-side from standards
+    # and returned on reads; not writeable.
+    pass_points_id: UUID | None = Field(None, description="Pass-type Points resource UUID")
+    pass_points: int | None = Field(None, description="Pass points value (resolves to a pass-type Points resource)")
     standard_group_ids: list[UUID] | None = Field(None, description="Standard group UUIDs")
     standard_ids: list[UUID] | None = Field(None, description="Standard UUIDs")
     standards: list[RubricStandardDraftValue] | None = Field(
@@ -418,8 +432,19 @@ class DraftFormState(BaseModel):
     description: str | None = Field(None, description="Echoed description value")
     flag_id: UUID | None = Field(None, description="Selected flag option UUID")
     active_flag_id: UUID | None = Field(None, description="Selected active flag option UUID")
+    simulation_rubric_flag_id: UUID | None = Field(
+        None, description="Selected simulation_rubric flag option UUID"
+    )
+    video_rubric_flag_id: UUID | None = Field(
+        None, description="Selected video_rubric flag option UUID"
+    )
     department_ids: list[UUID] = Field(default_factory=list, description="Selected department UUIDs")
-    point_ids: list[UUID] = Field(default_factory=list, description="Selected point UUIDs")
+    # Pass points (normalized + denormalized). Total points are computed
+    # server-side from standards and exposed on reads alongside.
+    pass_points_id: UUID | None = Field(None, description="Pass-type Points resource UUID")
+    pass_points: int | None = Field(None, description="Denormalized pass points value")
+    total_points_id: UUID | None = Field(None, description="Total-type Points resource UUID (computed)")
+    total_points: int | None = Field(None, description="Denormalized total points value (sum of standards)")
     standard_group_ids: list[UUID] = Field(default_factory=list, description="Selected standard group UUIDs")
     standard_ids: list[UUID] = Field(default_factory=list, description="Selected standard UUIDs")
     standards: list[RubricStandardDraftValue] = Field(

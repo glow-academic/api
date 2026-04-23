@@ -54,11 +54,19 @@ async def get_benchmark_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    request: BenchmarkRequest,
+    request: BenchmarkRequest | None = None,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> BenchmarkResponse:
-    """Resolve the canonical benchmark response for any surface."""
+    """Resolve the canonical benchmark response for any surface.
+
+    See ``get_pricing_impl`` — same optional-request convention so the
+    tool-dispatch path can call without pre-building the Pydantic wrapper.
+    """
+    if request is None:
+        request = BenchmarkRequest(**{
+            k: v for k, v in _kwargs.items() if k in BenchmarkRequest.model_fields
+        })
     department_uuids = (
         [UUID(d) for d in request.department_ids] if request.department_ids else None
     )

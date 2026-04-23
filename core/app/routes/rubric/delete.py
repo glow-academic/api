@@ -54,7 +54,7 @@ async def delete_rubric(
                 pool,
                 redis,
                 profile_id=profile_id,
-                rubric_ids=request.rubric_ids,
+                ids=request.rubric_ids,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

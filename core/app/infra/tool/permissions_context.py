@@ -120,7 +120,7 @@ async def resolve_tool_values(
             flag_type="tool_active",
             limit_count=1000,
         )
-        match = next((f for f in results if f.type == "tool_active"), None)
+        match = next((f for f in results if f.type == "tool_active" and f.value is True), None)
         if match and match.id:
             if item.active_flag:
                 item.active_flag_id = match.id

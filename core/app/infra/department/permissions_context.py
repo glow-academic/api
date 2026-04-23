@@ -130,7 +130,7 @@ async def resolve_department_values(
             flag_type="department_active",
             limit_count=100,
         )
-        match = next((r for r in results if r.type == "department_active"), None)
+        match = next((r for r in results if r.type == "department_active" and r.value is True), None)
         if match and match.id:
             if item.active_flag:
                 item.active_flag_id = match.id

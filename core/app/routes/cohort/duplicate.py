@@ -57,7 +57,7 @@ async def duplicate_cohort(
                 pool,
                 redis,
                 profile_id=profile_id,
-                cohort_id=request.cohort_id,
+                id=request.cohort_id,
                 session_id=session_id,
             )
 

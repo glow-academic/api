@@ -54,7 +54,7 @@ async def delete_provider(
                 pool,
                 redis,
                 profile_id=profile_id,
-                provider_ids=request.provider_ids,
+                ids=request.provider_ids,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

@@ -44,7 +44,7 @@ async def department_delete(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            department_ids=payload.department_ids,
+            ids=payload.department_ids,
             session_id=identity.session_id,
             accept=payload.accept,
             idempotency_key=payload.idempotency_key,

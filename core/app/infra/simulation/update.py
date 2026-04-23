@@ -91,12 +91,12 @@ async def update_simulation_impl(
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_simulation_permissions_context(
-                conn, item.simulation_id
+                conn, item.id
             )
             if not perms.exists:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Item {idx}: Simulation {item.simulation_id} not found.",
+                    detail=f"Item {idx}: Simulation {item.id} not found.",
                 )
             if not compute_can_edit(
                 role_level=profile.role_level, role_permissions=profile.role_permissions,
@@ -246,7 +246,7 @@ async def update_simulation_impl(
             async with conn.transaction():
                 await update_simulation_artifact(
                     conn,
-                    item.simulation_id,
+                    item.id,
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id
                     if item.description_id
@@ -267,7 +267,7 @@ async def update_simulation_impl(
         results.append(
             SimulationResultItem(
                 success=True,
-                simulation_id=item.simulation_id,
+                simulation_id=item.id,
                 message="Simulation updated (pending acceptance)"
                 if soft
                 else "Simulation updated successfully",

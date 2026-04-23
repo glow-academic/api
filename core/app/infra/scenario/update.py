@@ -172,11 +172,11 @@ async def update_scenario_impl(
     # ── Step 2: Per-item permission check ──────────────────────────────
 
     for idx, item in enumerate(items):
-        perms = await resolve_scenario_permissions_context(pool, item.scenario_id)
+        perms = await resolve_scenario_permissions_context(pool, item.id)
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
-                detail=f"Item {idx}: Scenario {item.scenario_id} not found.",
+                detail=f"Item {idx}: Scenario {item.id} not found.",
             )
         if not compute_can_edit(
             role_level=profile.role_level, role_permissions=profile.role_permissions,
@@ -253,7 +253,7 @@ async def update_scenario_impl(
             async with conn.transaction():
                 await update_scenario_artifact(
                     conn,
-                    item.scenario_id,
+                    item.id,
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id
                     if item.description_id
@@ -278,7 +278,7 @@ async def update_scenario_impl(
         results.append(
             ScenarioResultItem(
                 success=True,
-                scenario_id=item.scenario_id,
+                scenario_id=item.id,
                 message=(
                     "Scenario updated (pending acceptance)"
                     if soft

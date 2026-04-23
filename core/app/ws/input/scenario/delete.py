@@ -44,7 +44,7 @@ async def scenario_delete(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            scenario_ids=payload.scenario_ids,
+            ids=payload.scenario_ids,
             session_id=identity.session_id,
         ),
         arguments=payload.model_dump(mode="json"),

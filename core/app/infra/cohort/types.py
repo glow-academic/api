@@ -479,7 +479,7 @@ class UpdateCohortItem(ScopedItem):
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateCohortItem.RESOURCE_TYPE_MAP
 
-    cohort_id: UUID = Field(..., description="Cohort UUID to update")  # Required — which cohort to update
+    id: UUID = Field(..., description="Cohort UUID to update")  # Required — which cohort to update
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="Name resource UUID")
     name: str | None = Field(None, description="Name value for resolution")

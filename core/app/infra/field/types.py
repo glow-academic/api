@@ -245,7 +245,7 @@ class UpdateFieldItem(ScopedItem):
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateFieldItem.RESOURCE_TYPE_MAP
 
-    field_id: UUID = Field(..., description="UUID of the field to update")
+    id: UUID = Field(..., description="UUID of the field to update")
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
     name: str | None = Field(None, description="Name value to resolve or create")

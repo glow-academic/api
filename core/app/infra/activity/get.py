@@ -184,3 +184,36 @@ async def get_activity_impl_cached(
         redis=redis,
     )
     return api_response, False
+
+
+async def get_activity_impl(
+    pool,
+    redis,
+    *,
+    profile_id: UUID,
+    session_id: UUID | None = None,
+    date_from=None,
+    date_to=None,
+    department_ids: list[str] | None = None,
+    roles: list[str] | None = None,
+    bypass_cache: bool = False,
+) -> ActivityResponse:
+    """Canonical kwargs entry point — wraps ``get_activity_impl_cached``.
+
+    Exists so ``execute_infra_operation`` can dispatch this dashboard via
+    the standard ``(pool, redis, *, profile_id, ...) -> Response`` shape.
+    """
+    request = ActivityRequest(
+        date_from=date_from,
+        date_to=date_to,
+        department_ids=department_ids or [],
+        roles=roles or [],
+    )
+    response_data, _cache_hit = await get_activity_impl_cached(
+        pool,
+        request,
+        profile_id=profile_id,
+        bypass_cache=bypass_cache,
+        cache_key_path="/activity/get",
+    )
+    return response_data

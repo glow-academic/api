@@ -33,6 +33,46 @@ from app.infra.tool.types import (
     CreateToolApiResponse,
 )
 
+async def _validate_tool_schema(
+    conn: asyncpg.Connection,
+    redis: Redis,
+    item: CreateToolItem,
+) -> list[str]:
+    """Return human-readable warnings about a tool's declared args_outputs.
+
+    Composes both structural checks via ``validate_tool_outputs``:
+
+    * **unknown outputs** — names no permission's handler accepts (the LLM
+      would set them and they'd drop on the floor).
+    * **missing required** — required kwargs (intersection of required
+      across permissions) that no declared output produces (handler would
+      reject the call at runtime).
+    * **partial-coverage declared** — declared fields only some permissions
+      accept; legitimate for cross-cutting tools but worth surfacing.
+
+    Best-effort, warn-mode: returns ``[]`` if the tool has no declared
+    outputs, no declared permissions, or every permission's handler accepts
+    ``**kwargs`` (nothing to validate against). Callers surface warnings
+    without blocking the write — seed CI reuses this helper via the runner.
+    """
+    from app.infra.tool.canonical_signature import validate_tool_outputs
+    from app.tools.resources.args_outputs.get import get_args_outputs
+    from app.tools.resources.permissions.get import get_permissions
+
+    output_ids = list(item.args_outputs_ids or [])
+    perm_ids = list(item.permission_ids or [])
+    if not output_ids or not perm_ids:
+        return []
+
+    args_outputs = await get_args_outputs(conn, output_ids, redis, bypass_cache=False)
+    permissions = await get_permissions(conn, perm_ids, redis, bypass_cache=False)
+
+    output_names = [ao.name for ao in args_outputs if ao.name]
+    perm_pairs = [(p.artifact, p.operation) for p in permissions if p.artifact and p.operation]
+
+    return validate_tool_outputs(perm_pairs, output_names).to_warnings()
+
+
 async def create_tool_impl(
     pool: asyncpg.Pool,
     redis: Redis,
@@ -110,6 +150,12 @@ async def create_tool_impl(
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_tool_values(conn, redis, item, is_create=True)
+            # Schema audit: derived surface from the selected permissions must
+            # accept every declared args_output name. Warn-mode — we log but
+            # don't block the create, so legitimate seeds with var_kwargs
+            # handlers or in-progress tools still land. Seed CI separately
+            # surfaces the count.
+            schema_warnings = await _validate_tool_schema(conn, redis, item)
             if item_errors:
                 has_errors = True
                 error_results.append(
@@ -120,7 +166,12 @@ async def create_tool_impl(
                     )
                 )
             else:
-                error_results.append(ToolResultItem(success=True, message="Validated"))
+                msg = (
+                    "Validated"
+                    if not schema_warnings
+                    else f"Validated (schema warnings: {schema_warnings})"
+                )
+                error_results.append(ToolResultItem(success=True, message=msg))
 
     if has_errors:
         return CreateToolApiResponse(

@@ -24,7 +24,7 @@ async def delete_eval_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    eval_ids: list[UUID],
+    ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -44,7 +44,7 @@ async def delete_eval_impl(
         )
 
     async with pool.acquire() as conn:
-        for idx, eval_id in enumerate(eval_ids):
+        for idx, eval_id in enumerate(ids):
             ctx = await resolve_eval_permissions_context(conn, eval_id)
             if not ctx.exists:
                 raise HTTPException(
@@ -67,7 +67,7 @@ async def delete_eval_impl(
                     await restore_artifacts(
                         conn,
                         table="eval_artifact",
-                        ids=eval_ids,
+                        ids=ids,
                     )
         await refresh_eval_impl(
             pool,
@@ -83,14 +83,14 @@ async def delete_eval_impl(
                     eval_id=eval_id,
                     message="Delete confirmed" if accept else "Delete rejected — eval restored",
                 )
-                for eval_id in eval_ids
+                for eval_id in ids
             ],
             idempotency_key=idempotency_key,
         )
 
     name_map: dict[UUID, str] = {}
     async with pool.acquire() as conn:
-        artifacts = await get_evals(conn, eval_ids, names=True)
+        artifacts = await get_evals(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
             if artifact.name_ids:
@@ -101,7 +101,7 @@ async def delete_eval_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_evals(conn, eval_ids, soft=soft)
+            result = await delete_evals(conn, ids, soft=soft)
 
     await refresh_eval_impl(
         pool,

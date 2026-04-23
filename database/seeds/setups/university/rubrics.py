@@ -79,8 +79,8 @@ _DE_ESCALATION_STD_IDS = [
 # Point IDs (defined in database/seeds/resources/points.py)
 # ---------------------------------------------------------------------------
 
-_POINTS_20_16 = [sid("point/total/20"), sid("point/pass/16")]
-_POINTS_15_12 = [sid("point/total/15"), sid("point/pass/12")]
+_PASS_16 = sid("point/pass/16")
+_PASS_12 = sid("point/pass/12")
 
 # ---------------------------------------------------------------------------
 # Rubric definitions
@@ -99,12 +99,11 @@ rubrics = [
             "understanding and confirms comprehension before moving on."
         ),
         active_flag=True,
+        simulation_rubric_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         standard_group_ids=_COMMUNICATION_SKILLS_SG_IDS,
         standard_ids=_COMMUNICATION_SKILLS_STD_IDS,
-        point_ids=_POINTS_20_16,
-        total_points=20,
-        pass_points=16,
+        pass_points_id=_PASS_16,
     ),
     # ── Policy Knowledge ────────────────────────────────────────────────
     dict(
@@ -119,12 +118,11 @@ rubrics = [
             "when advising on academic policies."
         ),
         active_flag=True,
+        video_rubric_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         standard_group_ids=_POLICY_KNOWLEDGE_SG_IDS,
         standard_ids=_POLICY_KNOWLEDGE_STD_IDS,
-        point_ids=_POINTS_15_12,
-        total_points=15,
-        pass_points=12,
+        pass_points_id=_PASS_12,
     ),
     # ── De-escalation ───────────────────────────────────────────────────
     dict(
@@ -139,11 +137,10 @@ rubrics = [
             "a constructive resolution."
         ),
         active_flag=True,
+        simulation_rubric_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         standard_group_ids=_DE_ESCALATION_SG_IDS,
         standard_ids=_DE_ESCALATION_STD_IDS,
-        point_ids=_POINTS_20_16,
-        total_points=20,
-        pass_points=16,
+        pass_points_id=_PASS_16,
     ),
 ]

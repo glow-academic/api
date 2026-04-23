@@ -64,11 +64,11 @@ async def update_rubric_impl(
 
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
-            perms = await resolve_rubric_permissions_context(conn, item.rubric_id)
+            perms = await resolve_rubric_permissions_context(conn, item.id)
             if not perms.exists:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Item {idx}: Rubric {item.rubric_id} not found.",
+                    detail=f"Item {idx}: Rubric {item.id} not found.",
                 )
             if not compute_can_edit(
                 role_level=profile.role_level,
@@ -87,7 +87,7 @@ async def update_rubric_impl(
                 results=[
                     RubricResultItem(
                         success=True,
-                        rubric_id=item.rubric_id,
+                        rubric_id=item.id,
                         message="Update rejected",
                     )
                     for item in items
@@ -122,7 +122,21 @@ async def update_rubric_impl(
 
     results: list[RubricResultItem] = []
 
+    # Denormalize point values (pass from id, total from standards sum).
+    from app.tools.resources.points.get import get_points
+    from app.tools.resources.standards.get import get_standards
+
     for item in items:
+        pass_value: int | None = None
+        total_value: int | None = None
+        async with pool.acquire() as conn:
+            if item.pass_points_id:
+                rows = await get_points(conn, [item.pass_points_id], redis, bypass_cache=True)
+                pass_value = rows[0].value if rows else None
+            if item.standard_ids:
+                rows = await get_standards(conn, list(item.standard_ids), redis, bypass_cache=True)
+                total_value = sum((r.points or 0) for r in rows) if rows else 0
+
         rubrics_resource_id = None
         if not soft:
             rubrics_resource_id = await create_denormalized_snapshot(
@@ -134,6 +148,8 @@ async def update_rubric_impl(
                 standard_group_ids=item.standard_group_ids,
                 simulation_rubric=bool(item.simulation_rubric_flag_id),
                 video_rubric=bool(item.video_rubric_flag_id),
+                total_points=total_value,
+                pass_points=pass_value,
             )
 
         combined_flag_ids = [
@@ -145,17 +161,18 @@ async def update_rubric_impl(
             ]
             if fid
         ]
+        point_ids = [item.pass_points_id] if item.pass_points_id else None
 
         async with pool.acquire() as conn:
             async with conn.transaction():
                 await update_rubric_artifact(
                     conn,
-                    item.rubric_id,
+                    item.id,
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id if item.description_id else _UNSET,
                     department_ids=item.department_ids,
                     flag_ids=combined_flag_ids or None,
-                    point_ids=item.point_ids,
+                    point_ids=point_ids,
                     standard_group_ids=item.standard_group_ids,
                     standard_ids=item.standard_ids,
                     rubric_ids=[rubrics_resource_id] if rubrics_resource_id else None,
@@ -165,7 +182,7 @@ async def update_rubric_impl(
         results.append(
             RubricResultItem(
                 success=True,
-                rubric_id=item.rubric_id,
+                rubric_id=item.id,
                 message=(
                     "Rubric update accepted"
                     if accept is not None and idempotency_key is not None

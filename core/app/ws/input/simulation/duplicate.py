@@ -44,7 +44,7 @@ async def simulation_duplicate(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            simulation_id=payload.simulation_id,
+            id=payload.simulation_id,
             session_id=identity.session_id,
         ),
         arguments=payload.model_dump(mode="json"),

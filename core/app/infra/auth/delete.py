@@ -24,7 +24,7 @@ async def delete_auth_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    auth_ids: list[UUID],
+    ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -46,7 +46,7 @@ async def delete_auth_impl(
         )
 
     async with pool.acquire() as conn:
-        for idx, auth_id in enumerate(auth_ids):
+        for idx, auth_id in enumerate(ids):
             ctx = await resolve_auth_permissions_context(conn, auth_id)
             if not ctx.exists:
                 raise HTTPException(
@@ -70,7 +70,7 @@ async def delete_auth_impl(
                     await restore_artifacts(
                         conn,
                         table="auth_artifact",
-                        ids=auth_ids,
+                        ids=ids,
                     )
         await refresh_auth_impl(
             pool,
@@ -90,14 +90,14 @@ async def delete_auth_impl(
                     auth_id=auth_id,
                     message="Delete confirmed" if accept else "Delete rejected — auth restored",
                 )
-                for auth_id in auth_ids
+                for auth_id in ids
             ],
             idempotency_key=idempotency_key,
         )
 
     name_map: dict[UUID, str] = {}
     async with pool.acquire() as conn:
-        artifacts = await get_auths(conn, auth_ids, names=True)
+        artifacts = await get_auths(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
             if artifact.name_ids:
@@ -108,7 +108,7 @@ async def delete_auth_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_auths(conn, auth_ids, soft=soft)
+            result = await delete_auths(conn, ids, soft=soft)
 
     await refresh_auth_impl(
         pool,

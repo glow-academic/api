@@ -28,13 +28,14 @@ async def duplicate_department_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    department_id: UUID,
+    id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
 ) -> DuplicateDepartmentApiResponse:
     """Duplicate a department artifact."""
+    department_id = id  # alias: tools send 'id', internal code uses 'department_id'
     profile = await resolve_profile_identity_context(
         pool,
         profile_id,

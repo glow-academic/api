@@ -44,7 +44,7 @@ async def document_duplicate(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            document_id=payload.document_id,
+            id=payload.document_id,
             session_id=identity.session_id,
         ),
         arguments=payload.model_dump(mode="json"),

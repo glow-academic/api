@@ -62,11 +62,21 @@ async def get_pricing_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    request: PricingRequest,
+    request: PricingRequest | None = None,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> PricingResponse:
-    """Resolve the canonical pricing top-chart response for any surface."""
+    """Resolve the canonical pricing top-chart response for any surface.
+
+    ``request`` is optional — when omitted (e.g. tool-dispatch path that
+    only knows flat kwargs) it's reconstructed from ``_kwargs`` against
+    ``PricingRequest``'s declared fields. Direct callers (routes, ws)
+    keep passing the pre-built request as before.
+    """
+    if request is None:
+        request = PricingRequest(**{
+            k: v for k, v in _kwargs.items() if k in PricingRequest.model_fields
+        })
     common = await resolve_common_context(
         pool,
         redis,

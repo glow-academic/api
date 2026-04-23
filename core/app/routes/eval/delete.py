@@ -54,7 +54,7 @@ async def delete_eval(
                 pool,
                 redis,
                 profile_id=profile_id,
-                eval_ids=request.eval_ids,
+                ids=request.eval_ids,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

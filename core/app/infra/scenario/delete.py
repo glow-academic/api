@@ -35,7 +35,7 @@ async def delete_scenario_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    scenario_ids: list[UUID],
+    ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -64,7 +64,7 @@ async def delete_scenario_impl(
                     await restore_artifacts(
                         conn,
                         table="scenario_artifact",
-                        ids=scenario_ids,
+                        ids=ids,
                     )
         await refresh_scenario_impl(
             pool,
@@ -80,7 +80,7 @@ async def delete_scenario_impl(
                     scenario_id=scenario_id,
                     message="Delete confirmed" if accept else "Delete rejected - scenario restored",
                 )
-                for scenario_id in scenario_ids
+                for scenario_id in ids
             ],
             idempotency_key=idempotency_key,
         )
@@ -102,7 +102,7 @@ async def delete_scenario_impl(
 
     # ── Step 2+3: Per-item permission checks (fail fast) ──────────────
 
-    for idx, scenario_id in enumerate(scenario_ids):
+    for idx, scenario_id in enumerate(ids):
         ctx = await resolve_scenario_permissions_context(pool, scenario_id)
 
         if not ctx.exists:
@@ -125,7 +125,7 @@ async def delete_scenario_impl(
 
     name_map: dict[UUID, str] = {}
     async with pool.acquire() as conn:
-        artifacts = await get_scenarios(conn, scenario_ids, names=True)
+        artifacts = await get_scenarios(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
             if artifact.name_ids:
@@ -138,7 +138,7 @@ async def delete_scenario_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_scenarios(conn, scenario_ids, soft=soft)
+            result = await delete_scenarios(conn, ids, soft=soft)
 
     # ── Step 6: Canonical refresh ─────────────────────────────────────
 

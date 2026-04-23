@@ -57,7 +57,7 @@ async def duplicate_setting(
                 pool,
                 redis,
                 profile_id=profile_id,
-                setting_id=request.setting_id,
+                id=request.setting_id,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

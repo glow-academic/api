@@ -38,7 +38,7 @@ async def duplicate_scenario_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    scenario_id: UUID,
+    id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -55,6 +55,7 @@ async def duplicate_scenario_impl(
       6. create_scenario -> new artifact with original IDs + inactive flag
       7. canonical refresh via refresh_scenario_impl
     """
+    scenario_id = id  # alias: tools send 'id', internal code uses 'scenario_id'
 
     # -- Step 1: Profile context ------------------------------------------------
 

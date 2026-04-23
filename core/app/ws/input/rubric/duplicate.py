@@ -44,7 +44,7 @@ async def rubric_duplicate(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            rubric_id=payload.rubric_id,
+            id=payload.rubric_id,
             session_id=identity.session_id,
             accept=payload.accept,
             idempotency_key=payload.idempotency_key,

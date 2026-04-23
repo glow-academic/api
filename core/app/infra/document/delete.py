@@ -37,7 +37,7 @@ async def delete_document_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    document_ids: list[UUID],
+    ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -72,7 +72,7 @@ async def delete_document_impl(
     # -- Step 2+3: Per-item permission checks (fail fast) -------------------------
 
     async with pool.acquire() as conn:
-        for idx, document_id in enumerate(document_ids):
+        for idx, document_id in enumerate(ids):
             ctx = await resolve_document_permissions_context(conn, document_id)
 
             if not ctx.exists:
@@ -100,7 +100,7 @@ async def delete_document_impl(
                     await restore_artifacts(
                         conn,
                         table="document_artifact",
-                        ids=document_ids,
+                        ids=ids,
                     )
 
         await refresh_document_impl(
@@ -108,7 +108,7 @@ async def delete_document_impl(
             redis,
             profile_id=profile_id,
             session_id=session_id,
-            operation_key=idempotency_key or (document_ids[0] if document_ids else None),
+            operation_key=idempotency_key or (ids[0] if ids else None),
         )
 
         return DeleteDocumentApiResponse(
@@ -122,7 +122,7 @@ async def delete_document_impl(
                         else "Delete rejected — document restored"
                     ),
                 )
-                for document_id in document_ids
+                for document_id in ids
             ],
             idempotency_key=idempotency_key,
         )
@@ -131,7 +131,7 @@ async def delete_document_impl(
 
     async with pool.acquire() as conn:
         name_map: dict[UUID, str] = {}
-        artifacts = await get_documents(conn, document_ids, names=True)
+        artifacts = await get_documents(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
             if artifact.name_ids:
@@ -144,7 +144,7 @@ async def delete_document_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_documents(conn, document_ids, soft=soft)
+            result = await delete_documents(conn, ids, soft=soft)
 
     # -- Step 6: Canonical refresh ------------------------------------------------
 

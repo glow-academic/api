@@ -57,7 +57,7 @@ async def duplicate_eval(
                 pool,
                 redis,
                 profile_id=profile_id,
-                eval_id=request.eval_id,
+                id=request.eval_id,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

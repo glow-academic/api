@@ -37,7 +37,7 @@ async def delete_simulation_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    simulation_ids: list[UUID],
+    ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -72,7 +72,7 @@ async def delete_simulation_impl(
     # ── Step 2+3: Per-item permission checks (fail fast) ──────────────
 
     async with pool.acquire() as conn:
-        for idx, simulation_id in enumerate(simulation_ids):
+        for idx, simulation_id in enumerate(ids):
             ctx = await resolve_simulation_permissions_context(conn, simulation_id)
 
             if not ctx.exists:
@@ -105,7 +105,7 @@ async def delete_simulation_impl(
                     await restore_artifacts(
                         conn,
                         table="simulation_artifact",
-                        ids=simulation_ids,
+                        ids=ids,
                     )
 
         await refresh_simulation_impl(
@@ -113,7 +113,7 @@ async def delete_simulation_impl(
             redis,
             profile_id=profile_id,
             session_id=session_id,
-            operation_key=idempotency_key or (simulation_ids[0] if simulation_ids else None),
+            operation_key=idempotency_key or (ids[0] if ids else None),
         )
 
         return DeleteSimulationApiResponse(
@@ -127,7 +127,7 @@ async def delete_simulation_impl(
                         else "Delete rejected — simulation restored"
                     ),
                 )
-                for simulation_id in simulation_ids
+                for simulation_id in ids
             ],
             idempotency_key=idempotency_key,
         )
@@ -136,7 +136,7 @@ async def delete_simulation_impl(
 
     name_map: dict[UUID, str] = {}
     async with pool.acquire() as conn:
-        artifacts = await get_simulations(conn, simulation_ids, names=True)
+        artifacts = await get_simulations(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
             if artifact.name_ids:
@@ -149,7 +149,7 @@ async def delete_simulation_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_simulations(conn, simulation_ids, soft=soft)
+            result = await delete_simulations(conn, ids, soft=soft)
 
     # ── Step 6: Canonical refresh ─────────────────────────────────────
 

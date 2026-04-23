@@ -54,7 +54,7 @@ async def delete_parameter(
                 pool,
                 redis,
                 profile_id=profile_id,
-                parameter_ids=request.parameter_ids,
+                ids=request.parameter_ids,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

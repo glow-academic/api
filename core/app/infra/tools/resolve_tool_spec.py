@@ -95,6 +95,19 @@ def resolve_tool_spec(
     if not allowed:
         raise ValueError(f"Tool '{tool_name}' has no valid permission targets")
 
+    # Collapse single-value dimensions: if the LLM didn't supply (or the Jinja
+    # template rendered empty for) a dimension and the tool's permissions all
+    # agree on one value for it, use that value. The LLM shouldn't need to
+    # specify a dimension that has only one possible target.
+    if req_artifact is None:
+        distinct_artifacts = {a for (a, _o) in allowed}
+        if len(distinct_artifacts) == 1:
+            req_artifact = next(iter(distinct_artifacts))
+    if req_operation is None:
+        distinct_operations = {o for (_a, o) in allowed}
+        if len(distinct_operations) == 1:
+            req_operation = next(iter(distinct_operations))
+
     if req_artifact and req_operation:
         target_pair = (req_artifact, req_operation)
         if target_pair not in allowed:
@@ -112,9 +125,9 @@ def resolve_tool_spec(
         )
 
     # --- Build spec with payload outputs only ---
-    if not payload_outputs:
-        raise ValueError(f"Tool '{tool_name}' has no payload output mappings")
-
+    # Empty payload is fine — read tools (dashboards, get-by-id etc.) may only
+    # route. The handler decides whether its required args are met; if not,
+    # Pydantic / kwargs validation surfaces a targeted error.
     return InfraOperationSpec(
         inputs=inputs,
         output_map=payload_outputs,

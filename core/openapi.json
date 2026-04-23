@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "2.15.7"
+    "version": "2.15.9"
   },
   "paths": {
     "/persona/get": {
@@ -6496,7 +6496,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PatchRubricDraftApiResponse"
+                  "$ref": "#/components/schemas/PatchRubricDraftApiResponse-Output"
                 }
               }
             }
@@ -35656,7 +35656,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PatchRubricDraftApiResponse"
+                "$ref": "#/components/schemas/PatchRubricDraftApiResponse-Input"
               }
             }
           },
@@ -55299,17 +55299,18 @@
             "title": "Departments",
             "description": "Department names for resolution"
           },
-          "total_points": {
+          "pass_points_id": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Total Points",
-            "description": "Total points for rubric"
+            "title": "Pass Points Id",
+            "description": "Pass-type Points resource UUID"
           },
           "pass_points": {
             "anyOf": [
@@ -55321,23 +55322,7 @@
               }
             ],
             "title": "Pass Points",
-            "description": "Points required to pass"
-          },
-          "point_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Point Ids",
-            "description": "Point UUIDs"
+            "description": "Pass points value (resolves to a pass-type Points resource)"
           },
           "standard_group_ids": {
             "anyOf": [
@@ -107678,6 +107663,32 @@
             "title": "Flag Id",
             "description": "Flag option UUID"
           },
+          "simulation_rubric_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Rubric Flag Id",
+            "description": "Simulation rubric flag resource UUID"
+          },
+          "video_rubric_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Rubric Flag Id",
+            "description": "Video rubric flag resource UUID"
+          },
           "departments": {
             "anyOf": [
               {
@@ -107709,21 +107720,30 @@
             "title": "Department Ids",
             "description": "Department UUIDs"
           },
-          "point_ids": {
+          "pass_points_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Point Ids",
-            "description": "Point UUIDs"
+            "title": "Pass Points Id",
+            "description": "Pass-type Points resource UUID"
+          },
+          "pass_points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Points",
+            "description": "Pass points value (resolves to a pass-type Points resource)"
           },
           "standard_group_ids": {
             "anyOf": [
@@ -107756,6 +107776,21 @@
             ],
             "title": "Standard Ids",
             "description": "Standard UUIDs"
+          },
+          "standards": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/RubricStandardDraftValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Standards",
+            "description": "Grid-editor standards. Entries without id are created; resulting IDs merge into standard_ids."
           },
           "pending_ids": {
             "anyOf": [
@@ -107795,9 +107830,61 @@
         },
         "type": "object",
         "title": "PatchRubricDraftApiRequest",
-        "description": "Request model for new-style rubric draft endpoint.\n\nDual-mode for creatable resources only:\n  - name/name_id, description/description_id\nID-only for non-creatable resources:\n  - flag_id, department_ids, point_ids, standard_group_ids, standard_ids\n\nClient always sends full state (append-only \u2014 each write is a new snapshot)."
+        "description": "Request model for new-style rubric draft endpoint.\n\nDual-mode for creatable resources only:\n  - name/name_id, description/description_id\n  - standards/standard_ids (grid editor sends value objects; flat IDs also\n    accepted for the legacy picker)\nID-only for non-creatable resources:\n  - flag_id, department_ids, point_ids, standard_group_ids\n\nClient always sends full state (append-only \u2014 each write is a new snapshot)."
       },
-      "PatchRubricDraftApiResponse": {
+      "PatchRubricDraftApiResponse-Input": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Whether the operation succeeded"
+          },
+          "draft_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Draft Id",
+            "description": "Draft UUID"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key for this draft operation"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable result message"
+          },
+          "form_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__rubric__types__DraftFormState"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Server-authoritative form state"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "draft_id",
+          "message"
+        ],
+        "title": "PatchRubricDraftApiResponse",
+        "description": "Response model for new-style rubric draft endpoint."
+      },
+      "PatchRubricDraftApiResponse-Output": {
         "properties": {
           "success": {
             "type": "boolean",
@@ -118294,6 +118381,53 @@
         ],
         "title": "RubricResultItem",
         "description": "Per-item result within a bulk create/update response."
+      },
+      "RubricStandardDraftValue": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Existing standard UUID, if any"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Level name (column header)"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Cell description text",
+            "default": ""
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points",
+            "description": "Implied points from column index"
+          },
+          "standard_group_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Standard Group Id",
+            "description": "Parent standard group UUID (row)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "points",
+          "standard_group_id"
+        ],
+        "title": "RubricStandardDraftValue",
+        "description": "Value-object for authoring a standard inline from the rubric grid.\n\nThe grid editor sends these instead of (or alongside) standard_ids. Entries\nwithout an `id` are created server-side; entries with an `id` are trusted\nas-is. Append-only: updates are modeled as create-new-id, old rows become\norphans and stop appearing in the draft once the client drops them."
       },
       "RubricStandardGroupResource": {
         "properties": {
@@ -129125,10 +129259,10 @@
       },
       "UpdateAgentItem": {
         "properties": {
-          "agent_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Agent Id",
+            "title": "Id",
             "description": "UUID of the agent to update"
           },
           "name_id": {
@@ -129349,7 +129483,7 @@
         },
         "type": "object",
         "required": [
-          "agent_id"
+          "id"
         ],
         "title": "UpdateAgentItem",
         "description": "Single agent item for update \u2014 agent_id required, all fields optional."
@@ -129455,10 +129589,10 @@
       },
       "UpdateAuthItem": {
         "properties": {
-          "auth_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Auth Id",
+            "title": "Id",
             "description": "UUID of the auth provider to update"
           },
           "name_id": {
@@ -129655,7 +129789,7 @@
         },
         "type": "object",
         "required": [
-          "auth_id"
+          "id"
         ],
         "title": "UpdateAuthItem",
         "description": "Single auth item for update \u2014 auth_id required, all fields optional."
@@ -129761,10 +129895,10 @@
       },
       "UpdateCohortItem": {
         "properties": {
-          "cohort_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Cohort Id",
+            "title": "Id",
             "description": "Cohort UUID to update"
           },
           "name_id": {
@@ -129999,7 +130133,7 @@
         },
         "type": "object",
         "required": [
-          "cohort_id"
+          "id"
         ],
         "title": "UpdateCohortItem",
         "description": "Single cohort item for update \u2014 cohort_id required, all fields optional."
@@ -130105,10 +130239,10 @@
       },
       "UpdateDepartmentItem": {
         "properties": {
-          "department_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Department Id",
+            "title": "Id",
             "description": "UUID of the department to update"
           },
           "name_id": {
@@ -130221,7 +130355,7 @@
         },
         "type": "object",
         "required": [
-          "department_id"
+          "id"
         ],
         "title": "UpdateDepartmentItem",
         "description": "Single department item for update \u2014 department_id required, all fields optional."
@@ -130327,10 +130461,10 @@
       },
       "UpdateDocumentItem": {
         "properties": {
-          "document_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Document Id",
+            "title": "Id",
             "description": "Document UUID to update"
           },
           "name_id": {
@@ -130544,7 +130678,7 @@
         },
         "type": "object",
         "required": [
-          "document_id"
+          "id"
         ],
         "title": "UpdateDocumentItem",
         "description": "Single document item for update \u2014 document_id required, all fields optional.\n\nOnly provided fields are updated (partial update)."
@@ -130650,10 +130784,10 @@
       },
       "UpdateEvalItem": {
         "properties": {
-          "eval_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Eval Id",
+            "title": "Id",
             "description": "Eval UUID to update"
           },
           "name_id": {
@@ -130845,7 +130979,7 @@
         },
         "type": "object",
         "required": [
-          "eval_id"
+          "id"
         ],
         "title": "UpdateEvalItem",
         "description": "Single eval item for update \u2014 eval_id required, all fields optional.\n\nOnly provided fields are updated (partial update)."
@@ -130951,10 +131085,10 @@
       },
       "UpdateFieldItem": {
         "properties": {
-          "field_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Field Id",
+            "title": "Id",
             "description": "UUID of the field to update"
           },
           "name_id": {
@@ -131111,7 +131245,7 @@
         },
         "type": "object",
         "required": [
-          "field_id"
+          "id"
         ],
         "title": "UpdateFieldItem",
         "description": "Single field item for update \u2014 field_id required, all fields optional.\n\nOnly provided fields are updated (partial update)."
@@ -131217,10 +131351,10 @@
       },
       "UpdateModelItem": {
         "properties": {
-          "model_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Model Id",
+            "title": "Id",
             "description": "Target model identifier to update"
           },
           "name_id": {
@@ -131486,7 +131620,7 @@
         },
         "type": "object",
         "required": [
-          "model_id"
+          "id"
         ],
         "title": "UpdateModelItem",
         "description": "Single model item for update \u2014 model_id required, all fields optional.\n\nOnly provided fields are updated (partial update)."
@@ -131592,10 +131726,10 @@
       },
       "UpdateParameterItem": {
         "properties": {
-          "parameter_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Parameter Id",
+            "title": "Id",
             "description": "Target parameter identifier to update"
           },
           "name_id": {
@@ -131714,7 +131848,7 @@
         },
         "type": "object",
         "required": [
-          "parameter_id"
+          "id"
         ],
         "title": "UpdateParameterItem",
         "description": "Single parameter item for update \u2014 parameter_id required, all fields optional."
@@ -132422,10 +132556,10 @@
       },
       "UpdateProviderItem": {
         "properties": {
-          "provider_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Provider Id",
+            "title": "Id",
             "description": "Target provider identifier to update"
           },
           "name_id": {
@@ -132582,7 +132716,7 @@
         },
         "type": "object",
         "required": [
-          "provider_id"
+          "id"
         ],
         "title": "UpdateProviderItem",
         "description": "Single provider item for update \u2014 provider_id required, all fields optional."
@@ -132688,10 +132822,10 @@
       },
       "UpdateRubricItem": {
         "properties": {
-          "rubric_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Rubric Id",
+            "title": "Id",
             "description": "Rubric UUID to update"
           },
           "name_id": {
@@ -132850,21 +132984,30 @@
             "title": "Departments",
             "description": "Department names for resolution"
           },
-          "point_ids": {
+          "pass_points_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Point Ids",
-            "description": "Point UUIDs"
+            "title": "Pass Points Id",
+            "description": "Pass-type Points resource UUID"
+          },
+          "pass_points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Points",
+            "description": "Pass points value (resolves to a pass-type Points resource)"
           },
           "standard_group_ids": {
             "anyOf": [
@@ -132901,7 +133044,7 @@
         },
         "type": "object",
         "required": [
-          "rubric_id"
+          "id"
         ],
         "title": "UpdateRubricItem",
         "description": "Single rubric item for update \u2014 rubric_id required, all fields optional."
@@ -133007,10 +133150,10 @@
       },
       "UpdateScenarioItem": {
         "properties": {
-          "scenario_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Scenario Id",
+            "title": "Id",
             "description": "UUID of the scenario to update"
           },
           "name_id": {
@@ -133536,7 +133679,7 @@
         },
         "type": "object",
         "required": [
-          "scenario_id"
+          "id"
         ],
         "title": "UpdateScenarioItem",
         "description": "Single scenario item for update \u2014 scenario_id required, all fields optional.\n\nOnly provided fields are updated (partial update)."
@@ -133642,10 +133785,10 @@
       },
       "UpdateSettingItem": {
         "properties": {
-          "setting_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Setting Id",
+            "title": "Id",
             "description": "UUID of the setting to update"
           },
           "name_id": {
@@ -133898,7 +134041,7 @@
         },
         "type": "object",
         "required": [
-          "setting_id"
+          "id"
         ],
         "title": "UpdateSettingItem",
         "description": "Single setting item for update \u2014 setting_id required, all fields optional.\n\nOnly provided fields are updated (partial update)."
@@ -134004,10 +134147,10 @@
       },
       "UpdateSimulationItem": {
         "properties": {
-          "simulation_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Simulation Id",
+            "title": "Id",
             "description": "UUID of the simulation to update"
           },
           "name_id": {
@@ -134239,7 +134382,7 @@
         },
         "type": "object",
         "required": [
-          "simulation_id"
+          "id"
         ],
         "title": "UpdateSimulationItem",
         "description": "Single simulation item for update \u2014 simulation_id required, all fields optional.\n\nOnly provided fields are updated (partial update)."
@@ -134345,10 +134488,10 @@
       },
       "UpdateToolItem": {
         "properties": {
-          "tool_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Tool Id",
+            "title": "Id",
             "description": "Target tool identifier to update"
           },
           "name_id": {
@@ -134541,7 +134684,7 @@
         },
         "type": "object",
         "required": [
-          "tool_id"
+          "id"
         ],
         "title": "UpdateToolItem",
         "description": "Single tool item for update \u2014 tool_id required, all fields optional.\n\nOnly provided fields are updated (partial update)."
@@ -138236,6 +138379,32 @@
             "title": "Active Flag Id",
             "description": "Selected active flag option UUID"
           },
+          "simulation_rubric_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Rubric Flag Id",
+            "description": "Selected simulation_rubric flag option UUID"
+          },
+          "video_rubric_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Rubric Flag Id",
+            "description": "Selected video_rubric flag option UUID"
+          },
           "department_ids": {
             "items": {
               "type": "string",
@@ -138245,14 +138414,55 @@
             "title": "Department Ids",
             "description": "Selected department UUIDs"
           },
-          "point_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Point Ids",
-            "description": "Selected point UUIDs"
+          "pass_points_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Points Id",
+            "description": "Pass-type Points resource UUID"
+          },
+          "pass_points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Points",
+            "description": "Denormalized pass points value"
+          },
+          "total_points_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Points Id",
+            "description": "Total-type Points resource UUID (computed)"
+          },
+          "total_points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Points",
+            "description": "Denormalized total points value (sum of standards)"
           },
           "standard_group_ids": {
             "items": {
@@ -138271,6 +138481,14 @@
             "type": "array",
             "title": "Standard Ids",
             "description": "Selected standard UUIDs"
+          },
+          "standards": {
+            "items": {
+              "$ref": "#/components/schemas/RubricStandardDraftValue"
+            },
+            "type": "array",
+            "title": "Standards",
+            "description": "Resolved grid-editor standards (all ids filled in)."
           },
           "pending_ids": {
             "items": {

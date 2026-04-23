@@ -35,7 +35,7 @@ async def delete_agent_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    agent_ids: list[UUID],
+    ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -71,7 +71,7 @@ async def delete_agent_impl(
     # -- Step 2+3: Per-item permission checks (fail fast) -----------------------
 
     async with pool.acquire() as conn:
-        for idx, agent_id in enumerate(agent_ids):
+        for idx, agent_id in enumerate(ids):
             ctx = await resolve_agent_permissions_context(conn, agent_id)
 
             if not ctx.exists:
@@ -107,7 +107,7 @@ async def delete_agent_impl(
                     await restore_artifacts(
                         conn,
                         table="agent_artifact",
-                        ids=agent_ids,
+                        ids=ids,
                     )
         await refresh_agent_impl(
             pool,
@@ -123,7 +123,7 @@ async def delete_agent_impl(
                     agent_id=agent_id,
                     message="Delete confirmed" if accept else "Delete rejected — agent restored",
                 )
-                for agent_id in agent_ids
+                for agent_id in ids
             ],
             idempotency_key=idempotency_key,
         )
@@ -132,7 +132,7 @@ async def delete_agent_impl(
 
     async with pool.acquire() as conn:
         name_map: dict[UUID, str] = {}
-        artifacts = await get_agents(conn, agent_ids, names=True)
+        artifacts = await get_agents(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
             if artifact.name_ids:
@@ -145,7 +145,7 @@ async def delete_agent_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_agents(conn, agent_ids, soft=soft)
+            result = await delete_agents(conn, ids, soft=soft)
 
     await refresh_agent_impl(
         pool,

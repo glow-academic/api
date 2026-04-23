@@ -54,7 +54,7 @@ async def delete_cohort(
                 pool,
                 redis,
                 profile_id=profile_id,
-                cohort_ids=request.cohort_ids,
+                ids=request.cohort_ids,
                 session_id=session_id,
             )
 

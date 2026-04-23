@@ -38,7 +38,7 @@ async def duplicate_document_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    document_id: UUID,
+    id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -55,6 +55,7 @@ async def duplicate_document_impl(
       6. create_document -> new artifact with original IDs + inactive flag
       7. canonical document refresh
     """
+    document_id = id  # alias: tools send 'id', internal code uses 'document_id'
 
     # -- Short-circuit: ack path ------------------------------------------------
 

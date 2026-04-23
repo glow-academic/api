@@ -44,7 +44,7 @@ async def agent_duplicate(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            agent_id=payload.agent_id,
+            id=payload.agent_id,
             session_id=identity.session_id,
             accept=payload.accept,
             idempotency_key=payload.idempotency_key,

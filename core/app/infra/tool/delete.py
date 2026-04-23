@@ -35,7 +35,7 @@ async def delete_tool_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    tool_ids: list[UUID],
+    ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -70,7 +70,7 @@ async def delete_tool_impl(
     # -- Step 2+3: Per-item permission checks (fail fast) ----------------------
 
     async with pool.acquire() as conn:
-        for idx, tool_id in enumerate(tool_ids):
+        for idx, tool_id in enumerate(ids):
             ctx = await resolve_tool_permissions_context(conn, tool_id)
 
             if not ctx.exists:
@@ -101,7 +101,7 @@ async def delete_tool_impl(
                     await restore_artifacts(
                         conn,
                         table="tool_artifact",
-                        ids=tool_ids,
+                        ids=ids,
                     )
         await refresh_tool_impl(
             pool,
@@ -121,7 +121,7 @@ async def delete_tool_impl(
                         else "Delete rejected — tool restored"
                     ),
                 )
-                for tool_id in tool_ids
+                for tool_id in ids
             ],
             idempotency_key=idempotency_key,
         )
@@ -130,7 +130,7 @@ async def delete_tool_impl(
 
     async with pool.acquire() as conn:
         name_map: dict[UUID, str] = {}
-        artifacts = await get_tools(conn, tool_ids, names=True)
+        artifacts = await get_tools(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
             if artifact.name_ids:
@@ -143,7 +143,7 @@ async def delete_tool_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_tools(conn, tool_ids, soft=soft)
+            result = await delete_tools(conn, ids, soft=soft)
 
     # -- Step 7: Canonical refresh ---------------------------------------------
 

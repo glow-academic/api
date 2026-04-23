@@ -44,7 +44,7 @@ async def tool_delete(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            tool_ids=payload.tool_ids,
+            ids=payload.tool_ids,
             session_id=identity.session_id,
             accept=payload.accept,
             idempotency_key=payload.idempotency_key,

@@ -54,7 +54,7 @@ async def delete_auth(
                 pool,
                 redis,
                 profile_id=profile_id,
-                auth_ids=request.auth_ids,
+                ids=request.auth_ids,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

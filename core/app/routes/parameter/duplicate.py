@@ -57,7 +57,7 @@ async def duplicate_parameter(
                 pool,
                 redis,
                 profile_id=profile_id,
-                parameter_id=request.parameter_id,
+                id=request.parameter_id,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

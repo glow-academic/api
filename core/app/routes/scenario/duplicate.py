@@ -57,7 +57,7 @@ async def duplicate_scenario(
                 pool,
                 redis,
                 profile_id=profile_id,
-                scenario_id=request.scenario_id,
+                id=request.scenario_id,
                 session_id=session_id,
             )
 

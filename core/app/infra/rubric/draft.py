@@ -26,7 +26,9 @@ from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
+from app.tools.resources.points.get import get_points
 from app.tools.resources.standards.create import create_standard
+from app.tools.resources.standards.get import get_standards
 
 
 def _exact_match_id(results: list[Any], raw_value: str, *, attr: str = "name") -> UUID | None:
@@ -99,8 +101,11 @@ async def _resolve_creatable_values(
             (
                 flag
                 for flag in results
-                if getattr(flag, "type", None) == "rubric_active"
-                or getattr(flag, "name", None) == "rubric_active"
+                if (
+                    getattr(flag, "type", None) == "rubric_active"
+                    or getattr(flag, "name", None) == "rubric_active"
+                )
+                and getattr(flag, "value", None) is True
             ),
             None,
         )
@@ -116,6 +121,33 @@ async def _resolve_creatable_values(
     if resolved_flag_id is not None:
         request.flag_id = resolved_flag_id
         request.active_flag_id = resolved_flag_id
+
+    # Pass points — resolve numeric value to a pass-type Points resource ID.
+    if request.pass_points is not None and request.pass_points_id is None:
+        from app.tools.resources.points.search import search_points
+        point_results = await search_points(
+            conn,
+            redis,
+            search=None,
+            limit_count=1000,
+        )
+        match = next(
+            (
+                p
+                for p in point_results
+                if getattr(p, "type", None) == "pass" and p.value == request.pass_points
+            ),
+            None,
+        )
+        if match and match.id:
+            request.pass_points_id = match.id
+        else:
+            errors.append(
+                SaveRubricFieldError(
+                    field="pass_points",
+                    message=f"Pass points resource with value {request.pass_points} not found",
+                )
+            )
 
     if request.departments:
         results = await search_departments(
@@ -278,6 +310,22 @@ async def patch_rubric_draft_impl(
             detail=[error.model_dump() for error in errors],
         )
 
+    # Combine the three per-type flag IDs the client sends into the single
+    # `flag_ids` list the draft row stores. Legacy `flag_id` stays as a fallback
+    # for the active slot (pre-multi-mode clients).
+    combined_flag_ids = [
+        fid
+        for fid in (
+            request.active_flag_id or request.flag_id,
+            request.simulation_rubric_flag_id,
+            request.video_rubric_flag_id,
+        )
+        if fid is not None
+    ]
+
+    # Only pass points are stored on drafts; total is computed from standards.
+    draft_point_ids = [request.pass_points_id] if request.pass_points_id else None
+
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_rubric_draft(
@@ -288,13 +336,26 @@ async def patch_rubric_draft_impl(
                 profile_ids=[profile.profiles_id],
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id] if request.description_id else None,
-                flag_ids=[request.flag_id] if request.flag_id else None,
+                flag_ids=combined_flag_ids or None,
                 department_ids=request.department_ids,
-                point_ids=request.point_ids,
+                point_ids=draft_point_ids,
                 standard_group_ids=request.standard_group_ids,
                 standard_ids=request.standard_ids,
                 pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
+
+    # Denormalize point values for the form_state echo.
+    # pass_points = value of the referenced pass-type resource.
+    # total_points = sum of selected standards' points (derived, read-only).
+    pass_points_value: int | None = None
+    total_points_value: int | None = None
+    async with pool.acquire() as conn:
+        if request.pass_points_id:
+            rows = await get_points(conn, [request.pass_points_id], redis, bypass_cache=True)
+            pass_points_value = rows[0].value if rows else None
+        if request.standard_ids:
+            rows = await get_standards(conn, list(request.standard_ids), redis, bypass_cache=True)
+            total_points_value = sum((r.points or 0) for r in rows) if rows else 0
 
     resolved_flag_id = request.active_flag_id or request.flag_id
     form_state = DraftFormState(
@@ -304,8 +365,13 @@ async def patch_rubric_draft_impl(
         description=request.description,
         flag_id=resolved_flag_id,
         active_flag_id=resolved_flag_id,
+        simulation_rubric_flag_id=request.simulation_rubric_flag_id,
+        video_rubric_flag_id=request.video_rubric_flag_id,
         department_ids=request.department_ids or [],
-        point_ids=request.point_ids or [],
+        pass_points_id=request.pass_points_id,
+        pass_points=pass_points_value,
+        total_points_id=None,  # Synthetic — computed, no backing resource row.
+        total_points=total_points_value,
         standard_group_ids=request.standard_group_ids or [],
         standard_ids=request.standard_ids or [],
         standards=request.standards or [],

@@ -65,11 +65,11 @@ async def update_department_impl(
 
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
-            perms = await resolve_department_permissions_context(conn, item.department_id)
+            perms = await resolve_department_permissions_context(conn, item.id)
             if not perms.exists:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Item {idx}: Department {item.department_id} not found.",
+                    detail=f"Item {idx}: Department {item.id} not found.",
                 )
             if not compute_can_edit(
                 role_level=profile.role_level,
@@ -87,7 +87,7 @@ async def update_department_impl(
                 results=[
                     DepartmentResultItem(
                         success=True,
-                        department_id=item.department_id,
+                        department_id=item.id,
                         message="Update rejected",
                     )
                     for item in items
@@ -127,7 +127,7 @@ async def update_department_impl(
         async with pool.acquire() as conn:
             existing = await get_department_artifacts(
                 conn,
-                [item.department_id],
+                [item.id],
                 names=True,
                 descriptions=True,
                 settings=True,
@@ -157,7 +157,7 @@ async def update_department_impl(
             async with conn.transaction():
                 await update_department_artifact(
                     conn,
-                    item.department_id,
+                    item.id,
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id if item.description_id else _UNSET,
                     department_ids=[departments_resource_id] if departments_resource_id else None,
@@ -166,11 +166,11 @@ async def update_department_impl(
                     soft=soft,
                 )
 
-        saved_department_ids.append(item.department_id)
+        saved_department_ids.append(item.id)
         results.append(
             DepartmentResultItem(
                 success=True,
-                department_id=item.department_id,
+                department_id=item.id,
                 message=(
                     "Department update accepted"
                     if accept is not None and idempotency_key is not None

@@ -294,7 +294,7 @@ class UpdateEvalItem(ScopedItem):
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateEvalItem.RESOURCE_TYPE_MAP
 
-    eval_id: UUID = Field(..., description="Eval UUID to update")  # Required — which eval to update
+    id: UUID = Field(..., description="Eval UUID to update")  # Required — which eval to update
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="Name resource UUID")
     name: str | None = Field(None, description="Name value for resolution")

@@ -44,7 +44,7 @@ async def document_delete(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            document_ids=payload.document_ids,
+            ids=payload.document_ids,
             session_id=identity.session_id,
         ),
         arguments=payload.model_dump(mode="json"),

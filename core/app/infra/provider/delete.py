@@ -35,7 +35,7 @@ async def delete_provider_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    provider_ids: list[UUID],
+    ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -70,7 +70,7 @@ async def delete_provider_impl(
     # -- Step 2+3: Per-item permission checks (fail fast) -------------------------
 
     async with pool.acquire() as conn:
-        for idx, provider_id in enumerate(provider_ids):
+        for idx, provider_id in enumerate(ids):
             ctx = await resolve_provider_permissions_context(conn, provider_id)
 
             if not ctx.exists:
@@ -98,7 +98,7 @@ async def delete_provider_impl(
                     await restore_artifacts(
                         conn,
                         table="provider_artifact",
-                        ids=provider_ids,
+                        ids=ids,
                     )
         await refresh_provider_impl(
             pool,
@@ -118,7 +118,7 @@ async def delete_provider_impl(
                         else "Delete rejected — provider restored"
                     ),
                 )
-                for provider_id in provider_ids
+                for provider_id in ids
             ],
             idempotency_key=idempotency_key,
         )
@@ -127,7 +127,7 @@ async def delete_provider_impl(
 
     async with pool.acquire() as conn:
         name_map: dict[UUID, str] = {}
-        artifacts = await get_providers(conn, provider_ids, names=True)
+        artifacts = await get_providers(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
             if artifact.name_ids:
@@ -140,7 +140,7 @@ async def delete_provider_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_providers(conn, provider_ids, soft=soft)
+            result = await delete_providers(conn, ids, soft=soft)
 
     # -- Step 7: Canonical refresh ------------------------------------------------
 

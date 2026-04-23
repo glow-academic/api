@@ -245,7 +245,7 @@ class UpdateToolItem(ScopedItem):
     Only provided fields are updated (partial update).
     """
 
-    tool_id: UUID = Field(..., description="Target tool identifier to update")
+    id: UUID = Field(..., description="Target tool identifier to update")
     # Dual-mode: name
     name_id: UUID | None = Field(None, description="Name resource identifier")
     name: str | None = Field(None, description="Display name value")

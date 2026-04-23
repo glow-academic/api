@@ -24,7 +24,7 @@ async def duplicate_eval_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    eval_id: UUID,
+    id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -32,6 +32,7 @@ async def duplicate_eval_impl(
     **_kwargs,
 ) -> DuplicateEvalApiResponse:
     """Duplicate an eval artifact."""
+    eval_id = id  # alias: tools send 'id', internal code uses 'eval_id'
     profile = await resolve_profile_identity_context(
         pool,
         profile_id,

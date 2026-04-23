@@ -27,7 +27,7 @@ async def delete_setting_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    setting_ids: list[UUID],
+    ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -47,7 +47,7 @@ async def delete_setting_impl(
         )
 
     async with pool.acquire() as conn:
-        for idx, setting_id in enumerate(setting_ids):
+        for idx, setting_id in enumerate(ids):
             ctx = await resolve_setting_permissions_context(conn, setting_id)
             if not ctx.exists:
                 raise HTTPException(
@@ -71,7 +71,7 @@ async def delete_setting_impl(
                     await restore_artifacts(
                         conn,
                         table="setting_artifact",
-                        ids=setting_ids,
+                        ids=ids,
                     )
         await refresh_setting_impl(
             pool,
@@ -91,14 +91,14 @@ async def delete_setting_impl(
                         else "Delete rejected — setting restored"
                     ),
                 )
-                for setting_id in setting_ids
+                for setting_id in ids
             ],
             idempotency_key=idempotency_key,
         )
 
     name_map: dict[UUID, str] = {}
     async with pool.acquire() as conn:
-        artifacts = await get_settings(conn, setting_ids, names=True)
+        artifacts = await get_settings(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
             if artifact.name_ids:
@@ -109,7 +109,7 @@ async def delete_setting_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_settings(conn, setting_ids, soft=soft)
+            result = await delete_settings(conn, ids, soft=soft)
 
     await refresh_setting_impl(
         pool,

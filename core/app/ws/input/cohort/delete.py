@@ -44,7 +44,7 @@ async def cohort_delete(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            cohort_ids=payload.cohort_ids,
+            ids=payload.cohort_ids,
             session_id=identity.session_id,
         ),
         arguments=payload.model_dump(mode="json"),

@@ -37,7 +37,7 @@ async def duplicate_tool_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    tool_id: UUID,
+    id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -54,6 +54,7 @@ async def duplicate_tool_impl(
       6. create_tool -> new artifact with original IDs + inactive flag
       7. invalidate_tags
     """
+    tool_id = id  # alias: tools send 'id', internal code uses 'tool_id'
 
     # -- Step 1: Profile context ------------------------------------------------
 

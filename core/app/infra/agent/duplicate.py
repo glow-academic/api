@@ -38,7 +38,7 @@ async def duplicate_agent_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    agent_id: UUID,
+    id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -55,6 +55,7 @@ async def duplicate_agent_impl(
       6. create_agent -> new artifact with original IDs + inactive flag
       7. invalidate_tags
     """
+    agent_id = id  # alias: tools send 'id', internal code uses 'agent_id'
 
     # -- Step 1: Profile context ------------------------------------------------
 

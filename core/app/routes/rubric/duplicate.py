@@ -57,7 +57,7 @@ async def duplicate_rubric(
                 pool,
                 redis,
                 profile_id=profile_id,
-                rubric_id=request.rubric_id,
+                id=request.rubric_id,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

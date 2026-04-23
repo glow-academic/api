@@ -141,7 +141,7 @@ async def resolve_document_values(
             flag_type="document_active",
             limit_count=1000,
         )
-        match = next((f for f in results if f.type == "document_active"), None)
+        match = next((f for f in results if f.type == "document_active" and f.value is True), None)
         if match and match.id:
             if item.active_flag:
                 item.active_flag_id = match.id
@@ -154,7 +154,7 @@ async def resolve_document_values(
 
     if item.template_flag is not None and item.template_flag_id is None:
         results = await search_flags(conn, redis, search=None, flag_type="template", limit_count=1000)
-        match = next((f for f in results if f.type == "template"), None)
+        match = next((f for f in results if f.type == "template" and f.value is True), None)
         if match and match.id:
             if item.template_flag:
                 item.template_flag_id = match.id

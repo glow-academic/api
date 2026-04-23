@@ -96,7 +96,7 @@ async def _resolve_creatable_values(
             flag_type="field_active",
             field=True,
         )
-        match = next((flag for flag in results if getattr(flag, "type", None) == "field_active"), None)
+        match = next((flag for flag in results if getattr(flag, "type", None) == "field_active" and getattr(flag, "value", None) is True), None)
         if match and match.id:
             resolved_flag_id = match.id
         else:

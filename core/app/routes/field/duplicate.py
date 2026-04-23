@@ -57,7 +57,7 @@ async def duplicate_field(
                 pool,
                 redis,
                 profile_id=profile_id,
-                field_id=request.field_id,
+                id=request.field_id,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

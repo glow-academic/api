@@ -163,7 +163,7 @@ async def resolve_scenario_values(
                 flag_type="scenario_active",
                 limit_count=100,
             )
-            match = next((r for r in results if r.type == "scenario_active"), None)
+            match = next((r for r in results if r.type == "scenario_active" and r.value is True), None)
             if match and match.id:
                 if item.active_flag:
                     item.active_flag_id = match.id
@@ -182,7 +182,7 @@ async def resolve_scenario_values(
                 flag_type="images_enabled",
                 limit_count=1000,
             )
-            match = next((f for f in results if f.type == "images_enabled"), None)
+            match = next((f for f in results if f.type == "images_enabled" and f.value is True), None)
             if match and match.id:
                 if item.images_enabled_flag:
                     item.images_enabled_flag_id = match.id
@@ -202,7 +202,7 @@ async def resolve_scenario_values(
                 flag_type="objectives_enabled",
                 limit_count=1000,
             )
-            match = next((f for f in results if f.type == "objectives_enabled"), None)
+            match = next((f for f in results if f.type == "objectives_enabled" and f.value is True), None)
             if match and match.id:
                 if item.objectives_enabled_flag:
                     item.objectives_enabled_flag_id = match.id
@@ -244,7 +244,7 @@ async def resolve_scenario_values(
                 flag_type="questions_enabled",
                 limit_count=1000,
             )
-            match = next((f for f in results if f.type == "questions_enabled"), None)
+            match = next((f for f in results if f.type == "questions_enabled" and f.value is True), None)
             if match and match.id:
                 if item.questions_enabled_flag:
                     item.questions_enabled_flag_id = match.id
@@ -264,7 +264,7 @@ async def resolve_scenario_values(
                 flag_type="video_enabled",
                 limit_count=1000,
             )
-            match = next((f for f in results if f.type == "video_enabled"), None)
+            match = next((f for f in results if f.type == "video_enabled" and f.value is True), None)
             if match and match.id:
                 if item.video_enabled_flag:
                     item.video_enabled_flag_id = match.id

@@ -62,11 +62,11 @@ async def update_model_impl(
 
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
-            perms = await resolve_model_permissions_context(conn, item.model_id)
+            perms = await resolve_model_permissions_context(conn, item.id)
             if not perms.exists:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Item {idx}: Model {item.model_id} not found.",
+                    detail=f"Item {idx}: Model {item.id} not found.",
                 )
             if not compute_can_edit(
                 role_level=profile.role_level,
@@ -86,7 +86,7 @@ async def update_model_impl(
                 results=[
                     ModelResultItem(
                         success=True,
-                        model_id=item.model_id,
+                        model_id=item.id,
                         message="Update rejected",
                     )
                     for item in items
@@ -147,7 +147,7 @@ async def update_model_impl(
             async with conn.transaction():
                 await update_model_artifact(
                     conn,
-                    item.model_id,
+                    item.id,
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id if item.description_id else _UNSET,
                     department_ids=item.department_ids,
@@ -167,7 +167,7 @@ async def update_model_impl(
         results.append(
             ModelResultItem(
                 success=True,
-                model_id=item.model_id,
+                model_id=item.id,
                 message=(
                     "Model update accepted"
                     if accept is not None and idempotency_key is not None

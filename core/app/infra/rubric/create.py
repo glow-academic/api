@@ -111,8 +111,27 @@ async def create_rubric_impl(
     results: list[RubricResultItem] = []
     snapshot_ids: list[UUID] = []
 
+    # Denormalize point values from IDs for snapshot / downstream use.
+    # pass_points = value of the referenced pass-type Points resource.
+    # total_points = sum of selected standards' points (computed, not written).
+    from app.tools.resources.points.get import get_points
+    from app.tools.resources.standards.get import get_standards
+
+    async def _denorm_points(item) -> tuple[int | None, int | None]:
+        pass_value: int | None = None
+        total_value: int | None = None
+        async with pool.acquire() as conn:
+            if item.pass_points_id:
+                rows = await get_points(conn, [item.pass_points_id], redis, bypass_cache=True)
+                pass_value = rows[0].value if rows else None
+            if item.standard_ids:
+                rows = await get_standards(conn, list(item.standard_ids), redis, bypass_cache=True)
+                total_value = sum((r.points or 0) for r in rows) if rows else 0
+        return pass_value, total_value
+
     if not soft:
         for item in items:
+            pass_value, total_value = await _denorm_points(item)
             rubrics_resource_id = await create_denormalized_snapshot(
                 pool,
                 redis,
@@ -123,8 +142,8 @@ async def create_rubric_impl(
                 standard_group_ids=item.standard_group_ids,
                 simulation_rubric=bool(item.simulation_rubric_flag_id),
                 video_rubric=bool(item.video_rubric_flag_id),
-                total_points=item.total_points,
-                pass_points=item.pass_points,
+                total_points=total_value,
+                pass_points=pass_value,
             )
             snapshot_ids.append(rubrics_resource_id)
 
@@ -140,6 +159,8 @@ async def create_rubric_impl(
                     ]
                     if fid
                 ]
+                # Only pass points are writeable; total is derived on read.
+                point_ids = [item.pass_points_id] if item.pass_points_id else None
                 result = await create_rubric_artifact(
                     conn,
                     id=item.id,
@@ -147,7 +168,7 @@ async def create_rubric_impl(
                     description_id=item.description_id,
                     department_ids=item.department_ids,
                     flag_ids=combined_flag_ids or None,
-                    point_ids=item.point_ids,
+                    point_ids=point_ids,
                     standard_group_ids=item.standard_group_ids,
                     standard_ids=item.standard_ids,
                     rubric_ids=[snapshot_ids[idx]] if snapshot_ids else None,

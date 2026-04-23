@@ -143,7 +143,7 @@ async def resolve_simulation_values(
                 flag_type="simulation_active",
                 limit_count=1000,
             )
-            match = next((f for f in results if f.type == "simulation_active"), None)
+            match = next((f for f in results if f.type == "simulation_active" and f.value is True), None)
             if match and match.id:
                 if item.active_flag:
                     item.active_flag_id = match.id
@@ -162,7 +162,7 @@ async def resolve_simulation_values(
                 flag_type="practice",
                 limit_count=1000,
             )
-            match = next((f for f in results if f.type == "practice"), None)
+            match = next((f for f in results if f.type == "practice" and f.value is True), None)
             if match and match.id:
                 if item.practice_flag:
                     item.practice_flag_id = match.id

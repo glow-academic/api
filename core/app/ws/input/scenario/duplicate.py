@@ -44,7 +44,7 @@ async def scenario_duplicate(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            scenario_id=payload.scenario_id,
+            id=payload.scenario_id,
             session_id=identity.session_id,
         ),
         arguments=payload.model_dump(mode="json"),

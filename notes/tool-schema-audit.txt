@@ -1,0 +1,261 @@
+Audited 326 tools.
+
+=== HARD MISMATCHES (65): output keys no permission accepts ===
+  • Activity Problem
+      invalid outputs: ['type', 'message']
+      permissions:     [('system', 'activity_problem')]
+  • Activity Resolve
+      invalid outputs: ['problem_id', 'resolved']
+      permissions:     [('system', 'activity_resolve')]
+  • Activity Search
+      invalid outputs: ['date_from', 'date_to', 'department_ids', 'roles', 'active', 'page', 'page_size', 'sort_order']
+      permissions:     [('system', 'activity_search')]
+  • Attempt Archive
+      invalid outputs: ['archived', 'attempt_ids', 'start_date', 'end_date', 'cohort_ids', 'department_ids', 'simulation_ids', 'scenario_ids', 'profile_ids_filter', 'infinite_mode']
+      permissions:     [('attempt', 'archive')]
+  • Attempt Grade
+      invalid outputs: ['attempt_id', 'chat_id', 'resource_types', 'user_instructions', 'score', 'passed', 'time_taken', 'feedbacks', 'strengths', 'improvements', 'analyses', 'highlights', 'replacements']
+      permissions:     [('attempt', 'grade')]
+  • Attempt Search
+      invalid outputs: ['attempt_id', 'chat_id', 'home_id', 'practice_id', 'include_entries', 'limit', 'cursor']
+      permissions:     [('attempt', 'search')]
+  • Attempt Create
+      invalid outputs: ['chat_id', 'attempt_id']
+      permissions:     [('attempt', 'create')]
+  • Attempt Draft
+      invalid outputs: ['chat_id']
+      permissions:     [('attempt', 'draft')]
+  • Auth Draft
+      invalid outputs: ['input_draft_id', 'expected_version', 'name', 'name_id', 'description', 'description_id', 'flag_id', 'department_ids', 'protocol_ids', 'slug_ids', 'item_ids']
+      permissions:     [('auth', 'draft')]
+  • Benchmark Get
+      invalid outputs: ['start_date', 'end_date', 'department_ids', 'history_page', 'history_page_size', 'history_eval_ids', 'history_search', 'history_archived', 'history_sort_by', 'history_sort_order']
+      permissions:     [('test', 'benchmark_get')]
+  • Benchmark Search
+      invalid outputs: ['start_date', 'end_date', 'department_ids', 'history_page', 'history_page_size', 'history_eval_ids', 'history_search', 'history_archived', 'history_sort_by', 'history_sort_order']
+      permissions:     [('test', 'benchmark_search')]
+  • Chat Draft
+      invalid outputs: ['input_draft_id', 'expected_version', 'name', 'description', 'problem_statement', 'objectives', 'images', 'videos', 'questions', 'options', 'name_ids', 'description_ids', 'document_ids', 'field_ids', 'flag_ids', 'image_ids', 'objective_ids', 'option_ids', 'parameter_field_ids', 'parameter_ids', 'persona_ids', 'problem_statement_ids', 'question_ids', 'scenario_ids', 'video_ids', 'department_ids']
+      permissions:     [('attempt', 'chat_draft')]
+  • Chat Export
+      invalid outputs: ['chat_entry_id', 'attempt_id', 'draft_id']
+      permissions:     [('attempt', 'chat_export')]
+  • Chat Get
+      invalid outputs: ['practice', 'start_date', 'end_date', 'cohort_ids', 'department_ids', 'simulation_ids', 'scenario_ids', 'infinite_mode', 'search', 'sort_by', 'sort_order', 'page', 'page_size', 'profile_ids', 'show_archived']
+      permissions:     []
+  • Cohort Export
+      invalid outputs: ['search', 'filter_simulation_ids', 'filter_profile_ids', 'filter_department_ids']
+      permissions:     [('cohort', 'export')]
+  • Dashboard Search
+      invalid outputs: ['start_date', 'end_date', 'cohort_ids', 'department_ids', 'target_profile_id', 'practice', 'scenario_ids', 'infinite_mode', 'show_archived', 'sort_by', 'sort_order', 'page', 'page_size', 'simulation_search', 'scenario_search', 'profile_search']
+      permissions:     [('attempt', 'dashboard_search')]
+  • Document Create
+      invalid outputs: ['field_ids']
+      permissions:     [('document', 'create')]
+  • Document Update
+      invalid outputs: ['field_ids']
+      permissions:     [('document', 'update')]
+  • Group Export
+      invalid outputs: ['group_id']
+      permissions:     [('system', 'group_export')]
+  • Group Get
+      invalid outputs: ['agent_id', 'model_id', 'date_from', 'date_to', 'sort_by', 'sort_order', 'page_limit', 'page_offset']
+      permissions:     [('system', 'group_get')]
+  • Group Name
+      invalid outputs: ['group_id', 'name']
+      permissions:     [('system', 'group_name')]
+  • Group Search
+      invalid outputs: ['search', 'agent_id', 'model_id', 'date_from', 'date_to', 'sort_by', 'sort_order', 'page_limit', 'page_offset']
+      permissions:     [('system', 'group_search')]
+  • Health Get
+      invalid outputs: ['service', 'date_from', 'date_to', 'page_limit', 'page_offset']
+      permissions:     [('system', 'health_get')]
+  • Home Search
+      invalid outputs: ['sort_by', 'sort_order', 'page', 'page_size', 'simulation_search', 'scenario_search', 'scenario_ids', 'infinite_mode']
+      permissions:     [('attempt', 'home_search')]
+  • Invocation Draft
+      invalid outputs: ['input_draft_id', 'expected_version', 'name', 'description', 'name_ids', 'description_ids', 'value_id', 'flag_ids', 'department_ids', 'key_ids', 'endpoint_ids', 'temperature_level_ids', 'pricing_ids', 'reasoning_level_ids', 'voice_ids']
+      permissions:     [('test', 'invocation_draft')]
+  • Invocation Export
+      invalid outputs: ['test_id', 'invocation_entry_id', 'draft_id']
+      permissions:     [('test', 'invocation_export')]
+  • Invocation Get
+      invalid outputs: ['test_id', 'descriptions_search']
+      permissions:     [('test', 'invocation_get')]
+  • Leaderboard Search
+      invalid outputs: ['start_date', 'end_date', 'cohort_ids', 'simulation_ids', 'department_ids', 'simulation_filters', 'target_profile_id', 'cohort_id', 'simulation_id', 'scenario_ids', 'search', 'sort_by', 'sort_order', 'page_limit', 'page_offset']
+      permissions:     [('attempt', 'leaderboard_search')]
+  • Persona Delete
+      invalid outputs: ['ids']
+      permissions:     [('persona', 'delete')]
+  • Practice Search
+      invalid outputs: ['sort_by', 'sort_order', 'page', 'page_size', 'simulation_search', 'scenario_search', 'show_archived', 'scenario_ids', 'infinite_mode']
+      permissions:     [('attempt', 'practice_search')]
+  • Pricing Get
+      invalid outputs: ['start_date', 'end_date', 'date_from', 'date_to']
+      permissions:     [('system', 'pricing_get')]
+  • Pricing Search
+      invalid outputs: ['start_date', 'end_date', 'date_from', 'date_to', 'page', 'page_size', 'sort_order']
+      permissions:     [('system', 'pricing_search')]
+  • Profile Create
+      invalid outputs: ['request_limit_id']
+      permissions:     [('profile', 'create')]
+  • Profile Update
+      invalid outputs: ['request_limit_id']
+      permissions:     [('profile', 'update')]
+  • Record Export
+      invalid outputs: ['target_profile_id']
+      permissions:     [('attempt', 'record_export')]
+  • Record Get
+      invalid outputs: ['target_profile_id', 'start_date', 'end_date', 'cohort_ids', 'simulation_ids', 'department_ids', 'simulation_filters', 'actor_profile_id', 'rubric_ids', 'rubric_search', 'simulation_picker_ids', 'simulation_picker_search', 'parameter_ids', 'parameter_search', 'scenario_ids', 'scenario_search', 'history_practice', 'history_scenario_ids', 'history_infinite_mode', 'history_show_archived', 'history_sort_by', 'history_sort_order', 'history_page', 'history_page_size', 'history_simulation_search', 'history_scenario_search', 'history_profile_search']
+      permissions:     [('attempt', 'record_get')]
+  • Record Search
+      invalid outputs: ['target_profile_id', 'start_date', 'end_date', 'cohort_ids', 'department_ids', 'practice', 'scenario_ids', 'infinite_mode', 'show_archived', 'sort_by', 'sort_order', 'page', 'page_size', 'simulation_search', 'scenario_search']
+      permissions:     [('attempt', 'record_search')]
+  • Reports Search
+      invalid outputs: ['start_date', 'end_date', 'cohort_ids', 'simulation_ids', 'department_ids', 'roles', 'simulation_filters', 'actor_profile_id', 'target_profile_id', 'profile_ids', 'scenario_ids', 'search', 'sort_by', 'sort_order', 'page_limit', 'page_offset']
+      permissions:     [('attempt', 'reports_search')]
+  • Scenario Export
+      invalid outputs: ['search', 'persona_ids', 'simulation_ids', 'filter_department_ids']
+      permissions:     [('scenario', 'export')]
+  • Session Export
+      invalid outputs: ['target_session_id']
+      permissions:     [('system', 'session_export')]
+  • Session Get
+      invalid outputs: ['active', 'date_from', 'date_to', 'department_ids', 'roles', 'sort_by', 'sort_order', 'page_limit', 'page_offset']
+      permissions:     [('system', 'session_get')]
+  • Setting Create
+      invalid outputs: ['profile_ids', 'auth_ids']
+      permissions:     [('setting', 'create')]
+  • Setting Draft
+      invalid outputs: ['input_draft_id', 'expected_version', 'name', 'name_id', 'description', 'description_id', 'flag_id', 'department_ids', 'color_ids', 'profile_ids', 'auth_ids', 'provider_key_ids', 'auth_item_key_ids', 'threshold_ids']
+      permissions:     [('setting', 'draft')]
+  • Setting Update
+      invalid outputs: ['profile_ids', 'auth_ids']
+      permissions:     [('setting', 'update')]
+  • Simulation Export
+      invalid outputs: ['search', 'filter_scenario_ids', 'filter_cohort_ids', 'filter_department_ids']
+      permissions:     [('simulation', 'export')]
+  • Test Archive
+      invalid outputs: ['test_ids', 'archived']
+      permissions:     [('test', 'archive')]
+  • Test End
+      invalid outputs: ['test_id', 'test_invocation_id', 'run_id', 'grade', 'score', 'passed', 'feedback']
+      permissions:     [('test', 'end')]
+  • Test Search
+      invalid outputs: ['test_id', 'invocation_id', 'benchmark_id', 'run_id', 'include_entries', 'search', 'limit', 'cursor']
+      permissions:     [('test', 'search')]
+  • Search Deployment
+      invalid outputs: ['page']
+      permissions:     [('cohort', 'search'), ('eval', 'search'), ('simulation', 'search')]
+  • Search Infrastructure
+      invalid outputs: ['page']
+      permissions:     [('agent', 'search'), ('auth', 'search'), ('department', 'search'), ('field', 'search'), ('model', 'search'), ('parameter', 'search'), ('provider', 'search'), ('setting', 'search'), ('tool', 'search')]
+  • Attempt Chat Stop
+      invalid outputs: ['chat_id']
+      permissions:     [('attempt', 'chat_stop')]
+  • Attempt Chat Voice
+      invalid outputs: ['chat_id']
+      permissions:     [('attempt', 'chat_voice')]
+  • Attempt Chat Mute
+      invalid outputs: ['chat_id', 'muted']
+      permissions:     [('attempt', 'chat_mute')]
+  • Attempt Chat Silence
+      invalid outputs: ['chat_id']
+      permissions:     [('attempt', 'chat_silence')]
+  • Attempt Chat Response
+      invalid outputs: ['attempt_id', 'chat_id']
+      permissions:     [('attempt', 'chat_response')]
+  • Run Test
+      invalid outputs: ['test_id']
+      permissions:     [('test', 'end'), ('test', 'next'), ('test', 'start'), ('test', 'stop')]
+  • Scenario Image Create
+      invalid outputs: ['image']
+      permissions:     [('scenario', 'image_upload')]
+  • Scenario Video Create
+      invalid outputs: ['video']
+      permissions:     [('scenario', 'video_upload')]
+  • Document Text Create
+      invalid outputs: ['content']
+      permissions:     [('document', 'text_upload')]
+  • Document File Create
+      invalid outputs: ['file']
+      permissions:     [('document', 'file_upload')]
+  • Attempt Audio Create
+      invalid outputs: ['audio']
+      permissions:     [('attempt', 'audio_upload')]
+  • Attempt Audio Start
+      invalid outputs: ['chat_id']
+      permissions:     [('attempt', 'audio_start')]
+  • Attempt Audio Frame
+      invalid outputs: ['chat_id', 'audio_id']
+      permissions:     [('attempt', 'audio_frame')]
+  • Attempt Audio Stop
+      invalid outputs: ['chat_id']
+      permissions:     [('attempt', 'audio_stop')]
+  • Attempt Audio Mute
+      invalid outputs: ['chat_id', 'muted']
+      permissions:     [('attempt', 'audio_mute')]
+
+=== VAR_KWARGS TOOLS (28): handler silently swallows ===
+  • Agent Draft — strict-mode mismatches: ['input_draft_id', 'expected_version', 'name', 'name_id', 'description', 'description_id', 'flag_ids', 'department_ids', 'model_id', 'tool_ids', 'reasoning_level_ids', 'temperature_level_ids', 'voice_ids', 'rubric_ids']
+  • Attempt Message — strict-mode mismatches: ['assistant_content', 'hints']
+  • Attempt Group — strict-mode mismatches: ['group_id', 'name']
+  • Cohort Draft — strict-mode mismatches: ['input_draft_id', 'expected_version', 'name', 'name_id', 'description', 'description_id', 'flag_id', 'department_ids', 'simulation_ids', 'profile_ids', 'simulation_position_ids', 'simulation_positions', 'simulation_availability_ids', 'simulation_availability', 'profile_persona_ids', 'profile_personas']
+  • Department Draft — strict-mode mismatches: ['input_draft_id', 'expected_version', 'name', 'name_id', 'description', 'description_id', 'flag_id', 'setting_ids']
+  • Document Draft — strict-mode mismatches: ['input_draft_id', 'expected_version', 'name', 'name_id', 'description', 'description_id', 'files', 'file_ids', 'texts', 'text_ids', 'flag_ids', 'department_ids', 'image_ids', 'parameter_field_ids', 'parameter_ids']
+  • Eval Draft — strict-mode mismatches: ['input_draft_id', 'expected_version', 'name', 'name_id', 'description', 'description_id', 'flag_ids', 'department_ids', 'model_ids', 'rubric_ids']
+  • Field Draft — strict-mode mismatches: ['input_draft_id', 'expected_version', 'name', 'name_id', 'description', 'description_id', 'flag_id', 'department_ids', 'conditional_parameter_ids']
+  • Field Get — strict-mode mismatches: ['descriptions_search', 'conditional_parameter_search', 'conditional_parameter_show_selected']
+  • Model Draft — strict-mode mismatches: ['input_draft_id', 'expected_version', 'name', 'name_id', 'description', 'description_id', 'flag_ids', 'department_ids', 'modality_ids', 'pricing_ids', 'provider_id', 'quality_ids', 'reasoning_level_ids', 'temperature_level_ids', 'value_id', 'voice_ids']
+  • Parameter Draft — strict-mode mismatches: ['input_draft_id', 'expected_version', 'name', 'name_id', 'description', 'description_id', 'flag_ids', 'department_ids', 'field_ids']
+  • Persona Draft — strict-mode mismatches: ['draft_id', 'name', 'name_id', 'description', 'description_id', 'color', 'color_id', 'icon', 'icon_id', 'instructions', 'instructions_id', 'active_flag_id', 'active_flag', 'examples', 'example_ids', 'department_ids', 'departments', 'parameter_field_ids', 'parameter_fields', 'voice_ids', 'voices']
+  • Persona Export — strict-mode mismatches: ['search', 'scenario_ids', 'field_ids', 'filter_department_ids']
+  • Persona Get — strict-mode mismatches: ['draft_id']
+  • Persona Group — strict-mode mismatches: ['group_id', 'name']
+  • Profile Draft — strict-mode mismatches: ['input_draft_id', 'expected_version', 'name', 'name_id', 'email', 'request_limit', 'active_flag_id', 'department_ids', 'email_ids', 'role_id', 'request_limit_ids']
+  • Provider Draft — strict-mode mismatches: ['input_draft_id', 'expected_version', 'name', 'name_id', 'description', 'description_id', 'flag_id', 'department_ids', 'endpoint_ids', 'key_ids', 'value_id']
+  • Rubric Draft — strict-mode mismatches: ['input_draft_id', 'expected_version', 'name', 'name_id', 'description', 'description_id', 'flag_id', 'department_ids', 'point_ids', 'standard_group_ids', 'standard_ids']
+  • Scenario Draft — strict-mode mismatches: ['input_draft_id', 'expected_version', 'name', 'name_id', 'description', 'description_id', 'problem_statement', 'problem_statement_id', 'objectives', 'objective_ids', 'images', 'image_ids', 'videos', 'video_ids', 'questions', 'question_ids', 'options', 'option_ids', 'flag_ids', 'department_ids', 'persona_ids', 'document_ids', 'parameter_field_ids']
+  • Scenario Get — strict-mode mismatches: ['draft_id']
+  • Scenario Group — strict-mode mismatches: ['group_id', 'name']
+  • Setting Get — strict-mode mismatches: ['color_search', 'mcp']
+  • Simulation Draft — strict-mode mismatches: ['input_draft_id', 'expected_version', 'name', 'name_id', 'description', 'description_id', 'flag_ids', 'department_ids', 'scenario_ids', 'scenario_flag_ids', 'scenario_flags', 'scenario_position_ids', 'scenario_positions', 'scenario_rubric_ids', 'scenario_rubrics', 'scenario_time_limit_ids', 'scenario_time_limits']
+  • Test Get — strict-mode mismatches: ['start_date', 'end_date', 'eval_ids', 'department_ids', 'page', 'page_size', 'search', 'status', 'archived', 'sort_by', 'sort_order']
+  • Tool Draft — strict-mode mismatches: ['input_draft_id', 'expected_version', 'name', 'name_id', 'description', 'description_id', 'flag_ids', 'department_ids', 'arg_ids', 'arg_position_ids', 'args_output_ids', 'permission_ids']
+  • Search Content — strict-mode mismatches: ['page']
+  • Attempt Chat Get — strict-mode mismatches: ['draft_id']
+  • Attempt Chat Message — strict-mode mismatches: ['audio_id']
+
+=== DEAD PERMISSIONS (78): (artifact, operation) with no INFRA_OPS entry ===
+  • (attempt, archive)
+  • (attempt, audio_frame)
+  • (attempt, audio_mute)
+  • (attempt, audio_start)
+  • (attempt, audio_stop)
+  • (attempt, chat_draft)
+  • (attempt, chat_drafts)
+  • (attempt, chat_export)
+  • (attempt, chat_mute)
+  • (attempt, chat_refresh)
+  • (attempt, chat_silence)
+  • (attempt, chat_stop)
+  • (attempt, chat_voice)
+  • (attempt, create)
+  • (attempt, dashboard_export)
+  • (attempt, dashboard_get)
+  • (attempt, dashboard_refresh)
+  • (attempt, dashboard_search)
+  • (attempt, draft)
+  • (attempt, drafts)
+  • (attempt, grade)
+  • (attempt, home_export)
+  • (attempt, home_get)
+  • (attempt, home_refresh)
+  • (attempt, home_search)
+  • (attempt, leaderboard_export)
+  • (attempt, leaderboard_get)
+  • (attempt, leaderboard_refresh)
+  • (attempt, leaderboard_search)
+  • (attempt, practice_export)
+  ... 48 more

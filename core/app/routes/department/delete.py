@@ -54,7 +54,7 @@ async def delete_department(
                 pool,
                 redis,
                 profile_id=profile_id,
-                department_ids=request.department_ids,
+                ids=request.department_ids,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

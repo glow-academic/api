@@ -57,7 +57,7 @@ async def duplicate_model(
                 pool,
                 redis,
                 profile_id=profile_id,
-                model_id=request.model_id,
+                id=request.model_id,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

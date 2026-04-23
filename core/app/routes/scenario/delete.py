@@ -54,7 +54,7 @@ async def delete_scenario(
                 pool,
                 redis,
                 profile_id=profile_id,
-                scenario_ids=request.scenario_ids,
+                ids=request.scenario_ids,
                 session_id=session_id,
             )
 

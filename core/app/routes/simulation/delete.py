@@ -54,7 +54,7 @@ async def delete_simulation(
                 pool,
                 redis,
                 profile_id=profile_id,
-                simulation_ids=request.simulation_ids,
+                ids=request.simulation_ids,
                 session_id=session_id,
             )
 

@@ -36,7 +36,7 @@ async def delete_persona_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    persona_ids: list[UUID],
+    ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -94,7 +94,7 @@ async def delete_persona_impl(
 
     # ── Step 2+3: Per-item permission checks (fail fast) ──────────────
 
-    for idx, persona_id in enumerate(persona_ids):
+    for idx, persona_id in enumerate(ids):
         ctx = await resolve_persona_permissions_context(pool, persona_id)
 
         if not ctx.exists:
@@ -117,7 +117,7 @@ async def delete_persona_impl(
 
     name_map: dict[UUID, str] = {}
     async with pool.acquire() as conn:
-        artifacts = await get_personas(conn, persona_ids, names=True)
+        artifacts = await get_personas(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
             if artifact.name_ids:
@@ -130,7 +130,7 @@ async def delete_persona_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_personas(conn, persona_ids, soft=soft)
+            result = await delete_personas(conn, ids, soft=soft)
 
     # Refresh + invalidate (via canonical refresh)
     first_id = result.deleted_ids[0] if result.deleted_ids else None

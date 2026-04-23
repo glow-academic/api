@@ -62,7 +62,7 @@ async def delete_field_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    field_ids: list[UUID],
+    ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -98,7 +98,7 @@ async def delete_field_impl(
     # -- Step 2+3+4: Per-item permission checks (fail fast) --------------------
 
     async with pool.acquire() as conn:
-        for idx, field_id in enumerate(field_ids):
+        for idx, field_id in enumerate(ids):
             ctx = await resolve_field_permissions_context(conn, field_id)
 
             if not ctx.exists:
@@ -132,7 +132,7 @@ async def delete_field_impl(
                     await restore_artifacts(
                         conn,
                         table="field_artifact",
-                        ids=field_ids,
+                        ids=ids,
                     )
         await _refresh_field_deletes(
             pool,
@@ -152,7 +152,7 @@ async def delete_field_impl(
                         else "Delete rejected — field restored"
                     ),
                 )
-                for field_id in field_ids
+                for field_id in ids
             ],
             idempotency_key=idempotency_key,
         )
@@ -161,7 +161,7 @@ async def delete_field_impl(
 
     async with pool.acquire() as conn:
         name_map: dict[UUID, str] = {}
-        artifacts = await get_fields(conn, field_ids, names=True)
+        artifacts = await get_fields(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
             if artifact.name_ids:
@@ -174,7 +174,7 @@ async def delete_field_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_fields(conn, field_ids, soft=soft)
+            result = await delete_fields(conn, ids, soft=soft)
 
     # -- Step 7: Canonical refresh --------------------------------------------
 

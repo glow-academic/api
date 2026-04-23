@@ -57,7 +57,7 @@ async def duplicate_agent(
                 pool,
                 redis,
                 profile_id=profile_id,
-                agent_id=request.agent_id,
+                id=request.agent_id,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

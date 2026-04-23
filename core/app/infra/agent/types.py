@@ -386,7 +386,7 @@ class UpdateAgentItem(ScopedItem):
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateAgentItem.RESOURCE_TYPE_MAP
 
-    agent_id: UUID = Field(..., description="UUID of the agent to update")
+    id: UUID = Field(..., description="UUID of the agent to update")
     # Dual-mode: name
     name_id: UUID | None = Field(None, description="UUID of the name resource")
     name: str | None = Field(None, description="Display name value")

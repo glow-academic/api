@@ -39,7 +39,7 @@ async def duplicate_parameter_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    parameter_id: UUID,
+    id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -55,6 +55,7 @@ async def duplicate_parameter_impl(
       5. create_parameter -> new artifact with original IDs (no flag)
       6. refresh_parameter_impl -> canonical refresh
     """
+    parameter_id = id  # alias: tools send 'id', internal code uses 'parameter_id'
 
     # -- Step 1: Profile context ------------------------------------------------
 

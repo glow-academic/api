@@ -246,7 +246,7 @@ class CreateProviderApiResponse(BaseModel):
 class UpdateProviderItem(ScopedItem):
     """Single provider item for update — provider_id required, all fields optional."""
 
-    provider_id: UUID = Field(..., description="Target provider identifier to update")
+    id: UUID = Field(..., description="Target provider identifier to update")
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="Name resource identifier")
     name: str | None = Field(None, description="Display name value")

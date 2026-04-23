@@ -93,11 +93,11 @@ async def update_cohort_impl(
 
     for idx, item in enumerate(items):
         async with pool.acquire() as conn:
-            perms = await resolve_cohort_permissions_context(conn, item.cohort_id)
+            perms = await resolve_cohort_permissions_context(conn, item.id)
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
-                detail=f"Item {idx}: Cohort {item.cohort_id} not found.",
+                detail=f"Item {idx}: Cohort {item.id} not found.",
             )
         if not has_access(profile.role_level, profile.department_ids, perms.department_ids):
             raise HTTPException(
@@ -227,7 +227,7 @@ async def update_cohort_impl(
             async with conn.transaction():
                 await update_cohort_artifact(
                     conn,
-                    item.cohort_id,
+                    item.id,
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id
                     if item.description_id
@@ -246,7 +246,7 @@ async def update_cohort_impl(
         results.append(
             CohortResultItem(
                 success=True,
-                cohort_id=item.cohort_id,
+                cohort_id=item.id,
                 message="Cohort updated (pending acceptance)" if soft else "Cohort updated successfully",
             )
         )

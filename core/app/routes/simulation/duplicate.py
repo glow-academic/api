@@ -57,7 +57,7 @@ async def duplicate_simulation(
                 pool,
                 redis,
                 profile_id=profile_id,
-                simulation_id=request.simulation_id,
+                id=request.simulation_id,
                 session_id=session_id,
             )
 

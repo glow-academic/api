@@ -44,7 +44,7 @@ async def cohort_duplicate(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            cohort_id=payload.cohort_id,
+            id=payload.cohort_id,
             session_id=identity.session_id,
         ),
         arguments=payload.model_dump(mode="json"),

@@ -27,7 +27,7 @@ async def delete_rubric_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    rubric_ids: list[UUID],
+    ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -47,7 +47,7 @@ async def delete_rubric_impl(
         )
 
     async with pool.acquire() as conn:
-        for idx, rubric_id in enumerate(rubric_ids):
+        for idx, rubric_id in enumerate(ids):
             ctx = await resolve_rubric_permissions_context(conn, rubric_id)
             if not ctx.exists:
                 raise HTTPException(
@@ -72,7 +72,7 @@ async def delete_rubric_impl(
                     await restore_artifacts(
                         conn,
                         table="rubric_artifact",
-                        ids=rubric_ids,
+                        ids=ids,
                     )
         await refresh_rubric_impl(
             pool,
@@ -88,14 +88,14 @@ async def delete_rubric_impl(
                     rubric_id=rubric_id,
                     message="Delete confirmed" if accept else "Delete rejected — rubric restored",
                 )
-                for rubric_id in rubric_ids
+                for rubric_id in ids
             ],
             idempotency_key=idempotency_key,
         )
 
     async with pool.acquire() as conn:
         name_map: dict[UUID, str] = {}
-        artifacts = await get_rubrics(conn, rubric_ids, names=True)
+        artifacts = await get_rubrics(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
             if artifact.name_ids:
@@ -106,7 +106,7 @@ async def delete_rubric_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_rubrics(conn, rubric_ids, soft=soft)
+            result = await delete_rubrics(conn, ids, soft=soft)
 
     await refresh_rubric_impl(
         pool,

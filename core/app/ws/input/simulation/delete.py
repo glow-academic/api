@@ -44,7 +44,7 @@ async def simulation_delete(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            simulation_ids=payload.simulation_ids,
+            ids=payload.simulation_ids,
             session_id=identity.session_id,
         ),
         arguments=payload.model_dump(mode="json"),

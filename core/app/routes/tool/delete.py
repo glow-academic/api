@@ -54,7 +54,7 @@ async def delete_tool(
                 pool,
                 redis,
                 profile_id=profile_id,
-                tool_ids=request.tool_ids,
+                ids=request.tool_ids,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

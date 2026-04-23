@@ -54,7 +54,7 @@ async def delete_field(
                 pool,
                 redis,
                 profile_id=profile_id,
-                field_ids=request.field_ids,
+                ids=request.field_ids,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

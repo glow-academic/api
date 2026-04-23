@@ -88,11 +88,11 @@ async def update_field_impl(
 
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
-            perms = await resolve_field_permissions_context(conn, item.field_id)
+            perms = await resolve_field_permissions_context(conn, item.id)
             if not perms.exists:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Item {idx}: Field {item.field_id} not found.",
+                    detail=f"Item {idx}: Field {item.id} not found.",
                 )
             if not compute_can_edit(
                 role_level=profile.role_level, role_permissions=profile.role_permissions,
@@ -113,7 +113,7 @@ async def update_field_impl(
                 results=[
                     FieldResultItem(
                         success=True,
-                        field_id=item.field_id,
+                        field_id=item.id,
                         message="Field update rejected",
                     )
                     for item in items
@@ -175,7 +175,7 @@ async def update_field_impl(
 
                 await update_field_artifact(
                     conn,
-                    item.field_id,
+                    item.id,
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id
                     if item.description_id
@@ -190,7 +190,7 @@ async def update_field_impl(
         results.append(
             FieldResultItem(
                 success=True,
-                field_id=item.field_id,
+                field_id=item.id,
                 message="Field updated (pending acceptance)" if soft else "Field updated successfully",
             )
         )

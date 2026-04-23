@@ -410,3 +410,31 @@ async def get_dashboard_impl_cached(
         redis=redis,
     )
     return bundle, False
+
+
+async def get_dashboard_impl(
+    pool,
+    redis,
+    *,
+    profile_id: UUID,
+    session_id: UUID | None = None,
+    bypass_cache: bool = False,
+    **filters,
+) -> "DashboardBundleResponse":
+    """Canonical kwargs entry point — wraps ``get_dashboard_impl_cached``.
+
+    ``filters`` are forwarded into ``DashboardRequest`` — any unknown keys
+    raise the usual Pydantic validation error, which surfaces through the
+    dispatch pipeline with full context for the LLM.
+    """
+    from app.infra.dashboard.types import DashboardRequest
+
+    request = DashboardRequest(**filters)
+    bundle, _cache_hit = await get_dashboard_impl_cached(
+        pool,
+        request,
+        profile_id=profile_id,
+        bypass_cache=bypass_cache,
+        cache_key_path="/dashboard/get",
+    )
+    return bundle

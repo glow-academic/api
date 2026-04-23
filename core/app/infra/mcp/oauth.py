@@ -155,12 +155,35 @@ is_local_dev = "localhost" in origin_check.lower()
 # MCP resource URL - use server port (8000) in dev, ORIGIN in prod
 MCP_SERVER_BASE = "http://localhost:8000" if is_local_dev else ORIGIN
 MCP_RESOURCE = f"{MCP_SERVER_BASE}{APP_PREFIX}/mcp"
-KEYCLOAK_ISSUER = f"{ORIGIN}{APP_PREFIX}/auth/realms/{KEYCLOAK_REALM}"
+
+# Keycloak issuer advertised in PRM + AS metadata.
+# Locally Keycloak is direct on :8080 (no reverse proxy), so the PRM must
+# advertise that host — otherwise OAuth clients (Claude Code, MCP Inspector,
+# etc.) follow the advertised URL and 404 at the frontend port.
+# In prod, the reverse proxy at ORIGIN routes /auth/* to Keycloak.
+KEYCLOAK_BASE = "http://localhost:8080" if is_local_dev else ORIGIN
+KEYCLOAK_ISSUER = f"{KEYCLOAK_BASE}{APP_PREFIX}/auth/realms/{KEYCLOAK_REALM}"
 
 
 def is_mcp_enabled() -> bool:
     """Check if MCP is enabled (hardcoded for now, ready for DB integration)."""
     return True
+
+
+def _token_shape(token: str | None) -> str:
+    """Describe a token's shape without leaking its value.
+
+    Used when verify_jwt fails so we can distinguish an opaque Keycloak
+    reference token from a malformed/empty JWT from a truncated string.
+    """
+    if not token:
+        return "empty"
+    parts = token.split(".")
+    prefix = token[:10]
+    return (
+        f"len={len(token)} segments={len(parts)} "
+        f"starts_with_eyJ={token.startswith('eyJ')} prefix={prefix!r}"
+    )
 
 
 def _get_base_url(request: Request | None = None) -> str:
@@ -172,7 +195,14 @@ def _get_base_url(request: Request | None = None) -> str:
     """
     if request:
         forwarded_host = request.headers.get("x-forwarded-host") or request.headers.get("host")
-        forwarded_proto = request.headers.get("x-forwarded-proto", "https")
+        # Prefer the explicit forwarded proto (reverse proxies set it). Fall
+        # back to the actual connection scheme so local dev over plain HTTP
+        # advertises http:// instead of a hardcoded https:// that won't match
+        # what OAuth clients actually connect to.
+        forwarded_proto = request.headers.get(
+            "x-forwarded-proto",
+            request.url.scheme or "https",
+        )
         if forwarded_host and forwarded_host not in ("glow-api:8000", "glow-api", "nginx:80", "nginx"):
             return f"{forwarded_proto}://{forwarded_host}"
     return ORIGIN
@@ -287,6 +317,16 @@ class McpOAuthMiddleware(BaseHTTPMiddleware):
             request.scope["path"] = mcp_path
             request.scope["raw_path"] = mcp_path.encode()
 
+        # Rewrite bare /mcp (no trailing slash) → /mcp/ so the Streamable-HTTP
+        # mount matches. Clients following the PRM's `resource` URL land on
+        # /mcp without a slash, and FastAPI's mount doesn't match that path.
+        # Beta's nginx rewrites this at the proxy; locally nginx isn't in the
+        # path, so normalize at the app level too. Defense in depth.
+        if path == mcp_path or path == "/mcp":
+            slashed = f"{mcp_path}/"
+            request.scope["path"] = slashed
+            request.scope["raw_path"] = slashed.encode()
+
         # Feature flag
         if not is_mcp_enabled():
             return JSONResponse(
@@ -344,7 +384,10 @@ class McpOAuthMiddleware(BaseHTTPMiddleware):
                     f"sub={claims.get('sub')}, azp={claims.get('azp')}"
                 )
             except ValueError as e:
-                logger.warning(f"MCP OAuth token validation failed: {e}")
+                logger.warning(
+                    f"MCP OAuth token validation failed: {e} | "
+                    f"token_shape={_token_shape(token)}"
+                )
                 return oauth_401(request)
 
         # --- Profile resolution (reuses resolve_identity._resolve_profile_id) ---

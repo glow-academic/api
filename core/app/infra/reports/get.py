@@ -48,11 +48,19 @@ async def get_reports_impl(
     redis: Redis,
     *,
     profile_id,
-    request: ReportsRequest,
+    request: ReportsRequest | None = None,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ReportsResponse:
-    """Resolve the canonical reports response for any surface."""
+    """Resolve the canonical reports response for any surface.
+
+    See ``get_pricing_impl`` — same optional-request convention so the
+    tool-dispatch path can call without pre-building the Pydantic wrapper.
+    """
+    if request is None:
+        request = ReportsRequest(**{
+            k: v for k, v in _kwargs.items() if k in ReportsRequest.model_fields
+        })
     common = await resolve_common_context(
         pool, redis, profile_id=profile_id, bypass_cache=bypass_cache
     )

@@ -26,7 +26,7 @@ async def duplicate_setting_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    setting_id: UUID,
+    id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -34,6 +34,7 @@ async def duplicate_setting_impl(
     **_kwargs,
 ) -> DuplicateSettingApiResponse:
     """Duplicate a setting artifact."""
+    setting_id = id  # alias: tools send 'id', internal code uses 'setting_id'
     profile = await resolve_profile_identity_context(
         pool,
         profile_id,

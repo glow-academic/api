@@ -29,7 +29,7 @@ async def delete_department_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    department_ids: list[UUID],
+    ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -51,7 +51,7 @@ async def delete_department_impl(
         )
 
     async with pool.acquire() as conn:
-        for idx, department_id in enumerate(department_ids):
+        for idx, department_id in enumerate(ids):
             ctx = await resolve_department_permissions_context(conn, department_id)
             if not ctx.exists:
                 raise HTTPException(
@@ -75,7 +75,7 @@ async def delete_department_impl(
                     await restore_artifacts(
                         conn,
                         table="department_artifact",
-                        ids=department_ids,
+                        ids=ids,
                     )
         await refresh_department_impl(
             pool,
@@ -85,7 +85,7 @@ async def delete_department_impl(
             operation_key=idempotency_key,
         )
         try:
-            for department_id in department_ids:
+            for department_id in ids:
                 await perform_keycloak_sync(department_id=str(department_id))
         except Exception:
             pass
@@ -96,14 +96,14 @@ async def delete_department_impl(
                     department_id=department_id,
                     message="Delete confirmed" if accept else "Delete rejected — department restored",
                 )
-                for department_id in department_ids
+                for department_id in ids
             ],
             idempotency_key=idempotency_key,
         )
 
     name_map: dict[UUID, str] = {}
     async with pool.acquire() as conn:
-        artifacts = await get_departments(conn, department_ids, names=True)
+        artifacts = await get_departments(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
             if artifact.name_ids:
@@ -114,7 +114,7 @@ async def delete_department_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_departments(conn, department_ids, soft=soft)
+            result = await delete_departments(conn, ids, soft=soft)
 
     await refresh_department_impl(
         pool,

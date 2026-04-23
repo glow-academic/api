@@ -62,11 +62,11 @@ async def update_auth_impl(
 
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
-            perms = await resolve_auth_permissions_context(conn, item.auth_id)
+            perms = await resolve_auth_permissions_context(conn, item.id)
             if not perms.exists:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Item {idx}: Auth {item.auth_id} not found.",
+                    detail=f"Item {idx}: Auth {item.id} not found.",
                 )
             if not compute_can_edit(
                 role_level=profile.role_level,
@@ -84,7 +84,7 @@ async def update_auth_impl(
                 results=[
                     AuthResultItem(
                         success=True,
-                        auth_id=item.auth_id,
+                        auth_id=item.id,
                         message="Update rejected",
                     )
                     for item in items
@@ -122,7 +122,7 @@ async def update_auth_impl(
         async with pool.acquire() as conn:
             existing = await get_auth_artifacts(
                 conn,
-                [item.auth_id],
+                [item.id],
                 names=True,
                 descriptions=True,
                 departments=True,
@@ -164,7 +164,7 @@ async def update_auth_impl(
             async with conn.transaction():
                 await update_auth_artifact(
                     conn,
-                    item.auth_id,
+                    item.id,
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id if item.description_id else _UNSET,
                     slug_id=item.slug_id if item.slug_id else _UNSET,
@@ -179,7 +179,7 @@ async def update_auth_impl(
         results.append(
             AuthResultItem(
                 success=True,
-                auth_id=item.auth_id,
+                auth_id=item.id,
                 message=(
                     "Auth update accepted"
                     if accept is not None and idempotency_key is not None

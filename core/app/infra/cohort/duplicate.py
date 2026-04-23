@@ -38,7 +38,7 @@ async def duplicate_cohort_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    cohort_id: UUID,
+    id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -55,6 +55,7 @@ async def duplicate_cohort_impl(
       6. create_cohort -> new artifact with original IDs + inactive flag
       7. refresh_cohort_impl
     """
+    cohort_id = id  # alias: tools send 'id', internal code uses 'cohort_id'
 
     # -- Short-circuit: ack path -----------------------------------------------
 

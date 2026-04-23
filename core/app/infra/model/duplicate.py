@@ -28,13 +28,14 @@ async def duplicate_model_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    model_id: UUID,
+    id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
 ) -> DuplicateModelApiResponse:
     """Duplicate a model artifact."""
+    model_id = id  # alias: tools send 'id', internal code uses 'model_id'
     profile = await resolve_profile_identity_context(
         pool,
         profile_id,

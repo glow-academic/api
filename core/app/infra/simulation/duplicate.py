@@ -38,7 +38,7 @@ async def duplicate_simulation_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    simulation_id: UUID,
+    id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -56,6 +56,7 @@ async def duplicate_simulation_impl(
       6. create_simulation -> new artifact with original IDs + inactive flag
       7. refresh_simulation_impl -> canonical refresh
     """
+    simulation_id = id  # alias: tools send 'id', internal code uses 'simulation_id'
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

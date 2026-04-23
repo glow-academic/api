@@ -54,7 +54,7 @@ async def delete_setting(
                 pool,
                 redis,
                 profile_id=profile_id,
-                setting_ids=request.setting_ids,
+                ids=request.setting_ids,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

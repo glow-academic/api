@@ -44,7 +44,7 @@ async def agent_delete(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            agent_ids=payload.agent_ids,
+            ids=payload.agent_ids,
             session_id=identity.session_id,
             accept=payload.accept,
             idempotency_key=payload.idempotency_key,

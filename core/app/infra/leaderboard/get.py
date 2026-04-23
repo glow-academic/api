@@ -162,3 +162,26 @@ async def get_leaderboard_impl_cached(
         redis=redis,
     )
     return api_response, False
+
+
+async def get_leaderboard_impl(
+    pool,
+    redis,
+    *,
+    profile_id: UUID,
+    session_id: UUID | None = None,
+    bypass_cache: bool = False,
+    **filters,
+) -> "LeaderboardResponse":
+    """Canonical kwargs entry point — wraps ``get_leaderboard_impl_cached``."""
+    from app.infra.leaderboard.types import LeaderboardRequest
+
+    request = LeaderboardRequest(**filters)
+    api_response, _cache_hit = await get_leaderboard_impl_cached(
+        pool,
+        request,
+        profile_id=profile_id,
+        bypass_cache=bypass_cache,
+        cache_key_path="/leaderboard/get",
+    )
+    return api_response

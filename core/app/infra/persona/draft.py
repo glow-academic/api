@@ -128,7 +128,7 @@ async def _resolve_creatable_values(
                 flag_type="persona_active",
                 limit_count=100,
             )
-        match = next((r for r in results if r.type == "persona_active"), None)
+        match = next((r for r in results if r.type == "persona_active" and r.value is True), None)
         if match and match.id:
             if request.active_flag:
                 request.active_flag_id = match.id

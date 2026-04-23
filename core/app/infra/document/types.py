@@ -390,7 +390,7 @@ class UpdateDocumentItem(ScopedItem):
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateDocumentItem.RESOURCE_TYPE_MAP
 
-    document_id: UUID = Field(..., description="Document UUID to update")  # Required — which document to update
+    id: UUID = Field(..., description="Document UUID to update")  # Required — which document to update
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="Name resource UUID")
     name: str | None = Field(None, description="Name value for resolution")

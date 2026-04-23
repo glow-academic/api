@@ -28,13 +28,14 @@ async def duplicate_provider_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    provider_id: UUID,
+    id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
 ) -> DuplicateProviderApiResponse:
     """Duplicate a provider artifact."""
+    provider_id = id  # alias: tools send 'id', internal code uses 'provider_id'
     profile = await resolve_profile_identity_context(
         pool,
         profile_id,

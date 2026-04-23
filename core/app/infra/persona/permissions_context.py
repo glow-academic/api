@@ -208,7 +208,7 @@ async def resolve_persona_values(
                 flag_type="persona_active",
                 limit_count=100,
             )
-        match = next((r for r in results if r.type == "persona_active"), None)
+        match = next((r for r in results if r.type == "persona_active" and r.value is True), None)
         if match and match.id:
             if item.active_flag:
                 item.active_flag_id = match.id

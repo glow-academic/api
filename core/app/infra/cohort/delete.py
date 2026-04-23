@@ -35,7 +35,7 @@ async def delete_cohort_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    cohort_ids: list[UUID],
+    ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -64,7 +64,7 @@ async def delete_cohort_impl(
                     await restore_artifacts(
                         conn,
                         table="cohort_artifact",
-                        ids=cohort_ids,
+                        ids=ids,
                     )
 
         await refresh_cohort_impl(
@@ -72,7 +72,7 @@ async def delete_cohort_impl(
             redis,
             profile_id=profile_id,
             session_id=session_id,
-            operation_key=idempotency_key or (cohort_ids[0] if cohort_ids else None),
+            operation_key=idempotency_key or (ids[0] if ids else None),
         )
 
         return DeleteCohortApiResponse(
@@ -87,7 +87,7 @@ async def delete_cohort_impl(
                         else "Delete rejected — cohort restored"
                     ),
                 )
-                for cohort_id in cohort_ids
+                for cohort_id in ids
             ],
         )
 
@@ -108,7 +108,7 @@ async def delete_cohort_impl(
 
     # ── Step 2+3: Per-item permission checks (fail fast) ──────────────
 
-    for idx, cohort_id in enumerate(cohort_ids):
+    for idx, cohort_id in enumerate(ids):
         async with pool.acquire() as conn:
             ctx = await resolve_cohort_permissions_context(conn, cohort_id)
 
@@ -132,7 +132,7 @@ async def delete_cohort_impl(
 
     name_map: dict[UUID, str] = {}
     async with pool.acquire() as conn:
-        artifacts = await get_cohorts(conn, cohort_ids, names=True)
+        artifacts = await get_cohorts(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
             if artifact.name_ids:
@@ -145,7 +145,7 @@ async def delete_cohort_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_cohorts(conn, cohort_ids, soft=soft)
+            result = await delete_cohorts(conn, ids, soft=soft)
 
     # ── Step 6: Canonical refresh ──────────────────────────────────────
 

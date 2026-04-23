@@ -162,6 +162,31 @@ _jinja_env = Environment(
 )
 
 
+def _to_json_filter(value: Any) -> str:
+    """Pydantic-friendly JSON serialization for Jinja's ``| tojson`` filter.
+
+    ``{{ list }}`` in stock Jinja renders Python's ``repr`` (``[UUID('...')]``)
+    which downstream ``TypeAdapter`` can't coerce back. Tools that pass
+    ``list[UUID]`` / dict / non-scalar values through Jinja must use
+    ``{{ field | tojson }}`` so the rendered string is parseable JSON.
+    """
+    import json
+    from datetime import date, datetime
+    from uuid import UUID
+
+    def _default(o: Any) -> Any:
+        if isinstance(o, UUID):
+            return str(o)
+        if isinstance(o, (datetime, date)):
+            return o.isoformat()
+        raise TypeError(f"Object of type {type(o).__name__} is not JSON serializable")
+
+    return json.dumps(value, default=_default)
+
+
+_jinja_env.filters["tojson"] = _to_json_filter
+
+
 def render_output_map(
     inputs: dict[str, Any],
     output_map: dict[str, str],
@@ -257,6 +282,91 @@ def build_item(
 
 
 # ---------------------------------------------------------------------------
+# Kwargs-path type coercion (read operations)
+# ---------------------------------------------------------------------------
+
+
+def _filter_ctx_kwargs_to_signature(
+    fn: Any,
+    ctx_kwargs: dict[str, Any],
+) -> dict[str, Any]:
+    """Drop context kwargs the handler's signature doesn't accept.
+
+    Different infra handlers take different system-provided context
+    (some accept ``session_id``, some don't). Passing them indiscriminately
+    breaks handlers without ``**_kwargs``. Keep only what the handler
+    explicitly declares OR what it absorbs via ``VAR_KEYWORD``.
+    """
+    import inspect
+
+    try:
+        sig = inspect.signature(fn)
+    except Exception:
+        return ctx_kwargs
+
+    accepts_var_kw = any(
+        p.kind is inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+    )
+    if accepts_var_kw:
+        return ctx_kwargs
+
+    return {k: v for k, v in ctx_kwargs.items() if k in sig.parameters}
+
+
+def _coerce_kwargs_to_signature(
+    fn: Any,
+    kwargs: dict[str, Any],
+) -> dict[str, Any]:
+    """Coerce rendered-string kwargs back to the target function's declared types.
+
+    render_output_map always produces strings (Jinja's behaviour). For the
+    kwargs-path callables (reads like get/search/etc.), the declared types
+    matter — ``page: int``, ``active: bool``, ``persona_id: UUID``. Pydantic's
+    TypeAdapter handles every standard coercion (int, bool, UUID, list[UUID],
+    Optional[T], Literal, etc.) without per-type branching.
+
+    Values that can't be coerced are kept as-is; downstream Pydantic
+    validation or the handler itself will surface the actual error. Missing
+    type hints also pass through unchanged.
+    """
+    import inspect
+    from typing import get_type_hints
+
+    from pydantic import TypeAdapter
+
+    try:
+        sig = inspect.signature(fn)
+        hints = get_type_hints(fn)
+    except Exception:
+        return kwargs
+
+    coerced: dict[str, Any] = {}
+    for name, value in kwargs.items():
+        if value is None or name not in sig.parameters:
+            coerced[name] = value
+            continue
+        expected = hints.get(name)
+        if expected is None:
+            coerced[name] = value
+            continue
+        adapter = TypeAdapter(expected)
+        # Lists/dicts arrive from Jinja's ``| tojson`` filter as JSON strings —
+        # try the JSON parser first for those, then fall back to validate_python
+        # for scalar coercion (uuid-string → UUID, "1" → int, etc.).
+        if isinstance(value, str) and value[:1] in ("[", "{"):
+            try:
+                coerced[name] = adapter.validate_json(value)
+                continue
+            except Exception:
+                pass
+        try:
+            coerced[name] = adapter.validate_python(value)
+        except Exception:
+            coerced[name] = value
+    return coerced
+
+
+# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
@@ -349,6 +459,15 @@ async def execute_infra_operation(
                 # Sanitize: strip empty strings, coerce string booleans
                 from app.infra.tools.sanitize import sanitize_model_kwargs
                 kwargs = sanitize_model_kwargs(rendered)
+
+                # Coerce Jinja-stringified values (e.g. "1" → 1, "true" → True,
+                # uuid-string → UUID) to the target function's declared types.
+                # render_output_map always returns strings; the structured path
+                # gets type coercion for free via its Pydantic item, but the
+                # kwargs path would otherwise hand strings to handlers whose
+                # signatures declare int/bool/UUID.
+                kwargs = _coerce_kwargs_to_signature(fn, kwargs)
+
                 fields_used = list(kwargs.keys())
 
                 # Context fields — system-provided, model doesn't know about these
@@ -362,7 +481,16 @@ async def execute_infra_operation(
                     "accept": accept,
                     "idempotency_key": ctx.operation_key,
                 }
-                ctx_kwargs = {k: v for k, v in ctx_defaults.items() if k not in kwargs}
+                # Only pass context kwargs the handler's signature actually
+                # declares. Handlers vary in which context they take — some
+                # use **_kwargs and absorb anything, others (like
+                # search_scenario_impl) TypeError on unknown args. Filtering
+                # by signature makes the dispatch safe against that variance
+                # without forcing every handler to add **_kwargs defensively.
+                ctx_kwargs = _filter_ctx_kwargs_to_signature(
+                    fn,
+                    {k: v for k, v in ctx_defaults.items() if k not in kwargs},
+                )
 
                 async def _runner() -> Any:
                     return await fn(

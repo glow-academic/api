@@ -38,7 +38,7 @@ async def duplicate_field_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    field_id: UUID,
+    id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -56,6 +56,7 @@ async def duplicate_field_impl(
       6. create_field -> new artifact with original IDs + inactive flag
       7. refresh_field_impl
     """
+    field_id = id  # alias: tools send 'id', internal code uses 'field_id'
 
     # -- Step 1: Profile context ------------------------------------------------
 

@@ -27,7 +27,7 @@ async def delete_model_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    model_ids: list[UUID],
+    ids: list[UUID],
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -47,7 +47,7 @@ async def delete_model_impl(
         )
 
     async with pool.acquire() as conn:
-        for idx, model_id in enumerate(model_ids):
+        for idx, model_id in enumerate(ids):
             ctx = await resolve_model_permissions_context(conn, model_id)
             if not ctx.exists:
                 raise HTTPException(
@@ -72,7 +72,7 @@ async def delete_model_impl(
                     await restore_artifacts(
                         conn,
                         table="model_artifact",
-                        ids=model_ids,
+                        ids=ids,
                     )
         await refresh_model_impl(
             pool,
@@ -88,14 +88,14 @@ async def delete_model_impl(
                     model_id=model_id,
                     message="Delete confirmed" if accept else "Delete rejected — model restored",
                 )
-                for model_id in model_ids
+                for model_id in ids
             ],
             idempotency_key=idempotency_key,
         )
 
     async with pool.acquire() as conn:
         name_map: dict[UUID, str] = {}
-        artifacts = await get_models(conn, model_ids, names=True)
+        artifacts = await get_models(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
             if artifact.name_ids:
@@ -106,7 +106,7 @@ async def delete_model_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            result = await delete_models(conn, model_ids, soft=soft)
+            result = await delete_models(conn, ids, soft=soft)
 
     await refresh_model_impl(
         pool,

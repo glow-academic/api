@@ -91,11 +91,11 @@ async def update_parameter_impl(
 
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
-            perms = await resolve_parameter_permissions_context(conn, item.parameter_id)
+            perms = await resolve_parameter_permissions_context(conn, item.id)
             if not perms.exists:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Item {idx}: Parameter {item.parameter_id} not found.",
+                    detail=f"Item {idx}: Parameter {item.id} not found.",
                 )
             if not compute_can_edit(
                 role_level=profile.role_level, role_permissions=profile.role_permissions,
@@ -224,7 +224,7 @@ async def update_parameter_impl(
             async with conn.transaction():
                 await update_parameter_artifact(
                     conn,
-                    item.parameter_id,
+                    item.id,
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id
                     if item.description_id
@@ -239,7 +239,7 @@ async def update_parameter_impl(
         results.append(
             ParameterResultItem(
                 success=True,
-                parameter_id=item.parameter_id,
+                parameter_id=item.id,
                 message=(
                     "Parameter updated (pending acceptance)"
                     if soft

@@ -586,7 +586,7 @@ class UpdateScenarioItem(ScopedItem):
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateScenarioItem.RESOURCE_TYPE_MAP
 
-    scenario_id: UUID = Field(..., description="UUID of the scenario to update")
+    id: UUID = Field(..., description="UUID of the scenario to update")
     # Dual-mode: provide ID or raw value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
     name: str | None = Field(None, description="Display name value")

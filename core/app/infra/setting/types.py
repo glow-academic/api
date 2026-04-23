@@ -370,7 +370,7 @@ class UpdateSettingItem(ScopedItem):
     Only provided fields are updated (partial update).
     """
 
-    setting_id: UUID = Field(..., description="UUID of the setting to update")
+    id: UUID = Field(..., description="UUID of the setting to update")
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
     name: str | None = Field(None, description="Name value to resolve or create")

@@ -76,18 +76,18 @@ async def search_profile_impl(
 
     # -- Step 1: Profile context --
 
-    actor_profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
-    if actor_profile is None:
+    if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    user_level = actor_profile.role_level
-    user_department_ids = actor_profile.department_ids
-    actor_name = actor_profile.name
-    actor_role = actor_profile.role
+    user_role_level = profile.role_level
+    user_department_ids = profile.department_ids
+    actor_name = profile.name
+    actor_role = profile.role
 
     # Resolve emulation chain once for is_emulated computation
     origin = actor_profile_id or profile_id
@@ -101,7 +101,7 @@ async def search_profile_impl(
         all_roles = await get_roles(conn, None, redis)
 
         # Show roles at or below the user's level
-        allowed_role_names = {r.name for r in all_roles if r.level >= user_level}
+        allowed_role_names = {r.name for r in all_roles if r.level >= user_role_level}
 
         # Intersect with explicit role_filter if provided
         if role_filter:
@@ -236,11 +236,13 @@ async def search_profile_impl(
         # Resolve role from roles_resource
         target_role: str | None = None
         target_role_name: str | None = None
+        target_level: int | None = None
         if a.role_ids:
             role_obj = role_map.get(a.role_ids[0])
             if role_obj:
                 target_role = role_obj.name
                 target_role_name = role_obj.name
+                target_level = role_obj.level
 
         # Resolve departments
         dept_ids_str: list[str] = []
@@ -267,14 +269,14 @@ async def search_profile_impl(
         can_edit = compute_can_edit(
             role_level=user_role_level, role_permissions=profile.role_permissions,
             target_is_self=target_is_self,
-            target_department_ids=None,
-            target_role=target_role,
+            target_department_ids=a.department_ids or None,
+            target_level=target_level,
             user_department_ids=user_department_ids,
         )
         can_delete = compute_can_delete(
             role_level=user_role_level, role_permissions=profile.role_permissions,
             target_is_self=target_is_self,
-            target_role=target_role,
+            target_level=target_level,
         )
         can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
         can_emulate = compute_can_emulate(

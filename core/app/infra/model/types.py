@@ -344,7 +344,7 @@ class UpdateModelItem(ScopedItem):
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateModelItem.RESOURCE_TYPE_MAP
 
-    model_id: UUID = Field(..., description="Target model identifier to update")
+    id: UUID = Field(..., description="Target model identifier to update")
     # Dual-mode: name
     name_id: UUID | None = Field(None, description="Name resource identifier")
     name: str | None = Field(None, description="Display name value")

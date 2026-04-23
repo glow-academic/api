@@ -200,7 +200,7 @@ async def _resolve_creatable_values(
                 flag_type="cohort_active",
                 cohort=True,
             )
-            match = next((flag for flag in results if flag.type == "cohort_active"), None)
+            match = next((flag for flag in results if flag.type == "cohort_active" and flag.value is True), None)
             if match and match.id:
                 resolved_flag_id = match.id
             else:

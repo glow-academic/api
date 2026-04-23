@@ -32,6 +32,7 @@ from app.infra.tools.execute_infra_operation import (
     InfraContext,
     execute_infra_operation,
 )
+from app.infra.tools.render_result import render_tool_result
 from app.infra.tools.resolve_tool_spec import resolve_tool_spec
 from app.registry.operations import is_write_operation
 
@@ -174,16 +175,21 @@ async def _dispatch(tool_name: str, inputs: dict[str, Any]) -> dict[str, Any]:
             "operation": target.operation,
         }
 
-    ctx = InfraContext(pool=pool, redis=redis, profile_id=profile_id)
+    ctx = InfraContext(
+        pool=pool,
+        redis=redis,
+        profile_id=profile_id,
+        instruction_template=td.get("_instruction_template"),
+    )
     try:
         results = await execute_infra_operation(ctx, spec)
     except Exception as e:
         logger.exception(f"MCP dispatch failed for tool '{tool_name}'")
         return {"error": str(e), "status": "error", "type": type(e).__name__}
 
-    if not results:
-        return {"status": "ok"}
-    return results[0].model_dump(mode="json")
+    # Layer 3 output render — LLM sees the rendered instruction template
+    # when present, JSON fallback otherwise. Shared with generate.
+    return render_tool_result(td, results)
 
 
 def _routing_args(td: dict[str, Any]) -> dict[str, dict[str, Any]]:

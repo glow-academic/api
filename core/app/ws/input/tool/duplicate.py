@@ -44,7 +44,7 @@ async def tool_duplicate(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            tool_id=payload.tool_id,
+            id=payload.tool_id,
             session_id=identity.session_id,
             accept=payload.accept,
             idempotency_key=payload.idempotency_key,

@@ -28,13 +28,14 @@ async def duplicate_rubric_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    rubric_id: UUID,
+    id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
 ) -> DuplicateRubricApiResponse:
     """Rubric duplicate using composable infra functions."""
+    rubric_id = id  # alias: tools send 'id', internal code uses 'rubric_id'
     profile = await resolve_profile_identity_context(
         pool,
         profile_id,

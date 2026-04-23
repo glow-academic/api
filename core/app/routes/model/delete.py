@@ -54,7 +54,7 @@ async def delete_model(
                 pool,
                 redis,
                 profile_id=profile_id,
-                model_ids=request.model_ids,
+                ids=request.model_ids,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

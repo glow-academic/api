@@ -152,7 +152,7 @@ async def resolve_rubric_values(
             flag_type="rubric_active",
             limit_count=100,
         )
-        match = next((r for r in results if r.type == "rubric_active"), None)
+        match = next((r for r in results if r.type == "rubric_active" and r.value is True), None)
         if match and match.id:
             if item.active_flag:
                 item.active_flag_id = match.id
@@ -165,7 +165,7 @@ async def resolve_rubric_values(
 
     if item.simulation_rubric_flag is not None and item.simulation_rubric_flag_id is None:
         results = await search_flags(conn, redis, search=None, flag_type="simulation_rubric", limit_count=1000)
-        match = next((f for f in results if f.type == "simulation_rubric"), None)
+        match = next((f for f in results if f.type == "simulation_rubric" and f.value is True), None)
         if match and match.id:
             if item.simulation_rubric_flag:
                 item.simulation_rubric_flag_id = match.id
@@ -178,7 +178,7 @@ async def resolve_rubric_values(
 
     if item.video_rubric_flag is not None and item.video_rubric_flag_id is None:
         results = await search_flags(conn, redis, search=None, flag_type="video_rubric", limit_count=1000)
-        match = next((f for f in results if f.type == "video_rubric"), None)
+        match = next((f for f in results if f.type == "video_rubric" and f.value is True), None)
         if match and match.id:
             if item.video_rubric_flag:
                 item.video_rubric_flag_id = match.id
@@ -186,6 +186,34 @@ async def resolve_rubric_values(
             errors.append(
                 RubricFieldError(
                     field="video_rubric_flag", message="Video rubric flag resource not found"
+                )
+            )
+
+    # Pass points — resolve scalar value to a pass-type Points resource ID.
+    # Total points are computed on read from standards and never written here.
+    if item.pass_points is not None and item.pass_points_id is None:
+        from app.tools.resources.points.search import search_points
+        results = await search_points(
+            conn,
+            redis,
+            search=None,
+            limit_count=1000,
+        )
+        match = next(
+            (
+                p
+                for p in results
+                if getattr(p, "type", None) == "pass" and p.value == item.pass_points
+            ),
+            None,
+        )
+        if match and match.id:
+            item.pass_points_id = match.id
+        else:
+            errors.append(
+                RubricFieldError(
+                    field="pass_points",
+                    message=f"Pass points resource with value {item.pass_points} not found",
                 )
             )
 

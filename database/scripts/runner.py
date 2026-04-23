@@ -1627,6 +1627,45 @@ async def _run_tool_module_seeds(
 
     print(f"  OK: {created} tools created, {errors} errors")
 
+    # Schema audit: for each tool, check that its declared args_outputs are
+    # accepted by the union of its permissions' handler signatures + item
+    # classes. Warn-mode — we don't fail the seed run; we surface counts for
+    # triage. Dead permissions show up as "no surface" which looks like a
+    # mismatch here; that's fine — both need cleanup.
+    from app.infra.tool.schema_derive import derive_schema_for_permissions
+    from database.seeds.resources.permissions import (
+        permissions as _all_permissions,
+    )
+
+    perm_by_id = {p["id"]: (p["artifact"], p["operation"]) for p in _all_permissions}
+    hard = 0
+    varkw = 0
+    for tool_def in tools:
+        output_names = [
+            SHARED_ARGS_OUTPUTS[k]["name"]
+            for k in tool_def.get("args_outputs", [])
+            if k in SHARED_ARGS_OUTPUTS
+        ]
+        perm_pairs = [
+            perm_by_id[pid]
+            for pid in tool_def.get("permission_ids", [])
+            if pid in perm_by_id
+        ]
+        schema = derive_schema_for_permissions(perm_pairs)
+        if schema.has_var_kwargs_handler:
+            if schema.validate_output_keys(output_names, strict=True):
+                varkw += 1
+        else:
+            if schema.validate_output_keys(output_names):
+                hard += 1
+
+    if hard or varkw:
+        print(
+            f"  ⚠ Schema audit: {hard} tool(s) with unaccepted args_outputs, "
+            f"{varkw} tool(s) using **kwargs handlers. "
+            "See notes/tool-schema-audit.txt for details."
+        )
+
 
 # ---------------------------------------------------------------------------
 # SQL dump — pg_dump the testcontainer database

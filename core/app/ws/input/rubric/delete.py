@@ -44,7 +44,7 @@ async def rubric_delete(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            rubric_ids=payload.rubric_ids,
+            ids=payload.rubric_ids,
             session_id=identity.session_id,
             accept=payload.accept,
             idempotency_key=payload.idempotency_key,

@@ -62,11 +62,11 @@ async def update_provider_impl(
 
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
-            perms = await resolve_provider_permissions_context(conn, item.provider_id)
+            perms = await resolve_provider_permissions_context(conn, item.id)
             if not perms.exists:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Item {idx}: Provider {item.provider_id} not found.",
+                    detail=f"Item {idx}: Provider {item.id} not found.",
                 )
             if not compute_can_edit(
                 role_level=profile.role_level,
@@ -86,7 +86,7 @@ async def update_provider_impl(
                 results=[
                     ProviderResultItem(
                         success=True,
-                        provider_id=item.provider_id,
+                        provider_id=item.id,
                         message="Update rejected",
                     )
                     for item in items
@@ -141,7 +141,7 @@ async def update_provider_impl(
             async with conn.transaction():
                 await update_provider_artifact(
                     conn,
-                    item.provider_id,
+                    item.id,
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id if item.description_id else _UNSET,
                     department_ids=item.department_ids,
@@ -156,7 +156,7 @@ async def update_provider_impl(
         results.append(
             ProviderResultItem(
                 success=True,
-                provider_id=item.provider_id,
+                provider_id=item.id,
                 message="Provider updated (pending acceptance)" if soft else "Provider updated successfully",
             )
         )

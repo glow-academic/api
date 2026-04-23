@@ -619,10 +619,10 @@ async def _execute_agent_dispatch(
                             call_id=st.get("call_id"),
                         )
                         results = await execute_infra_operation(ctx, spec)
-                        tool_result_str = json.dumps({
-                            "success": all(r.success for r in results),
-                            "results": [r.model_dump(mode="json") for r in results],
-                        })
+                        # Layer 3 output render — shared with MCP dispatch.
+                        from app.infra.tools.render_result import render_tool_result
+
+                        tool_result_str = render_tool_result(td, results)
                     except Exception as e:
                         tool_result_str = json.dumps({
                             "success": False,
@@ -633,20 +633,6 @@ async def _execute_agent_dispatch(
                     tool_result = json.loads(tool_result_str)
                 except json.JSONDecodeError:
                     tool_result = {"success": False, "message": tool_result_str}
-
-                # Render template (Layer 3) if available
-                response_template = td.get("_instruction_template") if td else None
-                if response_template and isinstance(tool_result, dict):
-                    try:
-                        from jinja2 import Environment, Undefined
-                        env = Environment(undefined=Undefined)
-                        tmpl = env.from_string(response_template)
-                        template_ctx = {**tool_result, "result": tool_result}
-                        rendered = tmpl.render(**template_ctx).strip()
-                        if rendered:
-                            tool_result_str = rendered
-                    except Exception:
-                        pass
 
                 tool_results.append({
                     "tool_call_id": tool_call_id,

@@ -54,7 +54,7 @@ async def delete_persona(
                 pool,
                 redis,
                 profile_id=profile_id,
-                persona_ids=request.ids,
+                ids=request.ids,
                 session_id=session_id,
                 idempotency_key=request.idempotency_key,
                 accept=request.accept if request.idempotency_key else None,

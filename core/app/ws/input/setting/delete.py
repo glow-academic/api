@@ -44,7 +44,7 @@ async def setting_delete(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            setting_ids=payload.setting_ids,
+            ids=payload.setting_ids,
             session_id=identity.session_id,
             accept=payload.accept,
             idempotency_key=payload.idempotency_key,

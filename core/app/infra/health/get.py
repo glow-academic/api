@@ -187,9 +187,9 @@ async def get_health_internal(
 
 async def get_health_impl(
     pool: asyncpg.Pool,
+    redis,
     *,
     profile_id: UUID,
-    redis,
     service: str | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,

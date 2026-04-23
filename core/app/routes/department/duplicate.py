@@ -57,7 +57,7 @@ async def duplicate_department(
                 pool,
                 redis,
                 profile_id=profile_id,
-                department_id=request.department_id,
+                id=request.department_id,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

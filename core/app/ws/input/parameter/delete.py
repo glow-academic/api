@@ -44,7 +44,7 @@ async def parameter_delete(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            parameter_ids=payload.parameter_ids,
+            ids=payload.parameter_ids,
             session_id=identity.session_id,
             accept=payload.accept,
             idempotency_key=payload.idempotency_key,

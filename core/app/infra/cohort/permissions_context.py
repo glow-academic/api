@@ -125,7 +125,7 @@ async def resolve_cohort_values(
             flag_type="cohort_active",
             limit_count=1000,
         )
-        match = next((f for f in results if f.type == "cohort_active"), None)
+        match = next((f for f in results if f.type == "cohort_active" and f.value is True), None)
         if match and match.id:
             if item.active_flag:
                 item.active_flag_id = match.id

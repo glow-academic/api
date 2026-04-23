@@ -345,7 +345,12 @@ async def get_rubric_impl(
         )
         for item in all_departments
     ]
-    points = [
+    # Split the points section by type: pass-type rows are user-writeable
+    # (picker suggestions + selection), total-type is always computed from
+    # the selected standards and exposed as a synthetic selected row so the
+    # client can render a read-only display uniformly with the rest of the
+    # resource-by-type pattern.
+    pass_points = [
         RubricPointResource(
             id=item.id,
             value=item.value,
@@ -356,7 +361,22 @@ async def get_rubric_impl(
             pending=_decorate(item.id, "points")[2],
         )
         for item in all_points
+        if getattr(item, "type", None) == "pass"
     ]
+    computed_total = sum(
+        (getattr(s, "points", None) or 0)
+        for s in standards_selected
+    ) if standards_selected else 0
+    total_synthetic = RubricPointResource(
+        id=None,
+        value=computed_total,
+        type="total",
+        generated=None,
+        suggested=False,
+        selected=True,
+        pending=False,
+    )
+    points = [*pass_points, total_synthetic]
     standard_groups = [
         RubricStandardGroupResource(
             id=item.id,

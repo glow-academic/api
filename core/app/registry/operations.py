@@ -102,6 +102,30 @@ INFRA_OPS.update({
     ("test", "feedback"): ("app.infra.test.feedback", "create_feedback_impl"),
 })
 
+# --- Dashboard aliases ---
+# Permissions namespace read-only dashboards under ``system``/``test``/``attempt``
+# with a synthetic ``<source_artifact>_get`` operation so one tool (View
+# Dashboards) can route across them. Only the dashboards whose ``get.py``
+# exposes a standard ``*_impl`` callable are aliased here — others
+# (activity/dashboard/leaderboard use ``*_impl_cached`` with positional
+# request objects; home/practice/record have no infra impl at all) need
+# canonical wrappers before they can be routed from tools. See the
+# matching permission seeds in ``database/seeds/resources/permissions.py``.
+for _alias, _source in [
+    (("system",  "activity_get"),    ("activity",    "get")),
+    (("attempt", "dashboard_get"),   ("dashboard",   "get")),
+    (("system",  "health_get"),      ("health",      "get")),
+    (("attempt", "home_get"),        ("home",        "get")),
+    (("attempt", "leaderboard_get"), ("leaderboard", "get")),
+    (("attempt", "practice_get"),    ("practice",    "get")),
+    (("system",  "pricing_get"),     ("pricing",     "get")),
+    (("attempt", "record_get"),      ("record",      "get")),
+    (("test",    "benchmark_get"),   ("benchmark",   "get")),
+    (("attempt", "reports_get"),     ("reports",     "get")),
+]:
+    if _source in INFRA_OPS:
+        INFRA_OPS[_alias] = INFRA_OPS[_source]
+
 
 # ---------------------------------------------------------------------------
 # INFRA_ITEM_TYPES — auto-discovered from Pydantic item classes

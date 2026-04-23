@@ -24,7 +24,7 @@ async def duplicate_auth_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    auth_id: UUID,
+    id: UUID,
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -32,6 +32,7 @@ async def duplicate_auth_impl(
     **_kwargs,
 ) -> DuplicateAuthApiResponse:
     """Duplicate an auth artifact."""
+    auth_id = id  # alias: tools send 'id', internal code uses 'auth_id'
     profile = await resolve_profile_identity_context(
         pool,
         profile_id,

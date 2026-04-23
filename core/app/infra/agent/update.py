@@ -87,11 +87,11 @@ async def update_agent_impl(
 
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
-            perms = await resolve_agent_permissions_context(conn, item.agent_id)
+            perms = await resolve_agent_permissions_context(conn, item.id)
             if not perms.exists:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Item {idx}: Agent {item.agent_id} not found.",
+                    detail=f"Item {idx}: Agent {item.id} not found.",
                 )
             has_agent_access = has_access(
                 profile.role_level, profile.department_ids, perms.department_ids
@@ -100,7 +100,7 @@ async def update_agent_impl(
                 role_level=profile.role_level, role_permissions=profile.role_permissions,
                 has_agent_access=has_agent_access,
                 missing_tools=[],
-                agent_id=item.agent_id,
+                agent_id=item.id,
             ):
                 raise HTTPException(
                     status_code=403,
@@ -113,7 +113,7 @@ async def update_agent_impl(
                 results=[
                     AgentResultItem(
                         success=True,
-                        agent_id=item.agent_id,
+                        agent_id=item.id,
                         message="Update rejected",
                     )
                     for item in items
@@ -176,7 +176,7 @@ async def update_agent_impl(
 
                 await update_agent_artifact(
                     conn,
-                    item.agent_id,
+                    item.id,
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id
                     if item.description_id
@@ -195,7 +195,7 @@ async def update_agent_impl(
         results.append(
             AgentResultItem(
                 success=True,
-                agent_id=item.agent_id,
+                agent_id=item.id,
                 message=(
                     "Agent update accepted"
                     if accept is not None and idempotency_key is not None

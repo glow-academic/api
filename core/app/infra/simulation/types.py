@@ -622,7 +622,7 @@ class UpdateSimulationItem(ScopedItem):
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateSimulationItem.RESOURCE_TYPE_MAP
 
-    simulation_id: UUID = Field(..., description="UUID of the simulation to update")
+    id: UUID = Field(..., description="UUID of the simulation to update")
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
     name: str | None = Field(None, description="Display name value")
