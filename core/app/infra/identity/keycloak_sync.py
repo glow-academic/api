@@ -764,6 +764,10 @@ async def ensure_client_registration_policies(kc_admin: Any) -> None:
         # We remove this because it blocks custom URI schemes like cursor://
         trusted_hosts_component = None
         consent_required_component = None
+        allowed_client_scopes_component = None
+        policy_type = (
+            "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy"
+        )
 
         for comp in components:
             provider_id = comp.get("providerId")
@@ -773,17 +777,21 @@ async def ensure_client_registration_policies(kc_admin: Any) -> None:
             if (
                 provider_id == "trusted-hosts"
                 and sub_type == "anonymous"
-                and provider_type
-                == "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy"
+                and provider_type == policy_type
             ):
                 trusted_hosts_component = comp
             elif (
                 provider_id == "consent-required"
                 and sub_type == "anonymous"
-                and provider_type
-                == "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy"
+                and provider_type == policy_type
             ):
                 consent_required_component = comp
+            elif (
+                provider_id == "allowed-client-templates"
+                and sub_type == "anonymous"
+                and provider_type == policy_type
+            ):
+                allowed_client_scopes_component = comp
 
         # Remove Trusted Hosts policy - it blocks custom URI schemes (cursor://)
         if trusted_hosts_component:
@@ -820,6 +828,33 @@ async def ensure_client_registration_policies(kc_admin: Any) -> None:
             logger.info(
                 "✅ Consent Required policy not found (already removed or never existed)"
             )
+
+        # Whitelist `openid` on the anonymous Allowed Client Scopes policy.
+        # Standards-compliant DCR clients (MCP Inspector, many OAuth libs) send
+        # `scope: "openid ..."` in the registration payload. Keycloak doesn't
+        # classify `openid` as a client scope — it's a protocol-level marker —
+        # so the default policy (allowed-client-scopes=[]) rejects the request
+        # with "Not permitted to use specified clientScope". Adding it to the
+        # explicit whitelist unblocks DCR without loosening anything else.
+        if allowed_client_scopes_component:
+            component_id = allowed_client_scopes_component.get("id")
+            config = dict(allowed_client_scopes_component.get("config") or {})
+            current = config.get("allowed-client-scopes") or []
+            if component_id and "openid" not in current:
+                config["allowed-client-scopes"] = sorted(set(current) | {"openid"})
+                config.setdefault("allow-default-scopes", ["true"])
+                try:
+                    kc_admin.update_component(
+                        component_id=component_id,
+                        payload={**allowed_client_scopes_component, "config": config},
+                    )
+                    logger.info(
+                        "✅ Added 'openid' to anonymous Allowed Client Scopes policy"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to whitelist 'openid' on Allowed Client Scopes policy: {e}"
+                    )
 
         # After removing Trusted Hosts, Keycloak allows anonymous client registration
         # This means any MCP client (Cursor, ChatGPT, Claude, Windsurf, etc.) can register
