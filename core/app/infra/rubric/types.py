@@ -338,13 +338,31 @@ class DuplicateRubricApiResponse(BaseModel):
 # ========== Draft Endpoint Types (composable infra) ==========
 
 
+class RubricStandardDraftValue(BaseModel):
+    """Value-object for authoring a standard inline from the rubric grid.
+
+    The grid editor sends these instead of (or alongside) standard_ids. Entries
+    without an `id` are created server-side; entries with an `id` are trusted
+    as-is. Append-only: updates are modeled as create-new-id, old rows become
+    orphans and stop appearing in the draft once the client drops them.
+    """
+
+    id: UUID | None = Field(None, description="Existing standard UUID, if any")
+    name: str = Field(..., description="Level name (column header)")
+    description: str = Field("", description="Cell description text")
+    points: int = Field(..., description="Implied points from column index")
+    standard_group_id: UUID = Field(..., description="Parent standard group UUID (row)")
+
+
 class PatchRubricDraftApiRequest(ScopedItem):
     """Request model for new-style rubric draft endpoint.
 
     Dual-mode for creatable resources only:
       - name/name_id, description/description_id
+      - standards/standard_ids (grid editor sends value objects; flat IDs also
+        accepted for the legacy picker)
     ID-only for non-creatable resources:
-      - flag_id, department_ids, point_ids, standard_group_ids, standard_ids
+      - flag_id, department_ids, point_ids, standard_group_ids
 
     Client always sends full state (append-only — each write is a new snapshot).
     """
@@ -362,6 +380,7 @@ class PatchRubricDraftApiRequest(ScopedItem):
         "point_ids": "points",
         "standard_group_ids": "standard_groups",
         "standard_ids": "standards",
+        "standards": "standards",
     }
 
     draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
@@ -381,6 +400,10 @@ class PatchRubricDraftApiRequest(ScopedItem):
     point_ids: list[UUID] | None = Field(None, description="Point UUIDs")
     standard_group_ids: list[UUID] | None = Field(None, description="Standard group UUIDs")
     standard_ids: list[UUID] | None = Field(None, description="Standard UUIDs")
+    standards: list[RubricStandardDraftValue] | None = Field(
+        None,
+        description="Grid-editor standards. Entries without id are created; resulting IDs merge into standard_ids.",
+    )
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep pending where supported")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack or retry")
     accept: bool = Field(True, description="Accept or reject dormant state")
@@ -399,6 +422,10 @@ class DraftFormState(BaseModel):
     point_ids: list[UUID] = Field(default_factory=list, description="Selected point UUIDs")
     standard_group_ids: list[UUID] = Field(default_factory=list, description="Selected standard group UUIDs")
     standard_ids: list[UUID] = Field(default_factory=list, description="Selected standard UUIDs")
+    standards: list[RubricStandardDraftValue] = Field(
+        default_factory=list,
+        description="Resolved grid-editor standards (all ids filled in).",
+    )
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
 
 

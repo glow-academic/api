@@ -26,6 +26,7 @@ from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
+from app.tools.resources.standards.create import create_standard
 
 
 def _exact_match_id(results: list[Any], raw_value: str, *, attr: str = "name") -> UUID | None:
@@ -140,6 +141,34 @@ async def _resolve_creatable_values(
             resolved_ids.append(item_id)
         if not any(error.field == "departments" for error in errors):
             request.department_ids = _merge_unique(request.department_ids, resolved_ids)
+
+    # Grid-editor standards: entries without id are created here; resulting
+    # ids merge into request.standard_ids so the downstream draft row sees a
+    # single flat list. The returned value list retains every entry with its
+    # filled-in id so the client can replace stale ids in its local grid.
+    if request.standards:
+        resolved_standard_ids: list[UUID] = []
+        for value in request.standards:
+            if value.id is None:
+                created = await create_standard(
+                    conn,
+                    name=value.name,
+                    description=value.description or "",
+                    points=value.points,
+                    standard_group_id=value.standard_group_id,
+                    redis=redis,
+                )
+                if created.id is None:
+                    errors.append(
+                        SaveRubricFieldError(
+                            field="standards",
+                            message=f'Failed to create standard "{value.name}"',
+                        )
+                    )
+                    continue
+                value.id = created.id
+            resolved_standard_ids.append(value.id)
+        request.standard_ids = _merge_unique(request.standard_ids, resolved_standard_ids)
 
     return errors
 
@@ -279,6 +308,7 @@ async def patch_rubric_draft_impl(
         point_ids=request.point_ids or [],
         standard_group_ids=request.standard_group_ids or [],
         standard_ids=request.standard_ids or [],
+        standards=request.standards or [],
         pending_ids=request.pending_ids or [],
     )
 
