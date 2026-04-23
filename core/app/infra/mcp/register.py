@@ -226,10 +226,13 @@ def _build_signature_params(td: dict[str, Any]) -> list[inspect.Parameter]:
     arg_defaults = td.get("argument_defaults") or {}
     params: list[inspect.Parameter] = []
 
-    # Routing args first — they're always the first thing the LLM picks.
+    # Routing args win: when a tool covers >1 artifact/operation, we override
+    # the seed's generic "e.g. persona, scenario" with an enumerated allowed
+    # list AND promote it to required=True. Order matters — routing last so it
+    # overrides any seed-declared artifact/operation entries.
     routing = _routing_args(td)
-    for arg_name, info in {**routing, **arg_specs}.items():
-        # `routing` wins for artifact/operation; otherwise arg_specs is authoritative.
+    merged = {**arg_specs, **routing}
+    for arg_name, info in merged.items():
         py_type = _py_type_for(info.get("type"))
         required = bool(info.get("required", False))
         description = info.get("description") or arg_descs.get(arg_name, "")
