@@ -181,6 +181,9 @@ async def resolve_cohort_context(
         if not _include("flags"):
             return []
         async with pool.acquire() as conn:
+            # Don't filter on cohort_flags_junction — new cohorts have no
+            # junction rows yet. COHORT_FLAG_TYPES post-filter is the real
+            # catalog narrowing downstream.
             return await search_flags(
                 conn,
                 redis,
@@ -189,7 +192,6 @@ async def resolve_cohort_context(
                 offset_count=0,
                 exclude_ids=merged.flag_ids,
                 bypass_cache=bypass_cache,
-                cohort=True,
             )
 
     async def _get_departments() -> list:

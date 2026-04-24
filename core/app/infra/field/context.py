@@ -184,7 +184,6 @@ async def resolve_field_context(
                 exclude_ids=merged.flag_ids,
                 flag_type="field_active",
                 bypass_cache=bypass_cache,
-                field=True,
             )
 
     async def _get_departments_selected() -> list[Any]:

@@ -169,6 +169,9 @@ async def resolve_parameter_context(
 
     async def _search_flags_suggestions() -> list[Any]:
         async with pool.acquire() as conn:
+            # Don't filter on parameter_flags_junction — new parameters
+            # have no junction rows. PARAMETER_FLAG_NAMES post-filter
+            # narrows to relevant types downstream.
             return await search_flags(
                 conn,
                 redis,
@@ -177,7 +180,6 @@ async def resolve_parameter_context(
                 offset_count=0,
                 exclude_ids=merged.flag_ids,
                 bypass_cache=bypass_cache,
-                parameter=True,
             )
 
     async def _get_departments_selected() -> list[Any]:

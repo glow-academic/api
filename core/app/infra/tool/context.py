@@ -182,6 +182,8 @@ async def resolve_tool_context(
 
     async def _search_flags() -> list:
         async with pool.acquire() as conn:
+            # Don't filter on tool_flags_junction — new tools have no
+            # junction rows. TOOL_FLAG_TYPES post-filter narrows below.
             results = await search_flags(
                 conn,
                 redis,
@@ -189,7 +191,6 @@ async def resolve_tool_context(
                 limit_count=flags_limit or 50,
                 exclude_ids=merged.flag_ids,
                 bypass_cache=bypass_cache,
-                tool=True,
             )
         return [flag for flag in results if getattr(flag, "type", None) in TOOL_FLAG_TYPES]
 

@@ -14658,7 +14658,6 @@
           "attempt"
         ],
         "summary": "Attempt Stream",
-        "description": "Stream events for all joined groups via SSE.",
         "operationId": "attempt_stream_attempt_stream_get",
         "responses": {
           "200": {

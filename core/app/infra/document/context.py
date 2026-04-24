@@ -155,6 +155,8 @@ async def resolve_document_context(
 
     async def _search_flags() -> list:
         async with pool.acquire() as conn:
+            # Don't filter on document_flags_junction — new documents have
+            # no junction rows. DOCUMENT_FLAG_TYPES post-filter narrows.
             return await search_flags(
                 conn,
                 redis,
@@ -163,7 +165,6 @@ async def resolve_document_context(
                 offset_count=0,
                 exclude_ids=merged.flag_ids,
                 bypass_cache=bypass_cache,
-                document=True,
             )
 
     async def _get_departments() -> list:

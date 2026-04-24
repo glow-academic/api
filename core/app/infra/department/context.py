@@ -157,7 +157,6 @@ async def resolve_department_context(
                 exclude_ids=merged.flag_ids,
                 flag_type="department_active",
                 bypass_cache=bypass_cache,
-                department=True,
             )
 
     async def _get_settings_selected() -> list[Any]:
