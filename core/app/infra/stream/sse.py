@@ -1,15 +1,26 @@
-"""Shared helper for per-artifact SSE streams.
+"""Shared helpers for per-artifact SSE streams.
 
-All per-artifact `stream_{artifact}_impl` functions delegate here. Keeps the
-multi-queue wait / keepalive / framing / cleanup logic in one place while
-each artifact keeps its own canonical impl as a stable named entry point
-(for tool calling, codegen, and replication).
+Two shapes, matching the two group-scoping patterns in the codebase:
+
+- ``build_artifact_stream_impl`` — single time-windowed group, filtered to
+  one artifact. Used by persona, scenario, cohort, etc. — artifacts that
+  resolve exactly one group per (profile, session) via ``group_{artifact}_impl``.
+
+- ``build_joined_stream_impl`` — multi-queue across every group the profile
+  has joined (``get_joined_groups``), no artifact filter. Used by ``attempt``,
+  whose semantics are explicit join/leave into many rooms and whose events
+  span multiple artifact types during a chat flow.
+
+Per-artifact ``stream_{artifact}_impl`` functions delegate to whichever
+helper matches the artifact's group model. The impls remain the canonical
+named entry points for tool calling / codegen / replication.
 """
 
 from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator
+from uuid import UUID
 
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
@@ -22,17 +33,50 @@ DEFAULT_KEEPALIVE_SEC = 15.0
 
 async def build_artifact_stream_impl(
     *,
-    profile_id: str,
+    group_id: UUID,
     artifact: str,
     keepalive_sec: float = DEFAULT_KEEPALIVE_SEC,
 ) -> StreamingResponse:
-    """Build an SSE StreamingResponse scoped to `artifact` for `profile_id`.
+    """SSE stream for a single time-windowed group, filtered to one artifact.
 
-    Subscribes to every group the profile has joined, filters the live event
-    stream to only events where `event.artifact == artifact`, and yields SSE
-    frames until the client disconnects. Non-matching events on the same
-    group queues are silently dropped — filtering is server-side so clients
-    don't pay for events they didn't subscribe to.
+    Canonical path for per-artifact streams — the caller resolves ``group_id``
+    via ``group_{artifact}_impl`` and passes it here. Events on the group
+    whose ``artifact`` field doesn't match are silently dropped.
+    """
+    queue = subscribe(group_id=group_id)
+
+    async def _gen() -> AsyncIterator[str]:
+        try:
+            while True:
+                try:
+                    event = await asyncio.wait_for(
+                        queue.get(), timeout=keepalive_sec
+                    )
+                except asyncio.TimeoutError:
+                    yield ": keep-alive\n\n"
+                    continue
+
+                if event.artifact != artifact:
+                    continue
+
+                yield f"event: {event.event_type}\n"
+                yield f"data: {event.model_dump_json()}\n\n"
+        finally:
+            unsubscribe(queue)
+
+    return StreamingResponse(_gen(), media_type="text/event-stream")
+
+
+async def build_joined_stream_impl(
+    *,
+    profile_id: str,
+    keepalive_sec: float = DEFAULT_KEEPALIVE_SEC,
+) -> StreamingResponse:
+    """SSE stream across every group the profile has joined. No artifact filter.
+
+    Used by ``attempt`` — its events span persona/rubric/etc. during a chat,
+    and its group model is explicit join/leave into many rooms rather than a
+    single time-windowed group.
     """
     joined_groups = await get_joined_groups(profile_id)
     if not joined_groups:
@@ -67,8 +111,6 @@ async def build_artifact_stream_impl(
 
                 for task in done:
                     event = task.result()
-                    if event.artifact != artifact:
-                        continue
                     yield f"event: {event.event_type}\n"
                     yield f"data: {event.model_dump_json()}\n\n"
         finally:

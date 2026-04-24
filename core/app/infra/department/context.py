@@ -152,7 +152,7 @@ async def resolve_department_context(
                 conn,
                 redis,
                 search=flags_search,
-                limit_count=flags_limit or 50,
+                limit_count=flags_limit or 200,
                 offset_count=0,
                 exclude_ids=merged.flag_ids,
                 flag_type="department_active",

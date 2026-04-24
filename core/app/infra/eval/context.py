@@ -169,7 +169,7 @@ async def resolve_eval_context(
                 conn,
                 redis,
                 search=flags_search,
-                limit_count=_limit(flags_limit, 50),
+                limit_count=_limit(flags_limit, 200),
                 offset_count=0,
                 exclude_ids=merged.flag_ids,
                 bypass_cache=bypass_cache,

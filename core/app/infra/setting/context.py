@@ -279,11 +279,15 @@ async def resolve_setting_context(
         if _selected_only(flags_selected_only):
             return []
         async with pool.acquire() as conn:
+            # limit must be >= total flag catalog size; search_flags orders
+            # by name ASC and prefix-heavy types (setting_active) land past
+            # the default 50-row cutoff — the SETTING_FLAG_NAMES post-filter
+            # only sees rows that made it through the page window.
             return await search_flags(
                 conn,
                 redis,
                 search=flags_search,
-                limit_count=_coalesce_limit(flags_limit, 50),
+                limit_count=_coalesce_limit(flags_limit, 200),
                 offset_count=0,
                 exclude_ids=merged.flag_ids,
                 bypass_cache=bypass_cache,

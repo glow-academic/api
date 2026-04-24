@@ -188,7 +188,7 @@ async def resolve_cohort_context(
                 conn,
                 redis,
                 search=_sf("flags", "search"),
-                limit_count=_limit("flags", 50),
+                limit_count=_limit("flags", 200),
                 offset_count=0,
                 exclude_ids=merged.flag_ids,
                 bypass_cache=bypass_cache,
