@@ -1,7 +1,9 @@
-"""Session event declarations for centralized delivery."""
+"""Session operation event configs (contributed to the ``system`` parent).
+
+Post 19→3 consolidation, session is nested under the ``system`` artifact.
+"""
 
 from app.events.types import (
-    ArtifactEventsConfig,
     OperationErrorEvent,
     OperationEventConfig,
     require_authenticated_profile,
@@ -11,9 +13,9 @@ from app.infra.session.types import (
     GetSessionDetailResponse,
 )
 
-SESSION_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
-    "get": OperationEventConfig(
-        operation="get",
+SESSION_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
+    "session_get": OperationEventConfig(
+        operation="session_get",
         scope="entity",
         entity_key="session_id",
         can_subscribe=require_authenticated_profile,
@@ -22,23 +24,13 @@ SESSION_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GetSessionDetailResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.session.viewed": None},
+        domain_events={"artifacts.system.session_viewed": None},
     ),
-    "refresh": OperationEventConfig(
-        operation="refresh",
+    "session_refresh": OperationEventConfig(
+        operation="session_refresh",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.session.refreshed": None},
+        domain_events={"artifacts.system.session_refreshed": None},
     ),
 }
-
-SESSION_EVENTS = ArtifactEventsConfig(
-    artifact="session",
-    operations=SESSION_EVENT_CONFIGS,
-)
-
-
-def get_session_event_config(operation: str) -> OperationEventConfig | None:
-    """Resolve event policy for a session operation."""
-    return SESSION_EVENTS.get_operation(operation)

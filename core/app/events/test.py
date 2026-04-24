@@ -1,15 +1,18 @@
-"""Test event declarations for centralized delivery."""
+"""Test event declarations for centralized delivery.
 
+Post 19→3 consolidation, the following pre-consolidation satellite artifacts
+are nested under ``test`` and contribute their operations here:
+  - benchmark, invocation
+"""
+
+from app.events.benchmark import BENCHMARK_OPERATION_CONFIGS
+from app.events.invocation import INVOCATION_OPERATION_CONFIGS
 from app.events.types import (
     ArtifactEventsConfig,
     OperationErrorEvent,
     OperationEventConfig,
     default_filter_events,
     require_authenticated_profile,
-)
-from app.infra.test.types import (
-    GetTestArtifactRequest,
-    GetTestArtifactResponse,
 )
 from app.infra.test.client_types import (
     # Test domain event payloads (server → client)
@@ -23,6 +26,10 @@ from app.infra.test.client_types import (
     TestStartPayload,
     TestStopPayload,
     TestStoppedEvent,
+)
+from app.infra.test.types import (
+    GetTestArtifactRequest,
+    GetTestArtifactResponse,
 )
 
 TEST_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
@@ -114,9 +121,16 @@ TEST_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
 }
 
+# Merge in the satellite operation configs. Native test ops win collisions.
+_MERGED_TEST_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
+    **BENCHMARK_OPERATION_CONFIGS,
+    **INVOCATION_OPERATION_CONFIGS,
+    **TEST_EVENT_CONFIGS,
+}
+
 TEST_EVENTS = ArtifactEventsConfig(
     artifact="test",
-    operations=TEST_EVENT_CONFIGS,
+    operations=_MERGED_TEST_EVENT_CONFIGS,
 )
 
 

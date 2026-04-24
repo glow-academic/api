@@ -26,6 +26,8 @@ from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.search import search_flags
+from app.tools.resources.logins.create import create_logins
+from app.tools.resources.logins.search import search_logins
 from app.tools.resources.mcp.create import create_mcp
 from app.tools.resources.mcp.search import search_mcp
 from app.tools.resources.names.create import create_name
@@ -226,6 +228,50 @@ async def _resolve_creatable_values(
                 if value.id:
                     resolved_ids.append(value.id)
         request.auth_item_value_ids = _merge_unique(request.auth_item_value_ids, resolved_ids)
+
+    # Logins value-array: resolve id=null entries by searching for an existing
+    # row matching (login_type, auth_id) or (login_type, profile_id); create
+    # one if none exists. Merges resolved ids into logins_ids.
+    if request.logins:
+        resolved_ids = []
+        async with pool.acquire() as conn:
+            for value in request.logins:
+                if value.id is None:
+                    matches: list = []
+                    if value.login_type == "auth" and value.auth_id is not None:
+                        matches = await search_logins(
+                            conn,
+                            redis,
+                            limit_count=1,
+                            auth_ids=[value.auth_id],
+                            login_type="auth",
+                            bypass_cache=True,
+                        )
+                    elif value.login_type == "profile" and value.profile_id is not None:
+                        matches = await search_logins(
+                            conn,
+                            redis,
+                            limit_count=1,
+                            profile_ids=[value.profile_id],
+                            login_type="profile",
+                            bypass_cache=True,
+                        )
+                    if matches and matches[0].id:
+                        value.id = matches[0].id
+                    else:
+                        created = await create_logins(
+                            conn,
+                            profile_id=value.profile_id,
+                            auth_id=value.auth_id,
+                            icon_id=value.icon_id,
+                            display_name=value.display_name or "",
+                            login_type=value.login_type,
+                            redis=redis,
+                        )
+                        value.id = created.id
+                if value.id:
+                    resolved_ids.append(value.id)
+        request.logins_ids = _merge_unique(request.logins_ids, resolved_ids)
 
     # MCP value-array: single-select via agent_id; reuse existing row for the agent if present.
     if request.mcp_values:
@@ -439,6 +485,7 @@ async def patch_setting_draft_impl(
         auth_item_keys=request.auth_item_keys or [],
         auth_item_values=request.auth_item_values or [],
         mcp_values=request.mcp_values or [],
+        logins=request.logins or [],
         pending_ids=sorted(pending_ids),
     )
 

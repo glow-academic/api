@@ -1,6 +1,13 @@
-"""Tests for the centralized event registry contract."""
+"""Tests for the centralized event registry contract.
 
-from app.infra.stream.registry import get_artifact_events_config
+Post 19→3 consolidation, the former satellite artifacts (chat, record,
+practice, home, reports, dashboard, leaderboard, benchmark, invocation,
+activity, group, health, session) are no longer top-level registry keys —
+their operations are merged into their parent artifacts
+(attempt / test / system) under the canonical underscored operation names.
+"""
+
+from app.infra.stream.registry import EVENT_REGISTRY, get_artifact_events_config
 
 
 def test_registry_resolves_persona_config() -> None:
@@ -10,15 +17,6 @@ def test_registry_resolves_persona_config() -> None:
     assert config.artifact == "persona"
     assert "get" in config.operations
     assert "artifacts.persona.viewed" in config.event_types
-
-
-def test_registry_resolves_activity_config() -> None:
-    config = get_artifact_events_config("activity")
-
-    assert config is not None
-    assert config.artifact == "activity"
-    assert "get" in config.operations
-    assert "artifacts.activity.viewed" in config.event_types
 
 
 def test_registry_resolves_attempt_config() -> None:
@@ -37,24 +35,6 @@ def test_registry_resolves_auth_config() -> None:
     assert config.artifact == "auth"
     assert "get" in config.operations
     assert "artifacts.auth.viewed" in config.event_types
-
-
-def test_registry_resolves_benchmark_config() -> None:
-    config = get_artifact_events_config("benchmark")
-
-    assert config is not None
-    assert config.artifact == "benchmark"
-    assert "get" in config.operations
-    assert "artifacts.benchmark.viewed" in config.event_types
-
-
-def test_registry_resolves_chat_config() -> None:
-    config = get_artifact_events_config("chat")
-
-    assert config is not None
-    assert config.artifact == "chat"
-    assert "get" in config.operations
-    assert "artifacts.chat.viewed" in config.event_types
 
 
 def test_registry_resolves_scenario_config() -> None:
@@ -82,15 +62,6 @@ def test_registry_resolves_cohort_config() -> None:
     assert config.artifact == "cohort"
     assert "get" in config.operations
     assert "artifacts.cohort.viewed" in config.event_types
-
-
-def test_registry_resolves_dashboard_config() -> None:
-    config = get_artifact_events_config("dashboard")
-
-    assert config is not None
-    assert config.artifact == "dashboard"
-    assert "get" in config.operations
-    assert "artifacts.dashboard.viewed" in config.event_types
 
 
 def test_registry_resolves_department_config() -> None:
@@ -147,42 +118,6 @@ def test_registry_resolves_parameter_config() -> None:
     assert "artifacts.parameter.viewed" in config.event_types
 
 
-def test_registry_resolves_health_config() -> None:
-    config = get_artifact_events_config("health")
-
-    assert config is not None
-    assert config.artifact == "health"
-    assert "get" in config.operations
-    assert "artifacts.health.viewed" in config.event_types
-
-
-def test_registry_resolves_home_config() -> None:
-    config = get_artifact_events_config("home")
-
-    assert config is not None
-    assert config.artifact == "home"
-    assert "get" in config.operations
-    assert "artifacts.home.viewed" in config.event_types
-
-
-def test_registry_resolves_invocation_config() -> None:
-    config = get_artifact_events_config("invocation")
-
-    assert config is not None
-    assert config.artifact == "invocation"
-    assert "get" in config.operations
-    assert "artifacts.invocation.viewed" in config.event_types
-
-
-def test_registry_resolves_leaderboard_config() -> None:
-    config = get_artifact_events_config("leaderboard")
-
-    assert config is not None
-    assert config.artifact == "leaderboard"
-    assert "get" in config.operations
-    assert "artifacts.leaderboard.viewed" in config.event_types
-
-
 def test_registry_resolves_profile_config() -> None:
     config = get_artifact_events_config("profile")
 
@@ -210,15 +145,6 @@ def test_registry_resolves_pricing_config() -> None:
     assert "artifacts.pricing.viewed" in config.event_types
 
 
-def test_registry_resolves_practice_config() -> None:
-    config = get_artifact_events_config("practice")
-
-    assert config is not None
-    assert config.artifact == "practice"
-    assert "get" in config.operations
-    assert "artifacts.practice.viewed" in config.event_types
-
-
 def test_registry_resolves_rubric_config() -> None:
     config = get_artifact_events_config("rubric")
 
@@ -230,33 +156,6 @@ def test_registry_resolves_rubric_config() -> None:
 
 def test_registry_returns_none_for_unknown_artifact() -> None:
     assert get_artifact_events_config("unknown") is None
-
-
-def test_registry_resolves_session_config() -> None:
-    config = get_artifact_events_config("session")
-
-    assert config is not None
-    assert config.artifact == "session"
-    assert "get" in config.operations
-    assert "artifacts.session.viewed" in config.event_types
-
-
-def test_registry_resolves_record_config() -> None:
-    config = get_artifact_events_config("record")
-
-    assert config is not None
-    assert config.artifact == "record"
-    assert "get" in config.operations
-    assert "artifacts.record.viewed" in config.event_types
-
-
-def test_registry_resolves_reports_config() -> None:
-    config = get_artifact_events_config("reports")
-
-    assert config is not None
-    assert config.artifact == "reports"
-    assert "refresh" in config.operations
-    assert "artifacts.reports.refreshed" in config.event_types
 
 
 def test_registry_resolves_setting_config() -> None:
@@ -284,3 +183,78 @@ def test_registry_resolves_tool_config() -> None:
     assert config.artifact == "tool"
     assert "get" in config.operations
     assert "artifacts.tool.viewed" in config.event_types
+
+
+# ---------------------------------------------------------------------------
+# Post-consolidation: satellite artifacts are merged into their parents.
+# ---------------------------------------------------------------------------
+
+
+def test_registry_excludes_satellite_artifacts() -> None:
+    """Satellite artifacts must not appear as top-level registry keys."""
+    for satellite in (
+        "chat",
+        "record",
+        "practice",
+        "home",
+        "reports",
+        "dashboard",
+        "leaderboard",
+        "benchmark",
+        "invocation",
+        "activity",
+        "group",
+        "health",
+        "session",
+    ):
+        assert satellite not in EVENT_REGISTRY, (
+            f"'{satellite}' must be nested under its parent artifact, "
+            "not a top-level registry key"
+        )
+        assert get_artifact_events_config(satellite) is None
+
+
+def test_attempt_absorbs_chat_record_practice_home_reports_dashboard_leaderboard() -> None:
+    config = get_artifact_events_config("attempt")
+    assert config is not None
+    ops = set(config.operations.keys())
+    # Chat operations
+    assert {"chat_get", "chat_refresh"}.issubset(ops)
+    # Record operations
+    assert {"record_get", "record_refresh"}.issubset(ops)
+    # Practice operations
+    assert {"practice_get", "practice_refresh"}.issubset(ops)
+    # Home operations
+    assert {"home_get", "home_refresh"}.issubset(ops)
+    # Reports operations
+    assert {"reports_refresh"}.issubset(ops)
+    # Dashboard operations
+    assert {"dashboard_get", "dashboard_refresh"}.issubset(ops)
+    # Leaderboard operations
+    assert {"leaderboard_get", "leaderboard_refresh"}.issubset(ops)
+    # Canonical lifecycle event names emerge from the parent artifact
+    assert "artifacts.attempt.chat_get.started" in config.event_types
+    assert "artifacts.attempt.home_refresh.completed" in config.event_types
+
+
+def test_test_absorbs_benchmark_invocation() -> None:
+    config = get_artifact_events_config("test")
+    assert config is not None
+    ops = set(config.operations.keys())
+    assert {"benchmark_get", "benchmark_refresh"}.issubset(ops)
+    assert {"invocation_get", "invocation_refresh"}.issubset(ops)
+    assert "artifacts.test.benchmark_viewed" in config.event_types
+    assert "artifacts.test.invocation_viewed" in config.event_types
+
+
+def test_system_absorbs_activity_group_health_session() -> None:
+    config = get_artifact_events_config("system")
+    assert config is not None
+    assert config.artifact == "system"
+    ops = set(config.operations.keys())
+    assert {"activity_get", "activity_refresh"}.issubset(ops)
+    assert {"group_get", "group_generate", "group_refresh"}.issubset(ops)
+    assert {"health_get", "health_refresh"}.issubset(ops)
+    assert {"session_get", "session_refresh"}.issubset(ops)
+    assert "artifacts.system.activity_viewed" in config.event_types
+    assert "artifacts.system.group_generate.progress" in config.event_types

@@ -1,15 +1,27 @@
-"""Attempt event declarations for centralized delivery."""
+"""Attempt event declarations for centralized delivery.
 
+Post 19→3 consolidation, the following pre-consolidation satellite artifacts
+are nested under ``attempt`` and contribute their operations here:
+  - chat, record, practice, home, reports, dashboard, leaderboard
+
+Each satellite event module exposes an ``<NAME>_OPERATION_CONFIGS`` dict keyed
+by the canonical underscored operation name (e.g. ``chat_get``, ``home_refresh``)
+that this file merges into ``ATTEMPT_EVENT_CONFIGS``.
+"""
+
+from app.events.chat import CHAT_OPERATION_CONFIGS
+from app.events.dashboard import DASHBOARD_OPERATION_CONFIGS
+from app.events.home import HOME_OPERATION_CONFIGS
+from app.events.leaderboard import LEADERBOARD_OPERATION_CONFIGS
+from app.events.practice import PRACTICE_OPERATION_CONFIGS
+from app.events.record import RECORD_OPERATION_CONFIGS
+from app.events.reports import REPORTS_OPERATION_CONFIGS
 from app.events.types import (
     ArtifactEventsConfig,
     OperationErrorEvent,
     OperationEventConfig,
     default_filter_events,
     require_authenticated_profile,
-)
-from app.infra.attempt.types import (
-    GetAttemptDetailRequest,
-    GetAttemptDetailResponse,
 )
 from app.infra.attempt.client_types import (
     # Attempt domain event payloads (server → client)
@@ -35,6 +47,10 @@ from app.infra.attempt.client_types import (
     AttemptStartPayload,
     AttemptStopPayload,
     AttemptStoppedEvent,
+)
+from app.infra.attempt.types import (
+    GetAttemptDetailRequest,
+    GetAttemptDetailResponse,
 )
 
 
@@ -189,9 +205,21 @@ ATTEMPT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
 }
 
+# Merge in the satellite operation configs. Native attempt ops win collisions.
+_MERGED_ATTEMPT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
+    **CHAT_OPERATION_CONFIGS,
+    **RECORD_OPERATION_CONFIGS,
+    **PRACTICE_OPERATION_CONFIGS,
+    **HOME_OPERATION_CONFIGS,
+    **REPORTS_OPERATION_CONFIGS,
+    **DASHBOARD_OPERATION_CONFIGS,
+    **LEADERBOARD_OPERATION_CONFIGS,
+    **ATTEMPT_EVENT_CONFIGS,
+}
+
 ATTEMPT_EVENTS = ArtifactEventsConfig(
     artifact="attempt",
-    operations=ATTEMPT_EVENT_CONFIGS,
+    operations=_MERGED_ATTEMPT_EVENT_CONFIGS,
 )
 
 

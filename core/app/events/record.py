@@ -1,7 +1,9 @@
-"""Record event declarations for centralized delivery."""
+"""Record operation event configs (contributed to the ``attempt`` parent).
+
+Post 19→3 consolidation, record is nested under the ``attempt`` artifact.
+"""
 
 from app.events.types import (
-    ArtifactEventsConfig,
     OperationErrorEvent,
     OperationEventConfig,
     require_authenticated_profile,
@@ -9,9 +11,9 @@ from app.events.types import (
 from app.infra.dashboard.types import DashboardBundleResponse
 from app.infra.record.types import RecordRequest
 
-RECORD_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
-    "get": OperationEventConfig(
-        operation="get",
+RECORD_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
+    "record_get": OperationEventConfig(
+        operation="record_get",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -20,23 +22,13 @@ RECORD_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DashboardBundleResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.record.viewed": None},
+        domain_events={"artifacts.attempt.record_viewed": None},
     ),
-    "refresh": OperationEventConfig(
-        operation="refresh",
-        domain_events={"artifacts.record.refreshed": None},
+    "record_refresh": OperationEventConfig(
+        operation="record_refresh",
+        domain_events={"artifacts.attempt.record_refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
     ),
 }
-
-RECORD_EVENTS = ArtifactEventsConfig(
-    artifact="record",
-    operations=RECORD_EVENT_CONFIGS,
-)
-
-
-def get_record_event_config(operation: str) -> OperationEventConfig | None:
-    """Resolve event policy for a record operation."""
-    return RECORD_EVENTS.get_operation(operation)

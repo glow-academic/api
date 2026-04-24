@@ -1,27 +1,19 @@
-"""Reports event declarations for centralized delivery."""
+"""Reports operation event configs (contributed to the ``attempt`` parent).
+
+Post 19→3 consolidation, reports is nested under the ``attempt`` artifact.
+"""
 
 from app.events.types import (
-    ArtifactEventsConfig,
     OperationEventConfig,
     require_authenticated_profile,
 )
 
-REPORTS_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
-    "refresh": OperationEventConfig(
-        operation="refresh",
-        domain_events={"artifacts.reports.refreshed": None},
+REPORTS_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
+    "reports_refresh": OperationEventConfig(
+        operation="reports_refresh",
+        domain_events={"artifacts.attempt.reports_refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
     ),
 }
-
-REPORTS_EVENTS = ArtifactEventsConfig(
-    artifact="reports",
-    operations=REPORTS_EVENT_CONFIGS,
-)
-
-
-def get_reports_event_config(operation: str) -> OperationEventConfig | None:
-    """Resolve event policy for a reports operation."""
-    return REPORTS_EVENTS.get_operation(operation)

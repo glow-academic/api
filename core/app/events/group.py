@@ -1,7 +1,9 @@
-"""Group event declarations for centralized delivery."""
+"""Group operation event configs (contributed to the ``system`` parent).
+
+Post 19→3 consolidation, group is nested under the ``system`` artifact.
+"""
 
 from app.events.types import (
-    ArtifactEventsConfig,
     OperationErrorEvent,
     OperationEventConfig,
     default_filter_events,
@@ -19,9 +21,9 @@ from app.infra.websocket.generation_types import (
     GenerationProgressEvent,
 )
 
-GROUP_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
-    "get": OperationEventConfig(
-        operation="get",
+GROUP_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
+    "group_get": OperationEventConfig(
+        operation="group_get",
         scope="entity",
         entity_key="group_id",
         can_subscribe=require_authenticated_profile,
@@ -31,11 +33,11 @@ GROUP_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.group.viewed": None,
+            "artifacts.system.group_viewed": None,
         },
     ),
-    "generate": OperationEventConfig(
-        operation="generate",
+    "group_generate": OperationEventConfig(
+        operation="group_generate",
         scope="entity",
         entity_key="group_id",
         can_subscribe=require_authenticated_profile,
@@ -45,29 +47,19 @@ GROUP_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.group.generation.started": GenerationCompleteEvent,
-            "artifacts.group.generation.progress": GenerationProgressEvent,
-            "artifacts.group.generation.completed": GenerationCompleteEvent,
+            "artifacts.system.group_generate.started": GenerationCompleteEvent,
+            "artifacts.system.group_generate.progress": GenerationProgressEvent,
+            "artifacts.system.group_generate.completed": GenerationCompleteEvent,
         },
         filter_events=default_filter_events,
     ),
-    "refresh": OperationEventConfig(
-        operation="refresh",
+    "group_refresh": OperationEventConfig(
+        operation="group_refresh",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
         domain_events={
-            "artifacts.group.refreshed": None,
+            "artifacts.system.group_refreshed": None,
         },
     ),
 }
-
-GROUP_EVENTS = ArtifactEventsConfig(
-    artifact="group",
-    operations=GROUP_EVENT_CONFIGS,
-)
-
-
-def get_group_event_config(operation: str) -> OperationEventConfig | None:
-    """Resolve event policy for a group operation."""
-    return GROUP_EVENTS.get_operation(operation)

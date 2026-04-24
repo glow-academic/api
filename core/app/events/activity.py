@@ -1,7 +1,9 @@
-"""Activity event declarations for centralized delivery."""
+"""Activity operation event configs (contributed to the ``system`` parent).
+
+Post 19→3 consolidation, activity is nested under the ``system`` artifact.
+"""
 
 from app.events.types import (
-    ArtifactEventsConfig,
     OperationErrorEvent,
     OperationEventConfig,
     require_authenticated_profile,
@@ -11,9 +13,9 @@ from app.infra.activity.types import (
     ActivityResponse,
 )
 
-ACTIVITY_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
-    "get": OperationEventConfig(
-        operation="get",
+ACTIVITY_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
+    "activity_get": OperationEventConfig(
+        operation="activity_get",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -22,23 +24,13 @@ ACTIVITY_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": ActivityResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.activity.viewed": None},
+        domain_events={"artifacts.system.activity_viewed": None},
     ),
-    "refresh": OperationEventConfig(
-        operation="refresh",
-        domain_events={"artifacts.activity.refreshed": None},
+    "activity_refresh": OperationEventConfig(
+        operation="activity_refresh",
+        domain_events={"artifacts.system.activity_refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
     ),
 }
-
-ACTIVITY_EVENTS = ArtifactEventsConfig(
-    artifact="activity",
-    operations=ACTIVITY_EVENT_CONFIGS,
-)
-
-
-def get_activity_event_config(operation: str) -> OperationEventConfig | None:
-    """Resolve event policy for an activity operation."""
-    return ACTIVITY_EVENTS.get_operation(operation)

@@ -1,7 +1,9 @@
-"""Leaderboard event declarations for centralized delivery."""
+"""Leaderboard operation event configs (contributed to the ``attempt`` parent).
+
+Post 19→3 consolidation, leaderboard is nested under the ``attempt`` artifact.
+"""
 
 from app.events.types import (
-    ArtifactEventsConfig,
     OperationErrorEvent,
     OperationEventConfig,
     require_authenticated_profile,
@@ -11,9 +13,9 @@ from app.infra.leaderboard.types import (
     LeaderboardResponse,
 )
 
-LEADERBOARD_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
-    "get": OperationEventConfig(
-        operation="get",
+LEADERBOARD_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
+    "leaderboard_get": OperationEventConfig(
+        operation="leaderboard_get",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -22,23 +24,13 @@ LEADERBOARD_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": LeaderboardResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.leaderboard.viewed": None},
+        domain_events={"artifacts.attempt.leaderboard_viewed": None},
     ),
-    "refresh": OperationEventConfig(
-        operation="refresh",
-        domain_events={"artifacts.leaderboard.refreshed": None},
+    "leaderboard_refresh": OperationEventConfig(
+        operation="leaderboard_refresh",
+        domain_events={"artifacts.attempt.leaderboard_refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
     ),
 }
-
-LEADERBOARD_EVENTS = ArtifactEventsConfig(
-    artifact="leaderboard",
-    operations=LEADERBOARD_EVENT_CONFIGS,
-)
-
-
-def get_leaderboard_event_config(operation: str) -> OperationEventConfig | None:
-    """Resolve event policy for a leaderboard operation."""
-    return LEADERBOARD_EVENTS.get_operation(operation)

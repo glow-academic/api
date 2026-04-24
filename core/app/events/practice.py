@@ -1,7 +1,9 @@
-"""Practice event declarations for centralized delivery."""
+"""Practice operation event configs (contributed to the ``attempt`` parent).
+
+Post 19→3 consolidation, practice is nested under the ``attempt`` artifact.
+"""
 
 from app.events.types import (
-    ArtifactEventsConfig,
     OperationErrorEvent,
     OperationEventConfig,
     require_authenticated_profile,
@@ -11,9 +13,9 @@ from app.infra.practice.types import (
     GetPracticeResponse,
 )
 
-PRACTICE_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
-    "get": OperationEventConfig(
-        operation="get",
+PRACTICE_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
+    "practice_get": OperationEventConfig(
+        operation="practice_get",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -22,23 +24,13 @@ PRACTICE_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GetPracticeResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.practice.viewed": None},
+        domain_events={"artifacts.attempt.practice_viewed": None},
     ),
-    "refresh": OperationEventConfig(
-        operation="refresh",
+    "practice_refresh": OperationEventConfig(
+        operation="practice_refresh",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.practice.refreshed": None},
+        domain_events={"artifacts.attempt.practice_refreshed": None},
     ),
 }
-
-PRACTICE_EVENTS = ArtifactEventsConfig(
-    artifact="practice",
-    operations=PRACTICE_EVENT_CONFIGS,
-)
-
-
-def get_practice_event_config(operation: str) -> OperationEventConfig | None:
-    """Resolve event policy for a practice operation."""
-    return PRACTICE_EVENTS.get_operation(operation)

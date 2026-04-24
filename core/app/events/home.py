@@ -1,16 +1,18 @@
-"""Home event declarations for centralized delivery."""
+"""Home operation event configs (contributed to the ``attempt`` parent).
+
+Post 19→3 consolidation, home is nested under the ``attempt`` artifact.
+"""
 
 from app.events.types import (
-    ArtifactEventsConfig,
     OperationErrorEvent,
     OperationEventConfig,
     require_authenticated_profile,
 )
 from app.infra.home.types import GetHomeRequest, GetHomeResponse
 
-HOME_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
-    "get": OperationEventConfig(
-        operation="get",
+HOME_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
+    "home_get": OperationEventConfig(
+        operation="home_get",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -19,23 +21,13 @@ HOME_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GetHomeResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.home.viewed": None},
+        domain_events={"artifacts.attempt.home_viewed": None},
     ),
-    "refresh": OperationEventConfig(
-        operation="refresh",
-        domain_events={"artifacts.home.refreshed": None},
+    "home_refresh": OperationEventConfig(
+        operation="home_refresh",
+        domain_events={"artifacts.attempt.home_refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
     ),
 }
-
-HOME_EVENTS = ArtifactEventsConfig(
-    artifact="home",
-    operations=HOME_EVENT_CONFIGS,
-)
-
-
-def get_home_event_config(operation: str) -> OperationEventConfig | None:
-    """Resolve event policy for a home operation."""
-    return HOME_EVENTS.get_operation(operation)

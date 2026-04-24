@@ -20192,7 +20192,7 @@
       "post": {
         "tags": [
           "stream",
-          "activity"
+          "system"
         ],
         "summary": "Schema: ActivityRequest",
         "operationId": "ActivityRequest_schema_stream_ActivityRequest_post",
@@ -20239,7 +20239,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "activity"
+          "system"
         ]
       }
     },
@@ -20247,7 +20247,7 @@
       "post": {
         "tags": [
           "stream",
-          "activity"
+          "system"
         ],
         "summary": "Schema: ActivityResponse",
         "operationId": "ActivityResponse_schema_stream_ActivityResponse_post",
@@ -20294,7 +20294,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "activity"
+          "system"
         ]
       }
     },
@@ -22172,7 +22172,7 @@
       "post": {
         "tags": [
           "stream",
-          "benchmark"
+          "test"
         ],
         "summary": "Schema: BenchmarkRequest",
         "operationId": "BenchmarkRequest_schema_stream_BenchmarkRequest_post",
@@ -22219,7 +22219,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "benchmark"
+          "test"
         ]
       }
     },
@@ -22227,7 +22227,7 @@
       "post": {
         "tags": [
           "stream",
-          "benchmark"
+          "test"
         ],
         "summary": "Schema: BenchmarkResponse",
         "operationId": "BenchmarkResponse_schema_stream_BenchmarkResponse_post",
@@ -22274,7 +22274,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "benchmark"
+          "test"
         ]
       }
     },
@@ -24207,7 +24207,7 @@
       "post": {
         "tags": [
           "stream",
-          "dashboard"
+          "attempt"
         ],
         "summary": "Schema: DashboardBundleResponse",
         "operationId": "DashboardBundleResponse_schema_stream_DashboardBundleResponse_post",
@@ -24254,7 +24254,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "dashboard"
+          "attempt"
         ]
       }
     },
@@ -24262,7 +24262,7 @@
       "post": {
         "tags": [
           "stream",
-          "dashboard"
+          "attempt"
         ],
         "summary": "Schema: DashboardRequest",
         "operationId": "DashboardRequest_schema_stream_DashboardRequest_post",
@@ -24309,7 +24309,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "dashboard"
+          "attempt"
         ]
       }
     },
@@ -29927,7 +29927,7 @@
       "post": {
         "tags": [
           "stream",
-          "group"
+          "system"
         ],
         "summary": "Schema: GeneratePayload",
         "operationId": "GeneratePayload_schema_stream_GeneratePayload_post",
@@ -29974,7 +29974,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "group"
+          "system"
         ]
       }
     },
@@ -29982,7 +29982,7 @@
       "post": {
         "tags": [
           "stream",
-          "group"
+          "system"
         ],
         "summary": "Schema: GenerationCompleteEvent",
         "operationId": "GenerationCompleteEvent_schema_stream_GenerationCompleteEvent_post",
@@ -30029,7 +30029,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "group"
+          "system"
         ]
       }
     },
@@ -30202,7 +30202,7 @@
       "post": {
         "tags": [
           "stream",
-          "group"
+          "system"
         ],
         "summary": "Schema: GenerationProgressEvent",
         "operationId": "GenerationProgressEvent_schema_stream_GenerationProgressEvent_post",
@@ -30249,7 +30249,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "group"
+          "system"
         ]
       }
     },
@@ -30752,7 +30752,7 @@
       "post": {
         "tags": [
           "stream",
-          "chat"
+          "attempt"
         ],
         "summary": "Schema: GetChatRequest",
         "operationId": "GetChatRequest_schema_stream_GetChatRequest_post",
@@ -30799,7 +30799,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "chat"
+          "attempt"
         ]
       }
     },
@@ -30807,7 +30807,7 @@
       "post": {
         "tags": [
           "stream",
-          "chat"
+          "attempt"
         ],
         "summary": "Schema: GetChatResponse",
         "operationId": "GetChatResponse_schema_stream_GetChatResponse_post",
@@ -30854,7 +30854,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "chat"
+          "attempt"
         ]
       }
     },
@@ -31687,7 +31687,7 @@
       "post": {
         "tags": [
           "stream",
-          "group"
+          "system"
         ],
         "summary": "Schema: GetGroupDetailRequest",
         "operationId": "GetGroupDetailRequest_schema_stream_GetGroupDetailRequest_post",
@@ -31734,7 +31734,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "group"
+          "system"
         ]
       }
     },
@@ -31742,7 +31742,7 @@
       "post": {
         "tags": [
           "stream",
-          "group"
+          "system"
         ],
         "summary": "Schema: GetGroupDetailResponse",
         "operationId": "GetGroupDetailResponse_schema_stream_GetGroupDetailResponse_post",
@@ -31789,7 +31789,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "group"
+          "system"
         ]
       }
     },
@@ -31797,7 +31797,7 @@
       "post": {
         "tags": [
           "stream",
-          "home"
+          "attempt"
         ],
         "summary": "Schema: GetHomeRequest",
         "operationId": "GetHomeRequest_schema_stream_GetHomeRequest_post",
@@ -31844,7 +31844,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "home"
+          "attempt"
         ]
       }
     },
@@ -31852,7 +31852,7 @@
       "post": {
         "tags": [
           "stream",
-          "home"
+          "attempt"
         ],
         "summary": "Schema: GetHomeResponse",
         "operationId": "GetHomeResponse_schema_stream_GetHomeResponse_post",
@@ -31899,7 +31899,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "home"
+          "attempt"
         ]
       }
     },
@@ -31907,7 +31907,7 @@
       "post": {
         "tags": [
           "stream",
-          "invocation"
+          "test"
         ],
         "summary": "Schema: GetInvocationApiRequest",
         "operationId": "GetInvocationApiRequest_schema_stream_GetInvocationApiRequest_post",
@@ -31954,7 +31954,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "invocation"
+          "test"
         ]
       }
     },
@@ -32457,7 +32457,7 @@
       "post": {
         "tags": [
           "stream",
-          "practice"
+          "attempt"
         ],
         "summary": "Schema: GetPracticeRequest",
         "operationId": "GetPracticeRequest_schema_stream_GetPracticeRequest_post",
@@ -32504,7 +32504,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "practice"
+          "attempt"
         ]
       }
     },
@@ -32512,7 +32512,7 @@
       "post": {
         "tags": [
           "stream",
-          "practice"
+          "attempt"
         ],
         "summary": "Schema: GetPracticeResponse",
         "operationId": "GetPracticeResponse_schema_stream_GetPracticeResponse_post",
@@ -32559,7 +32559,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "practice"
+          "attempt"
         ]
       }
     },
@@ -33227,7 +33227,7 @@
       "post": {
         "tags": [
           "stream",
-          "session"
+          "system"
         ],
         "summary": "Schema: GetSessionDetailRequest",
         "operationId": "GetSessionDetailRequest_schema_stream_GetSessionDetailRequest_post",
@@ -33274,7 +33274,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "session"
+          "system"
         ]
       }
     },
@@ -33282,7 +33282,7 @@
       "post": {
         "tags": [
           "stream",
-          "session"
+          "system"
         ],
         "summary": "Schema: GetSessionDetailResponse",
         "operationId": "GetSessionDetailResponse_schema_stream_GetSessionDetailResponse_post",
@@ -33329,7 +33329,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "session"
+          "system"
         ]
       }
     },
@@ -33667,7 +33667,7 @@
       "post": {
         "tags": [
           "stream",
-          "invocation"
+          "test"
         ],
         "summary": "Schema: GetSuiteResponse",
         "operationId": "GetSuiteResponse_schema_stream_GetSuiteResponse_post",
@@ -33714,7 +33714,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "invocation"
+          "test"
         ]
       }
     },
@@ -33997,7 +33997,7 @@
       "post": {
         "tags": [
           "stream",
-          "health"
+          "system"
         ],
         "summary": "Schema: HealthRequest",
         "operationId": "HealthRequest_schema_stream_HealthRequest_post",
@@ -34044,7 +34044,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "health"
+          "system"
         ]
       }
     },
@@ -34052,7 +34052,7 @@
       "post": {
         "tags": [
           "stream",
-          "health"
+          "system"
         ],
         "summary": "Schema: HealthResponse",
         "operationId": "HealthResponse_schema_stream_HealthResponse_post",
@@ -34099,7 +34099,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "health"
+          "system"
         ]
       }
     },
@@ -34107,7 +34107,7 @@
       "post": {
         "tags": [
           "stream",
-          "leaderboard"
+          "attempt"
         ],
         "summary": "Schema: LeaderboardRequest",
         "operationId": "LeaderboardRequest_schema_stream_LeaderboardRequest_post",
@@ -34154,7 +34154,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "leaderboard"
+          "attempt"
         ]
       }
     },
@@ -34162,7 +34162,7 @@
       "post": {
         "tags": [
           "stream",
-          "leaderboard"
+          "attempt"
         ],
         "summary": "Schema: LeaderboardResponse",
         "operationId": "LeaderboardResponse_schema_stream_LeaderboardResponse_post",
@@ -34209,7 +34209,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "leaderboard"
+          "attempt"
         ]
       }
     },
@@ -34217,7 +34217,7 @@
       "post": {
         "tags": [
           "stream",
-          "activity"
+          "agents"
         ],
         "summary": "Schema: OperationErrorEvent",
         "operationId": "OperationErrorEvent_schema_stream_OperationErrorEvent_post",
@@ -34264,7 +34264,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "activity"
+          "agents"
         ]
       }
     },
@@ -36362,7 +36362,7 @@
       "post": {
         "tags": [
           "stream",
-          "record"
+          "attempt"
         ],
         "summary": "Schema: RecordRequest",
         "operationId": "RecordRequest_schema_stream_RecordRequest_post",
@@ -36409,7 +36409,7 @@
         ],
         "x-cache-tags": [
           "stream",
-          "record"
+          "attempt"
         ]
       }
     },
@@ -84671,6 +84671,21 @@
             ],
             "title": "Mcp Options",
             "description": "Curated per-agent options for the MCP picker"
+          },
+          "login_options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingLoginOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Login Options",
+            "description": "Curated (auth \u00d7 profile) options for the Logins picker"
           }
         },
         "type": "object",
@@ -109441,6 +109456,21 @@
             "title": "Mcp Values",
             "description": "Inline-creatable mcp value entries"
           },
+          "logins": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingLoginDraftValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logins",
+            "description": "Inline-creatable logins_resource value entries (auth or profile buttons)"
+          },
           "pending_ids": {
             "anyOf": [
               {
@@ -126178,6 +126208,167 @@
         "type": "object",
         "title": "SettingKeyCatalogResource"
       },
+      "SettingLoginDraftValue": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Existing logins_resource id when known"
+          },
+          "login_type": {
+            "type": "string",
+            "title": "Login Type",
+            "description": "'auth' or 'profile'"
+          },
+          "auth_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Id",
+            "description": "Auth id \u2014 required when login_type='auth'"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id",
+            "description": "Profile id \u2014 required when login_type='profile'"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "Override label; falls back to Auth/Profile catalog name"
+          },
+          "icon_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Id",
+            "description": "Override icon; falls back to defaults"
+          }
+        },
+        "type": "object",
+        "required": [
+          "login_type"
+        ],
+        "title": "SettingLoginDraftValue",
+        "description": "Draft value object for an inline-creatable logins_resource row."
+      },
+      "SettingLoginOption": {
+        "properties": {
+          "login_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Login Type",
+            "description": "'auth' or 'profile'"
+          },
+          "auth_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Id",
+            "description": "Auth identifier for login_type='auth'"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id",
+            "description": "Profile identifier for login_type='profile'"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "Default button label"
+          },
+          "icon_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Id",
+            "description": "Default icon (when Auth or Profile catalog provides one)"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon (when available)"
+          }
+        },
+        "type": "object",
+        "title": "SettingLoginOption",
+        "description": "Server-curated catalog option for the Logins picker."
+      },
       "SettingLoginsResource": {
         "properties": {
           "logins_id": {
@@ -140549,6 +140740,14 @@
             "type": "array",
             "title": "Mcp Values",
             "description": "Echoed mcp value entries with resolved ids"
+          },
+          "logins": {
+            "items": {
+              "$ref": "#/components/schemas/SettingLoginDraftValue"
+            },
+            "type": "array",
+            "title": "Logins",
+            "description": "Echoed logins value entries with resolved ids"
           },
           "pending_ids": {
             "items": {

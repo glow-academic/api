@@ -25,7 +25,6 @@ from app.infra.persona.permissions import (
     has_access,
 )
 from app.infra.persona.permissions_context import resolve_persona_permissions_context
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.persona.types import (
     CreatePersonaApiRequest,
     CreatePersonaApiResponse,
@@ -43,6 +42,7 @@ from app.infra.persona.types import (
     UpdatePersonaApiRequest,
     UpdatePersonaApiResponse,
 )
+from app.infra.profile_identity_context import resolve_profile_identity_context
 
 EventRecord = dict[str, Any]
 

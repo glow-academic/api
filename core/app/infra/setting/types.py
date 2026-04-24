@@ -244,6 +244,28 @@ class SettingMcpDraftValue(BaseModel):
     agent_id: UUID = Field(..., description="Agent identifier")
 
 
+class SettingLoginOption(BaseModel):
+    """Server-curated catalog option for the Logins picker."""
+
+    login_type: str | None = Field(None, description="'auth' or 'profile'")
+    auth_id: UUID | None = Field(None, description="Auth identifier for login_type='auth'")
+    profile_id: UUID | None = Field(None, description="Profile identifier for login_type='profile'")
+    display_name: str | None = Field(None, description="Default button label")
+    icon_id: UUID | None = Field(None, description="Default icon (when Auth or Profile catalog provides one)")
+    icon: str | None = Field(None, description="Resolved SVG markup for the icon (when available)")
+
+
+class SettingLoginDraftValue(BaseModel):
+    """Draft value object for an inline-creatable logins_resource row."""
+
+    id: UUID | None = Field(None, description="Existing logins_resource id when known")
+    login_type: str = Field(..., description="'auth' or 'profile'")
+    auth_id: UUID | None = Field(None, description="Auth id — required when login_type='auth'")
+    profile_id: UUID | None = Field(None, description="Profile id — required when login_type='profile'")
+    display_name: str | None = Field(None, description="Override label; falls back to Auth/Profile catalog name")
+    icon_id: UUID | None = Field(None, description="Override icon; falls back to defaults")
+
+
 class SettingLoginsResource(BaseModel):
     logins_id: UUID | None = Field(None, description="Logins resource identifier")
     profile_id: UUID | None = Field(None, description="Profile for test login")
@@ -336,6 +358,7 @@ class GetSettingApiResponse(BaseModel):
     auth_item_key_options: list[SettingAuthItemKeyOption] | None = Field(None, description="Curated (auth × key) options for the AuthItemKeys picker")
     auth_item_value_options: list[SettingAuthItemValueOption] | None = Field(None, description="Curated (auth × item) options for the AuthItemValues picker")
     mcp_options: list[SettingMcpOption] | None = Field(None, description="Curated per-agent options for the MCP picker")
+    login_options: list[SettingLoginOption] | None = Field(None, description="Curated (auth × profile) options for the Logins picker")
 
 
 # ========== Generation Completion Event ==========
@@ -528,6 +551,7 @@ class PatchSettingDraftApiRequest(ScopedItem):
     auth_item_keys: list[SettingAuthItemKeyDraftValue] | None = Field(None, description="Inline-creatable (auth × key) value entries")
     auth_item_values: list[SettingAuthItemValueDraftValue] | None = Field(None, description="Inline-creatable (auth × item × value) entries")
     mcp_values: list[SettingMcpDraftValue] | None = Field(None, description="Inline-creatable mcp value entries")
+    logins: list[SettingLoginDraftValue] | None = Field(None, description="Inline-creatable logins_resource value entries (auth or profile buttons)")
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to retain as pending inactive connections")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
@@ -570,6 +594,7 @@ class DraftFormState(BaseModel):
     auth_item_keys: list[SettingAuthItemKeyDraftValue] = Field(default_factory=list, description="Echoed (auth × key) value entries with resolved ids")
     auth_item_values: list[SettingAuthItemValueDraftValue] = Field(default_factory=list, description="Echoed (auth × item × value) entries with resolved ids")
     mcp_values: list[SettingMcpDraftValue] = Field(default_factory=list, description="Echoed mcp value entries with resolved ids")
+    logins: list[SettingLoginDraftValue] = Field(default_factory=list, description="Echoed logins value entries with resolved ids")
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
 
 

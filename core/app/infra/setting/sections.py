@@ -45,6 +45,7 @@ from app.infra.setting.types import (
     SettingIconCatalogResource,
     SettingItemCatalogResource,
     SettingKeyCatalogResource,
+    SettingLoginOption,
     SettingLoginsResource,
     SettingMcpOption,
     SettingMcpResource,
@@ -432,6 +433,29 @@ def build_setting_get_result(
         for agent in setting.entries.get("agents", [])
         if agent.id
     ]
+    login_options = [
+        SettingLoginOption(
+            login_type="auth",
+            auth_id=auth.id,
+            profile_id=None,
+            display_name=auth.name,
+            icon_id=None,
+            icon=None,
+        )
+        for auth in setting.entries.get("auths", [])
+        if auth.id
+    ] + [
+        SettingLoginOption(
+            login_type="profile",
+            auth_id=None,
+            profile_id=profile.id,
+            display_name=profile.name,
+            icon_id=None,
+            icon=None,
+        )
+        for profile in setting.entries.get("profiles", [])
+        if profile.id
+    ]
 
     basic_show_ai_generate = compute_can_draft(
         role_level=actor.role_level,
@@ -491,4 +515,5 @@ def build_setting_get_result(
         auth_item_key_options=auth_item_key_options,
         auth_item_value_options=auth_item_value_options,
         mcp_options=mcp_options,
+        login_options=login_options,
     )

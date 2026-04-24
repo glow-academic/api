@@ -1,16 +1,18 @@
-"""Health event declarations for centralized delivery."""
+"""Health operation event configs (contributed to the ``system`` parent).
+
+Post 19→3 consolidation, health is nested under the ``system`` artifact.
+"""
 
 from app.events.types import (
-    ArtifactEventsConfig,
     OperationErrorEvent,
     OperationEventConfig,
     require_authenticated_profile,
 )
 from app.infra.health.types import HealthRequest, HealthResponse
 
-HEALTH_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
-    "get": OperationEventConfig(
-        operation="get",
+HEALTH_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
+    "health_get": OperationEventConfig(
+        operation="health_get",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -19,23 +21,13 @@ HEALTH_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": HealthResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.health.viewed": None},
+        domain_events={"artifacts.system.health_viewed": None},
     ),
-    "refresh": OperationEventConfig(
-        operation="refresh",
-        domain_events={"artifacts.health.refreshed": None},
+    "health_refresh": OperationEventConfig(
+        operation="health_refresh",
+        domain_events={"artifacts.system.health_refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
     ),
 }
-
-HEALTH_EVENTS = ArtifactEventsConfig(
-    artifact="health",
-    operations=HEALTH_EVENT_CONFIGS,
-)
-
-
-def get_health_event_config(operation: str) -> OperationEventConfig | None:
-    """Resolve event policy for a health operation."""
-    return HEALTH_EVENTS.get_operation(operation)

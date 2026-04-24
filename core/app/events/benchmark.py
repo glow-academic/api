@@ -1,16 +1,18 @@
-"""Benchmark event declarations for centralized delivery."""
+"""Benchmark operation event configs (contributed to the ``test`` parent).
+
+Post 19→3 consolidation, benchmark is nested under the ``test`` artifact.
+"""
 
 from app.events.types import (
-    ArtifactEventsConfig,
     OperationErrorEvent,
     OperationEventConfig,
     require_authenticated_profile,
 )
 from app.infra.benchmark.types import BenchmarkRequest, BenchmarkResponse
 
-BENCHMARK_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
-    "get": OperationEventConfig(
-        operation="get",
+BENCHMARK_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
+    "benchmark_get": OperationEventConfig(
+        operation="benchmark_get",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -19,23 +21,13 @@ BENCHMARK_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": BenchmarkResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.benchmark.viewed": None},
+        domain_events={"artifacts.test.benchmark_viewed": None},
     ),
-    "refresh": OperationEventConfig(
-        operation="refresh",
-        domain_events={"artifacts.benchmark.refreshed": None},
+    "benchmark_refresh": OperationEventConfig(
+        operation="benchmark_refresh",
+        domain_events={"artifacts.test.benchmark_refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
     ),
 }
-
-BENCHMARK_EVENTS = ArtifactEventsConfig(
-    artifact="benchmark",
-    operations=BENCHMARK_EVENT_CONFIGS,
-)
-
-
-def get_benchmark_event_config(operation: str) -> OperationEventConfig | None:
-    """Resolve event policy for a benchmark operation."""
-    return BENCHMARK_EVENTS.get_operation(operation)
