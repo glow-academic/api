@@ -258,11 +258,13 @@ async def resolve_setting_context(
         if _selected_only(colors_selected_only):
             return []
         async with pool.acquire() as conn:
+            # 500 — the per-role Color pickers need the full catalog (~60
+            # rows across 10 roles) so each role group has options.
             return await search_colors(
                 conn,
                 redis,
                 search=colors_search,
-                limit_count=_coalesce_limit(colors_limit, 20),
+                limit_count=_coalesce_limit(colors_limit, 500),
                 offset_count=0,
                 draft_id=group_id,
                 suggest_source="recent" if setting_id else "all",
