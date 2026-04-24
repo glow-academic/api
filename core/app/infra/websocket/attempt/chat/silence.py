@@ -1,4 +1,4 @@
-"""Internal impl for attempt_audio_stop — shared by WebSocket and HTTP.
+"""Internal impl for attempt_chat_silence — shared by WebSocket and HTTP.
 
 Records conversation completion in DB and emits attempt.generate.audio.session_complete.
 """
@@ -25,7 +25,7 @@ class AudioStopInternalResult(BaseModel):
     stopped: bool = True
 
 
-async def attempt_audio_stop_internal_impl(
+async def attempt_chat_silence_internal_impl(
     data: dict[str, Any],
 ) -> AudioStopInternalResult:
     """Run canonical audio stop orchestration for any surface.

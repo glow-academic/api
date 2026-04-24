@@ -220,13 +220,21 @@ def build_setting_get_result(
         )
         for item in all_departments
     ]
+    # Build an icon_id → SVG lookup from the icons catalog so each login row
+    # comes pre-hydrated (client renders the SVG directly instead of the
+    # generic LogIn placeholder).
+    _icon_svg_by_id: dict = {
+        icon.id: getattr(icon, "value", None)
+        for icon in setting.entries.get("icons", [])
+        if getattr(icon, "id", None)
+    }
     logins = [
         SettingLoginsResource(
             logins_id=item.id,
             profile_id=item.profile_id,
             auth_id=item.auth_id,
             icon_id=item.icon_id,
-            icon=None,
+            icon=_icon_svg_by_id.get(item.icon_id) if item.icon_id else None,
             display_name=item.display_name,
             login_type=item.login_type,
             generated=item.generated,

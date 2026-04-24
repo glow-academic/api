@@ -1,23 +1,23 @@
-"""Input: attempt.audio_start"""
+"""Input: attempt.chat.voice"""
 
 from typing import Any
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
-from app.infra.websocket.attempt.audio_start import (
-    attempt_audio_start_internal_impl,
+from app.infra.websocket.attempt.chat.voice import (
+    attempt_chat_voice_internal_impl,
 )
 
 
 @sio.on("attempt.chat.voice")  # type: ignore
-async def attempt_audio_start(sid: str, data: dict[str, Any]) -> dict[str, Any]:
+async def attempt_chat_voice(sid: str, data: dict[str, Any]) -> dict[str, Any]:
     identity = await resolve_socket_identity(sid)
     if not identity:
         return {"success": False}
 
     async def _runner() -> dict[str, Any]:
-        result = await attempt_audio_start_internal_impl({
+        result = await attempt_chat_voice_internal_impl({
             **data,
             "sid": sid,
             "profile_id": str(identity.profile_id),

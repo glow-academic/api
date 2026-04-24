@@ -176,23 +176,36 @@ ATTEMPT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "artifacts.attempt.chat.stopped": AttemptStoppedEvent,
         },
     ),
-    "audio": OperationEventConfig(
-        operation="audio",
+    "chat_voice": OperationEventConfig(
+        operation="chat_voice",
         scope="entity",
         entity_key="attempt_id",
         can_subscribe=require_authenticated_profile,
         project_domain_from_audit=False,
         lifecycle_models={
             "started": AttemptAudioStartPayload,
-            "completed": AttemptAudioEndedEvent,
+            "completed": AttemptAudioReadyEvent,
             "failed": OperationErrorEvent,
         },
         domain_events={
             "artifacts.attempt.chat.voice.start": AttemptAudioReadyEvent,
             "artifacts.attempt.chat.voice.progress": AttemptAssistantProgressEvent,
-            "artifacts.attempt.chat.voice.complete": AttemptAudioEndedEvent,
         },
         filter_events=default_filter_events,
+    ),
+    "chat_silence": OperationEventConfig(
+        operation="chat_silence",
+        scope="entity",
+        entity_key="chat_id",
+        can_subscribe=require_authenticated_profile,
+        project_domain_from_audit=False,
+        lifecycle_models={
+            "completed": AttemptAudioEndedEvent,
+            "failed": OperationErrorEvent,
+        },
+        domain_events={
+            "artifacts.attempt.chat.voice.complete": AttemptAudioEndedEvent,
+        },
     ),
     "refresh": OperationEventConfig(
         operation="refresh",

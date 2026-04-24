@@ -1,4 +1,4 @@
-"""Internal impl for attempt_audio_start — shared by WebSocket and HTTP.
+"""Internal impl for attempt_chat_voice — shared by WebSocket and HTTP.
 
 Canonical per generate redesign: opens a realtime conversation and returns
 its id. No AI dispatch here — the client separately calls /attempt/generate
@@ -31,7 +31,7 @@ class AudioStartInternalResult(BaseModel):
     group_id: str
 
 
-async def attempt_audio_start_internal_impl(
+async def attempt_chat_voice_internal_impl(
     data: dict[str, Any],
 ) -> AudioStartInternalResult:
     """Open a realtime conversation for a chat and return its id.
@@ -46,11 +46,11 @@ async def attempt_audio_start_internal_impl(
 
     profile_id_str = data.get("profile_id")
     if not profile_id_str:
-        raise ValueError("Missing profile_id for attempt_audio_start")
+        raise ValueError("Missing profile_id for attempt_chat_voice")
 
     session_id_str = data.get("session_id")
     if not session_id_str:
-        raise ValueError("Missing session_id for attempt_audio_start")
+        raise ValueError("Missing session_id for attempt_chat_voice")
 
     profile_id = uuid.UUID(str(profile_id_str))
     session_id = uuid.UUID(str(session_id_str))
