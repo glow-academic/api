@@ -183,6 +183,7 @@ def build_setting_get_result(
             name=item.name,
             description=item.description,
             hex_code=item.hex_code,
+            type=getattr(item, "type", None),
             generated=item.generated,
             suggested=_decorate(item.id, "colors")[0],
             selected=_decorate(item.id, "colors")[1],

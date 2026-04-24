@@ -34,6 +34,7 @@ class SettingColorResource(BaseModel):
     name: str | None = Field(None, description="Color display name")
     description: str | None = Field(None, description="Color description")
     hex_code: str | None = Field(None, description="Hex color value")
+    type: str | None = Field(None, description="Color role — 'primary', 'secondary', 'accent', etc.")
     generated: bool | None = Field(None, description="Whether the color was AI-generated")
     suggested: bool = Field(False, description="Whether this item is suggested")
     selected: bool = Field(False, description="Whether this item is selected")

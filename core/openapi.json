@@ -125719,6 +125719,18 @@
             "title": "Hex Code",
             "description": "Hex color value"
           },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Color role \u2014 'primary', 'secondary', 'accent', etc."
+          },
           "generated": {
             "anyOf": [
               {
