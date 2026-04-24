@@ -28,7 +28,7 @@ from app.infra.tool.types import (
     ToolArgPositionResource,
     ToolArgResource,
     ToolDescriptionResource,
-    ToolFlagConfig,
+    ToolFlagResource,
     ToolNameResource,
     ToolPermissionResource,
 )
@@ -257,21 +257,21 @@ async def get_tool_impl(
         for item in all_descriptions
     ]
     flags = [
-        ToolFlagConfig(
-            key=derive_flag_key_and_label(item.name)[0],
-            label=derive_flag_key_and_label(item.name)[1],
+        ToolFlagResource(
+            id=item.id,
+            name=getattr(item, "name", None),
+            type=getattr(item, "type", None),
+            value=getattr(item, "value", None),
             description=item.description,
-            icon_id=item.icon_id,
+            icon_id=getattr(item, "icon_id", None),
             icon=getattr(item, "icon", None),
-            flag_option_id=item.id,
-            show=compute_show_flag(),
-            required=compute_flag_required(),
             generated=item.generated,
             selected=item.id in selected_ids["flags"],
             suggested=item.id in suggested_ids["flags"],
             pending=_pending(item.id),
         )
         for item in all_flags
+        if item.id
     ]
     args = [
         ToolArgResource(

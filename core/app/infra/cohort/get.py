@@ -276,14 +276,10 @@ async def get_cohort_impl(
         item.id for item in cohort.resources["profile_personas"].selected if item.id
     }
 
-    from app.infra.cohort.permissions import (
-        compute_flag_required,
-        compute_show_flag,
-    )
     from app.infra.cohort.types import (
         CohortDepartment,
         CohortDescriptionResource,
-        CohortFlagConfig,
+        CohortFlagResource,
         CohortNameResource,
         CohortPersonaResource,
         CohortProfile,
@@ -330,15 +326,15 @@ async def get_cohort_impl(
         selected_ids=selected_flags,
         suggested_ids=suggested_flags,
         pending_ids=pending_ids,
-        model_cls=CohortFlagConfig,
+        model_cls=CohortFlagResource,
         transform=lambda item: {
-            "key": item.name,
-            "label": item.name,
+            "id": item.id,
+            "name": getattr(item, "name", None),
+            "type": getattr(item, "type", None),
+            "value": getattr(item, "value", None),
             "description": item.description,
             "icon_id": item.icon_id,
-            "flag_option_id": item.id,
-            "show": compute_show_flag(),
-            "required": compute_flag_required(),
+            "icon": getattr(item, "icon", None),
             "generated": item.generated,
         },
         section="flags",

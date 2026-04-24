@@ -127,21 +127,20 @@ class SimulationDraftEntry(BaseModel):
     scenario_time_limit_ids: list[UUID] | None = Field(None, description="Selected scenario time limit UUIDs")
 
 
-class SimulationFlagConfig(BaseModel):
-    """Enriched flag config for direct client consumption."""
+class SimulationFlagResource(BaseModel):
+    """Flag option row — one per (name, type, value) entry in flags_resource."""
 
-    key: str = Field(..., description="Flag config key identifier")
-    label: str = Field(..., description="Display label for the flag")
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type (e.g. 'simulation_active', 'practice')")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
     description: str | None = Field(None, description="Flag description text")
-    icon_id: UUID | None = Field(None, description="UUID of the selected icon resource")
-    icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
-    flag_option_id: UUID | None = Field(None, description="UUID of the flag option")
-    show: bool = Field(True, description="Whether to show this flag in the UI")
-    required: bool = Field(False, description="Whether this flag is required")
-    generated: bool | None = Field(None, description="Whether this was AI-generated")
-    suggested: bool = Field(False, description="Whether this is a suggested option")
-    selected: bool = Field(False, description="Whether this is currently selected")
-    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+    icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
+    icon: str | None = Field(None, description="Resolved SVG markup (hydrated from icons_resource)")
+    generated: bool | None = Field(None, description="Whether the flag was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
 class SimulationDepartment(BaseModel):
@@ -187,7 +186,7 @@ class SimulationResourceBucket(BaseModel):
 
     names: list[SimulationNameResource] | None = Field(None, description="List of name resources")
     descriptions: list[SimulationDescriptionResource] | None = Field(None, description="List of description resources")
-    flags: list[SimulationFlagConfig] | None = Field(None, description="List of flag configs")
+    flags: list[SimulationFlagResource] | None = Field(None, description="List of flag configs")
     departments: list[SimulationDepartment] | None = Field(None, description="List of department resources")
     scenarios: list[SimulationScenario] | None = Field(None, description="List of scenario resources")
     scenario_flags: list[SimulationScenarioFlag] | None = Field(None, description="List of scenario flag resources")
@@ -442,7 +441,7 @@ class GetSimulationApiResponse(BaseModel):
 
     names: list[SimulationNameResource] | None = Field(None, description="Name resources with selected/suggested flags")
     descriptions: list[SimulationDescriptionResource] | None = Field(None, description="Description resources with selected/suggested flags")
-    flags: list[SimulationFlagConfig] | None = Field(None, description="Flag configs with selected/suggested flags")
+    flags: list[SimulationFlagResource] | None = Field(None, description="Flag configs with selected/suggested flags")
     departments: list[SimulationDepartment] | None = Field(None, description="Department resources with selected/suggested flags")
     scenarios: list[SimulationScenario] | None = Field(None, description="Scenario resources with selected/suggested flags")
     scenario_flags: list[SimulationScenarioFlag] | None = Field(None, description="Scenario flag resources with selected/suggested flags")
@@ -795,6 +794,8 @@ class PatchSimulationDraftApiRequest(ScopedItem):
         "description": "descriptions",
         "description_id": "descriptions",
         "flag_ids": "flags",
+        "active": "flags",
+        "practice": "flags",
         "department_ids": "departments",
         "scenario_ids": "scenarios",
         "scenario_flag_ids": "scenario_flags",
@@ -817,7 +818,10 @@ class PatchSimulationDraftApiRequest(ScopedItem):
     description_id: UUID | None = Field(None, description="UUID of the description resource")
 
     # Non-creatable — ID-only
-    flag_ids: list[UUID] | None = Field(None, description="Associated flag UUIDs")
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    # Denormalized booleans — resolved server-side to flag_ids entries via (type, value) lookup.
+    active: bool | None = Field(None, description="Denormalized simulation_active flag state")
+    practice: bool | None = Field(None, description="Denormalized practice flag state")
     department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
     scenario_ids: list[UUID] | None = Field(None, description="Associated scenario UUIDs")
 
@@ -846,6 +850,8 @@ class DraftFormState(BaseModel):
     description_id: UUID | None = Field(None, description="UUID of the selected description resource")
     description: str | None = Field(None, description="Saved description value")
     flag_ids: list[UUID] = Field([], description="Selected flag UUIDs")
+    active: bool | None = Field(None, description="Echoed simulation_active flag state")
+    practice: bool | None = Field(None, description="Echoed practice flag state")
     department_ids: list[UUID] = Field([], description="Selected department UUIDs")
     scenario_ids: list[UUID] = Field([], description="Selected scenario UUIDs")
     scenario_flag_ids: list[UUID] = Field([], description="Selected scenario flag UUIDs")

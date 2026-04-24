@@ -157,8 +157,6 @@ async def create_agent_impl(
         async with conn.transaction():
             for idx, item in enumerate(items):
                 combined_flag_ids = list(item.flag_ids or [])
-                if item.active_flag_id:
-                    combined_flag_ids.append(item.active_flag_id)
 
                 result = await create_agent_artifact(
                     conn,

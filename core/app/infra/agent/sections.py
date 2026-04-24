@@ -46,7 +46,7 @@ from app.infra.types import ArtifactContext
 from app.infra.agent.types import (
     AgentDepartmentSection,
     AgentDescriptionSection,
-    AgentFlagConfig,
+    AgentFlagResource,
     AgentFlagSection,
     AgentInstructionSection,
     AgentModelSection,
@@ -184,30 +184,28 @@ def build_agent_get_result(
         agent_ctx.resources["flags"].suggestions + agent_ctx.resources["flags"].selected
     )
     agent_flags = [
-        AgentFlagConfig(
-            key=derive_flag_key_and_label(flag.name)[0],
-            label=derive_flag_key_and_label(flag.name)[1],
+        AgentFlagResource(
+            id=flag.id,
+            name=getattr(flag, "name", None),
+            type=getattr(flag, "type", None),
+            value=getattr(flag, "value", None),
             description=flag.description,
             icon_id=flag.icon_id,
             icon=flag.icon,
-            flag_option_id=flag.id,
-            show=show_flags_map.get("flags", True),
-            required=required_flags_map.get("flags", False),
             generated=flag.generated,
         )
         for flag in all_flags
         if flag.id
     ]
     current_flags = [
-        AgentFlagConfig(
-            key=derive_flag_key_and_label(flag.name)[0],
-            label=derive_flag_key_and_label(flag.name)[1],
+        AgentFlagResource(
+            id=flag.id,
+            name=getattr(flag, "name", None),
+            type=getattr(flag, "type", None),
+            value=getattr(flag, "value", None),
             description=flag.description,
             icon_id=flag.icon_id,
             icon=flag.icon,
-            flag_option_id=flag.id,
-            show=show_flags_map.get("flags", True),
-            required=required_flags_map.get("flags", False),
             generated=flag.generated,
         )
         for flag in agent_ctx.resources["flags"].selected

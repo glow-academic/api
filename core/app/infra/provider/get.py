@@ -41,7 +41,7 @@ from app.infra.provider.types import (
     ProviderDepartmentResource,
     ProviderDescriptionResource,
     ProviderEndpointResource,
-    ProviderFlagConfig,
+    ProviderFlagResource,
     ProviderKeyResource,
     ProviderNameResource,
     ProviderValueResource,
@@ -304,21 +304,21 @@ async def get_provider_impl(
         for item in all_descriptions
     ]
     flags = [
-        ProviderFlagConfig(
-            key=derive_flag_key_and_label(item.name)[0],
-            label=derive_flag_key_and_label(item.name)[1],
+        ProviderFlagResource(
+            id=item.id,
+            name=getattr(item, "name", None),
+            type=getattr(item, "type", None),
+            value=getattr(item, "value", None),
             description=item.description,
-            icon_id=item.icon_id,
+            icon_id=getattr(item, "icon_id", None),
             icon=getattr(item, "icon", None),
-            flag_option_id=item.id,
-            show=show_flags_map["flags"],
-            required=required_flags_map["flags"],
             generated=item.generated,
             suggested=_decorate(item.id, "flags")[0],
             selected=_decorate(item.id, "flags")[1],
             pending=_decorate(item.id, "flags")[2],
         )
         for item in all_flags
+        if item.id
     ]
     departments = [
         ProviderDepartmentResource(

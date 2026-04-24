@@ -37,6 +37,7 @@ from app.tools.resources.files.create import create_file as create_file_resource
 from app.tools.resources.images.create import create_image as create_image_resource
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.texts.create import create_text as create_text_resource
 
 
@@ -138,6 +139,48 @@ async def _resolve_creatable_values(
             created_ids.append(text_resource.id)
         request.text_ids = (request.text_ids or []) + created_ids
 
+    # Resolve denormalized flag booleans to canonical flag_ids via (type, value)
+    # lookup in flags_resource. Explicit flag_ids are retained verbatim; the
+    # derived id is merged in so both forms coexist without conflict.
+    denorm_flag_values: dict[str, bool] = {}
+    if request.active is not None:
+        denorm_flag_values["document_active"] = bool(request.active)
+    if denorm_flag_values:
+        all_flags = await search_flags(
+            conn,
+            redis,
+            search=None,
+            limit_count=200,
+            bypass_cache=True,
+        )
+        resolved_flag_ids: list[UUID] = list(request.flag_ids or [])
+        resolved_seen = set(resolved_flag_ids)
+        for flag_type, desired_value in denorm_flag_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_flags
+                    if (getattr(f, "type", None) == flag_type
+                        or getattr(f, "name", None) == flag_type)
+                    and getattr(f, "value", None) is desired_value
+                ),
+                None,
+            )
+            if match and match.id and match.id not in resolved_seen:
+                resolved_flag_ids.append(match.id)
+                resolved_seen.add(match.id)
+            elif not match:
+                errors.append(
+                    SaveDocumentFieldError(
+                        field=flag_type,
+                        message=(
+                            f"Flag row not found for type={flag_type} "
+                            f"value={desired_value}"
+                        ),
+                    )
+                )
+        request.flag_ids = resolved_flag_ids
+
     if request.images:
         created_ids: list[UUID] = []
         for image_val in request.images:
@@ -196,6 +239,7 @@ async def patch_document_draft_impl(
                 "parameter_ids",
                 "pending_ids",
             },
+            bool_fields={"active"},
             value_id_pairs=[
                 ("name", "name_id"),
                 ("description", "description_id"),
@@ -310,12 +354,35 @@ async def patch_document_draft_impl(
                 profile_ids=[profile.profiles_id],
             )
 
+    # Re-derive denormalized flag booleans from the final flag_ids so the client
+    # echo matches whatever the server actually persisted.
+    echoed_active: bool | None = request.active
+    if request.flag_ids:
+        async with pool.acquire() as conn:
+            flag_rows = await search_flags(
+                conn,
+                redis,
+                search=None,
+                limit_count=200,
+                bypass_cache=True,
+            )
+        rows_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+        for fid in request.flag_ids:
+            row = rows_by_id.get(fid)
+            if not row:
+                continue
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            rval = getattr(row, "value", None)
+            if rtype == "document_active":
+                echoed_active = rval
+
     form_state = DraftFormState(
         name=None if request.name_id else request.name,
         name_id=request.name_id,
         description=None if request.description_id else request.description,
         description_id=request.description_id,
         flag_ids=request.flag_ids or [],
+        active=echoed_active,
         department_ids=request.department_ids or [],
         file_ids=request.file_ids or [],
         image_ids=request.image_ids or [],

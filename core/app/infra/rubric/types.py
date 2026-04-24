@@ -30,21 +30,20 @@ class RubricDescriptionResource(BaseModel):
     pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class RubricFlagConfig(BaseModel):
-    """Enriched flag config for direct client consumption."""
+class RubricFlagResource(BaseModel):
+    """Flag option row — one per (name, type, value) entry in flags_resource."""
 
-    key: str = Field(..., description="Flag key identifier")
-    label: str = Field(..., description="Display label")
-    description: str | None = Field(None, description="Flag description")
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type (e.g. 'rubric_active', 'simulation_rubric', 'video_rubric')")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
+    description: str | None = Field(None, description="Flag description text")
     icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
-    icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
-    flag_option_id: UUID | None = Field(None, description="Selected flag option UUID")
-    show: bool = Field(True, description="Whether to show this flag in the UI")
-    required: bool = Field(False, description="Whether this flag is required")
-    generated: bool | None = Field(None, description="Whether this was AI-generated")
-    suggested: bool = Field(False, description="Whether this is a suggested option")
-    selected: bool = Field(False, description="Whether this is currently selected")
-    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+    icon: str | None = Field(None, description="Resolved SVG markup (hydrated from icons_resource)")
+    generated: bool | None = Field(None, description="Whether the flag was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
 class RubricDepartmentResource(BaseModel):
@@ -150,7 +149,7 @@ class GetRubricApiResponse(BaseModel):
     pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
     names: list[RubricNameResource] | None = Field(None, description="Name resources")
     descriptions: list[RubricDescriptionResource] | None = Field(None, description="Description resources")
-    flags: list[RubricFlagConfig] | None = Field(None, description="Flag configs")
+    flags: list[RubricFlagResource] | None = Field(None, description="Flag resources (one per flags_resource row, value=true/false)")
     departments: list[RubricDepartmentResource] | None = Field(None, description="Department resources")
     points: list[RubricPointResource] | None = Field(None, description="Point resources")
     standard_groups: list[RubricStandardGroupResource] | None = Field(None, description="Standard group resources")
@@ -356,6 +355,21 @@ class RubricStandardDraftValue(BaseModel):
     standard_group_id: UUID = Field(..., description="Parent standard group UUID (row)")
 
 
+class RubricStandardGroupDraftValue(BaseModel):
+    """Value-object for authoring a standard group inline from the rubric editor.
+
+    Entries without `id` are created server-side; resulting IDs merge into
+    standard_group_ids. Group-level `points`/`pass_points` drive the grid's
+    column count and passing threshold per row.
+    """
+
+    id: UUID | None = Field(None, description="Existing standard group UUID, if any")
+    name: str = Field(..., description="Group display name")
+    description: str = Field("", description="Group description")
+    points: int = Field(0, description="Max points for this group (drives grid columns)")
+    pass_points: int = Field(0, description="Passing threshold for this group")
+
+
 class PatchRubricDraftApiRequest(ScopedItem):
     """Request model for new-style rubric draft endpoint.
 
@@ -374,16 +388,13 @@ class PatchRubricDraftApiRequest(ScopedItem):
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
-        "active_flag": "flags",
-        "active_flag_id": "flags",
-        "flag_id": "flags",
-        "simulation_rubric_flag_id": "flags",
-        "video_rubric_flag_id": "flags",
+        "flag_ids": "flags",
         "departments": "departments",
         "department_ids": "departments",
         "pass_points_id": "points",
         "pass_points": "points",
         "standard_group_ids": "standard_groups",
+        "standard_groups": "standard_groups",
         "standard_ids": "standards",
         "standards": "standards",
     }
@@ -397,15 +408,15 @@ class PatchRubricDraftApiRequest(ScopedItem):
     description: str | None = Field(None, description="Description value to create a resource")
     description_id: UUID | None = Field(None, description="Existing description resource UUID")
 
-    active_flag: bool | None = Field(None, description="Whether the rubric is active")
-    active_flag_id: UUID | None = Field(None, description="Active flag option UUID")
-    flag_id: UUID | None = Field(None, description="Flag option UUID")
-    simulation_rubric_flag_id: UUID | None = Field(
-        None, description="Simulation rubric flag resource UUID"
+    # Canonical flag state — ids of the selected flag-resource rows (may span
+    # multiple flag types: rubric_active, simulation_rubric, video_rubric).
+    flag_ids: list[UUID] | None = Field(
+        None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value"
     )
-    video_rubric_flag_id: UUID | None = Field(
-        None, description="Video rubric flag resource UUID"
-    )
+    # Denormalized per-type booleans; resolved to flag_ids entries server-side.
+    active: bool | None = Field(None, description="Denormalized rubric_active flag state")
+    simulation_rubric: bool | None = Field(None, description="Denormalized simulation_rubric flag state")
+    video_rubric: bool | None = Field(None, description="Denormalized video_rubric flag state")
     departments: list[str] | None = Field(None, description="Department names to resolve")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     # Pass points — dual-mode. Total is computed server-side from standards
@@ -413,6 +424,10 @@ class PatchRubricDraftApiRequest(ScopedItem):
     pass_points_id: UUID | None = Field(None, description="Pass-type Points resource UUID")
     pass_points: int | None = Field(None, description="Pass points value (resolves to a pass-type Points resource)")
     standard_group_ids: list[UUID] | None = Field(None, description="Standard group UUIDs")
+    standard_groups: list[RubricStandardGroupDraftValue] | None = Field(
+        None,
+        description="Inline-created standard groups. Entries without id are created; resulting IDs merge into standard_group_ids.",
+    )
     standard_ids: list[UUID] | None = Field(None, description="Standard UUIDs")
     standards: list[RubricStandardDraftValue] | None = Field(
         None,
@@ -430,14 +445,10 @@ class DraftFormState(BaseModel):
     name: str | None = Field(None, description="Echoed name value")
     description_id: UUID | None = Field(None, description="Selected description resource UUID")
     description: str | None = Field(None, description="Echoed description value")
-    flag_id: UUID | None = Field(None, description="Selected flag option UUID")
-    active_flag_id: UUID | None = Field(None, description="Selected active flag option UUID")
-    simulation_rubric_flag_id: UUID | None = Field(
-        None, description="Selected simulation_rubric flag option UUID"
-    )
-    video_rubric_flag_id: UUID | None = Field(
-        None, description="Selected video_rubric flag option UUID"
-    )
+    flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Echoed rubric_active flag state")
+    simulation_rubric: bool | None = Field(None, description="Echoed simulation_rubric flag state")
+    video_rubric: bool | None = Field(None, description="Echoed video_rubric flag state")
     department_ids: list[UUID] = Field(default_factory=list, description="Selected department UUIDs")
     # Pass points (normalized + denormalized). Total points are computed
     # server-side from standards and exposed on reads alongside.
@@ -446,6 +457,10 @@ class DraftFormState(BaseModel):
     total_points_id: UUID | None = Field(None, description="Total-type Points resource UUID (computed)")
     total_points: int | None = Field(None, description="Denormalized total points value (sum of standards)")
     standard_group_ids: list[UUID] = Field(default_factory=list, description="Selected standard group UUIDs")
+    standard_groups: list[RubricStandardGroupDraftValue] = Field(
+        default_factory=list,
+        description="Resolved inline-created standard groups (all ids filled in).",
+    )
     standard_ids: list[UUID] = Field(default_factory=list, description="Selected standard UUIDs")
     standards: list[RubricStandardDraftValue] = Field(
         default_factory=list,

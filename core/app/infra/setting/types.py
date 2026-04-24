@@ -40,15 +40,16 @@ class SettingColorResource(BaseModel):
     pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
-class SettingFlagConfig(BaseModel):
-    key: str = Field(..., description="Flag key identifier")
-    label: str = Field(..., description="Human-readable flag label")
+class SettingFlagResource(BaseModel):
+    """Flag option row — one per (name, type, value) entry in flags_resource."""
+
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type (e.g. 'setting_active', 'mcp')")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
     description: str | None = Field(None, description="Flag description text")
     icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
-    icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
-    flag_option_id: UUID | None = Field(None, description="UUID of the flag option to use when enabling")
-    show: bool = Field(True, description="Whether the flag is visible to the client")
-    required: bool = Field(False, description="Whether the flag is required")
+    icon: str | None = Field(None, description="Resolved SVG markup (hydrated from icons_resource)")
     generated: bool | None = Field(None, description="Whether the flag was AI-generated")
     suggested: bool = Field(False, description="Whether this item is suggested")
     selected: bool = Field(False, description="Whether this item is selected")
@@ -169,6 +170,80 @@ class SettingAgentCatalogResource(BaseModel):
     description: str | None = Field(None, description="Agent description")
 
 
+class SettingProviderKeyOption(BaseModel):
+    """Server-curated (provider × key) catalog option for the ProviderKeys picker."""
+
+    provider_id: UUID | None = Field(None, description="Provider identifier")
+    key_id: UUID | None = Field(None, description="Key identifier")
+    provider_name: str | None = Field(None, description="Provider display name")
+    key_name: str | None = Field(None, description="Key display name")
+    masked_key: str | None = Field(None, description="Masked key value for display")
+
+
+class SettingAuthItemKeyOption(BaseModel):
+    """Server-curated (auth × item × key) catalog option for the AuthItemKeys picker."""
+
+    auth_id: UUID | None = Field(None, description="Auth provider identifier")
+    item_id: UUID | None = Field(None, description="Claim item identifier")
+    key_id: UUID | None = Field(None, description="Key identifier")
+    auth_name: str | None = Field(None, description="Auth display name")
+    item_name: str | None = Field(None, description="Claim item display name")
+    key_name: str | None = Field(None, description="Key display name")
+    masked_key: str | None = Field(None, description="Masked key value for display")
+
+
+class SettingAuthItemValueOption(BaseModel):
+    """Server-curated (auth × item) catalog option for the AuthItemValues picker."""
+
+    auth_id: UUID | None = Field(None, description="Auth provider identifier")
+    item_id: UUID | None = Field(None, description="Claim item identifier")
+    auth_name: str | None = Field(None, description="Auth display name")
+    item_name: str | None = Field(None, description="Claim item display name")
+    item_description: str | None = Field(None, description="Claim item description")
+    encrypted: bool | None = Field(None, description="Whether the value must be stored encrypted")
+
+
+class SettingMcpOption(BaseModel):
+    """Server-curated per-agent catalog option for the MCP picker."""
+
+    agent_id: UUID | None = Field(None, description="Agent identifier")
+    agent_name: str | None = Field(None, description="Agent display name")
+    agent_description: str | None = Field(None, description="Agent description")
+
+
+class SettingProviderKeyDraftValue(BaseModel):
+    """Draft value object for an inline-creatable (provider × key) pair."""
+
+    id: UUID | None = Field(None, description="Existing provider_keys_resource id when known")
+    provider_id: UUID = Field(..., description="Provider identifier")
+    key_id: UUID = Field(..., description="Key identifier")
+
+
+class SettingAuthItemKeyDraftValue(BaseModel):
+    """Draft value object for an inline-creatable (auth × item × key) triple."""
+
+    id: UUID | None = Field(None, description="Existing auth_item_keys_resource id when known")
+    auth_id: UUID = Field(..., description="Auth provider identifier")
+    item_id: UUID = Field(..., description="Claim item identifier")
+    key_id: UUID = Field(..., description="Key identifier")
+
+
+class SettingAuthItemValueDraftValue(BaseModel):
+    """Draft value object for an inline-creatable (auth × item × value) triple."""
+
+    id: UUID | None = Field(None, description="Existing auth_item_values_resource id when known")
+    auth_id: UUID = Field(..., description="Auth provider identifier")
+    item_id: UUID = Field(..., description="Claim item identifier")
+    value: str = Field(..., description="Literal claim value")
+
+
+class SettingMcpDraftValue(BaseModel):
+    """Draft value object for an inline-creatable mcp row."""
+
+    id: UUID | None = Field(None, description="Existing mcp_resource id when known")
+    agent_id: UUID = Field(..., description="Agent identifier")
+
+
 class SettingLoginsResource(BaseModel):
     logins_id: UUID | None = Field(None, description="Logins resource identifier")
     profile_id: UUID | None = Field(None, description="Profile for test login")
@@ -241,7 +316,7 @@ class GetSettingApiResponse(BaseModel):
     names: list[SettingNameResource] | None = Field(None, description="Name resources")
     descriptions: list[SettingDescriptionResource] | None = Field(None, description="Description resources")
     colors: list[SettingColorResource] | None = Field(None, description="Color resources")
-    flags: list[SettingFlagConfig] | None = Field(None, description="Flag configs")
+    flags: list[SettingFlagResource] | None = Field(None, description="Flag resources (one per flags_resource row, value=true/false)")
     departments: list[SettingDepartmentResource] | None = Field(None, description="Department resources")
     logins: list[SettingLoginsResource] | None = Field(None, description="Logins resources")
     systems: list[SettingSystemResource] | None = Field(None, description="System resources")
@@ -257,6 +332,10 @@ class GetSettingApiResponse(BaseModel):
     auths: list[SettingAuthCatalogResource] | None = Field(None, description="Auth catalog used by logins and auth item editing")
     icons: list[SettingIconCatalogResource] | None = Field(None, description="Icon catalog used by logins editing")
     agents: list[SettingAgentCatalogResource] | None = Field(None, description="Agent catalog used by mcp and systems editing")
+    provider_key_options: list[SettingProviderKeyOption] | None = Field(None, description="Curated (provider × key) options for the ProviderKeys picker")
+    auth_item_key_options: list[SettingAuthItemKeyOption] | None = Field(None, description="Curated (auth × key) options for the AuthItemKeys picker")
+    auth_item_value_options: list[SettingAuthItemValueOption] | None = Field(None, description="Curated (auth × item) options for the AuthItemValues picker")
+    mcp_options: list[SettingMcpOption] | None = Field(None, description="Curated per-agent options for the MCP picker")
 
 
 # ========== Generation Completion Event ==========
@@ -432,9 +511,9 @@ class PatchSettingDraftApiRequest(ScopedItem):
     name_id: UUID | None = Field(None, description="UUID of the name resource")
     description: str | None = Field(None, description="Description value to resolve or create")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
-    active_flag: bool | None = Field(None, description="Whether the setting is active")
-    active_flag_id: UUID | None = Field(None, description="UUID of the active flag option")
-    flag_id: UUID | None = Field(None, description="Legacy alias for the active flag option")
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized setting_active flag state; resolved to a flag_ids entry server-side")
+    mcp: bool | None = Field(None, description="Denormalized mcp flag state; resolved to a flag_ids entry server-side")
     departments: list[str] | None = Field(None, description="Department names to resolve")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     color_ids: list[UUID] | None = Field(None, description="Color resource UUIDs")
@@ -445,6 +524,10 @@ class PatchSettingDraftApiRequest(ScopedItem):
     provider_key_ids: list[UUID] | None = Field(None, description="Provider key UUIDs")
     auth_item_key_ids: list[UUID] | None = Field(None, description="Auth item key UUIDs")
     auth_item_value_ids: list[UUID] | None = Field(None, description="Auth item value UUIDs")
+    provider_keys: list[SettingProviderKeyDraftValue] | None = Field(None, description="Inline-creatable (provider × key) value entries; id=null requests server to resolve or create")
+    auth_item_keys: list[SettingAuthItemKeyDraftValue] | None = Field(None, description="Inline-creatable (auth × key) value entries")
+    auth_item_values: list[SettingAuthItemValueDraftValue] | None = Field(None, description="Inline-creatable (auth × item × value) entries")
+    mcp_values: list[SettingMcpDraftValue] | None = Field(None, description="Inline-creatable mcp value entries")
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to retain as pending inactive connections")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
@@ -452,9 +535,7 @@ class PatchSettingDraftApiRequest(ScopedItem):
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
-        "active_flag": "flags",
-        "active_flag_id": "flags",
-        "flag_id": "flags",
+        "flag_ids": "flags",
         "departments": "departments",
         "department_ids": "departments",
         "color_ids": "colors",
@@ -473,8 +554,9 @@ class DraftFormState(BaseModel):
     name: str | None = Field(None, description="Echoed name value when available")
     description_id: UUID | None = Field(None, description="Resolved description resource UUID")
     description: str | None = Field(None, description="Echoed description value when available")
-    active_flag_id: UUID | None = Field(None, description="Resolved active flag option UUID")
-    flag_id: UUID | None = Field(None, description="Legacy alias for the active flag option UUID")
+    flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Echoed setting_active flag state")
+    mcp: bool | None = Field(None, description="Echoed mcp flag state")
     department_ids: list[UUID] = Field(default_factory=list, description="Assigned department UUIDs")
     color_ids: list[UUID] = Field(default_factory=list, description="Assigned color UUIDs")
     logins_ids: list[UUID] = Field(default_factory=list, description="Assigned logins resource UUIDs")
@@ -484,6 +566,10 @@ class DraftFormState(BaseModel):
     provider_key_ids: list[UUID] = Field(default_factory=list, description="Assigned provider key UUIDs")
     auth_item_key_ids: list[UUID] = Field(default_factory=list, description="Assigned auth item key UUIDs")
     auth_item_value_ids: list[UUID] = Field(default_factory=list, description="Assigned auth item value UUIDs")
+    provider_keys: list[SettingProviderKeyDraftValue] = Field(default_factory=list, description="Echoed (provider × key) value entries with resolved ids")
+    auth_item_keys: list[SettingAuthItemKeyDraftValue] = Field(default_factory=list, description="Echoed (auth × key) value entries with resolved ids")
+    auth_item_values: list[SettingAuthItemValueDraftValue] = Field(default_factory=list, description="Echoed (auth × item × value) entries with resolved ids")
+    mcp_values: list[SettingMcpDraftValue] = Field(default_factory=list, description="Echoed mcp value entries with resolved ids")
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
 
 

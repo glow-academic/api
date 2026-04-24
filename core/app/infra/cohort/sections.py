@@ -37,7 +37,7 @@ from app.infra.cohort.types import (
     CohortDepartmentSection,
     CohortDescriptionResource,
     CohortDescriptionSection,
-    CohortFlagConfig,
+    CohortFlagResource,
     CohortFlagSection,
     CohortNameResource,
     CohortNameSection,
@@ -240,20 +240,24 @@ def build_cohort_get_result(
     all_flags = (
         cohort.resources["flags"].suggestions + cohort.resources["flags"].selected
     )
+    flag_ids_set = {flag.id for flag in cohort.resources["flags"].selected}
+    flag_suggestions_set = {flag.id for flag in cohort.resources["flags"].suggestions if flag.id}
     flag_configs = [
-        CohortFlagConfig(
-            key=flag.name,
-            label=flag.name,
+        CohortFlagResource(
+            id=flag.id,
+            name=getattr(flag, "name", None),
+            type=getattr(flag, "type", None),
+            value=getattr(flag, "value", None),
             description=flag.description,
             icon_id=flag.icon_id,
-            icon=flag.icon,
-            flag_option_id=flag.id,
+            icon=getattr(flag, "icon", None),
             generated=flag.generated,
+            suggested=bool(flag.id and flag.id in flag_suggestions_set),
+            selected=bool(flag.id and flag.id in flag_ids_set),
         )
         for flag in all_flags
         if flag.id
     ]
-    flag_ids_set = {flag.id for flag in cohort.resources["flags"].selected}
 
     all_names = sorted_dedupe_by_id(
         cohort.resources["names"].suggestions + cohort.resources["names"].selected
@@ -313,7 +317,7 @@ def build_cohort_get_result(
         flags=CohortFlagSection(
             **_section("flags"),
             resource=next(
-                (flag for flag in flag_configs if flag.flag_option_id in flag_ids_set),
+                (flag for flag in flag_configs if flag.id in flag_ids_set),
                 None,
             ),
             resources=flag_configs,

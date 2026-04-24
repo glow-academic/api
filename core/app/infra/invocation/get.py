@@ -278,18 +278,17 @@ async def get_invocation_impl(
     ]
     flags = []
     for item in dedupe_by_id(flags_selected + flags_suggestions):
-        key, label = _flag_key_and_label(item.name)
+        if not item.id:
+            continue
         flags.append(
             InvocationFlagResource(
                 id=item.id,
-                key=key,
-                label=label,
+                name=getattr(item, "name", None),
+                type=getattr(item, "type", None),
+                value=getattr(item, "value", None),
                 description=item.description,
                 icon_id=item.icon_id,
                 icon=getattr(item, "icon", None),
-                flag_option_id=item.id,
-                show=True,
-                required=False,
                 generated=item.generated,
                 suggested=bool(item.id and item.id in flags_suggested_ids),
                 selected=bool(item.id and item.id in flags_selected_ids),

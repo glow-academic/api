@@ -27,6 +27,7 @@ from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
 from app.tools.resources.points.get import get_points
+from app.tools.resources.standard_groups.create import create_standard_group
 from app.tools.resources.standards.create import create_standard
 from app.tools.resources.standards.get import get_standards
 
@@ -88,39 +89,50 @@ async def _resolve_creatable_values(
             match_id = (await create_description(conn, request.description, redis)).id
         request.description_id = match_id
 
-    resolved_flag_id = request.active_flag_id or request.flag_id
-    if request.active_flag is not None and resolved_flag_id is None and request.active_flag:
+    # Resolve denormalized flag booleans to canonical flag_ids via (type, value)
+    # lookup in flags_resource. Rubric surfaces three flag types: rubric_active,
+    # simulation_rubric, video_rubric. Explicit flag_ids retained verbatim.
+    denorm_flag_values: dict[str, bool] = {}
+    if request.active is not None:
+        denorm_flag_values["rubric_active"] = bool(request.active)
+    if request.simulation_rubric is not None:
+        denorm_flag_values["simulation_rubric"] = bool(request.simulation_rubric)
+    if request.video_rubric is not None:
+        denorm_flag_values["video_rubric"] = bool(request.video_rubric)
+    if denorm_flag_values:
         results = await search_flags(
             conn,
             redis,
             search=None,
             limit_count=1000,
-            rubric=True,
+            bypass_cache=True,
         )
-        match = next(
-            (
-                flag
-                for flag in results
-                if (
-                    getattr(flag, "type", None) == "rubric_active"
-                    or getattr(flag, "name", None) == "rubric_active"
-                )
-                and getattr(flag, "value", None) is True
-            ),
-            None,
-        )
-        if match and match.id:
-            resolved_flag_id = match.id
-        else:
-            errors.append(
-                SaveRubricFieldError(
-                    field="active_flag",
-                    message="Active flag resource not found",
-                )
+        resolved_flag_ids: list[UUID] = list(request.flag_ids or [])
+        resolved_seen = set(resolved_flag_ids)
+        for flag_type, desired_value in denorm_flag_values.items():
+            match = next(
+                (
+                    f
+                    for f in results
+                    if (
+                        getattr(f, "type", None) == flag_type
+                        or getattr(f, "name", None) == flag_type
+                    )
+                    and getattr(f, "value", None) is desired_value
+                ),
+                None,
             )
-    if resolved_flag_id is not None:
-        request.flag_id = resolved_flag_id
-        request.active_flag_id = resolved_flag_id
+            if match and match.id and match.id not in resolved_seen:
+                resolved_flag_ids.append(match.id)
+                resolved_seen.add(match.id)
+            elif not match:
+                errors.append(
+                    SaveRubricFieldError(
+                        field=flag_type,
+                        message=f"Flag row not found for type={flag_type} value={desired_value}",
+                    )
+                )
+        request.flag_ids = resolved_flag_ids
 
     # Pass points — resolve numeric value to a pass-type Points resource ID.
     if request.pass_points is not None and request.pass_points_id is None:
@@ -173,6 +185,35 @@ async def _resolve_creatable_values(
             resolved_ids.append(item_id)
         if not any(error.field == "departments" for error in errors):
             request.department_ids = _merge_unique(request.department_ids, resolved_ids)
+
+    # Inline-created standard groups: entries without id are created here;
+    # resulting ids merge into request.standard_group_ids. The returned value
+    # list retains every entry with its filled-in id so the client can map
+    # temp names back to real group rows.
+    if request.standard_groups:
+        resolved_group_ids: list[UUID] = []
+        for value in request.standard_groups:
+            if value.id is None:
+                created = await create_standard_group(
+                    conn,
+                    name=value.name,
+                    short_name=value.name,
+                    description=value.description or "",
+                    points=value.points,
+                    pass_points=value.pass_points,
+                    redis=redis,
+                )
+                if created.id is None:
+                    errors.append(
+                        SaveRubricFieldError(
+                            field="standard_groups",
+                            message=f'Failed to create standard group "{value.name}"',
+                        )
+                    )
+                    continue
+                value.id = created.id
+            resolved_group_ids.append(value.id)
+        request.standard_group_ids = _merge_unique(request.standard_group_ids, resolved_group_ids)
 
     # Grid-editor standards: entries without id are created here; resulting
     # ids merge into request.standard_ids so the downstream draft row sees a
@@ -310,18 +351,9 @@ async def patch_rubric_draft_impl(
             detail=[error.model_dump() for error in errors],
         )
 
-    # Combine the three per-type flag IDs the client sends into the single
-    # `flag_ids` list the draft row stores. Legacy `flag_id` stays as a fallback
-    # for the active slot (pre-multi-mode clients).
-    combined_flag_ids = [
-        fid
-        for fid in (
-            request.active_flag_id or request.flag_id,
-            request.simulation_rubric_flag_id,
-            request.video_rubric_flag_id,
-        )
-        if fid is not None
-    ]
+    # Canonical: the client sends a single flat flag_ids list covering every
+    # flag-type it wants active (rubric_active, simulation_rubric, video_rubric).
+    combined_flag_ids = list(request.flag_ids or [])
 
     # Only pass points are stored on drafts; total is computed from standards.
     draft_point_ids = [request.pass_points_id] if request.pass_points_id else None
@@ -357,22 +389,50 @@ async def patch_rubric_draft_impl(
             rows = await get_standards(conn, list(request.standard_ids), redis, bypass_cache=True)
             total_points_value = sum((r.points or 0) for r in rows) if rows else 0
 
-    resolved_flag_id = request.active_flag_id or request.flag_id
+    # Re-derive denormalized booleans from the final flag_ids so the client
+    # echo matches whatever the server actually persisted.
+    echoed_active: bool | None = request.active
+    echoed_simulation_rubric: bool | None = request.simulation_rubric
+    echoed_video_rubric: bool | None = request.video_rubric
+    if request.flag_ids:
+        async with pool.acquire() as conn:
+            flag_rows = await search_flags(
+                conn,
+                redis,
+                search=None,
+                limit_count=1000,
+                bypass_cache=True,
+            )
+        rows_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+        for fid in request.flag_ids:
+            row = rows_by_id.get(fid)
+            if not row:
+                continue
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            rval = getattr(row, "value", None)
+            if rtype == "rubric_active":
+                echoed_active = rval
+            elif rtype == "simulation_rubric":
+                echoed_simulation_rubric = rval
+            elif rtype == "video_rubric":
+                echoed_video_rubric = rval
+
     form_state = DraftFormState(
         name_id=request.name_id,
         name=request.name,
         description_id=request.description_id,
         description=request.description,
-        flag_id=resolved_flag_id,
-        active_flag_id=resolved_flag_id,
-        simulation_rubric_flag_id=request.simulation_rubric_flag_id,
-        video_rubric_flag_id=request.video_rubric_flag_id,
+        flag_ids=list(request.flag_ids or []),
+        active=echoed_active,
+        simulation_rubric=echoed_simulation_rubric,
+        video_rubric=echoed_video_rubric,
         department_ids=request.department_ids or [],
         pass_points_id=request.pass_points_id,
         pass_points=pass_points_value,
         total_points_id=None,  # Synthetic — computed, no backing resource row.
         total_points=total_points_value,
         standard_group_ids=request.standard_group_ids or [],
+        standard_groups=request.standard_groups or [],
         standard_ids=request.standard_ids or [],
         standards=request.standards or [],
         pending_ids=request.pending_ids or [],

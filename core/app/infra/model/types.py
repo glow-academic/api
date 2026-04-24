@@ -17,18 +17,20 @@ from app.tools.entries.model_drafts.types import GetModelDraftResponse
 # =============================================================================
 
 
-class ModelFlagConfig(BaseModel):
-    """Enriched flag config for direct client consumption."""
+class ModelFlagResource(BaseModel):
+    """Flag option row — one per (name, type, value) entry in flags_resource."""
 
-    key: str = Field(..., description="Flag key identifier")
-    label: str = Field(..., description="Human-readable flag label")
-    description: str | None = Field(None, description="Flag description")
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type (e.g. 'model_active')")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
+    description: str | None = Field(None, description="Flag description text")
     icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
-    icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
-    flag_option_id: UUID | None = Field(None, description="Option ID to use when enabling")
-    show: bool = Field(True, description="Whether to display this flag in the UI")
-    required: bool = Field(False, description="Whether this flag is required")
-    generated: bool | None = Field(None, description="Whether this flag was AI-generated")
+    icon: str | None = Field(None, description="Resolved SVG markup (hydrated from icons_resource)")
+    generated: bool | None = Field(None, description="Whether the flag was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
 # =============================================================================
@@ -189,7 +191,7 @@ class GetModelApiResponse(BaseModel):
     descriptions: list[ModelDescriptionResource] | None = Field(None, description="Description resources")
     values: list[ModelValueResource] | None = Field(None, description="Value resources")
     providers: list[ModelProviderResource] | None = Field(None, description="Provider resources")
-    flags: list[ModelFlagConfig] | None = Field(None, description="Flag configs")
+    flags: list[ModelFlagResource] | None = Field(None, description="Flag configs")
     departments: list[ModelDepartmentResource] | None = Field(None, description="Department resources")
     modalities: list[ModelModalityResource] | None = Field(None, description="Modality resources")
     temperature_levels: list[ModelTemperatureLevelResource] | None = Field(None, description="Temperature level resources")
@@ -462,14 +464,13 @@ class PatchModelDraftApiRequest(ScopedItem):
         "departments": "departments",
         "flag_ids": "flags",
         "department_ids": "departments",
-        "active_flag": "flags",
-        "active_flag_id": "flags",
-        "modalities_enabled_flag_id": "flags",
-        "temperature_enabled_flag_id": "flags",
-        "pricing_enabled_flag_id": "flags",
-        "voices_enabled_flag_id": "flags",
-        "reasoning_levels_enabled_flag_id": "flags",
-        "qualities_enabled_flag_id": "flags",
+        "active": "flags",
+        "modalities_enabled": "flags",
+        "temperature_enabled": "flags",
+        "pricing_enabled": "flags",
+        "voices_enabled": "flags",
+        "reasoning_levels_enabled": "flags",
+        "qualities_enabled": "flags",
         "modalities": "modalities",
         "modality_ids": "modalities",
         "pricing": "pricing",
@@ -501,15 +502,15 @@ class PatchModelDraftApiRequest(ScopedItem):
     provider_id: UUID | None = Field(None, description="Provider identifier")
 
     # Matchable / multi-select
-    flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
-    active_flag: bool | None = Field(None, description="Whether the model is active")
-    active_flag_id: UUID | None = Field(None, description="Active flag resource identifier")
-    modalities_enabled_flag_id: UUID | None = Field(None, description="Modalities enabled flag resource identifier")
-    temperature_enabled_flag_id: UUID | None = Field(None, description="Temperature enabled flag resource identifier")
-    pricing_enabled_flag_id: UUID | None = Field(None, description="Pricing enabled flag resource identifier")
-    voices_enabled_flag_id: UUID | None = Field(None, description="Voices enabled flag resource identifier")
-    reasoning_levels_enabled_flag_id: UUID | None = Field(None, description="Reasoning levels enabled flag resource identifier")
-    qualities_enabled_flag_id: UUID | None = Field(None, description="Qualities enabled flag resource identifier")
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    # Denormalized booleans — resolved server-side to flag_ids entries via (type, value) lookup.
+    active: bool | None = Field(None, description="Denormalized model_active flag state")
+    modalities_enabled: bool | None = Field(None, description="Denormalized model_modalities_enabled flag state")
+    temperature_enabled: bool | None = Field(None, description="Denormalized model_temperature_enabled flag state")
+    pricing_enabled: bool | None = Field(None, description="Denormalized model_pricing_enabled flag state")
+    voices_enabled: bool | None = Field(None, description="Denormalized model_voices_enabled flag state")
+    reasoning_levels_enabled: bool | None = Field(None, description="Denormalized model_reasoning_levels_enabled flag state")
+    qualities_enabled: bool | None = Field(None, description="Denormalized model_qualities_enabled flag state")
     departments: list[str] | None = Field(None, description="Department names to match")
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     modalities: list[str] | None = Field(None, description="Modality labels to match")
@@ -536,21 +537,21 @@ class DraftFormState(BaseModel):
     value: str | None = Field(None, description="Resolved model value")
     provider_id: UUID | None = Field(None, description="Resolved provider identifier")
     provider: str | None = Field(None, description="Resolved provider name")
-    flag_ids: list[UUID] = Field(..., description="Flag option identifiers")
-    active_flag_id: UUID | None = Field(None, description="Resolved active flag identifier")
-    modalities_enabled_flag_id: UUID | None = Field(None, description="Resolved modalities enabled flag identifier")
-    temperature_enabled_flag_id: UUID | None = Field(None, description="Resolved temperature enabled flag identifier")
-    pricing_enabled_flag_id: UUID | None = Field(None, description="Resolved pricing enabled flag identifier")
-    voices_enabled_flag_id: UUID | None = Field(None, description="Resolved voices enabled flag identifier")
-    reasoning_levels_enabled_flag_id: UUID | None = Field(None, description="Resolved reasoning levels enabled flag identifier")
-    qualities_enabled_flag_id: UUID | None = Field(None, description="Resolved qualities enabled flag identifier")
-    department_ids: list[UUID] = Field(..., description="Department identifiers")
-    modality_ids: list[UUID] = Field(..., description="Modality identifiers")
-    pricing_ids: list[UUID] = Field(..., description="Pricing tier identifiers")
-    quality_ids: list[UUID] = Field(..., description="Quality level identifiers")
-    reasoning_level_ids: list[UUID] = Field(..., description="Reasoning level identifiers")
-    temperature_level_ids: list[UUID] = Field(..., description="Temperature level identifiers")
-    voice_ids: list[UUID] = Field(..., description="Voice identifiers")
+    flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Echoed model_active flag state")
+    modalities_enabled: bool | None = Field(None, description="Echoed model_modalities_enabled flag state")
+    temperature_enabled: bool | None = Field(None, description="Echoed model_temperature_enabled flag state")
+    pricing_enabled: bool | None = Field(None, description="Echoed model_pricing_enabled flag state")
+    voices_enabled: bool | None = Field(None, description="Echoed model_voices_enabled flag state")
+    reasoning_levels_enabled: bool | None = Field(None, description="Echoed model_reasoning_levels_enabled flag state")
+    qualities_enabled: bool | None = Field(None, description="Echoed model_qualities_enabled flag state")
+    department_ids: list[UUID] = Field(default_factory=list, description="Department identifiers")
+    modality_ids: list[UUID] = Field(default_factory=list, description="Modality identifiers")
+    pricing_ids: list[UUID] = Field(default_factory=list, description="Pricing tier identifiers")
+    quality_ids: list[UUID] = Field(default_factory=list, description="Quality level identifiers")
+    reasoning_level_ids: list[UUID] = Field(default_factory=list, description="Reasoning level identifiers")
+    temperature_level_ids: list[UUID] = Field(default_factory=list, description="Temperature level identifiers")
+    voice_ids: list[UUID] = Field(default_factory=list, description="Voice identifiers")
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
 
 

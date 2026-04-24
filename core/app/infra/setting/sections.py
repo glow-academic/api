@@ -34,20 +34,24 @@ from app.infra.setting.types import (
     GetSettingApiResponse,
     SettingAgentCatalogResource,
     SettingAuthCatalogResource,
+    SettingAuthItemKeyOption,
     SettingAuthItemKeyResource,
+    SettingAuthItemValueOption,
     SettingAuthItemValueResource,
     SettingColorResource,
     SettingDepartmentResource,
     SettingDescriptionResource,
-    SettingFlagConfig,
+    SettingFlagResource,
     SettingIconCatalogResource,
     SettingItemCatalogResource,
     SettingKeyCatalogResource,
     SettingLoginsResource,
+    SettingMcpOption,
     SettingMcpResource,
     SettingNameResource,
     SettingProfileCatalogResource,
     SettingProviderCatalogResource,
+    SettingProviderKeyOption,
     SettingProviderKeyResource,
     SettingSystemResource,
     SettingThresholdResource,
@@ -186,15 +190,14 @@ def build_setting_get_result(
         for item in all_colors
     ]
     flags = [
-        SettingFlagConfig(
-            key=derive_flag_key_and_label(getattr(item, "name", None) or getattr(item, "type", None))[0],
-            label=derive_flag_key_and_label(getattr(item, "name", None) or getattr(item, "type", None))[1],
+        SettingFlagResource(
+            id=item.id,
+            name=getattr(item, "name", None),
+            type=getattr(item, "type", None),
+            value=getattr(item, "value", None),
             description=item.description,
             icon_id=getattr(item, "icon_id", None),
             icon=getattr(item, "icon", None),
-            flag_option_id=item.id,
-            show=compute_show_flag(),
-            required=compute_flag_required(),
             generated=item.generated,
             suggested=_decorate(item.id, "flags")[0],
             selected=_decorate(item.id, "flags")[1],
@@ -376,6 +379,60 @@ def build_setting_get_result(
         for item in setting.entries.get("agents", [])
     ]
 
+    provider_key_options = [
+        SettingProviderKeyOption(
+            provider_id=provider.id,
+            key_id=key.id,
+            provider_name=provider.name,
+            key_name=key.name,
+            masked_key=getattr(key, "key_masked", None) or getattr(key, "masked_key", None),
+        )
+        for provider in setting.entries.get("providers", [])
+        if provider.id
+        for key in setting.entries.get("keys", [])
+        if key.id
+    ]
+    auth_item_key_options = [
+        SettingAuthItemKeyOption(
+            auth_id=auth.id,
+            item_id=item.id,
+            key_id=key.id,
+            auth_name=auth.name,
+            item_name=item.name,
+            key_name=key.name,
+            masked_key=getattr(key, "key_masked", None) or getattr(key, "masked_key", None),
+        )
+        for auth in setting.entries.get("auths", [])
+        if auth.id
+        for item in setting.entries.get("items", [])
+        if item.id
+        for key in setting.entries.get("keys", [])
+        if key.id
+    ]
+    auth_item_value_options = [
+        SettingAuthItemValueOption(
+            auth_id=auth.id,
+            item_id=item.id,
+            auth_name=auth.name,
+            item_name=item.name,
+            item_description=item.description,
+            encrypted=item.encrypted,
+        )
+        for auth in setting.entries.get("auths", [])
+        if auth.id
+        for item in setting.entries.get("items", [])
+        if item.id
+    ]
+    mcp_options = [
+        SettingMcpOption(
+            agent_id=agent.id,
+            agent_name=agent.name,
+            agent_description=agent.description,
+        )
+        for agent in setting.entries.get("agents", [])
+        if agent.id
+    ]
+
     basic_show_ai_generate = compute_can_draft(
         role_level=actor.role_level,
         role_permissions=actor.role_permissions,
@@ -430,4 +487,8 @@ def build_setting_get_result(
         auths=auths_catalog,
         icons=icons_catalog,
         agents=agents_catalog,
+        provider_key_options=provider_key_options,
+        auth_item_key_options=auth_item_key_options,
+        auth_item_value_options=auth_item_value_options,
+        mcp_options=mcp_options,
     )

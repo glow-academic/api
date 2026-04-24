@@ -44,33 +44,19 @@ class ScenarioDescriptionResource(BaseModel):
 
 
 class ScenarioFlagResource(BaseModel):
-    """Flag resource for scenario."""
+    """Flag option row — one per (name, type, value) entry in flags_resource."""
 
-    id: UUID | None = Field(None, description="UUID of the flag resource")
-    name: str | None = Field(None, description="Flag name")
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type (e.g. 'scenario_active')")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
     description: str | None = Field(None, description="Flag description text")
-    icon: str | None = Field(None, description="Icon identifier for the flag")
-    generated: bool | None = Field(None, description="Whether this was AI-generated")
-
-
-class ScenarioFlagConfig(BaseModel):
-    """Enriched flag config for direct client consumption."""
-
-    key: str = Field(..., description="Flag config key identifier")
-    label: str = Field(..., description="Display label for the flag")
-    description: str | None = Field(None, description="Flag description text")
-    icon_id: UUID | None = Field(None, description="UUID of the selected icon resource")
-    icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
-    flag_option_id: UUID | None = Field(None, description="UUID of the flag option to use when enabling")
-    show: bool = Field(True, description="Whether to show this flag in the UI")
-    required: bool = Field(False, description="Whether this flag is required")
-    generated: bool | None = Field(None, description="Whether this was AI-generated")
-    selected: bool = False
-    suggested: bool = False
-    pending: bool = False
-    video_flag: bool | None = Field(
-        None, description="Whether this flag only shows when video is enabled"
-    )
+    icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
+    icon: str | None = Field(None, description="Resolved SVG markup (hydrated from icons_resource)")
+    generated: bool | None = Field(None, description="Whether the flag was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
 class ScenarioDepartment(BaseModel):
@@ -261,7 +247,7 @@ class ScenarioResourceBucket(BaseModel):
     names: list[ScenarioNameResource] | None = Field(None, description="List of name resources")
     descriptions: list[ScenarioDescriptionResource] | None = Field(None, description="List of description resources")
     problem_statements: list[ScenarioProblemStatement] | None = Field(None, description="List of problem statement resources")
-    flags: list[ScenarioFlagConfig] | None = Field(None, description="List of flag configs")
+    flags: list[ScenarioFlagResource] | None = Field(None, description="List of flag configs")
     departments: list[ScenarioDepartment] | None = Field(None, description="List of department resources")
     personas: list[ScenarioPersona] | None = Field(None, description="List of persona resources")
     documents: list[ScenarioDocument] | None = Field(None, description="List of document resources")
@@ -328,7 +314,7 @@ class GetScenarioApiResponse(BaseModel):
     names: list[ScenarioNameResource] | None = Field(None, description="Name resources")
     descriptions: list[ScenarioDescriptionResource] | None = Field(None, description="Description resources")
     problem_statements: list[ScenarioProblemStatement] | None = Field(None, description="Problem statement resources")
-    flags: list[ScenarioFlagConfig] | None = Field(None, description="Flag configs")
+    flags: list[ScenarioFlagResource] | None = Field(None, description="Flag configs")
     departments: list[ScenarioDepartment] | None = Field(None, description="Department resources")
     personas: list[ScenarioPersona] | None = Field(None, description="Persona resources")
     documents: list[ScenarioDocument] | None = Field(None, description="Document resources")
@@ -814,6 +800,12 @@ class PatchScenarioDraftApiRequest(ScopedItem):
         "options": "options",
         "option_ids": "options",
         "flag_ids": "flags",
+        "active": "flags",
+        "video_enabled": "flags",
+        "problem_statement_enabled": "flags",
+        "objectives_enabled": "flags",
+        "images_enabled": "flags",
+        "questions_enabled": "flags",
         "department_ids": "departments",
         "persona_ids": "personas",
         "document_ids": "documents",
@@ -843,7 +835,14 @@ class PatchScenarioDraftApiRequest(ScopedItem):
     option_ids: list[UUID] | None = Field(None, description="Existing option UUIDs")
 
     # Non-creatable — ID-only
-    flag_ids: list[UUID] | None = Field(None, description="Associated flag UUIDs")
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    # Denormalized booleans — resolved server-side to flag_ids entries via (type, value) lookup.
+    active: bool | None = Field(None, description="Denormalized scenario_active flag state")
+    video_enabled: bool | None = Field(None, description="Denormalized video_enabled flag state")
+    problem_statement_enabled: bool | None = Field(None, description="Denormalized problem_statement_enabled flag state")
+    objectives_enabled: bool | None = Field(None, description="Denormalized objectives_enabled flag state")
+    images_enabled: bool | None = Field(None, description="Denormalized images_enabled flag state")
+    questions_enabled: bool | None = Field(None, description="Denormalized questions_enabled flag state")
     department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
     persona_ids: list[UUID] | None = Field(None, description="Associated persona UUIDs")
     document_ids: list[UUID] | None = Field(None, description="Associated document UUIDs")
@@ -867,6 +866,12 @@ class ScenarioDraftFormState(BaseModel):
     description_id: UUID | None = Field(None, description="UUID of the selected description resource")
     problem_statement_id: UUID | None = Field(None, description="UUID of the selected problem statement resource")
     flag_ids: list[UUID] = Field([], description="Selected flag UUIDs")
+    active: bool | None = Field(None, description="Echoed scenario_active flag state")
+    video_enabled: bool | None = Field(None, description="Echoed video_enabled flag state")
+    problem_statement_enabled: bool | None = Field(None, description="Echoed problem_statement_enabled flag state")
+    objectives_enabled: bool | None = Field(None, description="Echoed objectives_enabled flag state")
+    images_enabled: bool | None = Field(None, description="Echoed images_enabled flag state")
+    questions_enabled: bool | None = Field(None, description="Echoed questions_enabled flag state")
     department_ids: list[UUID] = Field([], description="Selected department UUIDs")
     persona_ids: list[UUID] = Field([], description="Selected persona UUIDs")
     document_ids: list[UUID] = Field([], description="Selected document UUIDs")

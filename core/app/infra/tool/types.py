@@ -13,18 +13,17 @@ from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.tool_drafts.types import GetToolDraftResponse
 
 
-class ToolFlagConfig(BaseModel):
-    """Enriched flag config for direct client consumption."""
+class ToolFlagResource(BaseModel):
+    """Flag option row — one per (name, type, value) entry in flags_resource."""
 
-    key: str = Field(..., description="Flag key identifier")
-    label: str = Field(..., description="Human-readable flag label")
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type (e.g. 'tool_active')")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
     description: str | None = Field(None, description="Flag description")
-    icon_id: str | None = Field(None, description="Icon identifier for the flag")
-    flag_option_id: UUID | None = Field(None, description="Option ID to use when enabling")
-    show: bool = Field(True, description="Whether to display this flag in the UI")
-    required: bool = Field(False, description="Whether this flag is required")
+    icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
+    icon: str | None = Field(None, description="Resolved SVG markup for the icon")
     generated: bool | None = Field(None, description="Whether this flag was AI-generated")
-
     suggested: bool = Field(False, description="Whether this item is suggested")
     selected: bool = Field(False, description="Whether this item is selected")
     pending: bool = Field(False, description="Whether this item is pending acceptance")
@@ -131,7 +130,7 @@ class GetToolApiResponse(BaseModel):
 
     names: list[ToolNameResource] | None = Field(None, description="Name resources")
     descriptions: list[ToolDescriptionResource] | None = Field(None, description="Description resources")
-    flags: list[ToolFlagConfig] | None = Field(None, description="Flag configs")
+    flags: list[ToolFlagResource] | None = Field(None, description="Flag resources (one per flags_resource row, value=true/false)")
     args: list[ToolArgResource] | None = Field(None, description="Argument resources")
     arg_positions: list[ToolArgPositionResource] | None = Field(None, description="Argument position resources")
     args_outputs: list[ToolArgOutputResource] | None = Field(None, description="Argument output resources")
@@ -360,9 +359,8 @@ class PatchToolDraftApiRequest(ScopedItem):
     description_id: UUID | None = Field(None, description="Description resource identifier")
 
     # Match / ID-backed fields
-    active_flag: bool | None = Field(None, description="Whether the tool is active")
-    active_flag_id: UUID | None = Field(None, description="Tool active flag identifier")
-    flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized tool_active flag state; resolved to a flag_ids entry server-side")
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     arg_ids: list[UUID] | None = Field(None, description="Argument identifiers")
     args: list[CreateArgInput] | None = Field(None, description="Arguments to create inline")
@@ -383,8 +381,6 @@ class PatchToolDraftApiRequest(ScopedItem):
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
-        "active_flag": "flags",
-        "active_flag_id": "flags",
         "flag_ids": "flags",
         "department_ids": "departments",
         "arg_ids": "args",
@@ -404,9 +400,9 @@ class DraftFormState(BaseModel):
     name: str | None = Field(None, description="Resolved name value")
     description_id: UUID | None = Field(None, description="Resolved description resource identifier")
     description: str | None = Field(None, description="Resolved description value")
-    active_flag_id: UUID | None = Field(None, description="Flag option identifier")
-    flag_ids: list[UUID] = Field(..., description="Flag option identifiers")
-    department_ids: list[UUID] = Field(..., description="Department identifiers")
+    flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Echoed tool_active flag state")
+    department_ids: list[UUID] = Field(default_factory=list, description="Department identifiers")
     arg_ids: list[UUID] = Field(..., description="Argument identifiers")
     arg_position_ids: list[UUID] = Field(..., description="Argument position identifiers")
     args_output_ids: list[UUID] = Field(..., description="Argument output identifiers")

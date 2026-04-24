@@ -143,6 +143,9 @@ async def resolve_auth_context(
 
     async def _search_flags() -> list:
         async with pool.acquire() as conn:
+            # Don't intersect on auth_flags_junction — for a fresh auth draft
+            # no junction rows exist yet. AUTH_FLAG_NAMES below is the real
+            # filter for the catalog.
             flags = await search_flags(
                 conn,
                 redis,
@@ -151,7 +154,6 @@ async def resolve_auth_context(
                 offset_count=0,
                 exclude_ids=merged.flag_ids,
                 bypass_cache=bypass_cache,
-                auth=True,
             )
         return [flag for flag in flags if getattr(flag, "name", None) in AUTH_FLAG_NAMES]
 
@@ -161,6 +163,8 @@ async def resolve_auth_context(
 
     async def _search_departments() -> list:
         async with pool.acquire() as conn:
+            # Departments are a universal catalog — don't intersect on
+            # auth_departments_junction or fresh drafts see nothing.
             return await search_departments(
                 conn,
                 redis,
@@ -170,7 +174,6 @@ async def resolve_auth_context(
                 suggest_source="selected" if departments_selected_only else "all",
                 exclude_ids=merged.department_ids,
                 bypass_cache=bypass_cache,
-                auth=True,
             )
 
     async def _get_protocols() -> list:
@@ -188,7 +191,6 @@ async def resolve_auth_context(
                 suggest_source="selected" if protocols_selected_only else "all",
                 exclude_ids=merged.protocol_ids,
                 bypass_cache=bypass_cache,
-                auth=True,
             )
 
     async def _get_slugs() -> list:
@@ -206,7 +208,6 @@ async def resolve_auth_context(
                 suggest_source="selected" if slugs_selected_only else "all",
                 exclude_ids=merged.slug_ids,
                 bypass_cache=bypass_cache,
-                auth=True,
             )
 
     async def _get_items() -> list:

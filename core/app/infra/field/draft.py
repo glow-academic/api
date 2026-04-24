@@ -86,29 +86,47 @@ async def _resolve_creatable_values(
             match_id = (await create_description(conn, request.description, redis)).id
         request.description_id = match_id
 
-    resolved_flag_id = request.active_flag_id or request.flag_id
-    if request.active_flag is not None and resolved_flag_id is None and request.active_flag:
-        results = await search_flags(
+    # Resolve denormalized flag booleans to canonical flag_ids via (type, value)
+    # lookup in flags_resource. Explicit flag_ids are retained verbatim; the
+    # derived id is merged in so both forms coexist without conflict.
+    denorm_flag_values: dict[str, bool] = {}
+    if request.active is not None:
+        denorm_flag_values["field_active"] = bool(request.active)
+    if denorm_flag_values:
+        all_flags = await search_flags(
             conn,
             redis,
             search=None,
-            limit_count=1000,
-            flag_type="field_active",
-            field=True,
+            limit_count=200,
+            bypass_cache=True,
         )
-        match = next((flag for flag in results if getattr(flag, "type", None) == "field_active" and getattr(flag, "value", None) is True), None)
-        if match and match.id:
-            resolved_flag_id = match.id
-        else:
-            errors.append(
-                SaveFieldFieldError(
-                    field="active_flag",
-                    message="Active flag resource not found",
-                )
+        resolved_flag_ids: list[UUID] = list(request.flag_ids or [])
+        resolved_seen = set(resolved_flag_ids)
+        for flag_type, desired_value in denorm_flag_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_flags
+                    if (getattr(f, "type", None) == flag_type
+                        or getattr(f, "name", None) == flag_type)
+                    and getattr(f, "value", None) is desired_value
+                ),
+                None,
             )
-    if resolved_flag_id is not None:
-        request.flag_id = resolved_flag_id
-        request.active_flag_id = resolved_flag_id
+            if match and match.id and match.id not in resolved_seen:
+                resolved_flag_ids.append(match.id)
+                resolved_seen.add(match.id)
+            elif not match:
+                errors.append(
+                    SaveFieldFieldError(
+                        field=flag_type,
+                        message=(
+                            f"Flag row not found for type={flag_type} "
+                            f"value={desired_value}"
+                        ),
+                    )
+                )
+        request.flag_ids = resolved_flag_ids
 
     if request.departments:
         results = await search_departments(
@@ -195,13 +213,14 @@ async def patch_field_draft_impl(
         filtered = sanitize_model_kwargs(
             kwargs,
             list_fields={
+                "flag_ids",
                 "department_ids",
                 "departments",
                 "conditional_parameter_ids",
                 "conditional_parameters",
                 "pending_ids",
             },
-            bool_fields={"active_flag"},
+            bool_fields={"active"},
             value_id_pairs=[
                 ("name", "name_id"),
                 ("description", "description_id"),
@@ -305,21 +324,42 @@ async def patch_field_draft_impl(
                 description_ids=[request.description_id]
                 if request.description_id
                 else None,
-                flag_ids=[request.flag_id] if request.flag_id else None,
+                flag_ids=request.flag_ids or None,
                 department_ids=request.department_ids,
                 conditional_parameter_ids=request.conditional_parameter_ids,
                 profile_ids=[profile.profiles_id],
                 pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
-    resolved_flag_id = request.active_flag_id or request.flag_id
+    # Re-derive denormalized flag booleans from the final flag_ids so the client
+    # echo matches whatever the server actually persisted.
+    echoed_active: bool | None = request.active
+    if request.flag_ids:
+        async with pool.acquire() as conn:
+            flag_rows = await search_flags(
+                conn,
+                redis,
+                search=None,
+                limit_count=200,
+                bypass_cache=True,
+            )
+        rows_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+        for fid in request.flag_ids:
+            row = rows_by_id.get(fid)
+            if not row:
+                continue
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            rval = getattr(row, "value", None)
+            if rtype == "field_active":
+                echoed_active = rval
+
     form_state = DraftFormState(
         name_id=request.name_id,
         name=request.name,
         description_id=request.description_id,
         description=request.description,
-        flag_id=resolved_flag_id,
-        active_flag_id=resolved_flag_id,
+        flag_ids=request.flag_ids or [],
+        active=echoed_active,
         department_ids=request.department_ids or [],
         conditional_parameter_ids=request.conditional_parameter_ids or [],
         pending_ids=request.pending_ids or [],

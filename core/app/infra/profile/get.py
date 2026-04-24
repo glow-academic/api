@@ -35,12 +35,14 @@ from app.infra.profile.types import (
     GetProfileApiResponse,
     ProfileDepartmentResource,
     ProfileEmailResource,
-    ProfileFlagConfig,
+    ProfileFlagResource,
     ProfileNameResource,
     ProfileRoleResource,
     SectionFilter,
 )
 from app.infra.tool_graph import score_tools
+from app.tools.resources.colors.get import get_colors
+from app.tools.resources.icons.get import get_icons
 
 SECTIONS = ["names", "emails", "flags", "departments", "roles"]
 
@@ -225,6 +227,28 @@ async def get_profile_impl(
         if role.name in allowed_role_names
     ]
     all_roles = dedupe_by_id(roles_selected + filtered_role_suggestions)
+    role_icon_by_id: dict[UUID, str] = {}
+    role_color_by_id: dict[UUID, str] = {}
+    role_icon_ids = [item.icon_id for item in all_roles if item.icon_id]
+    role_color_ids = [item.color_id for item in all_roles if item.color_id]
+    if role_icon_ids or role_color_ids:
+        async with pool.acquire() as conn:
+            if role_icon_ids:
+                icons = await get_icons(
+                    conn,
+                    list(dict.fromkeys(role_icon_ids)),
+                    redis,
+                    bypass_cache=bypass_cache,
+                )
+                role_icon_by_id = {icon.id: icon.value for icon in icons}
+            if role_color_ids:
+                colors = await get_colors(
+                    conn,
+                    list(dict.fromkeys(role_color_ids)),
+                    redis,
+                    bypass_cache=bypass_cache,
+                )
+                role_color_by_id = {color.id: color.hex_code for color in colors}
 
     show_flags_map = {
         "names": compute_show_name(names_has_tools),
@@ -287,21 +311,21 @@ async def get_profile_impl(
         for item in all_emails
     ]
     flags = [
-        ProfileFlagConfig(
-            key=_derive_flag_key_and_label(item.name)[0],
-            label=_derive_flag_key_and_label(item.name)[1],
+        ProfileFlagResource(
+            id=item.id,
+            name=getattr(item, "name", None),
+            type=getattr(item, "type", None),
+            value=getattr(item, "value", None),
             description=item.description,
-            icon_id=item.icon_id,
+            icon_id=getattr(item, "icon_id", None),
             icon=getattr(item, "icon", None),
-            flag_option_id=item.id,
-            show=show_flags_map["flags"],
-            required=required_flags_map["flags"],
             generated=item.generated,
             suggested=_decorate(item.id, "flags")[0],
             selected=_decorate(item.id, "flags")[1],
             pending=_decorate(item.id, "flags")[2],
         )
         for item in all_flags
+        if item.id
     ]
     departments = [
         ProfileDepartmentResource(
@@ -322,8 +346,10 @@ async def get_profile_impl(
             name=item.name,
             description=item.description,
             icon_id=item.icon_id,
-            icon=getattr(item, "icon", None),
+            icon=role_icon_by_id.get(item.icon_id) if item.icon_id else None,
+            icon_value=role_icon_by_id.get(item.icon_id) if item.icon_id else None,
             color_id=item.color_id,
+            color_hex=role_color_by_id.get(item.color_id) if item.color_id else None,
             level=item.level,
             generated=item.generated,
             suggested=_decorate(item.id, "roles")[0],
@@ -344,6 +370,7 @@ async def get_profile_impl(
         basic_show_ai_generate=any(scores.has_any.get(resource, False) for resource in PROFILE_BASIC_RESOURCES),
         contact_show_ai_generate=scores.has_any.get("emails", False),
         pending_ids=sorted(pending_ids) if pending_ids else [],
+        role_options=sorted(allowed_role_names),
         names=_filter_items(names, "names", selected_only=selected_only, suggested_only=suggested_only)
         if include["names"]
         else None,

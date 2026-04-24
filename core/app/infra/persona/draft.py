@@ -119,25 +119,46 @@ async def _resolve_creatable_values(
                 )
             )
 
-    if request.active_flag is not None and request.active_flag_id is None:
+    # Resolve denormalized flag booleans (active) to canonical flag_ids via
+    # (type, value) lookup in flags_resource. Explicit flag_ids retained.
+    denorm_flag_values: dict[str, bool] = {}
+    if request.active is not None:
+        denorm_flag_values["persona_active"] = bool(request.active)
+    if denorm_flag_values:
         async with pool.acquire() as conn:
-            results = await search_flags(
+            all_flags = await search_flags(
                 conn,
                 redis,
                 search=None,
-                flag_type="persona_active",
-                limit_count=100,
+                limit_count=200,
+                bypass_cache=True,
             )
-        match = next((r for r in results if r.type == "persona_active" and r.value is True), None)
-        if match and match.id:
-            if request.active_flag:
-                request.active_flag_id = match.id
-        elif request.active_flag:
-            errors.append(
-                SavePersonaFieldError(
-                    field="active_flag", message="Active flag resource not found"
+        resolved_flag_ids: list[UUID] = list(request.flag_ids or [])
+        resolved_seen = set(resolved_flag_ids)
+        for flag_type, desired_value in denorm_flag_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_flags
+                    if (
+                        getattr(f, "type", None) == flag_type
+                        or getattr(f, "name", None) == flag_type
+                    )
+                    and getattr(f, "value", None) is desired_value
+                ),
+                None,
+            )
+            if match and match.id and match.id not in resolved_seen:
+                resolved_flag_ids.append(match.id)
+                resolved_seen.add(match.id)
+            elif not match:
+                errors.append(
+                    SavePersonaFieldError(
+                        field=flag_type,
+                        message=f"Flag row not found for type={flag_type} value={desired_value}",
+                    )
                 )
-            )
+        request.flag_ids = resolved_flag_ids
 
     if request.departments is not None and request.department_ids is None:
         async with pool.acquire() as conn:
@@ -318,9 +339,10 @@ async def patch_persona_draft_impl(
             list_fields={
                 "examples", "example_ids", "department_ids", "departments",
                 "parameter_field_ids", "parameter_fields", "voice_ids", "voices",
+                "flag_ids",
             },
-            bool_fields={"active_flag"},
-            drop_false_bools={"active_flag"},
+            bool_fields={"active"},
+            drop_false_bools={"active"},
             value_id_pairs=[
                 ("name", "name_id"), ("description", "description_id"),
                 ("color", "color_id"), ("icon", "icon_id"),
@@ -383,7 +405,7 @@ async def patch_persona_draft_impl(
                 instruction_ids=[request.instructions_id]
                 if request.instructions_id
                 else None,
-                flag_ids=[request.active_flag_id] if request.active_flag_id else None,
+                flag_ids=list(request.flag_ids) if request.flag_ids else None,
                 department_ids=request.department_ids,
                 parameter_field_ids=request.parameter_field_ids,
                 example_ids=request.example_ids,
@@ -393,6 +415,28 @@ async def patch_persona_draft_impl(
             )
 
     # ── Step 5: Build form state (server is source of truth) ──────────
+
+    # Re-derive denormalized active bool from the final flag_ids so the client
+    # echo matches whatever the server actually persisted.
+    echoed_active: bool | None = request.active
+    if request.flag_ids:
+        async with pool.acquire() as conn:
+            flag_rows = await search_flags(
+                conn,
+                redis,
+                search=None,
+                limit_count=200,
+                bypass_cache=True,
+            )
+        rows_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+        for fid in request.flag_ids:
+            row = rows_by_id.get(fid)
+            if not row:
+                continue
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            rval = getattr(row, "value", None)
+            if rtype == "persona_active":
+                echoed_active = rval
 
     form_state = DraftFormState(
         name_id=request.name_id,
@@ -405,7 +449,8 @@ async def patch_persona_draft_impl(
         color=request.color,
         icon_id=request.icon_id,
         icon=request.icon,
-        active_flag_id=request.active_flag_id,
+        flag_ids=list(request.flag_ids or []),
+        active=echoed_active,
         department_ids=request.department_ids or [],
         example_ids=request.example_ids or [],
         parameter_field_ids=request.parameter_field_ids or [],

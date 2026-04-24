@@ -50,17 +50,16 @@ class CohortDescriptionResource(BaseModel):
     pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class CohortFlagConfig(BaseModel):
-    """Flag config for cohort — matches client FlagConfig interface."""
+class CohortFlagResource(BaseModel):
+    """Flag option row for cohort — one per (name, type, value) flags_resource entry."""
 
-    key: str | None = Field(None, description="Flag key identifier")
-    label: str | None = Field(None, description="Display label")
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type (e.g. 'cohort_active')")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
     description: str | None = Field(None, description="Flag description")
     icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
     icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
-    flag_option_id: UUID | None = Field(None, description="Selected flag option UUID")
-    show: bool | None = Field(None, description="Whether to show this flag in the UI")
-    required: bool | None = Field(None, description="Whether this flag is required")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     suggested: bool = Field(False, description="Whether this is a suggested option")
     selected: bool = Field(False, description="Whether this is currently selected")
@@ -174,7 +173,7 @@ class CohortResourceBucket(BaseModel):
 
     names: list[CohortNameResource] | None = Field(None, description="List of name resources")
     descriptions: list[CohortDescriptionResource] | None = Field(None, description="List of description resources")
-    flags: list[CohortFlagConfig] | None = Field(None, description="List of flag config resources")
+    flags: list[CohortFlagResource] | None = Field(None, description="List of flag config resources")
     departments: list[CohortDepartment] | None = Field(None, description="List of department resources")
     simulations: list[CohortSimulation] | None = Field(None, description="List of simulation resources")
     simulation_positions: list[CohortSimulationPosition] | None = Field(None, description="List of simulation position resources")
@@ -243,8 +242,8 @@ class CohortDescriptionSection(BaseResourceSection):
 
 
 class CohortFlagSection(BaseResourceSection):
-    resource: CohortFlagConfig | None = Field(None, description="Currently selected flag config")
-    resources: list[CohortFlagConfig] | None = Field(None, description="Available flag configs")
+    resource: CohortFlagResource | None = Field(None, description="Currently selected flag config")
+    resources: list[CohortFlagResource] | None = Field(None, description="Available flag configs")
 
 
 class CohortDepartmentSection(BaseResourceSection):
@@ -290,7 +289,7 @@ class GetCohortApiResponse(BaseModel):
 
     names: list[CohortNameResource] | None = Field(None, description="Name resources with selected/suggested flags")
     descriptions: list[CohortDescriptionResource] | None = Field(None, description="Description resources with selected/suggested flags")
-    flags: list[CohortFlagConfig] | None = Field(None, description="Flag resources with selected/suggested flags")
+    flags: list[CohortFlagResource] | None = Field(None, description="Flag resources with selected/suggested flags")
     departments: list[CohortDepartment] | None = Field(None, description="Department resources with selected/suggested flags")
     simulations: list[CohortSimulation] | None = Field(None, description="Simulation resources with selected/suggested flags")
     simulation_positions: list[CohortSimulationPosition] | None = Field(None, description="Simulation position resources with selected/suggested flags")
@@ -609,10 +608,7 @@ class PatchCohortDraftApiRequest(ScopedItem):
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
-        "flag": "flags",
-        "flag_id": "flags",
-        "active_flag": "flags",
-        "active_flag_id": "flags",
+        "flag_ids": "flags",
         "department_ids": "departments",
         "departments": "departments",
         "simulation_ids": "simulations",
@@ -636,11 +632,9 @@ class PatchCohortDraftApiRequest(ScopedItem):
     description: str | None = Field(None, description="Description value to create a resource")
     description_id: UUID | None = Field(None, description="Existing description resource UUID")
 
-    # Matchable single-select
-    flag: str | None = Field(None, description="Flag type or name to resolve")
-    flag_id: UUID | None = Field(None, description="Flag option UUID")
-    active_flag_id: UUID | None = Field(None, description="UUID of the flag option to set active status")
-    active_flag: bool | None = Field(None, description="Whether the cohort is active (resolved to flag_id)")
+    # Canonical multi-select flag ids + denormalized boolean for cohort_active.
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized cohort_active flag state; resolved to a flag_ids entry server-side")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     departments: list[str] | None = Field(None, description="Department names to resolve")
     simulation_ids: list[UUID] | None = Field(None, description="Simulation UUIDs")
@@ -670,10 +664,8 @@ class DraftFormState(BaseModel):
     name: str | None = Field(None, description="Name value that was saved")
     description_id: UUID | None = Field(None, description="Selected description resource UUID")
     description: str | None = Field(None, description="Description value that was saved")
-    flag_id: UUID | None = Field(None, description="Selected flag option UUID")
-    flag: str | None = Field(None, description="Flag value that was saved")
-    active_flag_id: UUID | None = Field(None, description="Selected active flag option UUID")
-    active_flag: bool | None = Field(None, description="Whether the active flag was enabled")
+    flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Echoed cohort_active flag state")
     department_ids: list[UUID] = Field(default_factory=list, description="Selected department UUIDs")
     departments: list[str] = Field(default_factory=list, description="Department values that were saved")
     simulation_ids: list[UUID] = Field(default_factory=list, description="Selected simulation UUIDs")

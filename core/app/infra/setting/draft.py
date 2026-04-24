@@ -19,17 +19,20 @@ from app.infra.setting.types import (
 )
 from app.tools.entries.setting_drafts.create import create_setting_draft
 from app.tools.entries.setting_drafts.get import get_setting_drafts
+from app.tools.resources.auth_item_keys.create import create_auth_item_key
+from app.tools.resources.auth_item_values.create import create_auth_item_value
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.search import search_flags
+from app.tools.resources.mcp.create import create_mcp
+from app.tools.resources.mcp.search import search_mcp
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
 from app.tools.resources.names.search import search_names
-
-SETTING_ACTIVE_FLAG = "setting_active"
-
+from app.tools.resources.provider_keys.create import create_provider_key
+from app.tools.resources.provider_keys.search import search_provider_keys
 
 async def _resolve_creatable_values(
     pool: asyncpg.Pool,
@@ -39,7 +42,6 @@ async def _resolve_creatable_values(
     """Resolve raw values to IDs, mutating request in place."""
 
     errors: list[SaveSettingFieldError] = []
-    request.active_flag_id = request.active_flag_id or request.flag_id
 
     async with pool.acquire() as conn:
         if request.name is not None and request.name_id is None:
@@ -87,36 +89,50 @@ async def _resolve_creatable_values(
                 created = await create_description(conn, request.description, redis)
                 request.description_id = created.id
 
-    if request.active_flag is not None and request.active_flag_id is None:
+    # Resolve denormalized flag booleans to canonical flag_ids via (type, value)
+    # lookup in flags_resource. Explicit flag_ids are retained verbatim; the
+    # derived id is merged in so both forms coexist without conflict.
+    denorm_flag_values: dict[str, bool] = {}
+    if request.active is not None:
+        denorm_flag_values["setting_active"] = bool(request.active)
+    if request.mcp is not None:
+        denorm_flag_values["mcp"] = bool(request.mcp)
+    if denorm_flag_values:
         async with pool.acquire() as conn:
-            flags = await search_flags(
+            all_flags = await search_flags(
                 conn,
                 redis,
                 search=None,
-                limit_count=100,
-                setting=True,
+                limit_count=200,
+                bypass_cache=True,
             )
-        match = next(
-            (
-                flag
-                for flag in flags
-                if getattr(flag, "name", None) == SETTING_ACTIVE_FLAG
-                or getattr(flag, "type", None) == SETTING_ACTIVE_FLAG
-            ),
-            None,
-        )
-        if request.active_flag:
-            if match and match.id:
-                request.active_flag_id = match.id
-            else:
+        resolved_flag_ids: list[UUID] = list(request.flag_ids or [])
+        resolved_seen = set(resolved_flag_ids)
+        for flag_type, desired_value in denorm_flag_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_flags
+                    if (getattr(f, "type", None) == flag_type
+                        or getattr(f, "name", None) == flag_type)
+                    and getattr(f, "value", None) is desired_value
+                ),
+                None,
+            )
+            if match and match.id and match.id not in resolved_seen:
+                resolved_flag_ids.append(match.id)
+                resolved_seen.add(match.id)
+            elif not match:
                 errors.append(
                     SaveSettingFieldError(
-                        field="active_flag",
-                        message="Active setting flag resource not found",
+                        field=flag_type,
+                        message=(
+                            f"Flag row not found for type={flag_type} "
+                            f"value={desired_value}"
+                        ),
                     )
                 )
-        else:
-            request.active_flag_id = None
+        request.flag_ids = resolved_flag_ids
 
     if request.departments is not None and request.department_ids is None:
         async with pool.acquire() as conn:
@@ -146,8 +162,111 @@ async def _resolve_creatable_values(
         if not any(error.field == "departments" for error in errors):
             request.department_ids = resolved_ids
 
-    request.flag_id = request.active_flag_id
+    # Provider keys value-array: resolve id=null entries by searching for an
+    # existing junction by (provider_id, key_id); create one if none exists.
+    if request.provider_keys:
+        resolved_ids: list[UUID] = []
+        async with pool.acquire() as conn:
+            for value in request.provider_keys:
+                if value.id is None:
+                    matches = await search_provider_keys(
+                        conn,
+                        redis,
+                        limit_count=1,
+                        provider_ids=[value.provider_id],
+                        key_ids=[value.key_id],
+                        bypass_cache=True,
+                    )
+                    if matches and matches[0].id:
+                        value.id = matches[0].id
+                    else:
+                        created = await create_provider_key(
+                            conn,
+                            provider_id=value.provider_id,
+                            key_id=value.key_id,
+                            redis=redis,
+                        )
+                        value.id = created.id
+                if value.id:
+                    resolved_ids.append(value.id)
+        request.provider_key_ids = _merge_unique(request.provider_key_ids, resolved_ids)
+
+    # Auth item keys value-array: (auth_id, item_id, key_id) — upsert via ON CONFLICT.
+    if request.auth_item_keys:
+        resolved_ids = []
+        async with pool.acquire() as conn:
+            for value in request.auth_item_keys:
+                if value.id is None:
+                    created = await create_auth_item_key(
+                        conn,
+                        auth_id=value.auth_id,
+                        item_id=value.item_id,
+                        key_id=value.key_id,
+                        redis=redis,
+                    )
+                    value.id = created.id
+                if value.id:
+                    resolved_ids.append(value.id)
+        request.auth_item_key_ids = _merge_unique(request.auth_item_key_ids, resolved_ids)
+
+    # Auth item values value-array: (auth_id, item_id, value) — upsert via ON CONFLICT.
+    if request.auth_item_values:
+        resolved_ids = []
+        async with pool.acquire() as conn:
+            for value in request.auth_item_values:
+                if value.id is None:
+                    created = await create_auth_item_value(
+                        conn,
+                        auth_id=value.auth_id,
+                        item_id=value.item_id,
+                        value=value.value,
+                        redis=redis,
+                    )
+                    value.id = created.id
+                if value.id:
+                    resolved_ids.append(value.id)
+        request.auth_item_value_ids = _merge_unique(request.auth_item_value_ids, resolved_ids)
+
+    # MCP value-array: single-select via agent_id; reuse existing row for the agent if present.
+    if request.mcp_values:
+        resolved_mcp_id: UUID | None = None
+        async with pool.acquire() as conn:
+            value = request.mcp_values[0]
+            if value.id is None:
+                matches = await search_mcp(
+                    conn,
+                    redis,
+                    limit_count=100,
+                    bypass_cache=True,
+                )
+                match = next(
+                    (m for m in matches if getattr(m, "agent_id", None) == value.agent_id),
+                    None,
+                )
+                if match and match.id:
+                    value.id = match.id
+                else:
+                    created = await create_mcp(
+                        conn,
+                        agent_id=value.agent_id,
+                        redis=redis,
+                    )
+                    value.id = created.id
+            resolved_mcp_id = value.id
+        if resolved_mcp_id:
+            request.mcp_id = request.mcp_id or resolved_mcp_id
+
     return errors
+
+
+def _merge_unique(existing: list[UUID] | None, new_ids: list[UUID]) -> list[UUID]:
+    merged = list(existing or [])
+    seen = set(merged)
+    for item_id in new_ids:
+        if item_id not in seen:
+            seen.add(item_id)
+            merged.append(item_id)
+    return merged
 
 
 async def patch_setting_draft_impl(
@@ -252,7 +371,7 @@ async def patch_setting_draft_impl(
                 color_ids=request.color_ids,
                 department_ids=request.department_ids,
                 description_ids=[request.description_id] if request.description_id else None,
-                flag_ids=[request.active_flag_id] if request.active_flag_id else None,
+                flag_ids=request.flag_ids or None,
                 name_ids=[request.name_id] if request.name_id else None,
                 profile_ids=[profile.profiles_id],
                 provider_key_ids=request.provider_key_ids,
@@ -274,13 +393,39 @@ async def patch_setting_draft_impl(
             descriptions = await get_descriptions(conn, [request.description_id], redis)
         resolved_description = descriptions[0].description if descriptions else None
 
+    # Re-derive denormalized flag booleans from the final flag_ids so the client
+    # echo matches whatever the server actually persisted.
+    echoed_active: bool | None = request.active
+    echoed_mcp: bool | None = request.mcp
+    if request.flag_ids:
+        async with pool.acquire() as conn:
+            flag_rows = await search_flags(
+                conn,
+                redis,
+                search=None,
+                limit_count=200,
+                bypass_cache=True,
+            )
+        rows_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+        for fid in request.flag_ids:
+            row = rows_by_id.get(fid)
+            if not row:
+                continue
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            rval = getattr(row, "value", None)
+            if rtype == "setting_active":
+                echoed_active = rval
+            elif rtype == "mcp":
+                echoed_mcp = rval
+
     form_state = DraftFormState(
         name_id=request.name_id,
         name=resolved_name,
         description_id=request.description_id,
         description=resolved_description,
-        active_flag_id=request.active_flag_id,
-        flag_id=request.active_flag_id,
+        flag_ids=request.flag_ids or [],
+        active=echoed_active,
+        mcp=echoed_mcp,
         department_ids=request.department_ids or [],
         color_ids=request.color_ids or [],
         logins_ids=request.logins_ids or [],
@@ -290,6 +435,10 @@ async def patch_setting_draft_impl(
         provider_key_ids=request.provider_key_ids or [],
         auth_item_key_ids=request.auth_item_key_ids or [],
         auth_item_value_ids=request.auth_item_value_ids or [],
+        provider_keys=request.provider_keys or [],
+        auth_item_keys=request.auth_item_keys or [],
+        auth_item_values=request.auth_item_values or [],
+        mcp_values=request.mcp_values or [],
         pending_ids=sorted(pending_ids),
     )
 

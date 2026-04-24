@@ -146,72 +146,50 @@ async def _resolve_creatable_values(
             request.description_id = match_id
 
         # ------------------------------------------------------------------
-        # Matchable resources: exact-match lookup only.
+        # Resolve denormalized flag boolean (`active`) → canonical flag_ids
+        # entry via (type, value) lookup in flags_resource. Existing
+        # flag_ids are preserved verbatim; the derived id is merged in.
         # ------------------------------------------------------------------
-
-        resolved_flag_id = getattr(request, "flag_id", None)
-        if resolved_flag_id is None:
-            resolved_flag_id = getattr(request, "active_flag_id", None)
-        raw_flag = getattr(request, "flag", None)
-        if raw_flag is not None and resolved_flag_id is None:
-            results = await search_flags(
-                conn,
-                redis,
-                search=raw_flag,
-                limit_count=100,
-                flag_type="cohort_active",
-                cohort=True,
-            )
-            match = next(
-                (
-                    flag
-                    for flag in results
-                    if (
-                        isinstance(flag.name, str)
-                        and flag.name.lower() == raw_flag.strip().lower()
-                    )
-                    or (
-                        isinstance(flag.type, str)
-                        and flag.type.lower() == raw_flag.strip().lower()
-                    )
-                ),
-                None,
-            )
-            if match and match.id:
-                resolved_flag_id = match.id
-            else:
-                errors.append(
-                    SaveCohortFieldError(
-                        field="flag",
-                        message=f'Flag "{raw_flag}" not found',
-                    )
-                )
-
-        if (
-            getattr(request, "active_flag", None) is not None
-            and resolved_flag_id is None
-            and bool(getattr(request, "active_flag", None))
-        ):
-            results = await search_flags(
+        denorm_flag_values: dict[str, bool] = {}
+        if getattr(request, "active", None) is not None:
+            denorm_flag_values["cohort_active"] = bool(request.active)
+        if denorm_flag_values:
+            all_flags = await search_flags(
                 conn,
                 redis,
                 search=None,
-                limit_count=1000,
-                flag_type="cohort_active",
-                cohort=True,
+                limit_count=200,
+                bypass_cache=True,
             )
-            match = next((flag for flag in results if flag.type == "cohort_active" and flag.value is True), None)
-            if match and match.id:
-                resolved_flag_id = match.id
-            else:
-                errors.append(
-                    SaveCohortFieldError(
-                        field="active_flag",
-                        message="Active flag resource not found",
-                    )
+            resolved_flag_ids: list[UUID] = list(request.flag_ids or [])
+            seen = set(resolved_flag_ids)
+            for flag_type, desired_value in denorm_flag_values.items():
+                match = next(
+                    (
+                        f
+                        for f in all_flags
+                        if (
+                            getattr(f, "type", None) == flag_type
+                            or getattr(f, "name", None) == flag_type
+                        )
+                        and getattr(f, "value", None) is desired_value
+                    ),
+                    None,
                 )
-        if resolved_flag_id is not None:
-            request.flag_id = resolved_flag_id
+                if match and match.id and match.id not in seen:
+                    resolved_flag_ids.append(match.id)
+                    seen.add(match.id)
+                elif not match:
+                    errors.append(
+                        SaveCohortFieldError(
+                            field=flag_type,
+                            message=(
+                                f"Flag row not found for type={flag_type} "
+                                f"value={desired_value}"
+                            ),
+                        )
+                    )
+            request.flag_ids = resolved_flag_ids
 
         if getattr(request, "departments", None) is not None and getattr(request, "department_ids", None) is None:
             department_values = request.departments or []
@@ -393,6 +371,7 @@ async def patch_cohort_draft_impl(
         filtered = sanitize_model_kwargs(
             kwargs,
             list_fields={
+                "flag_ids",
                 "department_ids",
                 "departments",
                 "simulation_ids",
@@ -407,13 +386,10 @@ async def patch_cohort_draft_impl(
                 "profile_personas",
                 "pending_ids",
             },
-            bool_fields={"active_flag"},
-            drop_false_bools={"active_flag"},
+            bool_fields={"active"},
             value_id_pairs=[
                 ("name", "name_id"),
                 ("description", "description_id"),
-                ("flag", "flag_id"),
-                ("active_flag", "active_flag_id"),
             ],
         )
         if idempotency_key is not None and "idempotency_key" not in filtered:
@@ -463,8 +439,8 @@ async def patch_cohort_draft_impl(
     # ------------------------------------------------------------------
     # Step 4: Create draft entry
     # ------------------------------------------------------------------
-    resolved_flag_id = getattr(request, "flag_id", None)
     resolved_pending_ids = list(getattr(request, "pending_ids", None) or [])
+    resolved_flag_ids = list(request.flag_ids or [])
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_cohort_draft(
@@ -476,7 +452,7 @@ async def patch_cohort_draft_impl(
                 description_ids=[request.description_id]
                 if request.description_id
                 else None,
-                flag_ids=[resolved_flag_id] if resolved_flag_id else None,
+                flag_ids=resolved_flag_ids or None,
                 name_ids=[request.name_id] if request.name_id else None,
                 profile_persona_ids=request.profile_persona_ids,
                 profile_ids=list(dict.fromkeys((request.profile_ids or []) + [profile.profiles_id])),
@@ -488,16 +464,35 @@ async def patch_cohort_draft_impl(
 
     # ------------------------------------------------------------------
     # Step 5: Build form state (server is source of truth)
+    # Re-derive denormalized booleans from final flag_ids so the client
+    # echo matches whatever the server actually persisted.
     # ------------------------------------------------------------------
+    echoed_active: bool | None = getattr(request, "active", None)
+    if resolved_flag_ids:
+        async with pool.acquire() as conn:
+            flag_rows = await search_flags(
+                conn,
+                redis,
+                search=None,
+                limit_count=200,
+                bypass_cache=True,
+            )
+        rows_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+        for fid in resolved_flag_ids:
+            row = rows_by_id.get(fid)
+            if not row:
+                continue
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            if rtype == "cohort_active":
+                echoed_active = getattr(row, "value", None)
+
     form_state = CohortDraftFormState(
         name_id=request.name_id,
         name=getattr(request, "name", None),
         description_id=request.description_id,
         description=getattr(request, "description", None),
-        flag_id=resolved_flag_id,
-        flag=getattr(request, "flag", None),
-        active_flag_id=resolved_flag_id if getattr(request, "active_flag", None) else getattr(request, "active_flag_id", None),
-        active_flag=getattr(request, "active_flag", None),
+        flag_ids=resolved_flag_ids,
+        active=echoed_active,
         department_ids=request.department_ids or [],
         departments=getattr(request, "departments", None) or [],
         simulation_ids=request.simulation_ids or [],

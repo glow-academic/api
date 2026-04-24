@@ -40,19 +40,20 @@ class EvalDescriptionResource(BaseModel):
     pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class EvalFlagConfig(BaseModel):
-    key: str = Field(..., description="Flag key identifier")
-    label: str = Field(..., description="Display label")
-    description: str | None = Field(None, description="Flag description")
+class EvalFlagResource(BaseModel):
+    """Flag option row — one per (name, type, value) entry in flags_resource."""
+
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type (e.g. 'eval_active')")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
+    description: str | None = Field(None, description="Flag description text")
     icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
-    icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
-    flag_option_id: UUID | None = Field(None, description="Flag resource UUID")
-    show: bool = Field(True, description="Whether to show this flag in the UI")
-    required: bool = Field(False, description="Whether this flag is required")
-    generated: bool | None = Field(None, description="Whether this was AI-generated")
-    suggested: bool = Field(False, description="Whether this is a suggested option")
-    selected: bool = Field(False, description="Whether this is currently selected")
-    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+    icon: str | None = Field(None, description="Resolved SVG markup (hydrated from icons_resource)")
+    generated: bool | None = Field(None, description="Whether the flag was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
 class EvalDepartmentResource(BaseModel):
@@ -161,7 +162,7 @@ class GetEvalApiResponse(BaseModel):
     pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
     names: list[EvalNameResource] | None = Field(None, description="Name resources")
     descriptions: list[EvalDescriptionResource] | None = Field(None, description="Description resources")
-    flags: list[EvalFlagConfig] | None = Field(None, description="Flag configs")
+    flags: list[EvalFlagResource] | None = Field(None, description="Flag resources (one per flags_resource row, value=true/false)")
     departments: list[EvalDepartmentResource] | None = Field(None, description="Department resources")
     models: list[EvalModelResource] | None = Field(None, description="Model resources")
     model_flags: list[EvalModelFlagResource] | None = Field(None, description="Model flag resources")
@@ -419,7 +420,8 @@ class PatchEvalDraftApiRequest(ScopedItem):
     description_id: UUID | None = Field(None, description="Existing description resource UUID")
 
     # Non-creatable — ID-only
-    flag_ids: list[UUID] | None = Field(None, description="Flag option UUIDs")
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized eval_active flag state; resolved to a flag_ids entry server-side")
     departments: list[str] | None = Field(None, description="Department names to resolve")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     model_ids: list[UUID] | None = Field(None, description="Model UUIDs")
@@ -439,6 +441,7 @@ class DraftFormState(BaseModel):
     description_id: UUID | None = Field(None, description="Selected description resource UUID")
     description: str | None = Field(None, description="Echoed selected description value")
     flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Echoed eval_active flag state")
     department_ids: list[UUID] = Field(default_factory=list, description="Selected department UUIDs")
     model_ids: list[UUID] = Field(default_factory=list, description="Selected model UUIDs")
     model_flag_ids: list[UUID] = Field(default_factory=list, description="Selected model flag UUIDs")

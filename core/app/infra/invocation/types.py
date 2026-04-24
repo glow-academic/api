@@ -85,15 +85,15 @@ class InvocationValueResource(BaseModel):
 
 
 class InvocationFlagResource(BaseModel):
-    id: UUID | None = Field(None, description="Unique identifier")
-    key: str = Field(..., description="Flag key identifier")
-    label: str = Field(..., description="Human-readable flag label")
+    """Flag option row — one per (name, type, value) flags_resource entry."""
+
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
     description: str | None = Field(None, description="Flag description text")
     icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
     icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
-    flag_option_id: UUID | None = Field(None, description="UUID of the selected flag option")
-    show: bool = Field(True, description="Whether the flag is visible to the client")
-    required: bool = Field(False, description="Whether the flag is required")
     generated: bool | None = Field(None, description="Whether the flag was AI-generated")
     suggested: bool = Field(False, description="Whether this is a suggested option")
     selected: bool = Field(False, description="Whether this is currently selected")

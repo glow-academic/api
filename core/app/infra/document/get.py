@@ -25,7 +25,7 @@ from app.infra.document.types import (
     DocumentDepartmentResource,
     DocumentDescriptionResource,
     DocumentFileResource,
-    DocumentFlagConfig,
+    DocumentFlagResource,
     DocumentImageResource,
     DocumentNameResource,
     DocumentParameterFieldResource,
@@ -309,19 +309,21 @@ async def get_document_impl(
             )
         return result
 
-    def _flags() -> list[DocumentFlagConfig]:
-        result: list[DocumentFlagConfig] = []
+    def _flags() -> list[DocumentFlagResource]:
+        result: list[DocumentFlagResource] = []
         for item in all_flags:
+            if not item.id:
+                continue
             suggested, selected, pending = _decorate_common(item.id, "flags")
-            key, label = _derive_flag_key_and_label(getattr(item, "name", None))
             result.append(
-                DocumentFlagConfig(
-                    key=key,
-                    label=label,
+                DocumentFlagResource(
+                    id=item.id,
+                    name=getattr(item, "name", None),
+                    type=getattr(item, "type", None),
+                    value=getattr(item, "value", None),
                     description=getattr(item, "description", None),
                     icon_id=getattr(item, "icon_id", None),
                     icon=getattr(item, "icon", None),
-                    flag_option_id=item.id,
                     generated=getattr(item, "generated", None),
                     suggested=suggested,
                     selected=selected,

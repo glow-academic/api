@@ -194,17 +194,16 @@ class AuthDepartmentResource(BaseModel):
     pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class AuthFlagConfig(BaseModel):
-    """Enriched flag config for direct client consumption."""
+class AuthFlagResource(BaseModel):
+    """Flag option row — one per (name, type, value) entry in flags_resource."""
 
-    key: str = Field(..., description="Flag key identifier")
-    label: str = Field(..., description="Human-readable flag label")
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type (e.g. 'auth_active')")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
     description: str | None = Field(None, description="Flag description text")
     icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
     icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
-    flag_option_id: UUID | None = Field(None, description="UUID of the selected flag option")
-    show: bool = Field(True, description="Whether the flag is visible to the client")
-    required: bool = Field(False, description="Whether the flag is required")
     generated: bool | None = Field(None, description="Whether the flag was AI-generated")
     suggested: bool = Field(False, description="Whether this is a suggested option")
     selected: bool = Field(False, description="Whether this is currently selected")
@@ -287,7 +286,7 @@ class GetAuthApiResponse(BaseModel):
     pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
     names: list[AuthNameResource] | None = Field(None, description="Name resources")
     descriptions: list[AuthDescriptionResource] | None = Field(None, description="Description resources")
-    flags: list[AuthFlagConfig] | None = Field(None, description="Flag configs")
+    flags: list[AuthFlagResource] | None = Field(None, description="Flag resources (one per flags_resource row, value=true/false)")
     departments: list[AuthDepartmentResource] | None = Field(None, description="Department resources")
     protocols: list[AuthProtocolResource] | None = Field(None, description="Protocol resources")
     slugs: list[AuthSlugResource] | None = Field(None, description="Slug resources")
@@ -335,8 +334,7 @@ class CreateAuthItem(ScopedItem):
         "description": "descriptions",
         "slug_id": "slugs",
         "slug": "slugs",
-        "active_flag_id": "flags",
-        "active_flag": "flags",
+        "flag_ids": "flags",
         "department_ids": "departments",
         "departments": "departments",
         "protocol_ids": "protocols",
@@ -356,9 +354,9 @@ class CreateAuthItem(ScopedItem):
     description: str | None = Field(None, description="Description value to resolve or create")
     slug_id: UUID | None = Field(None, description="UUID of the slug resource")
     slug: str | None = Field(None, description="Slug value to resolve or create")
-    # Optional flag
-    active_flag_id: UUID | None = Field(None, description="UUID of the active flag option")
-    active_flag: bool | None = Field(None, description="Whether the auth provider is active")
+    # Canonical flag ids + denormalized bool
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Denormalized auth_active flag state")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     departments: list[str] | None = Field(None, description="Department names to resolve")
@@ -399,9 +397,9 @@ class UpdateAuthItem(ScopedItem):
     description: str | None = Field(None, description="Description value to resolve or create")
     slug_id: UUID | None = Field(None, description="UUID of the slug resource")
     slug: str | None = Field(None, description="Slug value to resolve or create")
-    # Optional flag
-    active_flag_id: UUID | None = Field(None, description="UUID of the active flag option")
-    active_flag: bool | None = Field(None, description="Whether the auth provider is active")
+    # Canonical flag ids + denormalized bool
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Denormalized auth_active flag state")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     departments: list[str] | None = Field(None, description="Department names to resolve")
@@ -492,8 +490,7 @@ class PatchAuthDraftApiRequest(ScopedItem):
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
-        "active_flag": "flags",
-        "flag_id": "flags",
+        "flag_ids": "flags",
         "departments": "departments",
         "department_ids": "departments",
         "protocols": "protocols",
@@ -514,9 +511,9 @@ class PatchAuthDraftApiRequest(ScopedItem):
     description: str | None = Field(None, description="Description value to resolve or create")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
 
-    # Non-creatable — ID-only
-    active_flag: bool | None = Field(None, description="Whether the auth provider is active")
-    flag_id: UUID | None = Field(None, description="UUID of the flag option")
+    # Canonical flag ids + denormalized bools resolved server-side
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized auth_active flag state; resolved to a flag_ids entry server-side")
     departments: list[str] | None = Field(None, description="Department names to resolve")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     protocols: list[str] | None = Field(None, description="Protocol values to resolve")
@@ -533,7 +530,8 @@ class DraftFormState(BaseModel):
     name_id: UUID | None = Field(None, description="Resolved name resource UUID")
     description: str | None = Field(None, description="Echoed description value")
     description_id: UUID | None = Field(None, description="Resolved description resource UUID")
-    flag_id: UUID | None = Field(None, description="Resolved flag option UUID")
+    flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Echoed auth_active flag state")
     department_ids: list[UUID] = Field(default_factory=list, description="Assigned department UUIDs")
     protocol_ids: list[UUID] = Field(default_factory=list, description="Assigned protocol UUIDs")
     slug_ids: list[UUID] = Field(default_factory=list, description="Assigned slug UUIDs")

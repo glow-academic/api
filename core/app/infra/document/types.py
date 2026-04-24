@@ -163,15 +163,16 @@ class DocumentDraftEntry(BaseModel):
 # ========== GET Endpoint Types ==========
 
 
-class DocumentFlagConfig(BaseModel):
-    """Enriched flag config for direct client consumption."""
+class DocumentFlagResource(BaseModel):
+    """Flag option row — one per (name, type, value) entry in flags_resource."""
 
-    key: str = Field(..., description="Flag key identifier")  # e.g., "active"
-    label: str = Field(..., description="Display label")  # e.g., "Active"
-    description: str | None = Field(None, description="Flag description")
-    flag_option_id: UUID | None = Field(None, description="Flag option UUID to use when enabling")  # ID to use when enabling
-    show: bool = Field(True, description="Whether to show this flag in the UI")
-    required: bool = Field(False, description="Whether this flag is required")
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type (e.g. 'document_active')")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
+    description: str | None = Field(None, description="Flag description text")
+    icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
+    icon: str | None = Field(None, description="Resolved SVG markup for the icon")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     suggested: bool = Field(False, description="Whether this is a suggested option")
     selected: bool = Field(False, description="Whether this is currently selected")
@@ -224,7 +225,7 @@ class GetDocumentApiResponse(BaseModel):
 
     names: list[DocumentNameResource] | None = Field(None, description="Name resources")
     descriptions: list[DocumentDescriptionResource] | None = Field(None, description="Description resources")
-    flags: list[DocumentFlagConfig] | None = Field(None, description="Flag configs")
+    flags: list[DocumentFlagResource] | None = Field(None, description="Flag resources (one per flags_resource row, value=true/false)")
     departments: list[DocumentDepartmentResource] | None = Field(None, description="Department resources")
     parameter_fields: list[DocumentParameterFieldResource] | None = Field(None, description="Parameter field resources")
     parameters: list[DocumentParameterResource] | None = Field(None, description="Parameter catalog resources")
@@ -548,7 +549,8 @@ class PatchDocumentDraftApiRequest(ScopedItem):
     images: list[DraftImageValue] | None = Field(None, description="Image values to create resources")
 
     # Non-creatable — ID-only
-    flag_ids: list[UUID] | None = Field(None, description="Flag option UUIDs")
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized document_active flag state; resolved to a flag_ids entry server-side")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     image_ids: list[UUID] | None = Field(None, description="Image UUIDs")
     parameter_field_ids: list[UUID] | None = Field(None, description="Parameter field UUIDs")
@@ -566,6 +568,7 @@ class DraftFormState(BaseModel):
     description: str | None = Field(None, description="Echoed unresolved description value")
     description_id: UUID | None = Field(None, description="Selected description resource UUID")
     flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Echoed document_active flag state")
     department_ids: list[UUID] = Field(default_factory=list, description="Selected department UUIDs")
     file_ids: list[UUID] = Field(default_factory=list, description="Selected file resource UUIDs")
     image_ids: list[UUID] = Field(default_factory=list, description="Selected image UUIDs")

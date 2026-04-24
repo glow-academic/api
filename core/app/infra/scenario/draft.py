@@ -38,7 +38,19 @@ from app.tools.resources.problem_statements.create import (
 )
 from app.tools.resources.questions.create import create_question
 from app.tools.resources.videos.create import create_video
+from app.tools.resources.flags.search import search_flags
 from app.infra.tools.sanitize import sanitize_model_kwargs
+
+
+# Denormalized bool field name → flag type in flags_resource.
+SCENARIO_DENORM_FLAG_FIELDS = {
+    "active": "scenario_active",
+    "video_enabled": "video_enabled",
+    "problem_statement_enabled": "problem_statement_enabled",
+    "objectives_enabled": "objectives_enabled",
+    "images_enabled": "images_enabled",
+    "questions_enabled": "questions_enabled",
+}
 
 # ---------------------------------------------------------------------------
 # Value resolution — creatable resources only
@@ -126,6 +138,35 @@ async def _resolve_creatable_values(
                 )
                 created_ids.append(result.id)
             request.option_ids = (request.option_ids or []) + created_ids
+
+    # Denorm bool → flag_ids via (type, value) lookup in flags_resource.
+    denorm_values: dict[str, bool] = {}
+    for field_name, flag_type in SCENARIO_DENORM_FLAG_FIELDS.items():
+        v = getattr(request, field_name, None)
+        if v is not None:
+            denorm_values[flag_type] = bool(v)
+    if denorm_values:
+        async with pool.acquire() as conn:
+            all_rows = await search_flags(
+                conn, redis, search=None, limit_count=200, bypass_cache=True
+            )
+        resolved_ids: list[UUID] = list(request.flag_ids or [])
+        seen = set(resolved_ids)
+        for ftype, desired in denorm_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_rows
+                    if (getattr(f, "type", None) == ftype
+                        or getattr(f, "name", None) == ftype)
+                    and getattr(f, "value", None) is desired
+                ),
+                None,
+            )
+            if match and match.id and match.id not in seen:
+                resolved_ids.append(match.id)
+                seen.add(match.id)
+        request.flag_ids = resolved_ids
 
     return errors
 
@@ -327,11 +368,38 @@ async def patch_scenario_draft_impl(
 
     # ── Step 5: Build form state (server is source of truth) ──────────
 
+    # Re-derive denormalized bools from final flag_ids so the client echo
+    # mirrors what the server actually persisted.
+    echoed_bools: dict[str, bool | None] = {
+        f: getattr(request, f, None) for f in SCENARIO_DENORM_FLAG_FIELDS
+    }
+    if request.flag_ids:
+        async with pool.acquire() as conn:
+            flag_rows = await search_flags(
+                conn, redis, search=None, limit_count=200, bypass_cache=True
+            )
+        rows_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+        type_to_field = {v: k for k, v in SCENARIO_DENORM_FLAG_FIELDS.items()}
+        for fid in request.flag_ids:
+            row = rows_by_id.get(fid)
+            if not row:
+                continue
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            field = type_to_field.get(rtype or "")
+            if field:
+                echoed_bools[field] = getattr(row, "value", None)
+
     form_state = ScenarioDraftFormState(
         name_id=request.name_id,
         description_id=request.description_id,
         problem_statement_id=request.problem_statement_id,
         flag_ids=request.flag_ids or [],
+        active=echoed_bools.get("active"),
+        video_enabled=echoed_bools.get("video_enabled"),
+        problem_statement_enabled=echoed_bools.get("problem_statement_enabled"),
+        objectives_enabled=echoed_bools.get("objectives_enabled"),
+        images_enabled=echoed_bools.get("images_enabled"),
+        questions_enabled=echoed_bools.get("questions_enabled"),
         department_ids=request.department_ids or [],
         persona_ids=request.persona_ids or [],
         document_ids=request.document_ids or [],

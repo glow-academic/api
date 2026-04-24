@@ -43,6 +43,14 @@ from app.tools.resources.scenario_rubrics.create import create_scenario_rubric
 from app.tools.resources.scenario_time_limits.create import (
     create_scenario_time_limit,
 )
+from app.tools.resources.flags.search import search_flags
+
+
+# Denormalized bool field name → flag type in flags_resource.
+SIMULATION_DENORM_FLAG_FIELDS = {
+    "active": "simulation_active",
+    "practice": "practice",
+}
 
 # ---------------------------------------------------------------------------
 # Value resolution — creatable resources only
@@ -155,6 +163,35 @@ async def _resolve_creatable_values(
             request.scenario_time_limit_ids = (
                 request.scenario_time_limit_ids or []
             ) + created_ids
+
+    # Denorm bool → flag_ids via (type, value) lookup in flags_resource.
+    denorm_values: dict[str, bool] = {}
+    for field_name, flag_type in SIMULATION_DENORM_FLAG_FIELDS.items():
+        v = getattr(request, field_name, None)
+        if v is not None:
+            denorm_values[flag_type] = bool(v)
+    if denorm_values:
+        async with pool.acquire() as conn:
+            all_rows = await search_flags(
+                conn, redis, search=None, limit_count=200, bypass_cache=True
+            )
+        resolved_ids: list[UUID] = list(request.flag_ids or [])
+        seen = set(resolved_ids)
+        for ftype, desired in denorm_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_rows
+                    if (getattr(f, "type", None) == ftype
+                        or getattr(f, "name", None) == ftype)
+                    and getattr(f, "value", None) is desired
+                ),
+                None,
+            )
+            if match and match.id and match.id not in seen:
+                resolved_ids.append(match.id)
+                seen.add(match.id)
+        request.flag_ids = resolved_ids
 
     return errors
 
@@ -350,12 +387,35 @@ async def patch_simulation_draft_impl(
 
     # ── Step 6: Build form state (server is source of truth) ──────────
 
+    # Re-derive denorm bools from final flag_ids so client echo matches
+    # what the server actually persisted.
+    echoed_bools: dict[str, bool | None] = {
+        f: getattr(request, f, None) for f in SIMULATION_DENORM_FLAG_FIELDS
+    }
+    if request.flag_ids:
+        async with pool.acquire() as conn:
+            flag_rows = await search_flags(
+                conn, redis, search=None, limit_count=200, bypass_cache=True
+            )
+        rows_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+        type_to_field = {v: k for k, v in SIMULATION_DENORM_FLAG_FIELDS.items()}
+        for fid in request.flag_ids:
+            row = rows_by_id.get(fid)
+            if not row:
+                continue
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            field = type_to_field.get(rtype or "")
+            if field:
+                echoed_bools[field] = getattr(row, "value", None)
+
     form_state = SimulationDraftFormState(
         name_id=request.name_id,
         name=request.name,
         description_id=request.description_id,
         description=request.description,
         flag_ids=request.flag_ids or [],
+        active=echoed_bools.get("active"),
+        practice=echoed_bools.get("practice"),
         department_ids=request.department_ids or [],
         scenario_ids=request.scenario_ids or [],
         scenario_flag_ids=request.scenario_flag_ids or [],

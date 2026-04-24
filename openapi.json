@@ -6091,7 +6091,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PatchRubricDraftApiResponse"
+                  "$ref": "#/components/schemas/PatchRubricDraftApiResponse-Output"
                 }
               }
             }
@@ -6772,7 +6772,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PatchSettingDraftApiResponse"
+                  "$ref": "#/components/schemas/PatchSettingDraftApiResponse-Output"
                 }
               }
             }
@@ -17505,6 +17505,54 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemSystemApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/system/group": {
+      "post": {
+        "tags": [
+          "system",
+          "group"
+        ],
+        "summary": "Group System",
+        "description": "Resolve or create the session's system group, optionally naming it.",
+        "operationId": "group_system_system_group_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupSystemApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupSystemApiResponse"
                 }
               }
             }
@@ -33140,7 +33188,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PatchRubricDraftApiResponse"
+                "$ref": "#/components/schemas/PatchRubricDraftApiResponse-Input"
               }
             }
           },
@@ -33344,7 +33392,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PatchSettingDraftApiResponse"
+                "$ref": "#/components/schemas/PatchSettingDraftApiResponse-Input"
               }
             }
           },
@@ -37415,17 +37463,56 @@
         "title": "AgentFieldError",
         "description": "Per-field error from value resolution."
       },
-      "AgentFlagConfig": {
+      "AgentFlagResource": {
         "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Flag config key identifier"
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Display label for the flag"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'agent_active')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -37464,31 +37551,6 @@
             "title": "Icon",
             "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
-          "flag_option_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Option Id",
-            "description": "UUID of the flag option"
-          },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this flag in the UI",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this flag is required",
-            "default": false
-          },
           "generated": {
             "anyOf": [
               {
@@ -37521,12 +37583,8 @@
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "AgentFlagConfig",
-        "description": "Enriched flag config for direct client consumption."
+        "title": "AgentFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
       "AgentInstructionResource": {
         "properties": {
@@ -41545,17 +41603,56 @@
         "title": "AuthFieldError",
         "description": "Per-field error from value resolution."
       },
-      "AuthFlagConfig": {
+      "AuthFlagResource": {
         "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Flag key identifier"
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Human-readable flag label"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'auth_active')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -41594,31 +41691,6 @@
             "title": "Icon",
             "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
-          "flag_option_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Option Id",
-            "description": "UUID of the selected flag option"
-          },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether the flag is visible to the client",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether the flag is required",
-            "default": false
-          },
           "generated": {
             "anyOf": [
               {
@@ -41651,12 +41723,8 @@
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "AuthFlagConfig",
-        "description": "Enriched flag config for direct client consumption."
+        "title": "AuthFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
       "AuthItemResource": {
         "properties": {
@@ -43324,6 +43392,114 @@
             "title": "Audio Enabled",
             "description": "Whether audio input is enabled"
           },
+          "hints_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hints Enabled",
+            "description": "Whether hints should be generated on replies"
+          },
+          "analyses_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyses Enabled",
+            "description": "Whether chat-level analyses run during grading"
+          },
+          "strengths_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strengths Enabled",
+            "description": "Whether strengths are captured during grading"
+          },
+          "improvements_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Improvements Enabled",
+            "description": "Whether improvements are captured during grading"
+          },
+          "problem_statement_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Statement Enabled",
+            "description": "Whether this chat has a problem statement capability"
+          },
+          "objectives_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objectives Enabled",
+            "description": "Whether this chat has objectives capability"
+          },
+          "video_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Enabled",
+            "description": "Whether this chat has a video capability"
+          },
+          "images_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Images Enabled",
+            "description": "Whether this chat has an images capability"
+          },
+          "questions_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questions Enabled",
+            "description": "Whether this chat has a quiz/questions capability"
+          },
           "grading_state": {
             "anyOf": [
               {
@@ -43708,6 +43884,114 @@
             ],
             "title": "Audio Enabled",
             "description": "Whether audio input is enabled"
+          },
+          "hints_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hints Enabled",
+            "description": "Whether hints should be generated on replies"
+          },
+          "analyses_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyses Enabled",
+            "description": "Whether chat-level analyses run during grading"
+          },
+          "strengths_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strengths Enabled",
+            "description": "Whether strengths are captured during grading"
+          },
+          "improvements_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Improvements Enabled",
+            "description": "Whether improvements are captured during grading"
+          },
+          "problem_statement_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Statement Enabled",
+            "description": "Whether this chat has a problem statement capability"
+          },
+          "objectives_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objectives Enabled",
+            "description": "Whether this chat has objectives capability"
+          },
+          "video_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Enabled",
+            "description": "Whether this chat has a video capability"
+          },
+          "images_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Images Enabled",
+            "description": "Whether this chat has an images capability"
+          },
+          "questions_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questions Enabled",
+            "description": "Whether this chat has a quiz/questions capability"
           },
           "grading_state": {
             "anyOf": [
@@ -45015,6 +45299,11 @@
               }
             ],
             "title": "Parent Message Id"
+          },
+          "auto_link_parent": {
+            "type": "boolean",
+            "title": "Auto Link Parent",
+            "default": true
           }
         },
         "type": "object",
@@ -46389,21 +46678,22 @@
         "title": "CohortFieldError",
         "description": "Per-field error from value resolution."
       },
-      "CohortFlagConfig": {
+      "CohortFlagResource": {
         "properties": {
-          "key": {
+          "id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Key",
-            "description": "Flag key identifier"
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
+          "name": {
             "anyOf": [
               {
                 "type": "string"
@@ -46412,8 +46702,32 @@
                 "type": "null"
               }
             ],
-            "title": "Label",
-            "description": "Display label"
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'cohort_active')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -46452,43 +46766,6 @@
             "title": "Icon",
             "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
-          "flag_option_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Option Id",
-            "description": "Selected flag option UUID"
-          },
-          "show": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Show",
-            "description": "Whether to show this flag in the UI"
-          },
-          "required": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Required",
-            "description": "Whether this flag is required"
-          },
           "generated": {
             "anyOf": [
               {
@@ -46521,8 +46798,8 @@
           }
         },
         "type": "object",
-        "title": "CohortFlagConfig",
-        "description": "Flag config for cohort \u2014 matches client FlagConfig interface."
+        "title": "CohortFlagResource",
+        "description": "Flag option row for cohort \u2014 one per (name, type, value) flags_resource entry."
       },
       "CohortNameResource": {
         "properties": {
@@ -47747,31 +48024,6 @@
             "title": "Departments",
             "description": "Department names for matching"
           },
-          "active_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag",
-            "description": "Whether this agent is active"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Active flag resource UUID"
-          },
           "flag_ids": {
             "anyOf": [
               {
@@ -47786,7 +48038,19 @@
               }
             ],
             "title": "Flag Ids",
-            "description": "Associated flag UUIDs"
+            "description": "Selected flag option UUIDs"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Denormalized agent_active flag state"
           },
           "model_id": {
             "anyOf": [
@@ -48551,20 +48815,23 @@
             "title": "Slug",
             "description": "Slug value to resolve or create"
           },
-          "active_flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "UUID of the active flag option"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
           },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -48573,8 +48840,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the auth provider is active"
+            "title": "Active",
+            "description": "Denormalized auth_active flag state"
           },
           "department_ids": {
             "anyOf": [
@@ -51588,18 +51855,33 @@
             "title": "Name",
             "description": "Name value to resolve or create"
           },
-          "active_flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "UUID of the flag option"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Denormalized profile_active flag state"
           },
           "department_ids": {
             "anyOf": [
@@ -51870,20 +52152,23 @@
             "title": "Description",
             "description": "Description text value"
           },
-          "active_flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "Active flag option identifier"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
           },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -51892,8 +52177,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the provider is active"
+            "title": "Active",
+            "description": "Denormalized provider_active flag state"
           },
           "department_ids": {
             "anyOf": [
@@ -52295,17 +52580,18 @@
             "title": "Departments",
             "description": "Department names for resolution"
           },
-          "total_points": {
+          "pass_points_id": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Total Points",
-            "description": "Total points for rubric"
+            "title": "Pass Points Id",
+            "description": "Pass-type Points resource UUID"
           },
           "pass_points": {
             "anyOf": [
@@ -52317,23 +52603,7 @@
               }
             ],
             "title": "Pass Points",
-            "description": "Points required to pass"
-          },
-          "point_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Point Ids",
-            "description": "Point UUIDs"
+            "description": "Pass points value (resolves to a pass-type Points resource)"
           },
           "standard_group_ids": {
             "anyOf": [
@@ -57539,17 +57809,56 @@
         "title": "DepartmentFieldError",
         "description": "Per-field error from value resolution."
       },
-      "DepartmentFlagConfig": {
+      "DepartmentFlagResource": {
         "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Flag key identifier"
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Human-readable flag label"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'department_active')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -57588,31 +57897,6 @@
             "title": "Icon",
             "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
-          "flag_option_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Option Id",
-            "description": "UUID of the selected flag option"
-          },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether the flag is visible to the client",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether the flag is required",
-            "default": false
-          },
           "generated": {
             "anyOf": [
               {
@@ -57645,12 +57929,8 @@
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "DepartmentFlagConfig",
-        "description": "Enriched flag config for direct client consumption."
+        "title": "DepartmentFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
       "DepartmentNameResource": {
         "properties": {
@@ -58339,17 +58619,56 @@
         "title": "DocumentFileResource",
         "description": "File resource for document."
       },
-      "DocumentFlagConfig": {
+      "DocumentFlagResource": {
         "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Flag key identifier"
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Display label"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'document_active')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -58361,9 +58680,9 @@
               }
             ],
             "title": "Description",
-            "description": "Flag description"
+            "description": "Flag description text"
           },
-          "flag_option_id": {
+          "icon_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -58373,20 +58692,20 @@
                 "type": "null"
               }
             ],
-            "title": "Flag Option Id",
-            "description": "Flag option UUID to use when enabling"
+            "title": "Icon Id",
+            "description": "Icon identifier for the flag"
           },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this flag in the UI",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this flag is required",
-            "default": false
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon"
           },
           "generated": {
             "anyOf": [
@@ -58420,12 +58739,8 @@
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "DocumentFlagConfig",
-        "description": "Enriched flag config for direct client consumption."
+        "title": "DocumentFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
       "DocumentImageResource": {
         "properties": {
@@ -60973,17 +61288,56 @@
         "title": "EvalFieldError",
         "description": "Per-field error from value resolution."
       },
-      "EvalFlagConfig": {
+      "EvalFlagResource": {
         "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Flag key identifier"
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Display label"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'eval_active')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -60995,7 +61349,7 @@
               }
             ],
             "title": "Description",
-            "description": "Flag description"
+            "description": "Flag description text"
           },
           "icon_id": {
             "anyOf": [
@@ -61020,32 +61374,7 @@
               }
             ],
             "title": "Icon",
-            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
-          },
-          "flag_option_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Option Id",
-            "description": "Flag resource UUID"
-          },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this flag in the UI",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this flag is required",
-            "default": false
+            "description": "Resolved SVG markup (hydrated from icons_resource)"
           },
           "generated": {
             "anyOf": [
@@ -61057,33 +61386,30 @@
               }
             ],
             "title": "Generated",
-            "description": "Whether this was AI-generated"
+            "description": "Whether the flag was AI-generated"
           },
           "suggested": {
             "type": "boolean",
             "title": "Suggested",
-            "description": "Whether this is a suggested option",
+            "description": "Whether this item is suggested",
             "default": false
           },
           "selected": {
             "type": "boolean",
             "title": "Selected",
-            "description": "Whether this is currently selected",
+            "description": "Whether this item is selected",
             "default": false
           },
           "pending": {
             "type": "boolean",
             "title": "Pending",
-            "description": "Whether this selection is pending acceptance",
+            "description": "Whether this item is pending acceptance",
             "default": false
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "EvalFlagConfig"
+        "title": "EvalFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
       "EvalModelFlagResource": {
         "properties": {
@@ -61546,6 +61872,50 @@
         ],
         "title": "EvalResultItem",
         "description": "Per-item result within a bulk create/update response."
+      },
+      "EvalRubricResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Rubric resource UUID"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Rubric display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Rubric description"
+          }
+        },
+        "type": "object",
+        "title": "EvalRubricResource",
+        "description": "Top-level rubric catalog entry. The ModelRubrics picker renders\none of these per option (alongside a \"no rubric\" clear state)."
       },
       "ExportActivityApiResponse": {
         "properties": {
@@ -63596,17 +63966,56 @@
         "title": "FieldFieldError",
         "description": "Per-field error from value resolution."
       },
-      "FieldFlagConfig": {
+      "FieldFlagResource": {
         "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Flag key identifier"
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Human-readable flag label"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'field_active')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -63645,31 +64054,6 @@
             "title": "Icon",
             "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
-          "flag_option_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Option Id",
-            "description": "UUID of the selected flag option"
-          },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether the flag is visible to the client",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether the flag is required",
-            "default": false
-          },
           "generated": {
             "anyOf": [
               {
@@ -63702,12 +64086,8 @@
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "FieldFlagConfig",
-        "description": "Enriched flag config for direct client consumption."
+        "title": "FieldFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
       "FieldNameResource": {
         "properties": {
@@ -68621,7 +69001,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/AgentFlagConfig"
+                  "$ref": "#/components/schemas/AgentFlagResource"
                 },
                 "type": "array"
               },
@@ -68630,7 +69010,7 @@
               }
             ],
             "title": "Flags",
-            "description": "Flag resources"
+            "description": "Flag resources (one per flags_resource row, value=true/false)"
           },
           "departments": {
             "anyOf": [
@@ -70074,7 +70454,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/AuthFlagConfig"
+                  "$ref": "#/components/schemas/AuthFlagResource"
                 },
                 "type": "array"
               },
@@ -70083,7 +70463,7 @@
               }
             ],
             "title": "Flags",
-            "description": "Flag configs"
+            "description": "Flag resources (one per flags_resource row, value=true/false)"
           },
           "departments": {
             "anyOf": [
@@ -71869,7 +72249,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/CohortFlagConfig"
+                  "$ref": "#/components/schemas/CohortFlagResource"
                 },
                 "type": "array"
               },
@@ -72521,7 +72901,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/DepartmentFlagConfig"
+                  "$ref": "#/components/schemas/DepartmentFlagResource"
                 },
                 "type": "array"
               },
@@ -72530,7 +72910,7 @@
               }
             ],
             "title": "Flags",
-            "description": "Flag configs"
+            "description": "Flag resources (one per flags_resource row, value=true/false)"
           },
           "settings": {
             "anyOf": [
@@ -73036,7 +73416,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/DocumentFlagConfig"
+                  "$ref": "#/components/schemas/DocumentFlagResource"
                 },
                 "type": "array"
               },
@@ -73045,7 +73425,7 @@
               }
             ],
             "title": "Flags",
-            "description": "Flag configs"
+            "description": "Flag resources (one per flags_resource row, value=true/false)"
           },
           "departments": {
             "anyOf": [
@@ -73687,7 +74067,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/EvalFlagConfig"
+                  "$ref": "#/components/schemas/EvalFlagResource"
                 },
                 "type": "array"
               },
@@ -73696,7 +74076,7 @@
               }
             ],
             "title": "Flags",
-            "description": "Flag configs"
+            "description": "Flag resources (one per flags_resource row, value=true/false)"
           },
           "departments": {
             "anyOf": [
@@ -73772,6 +74152,21 @@
             ],
             "title": "Model Positions",
             "description": "Model position resources"
+          },
+          "rubrics": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/EvalRubricResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubrics",
+            "description": "Top-level rubric catalog for the ModelRubrics picker"
           }
         },
         "type": "object",
@@ -74311,7 +74706,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/FieldFlagConfig"
+                  "$ref": "#/components/schemas/FieldFlagResource"
                 },
                 "type": "array"
               },
@@ -74320,7 +74715,7 @@
               }
             ],
             "title": "Flags",
-            "description": "Flag configs"
+            "description": "Flag resources (one per flags_resource row, value=true/false)"
           },
           "departments": {
             "anyOf": [
@@ -76270,7 +76665,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/ModelFlagConfig"
+                  "$ref": "#/components/schemas/ModelFlagResource"
                 },
                 "type": "array"
               },
@@ -76973,7 +77368,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/ParameterFlagConfig"
+                  "$ref": "#/components/schemas/ParameterFlagResource"
                 },
                 "type": "array"
               },
@@ -77491,7 +77886,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/PersonaFlagConfig"
+                  "$ref": "#/components/schemas/PersonaFlagResource"
                 },
                 "type": "array"
               },
@@ -77500,7 +77895,7 @@
               }
             ],
             "title": "Flags",
-            "description": "Boolean flag configs with selected flag (e.g. active status)"
+            "description": "Flag resources (one per flags_resource row, value=true/false)"
           },
           "departments": {
             "anyOf": [
@@ -78305,6 +78700,21 @@
             "title": "Pending Ids",
             "description": "Pending resource identifiers when available"
           },
+          "role_options": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Options",
+            "description": "Role names the actor can assign"
+          },
           "names": {
             "anyOf": [
               {
@@ -78339,7 +78749,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/ProfileFlagConfig"
+                  "$ref": "#/components/schemas/ProfileFlagResource"
                 },
                 "type": "array"
               },
@@ -78348,7 +78758,7 @@
               }
             ],
             "title": "Flags",
-            "description": "Flag configs"
+            "description": "Flag resources (one per flags_resource row, value=true/false)"
           },
           "departments": {
             "anyOf": [
@@ -78855,7 +79265,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/ProviderFlagConfig"
+                  "$ref": "#/components/schemas/ProviderFlagResource"
                 },
                 "type": "array"
               },
@@ -78864,7 +79274,7 @@
               }
             ],
             "title": "Flags",
-            "description": "Flag configs"
+            "description": "Flag resources (one per flags_resource row, value=true/false)"
           },
           "departments": {
             "anyOf": [
@@ -79430,7 +79840,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/RubricFlagConfig"
+                  "$ref": "#/components/schemas/RubricFlagResource"
                 },
                 "type": "array"
               },
@@ -79439,7 +79849,7 @@
               }
             ],
             "title": "Flags",
-            "description": "Flag configs"
+            "description": "Flag resources (one per flags_resource row, value=true/false)"
           },
           "departments": {
             "anyOf": [
@@ -80072,7 +80482,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/ScenarioFlagConfig"
+                  "$ref": "#/components/schemas/ScenarioFlagResource"
                 },
                 "type": "array"
               },
@@ -81129,7 +81539,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/SettingFlagConfig"
+                  "$ref": "#/components/schemas/SettingFlagResource"
                 },
                 "type": "array"
               },
@@ -81138,7 +81548,7 @@
               }
             ],
             "title": "Flags",
-            "description": "Flag configs"
+            "description": "Flag resources (one per flags_resource row, value=true/false)"
           },
           "departments": {
             "anyOf": [
@@ -81364,6 +81774,66 @@
             ],
             "title": "Agents",
             "description": "Agent catalog used by mcp and systems editing"
+          },
+          "provider_key_options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingProviderKeyOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Key Options",
+            "description": "Curated (provider \u00d7 key) options for the ProviderKeys picker"
+          },
+          "auth_item_key_options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingAuthItemKeyOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Item Key Options",
+            "description": "Curated (auth \u00d7 key) options for the AuthItemKeys picker"
+          },
+          "auth_item_value_options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingAuthItemValueOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Item Value Options",
+            "description": "Curated (auth \u00d7 item) options for the AuthItemValues picker"
+          },
+          "mcp_options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingMcpOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Options",
+            "description": "Curated per-agent options for the MCP picker"
           }
         },
         "type": "object",
@@ -82045,7 +82515,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/SimulationFlagConfig"
+                  "$ref": "#/components/schemas/SimulationFlagResource"
                 },
                 "type": "array"
               },
@@ -84044,7 +84514,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/ToolFlagConfig"
+                  "$ref": "#/components/schemas/ToolFlagResource"
                 },
                 "type": "array"
               },
@@ -84053,7 +84523,7 @@
               }
             ],
             "title": "Flags",
-            "description": "Flag configs"
+            "description": "Flag resources (one per flags_resource row, value=true/false)"
           },
           "args": {
             "anyOf": [
@@ -87343,6 +87813,126 @@
         "title": "GroupSimulationApiResponse",
         "description": "Response body for POST /simulation/group."
       },
+      "GroupSystemApiRequest": {
+        "properties": {
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id",
+            "description": "Existing group UUID (omit to create or reuse via time window)"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Optional name for the group"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack \u2014 promotes or rejects a dormant group"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "GroupSystemApiRequest",
+        "description": "Request body for POST /system/group."
+      },
+      "GroupSystemApiResponse": {
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Group Id",
+            "description": "Resolved or newly created group UUID"
+          },
+          "group_name_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Name Id",
+            "description": "UUID of the created group_names entry (if name was provided)"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "The name that was set (if provided)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
+          },
+          "runs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupRun"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runs",
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          }
+        },
+        "type": "object",
+        "required": [
+          "group_id"
+        ],
+        "title": "GroupSystemApiResponse",
+        "description": "Response body for POST /system/group."
+      },
       "GroupTestApiRequest": {
         "properties": {
           "group_id": {
@@ -88503,17 +89093,43 @@
               }
             ],
             "title": "Id",
-            "description": "Unique identifier"
+            "description": "Flag resource identifier"
           },
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Flag key identifier"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Human-readable flag label"
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -88552,31 +89168,6 @@
             "title": "Icon",
             "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
-          "flag_option_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Option Id",
-            "description": "UUID of the selected flag option"
-          },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether the flag is visible to the client",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether the flag is required",
-            "default": false
-          },
           "generated": {
             "anyOf": [
               {
@@ -88609,11 +89200,8 @@
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "InvocationFlagResource"
+        "title": "InvocationFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) flags_resource entry."
       },
       "InvocationKeyResource": {
         "properties": {
@@ -97238,17 +97826,56 @@
         "title": "ModelFieldError",
         "description": "Per-field error from value resolution."
       },
-      "ModelFlagConfig": {
+      "ModelFlagResource": {
         "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Flag key identifier"
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Human-readable flag label"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'model_active')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -97260,7 +97887,7 @@
               }
             ],
             "title": "Description",
-            "description": "Flag description"
+            "description": "Flag description text"
           },
           "icon_id": {
             "anyOf": [
@@ -97285,32 +97912,7 @@
               }
             ],
             "title": "Icon",
-            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
-          },
-          "flag_option_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Option Id",
-            "description": "Option ID to use when enabling"
-          },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to display this flag in the UI",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this flag is required",
-            "default": false
+            "description": "Resolved SVG markup (hydrated from icons_resource)"
           },
           "generated": {
             "anyOf": [
@@ -97322,16 +97924,30 @@
               }
             ],
             "title": "Generated",
-            "description": "Whether this flag was AI-generated"
+            "description": "Whether the flag was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "ModelFlagConfig",
-        "description": "Enriched flag config for direct client consumption."
+        "title": "ModelFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
       "ModelModalityResource": {
         "properties": {
@@ -98666,17 +99282,56 @@
         "title": "ParameterFieldResource",
         "description": "Parameter field resource for parameter."
       },
-      "ParameterFlagConfig": {
+      "ParameterFlagResource": {
         "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Flag key identifier"
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Human-readable flag label"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -98715,31 +99370,6 @@
             "title": "Icon",
             "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
-          "flag_option_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Option Id",
-            "description": "Option ID to use when enabling"
-          },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to display this flag in the UI",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this flag is required",
-            "default": false
-          },
           "generated": {
             "anyOf": [
               {
@@ -98772,12 +99402,8 @@
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "ParameterFlagConfig",
-        "description": "Enriched flag config for direct client consumption."
+        "title": "ParameterFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) flags_resource entry."
       },
       "ParameterNameResource": {
         "properties": {
@@ -99548,31 +100174,6 @@
             "title": "Description Id",
             "description": "UUID of the description resource"
           },
-          "active_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag",
-            "description": "Whether the agent is active"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Active flag resource UUID"
-          },
           "flag_ids": {
             "anyOf": [
               {
@@ -99587,7 +100188,19 @@
               }
             ],
             "title": "Flag Ids",
-            "description": "Associated flag UUIDs"
+            "description": "Selected flag option UUIDs \u2014 canonical"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Denormalized agent_active flag state; resolved to a flag_ids entry server-side"
           },
           "departments": {
             "anyOf": [
@@ -99997,7 +100610,23 @@
             "title": "Description Id",
             "description": "UUID of the description resource"
           },
-          "active_flag": {
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -100006,21 +100635,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the auth provider is active"
-          },
-          "flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Id",
-            "description": "UUID of the flag option"
+            "title": "Active",
+            "description": "Denormalized auth_active flag state; resolved to a flag_ids entry server-side"
           },
           "departments": {
             "anyOf": [
@@ -100736,45 +101352,23 @@
             "title": "Description Id",
             "description": "Existing description resource UUID"
           },
-          "flag": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Flag",
-            "description": "Flag type or name to resolve"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
           },
-          "flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Id",
-            "description": "Flag option UUID"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "UUID of the flag option to set active status"
-          },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -100783,8 +101377,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the cohort is active (resolved to flag_id)"
+            "title": "Active",
+            "description": "Denormalized cohort_active flag state; resolved to a flag_ids entry server-side"
           },
           "department_ids": {
             "anyOf": [
@@ -101182,7 +101776,23 @@
             "title": "Description Id",
             "description": "UUID of the description resource"
           },
-          "active_flag": {
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -101191,34 +101801,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the department is active"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "UUID of the active flag resource"
-          },
-          "flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Id",
-            "description": "UUID of the flag option"
+            "title": "Active",
+            "description": "Denormalized department_active flag state; resolved to a flag_ids entry server-side"
           },
           "settings": {
             "anyOf": [
@@ -101512,7 +102096,19 @@
               }
             ],
             "title": "Flag Ids",
-            "description": "Flag option UUIDs"
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Denormalized document_active flag state; resolved to a flag_ids entry server-side"
           },
           "department_ids": {
             "anyOf": [
@@ -101756,7 +102352,19 @@
               }
             ],
             "title": "Flag Ids",
-            "description": "Flag option UUIDs"
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Denormalized eval_active flag state; resolved to a flag_ids entry server-side"
           },
           "departments": {
             "anyOf": [
@@ -102023,7 +102631,23 @@
             "title": "Description Id",
             "description": "UUID of the description resource"
           },
-          "active_flag": {
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -102032,34 +102656,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the field is active"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "UUID of the active flag resource"
-          },
-          "flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Id",
-            "description": "UUID of the flag option"
+            "title": "Active",
+            "description": "Denormalized field_active flag state; resolved to a flag_ids entry server-side"
           },
           "department_ids": {
             "anyOf": [
@@ -102746,9 +103344,9 @@
               }
             ],
             "title": "Flag Ids",
-            "description": "Flag option identifiers"
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
           },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -102757,99 +103355,80 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the model is active"
+            "title": "Active",
+            "description": "Denormalized model_active flag state"
           },
-          "active_flag_id": {
+          "modalities_enabled": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "Active flag resource identifier"
+            "title": "Modalities Enabled",
+            "description": "Denormalized model_modalities_enabled flag state"
           },
-          "modalities_enabled_flag_id": {
+          "temperature_enabled": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Modalities Enabled Flag Id",
-            "description": "Modalities enabled flag resource identifier"
+            "title": "Temperature Enabled",
+            "description": "Denormalized model_temperature_enabled flag state"
           },
-          "temperature_enabled_flag_id": {
+          "pricing_enabled": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Temperature Enabled Flag Id",
-            "description": "Temperature enabled flag resource identifier"
+            "title": "Pricing Enabled",
+            "description": "Denormalized model_pricing_enabled flag state"
           },
-          "pricing_enabled_flag_id": {
+          "voices_enabled": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Pricing Enabled Flag Id",
-            "description": "Pricing enabled flag resource identifier"
+            "title": "Voices Enabled",
+            "description": "Denormalized model_voices_enabled flag state"
           },
-          "voices_enabled_flag_id": {
+          "reasoning_levels_enabled": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Voices Enabled Flag Id",
-            "description": "Voices enabled flag resource identifier"
+            "title": "Reasoning Levels Enabled",
+            "description": "Denormalized model_reasoning_levels_enabled flag state"
           },
-          "reasoning_levels_enabled_flag_id": {
+          "qualities_enabled": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Reasoning Levels Enabled Flag Id",
-            "description": "Reasoning levels enabled flag resource identifier"
-          },
-          "qualities_enabled_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Qualities Enabled Flag Id",
-            "description": "Qualities enabled flag resource identifier"
+            "title": "Qualities Enabled",
+            "description": "Denormalized model_qualities_enabled flag state"
           },
           "departments": {
             "anyOf": [
@@ -103523,20 +104102,23 @@
             "title": "Instructions Id",
             "description": "UUID of an existing instruction resource to select"
           },
-          "active_flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "UUID of the flag option to set active status"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
           },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -103545,8 +104127,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the persona is active (resolved to flag_id)"
+            "title": "Active",
+            "description": "Denormalized persona_active flag state; resolved to a flag_ids entry server-side"
           },
           "examples": {
             "anyOf": [
@@ -103832,18 +104414,33 @@
             "title": "Emails",
             "description": "Email values to resolve or create"
           },
-          "active_flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "UUID of the flag option"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Denormalized profile_active flag state; resolved to a flag_ids entry server-side"
           },
           "department_ids": {
             "anyOf": [
@@ -104087,7 +104684,23 @@
             "title": "Description Id",
             "description": "Description resource identifier"
           },
-          "active_flag": {
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical"
+          },
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -104096,34 +104709,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the provider is active"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Flag option identifier"
-          },
-          "flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Id",
-            "description": "Legacy alias for flag option identifier"
+            "title": "Active",
+            "description": "Denormalized provider_active flag state; resolved to a flag_ids entry server-side"
           },
           "departments": {
             "anyOf": [
@@ -104457,7 +105044,23 @@
             "title": "Description Id",
             "description": "Existing description resource UUID"
           },
-          "active_flag": {
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -104466,34 +105069,32 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the rubric is active"
+            "title": "Active",
+            "description": "Denormalized rubric_active flag state"
           },
-          "active_flag_id": {
+          "simulation_rubric": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "Active flag option UUID"
+            "title": "Simulation Rubric",
+            "description": "Denormalized simulation_rubric flag state"
           },
-          "flag_id": {
+          "video_rubric": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Flag Id",
-            "description": "Flag option UUID"
+            "title": "Video Rubric",
+            "description": "Denormalized video_rubric flag state"
           },
           "departments": {
             "anyOf": [
@@ -104526,21 +105127,30 @@
             "title": "Department Ids",
             "description": "Department UUIDs"
           },
-          "point_ids": {
+          "pass_points_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Point Ids",
-            "description": "Point UUIDs"
+            "title": "Pass Points Id",
+            "description": "Pass-type Points resource UUID"
+          },
+          "pass_points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Points",
+            "description": "Pass points value (resolves to a pass-type Points resource)"
           },
           "standard_group_ids": {
             "anyOf": [
@@ -104558,6 +105168,21 @@
             "title": "Standard Group Ids",
             "description": "Standard group UUIDs"
           },
+          "standard_groups": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/RubricStandardGroupDraftValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Standard Groups",
+            "description": "Inline-created standard groups. Entries without id are created; resulting IDs merge into standard_group_ids."
+          },
           "standard_ids": {
             "anyOf": [
               {
@@ -104573,6 +105198,21 @@
             ],
             "title": "Standard Ids",
             "description": "Standard UUIDs"
+          },
+          "standards": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/RubricStandardDraftValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Standards",
+            "description": "Grid-editor standards. Entries without id are created; resulting IDs merge into standard_ids."
           },
           "pending_ids": {
             "anyOf": [
@@ -104612,9 +105252,61 @@
         },
         "type": "object",
         "title": "PatchRubricDraftApiRequest",
-        "description": "Request model for new-style rubric draft endpoint.\n\nDual-mode for creatable resources only:\n  - name/name_id, description/description_id\nID-only for non-creatable resources:\n  - flag_id, department_ids, point_ids, standard_group_ids, standard_ids\n\nClient always sends full state (append-only \u2014 each write is a new snapshot)."
+        "description": "Request model for new-style rubric draft endpoint.\n\nDual-mode for creatable resources only:\n  - name/name_id, description/description_id\n  - standards/standard_ids (grid editor sends value objects; flat IDs also\n    accepted for the legacy picker)\nID-only for non-creatable resources:\n  - flag_id, department_ids, point_ids, standard_group_ids\n\nClient always sends full state (append-only \u2014 each write is a new snapshot)."
       },
-      "PatchRubricDraftApiResponse": {
+      "PatchRubricDraftApiResponse-Input": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Whether the operation succeeded"
+          },
+          "draft_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Draft Id",
+            "description": "Draft UUID"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key for this draft operation"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable result message"
+          },
+          "form_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__rubric__types__DraftFormState"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Server-authoritative form state"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "draft_id",
+          "message"
+        ],
+        "title": "PatchRubricDraftApiResponse",
+        "description": "Response model for new-style rubric draft endpoint."
+      },
+      "PatchRubricDraftApiResponse-Output": {
         "properties": {
           "success": {
             "type": "boolean",
@@ -104925,7 +105617,79 @@
               }
             ],
             "title": "Flag Ids",
-            "description": "Associated flag UUIDs"
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Denormalized scenario_active flag state"
+          },
+          "video_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Enabled",
+            "description": "Denormalized video_enabled flag state"
+          },
+          "problem_statement_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Statement Enabled",
+            "description": "Denormalized problem_statement_enabled flag state"
+          },
+          "objectives_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objectives Enabled",
+            "description": "Denormalized objectives_enabled flag state"
+          },
+          "images_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Images Enabled",
+            "description": "Denormalized images_enabled flag state"
+          },
+          "questions_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questions Enabled",
+            "description": "Denormalized questions_enabled flag state"
           },
           "department_ids": {
             "anyOf": [
@@ -105168,7 +105932,23 @@
             "title": "Description Id",
             "description": "UUID of the description resource"
           },
-          "active_flag": {
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -105177,34 +105957,20 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the setting is active"
+            "title": "Active",
+            "description": "Denormalized setting_active flag state; resolved to a flag_ids entry server-side"
           },
-          "active_flag_id": {
+          "mcp": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "UUID of the active flag option"
-          },
-          "flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Id",
-            "description": "Legacy alias for the active flag option"
+            "title": "Mcp",
+            "description": "Denormalized mcp flag state; resolved to a flag_ids entry server-side"
           },
           "departments": {
             "anyOf": [
@@ -105362,6 +106128,66 @@
             "title": "Auth Item Value Ids",
             "description": "Auth item value UUIDs"
           },
+          "provider_keys": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingProviderKeyDraftValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Keys",
+            "description": "Inline-creatable (provider \u00d7 key) value entries; id=null requests server to resolve or create"
+          },
+          "auth_item_keys": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingAuthItemKeyDraftValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Item Keys",
+            "description": "Inline-creatable (auth \u00d7 key) value entries"
+          },
+          "auth_item_values": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingAuthItemValueDraftValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Item Values",
+            "description": "Inline-creatable (auth \u00d7 item \u00d7 value) entries"
+          },
+          "mcp_values": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingMcpDraftValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Values",
+            "description": "Inline-creatable mcp value entries"
+          },
           "pending_ids": {
             "anyOf": [
               {
@@ -105383,7 +106209,59 @@
         "title": "PatchSettingDraftApiRequest",
         "description": "Canonical setting draft request."
       },
-      "PatchSettingDraftApiResponse": {
+      "PatchSettingDraftApiResponse-Input": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Whether the draft save succeeded"
+          },
+          "draft_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Draft Id",
+            "description": "UUID of the saved draft"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key echoed back for client correlation"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Result message"
+          },
+          "form_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__setting__types__DraftFormState"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Server-authoritative form state"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "draft_id",
+          "message"
+        ],
+        "title": "PatchSettingDraftApiResponse",
+        "description": "Response model for new-style setting draft endpoint."
+      },
+      "PatchSettingDraftApiResponse-Output": {
         "properties": {
           "success": {
             "type": "boolean",
@@ -105527,7 +106405,31 @@
               }
             ],
             "title": "Flag Ids",
-            "description": "Associated flag UUIDs"
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Denormalized simulation_active flag state"
+          },
+          "practice": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Practice",
+            "description": "Denormalized practice flag state"
           },
           "department_ids": {
             "anyOf": [
@@ -105843,31 +106745,6 @@
             "title": "Description Id",
             "description": "Description resource identifier"
           },
-          "active_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag",
-            "description": "Whether the tool is active"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Tool active flag identifier"
-          },
           "flag_ids": {
             "anyOf": [
               {
@@ -105882,7 +106759,19 @@
               }
             ],
             "title": "Flag Ids",
-            "description": "Flag option identifiers"
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Denormalized tool_active flag state; resolved to a flag_ids entry server-side"
           },
           "department_ids": {
             "anyOf": [
@@ -106626,15 +107515,56 @@
         "title": "PersonaFieldError",
         "description": "Per-field error from value resolution."
       },
-      "PersonaFlagConfig": {
+      "PersonaFlagResource": {
         "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key"
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
-            "type": "string",
-            "title": "Label"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'persona_active')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -106645,7 +107575,8 @@
                 "type": "null"
               }
             ],
-            "title": "Description"
+            "title": "Description",
+            "description": "Flag description text"
           },
           "icon_id": {
             "anyOf": [
@@ -106657,7 +107588,8 @@
                 "type": "null"
               }
             ],
-            "title": "Icon Id"
+            "title": "Icon Id",
+            "description": "Icon identifier for the flag"
           },
           "icon": {
             "anyOf": [
@@ -106669,29 +107601,7 @@
               }
             ],
             "title": "Icon",
-            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
-          },
-          "flag_option_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Option Id"
-          },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "default": false
+            "description": "Resolved SVG markup (hydrated from icons_resource)"
           },
           "generated": {
             "anyOf": [
@@ -106702,26 +107612,31 @@
                 "type": "null"
               }
             ],
-            "title": "Generated"
+            "title": "Generated",
+            "description": "Whether the flag was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
           },
           "selected": {
             "type": "boolean",
             "title": "Selected",
+            "description": "Whether this item is selected",
             "default": false
           },
           "pending": {
             "type": "boolean",
             "title": "Pending",
+            "description": "Whether this item is pending acceptance",
             "default": false
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "PersonaFlagConfig",
-        "description": "Enriched flag config for direct client consumption."
+        "title": "PersonaFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
       "PersonaGenerationProgressEvent": {
         "properties": {
@@ -110128,17 +111043,56 @@
         "title": "ProfileFieldError",
         "description": "Per-field error from value resolution."
       },
-      "ProfileFlagConfig": {
+      "ProfileFlagResource": {
         "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Flag key identifier"
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Human-readable flag label"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'profile_active')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -110177,31 +111131,6 @@
             "title": "Icon",
             "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
-          "flag_option_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Option Id",
-            "description": "UUID of the selected flag option"
-          },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether the flag is visible to the client",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether the flag is required",
-            "default": false
-          },
           "generated": {
             "anyOf": [
               {
@@ -110234,12 +111163,8 @@
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "ProfileFlagConfig",
-        "description": "Enriched profile flag config for direct client consumption."
+        "title": "ProfileFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
       "ProfileNameResource": {
         "properties": {
@@ -110428,6 +111353,18 @@
             "title": "Icon",
             "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
+          "icon_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Value",
+            "description": "Legacy alias for resolved role icon SVG"
+          },
           "color_id": {
             "anyOf": [
               {
@@ -110440,6 +111377,18 @@
             ],
             "title": "Color Id",
             "description": "Color identifier for the role"
+          },
+          "color_hex": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color Hex",
+            "description": "Resolved role color hex code"
           },
           "level": {
             "anyOf": [
@@ -110910,17 +111859,56 @@
         "title": "ProviderFieldError",
         "description": "Per-field error from value resolution."
       },
-      "ProviderFlagConfig": {
+      "ProviderFlagResource": {
         "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Flag key identifier"
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Human-readable flag label"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'provider_active')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -110959,31 +111947,6 @@
             "title": "Icon",
             "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
           },
-          "flag_option_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Option Id",
-            "description": "Option ID to use when enabling"
-          },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to display this flag in the UI",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this flag is required",
-            "default": false
-          },
           "generated": {
             "anyOf": [
               {
@@ -111016,12 +111979,8 @@
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "ProviderFlagConfig",
-        "description": "Enriched flag config for direct client consumption."
+        "title": "ProviderFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
       "ProviderKeyResource": {
         "properties": {
@@ -114521,17 +115480,56 @@
         "title": "RubricFieldError",
         "description": "Per-field error from value resolution."
       },
-      "RubricFlagConfig": {
+      "RubricFlagResource": {
         "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Flag key identifier"
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Display label"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'rubric_active', 'simulation_rubric', 'video_rubric')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -114543,7 +115541,7 @@
               }
             ],
             "title": "Description",
-            "description": "Flag description"
+            "description": "Flag description text"
           },
           "icon_id": {
             "anyOf": [
@@ -114568,32 +115566,7 @@
               }
             ],
             "title": "Icon",
-            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
-          },
-          "flag_option_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Option Id",
-            "description": "Selected flag option UUID"
-          },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this flag in the UI",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this flag is required",
-            "default": false
+            "description": "Resolved SVG markup (hydrated from icons_resource)"
           },
           "generated": {
             "anyOf": [
@@ -114605,34 +115578,30 @@
               }
             ],
             "title": "Generated",
-            "description": "Whether this was AI-generated"
+            "description": "Whether the flag was AI-generated"
           },
           "suggested": {
             "type": "boolean",
             "title": "Suggested",
-            "description": "Whether this is a suggested option",
+            "description": "Whether this item is suggested",
             "default": false
           },
           "selected": {
             "type": "boolean",
             "title": "Selected",
-            "description": "Whether this is currently selected",
+            "description": "Whether this item is selected",
             "default": false
           },
           "pending": {
             "type": "boolean",
             "title": "Pending",
-            "description": "Whether this selection is pending acceptance",
+            "description": "Whether this item is pending acceptance",
             "default": false
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "RubricFlagConfig",
-        "description": "Enriched flag config for direct client consumption."
+        "title": "RubricFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
       "RubricHeatmapCell": {
         "properties": {
@@ -115111,6 +116080,99 @@
         ],
         "title": "RubricResultItem",
         "description": "Per-item result within a bulk create/update response."
+      },
+      "RubricStandardDraftValue": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Existing standard UUID, if any"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Level name (column header)"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Cell description text",
+            "default": ""
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points",
+            "description": "Implied points from column index"
+          },
+          "standard_group_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Standard Group Id",
+            "description": "Parent standard group UUID (row)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "points",
+          "standard_group_id"
+        ],
+        "title": "RubricStandardDraftValue",
+        "description": "Value-object for authoring a standard inline from the rubric grid.\n\nThe grid editor sends these instead of (or alongside) standard_ids. Entries\nwithout an `id` are created server-side; entries with an `id` are trusted\nas-is. Append-only: updates are modeled as create-new-id, old rows become\norphans and stop appearing in the draft once the client drops them."
+      },
+      "RubricStandardGroupDraftValue": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Existing standard group UUID, if any"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Group display name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Group description",
+            "default": ""
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points",
+            "description": "Max points for this group (drives grid columns)",
+            "default": 0
+          },
+          "pass_points": {
+            "type": "integer",
+            "title": "Pass Points",
+            "description": "Passing threshold for this group",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "RubricStandardGroupDraftValue",
+        "description": "Value-object for authoring a standard group inline from the rubric editor.\n\nEntries without `id` are created server-side; resulting IDs merge into\nstandard_group_ids. Group-level `points`/`pass_points` drive the grid's\ncolumn count and passing threshold per row."
       },
       "RubricStandardGroupResource": {
         "properties": {
@@ -115975,6 +117037,78 @@
             "description": "Selected flag UUIDs",
             "default": []
           },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Echoed scenario_active flag state"
+          },
+          "video_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Enabled",
+            "description": "Echoed video_enabled flag state"
+          },
+          "problem_statement_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Statement Enabled",
+            "description": "Echoed problem_statement_enabled flag state"
+          },
+          "objectives_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objectives Enabled",
+            "description": "Echoed objectives_enabled flag state"
+          },
+          "images_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Images Enabled",
+            "description": "Echoed images_enabled flag state"
+          },
+          "questions_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questions Enabled",
+            "description": "Echoed questions_enabled flag state"
+          },
           "department_ids": {
             "items": {
               "type": "string",
@@ -116260,17 +117394,56 @@
         "title": "ScenarioFieldError",
         "description": "Per-field error from value resolution."
       },
-      "ScenarioFlagConfig": {
+      "ScenarioFlagResource": {
         "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Flag config key identifier"
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Display label for the flag"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'scenario_active')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -116295,7 +117468,7 @@
               }
             ],
             "title": "Icon Id",
-            "description": "UUID of the selected icon resource"
+            "description": "Icon identifier for the flag"
           },
           "icon": {
             "anyOf": [
@@ -116307,32 +117480,7 @@
               }
             ],
             "title": "Icon",
-            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
-          },
-          "flag_option_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Option Id",
-            "description": "UUID of the flag option to use when enabling"
-          },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this flag in the UI",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this flag is required",
-            "default": false
+            "description": "Resolved SVG markup (hydrated from icons_resource)"
           },
           "generated": {
             "anyOf": [
@@ -116344,43 +117492,30 @@
               }
             ],
             "title": "Generated",
-            "description": "Whether this was AI-generated"
-          },
-          "selected": {
-            "type": "boolean",
-            "title": "Selected",
-            "default": false
+            "description": "Whether the flag was AI-generated"
           },
           "suggested": {
             "type": "boolean",
             "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
             "default": false
           },
           "pending": {
             "type": "boolean",
             "title": "Pending",
+            "description": "Whether this item is pending acceptance",
             "default": false
-          },
-          "video_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Video Flag",
-            "description": "Whether this flag only shows when video is enabled"
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "ScenarioFlagConfig",
-        "description": "Enriched flag config for direct client consumption."
+        "title": "ScenarioFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
       "ScenarioImage": {
         "properties": {
@@ -120760,6 +121895,143 @@
         "type": "object",
         "title": "SettingAuthCatalogResource"
       },
+      "SettingAuthItemKeyDraftValue": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Existing auth_item_keys_resource id when known"
+          },
+          "auth_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Auth Id",
+            "description": "Auth provider identifier"
+          },
+          "item_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Item Id",
+            "description": "Claim item identifier"
+          },
+          "key_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Key Id",
+            "description": "Key identifier"
+          }
+        },
+        "type": "object",
+        "required": [
+          "auth_id",
+          "item_id",
+          "key_id"
+        ],
+        "title": "SettingAuthItemKeyDraftValue",
+        "description": "Draft value object for an inline-creatable (auth \u00d7 item \u00d7 key) triple."
+      },
+      "SettingAuthItemKeyOption": {
+        "properties": {
+          "auth_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Id",
+            "description": "Auth provider identifier"
+          },
+          "item_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Id",
+            "description": "Claim item identifier"
+          },
+          "key_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Id",
+            "description": "Key identifier"
+          },
+          "auth_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Name",
+            "description": "Auth display name"
+          },
+          "item_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Name",
+            "description": "Claim item display name"
+          },
+          "key_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Name",
+            "description": "Key display name"
+          },
+          "masked_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Masked Key",
+            "description": "Masked key value for display"
+          }
+        },
+        "type": "object",
+        "title": "SettingAuthItemKeyOption",
+        "description": "Server-curated (auth \u00d7 item \u00d7 key) catalog option for the AuthItemKeys picker."
+      },
       "SettingAuthItemKeyResource": {
         "properties": {
           "id": {
@@ -120847,6 +122119,129 @@
         },
         "type": "object",
         "title": "SettingAuthItemKeyResource"
+      },
+      "SettingAuthItemValueDraftValue": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Existing auth_item_values_resource id when known"
+          },
+          "auth_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Auth Id",
+            "description": "Auth provider identifier"
+          },
+          "item_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Item Id",
+            "description": "Claim item identifier"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "Literal claim value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "auth_id",
+          "item_id",
+          "value"
+        ],
+        "title": "SettingAuthItemValueDraftValue",
+        "description": "Draft value object for an inline-creatable (auth \u00d7 item \u00d7 value) triple."
+      },
+      "SettingAuthItemValueOption": {
+        "properties": {
+          "auth_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Id",
+            "description": "Auth provider identifier"
+          },
+          "item_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Id",
+            "description": "Claim item identifier"
+          },
+          "auth_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Name",
+            "description": "Auth display name"
+          },
+          "item_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Name",
+            "description": "Claim item display name"
+          },
+          "item_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Description",
+            "description": "Claim item description"
+          },
+          "encrypted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encrypted",
+            "description": "Whether the value must be stored encrypted"
+          }
+        },
+        "type": "object",
+        "title": "SettingAuthItemValueOption",
+        "description": "Server-curated (auth \u00d7 item) catalog option for the AuthItemValues picker."
       },
       "SettingAuthItemValueResource": {
         "properties": {
@@ -121175,17 +122570,56 @@
         "title": "SettingFieldError",
         "description": "Per-field error from value resolution."
       },
-      "SettingFlagConfig": {
+      "SettingFlagResource": {
         "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Flag key identifier"
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Human-readable flag label"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'setting_active', 'mcp')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -121222,32 +122656,7 @@
               }
             ],
             "title": "Icon",
-            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
-          },
-          "flag_option_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Option Id",
-            "description": "UUID of the flag option to use when enabling"
-          },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether the flag is visible to the client",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether the flag is required",
-            "default": false
+            "description": "Resolved SVG markup (hydrated from icons_resource)"
           },
           "generated": {
             "anyOf": [
@@ -121281,11 +122690,8 @@
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "SettingFlagConfig"
+        "title": "SettingFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
       "SettingIconCatalogResource": {
         "properties": {
@@ -121588,6 +122994,79 @@
         "type": "object",
         "title": "SettingLoginsResource"
       },
+      "SettingMcpDraftValue": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Existing mcp_resource id when known"
+          },
+          "agent_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Agent Id",
+            "description": "Agent identifier"
+          }
+        },
+        "type": "object",
+        "required": [
+          "agent_id"
+        ],
+        "title": "SettingMcpDraftValue",
+        "description": "Draft value object for an inline-creatable mcp row."
+      },
+      "SettingMcpOption": {
+        "properties": {
+          "agent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Id",
+            "description": "Agent identifier"
+          },
+          "agent_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Name",
+            "description": "Agent display name"
+          },
+          "agent_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Description",
+            "description": "Agent description"
+          }
+        },
+        "type": "object",
+        "title": "SettingMcpOption",
+        "description": "Server-curated per-agent catalog option for the MCP picker."
+      },
       "SettingMcpResource": {
         "properties": {
           "mcp_id": {
@@ -121820,6 +123299,111 @@
         },
         "type": "object",
         "title": "SettingProviderCatalogResource"
+      },
+      "SettingProviderKeyDraftValue": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Existing provider_keys_resource id when known"
+          },
+          "provider_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Provider Id",
+            "description": "Provider identifier"
+          },
+          "key_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Key Id",
+            "description": "Key identifier"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider_id",
+          "key_id"
+        ],
+        "title": "SettingProviderKeyDraftValue",
+        "description": "Draft value object for an inline-creatable (provider \u00d7 key) pair."
+      },
+      "SettingProviderKeyOption": {
+        "properties": {
+          "provider_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Id",
+            "description": "Provider identifier"
+          },
+          "key_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Id",
+            "description": "Key identifier"
+          },
+          "provider_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Name",
+            "description": "Provider display name"
+          },
+          "key_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Name",
+            "description": "Key display name"
+          },
+          "masked_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Masked Key",
+            "description": "Masked key value for display"
+          }
+        },
+        "type": "object",
+        "title": "SettingProviderKeyOption",
+        "description": "Server-curated (provider \u00d7 key) catalog option for the ProviderKeys picker."
       },
       "SettingProviderKeyResource": {
         "properties": {
@@ -122446,17 +124030,56 @@
         "title": "SimulationFieldError",
         "description": "Per-field error from value resolution."
       },
-      "SimulationFlagConfig": {
+      "SimulationFlagResource": {
         "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Flag config key identifier"
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Display label for the flag"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'simulation_active', 'practice')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -122481,7 +124104,7 @@
               }
             ],
             "title": "Icon Id",
-            "description": "UUID of the selected icon resource"
+            "description": "Icon identifier for the flag"
           },
           "icon": {
             "anyOf": [
@@ -122493,32 +124116,7 @@
               }
             ],
             "title": "Icon",
-            "description": "Resolved SVG markup for the icon (hydrated from icons_resource)"
-          },
-          "flag_option_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Option Id",
-            "description": "UUID of the flag option"
-          },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to show this flag in the UI",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this flag is required",
-            "default": false
+            "description": "Resolved SVG markup (hydrated from icons_resource)"
           },
           "generated": {
             "anyOf": [
@@ -122530,34 +124128,30 @@
               }
             ],
             "title": "Generated",
-            "description": "Whether this was AI-generated"
+            "description": "Whether the flag was AI-generated"
           },
           "suggested": {
             "type": "boolean",
             "title": "Suggested",
-            "description": "Whether this is a suggested option",
+            "description": "Whether this item is suggested",
             "default": false
           },
           "selected": {
             "type": "boolean",
             "title": "Selected",
-            "description": "Whether this is currently selected",
+            "description": "Whether this item is selected",
             "default": false
           },
           "pending": {
             "type": "boolean",
             "title": "Pending",
-            "description": "Whether this selection is pending acceptance",
+            "description": "Whether this item is pending acceptance",
             "default": false
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "SimulationFlagConfig",
-        "description": "Enriched flag config for direct client consumption."
+        "title": "SimulationFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
       "SimulationNameResource": {
         "properties": {
@@ -125492,17 +127086,56 @@
         "title": "ToolFieldError",
         "description": "Per-field error from value resolution."
       },
-      "ToolFlagConfig": {
+      "ToolFlagResource": {
         "properties": {
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Flag key identifier"
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Flag resource identifier"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Human-readable flag label"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'tool_active')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of this option"
           },
           "description": {
             "anyOf": [
@@ -125519,7 +127152,8 @@
           "icon_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -125528,30 +127162,17 @@
             "title": "Icon Id",
             "description": "Icon identifier for the flag"
           },
-          "flag_option_id": {
+          "icon": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Flag Option Id",
-            "description": "Option ID to use when enabling"
-          },
-          "show": {
-            "type": "boolean",
-            "title": "Show",
-            "description": "Whether to display this flag in the UI",
-            "default": true
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this flag is required",
-            "default": false
+            "title": "Icon",
+            "description": "Resolved SVG markup for the icon"
           },
           "generated": {
             "anyOf": [
@@ -125585,12 +127206,8 @@
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "ToolFlagConfig",
-        "description": "Enriched flag config for direct client consumption."
+        "title": "ToolFlagResource",
+        "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
       "ToolNameResource": {
         "properties": {
@@ -125942,10 +127559,10 @@
       },
       "UpdateAgentItem": {
         "properties": {
-          "agent_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Agent Id",
+            "title": "Id",
             "description": "UUID of the agent to update"
           },
           "name_id": {
@@ -126029,31 +127646,6 @@
             "title": "Departments",
             "description": "Department names for matching"
           },
-          "active_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag",
-            "description": "Whether this agent is active"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Active flag resource UUID"
-          },
           "flag_ids": {
             "anyOf": [
               {
@@ -126068,7 +127660,19 @@
               }
             ],
             "title": "Flag Ids",
-            "description": "Associated flag UUIDs"
+            "description": "Selected flag option UUIDs"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Denormalized agent_active flag state"
           },
           "model_id": {
             "anyOf": [
@@ -126166,7 +127770,7 @@
         },
         "type": "object",
         "required": [
-          "agent_id"
+          "id"
         ],
         "title": "UpdateAgentItem",
         "description": "Single agent item for update \u2014 agent_id required, all fields optional."
@@ -126272,10 +127876,10 @@
       },
       "UpdateAuthItem": {
         "properties": {
-          "auth_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Auth Id",
+            "title": "Id",
             "description": "UUID of the auth provider to update"
           },
           "name_id": {
@@ -126353,20 +127957,23 @@
             "title": "Slug",
             "description": "Slug value to resolve or create"
           },
-          "active_flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "UUID of the active flag option"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
           },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -126375,8 +127982,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the auth provider is active"
+            "title": "Active",
+            "description": "Denormalized auth_active flag state"
           },
           "department_ids": {
             "anyOf": [
@@ -126472,7 +128079,7 @@
         },
         "type": "object",
         "required": [
-          "auth_id"
+          "id"
         ],
         "title": "UpdateAuthItem",
         "description": "Single auth item for update \u2014 auth_id required, all fields optional."
@@ -126578,10 +128185,10 @@
       },
       "UpdateCohortItem": {
         "properties": {
-          "cohort_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Cohort Id",
+            "title": "Id",
             "description": "Cohort UUID to update"
           },
           "name_id": {
@@ -126816,7 +128423,7 @@
         },
         "type": "object",
         "required": [
-          "cohort_id"
+          "id"
         ],
         "title": "UpdateCohortItem",
         "description": "Single cohort item for update \u2014 cohort_id required, all fields optional."
@@ -126922,10 +128529,10 @@
       },
       "UpdateDepartmentItem": {
         "properties": {
-          "department_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Department Id",
+            "title": "Id",
             "description": "UUID of the department to update"
           },
           "name_id": {
@@ -127038,7 +128645,7 @@
         },
         "type": "object",
         "required": [
-          "department_id"
+          "id"
         ],
         "title": "UpdateDepartmentItem",
         "description": "Single department item for update \u2014 department_id required, all fields optional."
@@ -127144,10 +128751,10 @@
       },
       "UpdateDocumentItem": {
         "properties": {
-          "document_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Document Id",
+            "title": "Id",
             "description": "Document UUID to update"
           },
           "name_id": {
@@ -127361,7 +128968,7 @@
         },
         "type": "object",
         "required": [
-          "document_id"
+          "id"
         ],
         "title": "UpdateDocumentItem",
         "description": "Single document item for update \u2014 document_id required, all fields optional.\n\nOnly provided fields are updated (partial update)."
@@ -127467,10 +129074,10 @@
       },
       "UpdateEvalItem": {
         "properties": {
-          "eval_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Eval Id",
+            "title": "Id",
             "description": "Eval UUID to update"
           },
           "name_id": {
@@ -127662,7 +129269,7 @@
         },
         "type": "object",
         "required": [
-          "eval_id"
+          "id"
         ],
         "title": "UpdateEvalItem",
         "description": "Single eval item for update \u2014 eval_id required, all fields optional.\n\nOnly provided fields are updated (partial update)."
@@ -127768,10 +129375,10 @@
       },
       "UpdateFieldItem": {
         "properties": {
-          "field_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Field Id",
+            "title": "Id",
             "description": "UUID of the field to update"
           },
           "name_id": {
@@ -127928,7 +129535,7 @@
         },
         "type": "object",
         "required": [
-          "field_id"
+          "id"
         ],
         "title": "UpdateFieldItem",
         "description": "Single field item for update \u2014 field_id required, all fields optional.\n\nOnly provided fields are updated (partial update)."
@@ -128034,10 +129641,10 @@
       },
       "UpdateModelItem": {
         "properties": {
-          "model_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Model Id",
+            "title": "Id",
             "description": "Target model identifier to update"
           },
           "name_id": {
@@ -128303,7 +129910,7 @@
         },
         "type": "object",
         "required": [
-          "model_id"
+          "id"
         ],
         "title": "UpdateModelItem",
         "description": "Single model item for update \u2014 model_id required, all fields optional.\n\nOnly provided fields are updated (partial update)."
@@ -128409,10 +130016,10 @@
       },
       "UpdateParameterItem": {
         "properties": {
-          "parameter_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Parameter Id",
+            "title": "Id",
             "description": "Target parameter identifier to update"
           },
           "name_id": {
@@ -128531,7 +130138,7 @@
         },
         "type": "object",
         "required": [
-          "parameter_id"
+          "id"
         ],
         "title": "UpdateParameterItem",
         "description": "Single parameter item for update \u2014 parameter_id required, all fields optional."
@@ -129057,18 +130664,33 @@
             "title": "Name",
             "description": "Name value to resolve or create"
           },
-          "active_flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "UUID of the flag option"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Denormalized profile_active flag state"
           },
           "department_ids": {
             "anyOf": [
@@ -129239,10 +130861,10 @@
       },
       "UpdateProviderItem": {
         "properties": {
-          "provider_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Provider Id",
+            "title": "Id",
             "description": "Target provider identifier to update"
           },
           "name_id": {
@@ -129295,20 +130917,23 @@
             "title": "Description",
             "description": "Description text value"
           },
-          "active_flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "Active flag option identifier"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
           },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -129317,8 +130942,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the provider is active"
+            "title": "Active",
+            "description": "Denormalized provider_active flag state"
           },
           "department_ids": {
             "anyOf": [
@@ -129399,7 +131024,7 @@
         },
         "type": "object",
         "required": [
-          "provider_id"
+          "id"
         ],
         "title": "UpdateProviderItem",
         "description": "Single provider item for update \u2014 provider_id required, all fields optional."
@@ -129505,10 +131130,10 @@
       },
       "UpdateRubricItem": {
         "properties": {
-          "rubric_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Rubric Id",
+            "title": "Id",
             "description": "Rubric UUID to update"
           },
           "name_id": {
@@ -129667,21 +131292,30 @@
             "title": "Departments",
             "description": "Department names for resolution"
           },
-          "point_ids": {
+          "pass_points_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Point Ids",
-            "description": "Point UUIDs"
+            "title": "Pass Points Id",
+            "description": "Pass-type Points resource UUID"
+          },
+          "pass_points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Points",
+            "description": "Pass points value (resolves to a pass-type Points resource)"
           },
           "standard_group_ids": {
             "anyOf": [
@@ -129718,7 +131352,7 @@
         },
         "type": "object",
         "required": [
-          "rubric_id"
+          "id"
         ],
         "title": "UpdateRubricItem",
         "description": "Single rubric item for update \u2014 rubric_id required, all fields optional."
@@ -129824,10 +131458,10 @@
       },
       "UpdateScenarioItem": {
         "properties": {
-          "scenario_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Scenario Id",
+            "title": "Id",
             "description": "UUID of the scenario to update"
           },
           "name_id": {
@@ -130353,7 +131987,7 @@
         },
         "type": "object",
         "required": [
-          "scenario_id"
+          "id"
         ],
         "title": "UpdateScenarioItem",
         "description": "Single scenario item for update \u2014 scenario_id required, all fields optional.\n\nOnly provided fields are updated (partial update)."
@@ -130459,10 +132093,10 @@
       },
       "UpdateSettingItem": {
         "properties": {
-          "setting_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Setting Id",
+            "title": "Id",
             "description": "UUID of the setting to update"
           },
           "name_id": {
@@ -130715,7 +132349,7 @@
         },
         "type": "object",
         "required": [
-          "setting_id"
+          "id"
         ],
         "title": "UpdateSettingItem",
         "description": "Single setting item for update \u2014 setting_id required, all fields optional.\n\nOnly provided fields are updated (partial update)."
@@ -130821,10 +132455,10 @@
       },
       "UpdateSimulationItem": {
         "properties": {
-          "simulation_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Simulation Id",
+            "title": "Id",
             "description": "UUID of the simulation to update"
           },
           "name_id": {
@@ -131056,7 +132690,7 @@
         },
         "type": "object",
         "required": [
-          "simulation_id"
+          "id"
         ],
         "title": "UpdateSimulationItem",
         "description": "Single simulation item for update \u2014 simulation_id required, all fields optional.\n\nOnly provided fields are updated (partial update)."
@@ -131162,10 +132796,10 @@
       },
       "UpdateToolItem": {
         "properties": {
-          "tool_id": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Tool Id",
+            "title": "Id",
             "description": "Target tool identifier to update"
           },
           "name_id": {
@@ -131358,7 +132992,7 @@
         },
         "type": "object",
         "required": [
-          "tool_id"
+          "id"
         ],
         "title": "UpdateToolItem",
         "description": "Single tool item for update \u2014 tool_id required, all fields optional.\n\nOnly provided fields are updated (partial update)."
@@ -131584,18 +133218,17 @@
             "title": "Flag Ids",
             "description": "Selected flag UUIDs"
           },
-          "active_flag_id": {
+          "active": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "Selected active flag UUID"
+            "title": "Active",
+            "description": "Echoed agent_active flag state"
           },
           "department_ids": {
             "items": {
@@ -131719,7 +133352,6 @@
         },
         "type": "object",
         "required": [
-          "flag_ids",
           "department_ids",
           "tool_ids",
           "voice_ids",
@@ -131847,18 +133479,26 @@
             "title": "Description Id",
             "description": "Resolved description resource UUID"
           },
-          "flag_id": {
+          "flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
+          },
+          "active": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Flag Id",
-            "description": "Resolved flag option UUID"
+            "title": "Active",
+            "description": "Echoed auth_active flag state"
           },
           "department_ids": {
             "items": {
@@ -132249,45 +133889,16 @@
             "title": "Description",
             "description": "Description value that was saved"
           },
-          "flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Id",
-            "description": "Selected flag option UUID"
+          "flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
           },
-          "flag": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag",
-            "description": "Flag value that was saved"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Selected active flag option UUID"
-          },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -132296,8 +133907,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the active flag was enabled"
+            "title": "Active",
+            "description": "Echoed cohort_active flag state"
           },
           "department_ids": {
             "items": {
@@ -132613,31 +134224,26 @@
             "title": "Description",
             "description": "Echoed description value"
           },
-          "flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Id",
-            "description": "Resolved flag option UUID"
+          "flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
           },
-          "active_flag_id": {
+          "active": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "Resolved active flag option UUID"
+            "title": "Active",
+            "description": "Echoed department_active flag state"
           },
           "setting_ids": {
             "items": {
@@ -132804,6 +134410,18 @@
             "type": "array",
             "title": "Flag Ids",
             "description": "Selected flag option UUIDs"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Echoed document_active flag state"
           },
           "department_ids": {
             "items": {
@@ -133050,6 +134668,18 @@
             "title": "Flag Ids",
             "description": "Selected flag option UUIDs"
           },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Echoed eval_active flag state"
+          },
           "department_ids": {
             "items": {
               "type": "string",
@@ -133242,31 +134872,26 @@
             "title": "Description",
             "description": "Echoed description value"
           },
-          "flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Id",
-            "description": "Resolved flag option UUID"
+          "flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
           },
-          "active_flag_id": {
+          "active": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "Resolved active flag option UUID"
+            "title": "Active",
+            "description": "Echoed field_active flag state"
           },
           "department_ids": {
             "items": {
@@ -133297,10 +134922,6 @@
           }
         },
         "type": "object",
-        "required": [
-          "department_ids",
-          "conditional_parameter_ids"
-        ],
         "title": "DraftFormState",
         "description": "Server-authoritative form state returned after draft save."
       },
@@ -133793,98 +135414,91 @@
             },
             "type": "array",
             "title": "Flag Ids",
-            "description": "Flag option identifiers"
+            "description": "Selected flag option UUIDs"
           },
-          "active_flag_id": {
+          "active": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "Resolved active flag identifier"
+            "title": "Active",
+            "description": "Echoed model_active flag state"
           },
-          "modalities_enabled_flag_id": {
+          "modalities_enabled": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Modalities Enabled Flag Id",
-            "description": "Resolved modalities enabled flag identifier"
+            "title": "Modalities Enabled",
+            "description": "Echoed model_modalities_enabled flag state"
           },
-          "temperature_enabled_flag_id": {
+          "temperature_enabled": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Temperature Enabled Flag Id",
-            "description": "Resolved temperature enabled flag identifier"
+            "title": "Temperature Enabled",
+            "description": "Echoed model_temperature_enabled flag state"
           },
-          "pricing_enabled_flag_id": {
+          "pricing_enabled": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Pricing Enabled Flag Id",
-            "description": "Resolved pricing enabled flag identifier"
+            "title": "Pricing Enabled",
+            "description": "Echoed model_pricing_enabled flag state"
           },
-          "voices_enabled_flag_id": {
+          "voices_enabled": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Voices Enabled Flag Id",
-            "description": "Resolved voices enabled flag identifier"
+            "title": "Voices Enabled",
+            "description": "Echoed model_voices_enabled flag state"
           },
-          "reasoning_levels_enabled_flag_id": {
+          "reasoning_levels_enabled": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Reasoning Levels Enabled Flag Id",
-            "description": "Resolved reasoning levels enabled flag identifier"
+            "title": "Reasoning Levels Enabled",
+            "description": "Echoed model_reasoning_levels_enabled flag state"
           },
-          "qualities_enabled_flag_id": {
+          "qualities_enabled": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Qualities Enabled Flag Id",
-            "description": "Resolved qualities enabled flag identifier"
+            "title": "Qualities Enabled",
+            "description": "Echoed model_qualities_enabled flag state"
           },
           "department_ids": {
             "items": {
@@ -133960,16 +135574,6 @@
           }
         },
         "type": "object",
-        "required": [
-          "flag_ids",
-          "department_ids",
-          "modality_ids",
-          "pricing_ids",
-          "quality_ids",
-          "reasoning_level_ids",
-          "temperature_level_ids",
-          "voice_ids"
-        ],
         "title": "DraftFormState"
       },
       "app__infra__model__types__SectionFilter": {
@@ -134345,18 +135949,26 @@
             "title": "Icon",
             "description": "Icon value that was saved"
           },
-          "active_flag_id": {
+          "flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
+          },
+          "active": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "Currently selected flag option UUID"
+            "title": "Active",
+            "description": "Echoed persona_active flag state"
           },
           "department_ids": {
             "items": {
@@ -134508,31 +136120,26 @@
             "title": "Name",
             "description": "Resolved name value"
           },
-          "flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Id",
-            "description": "Resolved flag option UUID"
+          "flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
           },
-          "active_flag_id": {
+          "active": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "Resolved flag option UUID"
+            "title": "Active",
+            "description": "Echoed profile_active flag state"
           },
           "departments": {
             "items": {
@@ -134730,31 +136337,26 @@
             "title": "Description",
             "description": "Resolved description value"
           },
-          "flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Id",
-            "description": "Legacy flag option identifier"
+          "flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
           },
-          "active_flag_id": {
+          "active": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "Flag option identifier"
+            "title": "Active",
+            "description": "Echoed provider_active flag state"
           },
           "departments": {
             "items": {
@@ -135027,31 +136629,50 @@
             "title": "Description",
             "description": "Echoed description value"
           },
-          "flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Id",
-            "description": "Selected flag option UUID"
+          "flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
           },
-          "active_flag_id": {
+          "active": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "Selected active flag option UUID"
+            "title": "Active",
+            "description": "Echoed rubric_active flag state"
+          },
+          "simulation_rubric": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Rubric",
+            "description": "Echoed simulation_rubric flag state"
+          },
+          "video_rubric": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Rubric",
+            "description": "Echoed video_rubric flag state"
           },
           "department_ids": {
             "items": {
@@ -135062,14 +136683,55 @@
             "title": "Department Ids",
             "description": "Selected department UUIDs"
           },
-          "point_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Point Ids",
-            "description": "Selected point UUIDs"
+          "pass_points_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Points Id",
+            "description": "Pass-type Points resource UUID"
+          },
+          "pass_points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Points",
+            "description": "Denormalized pass points value"
+          },
+          "total_points_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Points Id",
+            "description": "Total-type Points resource UUID (computed)"
+          },
+          "total_points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Points",
+            "description": "Denormalized total points value (sum of standards)"
           },
           "standard_group_ids": {
             "items": {
@@ -135080,6 +136742,14 @@
             "title": "Standard Group Ids",
             "description": "Selected standard group UUIDs"
           },
+          "standard_groups": {
+            "items": {
+              "$ref": "#/components/schemas/RubricStandardGroupDraftValue"
+            },
+            "type": "array",
+            "title": "Standard Groups",
+            "description": "Resolved inline-created standard groups (all ids filled in)."
+          },
           "standard_ids": {
             "items": {
               "type": "string",
@@ -135088,6 +136758,14 @@
             "type": "array",
             "title": "Standard Ids",
             "description": "Selected standard UUIDs"
+          },
+          "standards": {
+            "items": {
+              "$ref": "#/components/schemas/RubricStandardDraftValue"
+            },
+            "type": "array",
+            "title": "Standards",
+            "description": "Resolved grid-editor standards (all ids filled in)."
           },
           "pending_ids": {
             "items": {
@@ -135366,31 +137044,38 @@
             "title": "Description",
             "description": "Echoed description value when available"
           },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Resolved active flag option UUID"
+          "flag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs"
           },
-          "flag_id": {
+          "active": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Flag Id",
-            "description": "Legacy alias for the active flag option UUID"
+            "title": "Active",
+            "description": "Echoed setting_active flag state"
+          },
+          "mcp": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp",
+            "description": "Echoed mcp flag state"
           },
           "department_ids": {
             "items": {
@@ -135476,6 +137161,38 @@
             "type": "array",
             "title": "Auth Item Value Ids",
             "description": "Assigned auth item value UUIDs"
+          },
+          "provider_keys": {
+            "items": {
+              "$ref": "#/components/schemas/SettingProviderKeyDraftValue"
+            },
+            "type": "array",
+            "title": "Provider Keys",
+            "description": "Echoed (provider \u00d7 key) value entries with resolved ids"
+          },
+          "auth_item_keys": {
+            "items": {
+              "$ref": "#/components/schemas/SettingAuthItemKeyDraftValue"
+            },
+            "type": "array",
+            "title": "Auth Item Keys",
+            "description": "Echoed (auth \u00d7 key) value entries with resolved ids"
+          },
+          "auth_item_values": {
+            "items": {
+              "$ref": "#/components/schemas/SettingAuthItemValueDraftValue"
+            },
+            "type": "array",
+            "title": "Auth Item Values",
+            "description": "Echoed (auth \u00d7 item \u00d7 value) entries with resolved ids"
+          },
+          "mcp_values": {
+            "items": {
+              "$ref": "#/components/schemas/SettingMcpDraftValue"
+            },
+            "type": "array",
+            "title": "Mcp Values",
+            "description": "Echoed mcp value entries with resolved ids"
           },
           "pending_ids": {
             "items": {
@@ -135632,6 +137349,30 @@
             "title": "Flag Ids",
             "description": "Selected flag UUIDs",
             "default": []
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Echoed simulation_active flag state"
+          },
+          "practice": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Practice",
+            "description": "Echoed practice flag state"
           },
           "department_ids": {
             "items": {
@@ -135842,19 +137583,6 @@
             "title": "Description",
             "description": "Resolved description value"
           },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Flag option identifier"
-          },
           "flag_ids": {
             "items": {
               "type": "string",
@@ -135862,7 +137590,19 @@
             },
             "type": "array",
             "title": "Flag Ids",
-            "description": "Flag option identifiers"
+            "description": "Selected flag option UUIDs"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Echoed tool_active flag state"
           },
           "department_ids": {
             "items": {
@@ -135952,8 +137692,6 @@
         },
         "type": "object",
         "required": [
-          "flag_ids",
-          "department_ids",
           "arg_ids",
           "arg_position_ids",
           "args_output_ids",

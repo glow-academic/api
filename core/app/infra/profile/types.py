@@ -61,7 +61,9 @@ class ProfileRoleResource(BaseModel):
     description: str | None = Field(None, description="Role description text")
     icon_id: UUID | None = Field(None, description="Icon identifier for the role")
     icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
+    icon_value: str | None = Field(None, description="Legacy alias for resolved role icon SVG")
     color_id: UUID | None = Field(None, description="Color identifier for the role")
+    color_hex: str | None = Field(None, description="Resolved role color hex code")
     level: int | None = Field(None, description="Role level for assignment filtering")
     generated: bool | None = Field(None, description="Whether the role was AI-generated")
     suggested: bool = Field(False, description="Whether this is a suggested option")
@@ -69,17 +71,16 @@ class ProfileRoleResource(BaseModel):
     pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class ProfileFlagConfig(BaseModel):
-    """Enriched profile flag config for direct client consumption."""
+class ProfileFlagResource(BaseModel):
+    """Flag option row — one per (name, type, value) entry in flags_resource."""
 
-    key: str = Field(..., description="Flag key identifier")
-    label: str = Field(..., description="Human-readable flag label")
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type (e.g. 'profile_active')")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
     description: str | None = Field(None, description="Flag description text")
     icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
     icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
-    flag_option_id: UUID | None = Field(None, description="UUID of the selected flag option")
-    show: bool = Field(True, description="Whether the flag is visible to the client")
-    required: bool = Field(False, description="Whether the flag is required")
     generated: bool | None = Field(None, description="Whether the flag was AI-generated")
     suggested: bool = Field(False, description="Whether this is a suggested option")
     selected: bool = Field(False, description="Whether this is currently selected")
@@ -142,10 +143,11 @@ class GetProfileApiResponse(BaseModel):
     basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate on the basic step")
     contact_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate on the contact step")
     pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
+    role_options: list[str] | None = Field(None, description="Role names the actor can assign")
 
     names: list[ProfileNameResource] | None = Field(None, description="Name resources")
     emails: list[ProfileEmailResource] | None = Field(None, description="Email resources")
-    flags: list[ProfileFlagConfig] | None = Field(None, description="Flag configs")
+    flags: list[ProfileFlagResource] | None = Field(None, description="Flag resources (one per flags_resource row, value=true/false)")
     departments: list[ProfileDepartmentResource] | None = Field(None, description="Department resources")
     roles: list[ProfileRoleResource] | None = Field(None, description="Role resources")
 
@@ -184,7 +186,7 @@ class CreateProfileItem(ScopedItem):
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name_id": "names",
         "name": "names",
-        "active_flag_id": "flags",
+        "flag_ids": "flags",
         "department_ids": "departments",
         "departments": "departments",
         "email_ids": "emails",
@@ -197,8 +199,9 @@ class CreateProfileItem(ScopedItem):
     # Required single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
     name: str | None = Field(None, description="Name value to resolve or create")
-    # Optional single-select — provide IDs only
-    active_flag_id: UUID | None = Field(None, description="UUID of the flag option")
+    # Canonical flag ids + denormalized bool
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Denormalized profile_active flag state")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     departments: list[str] | None = Field(None, description="Department names to resolve")
@@ -233,7 +236,9 @@ class UpdateProfileItem(ScopedItem):
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
     name: str | None = Field(None, description="Name value to resolve or create")
-    active_flag_id: UUID | None = Field(None, description="UUID of the flag option")
+    # Canonical flag ids + denormalized bool
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Denormalized profile_active flag state")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     departments: list[str] | None = Field(None, description="Department names to resolve")
@@ -308,7 +313,7 @@ class PatchProfileDraftApiRequest(ScopedItem):
     Dual-mode for creatable resources only:
       - name/name_id
     ID-only for non-creatable resources:
-      - active_flag_id, department_ids, email_ids, role_id
+      - flag_ids, department_ids, email_ids, role_id
 
     Client always sends full state (append-only — each write is a new snapshot).
     """
@@ -318,7 +323,7 @@ class PatchProfileDraftApiRequest(ScopedItem):
         "name_id": "names",
         "email": "emails",
         "emails": "emails",
-        "active_flag_id": "flags",
+        "flag_ids": "flags",
         "department_ids": "departments",
         "departments": "departments",
         "email_ids": "emails",
@@ -335,8 +340,9 @@ class PatchProfileDraftApiRequest(ScopedItem):
     email: str | None = Field(None, description="Email value to resolve or create")
     emails: list[str] | None = Field(None, description="Email values to resolve or create")
 
-    # Non-creatable — ID-only
-    active_flag_id: UUID | None = Field(None, description="UUID of the flag option")
+    # Canonical flag ids + denormalized bool resolved server-side
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical")
+    active: bool | None = Field(None, description="Denormalized profile_active flag state; resolved to a flag_ids entry server-side")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     departments: list[str] | None = Field(None, description="Department names to resolve")
     email_ids: list[UUID] | None = Field(None, description="Email resource UUIDs")
@@ -352,8 +358,8 @@ class DraftFormState(BaseModel):
 
     name_id: UUID | None = Field(None, description="Resolved name resource UUID")
     name: str | None = Field(None, description="Resolved name value")
-    flag_id: UUID | None = Field(None, description="Resolved flag option UUID")
-    active_flag_id: UUID | None = Field(None, description="Resolved flag option UUID")
+    flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Echoed profile_active flag state")
     departments: list[str] = Field(default_factory=list, description="Resolved department names")
     department_ids: list[UUID] = Field(..., description="Assigned department UUIDs")
     emails: list[str] = Field(default_factory=list, description="Resolved email values")

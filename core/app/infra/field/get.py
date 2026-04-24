@@ -26,7 +26,7 @@ from app.infra.field.types import (
     FieldConditionalParameterResource,
     FieldDepartmentResource,
     FieldDescriptionResource,
-    FieldFlagConfig,
+    FieldFlagResource,
     FieldNameResource,
     GetFieldApiResponse,
     SectionFilter,
@@ -274,21 +274,21 @@ async def get_field_impl(
             for item in all_descriptions
         ]
 
-    def _flags() -> list[FieldFlagConfig]:
-        items: list[FieldFlagConfig] = []
+    def _flags() -> list[FieldFlagResource]:
+        items: list[FieldFlagResource] = []
         for item in all_flags:
+            if not item.id:
+                continue
             suggested, selected, pending = _decorate_common(item.id, "flags")
-            key, label = _derive_flag_key_and_label(item.name)
             items.append(
-                FieldFlagConfig(
-                    key=key,
-                    label=label,
+                FieldFlagResource(
+                    id=item.id,
+                    name=getattr(item, "name", None),
+                    type=getattr(item, "type", None),
+                    value=getattr(item, "value", None),
                     description=item.description,
-                    icon_id=str(item.icon_id) if item.icon_id else None,
+                    icon_id=item.icon_id,
                     icon=getattr(item, "icon", None),
-                    flag_option_id=item.id,
-                    show=True,
-                    required=False,
                     generated=item.generated,
                     suggested=suggested,
                     selected=selected,

@@ -30,7 +30,7 @@ from app.infra.simulation.types import (
     SectionFilter,
     SimulationDepartment,
     SimulationDescriptionResource,
-    SimulationFlagConfig,
+    SimulationFlagResource,
     SimulationNameResource,
     SimulationRubric,
     SimulationScenario,
@@ -142,18 +142,17 @@ def _scenario_payload(item) -> dict[str, Any]:
 
 def _flag_payload(item, *, selected: bool, suggested: bool, pending: bool) -> dict[str, Any]:
     return {
-        "key": item.name,
-        "label": item.name,
+        "id": item.id,
+        "name": getattr(item, "name", None),
+        "type": getattr(item, "type", None),
+        "value": getattr(item, "value", None),
         "description": item.description,
-        "icon_id": item.icon_id,
+        "icon_id": getattr(item, "icon_id", None),
         # Hydrated SVG markup from flag_icons.hydrate_flag_icons. Without
-        # this, SimulationFlagConfig.icon stays None and the client falls
+        # this, SimulationFlagResource.icon stays None and the client falls
         # back to the Power placeholder icon.
         "icon": getattr(item, "icon", None),
-        "flag_option_id": item.id,
         "generated": item.generated,
-        "show": True,
-        "required": False,
         "selected": selected,
         "suggested": suggested,
         "pending": pending,
@@ -417,7 +416,7 @@ async def get_simulation_impl(
     flags = None
     if _section_included(effective_filters, "flags"):
         flags = [
-            SimulationFlagConfig.model_validate(
+            SimulationFlagResource.model_validate(
                 _flag_payload(
                     item,
                     selected=item.id in selected_sets["flags"] if item.id else False,

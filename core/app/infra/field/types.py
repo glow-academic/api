@@ -65,17 +65,16 @@ class FieldConditionalParameterResource(BaseModel):
     pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
-class FieldFlagConfig(BaseModel):
-    """Enriched flag config for direct client consumption."""
+class FieldFlagResource(BaseModel):
+    """Flag option row — one per (name, type, value) entry in flags_resource."""
 
-    key: str = Field(..., description="Flag key identifier")
-    label: str = Field(..., description="Human-readable flag label")
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type (e.g. 'field_active')")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
     description: str | None = Field(None, description="Flag description text")
     icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
     icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
-    flag_option_id: UUID | None = Field(None, description="UUID of the selected flag option")
-    show: bool = Field(True, description="Whether the flag is visible to the client")
-    required: bool = Field(False, description="Whether the flag is required")
     generated: bool | None = Field(None, description="Whether the flag was AI-generated")
     suggested: bool = Field(False, description="Whether this is a suggested option")
     selected: bool = Field(False, description="Whether this is currently selected")
@@ -125,7 +124,7 @@ class GetFieldApiResponse(BaseModel):
     pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
     names: list[FieldNameResource] | None = Field(None, description="Name resources")
     descriptions: list[FieldDescriptionResource] | None = Field(None, description="Description resources")
-    flags: list[FieldFlagConfig] | None = Field(None, description="Flag configs")
+    flags: list[FieldFlagResource] | None = Field(None, description="Flag resources (one per flags_resource row, value=true/false)")
     departments: list[FieldDepartmentResource] | None = Field(None, description="Department resources")
     conditional_parameters: list[FieldConditionalParameterResource] | None = Field(None, description="Conditional parameter resources")
 
@@ -304,9 +303,7 @@ class PatchFieldDraftApiRequest(ScopedItem):
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
-        "active_flag": "flags",
-        "active_flag_id": "flags",
-        "flag_id": "flags",
+        "flag_ids": "flags",
         "department_ids": "departments",
         "departments": "departments",
         "conditional_parameters": "conditional_parameters",
@@ -322,10 +319,8 @@ class PatchFieldDraftApiRequest(ScopedItem):
     description: str | None = Field(None, description="Description value to resolve or create")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
 
-    active_flag: bool | None = Field(None, description="Whether the field is active")
-    active_flag_id: UUID | None = Field(None, description="UUID of the active flag resource")
-    # Non-creatable — ID-only
-    flag_id: UUID | None = Field(None, description="UUID of the flag option")
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized field_active flag state; resolved to a flag_ids entry server-side")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     departments: list[str] | None = Field(None, description="Department names to resolve")
     conditional_parameter_ids: list[UUID] | None = Field(None, description="Conditional parameter UUIDs")
@@ -342,10 +337,10 @@ class DraftFormState(BaseModel):
     name: str | None = Field(None, description="Echoed name value")
     description_id: UUID | None = Field(None, description="Resolved description resource UUID")
     description: str | None = Field(None, description="Echoed description value")
-    flag_id: UUID | None = Field(None, description="Resolved flag option UUID")
-    active_flag_id: UUID | None = Field(None, description="Resolved active flag option UUID")
-    department_ids: list[UUID] = Field(..., description="Assigned department UUIDs")
-    conditional_parameter_ids: list[UUID] = Field(..., description="Assigned conditional parameter UUIDs")
+    flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Echoed field_active flag state")
+    department_ids: list[UUID] = Field(default_factory=list, description="Assigned department UUIDs")
+    conditional_parameter_ids: list[UUID] = Field(default_factory=list, description="Assigned conditional parameter UUIDs")
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
 
 

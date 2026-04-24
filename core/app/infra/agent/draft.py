@@ -88,14 +88,41 @@ async def _resolve_creatable_values(
                 created = await create_description(conn, request.description, redis)
             request.description_id = created.id
 
-    if request.active_flag is not None and request.active_flag_id is None:
+    # Resolve denormalized flag booleans to canonical flag_ids via (type, value)
+    # lookup in flags_resource.
+    denorm_flag_values: dict[str, bool] = {}
+    if request.active is not None:
+        denorm_flag_values["agent_active"] = bool(request.active)
+    if denorm_flag_values:
         async with pool.acquire() as conn:
-            matches = await search_flags(conn, redis, search=None, flag_type="agent_active", limit_count=20)
-        active_match = next((item for item in matches if getattr(item, "type", None) == "agent_active"), None)
-        if request.active_flag and active_match and active_match.id:
-            request.active_flag_id = active_match.id
-        elif request.active_flag:
-            errors.append(SaveAgentFieldError(field="active_flag", message="Active flag resource not found"))
+            all_flags = await search_flags(conn, redis, search=None, limit_count=200, agent=True)
+        resolved_flag_ids: list[UUID] = list(request.flag_ids or [])
+        resolved_seen = set(resolved_flag_ids)
+        for flag_type, desired_value in denorm_flag_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_flags
+                    if (getattr(f, "type", None) == flag_type
+                        or getattr(f, "name", None) == flag_type)
+                    and getattr(f, "value", None) is desired_value
+                ),
+                None,
+            )
+            if match and match.id and match.id not in resolved_seen:
+                resolved_flag_ids.append(match.id)
+                resolved_seen.add(match.id)
+            elif not match:
+                errors.append(
+                    SaveAgentFieldError(
+                        field=flag_type,
+                        message=(
+                            f"Flag row not found for type={flag_type} "
+                            f"value={desired_value}"
+                        ),
+                    )
+                )
+        request.flag_ids = resolved_flag_ids
 
     if request.departments is not None and request.department_ids is None:
         async with pool.acquire() as conn:
@@ -226,8 +253,8 @@ async def patch_agent_draft_impl(
                 "flag_ids",
                 "pending_ids",
             },
-            bool_fields={"active_flag"},
-            drop_false_bools={"active_flag"},
+            bool_fields={"active"},
+            drop_false_bools=set(),
             value_id_pairs=[
                 ("name", "name_id"),
                 ("description", "description_id"),
@@ -316,7 +343,6 @@ async def patch_agent_draft_impl(
             idempotency_key=idempotency_key,
             message="Draft accepted" if accept else "Draft rejected",
             form_state=DraftFormState(
-                flag_ids=[],
                 department_ids=[],
                 tool_ids=[],
                 voice_ids=[],
@@ -337,23 +363,6 @@ async def patch_agent_draft_impl(
     request.quality_ids = _dedupe_ids(request.quality_ids)
     request.rubric_ids = _dedupe_ids(request.rubric_ids)
 
-    if request.active_flag_id:
-        request.flag_ids = _dedupe_ids([*(request.flag_ids or []), request.active_flag_id])
-
-    if request.flag_ids and request.active_flag_id is None:
-        async with pool.acquire() as conn:
-            selected_flags = await get_flags(conn, request.flag_ids, redis)
-        active_flag = next(
-            (
-                item
-                for item in selected_flags
-                if getattr(item, "type", None) == "agent_active"
-                or getattr(item, "name", None) == "agent_active"
-            ),
-            None,
-        )
-        if active_flag and active_flag.id:
-            request.active_flag_id = active_flag.id
 
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -408,13 +417,24 @@ async def patch_agent_draft_impl(
                 pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
+    # Re-derive denormalized flag bool from final flag_ids.
+    echoed_active: bool | None = request.active
+    if request.flag_ids:
+        async with pool.acquire() as conn:
+            selected_flags = await get_flags(conn, request.flag_ids, redis)
+        for row in selected_flags:
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            rval = getattr(row, "value", None)
+            if rtype == "agent_active":
+                echoed_active = rval
+
     form_state = DraftFormState(
         name_id=request.name_id,
         name=request.name,
         description_id=request.description_id,
         description=request.description,
         flag_ids=request.flag_ids or [],
-        active_flag_id=request.active_flag_id,
+        active=echoed_active,
         department_ids=request.department_ids or [],
         model_id=request.model_id,
         tool_ids=request.tool_ids or [],

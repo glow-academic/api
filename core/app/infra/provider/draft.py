@@ -40,6 +40,9 @@ from app.tools.resources.values.get import get_values
 from app.tools.resources.values.search import search_values
 
 
+PROVIDER_ACTIVE_FLAG = "provider_active"
+
+
 async def _resolve_creatable_values(
     pool: asyncpg.Pool,
     redis: Redis,
@@ -49,7 +52,6 @@ async def _resolve_creatable_values(
 
     errors: list[SaveProviderFieldError] = []
 
-    request.active_flag_id = request.active_flag_id or request.flag_id
     request.endpoint_ids = request.endpoint_ids or (
         [request.endpoint_id] if request.endpoint_id else None
     )
@@ -104,25 +106,47 @@ async def _resolve_creatable_values(
                 created = await create_description(conn, request.description, redis)
             request.description_id = created.id
 
-    if request.active_flag is not None and request.active_flag_id is None:
+    # Resolve denormalized flag booleans to canonical flag_ids via (type, value)
+    # lookup in flags_resource. Explicit flag_ids are retained verbatim.
+    denorm_flag_values: dict[str, bool] = {}
+    if request.active is not None:
+        denorm_flag_values[PROVIDER_ACTIVE_FLAG] = bool(request.active)
+    if denorm_flag_values:
         async with pool.acquire() as conn:
             all_flags = await search_flags(
                 conn,
                 redis,
                 search=None,
-                flag_type="provider_active",
-                limit_count=20,
+                limit_count=200,
+                provider=True,
             )
-        match = next((item for item in all_flags if item.type == "provider_active"), None)
-        if request.active_flag and match and match.id:
-            request.active_flag_id = match.id
-        elif request.active_flag:
-            errors.append(
-                SaveProviderFieldError(
-                    field="active_flag",
-                    message="Active flag resource not found",
+        resolved_flag_ids: list[UUID] = list(request.flag_ids or [])
+        resolved_seen = set(resolved_flag_ids)
+        for flag_type, desired_value in denorm_flag_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_flags
+                    if (getattr(f, "type", None) == flag_type
+                        or getattr(f, "name", None) == flag_type)
+                    and getattr(f, "value", None) is desired_value
+                ),
+                None,
+            )
+            if match and match.id and match.id not in resolved_seen:
+                resolved_flag_ids.append(match.id)
+                resolved_seen.add(match.id)
+            elif not match:
+                errors.append(
+                    SaveProviderFieldError(
+                        field=flag_type,
+                        message=(
+                            f"Flag row not found for type={flag_type} "
+                            f"value={desired_value}"
+                        ),
+                    )
                 )
-            )
+        request.flag_ids = resolved_flag_ids
 
     if request.departments is not None and request.department_ids is None:
         async with pool.acquire() as conn:
@@ -367,7 +391,7 @@ async def patch_provider_draft_impl(
                 profile_ids=[profile.profiles_id],
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id] if request.description_id else None,
-                flag_ids=[request.active_flag_id] if request.active_flag_id else None,
+                flag_ids=request.flag_ids or None,
                 department_ids=request.department_ids,
                 endpoint_ids=request.endpoint_ids,
                 key_ids=request.key_ids,
@@ -450,13 +474,35 @@ async def patch_provider_draft_impl(
                 else matches[0].description
             )
 
+    # Re-derive denormalized flag bool from final flag_ids so the client echo
+    # matches what the server actually persisted.
+    echoed_active: bool | None = request.active
+    if request.flag_ids:
+        async with pool.acquire() as conn:
+            flag_rows = await search_flags(
+                conn,
+                redis,
+                search=None,
+                limit_count=200,
+                provider=True,
+            )
+        rows_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+        for fid in request.flag_ids:
+            row = rows_by_id.get(fid)
+            if not row:
+                continue
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            rval = getattr(row, "value", None)
+            if rtype == PROVIDER_ACTIVE_FLAG:
+                echoed_active = rval
+
     form_state = DraftFormState(
         name_id=request.name_id,
         name=resolved_name,
         description_id=request.description_id,
         description=resolved_description,
-        flag_id=request.active_flag_id,
-        active_flag_id=request.active_flag_id,
+        flag_ids=request.flag_ids or [],
+        active=echoed_active,
         departments=resolved_department_names,
         department_ids=request.department_ids or [],
         endpoint=resolved_endpoint,

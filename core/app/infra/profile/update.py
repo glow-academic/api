@@ -184,7 +184,7 @@ async def update_profile_impl(
                     item.profile_id,
                     name_id=item.name_id if item.name_id else _UNSET,
                     department_ids=item.department_ids,
-                    flag_ids=[item.active_flag_id] if item.active_flag_id else None,
+                    flag_ids=item.flag_ids or None,
                     email_ids=item.email_ids,
                     role_ids=[item.role_id] if item.role_id else None,
                     profile_ids=[profiles_resource_id] if profiles_resource_id else None,

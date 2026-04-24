@@ -45,7 +45,7 @@ from app.tools.resources.systems.search import search_systems
 from app.tools.resources.thresholds.get import get_thresholds
 from app.tools.resources.thresholds.search import search_thresholds
 
-SETTING_FLAG_NAMES = {"setting_active"}
+SETTING_FLAG_NAMES = {"setting_active", "mcp"}
 
 
 @dataclass
@@ -286,7 +286,6 @@ async def resolve_setting_context(
                 limit_count=_coalesce_limit(flags_limit, 50),
                 offset_count=0,
                 exclude_ids=merged.flag_ids,
-                flag_type="setting_active",
                 bypass_cache=bypass_cache,
             )
 

@@ -127,7 +127,7 @@ async def resolve_provider_values(
 
     # --- Match resources ---
 
-    if item.active_flag is not None and item.active_flag_id is None:
+    if item.active is not None:
         results = await search_flags(
             conn,
             redis,
@@ -135,14 +135,21 @@ async def resolve_provider_values(
             flag_type="provider_active",
             limit_count=100,
         )
-        match = next((r for r in results if r.type == "provider_active" and r.value is True), None)
+        desired = bool(item.active)
+        match = next(
+            (r for r in results if r.type == "provider_active" and r.value is desired),
+            None,
+        )
         if match and match.id:
-            if item.active_flag:
-                item.active_flag_id = match.id
-        elif item.active_flag:
+            merged = list(item.flag_ids or [])
+            if match.id not in merged:
+                merged.append(match.id)
+            item.flag_ids = merged
+        else:
             errors.append(
                 ProviderFieldError(
-                    field="active_flag", message="Active flag resource not found"
+                    field="provider_active",
+                    message=f"Flag row not found for provider_active={desired}",
                 )
             )
 

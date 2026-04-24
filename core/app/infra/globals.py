@@ -332,9 +332,18 @@ async def init_db_pool() -> None:
     pool_config: dict[str, Any] = {
         "min_size": 10,
         "max_size": 100,
-        "command_timeout": 60,
+        "command_timeout": 30,
         "max_queries": 50000,
-        "max_inactive_connection_lifetime": 300,
+        # Aggressive idle eviction: recycle pool conns before the stack
+        # underneath (pgbouncer, docker net, OS TCP) silently drops them.
+        # Symptom pattern: idle >30s → next reuse hangs on DISCARD ALL
+        # because the socket is dead → 60s command_timeout fires → 504.
+        # (We can't use Postgres-level server_settings like tcp_keepalives_*
+        # or statement_timeout here because pgbouncer rejects all startup
+        # parameters outside its narrow allowlist. If we later need server-
+        # side timeouts, wire them through a setup= callback that runs
+        # `SET statement_timeout` as a post-connect SQL statement.)
+        "max_inactive_connection_lifetime": 30,
     }
 
     if using_pgbouncer:

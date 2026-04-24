@@ -25,7 +25,7 @@ from app.infra.persona.types import (
     PersonaDepartmentResource,
     PersonaDescriptionResource,
     PersonaExampleResource,
-    PersonaFlagConfig,
+    PersonaFlagResource,
     PersonaIconResource,
     PersonaInstructionResource,
     PersonaNameResource,
@@ -260,23 +260,26 @@ def build_persona_get_result(
             result.append(m)
         return result
 
-    # Build flat flag list with selected marked
+    # Build flat flag list with selected marked — one row per flags_resource entry.
     selected_flag_ids = {flag.id for flag in persona.resources["flags"].selected}
-    flags_flat = []
-    for flag in all_flags:
-        if flag.id:
-            fc = PersonaFlagConfig(
-                key=flag.name,
-                label=flag.name,
-                description=flag.description,
-                icon_id=flag.icon_id,
-                icon=flag.icon,
-                flag_option_id=flag.id,
-                generated=flag.generated,
-                selected=flag.id in selected_flag_ids,
-                pending=flag.id in pending_ids,
-            )
-            flags_flat.append(fc)
+    suggested_flag_ids = {flag.id for flag in persona.resources["flags"].suggestions}
+    flags_flat = [
+        PersonaFlagResource(
+            id=flag.id,
+            name=getattr(flag, "name", None),
+            type=getattr(flag, "type", None),
+            value=getattr(flag, "value", None),
+            description=flag.description,
+            icon_id=getattr(flag, "icon_id", None),
+            icon=getattr(flag, "icon", None),
+            generated=flag.generated,
+            suggested=flag.id in suggested_flag_ids,
+            selected=flag.id in selected_flag_ids,
+            pending=flag.id in pending_ids,
+        )
+        for flag in all_flags
+        if flag.id
+    ]
 
     # Dedupe parameter_fields: suggestions first so selected items keep their
     # natural slot (see rationale on the other dedupe calls above).

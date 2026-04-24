@@ -71,17 +71,16 @@ class ProviderKeyResource(BaseModel):
     pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
-class ProviderFlagConfig(BaseModel):
-    """Enriched flag config for direct client consumption."""
+class ProviderFlagResource(BaseModel):
+    """Flag option row — one per (name, type, value) entry in flags_resource."""
 
-    key: str = Field(..., description="Flag key identifier")
-    label: str = Field(..., description="Human-readable flag label")
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type (e.g. 'provider_active')")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
     description: str | None = Field(None, description="Flag description")
     icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
     icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
-    flag_option_id: UUID | None = Field(None, description="Option ID to use when enabling")
-    show: bool = Field(True, description="Whether to display this flag in the UI")
-    required: bool = Field(False, description="Whether this flag is required")
     generated: bool | None = Field(None, description="Whether this flag was AI-generated")
     suggested: bool = Field(False, description="Whether this item is suggested")
     selected: bool = Field(False, description="Whether this item is selected")
@@ -129,7 +128,7 @@ class GetProviderApiResponse(BaseModel):
 
     names: list[ProviderNameResource] | None = Field(None, description="Name resources")
     descriptions: list[ProviderDescriptionResource] | None = Field(None, description="Description resources")
-    flags: list[ProviderFlagConfig] | None = Field(None, description="Flag configs")
+    flags: list[ProviderFlagResource] | None = Field(None, description="Flag resources (one per flags_resource row, value=true/false)")
     departments: list[ProviderDepartmentResource] | None = Field(None, description="Department resources")
     values: list[ProviderValueResource] | None = Field(None, description="Value resources")
     endpoints: list[ProviderEndpointResource] | None = Field(None, description="Endpoint resources")
@@ -196,8 +195,9 @@ class CreateProviderItem(ScopedItem):
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="Description resource identifier")
     description: str | None = Field(None, description="Description text value")
-    active_flag_id: UUID | None = Field(None, description="Active flag option identifier")
-    active_flag: bool | None = Field(None, description="Whether the provider is active")
+    # Canonical flag ids + denormalized bool
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Denormalized provider_active flag state")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     departments: list[str] | None = Field(None, description="Department names to match")
@@ -215,8 +215,7 @@ class CreateProviderItem(ScopedItem):
         "name": "names",
         "description_id": "descriptions",
         "description": "descriptions",
-        "active_flag_id": "flags",
-        "active_flag": "flags",
+        "flag_ids": "flags",
         "department_ids": "departments",
         "departments": "departments",
         "endpoint_ids": "endpoints",
@@ -252,8 +251,9 @@ class UpdateProviderItem(ScopedItem):
     name: str | None = Field(None, description="Display name value")
     description_id: UUID | None = Field(None, description="Description resource identifier")
     description: str | None = Field(None, description="Description text value")
-    active_flag_id: UUID | None = Field(None, description="Active flag option identifier")
-    active_flag: bool | None = Field(None, description="Whether the provider is active")
+    # Canonical flag ids + denormalized bool
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Denormalized provider_active flag state")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     departments: list[str] | None = Field(None, description="Department names to match")
@@ -346,10 +346,9 @@ class PatchProviderDraftApiRequest(ScopedItem):
     description: str | None = Field(None, description="Description text value")
     description_id: UUID | None = Field(None, description="Description resource identifier")
 
-    # Resource-backed values — provide raw values or IDs
-    active_flag: bool | None = Field(None, description="Whether the provider is active")
-    active_flag_id: UUID | None = Field(None, description="Flag option identifier")
-    flag_id: UUID | None = Field(None, description="Legacy alias for flag option identifier")
+    # Canonical flag ids + denormalized bool resolved server-side
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical")
+    active: bool | None = Field(None, description="Denormalized provider_active flag state; resolved to a flag_ids entry server-side")
     departments: list[str] | None = Field(None, description="Department names to match")
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     endpoint: str | None = Field(None, description="Provider endpoint URL")
@@ -371,9 +370,7 @@ class PatchProviderDraftApiRequest(ScopedItem):
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
-        "active_flag": "flags",
-        "active_flag_id": "flags",
-        "flag_id": "flags",
+        "flag_ids": "flags",
         "departments": "departments",
         "department_ids": "departments",
         "endpoint": "endpoints",
@@ -396,8 +393,8 @@ class DraftFormState(BaseModel):
     name: str | None = Field(None, description="Resolved name value")
     description_id: UUID | None = Field(None, description="Resolved description resource identifier")
     description: str | None = Field(None, description="Resolved description value")
-    flag_id: UUID | None = Field(None, description="Legacy flag option identifier")
-    active_flag_id: UUID | None = Field(None, description="Flag option identifier")
+    flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Echoed provider_active flag state")
     departments: list[str] = Field(default_factory=list, description="Resolved department names")
     department_ids: list[UUID] = Field(..., description="Department identifiers")
     endpoint: str | None = Field(None, description="Resolved endpoint value")

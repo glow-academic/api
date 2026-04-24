@@ -169,7 +169,7 @@ async def update_auth_impl(
                     description_id=item.description_id if item.description_id else _UNSET,
                     slug_id=item.slug_id if item.slug_id else _UNSET,
                     department_ids=item.department_ids,
-                    flag_ids=[item.active_flag_id] if item.active_flag_id else None,
+                    flag_ids=item.flag_ids or None,
                     item_ids=item.item_ids,
                     protocol_ids=item.protocol_ids,
                     auth_ids=[auths_resource_id] if auths_resource_id else item.auth_resource_ids,

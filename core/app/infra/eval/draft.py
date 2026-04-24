@@ -23,6 +23,7 @@ from app.tools.entries.eval_drafts.get import get_eval_drafts
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.search import search_descriptions
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
 
@@ -75,6 +76,46 @@ async def _resolve_creatable_values(
         else:
             result = await create_description(conn, request.description, redis)
             request.description_id = result.id
+
+    # Resolve denormalized flag booleans (active) to canonical flag_ids via
+    # (type, value) lookup in flags_resource. Explicit flag_ids are retained.
+    denorm_flag_values: dict[str, bool] = {}
+    if request.active is not None:
+        denorm_flag_values["eval_active"] = bool(request.active)
+    if denorm_flag_values:
+        all_flags = await search_flags(
+            conn,
+            redis,
+            search=None,
+            limit_count=200,
+            bypass_cache=True,
+        )
+        resolved_flag_ids: list[UUID] = list(request.flag_ids or [])
+        resolved_seen = set(resolved_flag_ids)
+        for flag_type, desired_value in denorm_flag_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_flags
+                    if (
+                        getattr(f, "type", None) == flag_type
+                        or getattr(f, "name", None) == flag_type
+                    )
+                    and getattr(f, "value", None) is desired_value
+                ),
+                None,
+            )
+            if match and match.id and match.id not in resolved_seen:
+                resolved_flag_ids.append(match.id)
+                resolved_seen.add(match.id)
+            elif not match:
+                errors.append(
+                    SaveEvalFieldError(
+                        field=flag_type,
+                        message=f"Flag row not found for type={flag_type} value={desired_value}",
+                    )
+                )
+        request.flag_ids = resolved_flag_ids
 
     if request.departments is not None and request.department_ids is None:
         all_departments = await search_departments(
@@ -226,12 +267,35 @@ async def patch_eval_draft_impl(
                 pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
+    # Re-derive denormalized active bool from the final flag_ids so the client
+    # echo matches whatever the server actually persisted.
+    echoed_active: bool | None = request.active
+    if request.flag_ids:
+        async with pool.acquire() as conn:
+            flag_rows = await search_flags(
+                conn,
+                redis,
+                search=None,
+                limit_count=200,
+                bypass_cache=True,
+            )
+        rows_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+        for fid in request.flag_ids:
+            row = rows_by_id.get(fid)
+            if not row:
+                continue
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            rval = getattr(row, "value", None)
+            if rtype == "eval_active":
+                echoed_active = rval
+
     form_state = DraftFormState(
         name_id=request.name_id,
         name=request.name,
         description_id=request.description_id,
         description=request.description,
         flag_ids=request.flag_ids or [],
+        active=echoed_active,
         department_ids=request.department_ids or [],
         model_ids=request.model_ids or [],
         model_flag_ids=request.model_flag_ids or [],

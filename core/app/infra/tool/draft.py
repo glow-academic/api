@@ -91,25 +91,48 @@ async def _resolve_creatable_values(
                 created = await create_description(conn, request.description, redis)
             request.description_id = created.id
 
-    if request.active_flag is not None and request.active_flag_id is None:
+    # Resolve denormalized flag booleans to canonical flag_ids via (type, value)
+    # lookup in flags_resource. Explicit flag_ids are retained verbatim; the
+    # derived id is merged in so both forms coexist without conflict.
+    denorm_flag_values: dict[str, bool] = {}
+    if request.active is not None:
+        denorm_flag_values["tool_active"] = bool(request.active)
+    if denorm_flag_values:
         async with pool.acquire() as conn:
             all_flags = await search_flags(
                 conn,
                 redis,
                 search=None,
-                flag_type="tool_active",
-                limit_count=20,
+                limit_count=200,
+                bypass_cache=True,
             )
-        match = next((item for item in all_flags if item.type == "tool_active"), None)
-        if request.active_flag and match and match.id:
-            request.active_flag_id = match.id
-        elif request.active_flag:
-            errors.append(
-                SaveToolFieldError(
-                    field="active_flag",
-                    message="Active flag resource not found",
+        resolved_flag_ids: list[UUID] = list(request.flag_ids or [])
+        resolved_seen = set(resolved_flag_ids)
+        for flag_type, desired_value in denorm_flag_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_flags
+                    if (getattr(f, "type", None) == flag_type
+                        or getattr(f, "name", None) == flag_type)
+                    and getattr(f, "value", None) is desired_value
+                ),
+                None,
+            )
+            if match and match.id and match.id not in resolved_seen:
+                resolved_flag_ids.append(match.id)
+                resolved_seen.add(match.id)
+            elif not match:
+                errors.append(
+                    SaveToolFieldError(
+                        field=flag_type,
+                        message=(
+                            f"Flag row not found for type={flag_type} "
+                            f"value={desired_value}"
+                        ),
+                    )
                 )
-            )
+        request.flag_ids = resolved_flag_ids
 
     # --- Inline arg creation ---
     if request.args and not errors:
@@ -187,8 +210,7 @@ async def patch_tool_draft_impl(
                 "permission_ids",
                 "pending_ids",
             },
-            bool_fields={"active_flag"},
-            drop_false_bools={"active_flag"},
+            bool_fields={"active"},
             value_id_pairs=[
                 ("name", "name_id"),
                 ("description", "description_id"),
@@ -282,10 +304,6 @@ async def patch_tool_draft_impl(
             detail=[error.model_dump() for error in errors],
         )
 
-    combined_flag_ids = list(request.flag_ids or [])
-    if request.active_flag_id and request.active_flag_id not in combined_flag_ids:
-        combined_flag_ids.append(request.active_flag_id)
-
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_tool_draft(
@@ -295,7 +313,7 @@ async def patch_tool_draft_impl(
                 soft=soft,
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id] if request.description_id else None,
-                flag_ids=combined_flag_ids or None,
+                flag_ids=request.flag_ids or None,
                 department_ids=request.department_ids,
                 arg_ids=request.arg_ids,
                 arg_position_ids=request.arg_position_ids,
@@ -325,13 +343,35 @@ async def patch_tool_draft_impl(
             )
         resolved_description = matches[0].description if matches else None
 
+    # Re-derive denormalized flag booleans from the final flag_ids so the client
+    # echo matches whatever the server actually persisted.
+    echoed_active: bool | None = request.active
+    if request.flag_ids:
+        async with pool.acquire() as conn:
+            flag_rows = await search_flags(
+                conn,
+                redis,
+                search=None,
+                limit_count=200,
+                bypass_cache=True,
+            )
+        rows_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+        for fid in request.flag_ids:
+            row = rows_by_id.get(fid)
+            if not row:
+                continue
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            rval = getattr(row, "value", None)
+            if rtype == "tool_active":
+                echoed_active = rval
+
     form_state = DraftFormState(
         name_id=request.name_id,
         name=resolved_name,
         description_id=request.description_id,
         description=resolved_description,
-        active_flag_id=request.active_flag_id,
-        flag_ids=combined_flag_ids,
+        flag_ids=request.flag_ids or [],
+        active=echoed_active,
         department_ids=request.department_ids or [],
         arg_ids=request.arg_ids or [],
         arg_position_ids=request.arg_position_ids or [],

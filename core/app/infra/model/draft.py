@@ -67,6 +67,18 @@ MODEL_FLAG_KEY_FIELDS = {
 }
 
 
+# Denormalized bool field name → flag type in flags_resource (artifact-prefixed).
+MODEL_DENORM_FLAG_FIELDS = {
+    "active": "model_active",
+    "modalities_enabled": "model_modalities_enabled",
+    "temperature_enabled": "model_temperature_enabled",
+    "pricing_enabled": "model_pricing_enabled",
+    "voices_enabled": "model_voices_enabled",
+    "reasoning_levels_enabled": "model_reasoning_levels_enabled",
+    "qualities_enabled": "model_qualities_enabled",
+}
+
+
 async def _resolve_creatable_values(
     pool: asyncpg.Pool,
     redis: Redis,
@@ -135,14 +147,34 @@ async def _resolve_creatable_values(
                 SaveModelFieldError(field="provider", message=f'Provider "{request.provider}" not found')
             )
 
-    if request.active_flag is not None and request.active_flag_id is None:
+    # Canonical: denorm bool fields → flag_ids via (type, value) lookup.
+    denorm_values: dict[str, bool] = {}
+    for field_name, flag_type in MODEL_DENORM_FLAG_FIELDS.items():
+        v = getattr(request, field_name, None)
+        if v is not None:
+            denorm_values[flag_type] = bool(v)
+    if denorm_values:
         async with pool.acquire() as conn:
-            matches = await search_flags(conn, redis, search=None, flag_type="model_active", limit_count=20)
-        active_match = next((item for item in matches if item.type == "model_active"), None)
-        if request.active_flag and active_match and active_match.id:
-            request.active_flag_id = active_match.id
-        elif request.active_flag:
-            errors.append(SaveModelFieldError(field="active_flag", message="Active flag resource not found"))
+            all_rows = await search_flags(
+                conn, redis, search=None, limit_count=200, bypass_cache=True
+            )
+        resolved_ids: list[UUID] = list(request.flag_ids or [])
+        seen = set(resolved_ids)
+        for ftype, desired in denorm_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_rows
+                    if (getattr(f, "type", None) == ftype
+                        or getattr(f, "name", None) == ftype)
+                    and getattr(f, "value", None) is desired
+                ),
+                None,
+            )
+            if match and match.id and match.id not in seen:
+                resolved_ids.append(match.id)
+                seen.add(match.id)
+        request.flag_ids = resolved_ids
 
     if request.departments is not None and request.department_ids is None:
         async with pool.acquire() as conn:
@@ -270,22 +302,7 @@ async def _resolve_creatable_values(
                         resolved_ids.append(created.id)
         request.voice_ids = resolved_ids
 
-    request.flag_ids = _dedupe_ids(
-        (request.flag_ids or [])
-        + [
-            flag_id
-            for flag_id in [
-                request.active_flag_id,
-                request.modalities_enabled_flag_id,
-                request.temperature_enabled_flag_id,
-                request.pricing_enabled_flag_id,
-                request.voices_enabled_flag_id,
-                request.reasoning_levels_enabled_flag_id,
-                request.qualities_enabled_flag_id,
-            ]
-            if flag_id
-        ]
-    )
+    request.flag_ids = _dedupe_ids(request.flag_ids)
     request.department_ids = _dedupe_ids(request.department_ids)
     request.modality_ids = _dedupe_ids(request.modality_ids)
     request.pricing_ids = _dedupe_ids(request.pricing_ids)
@@ -424,15 +441,6 @@ async def patch_model_draft_impl(
     if errors:
         raise HTTPException(status_code=400, detail=[error.model_dump() for error in errors])
 
-    if request.flag_ids:
-        async with pool.acquire() as conn:
-            selected_flags = await get_flags(conn, request.flag_ids, redis, bypass_cache=True)
-        for flag in selected_flags:
-            key = flag.name.replace("model_", "") if getattr(flag, "name", None) else None
-            field_name = MODEL_FLAG_KEY_FIELDS.get(key or "")
-            if field_name and getattr(request, field_name, None) is None and flag.id:
-                setattr(request, field_name, flag.id)
-
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_model_draft(
@@ -480,6 +488,23 @@ async def patch_model_draft_impl(
             matches = await get_providers(conn, [request.provider_id], redis, bypass_cache=True)
         resolved_provider = matches[0].name if matches else None
 
+    # Re-derive denorm bools from final flag_ids so client echo matches what
+    # the server actually persisted.
+    echoed_bools: dict[str, bool | None] = {
+        f: getattr(request, f, None) for f in MODEL_DENORM_FLAG_FIELDS
+    }
+    if request.flag_ids:
+        async with pool.acquire() as conn:
+            flag_rows = await get_flags(
+                conn, request.flag_ids, redis, bypass_cache=True
+            )
+        type_to_field = {v: k for k, v in MODEL_DENORM_FLAG_FIELDS.items()}
+        for row in flag_rows:
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            field = type_to_field.get(rtype or "")
+            if field:
+                echoed_bools[field] = getattr(row, "value", None)
+
     form_state = DraftFormState(
         name_id=request.name_id,
         name=resolved_name,
@@ -490,13 +515,13 @@ async def patch_model_draft_impl(
         provider_id=request.provider_id,
         provider=resolved_provider,
         flag_ids=request.flag_ids or [],
-        active_flag_id=request.active_flag_id,
-        modalities_enabled_flag_id=request.modalities_enabled_flag_id,
-        temperature_enabled_flag_id=request.temperature_enabled_flag_id,
-        pricing_enabled_flag_id=request.pricing_enabled_flag_id,
-        voices_enabled_flag_id=request.voices_enabled_flag_id,
-        reasoning_levels_enabled_flag_id=request.reasoning_levels_enabled_flag_id,
-        qualities_enabled_flag_id=request.qualities_enabled_flag_id,
+        active=echoed_bools.get("active"),
+        modalities_enabled=echoed_bools.get("modalities_enabled"),
+        temperature_enabled=echoed_bools.get("temperature_enabled"),
+        pricing_enabled=echoed_bools.get("pricing_enabled"),
+        voices_enabled=echoed_bools.get("voices_enabled"),
+        reasoning_levels_enabled=echoed_bools.get("reasoning_levels_enabled"),
+        qualities_enabled=echoed_bools.get("qualities_enabled"),
         department_ids=request.department_ids or [],
         modality_ids=request.modality_ids or [],
         pricing_ids=request.pricing_ids or [],

@@ -205,20 +205,20 @@ class GetPersonaDraftsApiResponse(BaseModel):
     entries: list[GetPersonaDraftResponse] | None = Field(None, description="List of persona drafts")
 
 
-class PersonaFlagConfig(BaseModel):
-    """Enriched flag config for direct client consumption."""
+class PersonaFlagResource(BaseModel):
+    """Flag option row — one per (name, type, value) entry in flags_resource."""
 
-    key: str  # e.g., "active"
-    label: str  # e.g., "Active"
-    description: str | None = None
-    icon_id: UUID | None = None
-    icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
-    flag_option_id: UUID | None = None  # ID to use when enabling
-    show: bool = True
-    required: bool = False
-    generated: bool | None = None
-    selected: bool = False
-    pending: bool = False
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type (e.g. 'persona_active')")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
+    description: str | None = Field(None, description="Flag description text")
+    icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
+    icon: str | None = Field(None, description="Resolved SVG markup (hydrated from icons_resource)")
+    generated: bool | None = Field(None, description="Whether the flag was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
 class SectionFilter(BaseModel):
@@ -269,7 +269,7 @@ class GetPersonaApiResponse(BaseModel):
     colors: list[PersonaColorResource] | None = Field(None, description="Color resources with selected/suggested flags")
     icons: list[PersonaIconResource] | None = Field(None, description="Icon resources with selected/suggested flags")
     instructions: list[PersonaInstructionResource] | None = Field(None, description="Instruction resources with selected/suggested flags")
-    flags: list[PersonaFlagConfig] | None = Field(None, description="Boolean flag configs with selected flag (e.g. active status)")
+    flags: list[PersonaFlagResource] | None = Field(None, description="Flag resources (one per flags_resource row, value=true/false)")
     departments: list[PersonaDepartmentResource] | None = Field(None, description="Department resources with selected/suggested flags")
     parameter_fields: list[PersonaParameterFieldResource] | None = Field(None, description="Parameter field resources with selected/suggested flags")
     examples: list[PersonaExampleResource] | None = Field(None, description="Example resources with selected/suggested flags")
@@ -289,7 +289,7 @@ class PersonaResourceBucket(BaseModel):
     colors: list[PersonaColorResource] | None = None
     icons: list[PersonaIconResource] | None = None
     instructions: list[PersonaInstructionResource] | None = None
-    flags: list[PersonaFlagConfig] | None = None
+    flags: list[PersonaFlagResource] | None = None
     departments: list[PersonaDepartmentResource] | None = None
     parameter_fields: list[PersonaParameterFieldResource] | None = None
     examples: list[PersonaExampleResource] | None = None
@@ -639,8 +639,8 @@ class PatchPersonaDraftApiRequest(ScopedItem):
     icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
     instructions: str | None = Field(None, description="Instruction template text (creates new instruction resource)")
     instructions_id: UUID | None = Field(None, description="UUID of an existing instruction resource to select")
-    active_flag_id: UUID | None = Field(None, description="UUID of the flag option to set active status")
-    active_flag: bool | None = Field(None, description="Whether the persona is active (resolved to flag_id)")
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized persona_active flag state; resolved to a flag_ids entry server-side")
 
     # Multi-select — provide values or IDs
     examples: list[str] | None = Field(None, description="Example texts (creates new example resources)")
@@ -670,8 +670,7 @@ class PatchPersonaDraftApiRequest(ScopedItem):
         "icon_id": "icons",
         "instructions": "instructions",
         "instructions_id": "instructions",
-        "active_flag": "flags",
-        "active_flag_id": "flags",
+        "flag_ids": "flags",
         "examples": "examples",
         "example_ids": "examples",
         "departments": "departments",
@@ -701,7 +700,8 @@ class DraftFormState(BaseModel):
     icon_id: UUID | None = Field(None, description="Currently selected icon resource UUID")
     icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
     icon: str | None = Field(None, description="Icon value that was saved")
-    active_flag_id: UUID | None = Field(None, description="Currently selected flag option UUID")
+    flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Echoed persona_active flag state")
     department_ids: list[UUID] = Field(default_factory=list, description="Currently associated department UUIDs")
     example_ids: list[UUID] = Field(default_factory=list, description="Currently associated example resource UUIDs")
     parameter_field_ids: list[UUID] = Field(default_factory=list, description="Currently associated parameter field UUIDs")

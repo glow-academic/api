@@ -30,7 +30,7 @@ from app.infra.department.permissions import (
 from app.infra.department.permissions_context import resolve_department_permissions_context
 from app.infra.department.types import (
     DepartmentDescriptionResource,
-    DepartmentFlagConfig,
+    DepartmentFlagResource,
     DepartmentNameResource,
     DepartmentSettingResource,
     GetDepartmentApiResponse,
@@ -252,16 +252,14 @@ async def get_department_impl(
         for item in all_descriptions
     ]
     flags = [
-        DepartmentFlagConfig(
-            key=_derive_flag_key_and_label(getattr(item, "name", None) or getattr(item, "type", None))[0],
-            label=_derive_flag_key_and_label(getattr(item, "name", None) or getattr(item, "type", None))[1],
+        DepartmentFlagResource(
+            id=item.id,
+            name=getattr(item, "name", None),
+            type=getattr(item, "type", None),
+            value=getattr(item, "value", None),
             description=item.description,
             icon_id=getattr(item, "icon_id", None),
-
             icon=getattr(item, "icon", None),
-            flag_option_id=item.id,
-            show=show_flags_map["flags"],
-            required=required_flags_map["flags"],
             generated=item.generated,
             suggested=_decorate(item.id, "flags")[0],
             selected=_decorate(item.id, "flags")[1],

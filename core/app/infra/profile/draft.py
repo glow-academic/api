@@ -146,8 +146,40 @@ async def _resolve_creatable_values(
                 )
             )
 
-    if request.active_flag_id is None:
-        request.active_flag_id = None
+    # Resolve denormalized flag booleans to canonical flag_ids.
+    denorm_flag_values: dict[str, bool] = {}
+    if request.active is not None:
+        denorm_flag_values["profile_active"] = bool(request.active)
+    if denorm_flag_values:
+        async with pool.acquire() as conn:
+            all_flags = await search_flags(conn, redis, search=None, limit_count=200, profile=True)
+        resolved_flag_ids: list[UUID] = list(request.flag_ids or [])
+        resolved_seen = set(resolved_flag_ids)
+        for flag_type, desired_value in denorm_flag_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_flags
+                    if (getattr(f, "type", None) == flag_type
+                        or getattr(f, "name", None) == flag_type)
+                    and getattr(f, "value", None) is desired_value
+                ),
+                None,
+            )
+            if match and match.id and match.id not in resolved_seen:
+                resolved_flag_ids.append(match.id)
+                resolved_seen.add(match.id)
+            elif not match:
+                errors.append(
+                    SaveProfileFieldError(
+                        field=flag_type,
+                        message=(
+                            f"Flag row not found for type={flag_type} "
+                            f"value={desired_value}"
+                        ),
+                    )
+                )
+        request.flag_ids = resolved_flag_ids
 
     return errors
 
@@ -266,7 +298,7 @@ async def patch_profile_draft_impl(
                 soft=soft,
                 profile_ids=[profile.profiles_id],
                 name_ids=[request.name_id] if request.name_id else None,
-                flag_ids=[request.active_flag_id] if request.active_flag_id else None,
+                flag_ids=request.flag_ids or None,
                 department_ids=request.department_ids,
                 email_ids=request.email_ids,
                 role_ids=[request.role_id] if request.role_id else None,
@@ -315,11 +347,26 @@ async def patch_profile_draft_impl(
         role_map = {item.id: item.name for item in role_matches if item.id and item.name}
         resolved_role_name = role_map.get(request.role_id)
 
+    # Re-derive denormalized flag bool from final flag_ids.
+    echoed_active: bool | None = request.active
+    if request.flag_ids:
+        async with pool.acquire() as conn:
+            flag_rows = await search_flags(conn, redis, search=None, limit_count=200, profile=True)
+        rows_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+        for fid in request.flag_ids:
+            row = rows_by_id.get(fid)
+            if not row:
+                continue
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            rval = getattr(row, "value", None)
+            if rtype == "profile_active":
+                echoed_active = rval
+
     form_state = DraftFormState(
         name_id=request.name_id,
         name=request.name,
-        flag_id=request.active_flag_id,
-        active_flag_id=request.active_flag_id,
+        flag_ids=request.flag_ids or [],
+        active=echoed_active,
         departments=resolved_department_names,
         department_ids=request.department_ids or [],
         emails=resolved_emails if resolved_emails else raw_emails_from_request(request),

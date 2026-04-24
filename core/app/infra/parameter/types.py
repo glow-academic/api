@@ -85,17 +85,16 @@ class ParameterDraftEntry(BaseModel):
     profile_ids: list[UUID] | None = Field(None, description="Profile identifiers")
 
 
-class ParameterFlagConfig(BaseModel):
-    """Enriched flag config for direct client consumption."""
+class ParameterFlagResource(BaseModel):
+    """Flag option row — one per (name, type, value) flags_resource entry."""
 
-    key: str = Field(..., description="Flag key identifier")
-    label: str = Field(..., description="Human-readable flag label")
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
     description: str | None = Field(None, description="Flag description")
     icon_id: UUID | None = Field(None, description="Icon identifier for the flag")
     icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
-    flag_option_id: UUID | None = Field(None, description="Option ID to use when enabling")
-    show: bool = Field(True, description="Whether to display this flag in the UI")
-    required: bool = Field(False, description="Whether this flag is required")
     generated: bool | None = Field(None, description="Whether this flag was AI-generated")
     suggested: bool = Field(False, description="Whether this is a suggested option")
     selected: bool = Field(False, description="Whether this is currently selected")
@@ -149,7 +148,7 @@ class GetParameterApiResponse(BaseModel):
     pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
     names: list[ParameterNameResource] | None = Field(None, description="Name resources")
     descriptions: list[ParameterDescriptionResource] | None = Field(None, description="Description resources")
-    flags: list[ParameterFlagConfig] | None = Field(None, description="Flag configs")
+    flags: list[ParameterFlagResource] | None = Field(None, description="Flag configs")
     departments: list[ParameterDepartmentResource] | None = Field(None, description="Department resources")
     parameter_fields: list[ParameterFieldResource] | None = Field(None, description="Parameter field resources")
 

@@ -39,7 +39,7 @@ from app.infra.eval.permissions_context import resolve_eval_permissions_context
 from app.infra.eval.types import (
     EvalDepartmentResource,
     EvalDescriptionResource,
-    EvalFlagConfig,
+    EvalFlagResource,
     EvalModelFlagResource,
     EvalModelPositionResource,
     EvalModelResource,
@@ -80,13 +80,6 @@ def _filter_items(items: list | None, section: str, *, selected_only: dict[str, 
     if suggested_only.get(section):
         result = [item for item in result if getattr(item, "suggested", False)]
     return result
-
-
-def _derive_flag_key_and_label(name: str | None) -> tuple[str, str]:
-    if not name:
-        return ("unknown", "Unknown")
-    key = name.replace("eval_", "")
-    return (key, key.replace("_", " ").title())
 
 
 async def get_eval_impl(
@@ -315,21 +308,21 @@ async def get_eval_impl(
         for item in all_descriptions
     ]
     flags = [
-        EvalFlagConfig(
-            key=_derive_flag_key_and_label(getattr(item, "name", None) or getattr(item, "type", None))[0],
-            label=_derive_flag_key_and_label(getattr(item, "name", None) or getattr(item, "type", None))[1],
+        EvalFlagResource(
+            id=item.id,
+            name=getattr(item, "name", None),
+            type=getattr(item, "type", None),
+            value=getattr(item, "value", None),
             description=item.description,
             icon_id=getattr(item, "icon_id", None),
             icon=getattr(item, "icon", None),
-            flag_option_id=item.id,
-            show=show_flags_map["flags"],
-            required=required_flags_map["flags"],
             generated=item.generated,
             suggested=_decorate(item.id, "flags")[0],
             selected=_decorate(item.id, "flags")[1],
             pending=_decorate(item.id, "flags")[2],
         )
         for item in all_flags
+        if item.id
     ]
     departments = [
         EvalDepartmentResource(

@@ -14,17 +14,16 @@ from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.agent_drafts.types import GetAgentDraftResponse
 
 
-class AgentFlagConfig(BaseModel):
-    """Enriched flag config for direct client consumption."""
+class AgentFlagResource(BaseModel):
+    """Flag option row — one per (name, type, value) entry in flags_resource."""
 
-    key: str = Field(..., description="Flag config key identifier")
-    label: str = Field(..., description="Display label for the flag")
+    id: UUID | None = Field(None, description="Flag resource identifier")
+    name: str | None = Field(None, description="Flag display name")
+    type: str | None = Field(None, description="Flag type (e.g. 'agent_active')")
+    value: bool | None = Field(None, description="Underlying bool value of this option")
     description: str | None = Field(None, description="Flag description text")
     icon_id: UUID | None = Field(None, description="UUID of the selected icon resource")
     icon: str | None = Field(None, description="Resolved SVG markup for the icon (hydrated from icons_resource)")
-    flag_option_id: UUID | None = Field(None, description="UUID of the flag option")
-    show: bool = Field(True, description="Whether to show this flag in the UI")
-    required: bool = Field(False, description="Whether this flag is required")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     suggested: bool = Field(False, description="Whether this item is suggested")
     selected: bool = Field(False, description="Whether this item is selected")
@@ -199,8 +198,8 @@ class AgentInstructionSection(BaseResourceSection):
 
 
 class AgentFlagSection(BaseResourceSection):
-    current: list[AgentFlagConfig] | None = Field(None, description="Currently selected flags")
-    resources: list[AgentFlagConfig] | None = Field(None, description="Available flag configs")
+    current: list[AgentFlagResource] | None = Field(None, description="Currently selected flags")
+    resources: list[AgentFlagResource] | None = Field(None, description="Available flag resources")
 
 
 class AgentDepartmentSection(BaseResourceSection):
@@ -279,7 +278,7 @@ class GetAgentApiResponse(BaseModel):
     models: list[AgentModelResource] | None = Field(None, description="Model resources")
     prompts: list[AgentPromptResource] | None = Field(None, description="Prompt resources")
     instructions: list[AgentInstructionResource] | None = Field(None, description="Instruction resources")
-    flags: list[AgentFlagConfig] | None = Field(None, description="Flag resources")
+    flags: list[AgentFlagResource] | None = Field(None, description="Flag resources (one per flags_resource row, value=true/false)")
     departments: list[AgentDepartmentResource] | None = Field(None, description="Department resources")
     tools: list[AgentToolResource] | None = Field(None, description="Tool resources")
     temperature_levels: list[AgentTemperatureLevelResource] | None = Field(None, description="Temperature level resources")
@@ -324,8 +323,6 @@ class CreateAgentItem(ScopedItem):
         "description": "descriptions",
         "department_ids": "departments",
         "departments": "departments",
-        "active_flag": "flags",
-        "active_flag_id": "flags",
         "flag_ids": "flags",
         "model_id": "models",
         "reasoning_level_ids": "reasoning_levels",
@@ -347,11 +344,9 @@ class CreateAgentItem(ScopedItem):
     # Dual-mode: departments (match by name)
     department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for matching")
-    # Active flag
-    active_flag: bool | None = Field(None, description="Whether this agent is active")
-    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
-    # ID-only fields
-    flag_ids: list[UUID] | None = Field(None, description="Associated flag UUIDs")
+    # Canonical flag ids + denormalized bool
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Denormalized agent_active flag state")
     model_id: UUID | None = Field(None, description="Associated model UUID")
     reasoning_level_ids: list[UUID] | None = Field(None, description="Associated reasoning level UUIDs")
     temperature_level_ids: list[UUID] | None = Field(None, description="Associated temperature level UUIDs")
@@ -396,11 +391,9 @@ class UpdateAgentItem(ScopedItem):
     # Dual-mode: departments (match by name)
     department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for matching")
-    # Active flag
-    active_flag: bool | None = Field(None, description="Whether this agent is active")
-    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
-    # ID-only fields
-    flag_ids: list[UUID] | None = Field(None, description="Associated flag UUIDs")
+    # Canonical flag ids + denormalized bool
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs")
+    active: bool | None = Field(None, description="Denormalized agent_active flag state")
     model_id: UUID | None = Field(None, description="Associated model UUID")
     reasoning_level_ids: list[UUID] | None = Field(None, description="Associated reasoning level UUIDs")
     temperature_level_ids: list[UUID] | None = Field(None, description="Associated temperature level UUIDs")
@@ -495,8 +488,6 @@ class PatchAgentDraftApiRequest(ScopedItem):
         "name_id": "names",
         "description": "descriptions",
         "description_id": "descriptions",
-        "active_flag": "flags",
-        "active_flag_id": "flags",
         "flag_ids": "flags",
         "department_ids": "departments",
         "model_id": "models",
@@ -523,10 +514,9 @@ class PatchAgentDraftApiRequest(ScopedItem):
     description: str | None = Field(None, description="Description text value")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
 
-    # Matchable / ID-only
-    active_flag: bool | None = Field(None, description="Whether the agent is active")
-    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
-    flag_ids: list[UUID] | None = Field(None, description="Associated flag UUIDs")
+    # Canonical flag ids + denormalized bool resolved server-side
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical")
+    active: bool | None = Field(None, description="Denormalized agent_active flag state; resolved to a flag_ids entry server-side")
     departments: list[str] | None = Field(None, description="Department names for matching")
     department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
     model_id: UUID | None = Field(None, description="Associated model UUID")
@@ -554,8 +544,8 @@ class DraftFormState(BaseModel):
     name: str | None = Field(None, description="Resolved name value")
     description_id: UUID | None = Field(None, description="UUID of the selected description resource")
     description: str | None = Field(None, description="Resolved description value")
-    flag_ids: list[UUID] = Field(..., description="Selected flag UUIDs")
-    active_flag_id: UUID | None = Field(None, description="Selected active flag UUID")
+    flag_ids: list[UUID] = Field(default_factory=list, description="Selected flag UUIDs")
+    active: bool | None = Field(None, description="Echoed agent_active flag state")
     department_ids: list[UUID] = Field(..., description="Selected department UUIDs")
     model_id: UUID | None = Field(None, description="Selected model UUID")
     tool_ids: list[UUID] = Field(..., description="Selected tool UUIDs")

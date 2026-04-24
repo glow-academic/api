@@ -39,7 +39,7 @@ from app.infra.rubric.types import (
     GetRubricApiResponse,
     RubricDepartmentResource,
     RubricDescriptionResource,
-    RubricFlagConfig,
+    RubricFlagResource,
     RubricNameResource,
     RubricPointResource,
     RubricStandardGroupResource,
@@ -86,18 +86,6 @@ def _filter_items(
     if suggested_only.get(section):
         result = [item for item in result if getattr(item, "suggested", False)]
     return result
-
-
-def _derive_flag_key_and_label(name: str | None) -> tuple[str, str]:
-    if not name:
-        return ("unknown", "Unknown")
-    key = (
-        name.replace("rubric_", "")
-        .replace("_flag", "")
-        .replace("simulation_", "simulation_")
-        .replace("video_", "video_")
-    )
-    return (key, key.replace("_", " ").title())
 
 
 async def get_rubric_impl(
@@ -313,21 +301,21 @@ async def get_rubric_impl(
         for item in all_descriptions
     ]
     flags = [
-        RubricFlagConfig(
-            key=_derive_flag_key_and_label(getattr(item, "name", None) or getattr(item, "type", None))[0],
-            label=_derive_flag_key_and_label(getattr(item, "name", None) or getattr(item, "type", None))[1],
+        RubricFlagResource(
+            id=item.id,
+            name=getattr(item, "name", None),
+            type=getattr(item, "type", None),
+            value=getattr(item, "value", None),
             description=item.description,
             icon_id=item.icon_id,
             icon=getattr(item, "icon", None),
-            flag_option_id=item.id,
-            show=show_flags_map["flags"],
-            required=required_flags_map["flags"],
             generated=item.generated,
             suggested=_decorate(item.id, "flags")[0],
             selected=_decorate(item.id, "flags")[1],
             pending=_decorate(item.id, "flags")[2],
         )
         for item in all_flags
+        if item.id
     ]
     departments = [
         RubricDepartmentResource(

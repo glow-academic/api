@@ -199,7 +199,9 @@ async def resolve_persona_values(
                 PersonaFieldError(field="icon", message=f'Icon "{item.icon}" not found')
             )
 
-    if item.active_flag is not None and item.active_flag_id is None:
+    # Legacy create/update path: active_flag bool → active_flag_id resolution.
+    legacy_active_flag = getattr(item, "active_flag", None)
+    if legacy_active_flag is not None and getattr(item, "active_flag_id", None) is None:
         async with pool.acquire() as conn:
             results = await search_flags(
                 conn,
@@ -210,14 +212,58 @@ async def resolve_persona_values(
             )
         match = next((r for r in results if r.type == "persona_active" and r.value is True), None)
         if match and match.id:
-            if item.active_flag:
+            if legacy_active_flag:
                 item.active_flag_id = match.id
-        elif item.active_flag:
+        elif legacy_active_flag:
             errors.append(
                 PersonaFieldError(
                     field="active_flag", message="Active flag resource not found"
                 )
             )
+
+    # Canonical draft path: denormalized booleans (active) → flag_ids resolution
+    # via (type, value) lookup. Explicit flag_ids retained verbatim.
+    denorm_flag_values: dict[str, bool] = {}
+    draft_active = getattr(item, "active", None)
+    if draft_active is not None:
+        denorm_flag_values["persona_active"] = bool(draft_active)
+    if denorm_flag_values:
+        async with pool.acquire() as conn:
+            all_flags = await search_flags(
+                conn,
+                redis,
+                search=None,
+                limit_count=200,
+                bypass_cache=True,
+            )
+        existing_flag_ids = list(getattr(item, "flag_ids", None) or [])
+        seen = set(existing_flag_ids)
+        for flag_type, desired_value in denorm_flag_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_flags
+                    if (
+                        getattr(f, "type", None) == flag_type
+                        or getattr(f, "name", None) == flag_type
+                    )
+                    and getattr(f, "value", None) is desired_value
+                ),
+                None,
+            )
+            if match and match.id and match.id not in seen:
+                existing_flag_ids.append(match.id)
+                seen.add(match.id)
+            elif not match:
+                errors.append(
+                    PersonaFieldError(
+                        field=flag_type,
+                        message=(
+                            f"Flag row not found for type={flag_type} value={desired_value}"
+                        ),
+                    )
+                )
+        item.flag_ids = existing_flag_ids
 
     if item.departments is not None and item.department_ids is None:
         async with pool.acquire() as conn:

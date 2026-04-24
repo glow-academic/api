@@ -141,20 +141,27 @@ async def resolve_agent_values(
 
     # --- Active flag resolution ---
 
-    if item.active_flag is not None and item.active_flag_id is None:
+    if item.active is not None:
         results = await search_flags(
             conn, redis, search=None,
             flag_type="agent_active",
             limit_count=1000,
         )
-        match = next((f for f in results if f.type == "agent_active" and f.value is True), None)
+        desired = bool(item.active)
+        match = next(
+            (f for f in results if f.type == "agent_active" and f.value is desired),
+            None,
+        )
         if match and match.id:
-            if item.active_flag:
-                item.active_flag_id = match.id
-        elif item.active_flag:
+            merged = list(item.flag_ids or [])
+            if match.id not in merged:
+                merged.append(match.id)
+            item.flag_ids = merged
+        else:
             errors.append(
                 AgentFieldError(
-                    field="active_flag", message="Active flag resource not found"
+                    field="agent_active",
+                    message=f"Flag row not found for agent_active={desired}",
                 )
             )
 

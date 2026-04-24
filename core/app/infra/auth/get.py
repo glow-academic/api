@@ -33,7 +33,7 @@ from app.infra.tool_graph import score_tools
 from app.infra.auth.types import (
     AuthDepartmentResource,
     AuthDescriptionResource,
-    AuthFlagConfig,
+    AuthFlagResource,
     AuthItemResource,
     AuthNameResource,
     AuthProtocolResource,
@@ -216,15 +216,14 @@ async def get_auth_impl(
         merged = sorted_dedupe_by_id(auth_ctx.resources["flags"].suggestions + auth_ctx.resources["flags"].selected)
         flags = _filter_resources(
             [
-                AuthFlagConfig(
-                    key=derive_flag_key_and_label(item.name)[0],
-                    label=derive_flag_key_and_label(item.name)[1],
+                AuthFlagResource(
+                    id=item.id,
+                    name=getattr(item, "name", None),
+                    type=getattr(item, "type", None),
+                    value=getattr(item, "value", None),
                     description=item.description,
-                    icon_id=item.icon_id,
+                    icon_id=getattr(item, "icon_id", None),
                     icon=getattr(item, "icon", None),
-                    flag_option_id=item.id,
-                    show=show_flags_map["flags"],
-                    required=required_flags_map["flags"],
                     generated=item.generated,
                     selected=item.id in selected_ids if item.id else False,
                     suggested=item.id in suggested_ids if item.id else False,

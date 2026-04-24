@@ -25,7 +25,9 @@ from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
+from app.tools.resources.protocols.create import create_protocol
 from app.tools.resources.protocols.search import search_protocols
+from app.tools.resources.slugs.create import create_slug
 from app.tools.resources.slugs.search import search_slugs
 
 AUTH_ACTIVE_FLAG = "auth_active"
@@ -65,17 +67,42 @@ async def _resolve_creatable_values(
                 result = await create_description(conn, request.description, redis)
                 request.description_id = result.id
 
-    if request.active_flag is not None and request.flag_id is None:
+    # Resolve denormalized flag booleans to canonical flag_ids via (type, value)
+    # lookup in flags_resource. Explicit flag_ids are retained verbatim; the
+    # derived id is merged in so both forms coexist without conflict.
+    denorm_flag_values: dict[str, bool] = {}
+    if request.active is not None:
+        denorm_flag_values[AUTH_ACTIVE_FLAG] = bool(request.active)
+    if denorm_flag_values:
         async with pool.acquire() as conn:
-            flags = await search_flags(conn, redis, search=None, limit_count=100, auth=True)
-        match = next((flag for flag in flags if getattr(flag, "name", None) == AUTH_ACTIVE_FLAG), None)
-        if request.active_flag:
-            if match and match.id:
-                request.flag_id = match.id
-            else:
-                errors.append(SaveAuthFieldError(field="active_flag", message="Active auth flag resource not found"))
-        else:
-            request.flag_id = None
+            all_flags = await search_flags(conn, redis, search=None, limit_count=200, auth=True)
+        resolved_flag_ids: list[UUID] = list(request.flag_ids or [])
+        resolved_seen = set(resolved_flag_ids)
+        for flag_type, desired_value in denorm_flag_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_flags
+                    if (getattr(f, "type", None) == flag_type
+                        or getattr(f, "name", None) == flag_type)
+                    and getattr(f, "value", None) is desired_value
+                ),
+                None,
+            )
+            if match and match.id and match.id not in resolved_seen:
+                resolved_flag_ids.append(match.id)
+                resolved_seen.add(match.id)
+            elif not match:
+                errors.append(
+                    SaveAuthFieldError(
+                        field=flag_type,
+                        message=(
+                            f"Flag row not found for type={flag_type} "
+                            f"value={desired_value}"
+                        ),
+                    )
+                )
+        request.flag_ids = resolved_flag_ids
 
     if request.departments is not None and request.department_ids is None:
         async with pool.acquire() as conn:
@@ -99,33 +126,27 @@ async def _resolve_creatable_values(
     if request.protocols is not None and request.protocol_ids is None:
         async with pool.acquire() as conn:
             all_protocols = await search_protocols(conn, redis, search=None, limit_count=1000, auth=True)
-        protocol_map = {item.value.lower(): item.id for item in all_protocols if item.value and item.id}
-        resolved_ids = []
-        for value in request.protocols:
-            protocol_id = protocol_map.get(value.lower())
-            if protocol_id:
+            protocol_map = {item.value.lower(): item.id for item in all_protocols if item.value and item.id}
+            resolved_ids = []
+            for value in request.protocols:
+                protocol_id = protocol_map.get(value.lower())
+                if protocol_id is None:
+                    created = await create_protocol(conn, value, redis)
+                    protocol_id = created.id
                 resolved_ids.append(protocol_id)
-            else:
-                errors.append(
-                    SaveAuthFieldError(field="protocols", message=f'Protocol "{value}" not found')
-                )
-        if not any(error.field == "protocols" for error in errors):
             request.protocol_ids = resolved_ids
 
     if request.slugs is not None and request.slug_ids is None:
         async with pool.acquire() as conn:
             all_slugs = await search_slugs(conn, redis, search=None, limit_count=1000, auth=True)
-        slug_map = {item.value.lower(): item.id for item in all_slugs if item.value and item.id}
-        resolved_ids = []
-        for value in request.slugs:
-            slug_id = slug_map.get(value.lower())
-            if slug_id:
+            slug_map = {item.value.lower(): item.id for item in all_slugs if item.value and item.id}
+            resolved_ids = []
+            for value in request.slugs:
+                slug_id = slug_map.get(value.lower())
+                if slug_id is None:
+                    created = await create_slug(conn, value, redis)
+                    slug_id = created.id
                 resolved_ids.append(slug_id)
-            else:
-                errors.append(
-                    SaveAuthFieldError(field="slugs", message=f'Slug "{value}" not found')
-                )
-        if not any(error.field == "slugs" for error in errors):
             request.slug_ids = resolved_ids
 
     return errors
@@ -215,7 +236,7 @@ async def patch_auth_draft_impl(
                 soft=soft,
                 department_ids=request.department_ids,
                 description_ids=[request.description_id] if request.description_id else None,
-                flag_ids=[request.flag_id] if request.flag_id else None,
+                flag_ids=request.flag_ids or None,
                 item_ids=request.item_ids,
                 name_ids=[request.name_id] if request.name_id else None,
                 profile_ids=[profile.profiles_id],
@@ -224,12 +245,35 @@ async def patch_auth_draft_impl(
                 pending_ids=pending_ids,
             )
 
+    # Re-derive denormalized flag bool from final flag_ids so the client echo
+    # matches what the server actually persisted.
+    echoed_active: bool | None = request.active
+    if request.flag_ids:
+        async with pool.acquire() as conn:
+            flag_rows = await search_flags(
+                conn,
+                redis,
+                search=None,
+                limit_count=200,
+                auth=True,
+            )
+        rows_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+        for fid in request.flag_ids:
+            row = rows_by_id.get(fid)
+            if not row:
+                continue
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            rval = getattr(row, "value", None)
+            if rtype == AUTH_ACTIVE_FLAG:
+                echoed_active = rval
+
     form_state = DraftFormState(
         name=request.name,
         name_id=request.name_id,
         description=request.description,
         description_id=request.description_id,
-        flag_id=request.flag_id,
+        flag_ids=request.flag_ids or [],
+        active=echoed_active,
         department_ids=request.department_ids or [],
         protocol_ids=request.protocol_ids or [],
         slug_ids=request.slug_ids or [],

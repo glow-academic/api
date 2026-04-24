@@ -135,7 +135,7 @@ async def create_profile_impl(
                     id=item.id,
                     name_id=item.name_id,
                     department_ids=item.department_ids,
-                    flag_ids=[item.active_flag_id] if item.active_flag_id else None,
+                    flag_ids=item.flag_ids or None,
                     email_ids=item.email_ids,
                     role_ids=[item.role_id] if item.role_id else None,
                     profile_ids=[profiles_resource_id] if profiles_resource_id else None,

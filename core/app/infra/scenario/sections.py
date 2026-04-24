@@ -21,7 +21,7 @@ from app.infra.scenario.types import (
     ScenarioDescriptionResource,
     ScenarioDocument,
     ScenarioField,
-    ScenarioFlagConfig,
+    ScenarioFlagResource,
     ScenarioImage,
     ScenarioNameResource,
     ScenarioObjective,
@@ -375,28 +375,29 @@ def build_scenario_get_result(
             generated=option.generated,
         )
 
-    # Build flat flag list with selected marked
+    # Build flat flag list — one row per flags_resource entry (value=true/false).
     all_flags = sorted_dedupe_by_id(
         scenario.resources["flags"].suggestions + scenario.resources["flags"].selected
     )
     selected_flag_ids = {flag.id for flag in scenario.resources["flags"].selected}
-    flags_flat = []
-    for flag in all_flags:
-        if flag.id and flag.type and flag.type != "scenario_parameter":
-            fc = ScenarioFlagConfig(
-                key=flag.type,
-                label=flag.name,
-                description=flag.description,
-                icon_id=flag.icon_id,
-                icon=flag.icon,
-                flag_option_id=flag.id,
-                generated=flag.generated,
-                video_flag=flag.type == "questions_enabled",
-                selected=flag.id in selected_flag_ids,
-                pending=flag.id in pending_ids,
-            )
-            flags_flat.append(fc)
-    flags_flat.sort(key=lambda flag: flag.video_flag or False)
+    suggested_flag_ids = {flag.id for flag in scenario.resources["flags"].suggestions}
+    flags_flat = [
+        ScenarioFlagResource(
+            id=flag.id,
+            name=getattr(flag, "name", None),
+            type=getattr(flag, "type", None),
+            value=getattr(flag, "value", None),
+            description=flag.description,
+            icon_id=getattr(flag, "icon_id", None),
+            icon=getattr(flag, "icon", None),
+            generated=flag.generated,
+            suggested=flag.id in suggested_flag_ids,
+            selected=flag.id in selected_flag_ids,
+            pending=flag.id in pending_ids,
+        )
+        for flag in all_flags
+        if flag.id and getattr(flag, "type", None) and getattr(flag, "type", None) != "scenario_parameter"
+    ]
 
     # Convert all resources using _to_* converters
     all_names_conv = [

@@ -22,7 +22,7 @@ from app.infra.agent.permissions_context import resolve_agent_permissions_contex
 from app.infra.agent.types import (
     AgentDepartmentResource,
     AgentDescriptionResource,
-    AgentFlagConfig,
+    AgentFlagResource,
     AgentInstructionResource,
     AgentModelResource,
     AgentNameResource,
@@ -257,13 +257,14 @@ async def get_agent_impl(
     selected_flag_ids = {getattr(item, "id", None) for item in agent_ctx.resources["flags"].selected}
     suggestion_flag_ids = {getattr(item, "id", None) for item in agent_ctx.resources["flags"].suggestions}
     flags_items = [
-        AgentFlagConfig(
-            key=derive_flag_key_and_label(getattr(flag, "name", None) or getattr(flag, "type", None))[0],
-            label=derive_flag_key_and_label(getattr(flag, "name", None) or getattr(flag, "type", None))[1],
+        AgentFlagResource(
+            id=getattr(flag, "id", None),
+            name=getattr(flag, "name", None),
+            type=getattr(flag, "type", None),
+            value=getattr(flag, "value", None),
             description=getattr(flag, "description", None),
             icon_id=getattr(flag, "icon_id", None),
             icon=getattr(flag, "icon", None),
-            flag_option_id=getattr(flag, "id", None),
             generated=getattr(flag, "generated", None),
             suggested=getattr(flag, "id", None) in suggestion_flag_ids,
             selected=getattr(flag, "id", None) in selected_flag_ids,

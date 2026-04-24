@@ -169,10 +169,7 @@ async def update_agent_impl(
         # Artifact update inside transaction
         async with pool.acquire() as conn:
             async with conn.transaction():
-                # Combine existing flag_ids with active_flag_id
                 combined_flag_ids = list(item.flag_ids or [])
-                if item.active_flag_id:
-                    combined_flag_ids.append(item.active_flag_id)
 
                 await update_agent_artifact(
                     conn,

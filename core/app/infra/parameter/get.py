@@ -29,7 +29,7 @@ from app.infra.parameter.types import (
     ParameterDepartmentResource,
     ParameterDescriptionResource,
     ParameterFieldResource,
-    ParameterFlagConfig,
+    ParameterFlagResource,
     ParameterNameResource,
     SectionFilter,
 )
@@ -277,21 +277,21 @@ async def get_parameter_impl(
             )
         return items
 
-    def _flags() -> list[ParameterFlagConfig]:
-        items: list[ParameterFlagConfig] = []
+    def _flags() -> list[ParameterFlagResource]:
+        items: list[ParameterFlagResource] = []
         for item in all_flags:
+            if not item.id:
+                continue
             suggested, selected, pending = _decorate_common(item.id, "flags")
-            key, label = _derive_flag_key_and_label(item.name)
             items.append(
-                ParameterFlagConfig(
-                    key=key,
-                    label=label,
+                ParameterFlagResource(
+                    id=item.id,
+                    name=getattr(item, "name", None),
+                    type=getattr(item, "type", None),
+                    value=getattr(item, "value", None),
                     description=item.description,
-                    icon_id=str(item.icon_id) if item.icon_id else None,
+                    icon_id=item.icon_id,
                     icon=getattr(item, "icon", None),
-                    flag_option_id=item.id,
-                    show=True,
-                    required=False,
                     generated=item.generated,
                     suggested=suggested,
                     selected=selected,
