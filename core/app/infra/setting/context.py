@@ -501,12 +501,15 @@ async def resolve_setting_context(
 
     async def _search_agent_catalog() -> list[Any]:
         async with pool.acquire() as conn:
+            # Don't filter by user_dept_ids — seeded agents carry an empty
+            # department_ids array which `&&` treats as "no overlap", so
+            # every agent would be excluded for a departmented user. The
+            # setting-level Systems/MCP pickers need the full catalog.
             return await search_agents(
                 conn,
                 redis,
                 search=None,
                 limit_count=500,
-                department_ids=user_dept_ids,
                 bypass_cache=bypass_cache,
             )
 
