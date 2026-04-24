@@ -16,6 +16,7 @@ from app.routes.auth.group import router as group_router
 from app.routes.auth.problem import router as problem_router
 from app.routes.auth.refresh import router as refresh_router
 from app.routes.auth.search import router as search_router
+from app.routes.auth.stream import router as stream_router
 from app.routes.auth.update import router as update_router
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -36,3 +37,4 @@ router.include_router(generations_router)
 router.include_router(group_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
+router.include_router(stream_router)
