@@ -21,6 +21,11 @@ BOOTSTRAP_PROFILE = dict(
     flag_ids=[PROFILE_ACTIVE],
 )
 
+# The fresh setup has no departments, so agents stay global (empty list
+# disables the department_ids injection). See university/__init__.py for
+# the rationale behind this hook.
+AGENT_DEPARTMENT_IDS: list = []
+
 # Dependency-ordered list of module names to seed.
 # Each corresponds to a .py file in this package.
 MODULES = [

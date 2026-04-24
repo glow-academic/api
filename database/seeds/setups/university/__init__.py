@@ -38,6 +38,14 @@ BOOTSTRAP_PROFILE = dict(
     flag_ids=[PROFILE_ACTIVE],
 )
 
+# Departments every base-module agent is tagged with at seed time. Without
+# this the default Superadmin (who has department_ids=[University]) can't
+# see any agent, since search_agents filters on
+# `agent.department_ids && user.department_ids` and unseeded agents
+# default to an empty department_ids array. Runner injects these as the
+# default on each agents.py dict.
+AGENT_DEPARTMENT_IDS = [UNIVERSITY_DEPT_RESOURCE]
+
 # Dependency-ordered list of module names to seed.
 # Each corresponds to a .py file in this package.
 MODULES = [

@@ -28,6 +28,10 @@ BOOTSTRAP_PROFILE = dict(
     flag_ids=[PROFILE_ACTIVE],
 )
 
+# See university/__init__.py for rationale. Runner injects these as the
+# default department_ids on each agents.py dict.
+AGENT_DEPARTMENT_IDS = [ORGANIZATION_DEPT_RESOURCE]
+
 # Dependency-ordered list of module names to seed.
 # Each corresponds to a .py file in this package.
 MODULES = [

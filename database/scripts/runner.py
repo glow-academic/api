@@ -519,13 +519,27 @@ async def _run_prompt_and_instruction_seeds(
 async def _run_agent_module_seeds(
     pool: asyncpg.Pool,
     redis: Redis,
+    default_department_ids: list | None = None,
 ) -> None:
-    """Module 04 — Create agents via _impl."""
+    """Module 04 — Create agents via _impl.
+
+    `default_department_ids` is the setup-specific fallback applied to
+    every agent dict that doesn't already carry its own department_ids.
+    Without this, search_agents filters on
+    `agent.department_ids && user.department_ids` and excludes every
+    agent for any departmented user (pickers like Setting's Systems/MCP
+    go empty).
+    """
     from app.infra.agent.create import create_agent_impl
     from app.infra.agent.types import CreateAgentApiRequest, CreateAgentItem
     from database.seeds.agents import agents
 
-    items = [CreateAgentItem(**d) for d in agents]
+    items: list[CreateAgentItem] = []
+    for d in agents:
+        merged = dict(d)
+        if default_department_ids and not merged.get("department_ids"):
+            merged["department_ids"] = list(default_department_ids)
+        items.append(CreateAgentItem(**merged))
     await create_agent_impl(
         pool,
         redis,
@@ -2025,7 +2039,11 @@ async def main_setup(setup: str = "university") -> None:
         await _run_prompt_and_instruction_seeds(pool, redis_client)
 
         print("\nSeeding agents...")
-        await _run_agent_module_seeds(pool, redis_client)
+        await _run_agent_module_seeds(
+            pool,
+            redis_client,
+            default_department_ids=getattr(setup_module, "AGENT_DEPARTMENT_IDS", None),
+        )
 
         print("\nSeeding auth...")
         await _run_auth_module_seeds(pool, redis_client)
