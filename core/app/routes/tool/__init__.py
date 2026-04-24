@@ -17,6 +17,7 @@ from app.routes.tool.group import router as group_router
 from app.routes.tool.problem import router as problem_router
 from app.routes.tool.refresh import router as refresh_router
 from app.routes.tool.search import router as search_router
+from app.routes.tool.stream import router as stream_router
 from app.routes.tool.update import router as update_router
 
 router = APIRouter(prefix="/tool", tags=["tool"])
@@ -38,3 +39,4 @@ router.include_router(context_router)
 router.include_router(group_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
+router.include_router(stream_router)

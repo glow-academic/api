@@ -17,6 +17,7 @@ from app.routes.persona.group import router as group_router
 from app.routes.persona.problem import router as problem_router
 from app.routes.persona.refresh import router as refresh_router
 from app.routes.persona.search import router as search_router
+from app.routes.persona.stream import router as stream_router
 from app.routes.persona.update import router as update_router
 
 router = APIRouter(prefix="/persona", tags=["persona"])
@@ -38,3 +39,4 @@ router.include_router(generations_router)
 router.include_router(group_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
+router.include_router(stream_router)

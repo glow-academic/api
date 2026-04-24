@@ -17,6 +17,7 @@ from app.routes.rubric.group import router as group_router
 from app.routes.rubric.problem import router as problem_router
 from app.routes.rubric.refresh import router as refresh_router
 from app.routes.rubric.search import router as search_router
+from app.routes.rubric.stream import router as stream_router
 from app.routes.rubric.update import router as update_router
 
 router = APIRouter(prefix="/rubric", tags=["rubric"])
@@ -38,3 +39,4 @@ router.include_router(generations_router)
 router.include_router(group_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
+router.include_router(stream_router)

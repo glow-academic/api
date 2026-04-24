@@ -29,6 +29,7 @@ from app.tools.resources.flags.search import search_flags
 from app.tools.resources.logins.create import create_logins
 from app.tools.resources.logins.search import search_logins
 from app.tools.resources.mcp.create import create_mcp
+from app.tools.resources.systems.create import create_system
 from app.tools.resources.mcp.search import search_mcp
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
@@ -304,6 +305,28 @@ async def _resolve_creatable_values(
         if resolved_mcp_id:
             request.mcp_id = request.mcp_id or resolved_mcp_id
 
+    # Systems value-array: each draft with id=null creates a new
+    # systems_resource row; ids are merged into request.system_ids so
+    # the junction save picks them up alongside existing selections.
+    if request.system_values:
+        resolved_ids: list[UUID] = []
+        async with pool.acquire() as conn:
+            for value in request.system_values:
+                if value.id is None:
+                    created = await create_system(
+                        conn,
+                        name=value.name,
+                        description=value.description or "",
+                        redis=redis,
+                        agent_ids=value.agent_ids or None,
+                        resolution_strategy=value.resolution_strategy,
+                        resolution_threshold=value.resolution_threshold,
+                    )
+                    value.id = created.id
+                if value.id:
+                    resolved_ids.append(value.id)
+        request.system_ids = _merge_unique(request.system_ids, resolved_ids)
+
     return errors
 
 
@@ -487,6 +510,7 @@ async def patch_setting_draft_impl(
         auth_item_keys=request.auth_item_keys or [],
         auth_item_values=request.auth_item_values or [],
         mcp_values=request.mcp_values or [],
+        system_values=request.system_values or [],
         logins=request.logins or [],
         pending_ids=sorted(pending_ids),
     )

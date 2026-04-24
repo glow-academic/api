@@ -17,6 +17,7 @@ from app.routes.simulation.group import router as group_router
 from app.routes.simulation.problem import router as problem_router
 from app.routes.simulation.refresh import router as refresh_router
 from app.routes.simulation.search import router as search_router
+from app.routes.simulation.stream import router as stream_router
 from app.routes.simulation.update import router as update_router
 
 router = APIRouter(prefix="/simulation", tags=["simulation"])
@@ -38,3 +39,4 @@ router.include_router(generations_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
 router.include_router(group_router)
+router.include_router(stream_router)

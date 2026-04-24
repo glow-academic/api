@@ -18,6 +18,7 @@ from app.routes.document.group import router as group_router
 from app.routes.document.problem import router as problem_router
 from app.routes.document.refresh import router as refresh_router
 from app.routes.document.search import router as search_router
+from app.routes.document.stream import router as stream_router
 from app.routes.document.text import router as text_router
 from app.routes.document.update import router as update_router
 
@@ -40,6 +41,7 @@ router.include_router(problem_router)
 router.include_router(refresh_router)
 router.include_router(export_router)
 router.include_router(csv_router)
+router.include_router(stream_router)
 
 # Typed media operations
 router.include_router(text_router)

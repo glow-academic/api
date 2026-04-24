@@ -17,6 +17,7 @@ from app.routes.profile.group import router as group_router
 from app.routes.profile.problem import router as problem_router
 from app.routes.profile.refresh import router as refresh_router
 from app.routes.profile.search import router as search_router
+from app.routes.profile.stream import router as stream_router
 from app.routes.profile.update import router as update_router
 from app.routes.profile.unemulate import router as unemulate_router
 
@@ -37,6 +38,7 @@ router.include_router(generations_router)
 router.include_router(group_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
+router.include_router(stream_router)
 
 # Profile-specific operations
 router.include_router(context_router)

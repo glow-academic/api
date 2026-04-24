@@ -19,6 +19,7 @@ from app.routes.scenario.image import router as image_router
 from app.routes.scenario.problem import router as problem_router
 from app.routes.scenario.refresh import router as refresh_router
 from app.routes.scenario.search import router as search_router
+from app.routes.scenario.stream import router as stream_router
 from app.routes.scenario.text import router as text_router
 from app.routes.scenario.update import router as update_router
 from app.routes.scenario.video import router as video_router
@@ -42,6 +43,7 @@ router.include_router(context_router)
 router.include_router(group_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
+router.include_router(stream_router)
 
 # Typed media operations
 router.include_router(image_router)

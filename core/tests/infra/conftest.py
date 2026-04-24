@@ -104,31 +104,6 @@ def _build_artifact_test_app(
     return app
 
 
-def _build_events_test_app(
-    *,
-    request_state: dict[str, str | None],
-) -> FastAPI:
-    """Mount the centralized events router with test auth state overrides."""
-    from app.infra.identity.middleware import require_auth
-
-    async def _require_auth_override(request: Request) -> None:
-        profile_id = request_state["profile_id"]
-        if not profile_id:
-            raise HTTPException(status_code=401, detail="Missing test profile_id")
-        request.state.profile_id = profile_id
-        request.state.session_id = request_state["session_id"]
-
-    from app.routes.stream import router as stream_router
-
-    app = FastAPI()
-    app.include_router(
-        stream_router,
-        dependencies=[Depends(require_auth)],
-    )
-    app.dependency_overrides[require_auth] = _require_auth_override
-    return app
-
-
 @pytest.fixture(autouse=True)
 def _redirect_audit_upload_folder(monkeypatch, tmp_path):
     """Keep audited route tests from writing uploads into server/uploads."""

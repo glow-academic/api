@@ -247,6 +247,17 @@ class SettingMcpDraftValue(BaseModel):
     description: str | None = Field(None, description="Optional description")
 
 
+class SettingSystemDraftValue(BaseModel):
+    """Draft value object for an inline-creatable systems_resource row."""
+
+    id: UUID | None = Field(None, description="Existing systems_resource id when known")
+    name: str = Field(..., description="System display name")
+    description: str | None = Field(None, description="Optional description")
+    agent_ids: list[UUID] = Field(default_factory=list, description="Agents that this system routes to")
+    resolution_strategy: str | None = Field(None, description="Routing strategy, e.g. 'first', 'best', 'all'")
+    resolution_threshold: float | None = Field(None, description="Score threshold (0–1) for resolution")
+
+
 class SettingLoginOption(BaseModel):
     """Server-curated catalog option for the Logins picker."""
 
@@ -554,6 +565,7 @@ class PatchSettingDraftApiRequest(ScopedItem):
     auth_item_keys: list[SettingAuthItemKeyDraftValue] | None = Field(None, description="Inline-creatable (auth × key) value entries")
     auth_item_values: list[SettingAuthItemValueDraftValue] | None = Field(None, description="Inline-creatable (auth × item × value) entries")
     mcp_values: list[SettingMcpDraftValue] | None = Field(None, description="Inline-creatable mcp value entries")
+    system_values: list[SettingSystemDraftValue] | None = Field(None, description="Inline-creatable systems_resource value entries")
     logins: list[SettingLoginDraftValue] | None = Field(None, description="Inline-creatable logins_resource value entries (auth or profile buttons)")
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to retain as pending inactive connections")
 
@@ -597,6 +609,7 @@ class DraftFormState(BaseModel):
     auth_item_keys: list[SettingAuthItemKeyDraftValue] = Field(default_factory=list, description="Echoed (auth × key) value entries with resolved ids")
     auth_item_values: list[SettingAuthItemValueDraftValue] = Field(default_factory=list, description="Echoed (auth × item × value) entries with resolved ids")
     mcp_values: list[SettingMcpDraftValue] = Field(default_factory=list, description="Echoed mcp value entries with resolved ids")
+    system_values: list[SettingSystemDraftValue] = Field(default_factory=list, description="Echoed system value entries with resolved ids")
     logins: list[SettingLoginDraftValue] = Field(default_factory=list, description="Echoed logins value entries with resolved ids")
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
 

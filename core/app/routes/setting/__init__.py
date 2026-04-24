@@ -18,6 +18,7 @@ from app.routes.setting.group import router as group_router
 from app.routes.setting.problem import router as problem_router
 from app.routes.setting.refresh import router as refresh_router
 from app.routes.setting.search import router as search_router
+from app.routes.setting.stream import router as stream_router
 from app.routes.setting.update import router as update_router
 
 router = APIRouter(prefix="/setting", tags=["setting"])
@@ -40,3 +41,4 @@ router.include_router(group_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
 router.include_router(decrypt_router)
+router.include_router(stream_router)

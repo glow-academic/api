@@ -18,6 +18,7 @@ from app.routes.provider.group import router as group_router
 from app.routes.provider.problem import router as problem_router
 from app.routes.provider.refresh import router as refresh_router
 from app.routes.provider.search import router as search_router
+from app.routes.provider.stream import router as stream_router
 from app.routes.provider.update import router as update_router
 
 router = APIRouter(prefix="/provider", tags=["provider"])
@@ -40,3 +41,4 @@ router.include_router(generate_router)
 router.include_router(generations_router)
 router.include_router(group_router)
 router.include_router(problem_router)
+router.include_router(stream_router)
