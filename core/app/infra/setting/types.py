@@ -258,6 +258,20 @@ class SettingSystemDraftValue(BaseModel):
     resolution_threshold: float | None = Field(None, description="Score threshold (0–1) for resolution")
 
 
+class SettingThresholdDraftValue(BaseModel):
+    """Draft value object for a per-type threshold slider.
+
+    Server resolver finds an existing thresholds_resource row matching
+    (type, value) or creates one if none exists, then merges the id
+    into request.threshold_ids (dropping any prior id of the same type
+    so each type keeps exactly one assignment).
+    """
+
+    id: UUID | None = Field(None, description="Existing thresholds_resource id when known")
+    type: str = Field(..., description="Threshold type — e.g. 'success', 'warning', 'danger'")
+    value: int = Field(..., description="Integer threshold value (0–100)")
+
+
 class SettingLoginOption(BaseModel):
     """Server-curated catalog option for the Logins picker."""
 
@@ -566,6 +580,7 @@ class PatchSettingDraftApiRequest(ScopedItem):
     auth_item_values: list[SettingAuthItemValueDraftValue] | None = Field(None, description="Inline-creatable (auth × item × value) entries")
     mcp_values: list[SettingMcpDraftValue] | None = Field(None, description="Inline-creatable mcp value entries")
     system_values: list[SettingSystemDraftValue] | None = Field(None, description="Inline-creatable systems_resource value entries")
+    threshold_values: list[SettingThresholdDraftValue] | None = Field(None, description="Per-type threshold slider values; server finds or creates a row per (type, value) and swaps the matching type into threshold_ids")
     logins: list[SettingLoginDraftValue] | None = Field(None, description="Inline-creatable logins_resource value entries (auth or profile buttons)")
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to retain as pending inactive connections")
 
@@ -610,6 +625,7 @@ class DraftFormState(BaseModel):
     auth_item_values: list[SettingAuthItemValueDraftValue] = Field(default_factory=list, description="Echoed (auth × item × value) entries with resolved ids")
     mcp_values: list[SettingMcpDraftValue] = Field(default_factory=list, description="Echoed mcp value entries with resolved ids")
     system_values: list[SettingSystemDraftValue] = Field(default_factory=list, description="Echoed system value entries with resolved ids")
+    threshold_values: list[SettingThresholdDraftValue] = Field(default_factory=list, description="Echoed per-type threshold values with resolved ids")
     logins: list[SettingLoginDraftValue] = Field(default_factory=list, description="Echoed logins value entries with resolved ids")
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")
 

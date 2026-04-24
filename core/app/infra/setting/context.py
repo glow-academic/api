@@ -377,15 +377,17 @@ async def resolve_setting_context(
         if _selected_only(thresholds_selected_only):
             return []
         async with pool.acquire() as conn:
+            # Drop the setting junction filter — per-type slider pickers
+            # need the full catalog so rows at other (type, value) combos
+            # are reusable across settings without re-creating duplicates.
             return await search_thresholds(
                 conn,
                 redis,
                 search=thresholds_search,
-                limit_count=_coalesce_limit(thresholds_limit, 20),
+                limit_count=_coalesce_limit(thresholds_limit, 500),
                 offset_count=0,
                 exclude_ids=merged.threshold_ids,
                 bypass_cache=bypass_cache,
-                setting=True,
             )
 
     async def _get_provider_keys_selected() -> list[Any]:

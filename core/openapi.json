@@ -85518,6 +85518,21 @@
             "title": "System Values",
             "description": "Inline-creatable systems_resource value entries"
           },
+          "threshold_values": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SettingThresholdDraftValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold Values",
+            "description": "Per-type threshold slider values; server finds or creates a row per (type, value) and swaps the matching type into threshold_ids"
+          },
           "logins": {
             "anyOf": [
               {
@@ -102501,6 +102516,40 @@
         "type": "object",
         "title": "SettingSystemResource"
       },
+      "SettingThresholdDraftValue": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Existing thresholds_resource id when known"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Threshold type \u2014 e.g. 'success', 'warning', 'danger'"
+          },
+          "value": {
+            "type": "integer",
+            "title": "Value",
+            "description": "Integer threshold value (0\u2013100)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "value"
+        ],
+        "title": "SettingThresholdDraftValue",
+        "description": "Draft value object for a per-type threshold slider.\n\nServer resolver finds an existing thresholds_resource row matching\n(type, value) or creates one if none exists, then merges the id\ninto request.threshold_ids (dropping any prior id of the same type\nso each type keeps exactly one assignment)."
+      },
       "SettingThresholdResource": {
         "properties": {
           "id": {
@@ -115058,6 +115107,14 @@
             "type": "array",
             "title": "System Values",
             "description": "Echoed system value entries with resolved ids"
+          },
+          "threshold_values": {
+            "items": {
+              "$ref": "#/components/schemas/SettingThresholdDraftValue"
+            },
+            "type": "array",
+            "title": "Threshold Values",
+            "description": "Echoed per-type threshold values with resolved ids"
           },
           "logins": {
             "items": {

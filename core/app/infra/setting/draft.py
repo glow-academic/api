@@ -30,6 +30,9 @@ from app.tools.resources.logins.create import create_logins
 from app.tools.resources.logins.search import search_logins
 from app.tools.resources.mcp.create import create_mcp
 from app.tools.resources.systems.create import create_system
+from app.tools.resources.thresholds.create import create_threshold
+from app.tools.resources.thresholds.get import get_thresholds
+from app.tools.resources.thresholds.search import search_thresholds
 from app.tools.resources.mcp.search import search_mcp
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
@@ -327,6 +330,74 @@ async def _resolve_creatable_values(
                     resolved_ids.append(value.id)
         request.system_ids = _merge_unique(request.system_ids, resolved_ids)
 
+    # Per-type threshold sliders: each value entry carries a (type, value)
+    # pair. Find an existing thresholds_resource row with the same
+    # (type, value) to reuse, or create a new one. Replace any prior
+    # threshold_id of the same type in request.threshold_ids so each
+    # type keeps exactly one assignment on the setting.
+    if request.threshold_values:
+        # Resolve the current thresholds attached to this setting so we can
+        # know which ids to strip (when a slider picks a new value for
+        # that same type).
+        async with pool.acquire() as conn:
+            existing_rows = (
+                await get_thresholds(
+                    conn, list(request.threshold_ids or []), redis, bypass_cache=True
+                )
+                if request.threshold_ids
+                else []
+            )
+        existing_type_by_id: dict[UUID, str] = {
+            row.id: getattr(row, "type", None)
+            for row in existing_rows
+            if row.id and getattr(row, "type", None)
+        }
+
+        resolved_ids: list[UUID] = []
+        touched_types: set[str] = set()
+        async with pool.acquire() as conn:
+            for draft in request.threshold_values:
+                touched_types.add(draft.type)
+                # Try to reuse an existing row with the exact (type, value).
+                # search_thresholds doesn't filter by type/value server-side,
+                # so pull a reasonable page and match in Python.
+                candidates = await search_thresholds(
+                    conn,
+                    redis,
+                    search=None,
+                    limit_count=500,
+                    bypass_cache=True,
+                )
+                match = next(
+                    (
+                        row
+                        for row in candidates
+                        if getattr(row, "type", None) == draft.type
+                        and getattr(row, "value", None) == draft.value
+                    ),
+                    None,
+                )
+                if match and match.id:
+                    draft.id = match.id
+                else:
+                    created = await create_threshold(
+                        conn,
+                        value=draft.value,
+                        redis=redis,
+                        threshold_type=draft.type,
+                    )
+                    draft.id = created.id
+                if draft.id:
+                    resolved_ids.append(draft.id)
+
+        # Strip prior ids for touched types, then merge resolved ids in.
+        kept = [
+            tid
+            for tid in (request.threshold_ids or [])
+            if existing_type_by_id.get(tid) not in touched_types
+        ]
+        request.threshold_ids = _merge_unique(kept, resolved_ids)
+
     return errors
 
 
@@ -511,6 +582,7 @@ async def patch_setting_draft_impl(
         auth_item_values=request.auth_item_values or [],
         mcp_values=request.mcp_values or [],
         system_values=request.system_values or [],
+        threshold_values=request.threshold_values or [],
         logins=request.logins or [],
         pending_ids=sorted(pending_ids),
     )
