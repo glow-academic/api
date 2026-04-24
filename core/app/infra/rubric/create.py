@@ -114,6 +114,7 @@ async def create_rubric_impl(
     # Denormalize point values from IDs for snapshot / downstream use.
     # pass_points = value of the referenced pass-type Points resource.
     # total_points = sum of selected standards' points (computed, not written).
+    from app.tools.resources.flags.search import search_flags
     from app.tools.resources.points.get import get_points
     from app.tools.resources.standards.get import get_standards
 
@@ -129,9 +130,32 @@ async def create_rubric_impl(
                 total_value = sum((r.points or 0) for r in rows) if rows else 0
         return pass_value, total_value
 
+    # Build a flag-id → row map so per-type bools (simulation_rubric,
+    # video_rubric) for the snapshot can be derived from the canonical
+    # flag_ids list. Same approach as the draft resolver.
+    async def _flag_bools_by_type(item) -> dict[str, bool]:
+        if not item.flag_ids:
+            return {}
+        async with pool.acquire() as conn:
+            flag_rows = await search_flags(
+                conn, redis, search=None, limit_count=1000, bypass_cache=True,
+            )
+        rows_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+        out: dict[str, bool] = {}
+        for fid in item.flag_ids:
+            row = rows_by_id.get(fid)
+            if not row:
+                continue
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            rval = getattr(row, "value", None)
+            if rtype and rval is not None:
+                out[rtype] = bool(rval)
+        return out
+
     if not soft:
         for item in items:
             pass_value, total_value = await _denorm_points(item)
+            flag_bools = await _flag_bools_by_type(item)
             rubrics_resource_id = await create_denormalized_snapshot(
                 pool,
                 redis,
@@ -140,8 +164,8 @@ async def create_rubric_impl(
                 description_id=item.description_id,
                 department_ids=item.department_ids,
                 standard_group_ids=item.standard_group_ids,
-                simulation_rubric=bool(item.simulation_rubric_flag_id),
-                video_rubric=bool(item.video_rubric_flag_id),
+                simulation_rubric=flag_bools.get("simulation_rubric", False),
+                video_rubric=flag_bools.get("video_rubric", False),
                 total_points=total_value,
                 pass_points=pass_value,
             )
@@ -150,15 +174,6 @@ async def create_rubric_impl(
     async with pool.acquire() as conn:
         async with conn.transaction():
             for idx, item in enumerate(items):
-                combined_flag_ids = [
-                    fid
-                    for fid in [
-                        item.active_flag_id,
-                        item.simulation_rubric_flag_id,
-                        item.video_rubric_flag_id,
-                    ]
-                    if fid
-                ]
                 # Only pass points are writeable; total is derived on read.
                 point_ids = [item.pass_points_id] if item.pass_points_id else None
                 result = await create_rubric_artifact(
@@ -167,7 +182,7 @@ async def create_rubric_impl(
                     name_id=item.name_id,
                     description_id=item.description_id,
                     department_ids=item.department_ids,
-                    flag_ids=combined_flag_ids or None,
+                    flag_ids=item.flag_ids or None,
                     point_ids=point_ids,
                     standard_group_ids=item.standard_group_ids,
                     standard_ids=item.standard_ids,

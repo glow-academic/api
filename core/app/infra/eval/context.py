@@ -459,7 +459,14 @@ async def resolve_eval_context(
                 suggestions=rubrics_all,
             ),
         },
-        entries={"pending_ids": pending_ids},
+        entries={
+            "pending_ids": pending_ids,
+            # Flag catalog rows for model-scoped flag types (hydrated with
+            # icon SVG). Used by eval/get.py to build the cross-product
+            # model_flag_options list and to enrich selected junction rows
+            # with their (type, value) tuple.
+            "model_flag_type_rows": list(model_flag_types_all),
+        },
     )
 
 

@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "GLOW API",
-    "description": "Auto-generated OpenAPI schema",
-    "version": "0.1.0"
+    "description": "Auto-generated OpenAPI schema from FastAPI API",
+    "version": "2.15.14"
   },
   "paths": {
     "/persona/get": {
@@ -50,6 +50,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -97,6 +100,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -144,6 +150,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -191,6 +200,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -238,6 +250,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -285,6 +300,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -332,6 +350,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -379,6 +400,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -406,6 +430,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -453,6 +480,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -500,6 +530,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -547,6 +580,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -594,6 +630,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -641,6 +680,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -688,6 +730,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -715,6 +760,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "persona"
         ]
       }
     },
@@ -762,6 +810,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -809,6 +860,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -856,6 +910,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -903,6 +960,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -950,6 +1010,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -997,6 +1060,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1044,6 +1110,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1091,6 +1160,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1118,6 +1190,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1165,6 +1240,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1212,6 +1290,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1259,6 +1340,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1306,6 +1390,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1353,6 +1440,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1400,6 +1490,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1447,6 +1540,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario"
         ]
       }
     },
@@ -1529,7 +1625,11 @@
               }
             }
           }
-        }
+        },
+        "x-cache-tags": [
+          "scenario",
+          "scenario-image"
+        ]
       }
     },
     "/scenario/image/download": {
@@ -1575,6 +1675,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario",
+          "scenario-image"
         ]
       }
     },
@@ -1657,7 +1761,11 @@
               }
             }
           }
-        }
+        },
+        "x-cache-tags": [
+          "scenario",
+          "scenario-video"
+        ]
       }
     },
     "/scenario/video/download": {
@@ -1703,6 +1811,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario",
+          "scenario-video"
         ]
       }
     },
@@ -1749,6 +1861,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario",
+          "scenario-text"
         ]
       }
     },
@@ -1795,6 +1911,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario",
+          "scenario-file"
         ]
       }
     },
@@ -1841,6 +1961,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "scenario",
+          "scenario-file"
         ]
       }
     },
@@ -1888,6 +2012,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -1935,6 +2062,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -1982,6 +2112,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2029,6 +2162,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2076,6 +2212,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2123,6 +2262,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2170,6 +2312,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2217,6 +2362,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2244,7 +2392,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PatchSimulationDraftApiResponse"
+                  "$ref": "#/components/schemas/PatchSimulationDraftApiResponse-Output"
                 }
               }
             }
@@ -2264,6 +2412,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2291,6 +2442,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2338,6 +2492,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2385,6 +2542,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2432,6 +2592,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2479,6 +2642,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2526,6 +2692,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2573,6 +2742,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "simulation"
         ]
       }
     },
@@ -2620,6 +2792,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -2667,6 +2842,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -2714,6 +2892,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -2761,6 +2942,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -2808,6 +2992,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -2855,6 +3042,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -2902,6 +3092,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -2929,6 +3122,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -2976,6 +3172,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -3023,6 +3222,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -3070,6 +3272,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -3117,6 +3322,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -3164,6 +3372,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -3211,6 +3422,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -3258,6 +3472,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -3305,6 +3522,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document"
         ]
       }
     },
@@ -3353,6 +3573,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document",
+          "document-text"
         ]
       }
     },
@@ -3399,6 +3623,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document",
+          "document-text"
         ]
       }
     },
@@ -3447,6 +3675,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document",
+          "document-file"
         ]
       }
     },
@@ -3493,6 +3725,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document",
+          "document-file"
         ]
       }
     },
@@ -3539,6 +3775,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "document",
+          "document-file"
         ]
       }
     },
@@ -3586,6 +3826,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3633,6 +3876,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3680,6 +3926,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3727,6 +3976,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3774,6 +4026,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3821,6 +4076,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3868,6 +4126,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3895,6 +4156,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3942,6 +4206,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -3989,6 +4256,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -4036,6 +4306,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -4083,6 +4356,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -4130,6 +4406,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -4177,6 +4456,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -4224,6 +4506,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -4271,6 +4556,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "department"
         ]
       }
     },
@@ -4318,6 +4606,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4365,6 +4656,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4412,6 +4706,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4459,6 +4756,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4506,6 +4806,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4553,6 +4856,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4600,6 +4906,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4627,6 +4936,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4674,6 +4986,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4721,6 +5036,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4768,6 +5086,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4815,6 +5136,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4862,6 +5186,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4909,6 +5236,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -4956,6 +5286,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -5003,6 +5336,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "cohort"
         ]
       }
     },
@@ -5050,6 +5386,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5097,6 +5436,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5144,6 +5486,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5191,6 +5536,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5238,6 +5586,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5285,6 +5636,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5332,6 +5686,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5359,7 +5716,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PatchEvalDraftApiResponse"
+                  "$ref": "#/components/schemas/PatchEvalDraftApiResponse-Output"
                 }
               }
             }
@@ -5379,6 +5736,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5406,6 +5766,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5453,6 +5816,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5500,6 +5866,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5547,6 +5916,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5594,6 +5966,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5641,6 +6016,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5688,6 +6066,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5735,6 +6116,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "eval"
         ]
       }
     },
@@ -5782,6 +6166,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -5829,6 +6216,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -5876,6 +6266,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -5923,6 +6316,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -5970,6 +6366,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6017,6 +6416,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6064,6 +6466,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6111,6 +6516,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6138,6 +6546,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6181,6 +6592,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6228,6 +6642,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6275,6 +6692,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6322,6 +6742,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6369,6 +6792,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6416,6 +6842,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6463,6 +6892,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "rubric"
         ]
       }
     },
@@ -6510,6 +6942,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6557,6 +6992,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6604,6 +7042,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6651,6 +7092,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6698,6 +7142,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6745,6 +7192,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6792,6 +7242,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6819,6 +7272,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6866,6 +7322,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6913,6 +7372,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -6960,6 +7422,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -7007,6 +7472,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -7054,6 +7522,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -7101,6 +7572,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -7148,6 +7622,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -7195,6 +7672,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -7242,6 +7722,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "setting"
         ]
       }
     },
@@ -7289,6 +7772,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7336,6 +7822,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7383,6 +7872,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7430,6 +7922,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7477,6 +7972,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7524,6 +8022,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7571,6 +8072,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7618,6 +8122,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7665,6 +8172,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7692,6 +8202,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7739,6 +8252,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7786,6 +8302,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7833,6 +8352,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7880,6 +8402,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7927,6 +8452,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -7974,6 +8502,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "agent"
         ]
       }
     },
@@ -8021,6 +8552,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8068,6 +8602,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8115,6 +8652,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8162,6 +8702,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8209,6 +8752,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8256,6 +8802,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8303,6 +8852,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8330,6 +8882,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8377,6 +8932,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8424,6 +8982,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8471,6 +9032,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8518,6 +9082,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8565,6 +9132,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8612,6 +9182,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8659,6 +9232,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8706,6 +9282,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "model"
         ]
       }
     },
@@ -8753,6 +9332,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -8800,6 +9382,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -8847,6 +9432,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -8894,6 +9482,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -8941,6 +9532,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -8988,6 +9582,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9035,6 +9632,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9062,6 +9662,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9109,6 +9712,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9156,6 +9762,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9203,6 +9812,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9250,6 +9862,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9297,6 +9912,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9344,6 +9962,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9391,6 +10012,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9438,6 +10062,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9485,6 +10112,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "provider"
         ]
       }
     },
@@ -9532,6 +10162,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9579,6 +10212,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9626,6 +10262,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9673,6 +10312,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9720,6 +10362,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9767,6 +10412,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9814,6 +10462,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9861,6 +10512,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9888,6 +10542,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9935,6 +10592,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -9982,6 +10642,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -10029,6 +10692,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -10076,6 +10742,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -10123,6 +10792,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -10170,6 +10842,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -10217,6 +10892,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "parameter"
         ]
       }
     },
@@ -10264,6 +10942,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10311,6 +10992,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10358,6 +11042,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10405,6 +11092,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10452,6 +11142,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10499,6 +11192,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10546,6 +11242,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10573,6 +11272,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10620,6 +11322,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10667,6 +11372,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10714,6 +11422,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10761,6 +11472,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10808,6 +11522,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10855,6 +11572,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10902,6 +11622,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10949,6 +11672,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "field"
         ]
       }
     },
@@ -10996,6 +11722,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11043,6 +11772,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11090,6 +11822,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11137,6 +11872,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11184,6 +11922,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11231,6 +11972,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11258,6 +12002,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11305,6 +12052,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11352,6 +12102,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11399,6 +12152,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11446,6 +12202,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11493,6 +12252,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11540,6 +12302,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11587,6 +12352,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11634,6 +12402,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile"
         ]
       }
     },
@@ -11682,6 +12453,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile",
+          "profile"
         ]
       }
     },
@@ -11730,6 +12505,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "profile",
+          "profile"
         ]
       }
     },
@@ -11777,6 +12556,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -11824,6 +12606,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -11871,6 +12656,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -11918,6 +12706,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -11965,6 +12756,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12012,6 +12806,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12059,6 +12856,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12106,6 +12906,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12133,6 +12936,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12180,6 +12986,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12227,6 +13036,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12274,6 +13086,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12321,6 +13136,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12368,6 +13186,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12415,6 +13236,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "auth"
         ]
       }
     },
@@ -12462,6 +13286,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12509,6 +13336,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12556,6 +13386,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12603,6 +13436,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12650,6 +13486,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12697,6 +13536,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12744,6 +13586,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12771,6 +13616,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12818,6 +13666,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12865,6 +13716,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12912,6 +13766,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -12959,6 +13816,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -13006,6 +13866,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -13053,6 +13916,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -13100,6 +13966,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -13147,6 +14016,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "tool"
         ]
       }
     },
@@ -13194,6 +14066,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13241,6 +14116,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13288,6 +14166,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13315,6 +14196,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13362,6 +14246,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13409,6 +14296,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13456,6 +14346,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13503,6 +14396,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13550,6 +14446,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13597,6 +14496,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13644,6 +14546,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13691,6 +14596,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13738,6 +14646,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13763,6 +14674,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13810,6 +14724,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13857,6 +14774,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -13905,6 +14825,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -13953,6 +14877,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14001,6 +14929,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14049,6 +14981,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14097,6 +15033,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14145,6 +15085,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14193,6 +15137,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14241,6 +15189,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14289,6 +15241,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14337,6 +15293,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14385,6 +15345,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14433,6 +15397,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14481,6 +15449,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14529,6 +15501,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14577,6 +15553,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14625,6 +15605,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14673,6 +15657,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-chat"
         ]
       }
     },
@@ -14720,6 +15708,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -14747,6 +15738,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt"
         ]
       }
     },
@@ -14795,6 +15789,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "home"
         ]
       }
     },
@@ -14843,6 +15841,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "home"
         ]
       }
     },
@@ -14871,6 +15873,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "home"
         ]
       }
     },
@@ -14899,6 +15905,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "home"
         ]
       }
     },
@@ -14947,6 +15957,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "practice"
         ]
       }
     },
@@ -14995,6 +16009,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "practice"
         ]
       }
     },
@@ -15023,6 +16041,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "practice"
         ]
       }
     },
@@ -15051,6 +16073,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "practice"
         ]
       }
     },
@@ -15076,6 +16102,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "dashboard"
         ]
       }
     },
@@ -15124,6 +16154,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "dashboard"
         ]
       }
     },
@@ -15152,6 +16186,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "dashboard"
         ]
       }
     },
@@ -15180,6 +16218,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "dashboard"
         ]
       }
     },
@@ -15227,6 +16269,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "leaderboard"
         ]
       }
     },
@@ -15275,6 +16321,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "leaderboard"
         ]
       }
     },
@@ -15303,6 +16353,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "leaderboard"
         ]
       }
     },
@@ -15331,6 +16385,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "leaderboard"
         ]
       }
     },
@@ -15379,6 +16437,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "record"
         ]
       }
     },
@@ -15427,6 +16489,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "record"
         ]
       }
     },
@@ -15455,6 +16521,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "record"
         ]
       }
     },
@@ -15503,6 +16573,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "record"
         ]
       }
     },
@@ -15531,6 +16605,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "report"
         ]
       }
     },
@@ -15579,6 +16657,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "report"
         ]
       }
     },
@@ -15607,6 +16689,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "report"
         ]
       }
     },
@@ -15673,7 +16759,11 @@
               }
             }
           }
-        }
+        },
+        "x-cache-tags": [
+          "attempt",
+          "attempt-audio"
+        ]
       }
     },
     "/attempt/audio/download": {
@@ -15719,6 +16809,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-audio"
         ]
       }
     },
@@ -15765,6 +16859,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-image"
         ]
       }
     },
@@ -15811,6 +16909,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-video"
         ]
       }
     },
@@ -15857,6 +16959,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-text"
         ]
       }
     },
@@ -15903,6 +17009,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-file"
         ]
       }
     },
@@ -15949,6 +17059,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "attempt",
+          "attempt-file"
         ]
       }
     },
@@ -15996,6 +17110,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16043,6 +17160,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16090,6 +17210,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16137,6 +17260,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16164,6 +17290,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16211,6 +17340,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16258,6 +17390,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16305,6 +17440,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16352,6 +17490,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16399,6 +17540,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16446,6 +17590,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16493,6 +17640,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16540,6 +17690,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16589,6 +17742,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16638,6 +17794,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16685,6 +17844,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16732,6 +17894,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16779,6 +17944,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16826,6 +17994,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16871,6 +18042,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16916,6 +18090,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test"
         ]
       }
     },
@@ -16964,6 +18141,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "benchmark"
         ]
       }
     },
@@ -17012,6 +18193,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "benchmark"
         ]
       }
     },
@@ -17040,6 +18225,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "benchmark"
         ]
       }
     },
@@ -17068,6 +18257,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "benchmark"
         ]
       }
     },
@@ -17116,6 +18309,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -17164,6 +18361,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -17192,6 +18393,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -17240,6 +18445,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -17288,6 +18497,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -17336,6 +18549,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
         ]
       }
     },
@@ -17383,6 +18600,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system"
         ]
       }
     },
@@ -17430,6 +18650,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system"
         ]
       }
     },
@@ -17477,6 +18700,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system"
         ]
       }
     },
@@ -17524,6 +18750,9 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system"
         ]
       }
     },
@@ -17572,6 +18801,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group"
         ]
       }
     },
@@ -17620,6 +18853,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group"
         ]
       }
     },
@@ -17668,6 +18905,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group"
         ]
       }
     },
@@ -17696,6 +18937,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group"
         ]
       }
     },
@@ -17744,6 +18989,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group"
         ]
       }
     },
@@ -17792,6 +19041,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "group"
         ]
       }
     },
@@ -17840,6 +19093,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "session"
         ]
       }
     },
@@ -17868,6 +19125,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "session"
         ]
       }
     },
@@ -17916,6 +19177,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "session"
         ]
       }
     },
@@ -17964,6 +19229,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "health"
         ]
       }
     },
@@ -17992,6 +19261,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "health"
         ]
       }
     },
@@ -18020,6 +19293,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "health"
         ]
       }
     },
@@ -18067,6 +19344,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "activity"
         ]
       }
     },
@@ -18115,6 +19396,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "activity"
         ]
       }
     },
@@ -18143,6 +19428,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "activity"
         ]
       }
     },
@@ -18191,6 +19480,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "activity"
         ]
       }
     },
@@ -18219,6 +19512,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "activity"
         ]
       }
     },
@@ -18267,6 +19564,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "pricing"
         ]
       }
     },
@@ -18315,6 +19616,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "pricing"
         ]
       }
     },
@@ -18343,6 +19648,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "pricing"
         ]
       }
     },
@@ -18371,6 +19680,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "pricing"
         ]
       }
     },
@@ -18417,6 +19730,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "system-audio"
         ]
       }
     },
@@ -18463,6 +19780,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "system-call"
         ]
       }
     },
@@ -18509,6 +19830,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "system-file"
         ]
       }
     },
@@ -18555,6 +19880,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "system-file"
         ]
       }
     },
@@ -18601,6 +19930,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "system-image"
         ]
       }
     },
@@ -18647,6 +19980,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "system-text"
         ]
       }
     },
@@ -18693,6 +20030,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "system",
+          "system-video"
         ]
       }
     },
@@ -18842,7 +20183,10 @@
               }
             }
           }
-        }
+        },
+        "x-cache-tags": [
+          "stream"
+        ]
       }
     },
     "/stream/ActivityRequest": {
@@ -18893,6 +20237,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "activity"
         ]
       }
     },
@@ -18944,6 +20292,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "activity"
         ]
       }
     },
@@ -18995,6 +20347,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19046,6 +20402,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19097,6 +20457,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19148,6 +20512,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19199,6 +20567,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19250,6 +20622,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19301,6 +20677,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19352,6 +20732,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19403,6 +20787,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19454,6 +20842,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19505,6 +20897,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19556,6 +20952,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19607,6 +21007,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19658,6 +21062,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19709,6 +21117,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19760,6 +21172,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19811,6 +21227,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19862,6 +21282,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19913,6 +21337,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -19964,6 +21392,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -20015,6 +21447,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -20066,6 +21502,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -20117,6 +21557,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -20168,6 +21612,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -20219,6 +21667,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -20270,6 +21722,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -20321,6 +21777,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -20372,6 +21832,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -20423,6 +21887,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -20474,6 +21942,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -20525,6 +21997,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -20576,6 +22052,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -20627,6 +22107,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -20678,6 +22162,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -20729,6 +22217,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "benchmark"
         ]
       }
     },
@@ -20780,6 +22272,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "benchmark"
         ]
       }
     },
@@ -20831,6 +22327,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "session"
         ]
       }
     },
@@ -20882,6 +22382,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -20933,6 +22437,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -20984,6 +22492,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -21035,6 +22547,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -21086,6 +22602,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -21137,6 +22657,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -21188,6 +22712,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -21239,6 +22767,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -21290,6 +22822,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -21341,6 +22877,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -21392,6 +22932,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -21443,6 +22987,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -21494,6 +23042,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -21545,6 +23097,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -21596,6 +23152,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -21647,6 +23207,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -21698,6 +23262,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -21749,6 +23317,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -21800,6 +23372,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -21851,6 +23427,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -21902,6 +23482,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -21953,6 +23537,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -22004,6 +23592,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -22055,6 +23647,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -22106,6 +23702,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -22157,6 +23757,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -22208,6 +23812,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -22259,6 +23867,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -22310,6 +23922,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -22361,6 +23977,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -22412,6 +24032,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -22463,6 +24087,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -22514,6 +24142,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -22565,6 +24197,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -22616,6 +24252,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "dashboard"
         ]
       }
     },
@@ -22667,6 +24307,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "dashboard"
         ]
       }
     },
@@ -22718,6 +24362,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -22769,6 +24417,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -22820,6 +24472,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -22871,6 +24527,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -22922,6 +24582,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -22973,6 +24637,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -23024,6 +24692,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -23075,6 +24747,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -23126,6 +24802,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -23177,6 +24857,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -23228,6 +24912,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -23279,6 +24967,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -23330,6 +25022,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -23381,6 +25077,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -23432,6 +25132,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -23483,6 +25187,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -23534,6 +25242,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -23585,6 +25297,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -23636,6 +25352,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -23687,6 +25407,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -23738,6 +25462,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -23789,6 +25517,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -23840,6 +25572,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -23891,6 +25627,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -23942,6 +25682,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -23993,6 +25737,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -24044,6 +25792,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -24095,6 +25847,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -24146,6 +25902,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -24197,6 +25957,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -24248,6 +26012,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -24299,6 +26067,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -24350,6 +26122,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -24401,6 +26177,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -24452,6 +26232,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -24503,6 +26287,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -24554,6 +26342,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -24605,6 +26397,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -24656,6 +26452,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -24707,6 +26507,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -24758,6 +26562,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -24809,6 +26617,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -24860,6 +26672,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -24911,6 +26727,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -24962,6 +26782,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -25013,6 +26837,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -25064,6 +26892,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -25115,6 +26947,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -25166,6 +27002,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -25217,6 +27057,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -25268,6 +27112,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -25319,6 +27167,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -25370,6 +27222,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -25421,6 +27277,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -25472,6 +27332,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -25523,6 +27387,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -25574,6 +27442,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -25625,6 +27497,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -25676,6 +27552,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -25727,6 +27607,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -25778,6 +27662,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -25829,6 +27717,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -25880,6 +27772,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -25931,6 +27827,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -25982,6 +27882,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -26033,6 +27937,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -26084,6 +27992,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -26135,6 +28047,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -26186,6 +28102,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -26237,6 +28157,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -26288,6 +28212,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -26339,6 +28267,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -26390,6 +28322,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -26441,6 +28377,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -26492,6 +28432,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -26543,6 +28487,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -26594,6 +28542,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -26645,6 +28597,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -26696,6 +28652,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -26747,6 +28707,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -26798,6 +28762,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -26849,6 +28817,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -26900,6 +28872,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -26951,6 +28927,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -27002,6 +28982,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -27053,6 +29037,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -27104,6 +29092,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -27155,6 +29147,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -27206,6 +29202,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -27257,6 +29257,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -27308,6 +29312,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -27359,6 +29367,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -27410,6 +29422,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -27461,6 +29477,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -27512,6 +29532,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -27563,6 +29587,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -27614,6 +29642,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -27665,6 +29697,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -27716,6 +29752,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -27767,6 +29807,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -27818,6 +29862,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -27869,6 +29917,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -27920,6 +29972,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -27971,6 +30027,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -28022,6 +30082,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -28073,6 +30137,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -28124,6 +30192,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -28175,6 +30247,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -28226,6 +30302,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -28277,6 +30357,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -28328,6 +30412,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -28379,6 +30467,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -28430,6 +30522,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -28481,6 +30577,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "attempt"
         ]
       }
     },
@@ -28532,6 +30632,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -28583,6 +30687,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -28634,6 +30742,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -28685,6 +30797,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "chat"
         ]
       }
     },
@@ -28736,6 +30852,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "chat"
         ]
       }
     },
@@ -28787,6 +30907,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -28838,6 +30962,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -28889,6 +31017,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -28940,6 +31072,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -28991,6 +31127,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -29042,6 +31182,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -29093,6 +31237,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -29144,6 +31292,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -29195,6 +31347,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -29246,6 +31402,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -29297,6 +31457,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -29348,6 +31512,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -29399,6 +31567,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -29450,6 +31622,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -29501,6 +31677,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -29552,6 +31732,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -29603,6 +31787,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "group"
         ]
       }
     },
@@ -29654,6 +31842,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "home"
         ]
       }
     },
@@ -29705,6 +31897,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "home"
         ]
       }
     },
@@ -29756,6 +31952,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "invocation"
         ]
       }
     },
@@ -29807,6 +32007,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -29858,6 +32062,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -29909,6 +32117,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -29960,6 +32172,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -30011,6 +32227,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -30062,6 +32282,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -30113,6 +32337,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -30164,6 +32392,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -30215,6 +32447,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -30266,6 +32502,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "practice"
         ]
       }
     },
@@ -30317,6 +32557,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "practice"
         ]
       }
     },
@@ -30368,6 +32612,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -30419,6 +32667,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -30470,6 +32722,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -30521,6 +32777,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -30572,6 +32832,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -30623,6 +32887,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -30674,6 +32942,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -30725,6 +32997,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -30776,6 +33052,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -30827,6 +33107,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -30878,6 +33162,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -30929,6 +33217,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -30980,6 +33272,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "session"
         ]
       }
     },
@@ -31031,6 +33327,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "session"
         ]
       }
     },
@@ -31082,6 +33382,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -31133,6 +33437,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -31184,6 +33492,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -31235,6 +33547,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -31286,6 +33602,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -31337,6 +33657,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -31388,6 +33712,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "invocation"
         ]
       }
     },
@@ -31439,6 +33767,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -31490,6 +33822,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -31541,6 +33877,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -31592,6 +33932,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -31643,6 +33987,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -31694,6 +34042,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "health"
         ]
       }
     },
@@ -31745,6 +34097,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "health"
         ]
       }
     },
@@ -31796,6 +34152,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "leaderboard"
         ]
       }
     },
@@ -31847,6 +34207,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "leaderboard"
         ]
       }
     },
@@ -31898,6 +34262,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "activity"
         ]
       }
     },
@@ -31949,6 +34317,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -32000,6 +34372,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -32051,6 +34427,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -32102,6 +34482,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -32153,6 +34537,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -32204,6 +34592,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -32255,6 +34647,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -32306,6 +34702,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -32357,6 +34757,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -32408,6 +34812,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -32459,6 +34867,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -32474,7 +34886,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PatchEvalDraftApiResponse"
+                "$ref": "#/components/schemas/PatchEvalDraftApiResponse-Input"
               }
             }
           },
@@ -32510,6 +34922,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -32561,6 +34977,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -32612,6 +35032,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -32663,6 +35087,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -32714,6 +35142,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -32765,6 +35197,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -32816,6 +35252,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -32867,6 +35307,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -32918,6 +35362,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -32969,6 +35417,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -33020,6 +35472,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -33071,6 +35527,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -33122,6 +35582,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -33173,6 +35637,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -33224,6 +35692,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -33275,6 +35747,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -33326,6 +35802,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -33377,6 +35857,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -33428,6 +35912,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -33479,6 +35967,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -33494,7 +35986,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PatchSimulationDraftApiResponse"
+                "$ref": "#/components/schemas/PatchSimulationDraftApiResponse-Input"
               }
             }
           },
@@ -33530,6 +36022,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -33581,6 +36077,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -33632,6 +36132,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -33683,6 +36187,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -33734,6 +36242,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "pricing"
         ]
       }
     },
@@ -33785,6 +36297,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "pricing"
         ]
       }
     },
@@ -33836,6 +36352,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -33887,6 +36407,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "record"
         ]
       }
     },
@@ -33938,6 +36462,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -33989,6 +36517,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34040,6 +36572,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34091,6 +36627,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34142,6 +36682,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34193,6 +36737,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34244,6 +36792,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34295,6 +36847,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34346,6 +36902,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34397,6 +36957,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34448,6 +37012,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34499,6 +37067,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34550,6 +37122,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34601,6 +37177,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34652,6 +37232,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34703,6 +37287,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34754,6 +37342,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "test"
         ]
       }
     },
@@ -34805,6 +37397,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -34856,6 +37452,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -34907,6 +37507,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "agents"
         ]
       }
     },
@@ -34958,6 +37562,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -35009,6 +37617,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "auths"
         ]
       }
     },
@@ -35060,6 +37672,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -35111,6 +37727,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "cohorts"
         ]
       }
     },
@@ -35162,6 +37782,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -35213,6 +37837,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "departments"
         ]
       }
     },
@@ -35264,6 +37892,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -35315,6 +37947,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "documents"
         ]
       }
     },
@@ -35366,6 +38002,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -35417,6 +38057,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "evals"
         ]
       }
     },
@@ -35468,6 +38112,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -35519,6 +38167,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "fields"
         ]
       }
     },
@@ -35570,6 +38222,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -35621,6 +38277,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "models"
         ]
       }
     },
@@ -35672,6 +38332,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -35723,6 +38387,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "parameters"
         ]
       }
     },
@@ -35774,6 +38442,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -35825,6 +38497,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "personas"
         ]
       }
     },
@@ -35876,6 +38552,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -35927,6 +38607,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "profiles"
         ]
       }
     },
@@ -35978,6 +38662,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -36029,6 +38717,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "providers"
         ]
       }
     },
@@ -36080,6 +38772,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -36131,6 +38827,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "rubrics"
         ]
       }
     },
@@ -36182,6 +38882,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -36233,6 +38937,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "scenarios"
         ]
       }
     },
@@ -36284,6 +38992,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -36335,6 +39047,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "settings"
         ]
       }
     },
@@ -36386,6 +39102,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -36437,6 +39157,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "simulations"
         ]
       }
     },
@@ -36488,6 +39212,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -36539,6 +39267,10 @@
           {
             "BearerAuth": []
           }
+        ],
+        "x-cache-tags": [
+          "stream",
+          "tools"
         ]
       }
     },
@@ -37129,7 +39861,10 @@
               }
             }
           }
-        }
+        },
+        "x-cache-tags": [
+          "docs-proxy"
+        ]
       }
     }
   },
@@ -49116,18 +51851,33 @@
             "title": "Description",
             "description": "Description value for resolution"
           },
-          "flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Flag Id",
-            "description": "Flag option UUID"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Denormalized cohort_active flag state; resolved to a flag_ids entry server-side"
           },
           "department_ids": {
             "anyOf": [
@@ -49224,31 +51974,6 @@
             ],
             "title": "Profile Persona Ids",
             "description": "Profile persona UUIDs"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "UUID of the flag option to set active status"
-          },
-          "active_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag",
-            "description": "Whether the cohort is active (resolved to flag_id)"
           },
           "departments": {
             "anyOf": [
@@ -49477,20 +52202,23 @@
             "title": "Description",
             "description": "Description value to resolve or create"
           },
-          "active_flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "UUID of the active flag option"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
           },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -49499,8 +52227,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the department is active"
+            "title": "Active",
+            "description": "Denormalized department_active flag state; resolved to a flag_ids entry server-side"
           },
           "settings_ids": {
             "anyOf": [
@@ -49722,33 +52450,23 @@
             "title": "Description",
             "description": "Description value for resolution"
           },
-          "flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Flag Id",
-            "description": "Flag option UUID"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
           },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "UUID of the flag option to set active status"
-          },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -49757,33 +52475,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the document is active (resolved to flag_id)"
-          },
-          "template_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Template Flag",
-            "description": "Whether this is a template document"
-          },
-          "template_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Template Flag Id",
-            "description": "Template flag resource UUID"
+            "title": "Active",
+            "description": "Denormalized document_active flag state; resolved to a flag_ids entry server-side"
           },
           "department_ids": {
             "anyOf": [
@@ -50199,7 +52892,7 @@
             "title": "Model Position Ids",
             "description": "Model position UUIDs"
           },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -50208,21 +52901,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether this eval is active"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Active flag resource UUID"
+            "title": "Active",
+            "description": "Denormalized eval_active flag state; resolved to a flag_ids entry server-side"
           }
         },
         "type": "object",
@@ -50460,7 +53140,23 @@
             "title": "Description",
             "description": "Description value to resolve or create"
           },
-          "active_flag": {
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -50469,34 +53165,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether this field is active"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Active flag resource UUID"
-          },
-          "flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Id",
-            "description": "UUID of the flag option"
+            "title": "Active",
+            "description": "Denormalized field_active flag state; resolved to a flag_ids entry server-side"
           },
           "department_ids": {
             "anyOf": [
@@ -51549,20 +54219,23 @@
             "title": "Description",
             "description": "Persona description text (creates new resource if description_id not provided)"
           },
-          "active_flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "UUID of the flag option to set active status"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
           },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -51571,8 +54244,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the persona is active (resolved to flag_id)"
+            "title": "Active",
+            "description": "Denormalized persona_active flag state; resolved to a flag_ids entry server-side"
           },
           "department_ids": {
             "anyOf": [
@@ -52474,20 +55147,23 @@
             "title": "Description",
             "description": "Description value for resolution"
           },
-          "active_flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "Active flag option UUID"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
           },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -52496,10 +55172,10 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Active flag boolean value"
+            "title": "Active",
+            "description": "Denormalized rubric_active flag state; resolved to a flag_ids entry server-side"
           },
-          "simulation_rubric_flag": {
+          "simulation_rubric": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -52508,23 +55184,10 @@
                 "type": "null"
               }
             ],
-            "title": "Simulation Rubric Flag",
-            "description": "Whether this is a simulation rubric"
+            "title": "Simulation Rubric",
+            "description": "Denormalized simulation_rubric flag state; resolved to a flag_ids entry server-side"
           },
-          "simulation_rubric_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Simulation Rubric Flag Id",
-            "description": "Simulation rubric flag resource UUID"
-          },
-          "video_rubric_flag": {
+          "video_rubric": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -52533,21 +55196,8 @@
                 "type": "null"
               }
             ],
-            "title": "Video Rubric Flag",
-            "description": "Whether this is a video rubric"
-          },
-          "video_rubric_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Video Rubric Flag Id",
-            "description": "Video rubric flag resource UUID"
+            "title": "Video Rubric",
+            "description": "Denormalized video_rubric flag state; resolved to a flag_ids entry server-side"
           },
           "department_ids": {
             "anyOf": [
@@ -59392,6 +62042,34 @@
         "title": "DraftProfilePersonaValue",
         "description": "Value for creating a profile_persona resource via draft."
       },
+      "DraftScenarioFlagDenormValue": {
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Scenario Id",
+            "description": "UUID of the parent scenario"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Flag type in flags_resource"
+          },
+          "value": {
+            "type": "boolean",
+            "title": "Value",
+            "description": "Desired boolean value for this flag type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenario_id",
+          "type",
+          "value"
+        ],
+        "title": "DraftScenarioFlagDenormValue",
+        "description": "Denormalized scenario_flag value \u2014 resolved server-side to (scenario_id, flag_id).\n\nGiven (scenario_id, type, value), the server looks up the flags_resource\nrow matching (type, value) and upserts a scenario_flags_resource row for\n(scenario_id, flag_id)."
+      },
       "DraftScenarioFlagValue": {
         "properties": {
           "scenario_id": {
@@ -61411,6 +64089,99 @@
         "title": "EvalFlagResource",
         "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
+      "EvalModelFlagOptionResource": {
+        "properties": {
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id",
+            "description": "Model identifier"
+          },
+          "flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Id",
+            "description": "Flag resource identifier (flags_resource row)"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type, e.g. 'model_active'"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying flag value for this option"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name from the flags_resource row"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Description text from the flags_resource row"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Icon SVG markup hydrated from icons_resource"
+          }
+        },
+        "type": "object",
+        "title": "EvalModelFlagOptionResource",
+        "description": "Cross-product option row: one per (model_id, flag_type, value) tuple.\nThe ModelFlags picker groups these by (model_id, type) and renders a\nSwitch per group; toggling picks the row whose `value` matches the new\nstate and sends its flag_id (or denormalized {model_id,type,value}) up\nthrough the draft endpoint."
+      },
       "EvalModelFlagResource": {
         "properties": {
           "id": {
@@ -61451,6 +64222,30 @@
             ],
             "title": "Flag Id",
             "description": "Associated flag identifier"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'model_active') of the linked flags_resource row"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of the linked flags_resource row"
           },
           "name": {
             "anyOf": [
@@ -61521,6 +64316,34 @@
         },
         "type": "object",
         "title": "EvalModelFlagResource"
+      },
+      "EvalModelFlagValue": {
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Model Id",
+            "description": "Target model identifier"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Flag type, e.g. 'model_active'"
+          },
+          "value": {
+            "type": "boolean",
+            "title": "Value",
+            "description": "Desired flag value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model_id",
+          "type",
+          "value"
+        ],
+        "title": "EvalModelFlagValue",
+        "description": "Denormalized per-(model, type) selection. Clients send these to update\nmodel-flag selections without needing the underlying flag_id; the server\nresolves (type, value) -> flag_id and upserts the model_flags_resource\njunction row."
       },
       "EvalModelPositionResource": {
         "properties": {
@@ -74121,7 +76944,22 @@
               }
             ],
             "title": "Model Flags",
-            "description": "Model flag resources"
+            "description": "Model flag resources (linked junction rows)"
+          },
+          "model_flag_options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/EvalModelFlagOptionResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Flag Options",
+            "description": "Cross-product (model x flag-type x value) options for the ModelFlags picker."
           },
           "model_rubrics": {
             "anyOf": [
@@ -82571,6 +85409,21 @@
             "title": "Scenario Flags",
             "description": "Scenario flag resources with selected/suggested flags"
           },
+          "scenario_flag_options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SimulationScenarioFlagOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Flag Options",
+            "description": "Cross-product of (scenario \u00d7 flag type \u00d7 value) for the ScenarioFlags picker"
+          },
           "scenario_positions": {
             "anyOf": [
               {
@@ -83191,6 +86044,36 @@
             ],
             "title": "Voices",
             "description": "Voice resources"
+          },
+          "model_flags": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/InvocationModelFlagResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Flags",
+            "description": "Per-model flag junction rows"
+          },
+          "model_flag_options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/InvocationModelFlagOptionResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Flag Options",
+            "description": "Cross-product (model \u00d7 flag-type \u00d7 value) options for the ModelFlags picker."
           }
         },
         "type": "object",
@@ -89434,6 +92317,263 @@
         },
         "type": "object",
         "title": "InvocationModalityResource"
+      },
+      "InvocationModelFlagOptionResource": {
+        "properties": {
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id",
+            "description": "Model identifier"
+          },
+          "flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Id",
+            "description": "Flag resource identifier"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type, e.g. 'model_active'"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying flag value for this option"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name from the flags_resource row"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Description text from the flags_resource row"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Icon SVG markup hydrated from icons_resource"
+          }
+        },
+        "type": "object",
+        "title": "InvocationModelFlagOptionResource",
+        "description": "Cross-product option row: one per (model_id, flag_type, value) tuple."
+      },
+      "InvocationModelFlagResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Model-flag resource identifier"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id",
+            "description": "Associated model identifier"
+          },
+          "flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Id",
+            "description": "Associated flag identifier"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type (e.g. 'model_active') of the linked flags_resource row"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying bool value of the linked flags_resource row"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Description text"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Icon SVG markup"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this is a suggested option",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this is currently selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this selection is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "InvocationModelFlagResource",
+        "description": "Per-model flag junction row for an invocation."
+      },
+      "InvocationModelFlagValue": {
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Model Id",
+            "description": "Target model identifier"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Flag type, e.g. 'model_active'"
+          },
+          "value": {
+            "type": "boolean",
+            "title": "Value",
+            "description": "Desired flag value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model_id",
+          "type",
+          "value"
+        ],
+        "title": "InvocationModelFlagValue",
+        "description": "Denormalized per-(model, type) selection for draft requests."
       },
       "InvocationNameResource": {
         "properties": {
@@ -102427,7 +105567,38 @@
               }
             ],
             "title": "Model Flag Ids",
-            "description": "Model flag UUIDs"
+            "description": "Model flag UUIDs (canonical junction-row ids)"
+          },
+          "model_flags": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Flags",
+            "description": "Inline-create shape for model_flags junction rows: list of {model_id, flag_id} (id=null entries). Resolver upserts the junction row and merges the id into model_flag_ids."
+          },
+          "model_flag_values": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/EvalModelFlagValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Flag Values",
+            "description": "Denormalized per-(model, type) selections. For each entry the server resolves (type, value) -> flag_id via search_flags, then upserts a model_flags_resource row for (model_id, flag_id) and merges its id into model_flag_ids."
           },
           "model_position_ids": {
             "anyOf": [
@@ -102501,7 +105672,59 @@
         "title": "PatchEvalDraftApiRequest",
         "description": "Request model for new-style eval draft endpoint.\n\nDual-mode for creatable resources only:\n  - name/name_id, description/description_id\nID-only for non-creatable resources:\n  - flag_ids, department_ids, model_ids, rubric_ids\n\nClient always sends full state (append-only \u2014 each write is a new snapshot)."
       },
-      "PatchEvalDraftApiResponse": {
+      "PatchEvalDraftApiResponse-Input": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Whether the operation succeeded"
+          },
+          "draft_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Draft Id",
+            "description": "Draft UUID"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key echoed back for client correlation"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable result message"
+          },
+          "form_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__eval__types__DraftFormState"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Server-authoritative form state"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "draft_id",
+          "message"
+        ],
+        "title": "PatchEvalDraftApiResponse",
+        "description": "Response model for new-style eval draft endpoint."
+      },
+      "PatchEvalDraftApiResponse-Output": {
         "properties": {
           "success": {
             "type": "boolean",
@@ -103057,7 +106280,38 @@
               }
             ],
             "title": "Model Flag Ids",
-            "description": "Selected model flag identifiers"
+            "description": "Selected model flag identifiers (junction-row ids)"
+          },
+          "model_flags": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Flags",
+            "description": "Inline-create: list of {model_id, flag_id} pairs to upsert into model_flag_ids"
+          },
+          "model_flag_values": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/InvocationModelFlagValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Flag Values",
+            "description": "Denormalized per-(model, type) entries resolved server-side via (type, value) -> flag_id"
           },
           "model_position_ids": {
             "anyOf": [
@@ -104552,7 +107806,7 @@
         },
         "type": "object",
         "title": "PatchProfileDraftApiRequest",
-        "description": "Request model for new-style profile draft endpoint.\n\nDual-mode for creatable resources only:\n  - name/name_id\nID-only for non-creatable resources:\n  - active_flag_id, department_ids, email_ids, role_id\n\nClient always sends full state (append-only \u2014 each write is a new snapshot)."
+        "description": "Request model for new-style profile draft endpoint.\n\nDual-mode for creatable resources only:\n  - name/name_id\nID-only for non-creatable resources:\n  - flag_ids, department_ids, email_ids, role_id\n\nClient always sends full state (append-only \u2014 each write is a new snapshot)."
       },
       "PatchProfileDraftApiResponse": {
         "properties": {
@@ -106494,6 +109748,21 @@
             "title": "Scenario Flags",
             "description": "Scenario flag values to create"
           },
+          "scenario_flag_values": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DraftScenarioFlagDenormValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Flag Values",
+            "description": "Denormalized (scenario_id, type, value) entries resolved server-side to scenario_flags_resource rows"
+          },
           "scenario_position_ids": {
             "anyOf": [
               {
@@ -106627,7 +109896,47 @@
         "title": "PatchSimulationDraftApiRequest",
         "description": "Request model for new-style simulation draft endpoint.\n\nDual-mode for creatable resources:\n  - Single-select: name/name_id, description/description_id\n  - Multi-select compound: scenario_flags, scenario_positions,\n    scenario_rubrics, scenario_time_limits (values create resources,\n    created IDs merged with existing IDs)\nID-only for non-creatable resources:\n  - flag_ids, department_ids, scenario_ids\n\nClient always sends full state (append-only \u2014 each write is a new snapshot)."
       },
-      "PatchSimulationDraftApiResponse": {
+      "PatchSimulationDraftApiResponse-Input": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Whether the operation succeeded"
+          },
+          "draft_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Draft Id",
+            "description": "UUID of the saved draft"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Idempotency Key",
+            "description": "Idempotency key for this draft operation"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable result message"
+          },
+          "form_state": {
+            "$ref": "#/components/schemas/app__infra__simulation__types__DraftFormState",
+            "description": "Server-authoritative form state"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "draft_id",
+          "idempotency_key",
+          "message",
+          "form_state"
+        ],
+        "title": "PatchSimulationDraftApiResponse",
+        "description": "Response model for new-style simulation draft endpoint."
+      },
+      "PatchSimulationDraftApiResponse-Output": {
         "properties": {
           "success": {
             "type": "boolean",
@@ -124547,6 +127856,30 @@
             "title": "Name",
             "description": "Flag name"
           },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Underlying flag type (e.g. 'audio_enabled')"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying flag boolean value"
+          },
           "description": {
             "anyOf": [
               {
@@ -124604,7 +127937,100 @@
         },
         "type": "object",
         "title": "SimulationScenarioFlag",
-        "description": "Scenario flag (denormalized: includes flag name/description/icon)."
+        "description": "Scenario flag (denormalized: includes flag name/description/icon/type/value)."
+      },
+      "SimulationScenarioFlagOption": {
+        "properties": {
+          "scenario_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Id",
+            "description": "UUID of the parent scenario"
+          },
+          "flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Id",
+            "description": "UUID of the underlying flag resource (value-specific)"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Flag type"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Underlying flag boolean value"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Flag display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Flag description text"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "Resolved SVG markup"
+          }
+        },
+        "type": "object",
+        "title": "SimulationScenarioFlagOption",
+        "description": "Option row for ScenarioFlags picker \u2014 one per (scenario \u00d7 flag_type \u00d7 value).\n\nThe junction row of scenario_flags_resource links (scenario_id, flag_id);\nthe client needs a pre-computed cross-product so each (scenario, type)\npair can be rendered as a switch. `flag_id` here is the underlying\nflags_resource row ID for that (type, value) pair."
       },
       "SimulationScenarioPosition": {
         "properties": {
@@ -128241,18 +131667,33 @@
             "title": "Description",
             "description": "Description value for resolution"
           },
-          "flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Flag Id",
-            "description": "Flag option UUID"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active",
+            "description": "Denormalized cohort_active flag state; resolved to a flag_ids entry server-side"
           },
           "department_ids": {
             "anyOf": [
@@ -128349,31 +131790,6 @@
             ],
             "title": "Profile Persona Ids",
             "description": "Profile persona UUIDs"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "UUID of the flag option to set active status"
-          },
-          "active_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag",
-            "description": "Whether the cohort is active (resolved to flag_id)"
           },
           "departments": {
             "anyOf": [
@@ -128585,20 +132001,23 @@
             "title": "Description",
             "description": "Description value to resolve or create"
           },
-          "active_flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "UUID of the active flag option"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
           },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -128607,8 +132026,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the department is active"
+            "title": "Active",
+            "description": "Denormalized department_active flag state; resolved to a flag_ids entry server-side"
           },
           "settings_ids": {
             "anyOf": [
@@ -128807,33 +132226,23 @@
             "title": "Description",
             "description": "Description value for resolution"
           },
-          "flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Flag Id",
-            "description": "Flag option UUID"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
           },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "UUID of the flag option to set active status"
-          },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -128842,33 +132251,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the document is active (resolved to flag_id)"
-          },
-          "template_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Template Flag",
-            "description": "Whether this is a template document"
-          },
-          "template_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Template Flag Id",
-            "description": "Template flag resource UUID"
+            "title": "Active",
+            "description": "Denormalized document_active flag state; resolved to a flag_ids entry server-side"
           },
           "department_ids": {
             "anyOf": [
@@ -129241,7 +132625,7 @@
             "title": "Model Position Ids",
             "description": "Model position UUIDs"
           },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -129250,21 +132634,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether this eval is active"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Active flag resource UUID"
+            "title": "Active",
+            "description": "Denormalized eval_active flag state; resolved to a flag_ids entry server-side"
           }
         },
         "type": "object",
@@ -129431,7 +132802,23 @@
             "title": "Description",
             "description": "Description value to resolve or create"
           },
-          "active_flag": {
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -129440,34 +132827,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether this field is active"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Active flag resource UUID"
-          },
-          "flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Flag Id",
-            "description": "UUID of the flag option"
+            "title": "Active",
+            "description": "Denormalized field_active flag state; resolved to a flag_ids entry server-side"
           },
           "department_ids": {
             "anyOf": [
@@ -130375,20 +133736,23 @@
             "title": "Description",
             "description": "Persona description text (creates new resource if description_id not provided)"
           },
-          "active_flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "UUID of the flag option to set active status"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
           },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -130397,8 +133761,8 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Whether the persona is active (resolved to flag_id)"
+            "title": "Active",
+            "description": "Denormalized persona_active flag state; resolved to a flag_ids entry server-side"
           },
           "department_ids": {
             "anyOf": [
@@ -131186,20 +134550,23 @@
             "title": "Description",
             "description": "Description value for resolution"
           },
-          "active_flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "Active flag option UUID"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
           },
-          "active_flag": {
+          "active": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -131208,10 +134575,10 @@
                 "type": "null"
               }
             ],
-            "title": "Active Flag",
-            "description": "Active flag boolean value"
+            "title": "Active",
+            "description": "Denormalized rubric_active flag state; resolved to a flag_ids entry server-side"
           },
-          "simulation_rubric_flag": {
+          "simulation_rubric": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -131220,23 +134587,10 @@
                 "type": "null"
               }
             ],
-            "title": "Simulation Rubric Flag",
-            "description": "Whether this is a simulation rubric"
+            "title": "Simulation Rubric",
+            "description": "Denormalized simulation_rubric flag state; resolved to a flag_ids entry server-side"
           },
-          "simulation_rubric_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Simulation Rubric Flag Id",
-            "description": "Simulation rubric flag resource UUID"
-          },
-          "video_rubric_flag": {
+          "video_rubric": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -131245,21 +134599,8 @@
                 "type": "null"
               }
             ],
-            "title": "Video Rubric Flag",
-            "description": "Whether this is a video rubric"
-          },
-          "video_rubric_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Video Rubric Flag Id",
-            "description": "Video rubric flag resource UUID"
+            "title": "Video Rubric",
+            "description": "Denormalized video_rubric flag state; resolved to a flag_ids entry server-side"
           },
           "department_ids": {
             "anyOf": [
@@ -134707,6 +138048,14 @@
             "title": "Model Flag Ids",
             "description": "Selected model flag UUIDs"
           },
+          "model_flag_values": {
+            "items": {
+              "$ref": "#/components/schemas/EvalModelFlagValue"
+            },
+            "type": "array",
+            "title": "Model Flag Values",
+            "description": "Denormalized (model_id, type, value) echo derived from model_flag_ids"
+          },
           "model_position_ids": {
             "items": {
               "type": "string",
@@ -135189,7 +138538,15 @@
             },
             "type": "array",
             "title": "Model Flag Ids",
-            "description": "Saved model flag identifiers"
+            "description": "Saved model flag junction-row identifiers"
+          },
+          "model_flag_values": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationModelFlagValue"
+            },
+            "type": "array",
+            "title": "Model Flag Values",
+            "description": "Denormalized (model_id, type, value) echo derived from model_flag_ids"
           },
           "model_position_ids": {
             "items": {
@@ -137402,6 +140759,15 @@
             "type": "array",
             "title": "Scenario Flag Ids",
             "description": "Selected scenario flag UUIDs",
+            "default": []
+          },
+          "scenario_flag_values": {
+            "items": {
+              "$ref": "#/components/schemas/DraftScenarioFlagDenormValue"
+            },
+            "type": "array",
+            "title": "Scenario Flag Values",
+            "description": "Echoed denormalized (scenario_id, type, value) entries",
             "default": []
           },
           "scenario_position_ids": {

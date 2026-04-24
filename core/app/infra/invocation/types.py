@@ -84,6 +84,43 @@ class InvocationValueResource(BaseModel):
     pending: bool = Field(False, description="Whether this selection is pending acceptance")
 
 
+class InvocationModelFlagResource(BaseModel):
+    """Per-model flag junction row for an invocation."""
+
+    id: UUID | None = Field(None, description="Model-flag resource identifier")
+    model_id: UUID | None = Field(None, description="Associated model identifier")
+    flag_id: UUID | None = Field(None, description="Associated flag identifier")
+    type: str | None = Field(None, description="Flag type (e.g. 'model_active') of the linked flags_resource row")
+    value: bool | None = Field(None, description="Underlying bool value of the linked flags_resource row")
+    name: str | None = Field(None, description="Display name")
+    description: str | None = Field(None, description="Description text")
+    icon: str | None = Field(None, description="Icon SVG markup")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this is a suggested option")
+    selected: bool = Field(False, description="Whether this is currently selected")
+    pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class InvocationModelFlagOptionResource(BaseModel):
+    """Cross-product option row: one per (model_id, flag_type, value) tuple."""
+
+    model_id: UUID | None = Field(None, description="Model identifier")
+    flag_id: UUID | None = Field(None, description="Flag resource identifier")
+    type: str | None = Field(None, description="Flag type, e.g. 'model_active'")
+    value: bool | None = Field(None, description="Underlying flag value for this option")
+    name: str | None = Field(None, description="Display name from the flags_resource row")
+    description: str | None = Field(None, description="Description text from the flags_resource row")
+    icon: str | None = Field(None, description="Icon SVG markup hydrated from icons_resource")
+
+
+class InvocationModelFlagValue(BaseModel):
+    """Denormalized per-(model, type) selection for draft requests."""
+
+    model_id: UUID = Field(..., description="Target model identifier")
+    type: str = Field(..., description="Flag type, e.g. 'model_active'")
+    value: bool = Field(..., description="Desired flag value")
+
+
 class InvocationFlagResource(BaseModel):
     """Flag option row — one per (name, type, value) flags_resource entry."""
 
@@ -252,6 +289,13 @@ class GetSuiteResponse(BaseModel):
     reasoning_levels: list[InvocationReasoningLevelResource] | None = Field(None, description="Reasoning level resources")
     qualities: list[InvocationQualityResource] | None = Field(None, description="Quality resources")
     voices: list[InvocationVoiceResource] | None = Field(None, description="Voice resources")
+    model_flags: list[InvocationModelFlagResource] | None = Field(
+        None, description="Per-model flag junction rows"
+    )
+    model_flag_options: list[InvocationModelFlagOptionResource] | None = Field(
+        None,
+        description="Cross-product (model × flag-type × value) options for the ModelFlags picker.",
+    )
 
 
 # =============================================================================
@@ -288,7 +332,15 @@ class PatchInvocationDraftApiRequest(ScopedItem):
     reasoning_level_id: UUID | None = Field(None, description="Selected reasoning level identifier")
     quality_ids: list[UUID] | None = Field(None, description="Selected quality identifiers")
     voice_ids: list[UUID] | None = Field(None, description="Selected voice identifiers")
-    model_flag_ids: list[UUID] | None = Field(None, description="Selected model flag identifiers")
+    model_flag_ids: list[UUID] | None = Field(None, description="Selected model flag identifiers (junction-row ids)")
+    model_flags: list[dict] | None = Field(
+        None,
+        description="Inline-create: list of {model_id, flag_id} pairs to upsert into model_flag_ids",
+    )
+    model_flag_values: list[InvocationModelFlagValue] | None = Field(
+        None,
+        description="Denormalized per-(model, type) entries resolved server-side via (type, value) -> flag_id",
+    )
     model_position_ids: list[UUID] | None = Field(None, description="Selected model position identifiers")
     model_rubric_ids: list[UUID] | None = Field(None, description="Selected model rubric identifiers")
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep pending where supported")
@@ -312,6 +364,8 @@ class PatchInvocationDraftApiRequest(ScopedItem):
         "quality_ids": "qualities",
         "voice_ids": "voices",
         "model_flag_ids": "model_flags",
+        "model_flags": "model_flags",
+        "model_flag_values": "model_flags",
         "model_position_ids": "model_positions",
         "model_rubric_ids": "model_rubrics",
     }
@@ -335,7 +389,11 @@ class DraftFormState(BaseModel):
     reasoning_level_id: UUID | None = Field(None, description="Saved reasoning level identifier")
     quality_ids: list[UUID] = Field(default_factory=list, description="Saved quality identifiers")
     voice_ids: list[UUID] = Field(default_factory=list, description="Saved voice identifiers")
-    model_flag_ids: list[UUID] = Field(default_factory=list, description="Saved model flag identifiers")
+    model_flag_ids: list[UUID] = Field(default_factory=list, description="Saved model flag junction-row identifiers")
+    model_flag_values: list[InvocationModelFlagValue] = Field(
+        default_factory=list,
+        description="Denormalized (model_id, type, value) echo derived from model_flag_ids",
+    )
     model_position_ids: list[UUID] = Field(default_factory=list, description="Saved model position identifiers")
     model_rubric_ids: list[UUID] = Field(default_factory=list, description="Saved model rubric identifiers")
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")

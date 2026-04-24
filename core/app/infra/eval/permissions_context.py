@@ -113,20 +113,38 @@ async def resolve_eval_values(
 
     # --- Match resources ---
 
-    if item.active_flag is not None and item.active_flag_id is None:
+    # Canonical: resolve denormalized `active` bool to a flag_ids entry via
+    # (type, value) lookup in flags_resource. Explicit flag_ids retained.
+    if getattr(item, "active", None) is not None:
         results = await search_flags(
-            conn, redis, search=None,
-            flag_type="eval_active",
-            limit_count=1000,
+            conn,
+            redis,
+            search=None,
+            limit_count=200,
+            bypass_cache=True,
         )
-        match = next((f for f in results if f.type == "eval_active" and f.value is True), None)
-        if match and match.id:
-            if item.active_flag:
-                item.active_flag_id = match.id
-        elif item.active_flag:
+        desired_value = bool(item.active)
+        match = next(
+            (
+                f
+                for f in results
+                if (
+                    getattr(f, "type", None) == "eval_active"
+                    or getattr(f, "name", None) == "eval_active"
+                )
+                and getattr(f, "value", None) is desired_value
+            ),
+            None,
+        )
+        existing_flag_ids = list(item.flag_ids or [])
+        if match and match.id and match.id not in existing_flag_ids:
+            existing_flag_ids.append(match.id)
+            item.flag_ids = existing_flag_ids
+        elif not match:
             errors.append(
                 EvalFieldError(
-                    field="active_flag", message="Active flag resource not found"
+                    field="eval_active",
+                    message=f"Flag row not found for type=eval_active value={desired_value}",
                 )
             )
 

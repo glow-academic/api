@@ -220,7 +220,7 @@ async def update_cohort_impl(
                 simulation_availability_ids=item.simulation_availability_ids,
             )
 
-        flag_ids = [item.active_flag_id] if item.active_flag_id else None
+        flag_ids = list(item.flag_ids) if item.flag_ids else None
 
         # Artifact update inside transaction
         async with pool.acquire() as conn:

@@ -40,6 +40,7 @@ from app.infra.eval.types import (
     EvalDepartmentResource,
     EvalDescriptionResource,
     EvalFlagResource,
+    EvalModelFlagOptionResource,
     EvalModelFlagResource,
     EvalModelPositionResource,
     EvalModelResource,
@@ -349,21 +350,83 @@ async def get_eval_impl(
         )
         for item in all_models
     ]
-    model_flags = [
-        EvalModelFlagResource(
-            id=item.id,
-            model_id=getattr(item, "model_id", None),
-            flag_id=getattr(item, "flag_id", None),
-            name=item.name,
-            description=item.description,
-            icon=getattr(item, "icon", None),
-            generated=item.generated,
-            suggested=_decorate(item.id, "model_flags")[0],
-            selected=_decorate(item.id, "model_flags")[1],
-            pending=_decorate(item.id, "model_flags")[2],
+    # Cross-product options catalog: for every model × flag_type in
+    # MODEL_FLAG_TYPES_ORDERED × value ∈ {true, false}, emit one option row.
+    # The client ModelFlags picker groups these by (model_id, type) and
+    # renders one Switch per group.
+    model_flag_type_rows = eval_ctx.entries.get("model_flag_type_rows", []) or []
+    type_by_type: dict[str, object] = {}
+    for row in model_flag_type_rows:
+        t = getattr(row, "type", None) or getattr(row, "name", None)
+        if not t:
+            continue
+        type_by_type.setdefault(t, row)
+
+    flag_rows_by_type_value: dict[tuple[str, bool], object] = {}
+    for row in model_flag_type_rows:
+        t = getattr(row, "type", None) or getattr(row, "name", None)
+        v = getattr(row, "value", None)
+        if t is None or v is None:
+            continue
+        flag_rows_by_type_value[(t, bool(v))] = row
+
+    # Hydrate each junction-row resource with its (type, value) from the
+    # flag catalog — the client Switch groups by (model_id, type).
+    def _enrich_junction_type_value(item) -> tuple[str | None, bool | None]:
+        fid = getattr(item, "flag_id", None)
+        if not fid:
+            return (None, None)
+        for (t, v), row in flag_rows_by_type_value.items():
+            if getattr(row, "id", None) == fid:
+                return (t, v)
+        return (None, None)
+
+    model_flags = []
+    for item in all_model_flags:
+        t, v = _enrich_junction_type_value(item)
+        model_flags.append(
+            EvalModelFlagResource(
+                id=item.id,
+                model_id=getattr(item, "model_id", None),
+                flag_id=getattr(item, "flag_id", None),
+                type=t,
+                value=v,
+                name=item.name,
+                description=item.description,
+                icon=getattr(item, "icon", None),
+                generated=item.generated,
+                suggested=_decorate(item.id, "model_flags")[0],
+                selected=_decorate(item.id, "model_flags")[1],
+                pending=_decorate(item.id, "model_flags")[2],
+            )
         )
-        for item in all_model_flags
+
+    selected_model_ids = [
+        getattr(m, "id", None) for m in models_selected if getattr(m, "id", None)
     ]
+    # Only emit options for currently-selected models to keep the payload
+    # bounded; a model landing in `selected` means the user has it in
+    # formState.model_ids.
+    model_flag_options_list: list[EvalModelFlagOptionResource] = []
+    for mid in selected_model_ids:
+        for t, catalog_row in type_by_type.items():
+            for desired_value in (True, False):
+                flag_row = flag_rows_by_type_value.get((t, desired_value))
+                if flag_row is None:
+                    continue
+                model_flag_options_list.append(
+                    EvalModelFlagOptionResource(
+                        model_id=mid,
+                        flag_id=getattr(flag_row, "id", None),
+                        type=t,
+                        value=desired_value,
+                        name=getattr(flag_row, "name", None) or getattr(catalog_row, "name", None),
+                        description=getattr(flag_row, "description", None)
+                        or getattr(catalog_row, "description", None),
+                        icon=getattr(flag_row, "icon", None)
+                        or getattr(catalog_row, "icon", None),
+                    )
+                )
     model_rubrics = [
         EvalModelRubricResource(
             id=item.id,
@@ -419,6 +482,7 @@ async def get_eval_impl(
         departments=_filter_items(departments, "departments", selected_only=selected_only, suggested_only=suggested_only) if include["departments"] else None,
         models=_filter_items(models, "models", selected_only=selected_only, suggested_only=suggested_only) if include["models"] else None,
         model_flags=_filter_items(model_flags, "model_flags", selected_only=selected_only, suggested_only=suggested_only) if include["model_flags"] else None,
+        model_flag_options=model_flag_options_list if include["model_flags"] else None,
         model_rubrics=_filter_items(model_rubrics, "model_rubrics", selected_only=selected_only, suggested_only=suggested_only) if include["model_rubrics"] else None,
         model_positions=_filter_items(model_positions, "model_positions", selected_only=selected_only, suggested_only=suggested_only) if include["model_positions"] else None,
         rubrics=rubrics_catalog or None,

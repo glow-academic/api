@@ -161,7 +161,7 @@ async def update_department_impl(
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id if item.description_id else _UNSET,
                     department_ids=[departments_resource_id] if departments_resource_id else None,
-                    flag_ids=[item.active_flag_id] if item.active_flag_id else None,
+                    flag_ids=list(item.flag_ids) if item.flag_ids else None,
                     settings_ids=item.settings_ids,
                     soft=soft,
                 )

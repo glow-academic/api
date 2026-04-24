@@ -131,39 +131,48 @@ async def resolve_document_values(
         result = await create_description(conn, item.description, redis)
         item.description_id = result.id
 
-    # --- Match resources ---
+    # --- Resolve denormalized flag booleans → canonical flag_ids entries ---
 
-    if item.active_flag is not None and item.active_flag_id is None:
-        results = await search_flags(
+    denorm_flag_values: dict[str, bool] = {}
+    if item.active is not None:
+        denorm_flag_values["document_active"] = bool(item.active)
+    if denorm_flag_values:
+        all_flags = await search_flags(
             conn,
             redis,
             search=None,
-            flag_type="document_active",
-            limit_count=1000,
+            limit_count=200,
+            bypass_cache=True,
         )
-        match = next((f for f in results if f.type == "document_active" and f.value is True), None)
-        if match and match.id:
-            if item.active_flag:
-                item.active_flag_id = match.id
-        elif item.active_flag:
-            errors.append(
-                DocumentFieldError(
-                    field="active_flag", message="Active flag resource not found"
-                )
+        resolved_flag_ids: list[UUID] = list(item.flag_ids or [])
+        seen = set(resolved_flag_ids)
+        for flag_type, desired_value in denorm_flag_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_flags
+                    if (
+                        getattr(f, "type", None) == flag_type
+                        or getattr(f, "name", None) == flag_type
+                    )
+                    and getattr(f, "value", None) is desired_value
+                ),
+                None,
             )
-
-    if item.template_flag is not None and item.template_flag_id is None:
-        results = await search_flags(conn, redis, search=None, flag_type="template", limit_count=1000)
-        match = next((f for f in results if f.type == "template" and f.value is True), None)
-        if match and match.id:
-            if item.template_flag:
-                item.template_flag_id = match.id
-        elif item.template_flag:
-            errors.append(
-                DocumentFieldError(
-                    field="template_flag", message="Template flag resource not found"
+            if match and match.id and match.id not in seen:
+                resolved_flag_ids.append(match.id)
+                seen.add(match.id)
+            elif not match:
+                errors.append(
+                    DocumentFieldError(
+                        field=flag_type,
+                        message=(
+                            f"Flag row not found for type={flag_type} "
+                            f"value={desired_value}"
+                        ),
+                    )
                 )
-            )
+        item.flag_ids = resolved_flag_ids
 
     if item.departments is not None and item.department_ids is None:
         all_depts = await search_departments(

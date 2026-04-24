@@ -324,11 +324,8 @@ class CreateDocumentItem(ScopedItem):
         "name": "names",
         "description_id": "descriptions",
         "description": "descriptions",
-        "flag_id": "flags",
-        "active_flag_id": "flags",
-        "active_flag": "flags",
-        "template_flag": "flags",
-        "template_flag_id": "flags",
+        "flag_ids": "flags",
+        "active": "flags",
         "department_ids": "departments",
         "departments": "departments",
         "parameter_field_ids": "parameter_fields",
@@ -346,12 +343,9 @@ class CreateDocumentItem(ScopedItem):
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="Description resource UUID")
     description: str | None = Field(None, description="Description value for resolution")
-    # Flag — provide ID or boolean
-    flag_id: UUID | None = Field(None, description="Flag option UUID")
-    active_flag_id: UUID | None = Field(None, description="UUID of the flag option to set active status")
-    active_flag: bool | None = Field(None, description="Whether the document is active (resolved to flag_id)")
-    template_flag: bool | None = Field(None, description="Whether this is a template document")
-    template_flag_id: UUID | None = Field(None, description="Template flag resource UUID")
+    # Canonical multi-select flag ids + denormalized boolean for document_active.
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized document_active flag state; resolved to a flag_ids entry server-side")
     # Multi-select — provide IDs or names
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for resolution")
@@ -397,12 +391,9 @@ class UpdateDocumentItem(ScopedItem):
     name: str | None = Field(None, description="Name value for resolution")
     description_id: UUID | None = Field(None, description="Description resource UUID")
     description: str | None = Field(None, description="Description value for resolution")
-    # Flag — provide ID or boolean
-    flag_id: UUID | None = Field(None, description="Flag option UUID")
-    active_flag_id: UUID | None = Field(None, description="UUID of the flag option to set active status")
-    active_flag: bool | None = Field(None, description="Whether the document is active (resolved to flag_id)")
-    template_flag: bool | None = Field(None, description="Whether this is a template document")
-    template_flag_id: UUID | None = Field(None, description="Template flag resource UUID")
+    # Canonical multi-select flag ids + denormalized boolean for document_active.
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized document_active flag state; resolved to a flag_ids entry server-side")
     # Multi-select — provide IDs or names
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for resolution")

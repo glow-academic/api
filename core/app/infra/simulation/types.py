@@ -45,18 +45,38 @@ class SimulationDescriptionResource(BaseModel):
 
 
 class SimulationScenarioFlag(BaseModel):
-    """Scenario flag (denormalized: includes flag name/description/icon)."""
+    """Scenario flag (denormalized: includes flag name/description/icon/type/value)."""
 
     id: UUID | None = Field(None, description="UUID of the scenario flag")
     scenario_id: UUID | None = Field(None, description="UUID of the parent scenario")
     flag_id: UUID | None = Field(None, description="UUID of the flag resource")
     name: str | None = Field(None, description="Flag name")
+    type: str | None = Field(None, description="Underlying flag type (e.g. 'audio_enabled')")
+    value: bool | None = Field(None, description="Underlying flag boolean value")
     description: str | None = Field(None, description="Flag description text")
     icon: str | None = Field(None, description="Icon identifier for the flag")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     suggested: bool = Field(False, description="Whether this is a suggested option")
     selected: bool = Field(False, description="Whether this is currently selected")
     pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class SimulationScenarioFlagOption(BaseModel):
+    """Option row for ScenarioFlags picker — one per (scenario × flag_type × value).
+
+    The junction row of scenario_flags_resource links (scenario_id, flag_id);
+    the client needs a pre-computed cross-product so each (scenario, type)
+    pair can be rendered as a switch. `flag_id` here is the underlying
+    flags_resource row ID for that (type, value) pair.
+    """
+
+    scenario_id: UUID | None = Field(None, description="UUID of the parent scenario")
+    flag_id: UUID | None = Field(None, description="UUID of the underlying flag resource (value-specific)")
+    type: str | None = Field(None, description="Flag type")
+    value: bool | None = Field(None, description="Underlying flag boolean value")
+    name: str | None = Field(None, description="Flag display name")
+    description: str | None = Field(None, description="Flag description text")
+    icon: str | None = Field(None, description="Resolved SVG markup")
 
 
 class SimulationScenarioPosition(BaseModel):
@@ -445,6 +465,7 @@ class GetSimulationApiResponse(BaseModel):
     departments: list[SimulationDepartment] | None = Field(None, description="Department resources with selected/suggested flags")
     scenarios: list[SimulationScenario] | None = Field(None, description="Scenario resources with selected/suggested flags")
     scenario_flags: list[SimulationScenarioFlag] | None = Field(None, description="Scenario flag resources with selected/suggested flags")
+    scenario_flag_options: list[SimulationScenarioFlagOption] | None = Field(None, description="Cross-product of (scenario × flag type × value) for the ScenarioFlags picker")
     scenario_positions: list[SimulationScenarioPosition] | None = Field(None, description="Scenario position resources with selected/suggested flags")
     scenario_rubrics: list[SimulationScenarioRubric] | None = Field(None, description="Scenario rubric resources with selected/suggested flags")
     scenario_time_limits: list[SimulationScenarioTimeLimit] | None = Field(None, description="Scenario time limit resources with selected/suggested flags")
@@ -752,6 +773,19 @@ class DraftScenarioFlagValue(BaseModel):
     flag_id: UUID = Field(..., description="UUID of the flag resource")
 
 
+class DraftScenarioFlagDenormValue(BaseModel):
+    """Denormalized scenario_flag value — resolved server-side to (scenario_id, flag_id).
+
+    Given (scenario_id, type, value), the server looks up the flags_resource
+    row matching (type, value) and upserts a scenario_flags_resource row for
+    (scenario_id, flag_id).
+    """
+
+    scenario_id: UUID = Field(..., description="UUID of the parent scenario")
+    type: str = Field(..., description="Flag type in flags_resource")
+    value: bool = Field(..., description="Desired boolean value for this flag type")
+
+
 class DraftScenarioPositionValue(BaseModel):
     """Value for creating a scenario_position resource via draft."""
 
@@ -828,6 +862,7 @@ class PatchSimulationDraftApiRequest(ScopedItem):
     # Creatable multi-select compound — values create resources, IDs merged
     scenario_flag_ids: list[UUID] | None = Field(None, description="Existing scenario flag UUIDs")
     scenario_flags: list[DraftScenarioFlagValue] | None = Field(None, description="Scenario flag values to create")
+    scenario_flag_values: list[DraftScenarioFlagDenormValue] | None = Field(None, description="Denormalized (scenario_id, type, value) entries resolved server-side to scenario_flags_resource rows")
     scenario_position_ids: list[UUID] | None = Field(None, description="Existing scenario position UUIDs")
     scenario_positions: list[DraftScenarioPositionValue] | None = Field(None, description="Scenario position values to create")
     scenario_rubric_ids: list[UUID] | None = Field(None, description="Existing scenario rubric UUIDs")
@@ -855,6 +890,7 @@ class DraftFormState(BaseModel):
     department_ids: list[UUID] = Field([], description="Selected department UUIDs")
     scenario_ids: list[UUID] = Field([], description="Selected scenario UUIDs")
     scenario_flag_ids: list[UUID] = Field([], description="Selected scenario flag UUIDs")
+    scenario_flag_values: list[DraftScenarioFlagDenormValue] = Field([], description="Echoed denormalized (scenario_id, type, value) entries")
     scenario_position_ids: list[UUID] = Field([], description="Selected scenario position UUIDs")
     scenario_rubric_ids: list[UUID] = Field([], description="Selected scenario rubric UUIDs")
     scenario_time_limit_ids: list[UUID] = Field([], description="Selected scenario time limit UUIDs")

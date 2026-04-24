@@ -436,4 +436,8 @@ async def get_invocation_impl(
         reasoning_levels=_filter_items(reasoning_levels, "reasoning_levels", selected_only=selected_only, suggested_only=suggested_only) if include["reasoning_levels"] else None,
         qualities=_filter_items(qualities, "qualities", selected_only=selected_only, suggested_only=suggested_only) if include["qualities"] else None,
         voices=_filter_items(voices, "voices", selected_only=selected_only, suggested_only=suggested_only) if include["voices"] else None,
+        # Invocation doesn't currently own a model picker; emit empty
+        # catalogs so the canonical response shape matches eval.
+        model_flags=[],
+        model_flag_options=[],
     )

@@ -122,9 +122,30 @@ async def update_rubric_impl(
 
     results: list[RubricResultItem] = []
 
-    # Denormalize point values (pass from id, total from standards sum).
+    # Denormalize point values (pass from id, total from standards sum) and
+    # per-type bools from flag_ids for the snapshot.
+    from app.tools.resources.flags.search import search_flags
     from app.tools.resources.points.get import get_points
     from app.tools.resources.standards.get import get_standards
+
+    async def _flag_bools_by_type(item) -> dict[str, bool]:
+        if not item.flag_ids:
+            return {}
+        async with pool.acquire() as conn:
+            flag_rows = await search_flags(
+                conn, redis, search=None, limit_count=1000, bypass_cache=True,
+            )
+        rows_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+        out: dict[str, bool] = {}
+        for fid in item.flag_ids:
+            row = rows_by_id.get(fid)
+            if not row:
+                continue
+            rtype = getattr(row, "type", None) or getattr(row, "name", None)
+            rval = getattr(row, "value", None)
+            if rtype and rval is not None:
+                out[rtype] = bool(rval)
+        return out
 
     for item in items:
         pass_value: int | None = None
@@ -139,6 +160,7 @@ async def update_rubric_impl(
 
         rubrics_resource_id = None
         if not soft:
+            flag_bools = await _flag_bools_by_type(item)
             rubrics_resource_id = await create_denormalized_snapshot(
                 pool,
                 redis,
@@ -146,21 +168,12 @@ async def update_rubric_impl(
                 description_id=item.description_id,
                 department_ids=item.department_ids,
                 standard_group_ids=item.standard_group_ids,
-                simulation_rubric=bool(item.simulation_rubric_flag_id),
-                video_rubric=bool(item.video_rubric_flag_id),
+                simulation_rubric=flag_bools.get("simulation_rubric", False),
+                video_rubric=flag_bools.get("video_rubric", False),
                 total_points=total_value,
                 pass_points=pass_value,
             )
 
-        combined_flag_ids = [
-            fid
-            for fid in [
-                item.active_flag_id,
-                item.simulation_rubric_flag_id,
-                item.video_rubric_flag_id,
-            ]
-            if fid
-        ]
         point_ids = [item.pass_points_id] if item.pass_points_id else None
 
         async with pool.acquire() as conn:
@@ -171,7 +184,7 @@ async def update_rubric_impl(
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id if item.description_id else _UNSET,
                     department_ids=item.department_ids,
-                    flag_ids=combined_flag_ids or None,
+                    flag_ids=item.flag_ids or None,
                     point_ids=point_ids,
                     standard_group_ids=item.standard_group_ids,
                     standard_ids=item.standard_ids,

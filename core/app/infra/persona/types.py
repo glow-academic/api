@@ -451,8 +451,10 @@ class CreatePersonaItem(ScopedItem):
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="UUID of an existing description resource")
     description: str | None = Field(None, description="Persona description text (creates new resource if description_id not provided)")
-    active_flag_id: UUID | None = Field(None, description="UUID of the flag option to set active status")
-    active_flag: bool | None = Field(None, description="Whether the persona is active (resolved to flag_id)")
+    # Canonical flag state — ids of selected flag-resource rows. Denormalized
+    # booleans (`active`) are resolved to a flag_ids entry server-side.
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized persona_active flag state; resolved to a flag_ids entry server-side")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to associate with this persona")
     departments: list[str] | None = Field(None, description="Department names (resolved to UUIDs server-side)")
@@ -474,8 +476,8 @@ class CreatePersonaItem(ScopedItem):
         "icon_id": "icons",
         "instructions": "instructions",
         "instructions_id": "instructions",
-        "active_flag": "flags",
-        "active_flag_id": "flags",
+        "flag_ids": "flags",
+        "active": "flags",
         "departments": "departments",
         "department_ids": "departments",
         "parameter_fields": "parameter_fields",
@@ -526,8 +528,10 @@ class UpdatePersonaItem(ScopedItem):
     instructions: str | None = Field(None, description="System instruction template (creates new resource if instructions_id not provided)")
     description_id: UUID | None = Field(None, description="UUID of an existing description resource to select")
     description: str | None = Field(None, description="Persona description text (creates new resource if description_id not provided)")
-    active_flag_id: UUID | None = Field(None, description="UUID of the flag option to set active status")
-    active_flag: bool | None = Field(None, description="Whether the persona is active (resolved to flag_id)")
+    # Canonical flag state — ids of selected flag-resource rows. Denormalized
+    # booleans (`active`) are resolved to a flag_ids entry server-side.
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized persona_active flag state; resolved to a flag_ids entry server-side")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to associate (replaces existing)")
     departments: list[str] | None = Field(None, description="Department names (resolved to UUIDs server-side)")

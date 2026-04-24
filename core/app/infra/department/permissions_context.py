@@ -120,26 +120,48 @@ async def resolve_department_values(
         result = await create_description(conn, item.description, redis)
         item.description_id = result.id
 
-    # --- Match resources ---
+    # --- Resolve denormalized flag booleans → canonical flag_ids entries ---
 
-    if item.active_flag is not None and item.active_flag_id is None:
-        results = await search_flags(
+    denorm_flag_values: dict[str, bool] = {}
+    if item.active is not None:
+        denorm_flag_values["department_active"] = bool(item.active)
+    if denorm_flag_values:
+        all_flags = await search_flags(
             conn,
             redis,
             search=None,
-            flag_type="department_active",
-            limit_count=100,
+            limit_count=200,
+            bypass_cache=True,
         )
-        match = next((r for r in results if r.type == "department_active" and r.value is True), None)
-        if match and match.id:
-            if item.active_flag:
-                item.active_flag_id = match.id
-        elif item.active_flag:
-            errors.append(
-                DepartmentFieldError(
-                    field="active_flag", message="Active flag resource not found"
-                )
+        resolved_flag_ids: list[UUID] = list(item.flag_ids or [])
+        seen = set(resolved_flag_ids)
+        for flag_type, desired_value in denorm_flag_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_flags
+                    if (
+                        getattr(f, "type", None) == flag_type
+                        or getattr(f, "name", None) == flag_type
+                    )
+                    and getattr(f, "value", None) is desired_value
+                ),
+                None,
             )
+            if match and match.id and match.id not in seen:
+                resolved_flag_ids.append(match.id)
+                seen.add(match.id)
+            elif not match:
+                errors.append(
+                    DepartmentFieldError(
+                        field=flag_type,
+                        message=(
+                            f"Flag row not found for type={flag_type} "
+                            f"value={desired_value}"
+                        ),
+                    )
+                )
+        item.flag_ids = resolved_flag_ids
 
     # --- Validate required fields (create only) ---
 

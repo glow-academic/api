@@ -27,6 +27,22 @@ from app.tools.artifacts.document.create import (
 )
 from app.tools.artifacts.document.get import get_documents
 from app.tools.resources.flags.get import get_flags
+
+
+async def _item_is_template(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    flag_ids: list[UUID] | None,
+) -> bool:
+    """Return True if any flag_id in the list resolves to a template flag row."""
+    if not flag_ids:
+        return False
+    async with pool.acquire() as conn:
+        rows = await get_flags(conn, list(flag_ids), redis, bypass_cache=True)
+    return any(
+        (getattr(row, "type", None) == "template" and getattr(row, "value", None) is True)
+        for row in rows
+    )
 from app.infra.document.types import (
     CreateDocumentApiRequest,
     DocumentResultItem,
@@ -194,6 +210,7 @@ async def create_document_impl(
     snapshot_ids: list[UUID] = []
     if not soft:
         for item in items:
+            template = await _item_is_template(pool, redis, item.flag_ids)
             documents_resource_id = await create_denormalized_snapshot(
                 pool,
                 redis,
@@ -203,15 +220,14 @@ async def create_document_impl(
                 department_ids=item.department_ids,
                 image_ids=item.image_ids,
                 parameter_field_ids=item.parameter_field_ids,
-                template=bool(item.template_flag_id),
+                template=template,
                 file_id=item.file_id,
                 text_id=item.text_id,
             )
             snapshot_ids.append(documents_resource_id)
 
     for idx, item in enumerate(items):
-        combined_flag_ids = [fid for fid in [item.active_flag_id, item.template_flag_id] if fid]
-        flag_ids = combined_flag_ids if combined_flag_ids else None
+        flag_ids = list(item.flag_ids) if item.flag_ids else None
 
         async with pool.acquire() as conn:
             async with conn.transaction():

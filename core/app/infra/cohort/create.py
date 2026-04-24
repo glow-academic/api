@@ -137,7 +137,7 @@ async def create_cohort_impl(
                 snapshot_ids.append(cohorts_resource_id)
 
         for idx, item in enumerate(cohort_items):
-            flag_ids = [item.active_flag_id] if item.active_flag_id else None
+            flag_ids = list(item.flag_ids) if item.flag_ids else None
 
             async with pool.acquire() as conn:
                 async with conn.transaction():

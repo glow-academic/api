@@ -413,9 +413,8 @@ class CreateCohortItem(ScopedItem):
         "name": "names",
         "description_id": "descriptions",
         "description": "descriptions",
-        "flag_id": "flags",
-        "active_flag_id": "flags",
-        "active_flag": "flags",
+        "flag_ids": "flags",
+        "active": "flags",
         "department_ids": "departments",
         "departments": "departments",
         "simulation_ids": "simulations",
@@ -436,8 +435,9 @@ class CreateCohortItem(ScopedItem):
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="Description resource UUID")
     description: str | None = Field(None, description="Description value for resolution")
-    # Single-select flag
-    flag_id: UUID | None = Field(None, description="Flag option UUID")
+    # Canonical multi-select flag ids + denormalized boolean for cohort_active.
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized cohort_active flag state; resolved to a flag_ids entry server-side")
     # Multi-select IDs
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     simulation_ids: list[UUID] | None = Field(None, description="Simulation UUIDs")
@@ -446,8 +446,6 @@ class CreateCohortItem(ScopedItem):
     profile_ids: list[UUID] | None = Field(None, description="Profile UUIDs")
     profile_persona_ids: list[UUID] | None = Field(None, description="Profile persona UUIDs")
     # Value-based fields (for CSV import — resolved to IDs)
-    active_flag_id: UUID | None = Field(None, description="UUID of the flag option to set active status")
-    active_flag: bool | None = Field(None, description="Whether the cohort is active (resolved to flag_id)")
     departments: list[str] | None = Field(None, description="Department names for resolution")
     simulations: list[str] | None = Field(None, description="Simulation names for resolution")
     profiles: list[str] | None = Field(None, description="Profile names for resolution")
@@ -484,8 +482,9 @@ class UpdateCohortItem(ScopedItem):
     name: str | None = Field(None, description="Name value for resolution")
     description_id: UUID | None = Field(None, description="Description resource UUID")
     description: str | None = Field(None, description="Description value for resolution")
-    # Single-select flag
-    flag_id: UUID | None = Field(None, description="Flag option UUID")
+    # Canonical multi-select flag ids + denormalized boolean for cohort_active.
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized cohort_active flag state; resolved to a flag_ids entry server-side")
     # Multi-select IDs
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     simulation_ids: list[UUID] | None = Field(None, description="Simulation UUIDs")
@@ -494,8 +493,6 @@ class UpdateCohortItem(ScopedItem):
     profile_ids: list[UUID] | None = Field(None, description="Profile UUIDs")
     profile_persona_ids: list[UUID] | None = Field(None, description="Profile persona UUIDs")
     # Value-based fields (for CSV import — resolved to IDs)
-    active_flag_id: UUID | None = Field(None, description="UUID of the flag option to set active status")
-    active_flag: bool | None = Field(None, description="Whether the cohort is active (resolved to flag_id)")
     departments: list[str] | None = Field(None, description="Department names for resolution")
     simulations: list[str] | None = Field(None, description="Simulation names for resolution")
     profiles: list[str] | None = Field(None, description="Profile names for resolution")

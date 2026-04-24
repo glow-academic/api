@@ -199,29 +199,7 @@ async def resolve_persona_values(
                 PersonaFieldError(field="icon", message=f'Icon "{item.icon}" not found')
             )
 
-    # Legacy create/update path: active_flag bool → active_flag_id resolution.
-    legacy_active_flag = getattr(item, "active_flag", None)
-    if legacy_active_flag is not None and getattr(item, "active_flag_id", None) is None:
-        async with pool.acquire() as conn:
-            results = await search_flags(
-                conn,
-                redis,
-                search=None,
-                flag_type="persona_active",
-                limit_count=100,
-            )
-        match = next((r for r in results if r.type == "persona_active" and r.value is True), None)
-        if match and match.id:
-            if legacy_active_flag:
-                item.active_flag_id = match.id
-        elif legacy_active_flag:
-            errors.append(
-                PersonaFieldError(
-                    field="active_flag", message="Active flag resource not found"
-                )
-            )
-
-    # Canonical draft path: denormalized booleans (active) → flag_ids resolution
+    # Canonical draft/create/update path: denormalized booleans (active) → flag_ids resolution
     # via (type, value) lookup. Explicit flag_ids retained verbatim.
     denorm_flag_values: dict[str, bool] = {}
     draft_active = getattr(item, "active", None)

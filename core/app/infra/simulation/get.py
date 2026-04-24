@@ -12,7 +12,11 @@ from redis.asyncio import Redis
 from app.infra.common_context import resolve_common_context
 from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import sorted_dedupe_by_id
-from app.infra.simulation.context import resolve_simulation_context
+from app.infra.simulation.context import (
+    SCENARIO_FLAG_TYPES_ORDERED,
+    resolve_simulation_context,
+)
+from app.tools.resources.flags.search import search_flags
 from app.infra.simulation.permissions import (
     SIMULATION_RESOURCES,
     compute_can_draft,
@@ -35,6 +39,7 @@ from app.infra.simulation.types import (
     SimulationRubric,
     SimulationScenario,
     SimulationScenarioFlag,
+    SimulationScenarioFlagOption,
     SimulationScenarioPosition,
     SimulationScenarioRubric,
     SimulationScenarioTimeLimit,
@@ -490,6 +495,50 @@ async def get_simulation_impl(
             for item in simulation.resources["rubrics"].suggestions
         ]
 
+    # Build scenario_flag_options cross-product: every (scenario × type × value).
+    # The client groups these by (scenario_id, type) and toggles between the
+    # two flag_ids (value=true/false) per group. We filter flags_resource to
+    # the canonical scenario-flag type list so unrelated types (e.g.
+    # simulation_active) don't leak into the per-scenario UI.
+    scenario_flag_options: list[SimulationScenarioFlagOption] | None = None
+    if _section_included(effective_filters, "scenario_flags"):
+        async with pool.acquire() as conn:
+            all_flag_rows = await search_flags(
+                conn, redis, search=None, limit_count=500, bypass_cache=bypass_cache
+            )
+        scenario_type_set = set(SCENARIO_FLAG_TYPES_ORDERED)
+        scoped_flag_rows = [
+            f for f in all_flag_rows
+            if (getattr(f, "type", None) or "") in scenario_type_set
+        ]
+        option_scenario_ids = [
+            getattr(item, "id", None) or getattr(item, "scenario_id", None)
+            for item in (simulation.resources["scenarios"].selected
+                         + simulation.resources["scenarios"].suggestions)
+            if getattr(item, "id", None) or getattr(item, "scenario_id", None)
+        ]
+        seen_sids: set = set()
+        unique_sids = []
+        for sid in option_scenario_ids:
+            if sid and sid not in seen_sids:
+                seen_sids.add(sid)
+                unique_sids.append(sid)
+
+        scenario_flag_options = []
+        for sid in unique_sids:
+            for f in scoped_flag_rows:
+                scenario_flag_options.append(
+                    SimulationScenarioFlagOption(
+                        scenario_id=sid,
+                        flag_id=getattr(f, "id", None),
+                        type=getattr(f, "type", None),
+                        value=getattr(f, "value", None),
+                        name=getattr(f, "name", None),
+                        description=getattr(f, "description", None),
+                        icon=getattr(f, "icon", None),
+                    )
+                )
+
     names_has_tools = scores.has_any.get("names", False)
     basic_show_ai_generate = bool(can_ai_generate and names_has_tools)
 
@@ -507,6 +556,7 @@ async def get_simulation_impl(
         departments=departments,
         scenarios=scenarios,
         scenario_flags=scenario_flags,
+        scenario_flag_options=scenario_flag_options,
         scenario_positions=scenario_positions,
         scenario_rubrics=scenario_rubrics,
         scenario_time_limits=scenario_time_limits,

@@ -89,6 +89,8 @@ class SimulationScenarioFlag(BaseModel):
     scenario_id: UUID | None = None
     flag_id: UUID | None = None
     name: str | None = None
+    type: str | None = None
+    value: bool | None = None
     description: str | None = None
     icon_id: UUID | None = None
     # Hydrated SVG markup copied from the flag resource. Without this
@@ -464,6 +466,10 @@ async def resolve_simulation_context(
             flag_id=sf.flag_id,
             name=(flag_type_by_id[sf.flag_id].name
                   if sf.flag_id in flag_type_by_id else None),
+            type=(getattr(flag_type_by_id[sf.flag_id], "type", None)
+                  if sf.flag_id in flag_type_by_id else None),
+            value=(getattr(flag_type_by_id[sf.flag_id], "value", None)
+                   if sf.flag_id in flag_type_by_id else None),
             description=(flag_type_by_id[sf.flag_id].description
                          if sf.flag_id in flag_type_by_id else None),
             icon_id=(flag_type_by_id[sf.flag_id].icon_id
@@ -486,6 +492,8 @@ async def resolve_simulation_context(
                     scenario_id=sid,
                     flag_id=flag.id,
                     name=flag.name,
+                    type=getattr(flag, "type", None),
+                    value=getattr(flag, "value", None),
                     description=flag.description,
                     icon_id=flag.icon_id,
                     icon=flag.icon,

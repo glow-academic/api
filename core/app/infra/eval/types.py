@@ -81,6 +81,8 @@ class EvalModelFlagResource(BaseModel):
     id: UUID | None = Field(None, description="Model-flag resource identifier")
     model_id: UUID | None = Field(None, description="Associated model identifier")
     flag_id: UUID | None = Field(None, description="Associated flag identifier")
+    type: str | None = Field(None, description="Flag type (e.g. 'model_active') of the linked flags_resource row")
+    value: bool | None = Field(None, description="Underlying bool value of the linked flags_resource row")
     name: str | None = Field(None, description="Display name")
     description: str | None = Field(None, description="Description text")
     icon: str | None = Field(None, description="Icon identifier")
@@ -88,6 +90,33 @@ class EvalModelFlagResource(BaseModel):
     suggested: bool = Field(False, description="Whether this is a suggested option")
     selected: bool = Field(False, description="Whether this is currently selected")
     pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class EvalModelFlagOptionResource(BaseModel):
+    """Cross-product option row: one per (model_id, flag_type, value) tuple.
+    The ModelFlags picker groups these by (model_id, type) and renders a
+    Switch per group; toggling picks the row whose `value` matches the new
+    state and sends its flag_id (or denormalized {model_id,type,value}) up
+    through the draft endpoint."""
+
+    model_id: UUID | None = Field(None, description="Model identifier")
+    flag_id: UUID | None = Field(None, description="Flag resource identifier (flags_resource row)")
+    type: str | None = Field(None, description="Flag type, e.g. 'model_active'")
+    value: bool | None = Field(None, description="Underlying flag value for this option")
+    name: str | None = Field(None, description="Display name from the flags_resource row")
+    description: str | None = Field(None, description="Description text from the flags_resource row")
+    icon: str | None = Field(None, description="Icon SVG markup hydrated from icons_resource")
+
+
+class EvalModelFlagValue(BaseModel):
+    """Denormalized per-(model, type) selection. Clients send these to update
+    model-flag selections without needing the underlying flag_id; the server
+    resolves (type, value) -> flag_id and upserts the model_flags_resource
+    junction row."""
+
+    model_id: UUID = Field(..., description="Target model identifier")
+    type: str = Field(..., description="Flag type, e.g. 'model_active'")
+    value: bool = Field(..., description="Desired flag value")
 
 
 class EvalModelRubricResource(BaseModel):
@@ -165,7 +194,13 @@ class GetEvalApiResponse(BaseModel):
     flags: list[EvalFlagResource] | None = Field(None, description="Flag resources (one per flags_resource row, value=true/false)")
     departments: list[EvalDepartmentResource] | None = Field(None, description="Department resources")
     models: list[EvalModelResource] | None = Field(None, description="Model resources")
-    model_flags: list[EvalModelFlagResource] | None = Field(None, description="Model flag resources")
+    model_flags: list[EvalModelFlagResource] | None = Field(None, description="Model flag resources (linked junction rows)")
+    model_flag_options: list[EvalModelFlagOptionResource] | None = Field(
+        None,
+        description=(
+            "Cross-product (model x flag-type x value) options for the ModelFlags picker."
+        ),
+    )
     model_rubrics: list[EvalModelRubricResource] | None = Field(None, description="Model rubric resources")
     model_positions: list[EvalModelPositionResource] | None = Field(None, description="Model position resources")
     rubrics: list[EvalRubricResource] | None = Field(None, description="Top-level rubric catalog for the ModelRubrics picker")
@@ -243,8 +278,7 @@ class CreateEvalItem(ScopedItem):
         "model_flag_ids": "model_flags",
         "model_rubric_ids": "model_rubrics",
         "model_position_ids": "model_positions",
-        "active_flag": "flags",
-        "active_flag_id": "flags",
+        "active": "flags",
     }
 
     id: UUID | None = Field(None, description="Optional pre-assigned UUID")
@@ -264,9 +298,8 @@ class CreateEvalItem(ScopedItem):
     model_flag_ids: list[UUID] | None = Field(None, description="Model flag UUIDs")
     model_rubric_ids: list[UUID] | None = Field(None, description="Model rubric UUIDs")
     model_position_ids: list[UUID] | None = Field(None, description="Model position UUIDs")
-    # Value-based fields for CSV import (match-by-name resolution)
-    active_flag: bool | None = Field(None, description="Whether this eval is active")
-    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
+    # Denormalized bool — resolved to a flag_ids entry server-side.
+    active: bool | None = Field(None, description="Denormalized eval_active flag state; resolved to a flag_ids entry server-side")
 
 
 class CreateEvalApiRequest(BaseModel):
@@ -309,9 +342,8 @@ class UpdateEvalItem(ScopedItem):
     model_flag_ids: list[UUID] | None = Field(None, description="Model flag UUIDs")
     model_rubric_ids: list[UUID] | None = Field(None, description="Model rubric UUIDs")
     model_position_ids: list[UUID] | None = Field(None, description="Model position UUIDs")
-    # Value-based fields for CSV import (match-by-name resolution)
-    active_flag: bool | None = Field(None, description="Whether this eval is active")
-    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
+    # Denormalized bool — resolved to a flag_ids entry server-side.
+    active: bool | None = Field(None, description="Denormalized eval_active flag state; resolved to a flag_ids entry server-side")
 
 
 class UpdateEvalApiRequest(BaseModel):
@@ -406,6 +438,8 @@ class PatchEvalDraftApiRequest(ScopedItem):
         "department_ids": "departments",
         "model_ids": "models",
         "model_flag_ids": "model_flags",
+        "model_flags": "model_flags",
+        "model_flag_values": "model_flags",
         "model_position_ids": "model_positions",
         "model_rubric_ids": "model_rubrics",
     }
@@ -425,7 +459,24 @@ class PatchEvalDraftApiRequest(ScopedItem):
     departments: list[str] | None = Field(None, description="Department names to resolve")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     model_ids: list[UUID] | None = Field(None, description="Model UUIDs")
-    model_flag_ids: list[UUID] | None = Field(None, description="Model flag UUIDs")
+    model_flag_ids: list[UUID] | None = Field(None, description="Model flag UUIDs (canonical junction-row ids)")
+    model_flags: list[dict] | None = Field(
+        None,
+        description=(
+            "Inline-create shape for model_flags junction rows: list of "
+            "{model_id, flag_id} (id=null entries). Resolver upserts the "
+            "junction row and merges the id into model_flag_ids."
+        ),
+    )
+    model_flag_values: list[EvalModelFlagValue] | None = Field(
+        None,
+        description=(
+            "Denormalized per-(model, type) selections. For each entry the "
+            "server resolves (type, value) -> flag_id via search_flags, "
+            "then upserts a model_flags_resource row for (model_id, flag_id) "
+            "and merges its id into model_flag_ids."
+        ),
+    )
     model_position_ids: list[UUID] | None = Field(None, description="Model position UUIDs")
     model_rubric_ids: list[UUID] | None = Field(None, description="Model rubric UUIDs")
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep inactive on the draft")
@@ -445,6 +496,10 @@ class DraftFormState(BaseModel):
     department_ids: list[UUID] = Field(default_factory=list, description="Selected department UUIDs")
     model_ids: list[UUID] = Field(default_factory=list, description="Selected model UUIDs")
     model_flag_ids: list[UUID] = Field(default_factory=list, description="Selected model flag UUIDs")
+    model_flag_values: list[EvalModelFlagValue] = Field(
+        default_factory=list,
+        description="Denormalized (model_id, type, value) echo derived from model_flag_ids",
+    )
     model_position_ids: list[UUID] = Field(default_factory=list, description="Selected model position UUIDs")
     model_rubric_ids: list[UUID] = Field(default_factory=list, description="Selected model rubric UUIDs")
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource identifiers")

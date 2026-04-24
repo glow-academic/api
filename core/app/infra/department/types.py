@@ -154,8 +154,8 @@ class CreateDepartmentItem(ScopedItem):
         "name": "names",
         "description_id": "descriptions",
         "description": "descriptions",
-        "active_flag_id": "flags",
-        "active_flag": "flags",
+        "flag_ids": "flags",
+        "active": "flags",
         "settings_ids": "settings",
         "department_ids": "departments",
     }
@@ -169,8 +169,9 @@ class CreateDepartmentItem(ScopedItem):
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="UUID of the description resource")
     description: str | None = Field(None, description="Description value to resolve or create")
-    active_flag_id: UUID | None = Field(None, description="UUID of the active flag option")
-    active_flag: bool | None = Field(None, description="Whether the department is active")
+    # Canonical multi-select flag ids + denormalized boolean for department_active.
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized department_active flag state; resolved to a flag_ids entry server-side")
     # ID-only fields
     settings_ids: list[UUID] | None = Field(None, description="Setting UUIDs to assign")
     department_ids: list[UUID] | None = Field(None, description="Sub-department UUIDs to assign")
@@ -206,8 +207,9 @@ class UpdateDepartmentItem(ScopedItem):
     name: str | None = Field(None, description="Name value to resolve or create")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
     description: str | None = Field(None, description="Description value to resolve or create")
-    active_flag_id: UUID | None = Field(None, description="UUID of the active flag option")
-    active_flag: bool | None = Field(None, description="Whether the department is active")
+    # Canonical multi-select flag ids + denormalized boolean for department_active.
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized department_active flag state; resolved to a flag_ids entry server-side")
     # ID-only fields
     settings_ids: list[UUID] | None = Field(None, description="Setting UUIDs to assign")
     department_ids: list[UUID] | None = Field(None, description="Sub-department UUIDs to assign")

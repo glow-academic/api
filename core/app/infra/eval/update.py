@@ -165,10 +165,6 @@ async def update_eval_impl(
             )
             sync_items.append((evals_resource_id, item))
 
-        combined_flag_ids = list(item.flag_ids or [])
-        if item.active_flag_id:
-            combined_flag_ids.append(item.active_flag_id)
-
         async with pool.acquire() as conn:
             async with conn.transaction():
                 await update_eval_artifact(
@@ -177,7 +173,7 @@ async def update_eval_impl(
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id if item.description_id else _UNSET,
                     department_ids=item.department_ids,
-                    flag_ids=combined_flag_ids or None,
+                    flag_ids=item.flag_ids or None,
                     model_ids=item.model_ids,
                     model_flag_ids=item.model_flag_ids,
                     model_rubric_ids=item.model_rubric_ids,

@@ -12,6 +12,7 @@ from app.infra.permissions_helpers import has_permission
 from app.infra.invocation.refresh import refresh_invocation_impl
 from app.infra.invocation.types import (
     DraftFormState,
+    InvocationModelFlagValue,
     PatchInvocationDraftApiRequest,
     PatchInvocationDraftApiResponse,
     SaveInvocationFieldError,
@@ -21,6 +22,9 @@ from app.tools.entries.invocation_drafts.create import create_invocation_draft
 from app.tools.entries.invocation_drafts.get import get_invocation_drafts
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.search import search_descriptions
+from app.tools.resources.flags.search import search_flags
+from app.tools.resources.model_flags.create import create_model_flag
+from app.tools.resources.model_flags.search import search_model_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
 
@@ -51,6 +55,88 @@ async def _resolve_creatable_values(
             None,
         )
         request.name_id = match.id if match and match.id else (await create_name(conn, request.name, redis)).id
+
+    # Resolver: inline model_flags pairs + denormalized model_flag_values
+    # -> upsert model_flags_resource rows and merge ids into model_flag_ids.
+    if request.model_flags or request.model_flag_values:
+        existing_ids: list[UUID] = list(request.model_flag_ids or [])
+        seen: set[UUID] = set(existing_ids)
+        for entry in request.model_flags or []:
+            model_id = entry.get("model_id") if isinstance(entry, dict) else None
+            flag_id = entry.get("flag_id") if isinstance(entry, dict) else None
+            if not model_id or not flag_id:
+                continue
+            existing = await search_model_flags(
+                conn,
+                redis,
+                limit_count=1,
+                model_ids=[UUID(str(model_id))],
+                flag_ids=[UUID(str(flag_id))],
+                bypass_cache=True,
+            )
+            if existing:
+                jid = existing[0].id
+            else:
+                created = await create_model_flag(
+                    conn,
+                    UUID(str(model_id)),
+                    UUID(str(flag_id)),
+                    redis,
+                )
+                jid = created.id
+            if jid and jid not in seen:
+                existing_ids.append(jid)
+                seen.add(jid)
+
+        if request.model_flag_values:
+            all_flags = await search_flags(
+                conn, redis, search=None, limit_count=200, bypass_cache=True
+            )
+            for entry in request.model_flag_values:
+                desired_type = entry.type
+                desired_value = bool(entry.value)
+                match = next(
+                    (
+                        f
+                        for f in all_flags
+                        if (
+                            getattr(f, "type", None) == desired_type
+                            or getattr(f, "name", None) == desired_type
+                        )
+                        and getattr(f, "value", None) is desired_value
+                    ),
+                    None,
+                )
+                if not match or not match.id:
+                    errors.append(
+                        SaveInvocationFieldError(
+                            field="model_flag_values",
+                            message=(
+                                f"Flag row not found for type={desired_type} "
+                                f"value={desired_value}"
+                            ),
+                        )
+                    )
+                    continue
+                existing = await search_model_flags(
+                    conn,
+                    redis,
+                    limit_count=1,
+                    model_ids=[entry.model_id],
+                    flag_ids=[match.id],
+                    bypass_cache=True,
+                )
+                if existing:
+                    jid = existing[0].id
+                else:
+                    created = await create_model_flag(
+                        conn, entry.model_id, match.id, redis
+                    )
+                    jid = created.id
+                if jid and jid not in seen:
+                    existing_ids.append(jid)
+                    seen.add(jid)
+        request.model_flag_ids = existing_ids
 
     if request.description is not None and request.description_id is None:
         results = await search_descriptions(
@@ -217,6 +303,38 @@ async def patch_invocation_draft_impl(
         operation_key=result.id,
     )
 
+    # Derive the denormalized (model_id, type, value) echo for the form
+    # state so the client can reconcile its Switch state without re-fetching.
+    model_flag_values_echo: list[InvocationModelFlagValue] = []
+    if request.model_flag_ids:
+        from app.tools.resources.flags.get import get_flags
+        from app.tools.resources.model_flags.get import get_model_flags
+
+        async with pool.acquire() as conn:
+            junction_rows = await get_model_flags(
+                conn, list(request.model_flag_ids), redis, bypass_cache=True
+            )
+        flag_ids_needed = [r.flag_id for r in junction_rows if r.flag_id]
+        if flag_ids_needed:
+            async with pool.acquire() as conn:
+                flag_rows = await get_flags(
+                    conn, flag_ids_needed, redis, bypass_cache=True
+                )
+            flags_by_id = {r.id: r for r in flag_rows if getattr(r, "id", None)}
+            for jr in junction_rows:
+                fr = flags_by_id.get(jr.flag_id)
+                if not fr:
+                    continue
+                rtype = getattr(fr, "type", None) or getattr(fr, "name", None)
+                rvalue = getattr(fr, "value", None)
+                if jr.model_id is None or rtype is None or rvalue is None:
+                    continue
+                model_flag_values_echo.append(
+                    InvocationModelFlagValue(
+                        model_id=jr.model_id, type=rtype, value=bool(rvalue)
+                    )
+                )
+
     return PatchInvocationDraftApiResponse(
         success=True,
         draft_id=result.id,
@@ -239,6 +357,7 @@ async def patch_invocation_draft_impl(
             quality_ids=request.quality_ids or [],
             voice_ids=request.voice_ids or [],
             model_flag_ids=request.model_flag_ids or [],
+            model_flag_values=model_flag_values_echo,
             model_position_ids=request.model_position_ids or [],
             model_rubric_ids=request.model_rubric_ids or [],
             pending_ids=request.pending_ids or [],

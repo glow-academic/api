@@ -23,11 +23,13 @@ from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.infra.simulation.permissions import compute_can_draft
 from app.infra.simulation.refresh import refresh_simulation_impl
 from app.infra.simulation.types import (
+    DraftScenarioFlagDenormValue,
     PatchSimulationDraftApiRequest,
     PatchSimulationDraftApiResponse,
     SaveSimulationFieldError,
     SimulationDraftFormState,
 )
+from app.tools.resources.scenario_flags.get import get_scenario_flags
 from app.tools.entries.simulation_drafts.create import (
     create_simulation_draft,
 )
@@ -126,6 +128,45 @@ async def _resolve_creatable_values(
                 )
                 created_ids.append(result.id)
             request.scenario_flag_ids = (request.scenario_flag_ids or []) + created_ids
+
+        # Denormalized scenario_flag_values: (scenario_id, type, value) →
+        # resolve to flag_id via flags_resource, then upsert the junction.
+        if request.scenario_flag_values:
+            all_flag_rows = await search_flags(
+                conn, redis, search=None, limit_count=500, bypass_cache=True
+            )
+            resolved_sf_ids: list[UUID] = list(request.scenario_flag_ids or [])
+            seen_sf = set(resolved_sf_ids)
+            for entry in request.scenario_flag_values:
+                match = next(
+                    (
+                        f
+                        for f in all_flag_rows
+                        if (getattr(f, "type", None) == entry.type
+                            or getattr(f, "name", None) == entry.type)
+                        and getattr(f, "value", None) is entry.value
+                    ),
+                    None,
+                )
+                if not (match and match.id):
+                    errors.append(
+                        SaveSimulationFieldError(
+                            field="scenario_flag_values",
+                            message=(
+                                f"Flag row not found for type={entry.type} "
+                                f"value={entry.value}"
+                            ),
+                        )
+                    )
+                    continue
+                # Upsert the (scenario_id, flag_id) junction row.
+                sf_result = await create_scenario_flag(
+                    conn, entry.scenario_id, match.id, redis
+                )
+                if sf_result.id and sf_result.id not in seen_sf:
+                    resolved_sf_ids.append(sf_result.id)
+                    seen_sf.add(sf_result.id)
+            request.scenario_flag_ids = resolved_sf_ids
 
         if request.scenario_positions:
             created_ids = []
@@ -314,6 +355,7 @@ async def patch_simulation_draft_impl(
                 "scenario_ids",
                 "scenario_flag_ids",
                 "scenario_flags",
+                "scenario_flag_values",
                 "scenario_position_ids",
                 "scenario_positions",
                 "scenario_rubric_ids",
@@ -408,6 +450,36 @@ async def patch_simulation_draft_impl(
             if field:
                 echoed_bools[field] = getattr(row, "value", None)
 
+    # Echo scenario_flag_values from the final scenario_flag_ids: look up
+    # each junction row → flag_id → flags_resource (type, value).
+    scenario_flag_values_echo: list[DraftScenarioFlagDenormValue] = []
+    if request.scenario_flag_ids:
+        async with pool.acquire() as conn:
+            sf_rows = await get_scenario_flags(
+                conn, list(request.scenario_flag_ids), redis, bypass_cache=True
+            )
+            flag_rows = await search_flags(
+                conn, redis, search=None, limit_count=500, bypass_cache=True
+            )
+        flag_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+        for sf_row in sf_rows:
+            flag_id = getattr(sf_row, "flag_id", None)
+            scenario_id = getattr(sf_row, "scenario_id", None)
+            if not (flag_id and scenario_id):
+                continue
+            fr = flag_by_id.get(flag_id)
+            if not fr:
+                continue
+            ftype = getattr(fr, "type", None) or getattr(fr, "name", None)
+            fval = getattr(fr, "value", None)
+            if ftype is None or fval is None:
+                continue
+            scenario_flag_values_echo.append(
+                DraftScenarioFlagDenormValue(
+                    scenario_id=scenario_id, type=ftype, value=bool(fval)
+                )
+            )
+
     form_state = SimulationDraftFormState(
         name_id=request.name_id,
         name=request.name,
@@ -419,6 +491,7 @@ async def patch_simulation_draft_impl(
         department_ids=request.department_ids or [],
         scenario_ids=request.scenario_ids or [],
         scenario_flag_ids=request.scenario_flag_ids or [],
+        scenario_flag_values=scenario_flag_values_echo,
         scenario_position_ids=request.scenario_position_ids or [],
         scenario_rubric_ids=request.scenario_rubric_ids or [],
         scenario_time_limit_ids=request.scenario_time_limit_ids or [],

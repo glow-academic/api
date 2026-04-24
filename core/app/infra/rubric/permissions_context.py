@@ -123,7 +123,7 @@ async def resolve_rubric_values(
 
     For 'create' resources (name, description):
       Creates a new resource via the create tool.
-    For 'match' resources (departments, active_flag):
+    For 'match' resources (departments, flag_ids via denorm bools):
       Searches by name via the search tool, matches exact (case-insensitive).
 
     Returns a list of errors (empty if all resolved).
@@ -144,50 +144,50 @@ async def resolve_rubric_values(
 
     # --- Match resources ---
 
-    if item.active_flag is not None and item.active_flag_id is None:
-        results = await search_flags(
+    # Canonical: resolve denormalized booleans (active, simulation_rubric,
+    # video_rubric) to flag_ids entries via (type, value) lookup in
+    # flags_resource. Explicit flag_ids retained verbatim.
+    denorm_flag_values: dict[str, bool] = {}
+    if getattr(item, "active", None) is not None:
+        denorm_flag_values["rubric_active"] = bool(item.active)
+    if getattr(item, "simulation_rubric", None) is not None:
+        denorm_flag_values["simulation_rubric"] = bool(item.simulation_rubric)
+    if getattr(item, "video_rubric", None) is not None:
+        denorm_flag_values["video_rubric"] = bool(item.video_rubric)
+    if denorm_flag_values:
+        all_flags = await search_flags(
             conn,
             redis,
             search=None,
-            flag_type="rubric_active",
-            limit_count=100,
+            limit_count=1000,
+            bypass_cache=True,
         )
-        match = next((r for r in results if r.type == "rubric_active" and r.value is True), None)
-        if match and match.id:
-            if item.active_flag:
-                item.active_flag_id = match.id
-        elif item.active_flag:
-            errors.append(
-                RubricFieldError(
-                    field="active_flag", message="Active flag resource not found"
-                )
+        resolved_flag_ids: list[UUID] = list(item.flag_ids or [])
+        resolved_seen = set(resolved_flag_ids)
+        for flag_type, desired_value in denorm_flag_values.items():
+            match = next(
+                (
+                    f
+                    for f in all_flags
+                    if (
+                        getattr(f, "type", None) == flag_type
+                        or getattr(f, "name", None) == flag_type
+                    )
+                    and getattr(f, "value", None) is desired_value
+                ),
+                None,
             )
-
-    if item.simulation_rubric_flag is not None and item.simulation_rubric_flag_id is None:
-        results = await search_flags(conn, redis, search=None, flag_type="simulation_rubric", limit_count=1000)
-        match = next((f for f in results if f.type == "simulation_rubric" and f.value is True), None)
-        if match and match.id:
-            if item.simulation_rubric_flag:
-                item.simulation_rubric_flag_id = match.id
-        elif item.simulation_rubric_flag:
-            errors.append(
-                RubricFieldError(
-                    field="simulation_rubric_flag", message="Simulation rubric flag resource not found"
+            if match and match.id and match.id not in resolved_seen:
+                resolved_flag_ids.append(match.id)
+                resolved_seen.add(match.id)
+            elif not match:
+                errors.append(
+                    RubricFieldError(
+                        field=flag_type,
+                        message=f"Flag row not found for type={flag_type} value={desired_value}",
+                    )
                 )
-            )
-
-    if item.video_rubric_flag is not None and item.video_rubric_flag_id is None:
-        results = await search_flags(conn, redis, search=None, flag_type="video_rubric", limit_count=1000)
-        match = next((f for f in results if f.type == "video_rubric" and f.value is True), None)
-        if match and match.id:
-            if item.video_rubric_flag:
-                item.video_rubric_flag_id = match.id
-        elif item.video_rubric_flag:
-            errors.append(
-                RubricFieldError(
-                    field="video_rubric_flag", message="Video rubric flag resource not found"
-                )
-            )
+        item.flag_ids = resolved_flag_ids
 
     # Pass points — resolve scalar value to a pass-type Points resource ID.
     # Total points are computed on read from standards and never written here.

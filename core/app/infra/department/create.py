@@ -134,7 +134,7 @@ async def create_department_impl(
                     name_id=item.name_id,
                     description_id=item.description_id,
                     department_ids=[snapshot_ids[idx]] if snapshot_ids else None,
-                    flag_ids=[item.active_flag_id] if item.active_flag_id else None,
+                    flag_ids=list(item.flag_ids) if item.flag_ids else None,
                     settings_ids=item.settings_ids,
                     soft=soft,
                 )

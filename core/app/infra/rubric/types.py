@@ -192,12 +192,10 @@ class CreateRubricItem(ScopedItem):
         "name": "names",
         "description_id": "descriptions",
         "description": "descriptions",
-        "active_flag_id": "flags",
-        "active_flag": "flags",
-        "simulation_rubric_flag": "flags",
-        "simulation_rubric_flag_id": "flags",
-        "video_rubric_flag": "flags",
-        "video_rubric_flag_id": "flags",
+        "flag_ids": "flags",
+        "active": "flags",
+        "simulation_rubric": "flags",
+        "video_rubric": "flags",
         "department_ids": "departments",
         "departments": "departments",
         "pass_points_id": "points",
@@ -215,12 +213,13 @@ class CreateRubricItem(ScopedItem):
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="Description resource UUID")
     description: str | None = Field(None, description="Description value for resolution")
-    active_flag_id: UUID | None = Field(None, description="Active flag option UUID")
-    active_flag: bool | None = Field(None, description="Active flag boolean value")
-    simulation_rubric_flag: bool | None = Field(None, description="Whether this is a simulation rubric")
-    simulation_rubric_flag_id: UUID | None = Field(None, description="Simulation rubric flag resource UUID")
-    video_rubric_flag: bool | None = Field(None, description="Whether this is a video rubric")
-    video_rubric_flag_id: UUID | None = Field(None, description="Video rubric flag resource UUID")
+    # Canonical flag state — ids of selected flag-resource rows spanning
+    # rubric_active, simulation_rubric, video_rubric. Denormalized booleans
+    # below are resolved to flag_ids entries server-side.
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized rubric_active flag state; resolved to a flag_ids entry server-side")
+    simulation_rubric: bool | None = Field(None, description="Denormalized simulation_rubric flag state; resolved to a flag_ids entry server-side")
+    video_rubric: bool | None = Field(None, description="Denormalized video_rubric flag state; resolved to a flag_ids entry server-side")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for resolution")
@@ -262,12 +261,13 @@ class UpdateRubricItem(ScopedItem):
     name: str | None = Field(None, description="Name value for resolution")
     description_id: UUID | None = Field(None, description="Description resource UUID")
     description: str | None = Field(None, description="Description value for resolution")
-    active_flag_id: UUID | None = Field(None, description="Active flag option UUID")
-    active_flag: bool | None = Field(None, description="Active flag boolean value")
-    simulation_rubric_flag: bool | None = Field(None, description="Whether this is a simulation rubric")
-    simulation_rubric_flag_id: UUID | None = Field(None, description="Simulation rubric flag resource UUID")
-    video_rubric_flag: bool | None = Field(None, description="Whether this is a video rubric")
-    video_rubric_flag_id: UUID | None = Field(None, description="Video rubric flag resource UUID")
+    # Canonical flag state — ids of selected flag-resource rows spanning
+    # rubric_active, simulation_rubric, video_rubric. Denormalized booleans
+    # below are resolved to flag_ids entries server-side.
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized rubric_active flag state; resolved to a flag_ids entry server-side")
+    simulation_rubric: bool | None = Field(None, description="Denormalized simulation_rubric flag state; resolved to a flag_ids entry server-side")
+    video_rubric: bool | None = Field(None, description="Denormalized video_rubric flag state; resolved to a flag_ids entry server-side")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for resolution")

@@ -210,7 +210,7 @@ async def update_persona_impl(
                     else _UNSET,
                     department_ids=item.department_ids,
                     example_ids=item.example_ids,
-                    flag_ids=[item.active_flag_id] if item.active_flag_id else None,
+                    flag_ids=item.flag_ids or None,
                     parameter_field_ids=item.parameter_field_ids,
                     persona_ids=[personas_resource_id] if personas_resource_id else None,
                     voice_ids=item.voice_ids,

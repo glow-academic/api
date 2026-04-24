@@ -13,6 +13,7 @@ from app.infra.eval.permissions import compute_can_draft
 from app.infra.eval.refresh import refresh_eval_impl
 from app.infra.eval.types import (
     DraftFormState,
+    EvalModelFlagValue,
     PatchEvalDraftApiRequest,
     PatchEvalDraftApiResponse,
     SaveEvalFieldError,
@@ -24,6 +25,8 @@ from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.search import search_flags
+from app.tools.resources.model_flags.create import create_model_flag
+from app.tools.resources.model_flags.search import search_model_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
 
@@ -116,6 +119,106 @@ async def _resolve_creatable_values(
                     )
                 )
         request.flag_ids = resolved_flag_ids
+
+    # Denormalized model-flag entries -> junction-row IDs.
+    # Two input shapes resolve here:
+    #   * request.model_flags: [{model_id, flag_id}] inline-create pairs
+    #   * request.model_flag_values: [{model_id, type, value}] denormalized
+    # For each, find/create the matching model_flags_resource row and merge
+    # its id into request.model_flag_ids (dedup).
+    if request.model_flags or request.model_flag_values:
+        existing_ids: list[UUID] = list(request.model_flag_ids or [])
+        seen_junction_ids: set[UUID] = set(existing_ids)
+
+        # Inline (model_id, flag_id) pairs: upsert junction row.
+        for entry in request.model_flags or []:
+            model_id = entry.get("model_id") if isinstance(entry, dict) else None
+            flag_id = entry.get("flag_id") if isinstance(entry, dict) else None
+            if not model_id or not flag_id:
+                continue
+            existing = await search_model_flags(
+                conn,
+                redis,
+                limit_count=1,
+                model_ids=[UUID(str(model_id))],
+                flag_ids=[UUID(str(flag_id))],
+                bypass_cache=True,
+                eval=True,
+            )
+            if existing:
+                jid = existing[0].id
+            else:
+                created = await create_model_flag(
+                    conn,
+                    UUID(str(model_id)),
+                    UUID(str(flag_id)),
+                    redis,
+                )
+                jid = created.id
+            if jid and jid not in seen_junction_ids:
+                existing_ids.append(jid)
+                seen_junction_ids.add(jid)
+
+        # Denormalized (model_id, type, value) entries: resolve (type, value)
+        # -> flag_id first, then upsert the junction.
+        if request.model_flag_values:
+            all_flags = await search_flags(
+                conn,
+                redis,
+                search=None,
+                limit_count=200,
+                bypass_cache=True,
+            )
+            for entry in request.model_flag_values:
+                desired_type = entry.type
+                desired_value = bool(entry.value)
+                match = next(
+                    (
+                        f
+                        for f in all_flags
+                        if (
+                            getattr(f, "type", None) == desired_type
+                            or getattr(f, "name", None) == desired_type
+                        )
+                        and getattr(f, "value", None) is desired_value
+                    ),
+                    None,
+                )
+                if not match or not match.id:
+                    errors.append(
+                        SaveEvalFieldError(
+                            field="model_flag_values",
+                            message=(
+                                f"Flag row not found for type={desired_type} "
+                                f"value={desired_value}"
+                            ),
+                        )
+                    )
+                    continue
+                existing = await search_model_flags(
+                    conn,
+                    redis,
+                    limit_count=1,
+                    model_ids=[entry.model_id],
+                    flag_ids=[match.id],
+                    bypass_cache=True,
+                    eval=True,
+                )
+                if existing:
+                    jid = existing[0].id
+                else:
+                    created = await create_model_flag(
+                        conn,
+                        entry.model_id,
+                        match.id,
+                        redis,
+                    )
+                    jid = created.id
+                if jid and jid not in seen_junction_ids:
+                    existing_ids.append(jid)
+                    seen_junction_ids.add(jid)
+
+        request.model_flag_ids = existing_ids
 
     if request.departments is not None and request.department_ids is None:
         all_departments = await search_departments(
@@ -289,6 +392,42 @@ async def patch_eval_draft_impl(
             if rtype == "eval_active":
                 echoed_active = rval
 
+    # Re-derive denormalized (model_id, type, value) echo from the final
+    # model_flag_ids so the client can reconcile its per-(model, type) Switch
+    # state with what the server actually persisted.
+    model_flag_values_echo: list[EvalModelFlagValue] = []
+    if request.model_flag_ids:
+        async with pool.acquire() as conn:
+            from app.tools.resources.model_flags.get import get_model_flags
+
+            junction_rows = await get_model_flags(
+                conn, list(request.model_flag_ids), redis, bypass_cache=True
+            )
+        flag_ids_needed = [
+            r.flag_id for r in junction_rows if getattr(r, "flag_id", None)
+        ]
+        if flag_ids_needed:
+            async with pool.acquire() as conn:
+                from app.tools.resources.flags.get import get_flags
+
+                flag_rows = await get_flags(
+                    conn, flag_ids_needed, redis, bypass_cache=True
+                )
+            flags_by_id = {row.id: row for row in flag_rows if getattr(row, "id", None)}
+            for jr in junction_rows:
+                fr = flags_by_id.get(getattr(jr, "flag_id", None))
+                if not fr:
+                    continue
+                rtype = getattr(fr, "type", None) or getattr(fr, "name", None)
+                rvalue = getattr(fr, "value", None)
+                if jr.model_id is None or rtype is None or rvalue is None:
+                    continue
+                model_flag_values_echo.append(
+                    EvalModelFlagValue(
+                        model_id=jr.model_id, type=rtype, value=bool(rvalue)
+                    )
+                )
+
     form_state = DraftFormState(
         name_id=request.name_id,
         name=request.name,
@@ -299,6 +438,7 @@ async def patch_eval_draft_impl(
         department_ids=request.department_ids or [],
         model_ids=request.model_ids or [],
         model_flag_ids=request.model_flag_ids or [],
+        model_flag_values=model_flag_values_echo,
         model_position_ids=request.model_position_ids or [],
         model_rubric_ids=request.model_rubric_ids or [],
         pending_ids=request.pending_ids or [],
