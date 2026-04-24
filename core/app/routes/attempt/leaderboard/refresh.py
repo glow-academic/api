@@ -40,11 +40,11 @@ async def leaderboard_refresh(
     result = await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="leaderboard",
+        artifact="attempt",
         profile_id=profile_id,
         session_id=session_id,
         group_id=group_id,
-        operation="refresh",
+        operation="leaderboard_refresh",
         arguments={},
         response_model=RefreshResponse,
         runner=_runner,

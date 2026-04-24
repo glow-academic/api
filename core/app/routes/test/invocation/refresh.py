@@ -43,11 +43,11 @@ async def invocation_refresh(
     result = await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="invocation",
+        artifact="test",
         profile_id=profile_id,
         session_id=session_id,
         group_id=group_id,
-        operation="refresh",
+        operation="invocation_refresh",
         arguments=request.model_dump(mode="json"),
         response_model=RefreshResponse,
         runner=_runner,

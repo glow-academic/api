@@ -465,24 +465,26 @@ async def resolve_setting_context(
 
     async def _search_profile_catalog() -> list[Any]:
         async with pool.acquire() as conn:
+            # setting_profiles_junction is empty for new settings; drop the
+            # artifact filter so the Logins picker sees the full catalog.
             return await search_profiles(
                 conn,
                 redis,
                 search=None,
                 limit_count=500,
                 bypass_cache=bypass_cache,
-                setting=True,
             )
 
     async def _search_auth_catalog() -> list[Any]:
         async with pool.acquire() as conn:
+            # setting_auths_junction is empty for new settings; drop the
+            # artifact filter so the Logins picker sees the full catalog.
             return await search_auths(
                 conn,
                 redis,
                 search=None,
                 limit_count=200,
                 bypass_cache=bypass_cache,
-                setting=True,
             )
 
     async def _search_icon_catalog() -> list[Any]:

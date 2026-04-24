@@ -31,7 +31,7 @@ async def chat_export(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = ChatExportPayload(**data)
     except Exception as e:
-        await internal_sio.emit("chat.export.failed", {
+        await internal_sio.emit("attempt.chat_export.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -62,8 +62,8 @@ async def chat_export(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="chat",
-        operation="export",
+        artifact="attempt",
+        operation="chat_export",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

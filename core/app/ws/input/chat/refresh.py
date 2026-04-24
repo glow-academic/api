@@ -22,8 +22,8 @@ async def chat_refresh(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="chat",
-        operation="refresh",
+        artifact="attempt",
+        operation="chat_refresh",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

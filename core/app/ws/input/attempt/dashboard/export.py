@@ -22,8 +22,8 @@ async def dashboard_export(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="dashboard",
-        operation="export",
+        artifact="attempt",
+        operation="dashboard_export",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

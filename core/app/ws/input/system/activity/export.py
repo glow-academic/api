@@ -22,8 +22,8 @@ async def activity_export(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="activity",
-        operation="export",
+        artifact="system",
+        operation="activity_export",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

@@ -30,8 +30,8 @@ async def reports_refresh(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="reports",
-        operation="refresh",
+        artifact="attempt",
+        operation="reports_refresh",
         profile_id=identity.profile_id,
         session_id=session_id,
         group_id=group_id,

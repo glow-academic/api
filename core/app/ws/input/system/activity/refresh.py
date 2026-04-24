@@ -20,8 +20,8 @@ async def activity_refresh(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="activity",
-        operation="refresh",
+        artifact="system",
+        operation="activity_refresh",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

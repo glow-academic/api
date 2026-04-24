@@ -22,8 +22,8 @@ async def home_export(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="home",
-        operation="export",
+        artifact="attempt",
+        operation="home_export",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

@@ -31,7 +31,7 @@ async def invocation_export(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = InvocationExportPayload(**data)
     except Exception as e:
-        await internal_sio.emit("invocation.export.failed", {
+        await internal_sio.emit("test.invocation_export.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -54,8 +54,8 @@ async def invocation_export(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="invocation",
-        operation="export",
+        artifact="test",
+        operation="invocation_export",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

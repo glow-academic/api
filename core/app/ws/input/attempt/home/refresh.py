@@ -20,8 +20,8 @@ async def home_refresh(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="home",
-        operation="refresh",
+        artifact="attempt",
+        operation="home_refresh",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

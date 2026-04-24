@@ -72,11 +72,11 @@ async def get_group(
         api_response = await run_artifact_operation_with_audit(
             pool,
             redis,
-            artifact="group",
+            artifact="system",
             profile_id=profile_id,
             session_id=session_id,
             group_id=group_id,
-            operation="get",
+            operation="group_get",
             arguments=body_dict,
             bypass_cache=bypass_cache,
             response_model=GetGroupDetailResponse,

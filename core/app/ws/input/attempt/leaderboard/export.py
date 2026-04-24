@@ -20,8 +20,8 @@ async def leaderboard_export(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="leaderboard",
-        operation="export",
+        artifact="attempt",
+        operation="leaderboard_export",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

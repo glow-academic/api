@@ -23,7 +23,7 @@ async def group_audio_download(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = AudioDownloadGroupApiRequest(**data)
     except Exception as e:
-        await internal_sio.emit("group.audio_download.failed", {
+        await internal_sio.emit("system.group_audio_download.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -37,8 +37,8 @@ async def group_audio_download(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="group",
-        operation="audio_download",
+        artifact="system",
+        operation="group_audio_download",
         profile_id=identity.profile_id,
         session_id=identity.session_id,
         sid=sid,

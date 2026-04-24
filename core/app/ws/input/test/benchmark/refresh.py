@@ -20,8 +20,8 @@ async def benchmark_refresh(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="benchmark",
-        operation="refresh",
+        artifact="test",
+        operation="benchmark_refresh",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

@@ -23,7 +23,7 @@ async def group_file_preview(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = FilePreviewGroupApiRequest(**data)
     except Exception as e:
-        await internal_sio.emit("group.file_preview.failed", {
+        await internal_sio.emit("system.group_file_preview.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -37,8 +37,8 @@ async def group_file_preview(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="group",
-        operation="file_preview",
+        artifact="system",
+        operation="group_file_preview",
         profile_id=identity.profile_id,
         session_id=identity.session_id,
         sid=sid,

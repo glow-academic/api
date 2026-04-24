@@ -23,7 +23,7 @@ async def group_text_download(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = TextDownloadGroupApiRequest(**data)
     except Exception as e:
-        await internal_sio.emit("group.text_download.failed", {
+        await internal_sio.emit("system.group_text_download.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -37,8 +37,8 @@ async def group_text_download(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="group",
-        operation="text_download",
+        artifact="system",
+        operation="group_text_download",
         profile_id=identity.profile_id,
         session_id=identity.session_id,
         sid=sid,

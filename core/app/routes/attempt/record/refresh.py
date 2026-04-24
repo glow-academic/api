@@ -40,10 +40,10 @@ async def record_refresh(
     result = await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="record",
+        artifact="attempt",
         profile_id=profile_id,
         session_id=session_id,
-        operation="refresh",
+        operation="record_refresh",
         arguments={},
         response_model=RefreshResponse,
         runner=_runner,

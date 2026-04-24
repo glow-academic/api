@@ -19,7 +19,7 @@ async def dashboard_search(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = ListDashboardRequest(**data)
     except Exception as e:
-        await internal_sio.emit("dashboard.search.failed", {
+        await internal_sio.emit("attempt.dashboard_search.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -33,8 +33,8 @@ async def dashboard_search(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="dashboard",
-        operation="search",
+        artifact="attempt",
+        operation="dashboard_search",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

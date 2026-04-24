@@ -55,10 +55,10 @@ async def generate_benchmark(
         return await run_artifact_operation_with_audit(
             pool,
             redis,
-            artifact="benchmark",
+            artifact="test",
             profile_id=profile_id,
             session_id=session_id,
-            operation="generate",
+            operation="benchmark_generate",
             arguments=request.model_dump(mode="json"),
             response_model=ArtifactGenerateResponse,
             runner=_runner,

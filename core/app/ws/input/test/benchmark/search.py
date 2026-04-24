@@ -24,7 +24,7 @@ async def benchmark_search(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = BenchmarkRequest(**data)
     except Exception as e:
-        await internal_sio.emit("benchmark.search.failed", {
+        await internal_sio.emit("test.benchmark_search.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -38,8 +38,8 @@ async def benchmark_search(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="benchmark",
-        operation="search",
+        artifact="test",
+        operation="benchmark_search",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

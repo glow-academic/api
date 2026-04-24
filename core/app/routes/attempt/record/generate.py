@@ -55,10 +55,10 @@ async def generate_record(
         return await run_artifact_operation_with_audit(
             pool,
             redis,
-            artifact="record",
+            artifact="attempt",
             profile_id=profile_id,
             session_id=session_id,
-            operation="generate",
+            operation="record_generate",
             arguments=request.model_dump(mode="json"),
             response_model=ArtifactGenerateResponse,
             runner=_runner,

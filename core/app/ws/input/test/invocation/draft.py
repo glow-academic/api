@@ -20,7 +20,7 @@ async def invocation_draft(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = PatchInvocationDraftApiRequest(**data)
     except Exception as e:
-        await internal_sio.emit("invocation.draft.failed", {
+        await internal_sio.emit("test.invocation_draft.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -34,8 +34,8 @@ async def invocation_draft(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="invocation",
-        operation="draft",
+        artifact="test",
+        operation="invocation_draft",
         profile_id=identity.profile_id,
         session_id=identity.session_id,
         sid=sid,

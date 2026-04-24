@@ -28,7 +28,7 @@ async def session_get(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = SessionGetPayload(**data)
     except Exception as e:
-        await internal_sio.emit("session.get.failed", {
+        await internal_sio.emit("system.session_get.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -42,8 +42,8 @@ async def session_get(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="session",
-        operation="get",
+        artifact="system",
+        operation="session_get",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

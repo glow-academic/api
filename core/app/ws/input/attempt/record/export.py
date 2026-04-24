@@ -28,7 +28,7 @@ async def record_export(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = RecordExportPayload(**data)
     except Exception as e:
-        await internal_sio.emit("record.export.failed", {
+        await internal_sio.emit("attempt.record_export.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -42,8 +42,8 @@ async def record_export(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="record",
-        operation="export",
+        artifact="attempt",
+        operation="record_export",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

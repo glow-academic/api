@@ -54,8 +54,8 @@ async def resolve_problem(
         response_data = await run_artifact_operation_with_audit(
             pool,
             redis,
-            artifact="activity",
-            operation="resolve",
+            artifact="system",
+            operation="activity_resolve",
             profile_id=profile_id,
             session_id=session_id,
             group_id=group_id,

@@ -40,11 +40,11 @@ async def practice_refresh(
     result = await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="practice",
+        artifact="attempt",
         profile_id=profile_id,
         session_id=session_id,
         group_id=group_id,
-        operation="refresh",
+        operation="practice_refresh",
         arguments={},
         response_model=RefreshResponse,
         runner=_runner,

@@ -61,8 +61,8 @@ async def decrypt_invocation_key(
         response_data = await run_artifact_operation_with_audit(
             pool,
             redis,
-            artifact="invocation",
-            operation="decrypt",
+            artifact="test",
+            operation="invocation_decrypt",
             profile_id=profile_id,
             session_id=session_id,
             group_id=group_id,

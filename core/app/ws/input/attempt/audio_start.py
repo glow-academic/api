@@ -32,7 +32,7 @@ async def attempt_audio_start(sid: str, data: dict[str, Any]) -> dict[str, Any]:
         pool,
         redis,
         artifact="attempt",
-        operation="chat.voice",
+        operation="chat_voice",
         profile_id=identity.profile_id,
         session_id=identity.session_id,
         sid=sid,

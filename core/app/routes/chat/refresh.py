@@ -43,11 +43,11 @@ async def chat_refresh(
     result = await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="chat",
+        artifact="attempt",
         profile_id=profile_id,
         session_id=session_id,
         group_id=group_id,
-        operation="refresh",
+        operation="chat_refresh",
         arguments=request.model_dump(mode="json"),
         response_model=RefreshResponse,
         runner=_runner,

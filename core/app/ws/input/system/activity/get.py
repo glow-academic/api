@@ -20,7 +20,7 @@ async def activity_get(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = ActivityRequest(**data)
     except Exception as e:
-        await internal_sio.emit("activity.get.failed", {
+        await internal_sio.emit("system.activity_get.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -34,8 +34,8 @@ async def activity_get(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="activity",
-        operation="get",
+        artifact="system",
+        operation="activity_get",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

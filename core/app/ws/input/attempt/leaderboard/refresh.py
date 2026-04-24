@@ -20,8 +20,8 @@ async def leaderboard_refresh(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="leaderboard",
-        operation="refresh",
+        artifact="attempt",
+        operation="leaderboard_refresh",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

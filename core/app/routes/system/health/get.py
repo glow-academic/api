@@ -58,11 +58,11 @@ async def get_health(
         result = await run_artifact_operation_with_audit(
             pool,
             redis,
-            artifact="health",
+            artifact="system",
             profile_id=profile_id,
             session_id=session_id,
             group_id=group_id,
-            operation="get",
+            operation="health_get",
             arguments=request.model_dump(mode="json"),
             bypass_cache=bypass_cache,
             response_model=HealthResponse,

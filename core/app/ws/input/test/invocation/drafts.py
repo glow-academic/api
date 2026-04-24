@@ -20,8 +20,8 @@ async def invocation_drafts(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="invocation",
-        operation="drafts",
+        artifact="test",
+        operation="invocation_drafts",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

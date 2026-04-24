@@ -31,7 +31,7 @@ async def attempt_audio_stop(sid: str, data: dict[str, Any]) -> None:
         pool,
         redis,
         artifact="attempt",
-        operation="chat.silence",
+        operation="chat_silence",
         profile_id=identity.profile_id,
         session_id=identity.session_id,
         sid=sid,

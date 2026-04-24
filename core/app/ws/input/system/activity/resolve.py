@@ -29,7 +29,7 @@ async def activity_resolve(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = ActivityResolvePayload(**data)
     except Exception as e:
-        await internal_sio.emit("activity.resolve.failed", {
+        await internal_sio.emit("system.activity_resolve.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -43,8 +43,8 @@ async def activity_resolve(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="activity",
-        operation="resolve",
+        artifact="system",
+        operation="activity_resolve",
         profile_id=identity.profile_id,
         session_id=identity.session_id,
         sid=sid,

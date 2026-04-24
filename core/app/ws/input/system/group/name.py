@@ -22,8 +22,8 @@ async def group_name(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="group",
-        operation="name",
+        artifact="system",
+        operation="group_name",
         profile_id=identity.profile_id,
         session_id=identity.session_id,
         group_id=group_id,

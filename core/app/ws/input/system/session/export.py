@@ -28,7 +28,7 @@ async def session_export(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = SessionExportPayload(**data)
     except Exception as e:
-        await internal_sio.emit("session.export.failed", {
+        await internal_sio.emit("system.session_export.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -42,8 +42,8 @@ async def session_export(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="session",
-        operation="export",
+        artifact="system",
+        operation="session_export",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

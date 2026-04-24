@@ -21,7 +21,7 @@ async def reports_get(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = ReportsRequest(**data)
     except Exception as e:
-        await internal_sio.emit("reports.get.failed", {
+        await internal_sio.emit("attempt.reports_get.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -44,8 +44,8 @@ async def reports_get(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="reports",
-        operation="get",
+        artifact="attempt",
+        operation="reports_get",
         profile_id=identity.profile_id,
         session_id=session_id,
         group_id=group_id,

@@ -40,11 +40,11 @@ async def activity_refresh(
     result = await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="activity",
+        artifact="system",
         profile_id=profile_id,
         session_id=session_id,
         group_id=group_id,
-        operation="refresh",
+        operation="activity_refresh",
         arguments={},
         response_model=RefreshResponse,
         runner=_runner,

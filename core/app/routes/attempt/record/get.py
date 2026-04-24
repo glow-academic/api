@@ -62,11 +62,11 @@ async def get_record(
         api_response = await run_artifact_operation_with_audit(
             pool,
             redis,
-            artifact="record",
+            artifact="attempt",
             profile_id=profile_id,
             session_id=session_id,
             group_id=group_id,
-            operation="get",
+            operation="record_get",
             arguments=request.model_dump(mode="json"),
             bypass_cache=bypass_cache,
             response_model=DashboardBundleResponse,

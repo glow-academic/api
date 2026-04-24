@@ -20,7 +20,7 @@ async def health_get(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = HealthRequest(**data)
     except Exception as e:
-        await internal_sio.emit("health.get.failed", {
+        await internal_sio.emit("system.health_get.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -34,8 +34,8 @@ async def health_get(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="health",
-        operation="get",
+        artifact="system",
+        operation="health_get",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

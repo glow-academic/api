@@ -28,7 +28,7 @@ async def group_export(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = GroupExportPayload(**data)
     except Exception as e:
-        await internal_sio.emit("group.export.failed", {
+        await internal_sio.emit("system.group_export.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -42,8 +42,8 @@ async def group_export(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="group",
-        operation="export",
+        artifact="system",
+        operation="group_export",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

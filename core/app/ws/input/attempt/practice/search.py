@@ -36,7 +36,7 @@ async def practice_search(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = PracticeSearchPayload(**data)
     except Exception as e:
-        await internal_sio.emit("practice.search.failed", {
+        await internal_sio.emit("attempt.practice_search.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -50,8 +50,8 @@ async def practice_search(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="practice",
-        operation="search",
+        artifact="attempt",
+        operation="practice_search",
         profile_id=identity.profile_id,
         sid=sid,
         rooms=[sid],

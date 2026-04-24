@@ -20,7 +20,7 @@ async def invocation_get(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = GetSuiteRequest(**data)
     except Exception as e:
-        await internal_sio.emit("invocation.get.failed", {
+        await internal_sio.emit("test.invocation_get.failed", {
             "sid": sid,
             "rooms": [sid],
             "message": str(e),
@@ -34,8 +34,8 @@ async def invocation_get(sid: str, data: dict[str, Any]) -> None:
     await run_artifact_operation_with_audit(
         pool,
         redis,
-        artifact="invocation",
-        operation="get",
+        artifact="test",
+        operation="invocation_get",
         profile_id=identity.profile_id,
         session_id=identity.session_id,
         draft_id=payload.draft_id,

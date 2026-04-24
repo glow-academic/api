@@ -58,11 +58,11 @@ async def get_dashboard(
         response_data = await run_artifact_operation_with_audit(
             pool,
             redis,
-            artifact="dashboard",
+            artifact="attempt",
             profile_id=profile_id,
             session_id=session_id,
             group_id=group_id,
-            operation="get",
+            operation="dashboard_get",
             arguments=request.model_dump(mode="json"),
             bypass_cache=bypass_cache,
             response_model=DashboardBundleResponse,

@@ -65,11 +65,11 @@ async def chat_get(
         return await run_artifact_operation_with_audit(
             pool,
             redis,
-            artifact="chat",
+            artifact="attempt",
             profile_id=cast(UUID, profile_id),
             session_id=cast(UUID, session_id),
             group_id=group_id,
-            operation="get",
+            operation="chat_get",
             arguments=request.model_dump(mode="json"),
             bypass_cache=bypass_cache,
             response_model=GetChatResponse,
