@@ -247,7 +247,7 @@ jobs:
           if docker compose ps database --format '{{.Status}}' 2>/dev/null | grep -q "Up"; then
             echo "Creating pre-deploy backup..."
             docker compose exec -T database pg_dump \
-              -U ${DB_USER:-myuser} -d ${DB_NAME:-glowapi} \
+              -U ${DB_USER:-myuser} -d glowapi \
               --no-owner --no-privileges --exclude-schema=keycloak \
               | gzip > /tmp/pre-deploy-backup.sql.gz
             docker compose cp /tmp/pre-deploy-backup.sql.gz database:/database/history/backup-deploy-$(date +%Y%m%d-%H%M%S).sql.gz

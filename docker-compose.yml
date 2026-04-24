@@ -30,7 +30,7 @@ services:
     environment:
       - POSTGRES_USER=${DB_USER:-myuser}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-mypassword}
-      - POSTGRES_DB=${DB_NAME:-glowapi}
+      - POSTGRES_DB=glowapi
       - HISTORY_DIR=/database/history
       - DB_BACKUP=${DB_BACKUP:-}
     volumes:
@@ -45,8 +45,8 @@ services:
         if [ -n "${DB_BACKUP:-}" ] && [ ! -f /var/lib/postgresql/.restore_complete ]; then
           exit 1
         fi &&
-        pg_isready -U ${DB_USER:-myuser} -d ${DB_NAME:-glowapi} &&
-        psql -U ${DB_USER:-myuser} -d ${DB_NAME:-glowapi} -tc 'SELECT 1' >/dev/null 2>&1
+        pg_isready -U ${DB_USER:-myuser} -d glowapi &&
+        psql -U ${DB_USER:-myuser} -d glowapi -tc 'SELECT 1' >/dev/null 2>&1
       interval: 5s
       timeout: 5s
       retries: 15
@@ -79,7 +79,7 @@ services:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://database:5432/${DB_NAME:-glowapi}?currentSchema=keycloak
+      KC_DB_URL: jdbc:postgresql://database:5432/glowapi?currentSchema=keycloak
       KC_DB_USERNAME: ${DB_USER:-myuser}
       KC_DB_PASSWORD: ${DB_PASSWORD:-mypassword}
       KC_DB_SCHEMA: keycloak
@@ -121,7 +121,7 @@ services:
     image: edoburu/pgbouncer:latest
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgres://${DB_USER:-myuser}:${DB_PASSWORD:-mypassword}@database:5432/${DB_NAME:-glowapi}
+      - DATABASE_URL=postgres://${DB_USER:-myuser}:${DB_PASSWORD:-mypassword}@database:5432/glowapi
       - POOL_MODE=session
       - MAX_CLIENT_CONN=1000
       - DEFAULT_POOL_SIZE=25
@@ -191,7 +191,7 @@ services:
     environment:
       - DB_USER=${DB_USER:-myuser}
       - DB_PASSWORD=${DB_PASSWORD:-mypassword}
-      - DB_NAME=${DB_NAME:-glowapi}
+      - DB_NAME=glowapi
       - DB_PORT=5432
       - DB_HOST=pgbouncer
       - PGPOOL_MODE=session
@@ -250,7 +250,7 @@ services:
     environment:
       - DB_USER=${DB_USER:-myuser}
       - DB_PASSWORD=${DB_PASSWORD:-mypassword}
-      - DB_NAME=${DB_NAME:-glowapi}
+      - DB_NAME=glowapi
       - DB_PORT=5432
       - DB_HOST=pgbouncer
       - PGPOOL_MODE=session
@@ -364,7 +364,7 @@ services:
     environment:
       - PGUSER=${DB_USER:-myuser}
       - PGPASSWORD=${DB_PASSWORD:-mypassword}
-      - PGDATABASE=${DB_NAME:-glowapi}
+      - PGDATABASE=glowapi
       - PGHOST=database
       - BACKUP_INTERVAL=${BACKUP_INTERVAL:-604800}
       - BACKUP_RETENTION=${BACKUP_RETENTION:-4}
