@@ -1,4 +1,4 @@
-"""Input: chat.* events."""
+"""Input: attempt.chat.* events."""
 
 from . import (  # noqa: F401
     draft,
@@ -7,4 +7,6 @@ from . import (  # noqa: F401
     get,
     group,
     refresh,
+    silence,
+    voice,
 )

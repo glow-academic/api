@@ -126525,6 +126525,30 @@
             "format": "uuid",
             "title": "Agent Id",
             "description": "Agent identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Optional display name \u2014 defaults to agent.name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Optional description"
           }
         },
         "type": "object",

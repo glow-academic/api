@@ -11,9 +11,9 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from app.infra.websocket.attempt.audio_stop import (
+from app.infra.websocket.attempt.chat.silence import (
     AudioStopInternalResult,
-    attempt_audio_stop_internal_impl,
+    attempt_chat_silence_internal_impl,
 )
 
 router = APIRouter()
@@ -34,7 +34,7 @@ async def chat_silence(
         raise HTTPException(status_code=401, detail="Missing profile")
 
     try:
-        return await attempt_audio_stop_internal_impl(
+        return await attempt_chat_silence_internal_impl(
             {"chat_id": str(request.chat_id)}
         )
     except ValueError as exc:

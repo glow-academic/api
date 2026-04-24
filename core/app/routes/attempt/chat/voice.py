@@ -11,9 +11,9 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from app.infra.websocket.attempt.audio_start import (
+from app.infra.websocket.attempt.chat.voice import (
     AudioStartInternalResult,
-    attempt_audio_start_internal_impl,
+    attempt_chat_voice_internal_impl,
 )
 
 router = APIRouter()
@@ -35,7 +35,7 @@ async def chat_voice(
         raise HTTPException(status_code=401, detail="Missing profile or session")
 
     try:
-        return await attempt_audio_start_internal_impl(
+        return await attempt_chat_voice_internal_impl(
             {
                 "chat_id": str(request.chat_id),
                 "profile_id": str(profile_id),

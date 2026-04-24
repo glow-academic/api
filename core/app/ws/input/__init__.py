@@ -6,8 +6,7 @@ from . import (  # noqa: F401
     test,            # test.* events
     system,          # system.* events
     # attempt sub-artifacts now under ws/input/attempt/
-    # home, practice, dashboard, leaderboard, record, reports
-    chat,            # chat.draft/drafts WS handlers (stays at top-level)
+    # chat, home, practice, dashboard, leaderboard, record, reports
     # test sub-artifacts now under ws/input/test/
     # benchmark → test/benchmark/, invocation → test/invocation/
     # 16 canonical CRUD artifacts

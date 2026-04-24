@@ -2,8 +2,6 @@
 
 from . import (  # noqa: F401
     audio_download,
-    audio_start,
-    audio_stop,
     audio_upload,
     complete,
     export,
@@ -28,6 +26,7 @@ from . import (  # noqa: F401
     text_download,
     video_download,
     # Absorbed sub-modules
+    chat,
     dashboard,
     home,
     leaderboard,

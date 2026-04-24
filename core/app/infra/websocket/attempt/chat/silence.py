@@ -35,7 +35,7 @@ async def attempt_chat_silence_internal_impl(
     """
     chat_id = data.get("chat_id")
     if not chat_id:
-        raise ValueError("Missing chat_id for attempt_audio_stop")
+        raise ValueError("Missing chat_id for attempt_chat_silence")
 
     sid = data.get("sid", "")
 
@@ -45,7 +45,7 @@ async def attempt_chat_silence_internal_impl(
         # already ended or never started. Still return a success result so
         # the client doesn't need to branch on "was there a session?".
         logger.info(
-            f"attempt_audio_stop: no session for chat_id={chat_id} (no-op)"
+            f"attempt_chat_silence: no session for chat_id={chat_id} (no-op)"
         )
         return AudioStopInternalResult(chat_id=str(chat_id), stopped=False)
 

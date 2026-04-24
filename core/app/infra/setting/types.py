@@ -243,6 +243,8 @@ class SettingMcpDraftValue(BaseModel):
 
     id: UUID | None = Field(None, description="Existing mcp_resource id when known")
     agent_id: UUID = Field(..., description="Agent identifier")
+    name: str | None = Field(None, description="Optional display name — defaults to agent.name")
+    description: str | None = Field(None, description="Optional description")
 
 
 class SettingLoginOption(BaseModel):

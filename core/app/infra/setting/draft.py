@@ -295,6 +295,8 @@ async def _resolve_creatable_values(
                     created = await create_mcp(
                         conn,
                         agent_id=value.agent_id,
+                        name=value.name or "",
+                        description=value.description or "",
                         redis=redis,
                     )
                     value.id = created.id
