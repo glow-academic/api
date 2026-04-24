@@ -298,12 +298,43 @@ async def lifespan(app: FastAPI) -> AsyncIterator[Any]:
         except Exception as e:
             logger.warning(f"Keycloak sync error (non-blocking): {e}")
 
-        # Import MCP server for lifespan management
+        # Import MCP server for lifespan management. We register its
+        # __aexit__ via a wrapper that times and bounds the teardown so
+        # we can distinguish a FastMCP hang from other stages.
         from app.infra.mcp import mcp_server as artifacts_resources_mcp_server
 
-        await stack.enter_async_context(
-            artifacts_resources_mcp_server.session_manager.run()
-        )
+        _mcp_ctx = artifacts_resources_mcp_server.session_manager.run()
+        await _mcp_ctx.__aenter__()
+
+        @contextlib.asynccontextmanager
+        async def _timed_mcp_teardown():
+            try:
+                yield
+            finally:
+                import time as __time
+                __start = __time.monotonic()
+                try:
+                    await asyncio.wait_for(
+                        _mcp_ctx.__aexit__(None, None, None),
+                        timeout=10.0,
+                    )
+                    logger.info(
+                        f"[shutdown] mcp session_manager ✓ "
+                        f"({__time.monotonic() - __start:.2f}s)"
+                    )
+                except asyncio.TimeoutError:
+                    logger.error(
+                        f"[shutdown] mcp session_manager HUNG past 10s — "
+                        f"FastMCP streamable-HTTP is holding connections. "
+                        f"Force-continuing; gunicorn will SIGKILL the worker."
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"[shutdown] mcp session_manager errored after "
+                        f"{__time.monotonic() - __start:.2f}s: {e!r}"
+                    )
+
+        await stack.enter_async_context(_timed_mcp_teardown())
 
         # Generate OpenAPI schema and write to disk
         _write_openapi_schema(app)
@@ -348,23 +379,68 @@ async def lifespan(app: FastAPI) -> AsyncIterator[Any]:
 
         yield
 
-        # Stop background tasks
-        reaper_task.cancel()
-        monitor_task.cancel()
-        if expire_task:
-            expire_task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await reaper_task
-            await monitor_task
+        # ── Shutdown instrumentation ───────────────────────────────────────
+        # Every teardown step is timed and hard-capped. If a stage exceeds
+        # its budget the logs show exactly which component is hanging so we
+        # can fix the root cause instead of relying on gunicorn SIGKILL.
+        import time as _time
+
+        async def _timed_shutdown(label: str, coro, budget_s: float = 10.0) -> None:
+            """Await `coro` with a hard timeout; log elapsed + hang diagnosis."""
+            start = _time.monotonic()
+            try:
+                await asyncio.wait_for(coro, timeout=budget_s)
+                logger.info(f"[shutdown] {label} ✓ ({_time.monotonic() - start:.2f}s)")
+            except asyncio.TimeoutError:
+                logger.error(
+                    f"[shutdown] {label} HUNG past {budget_s}s budget — "
+                    f"root-cause target for the 'Waiting for connections to close' freeze"
+                )
+            except Exception as e:
+                logger.error(
+                    f"[shutdown] {label} failed after "
+                    f"{_time.monotonic() - start:.2f}s: {e!r}"
+                )
+
+        logger.info("[shutdown] lifespan exit begin")
+        _shutdown_begin = _time.monotonic()
+
+        # 1. Cancel background tasks and wait for them to finish cancelling
+        async def _drain_bg_tasks() -> None:
+            reaper_task.cancel()
+            monitor_task.cancel()
             if expire_task:
-                await expire_task
+                expire_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await reaper_task
+                await monitor_task
+                if expire_task:
+                    await expire_task
 
-        await close_db_pool()
+        await _timed_shutdown("background tasks", _drain_bg_tasks(), budget_s=5.0)
 
-        if _globals.redis_client:
-            await _globals.redis_client.close()
-            _globals.redis_client = None
-            logger.info("Redis client closed")
+        # 2. Close the asyncpg pool. Should be fast unless a query is
+        # mid-flight (open transaction held by a streaming tool call).
+        await _timed_shutdown("asyncpg pool", close_db_pool(), budget_s=10.0)
+
+        # 3. Close redis client. Normally instant.
+        async def _close_redis() -> None:
+            if _globals.redis_client:
+                await _globals.redis_client.close()
+                _globals.redis_client = None
+
+        await _timed_shutdown("redis client", _close_redis(), budget_s=5.0)
+
+        # 4. The AsyncExitStack (entered at lifespan start) will now exit
+        # MCP session_manager.run() via its __aexit__. This is the most
+        # likely hang source — FastMCP's streamable-HTTP session manager
+        # waits for in-flight client streams to close.
+        logger.info(
+            f"[shutdown] explicit teardown done in "
+            f"{_time.monotonic() - _shutdown_begin:.2f}s; "
+            f"AsyncExitStack will now unwind MCP session_manager "
+            f"(hang here → root cause is FastMCP)"
+        )
 
 
 # ---------------------------------------------------------------------------
