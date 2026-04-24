@@ -337,13 +337,22 @@ async def init_db_pool() -> None:
         "max_inactive_connection_lifetime": 300,
     }
 
-    if using_pgbouncer and pgbouncer_pool_mode == "transaction":
+    if using_pgbouncer:
+        # Disable prepared-statement cache for BOTH pgbouncer pool modes.
+        # Session mode technically supports prepared statements, but
+        # asyncpg caches statement names client-side and pgbouncer can
+        # silently recycle the underlying server connection (idle timeout,
+        # reconnect, etc). When that happens the cached statement no
+        # longer exists on the new server connection and subsequent
+        # asyncpg protocol.prepare() calls stall → TimeoutError. The
+        # smoking-gun trace bottoms out in protocol.pyx:165 in prepare.
+        # Cost of disabling: Postgres re-parses each query (<1ms for
+        # our simple lookups). Benefit: no more phantom timeouts.
         pool_config["statement_cache_size"] = 0
         print(
-            "   ⚙️  PgBouncer detected (transaction mode): Disabling prepared statements"
+            f"   ⚙️  PgBouncer detected ({pgbouncer_pool_mode} mode): "
+            f"Disabling prepared statements"
         )
-    elif using_pgbouncer and pgbouncer_pool_mode == "session":
-        print("   ⚙️  PgBouncer detected (session mode): Using prepared statements")
     else:
         print("   ⚙️  Direct connection: Using prepared statements")
 
