@@ -270,7 +270,6 @@ async def resolve_setting_context(
                 suggest_source="recent" if setting_id else "all",
                 exclude_ids=merged.color_ids,
                 bypass_cache=bypass_cache,
-                setting=True,
             )
 
     async def _get_flags_selected() -> list[Any]:
