@@ -2,8 +2,8 @@
 
 from typing import Any
 
-from app.infra.chat.get import get_chat_impl
-from app.infra.chat.types import GetChatRequest
+from app.infra.attempt.chat.get import get_chat_impl
+from app.infra.attempt.chat.types import GetChatRequest
 from app.infra.globals import get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
 

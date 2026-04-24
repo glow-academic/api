@@ -31,6 +31,8 @@ async def get_profile_drafts(
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = false), '{}') AS pending_name_ids,
             COALESCE(ARRAY_AGG(DISTINCT ro.roles_id) FILTER (WHERE ro.roles_id IS NOT NULL), '{}') AS role_ids
             ,COALESCE(ARRAY_AGG(DISTINCT ro.roles_id) FILTER (WHERE ro.roles_id IS NOT NULL AND ro.active = false), '{}') AS pending_role_ids
+            ,COALESCE(ARRAY_AGG(DISTINCT pd.primary_departments_id) FILTER (WHERE pd.primary_departments_id IS NOT NULL), '{}') AS primary_department_ids
+            ,COALESCE(ARRAY_AGG(DISTINCT pd.primary_departments_id) FILTER (WHERE pd.primary_departments_id IS NOT NULL AND pd.active = false), '{}') AS pending_primary_department_ids
         FROM profile_drafts_entry d
         LEFT JOIN profile_drafts_profiles_connection p ON p.draft_id = d.id
         LEFT JOIN profile_drafts_departments_connection dep ON dep.draft_id = d.id
@@ -38,6 +40,7 @@ async def get_profile_drafts(
         LEFT JOIN profile_drafts_flags_connection f ON f.draft_id = d.id
         LEFT JOIN profile_drafts_names_connection n ON n.draft_id = d.id
         LEFT JOIN profile_drafts_roles_connection ro ON ro.draft_id = d.id
+        LEFT JOIN profile_drafts_primary_departments_connection pd ON pd.draft_id = d.id
         WHERE d.id = ANY($1)
           AND d.active = true
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
@@ -61,11 +64,13 @@ async def get_profile_drafts(
             flag_ids=r["flag_ids"],
             name_ids=r["name_ids"],
             role_ids=r["role_ids"],
+            primary_department_ids=r["primary_department_ids"],
             pending_department_ids=r["pending_department_ids"],
             pending_email_ids=r["pending_email_ids"],
             pending_flag_ids=r["pending_flag_ids"],
             pending_name_ids=r["pending_name_ids"],
             pending_role_ids=r["pending_role_ids"],
+            pending_primary_department_ids=r["pending_primary_department_ids"],
         )
         for r in rows
     ]

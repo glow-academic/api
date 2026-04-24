@@ -5,10 +5,10 @@ from uuid import UUID
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
-from app.infra.chat.export import export_chat_impl
+from app.infra.attempt.chat.export import export_chat_impl
 from app.infra.globals import get_pool, get_redis_client
 from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.infra.chat.types import ExportChatApiResponse
+from app.infra.attempt.chat.types import ExportChatApiResponse
 
 router = APIRouter()
 

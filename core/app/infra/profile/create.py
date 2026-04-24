@@ -12,6 +12,9 @@ from app.infra.profile.permissions_context import (
     create_denormalized_snapshot,
     resolve_profile_values,
 )
+from app.infra.profile.primary_department import (
+    resolve_primary_departments_id,
+)
 from app.infra.profile.refresh import refresh_profile_impl
 from app.infra.profile.types import (
     CreateProfileApiRequest,
@@ -130,10 +133,18 @@ async def create_profile_impl(
                         role_id=item.role_id,
                     )
 
+                primary_departments_id = await resolve_primary_departments_id(
+                    conn,
+                    redis,
+                    departments_id=item.primary_department_id,
+                    soft=soft,
+                )
+
                 result = await create_profile_artifact(
                     conn,
                     id=item.id,
                     name_id=item.name_id,
+                    primary_departments_id=primary_departments_id,
                     department_ids=item.department_ids,
                     flag_ids=item.flag_ids or None,
                     email_ids=item.email_ids,

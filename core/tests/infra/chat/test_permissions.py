@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.infra.chat.permissions import (
+from app.infra.attempt.chat.permissions import (
     compute_bundle_section_show,
     compute_completion_pct,
     compute_mode,

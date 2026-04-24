@@ -104,6 +104,7 @@ class ProfileDraftEntry(BaseModel):
     flag_ids: list[UUID] | None = Field(None, description="Flag option UUIDs in the draft")
     name_ids: list[UUID] | None = Field(None, description="Name resource UUIDs in the draft")
     role_ids: list[UUID] | None = Field(None, description="Role resource UUIDs in the draft")
+    primary_department_ids: list[UUID] | None = Field(None, description="Primary-department resource UUIDs in the draft")
 
 
 class SectionFilter(BaseModel):
@@ -192,6 +193,7 @@ class CreateProfileItem(ScopedItem):
         "departments": "departments",
         "email_ids": "emails",
         "role_id": "roles",
+        "primary_department_id": "departments",
     }
 
     id: UUID | None = Field(None, description="Optional preset UUID for the new profile")
@@ -208,6 +210,8 @@ class CreateProfileItem(ScopedItem):
     departments: list[str] | None = Field(None, description="Department names to resolve")
     email_ids: list[UUID] | None = Field(None, description="Email resource UUIDs")
     role_id: UUID | None = Field(None, description="Role resource UUID")
+    # Single-select primary department — points into departments_resource
+    primary_department_id: UUID | None = Field(None, description="UUID of the department to designate as primary")
 
 
 class CreateProfileApiRequest(BaseModel):
@@ -245,6 +249,7 @@ class UpdateProfileItem(ScopedItem):
     departments: list[str] | None = Field(None, description="Department names to resolve")
     email_ids: list[UUID] | None = Field(None, description="Email resource UUIDs")
     role_id: UUID | None = Field(None, description="Role resource UUID")
+    primary_department_id: UUID | None = Field(None, description="UUID of the department to designate as primary")
 
 
 class UpdateProfileApiRequest(BaseModel):
@@ -330,6 +335,7 @@ class PatchProfileDraftApiRequest(ScopedItem):
         "email_ids": "emails",
         "role": "roles",
         "role_id": "roles",
+        "primary_department_id": "departments",
     }
 
     draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
@@ -349,6 +355,7 @@ class PatchProfileDraftApiRequest(ScopedItem):
     email_ids: list[UUID] | None = Field(None, description="Email resource UUIDs")
     role: str | None = Field(None, description="Role name to resolve")
     role_id: UUID | None = Field(None, description="Role resource UUID")
+    primary_department_id: UUID | None = Field(None, description="UUID of the department to designate as primary")
     pending_ids: list[UUID] | None = Field(None, description="Resources to keep dormant")
     idempotency_key: UUID | None = Field(None, description="Idempotency key for draft writes")
     accept: bool = Field(True, description="Whether to accept the pending draft state")
@@ -367,6 +374,7 @@ class DraftFormState(BaseModel):
     email_ids: list[UUID] = Field(..., description="Assigned email resource UUIDs")
     role: str | None = Field(None, description="Assigned role name")
     role_id: UUID | None = Field(None, description="Assigned role resource UUID")
+    primary_department_id: UUID | None = Field(None, description="Assigned primary department UUID")
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource UUIDs")
 
 

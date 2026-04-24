@@ -29,7 +29,6 @@ class QGetProfileContextV4Department(BaseModel):
     title: str | None = None
     description: str | None = None
     active: bool | None = None
-    is_primary: bool | None = None
 
 
 class QGetProfileContextV4Cohort(BaseModel):

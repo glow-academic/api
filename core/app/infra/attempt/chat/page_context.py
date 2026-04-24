@@ -205,7 +205,7 @@ async def page_context_chat_impl(
 
     # -- Step 4: Evaluate caller permissions ------------------------------------
 
-    from app.infra.chat.permissions import (
+    from app.infra.attempt.chat.permissions import (
         compute_bundle_section_show,
         compute_completion_pct,
         compute_mode,

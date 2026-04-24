@@ -43,7 +43,7 @@ async def upsert_single(
     await conn.execute(
         f"INSERT INTO {table} ({owner_col}, {resource_col}, active, generated, mcp) VALUES ($1, $2, $3, $4, $5) "
         f"ON CONFLICT ON CONSTRAINT {constraint} "
-        f"DO UPDATE SET active = EXCLUDED.active, generated = EXCLUDED.generated, mcp = EXCLUDED.mcp",
+        f"DO UPDATE SET {resource_col} = EXCLUDED.{resource_col}, active = EXCLUDED.active, generated = EXCLUDED.generated, mcp = EXCLUDED.mcp",
         owner_id,
         resource_id,
         is_active,

@@ -37,7 +37,7 @@ async def get_departments(
     rows = await conn.fetch(
         """
         SELECT id, name, description, department_ids, setting_ids,
-               is_primary, created_at, active, mcp, generated
+               created_at, active, mcp, generated
         FROM departments_resource
         WHERE id = ANY($1)
         ORDER BY array_position($1, id)
@@ -52,7 +52,6 @@ async def get_departments(
             description=r["description"],
             department_ids=r["department_ids"] or [],
             setting_ids=r["setting_ids"] or [],
-            is_primary=r["is_primary"],
             created_at=r["created_at"],
             active=r["active"],
             mcp=r["mcp"],

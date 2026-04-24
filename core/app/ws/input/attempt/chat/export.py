@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.attempt.group import group_attempt_impl
-from app.infra.chat.export import export_chat_impl
+from app.infra.attempt.chat.export import export_chat_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity

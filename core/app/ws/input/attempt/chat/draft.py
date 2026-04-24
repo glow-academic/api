@@ -2,8 +2,8 @@
 
 from typing import Any
 
-from app.infra.chat.draft import patch_chat_draft_impl
-from app.infra.chat.types import PatchChatDraftApiRequest
+from app.infra.attempt.chat.draft import patch_chat_draft_impl
+from app.infra.attempt.chat.types import PatchChatDraftApiRequest
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity

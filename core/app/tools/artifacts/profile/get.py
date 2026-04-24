@@ -17,6 +17,12 @@ JUNCTIONS: list[tuple[str, str, str, str]] = [
     ("emails", "profile_emails_junction", "emails_id", "email_ids"),
     ("profiles", "profile_profiles_junction", "profiles_id", "profile_ids"),
     ("roles", "profile_roles_junction", "roles_id", "role_ids"),
+    (
+        "primary_departments",
+        "profile_primary_departments_junction",
+        "primary_departments_id",
+        "primary_department_ids",
+    ),
 ]
 
 
@@ -31,6 +37,7 @@ async def get_profiles(
     emails: bool = False,
     profiles: bool = False,
     roles: bool = False,
+    primary_departments: bool = False,
 ) -> list[GetProfilesResponse]:
     """Get profile artifacts by IDs with optional junction ID fetching."""
     if not ids:
@@ -43,6 +50,7 @@ async def get_profiles(
         "emails": emails,
         "profiles": profiles,
         "roles": roles,
+        "primary_departments": primary_departments,
     }
 
     active_junctions = [

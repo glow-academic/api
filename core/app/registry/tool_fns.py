@@ -267,6 +267,10 @@ RESOURCE_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
         f"{_T}.resources.problem_statements.create",
         "create_problem_statement",
     ),
+    ("create", "primary_departments"): (
+        f"{_T}.resources.primary_departments.create",
+        "create_primary_department",
+    ),
     ("create", "profile_personas"): (
         f"{_T}.resources.profile_personas.create",
         "create_profile_persona",
@@ -431,6 +435,10 @@ RESOURCE_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
         f"{_T}.resources.problem_statements.search",
         "search_problem_statements",
     ),
+    ("search", "primary_departments"): (
+        f"{_T}.resources.primary_departments.search",
+        "search_primary_departments",
+    ),
     ("search", "profile_personas"): (
         f"{_T}.resources.profile_personas.search",
         "search_profile_personas",
@@ -583,6 +591,10 @@ RESOURCE_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
     ("docs", "problem_statements"): (
         f"{_T}.resources.problem_statements.docs",
         "get_problem_statements_docs",
+    ),
+    ("docs", "primary_departments"): (
+        f"{_T}.resources.primary_departments.docs",
+        "get_primary_departments_docs",
     ),
     ("docs", "profile_personas"): (
         f"{_T}.resources.profile_personas.docs",

@@ -37,7 +37,7 @@ from app.infra.home_permissions import (
     format_cohort_names,
 )
 from app.infra.auth.types import AnalyticsFilterFields
-from app.infra.chat.types import (
+from app.infra.attempt.chat.types import (
     ChatSimulationOperational,
     RubricMapping,
     StandardGroupMapping,

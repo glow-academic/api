@@ -209,7 +209,7 @@ async def resolve_chat_context(
     # Resolve mode-scoped parameter_field_ids for persona/document filtering
     mode_pf_ids: list[UUID] | None = None
     if has_template:
-        from app.infra.chat.mode import resolve_mode_parameter_field_ids
+        from app.infra.attempt.chat.mode import resolve_mode_parameter_field_ids
         async with pool.acquire() as conn:
             mode_pf_ids = await resolve_mode_parameter_field_ids(
                 conn, redis,

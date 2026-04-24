@@ -14,8 +14,7 @@ CREATE TABLE public.departments_resource (
     name text,
     description text,
     department_ids uuid[] DEFAULT ARRAY[]::uuid[],
-    setting_ids uuid[] DEFAULT ARRAY[]::uuid[],
-    is_primary boolean DEFAULT false NOT NULL
+    setting_ids uuid[] DEFAULT ARRAY[]::uuid[]
 );
 
 

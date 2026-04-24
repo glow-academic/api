@@ -24,6 +24,9 @@ from app.tools.resources.departments.get import get_departments
 from app.tools.resources.emails.get import get_emails
 from app.tools.resources.names.get import get_names
 from app.tools.resources.permissions.get import get_permissions
+from app.tools.resources.primary_departments.get import (
+    get_primary_departments,
+)
 from app.tools.resources.profiles.get import get_profiles
 from app.tools.resources.request_limits.get import get_request_limits
 from app.tools.resources.roles.get import get_roles
@@ -94,6 +97,7 @@ async def resolve_profile_identity_context(
             emails=True,
             profiles=True,
             flags=True,
+            primary_departments=True,
         )
 
     if not artifacts:
@@ -107,6 +111,7 @@ async def resolve_profile_identity_context(
     department_ids = artifact.department_ids or []
     email_ids = artifact.email_ids or []
     profile_ids = artifact.profile_ids or []
+    primary_department_resource_ids = artifact.primary_department_ids or []
 
     if not profile_ids:
         return None
@@ -143,18 +148,28 @@ async def resolve_profile_identity_context(
         async with pool.acquire() as conn:
             return await get_profiles(conn, profile_ids, redis, bypass_cache)
 
+    async def _get_primary_departments() -> list:
+        if not primary_department_resource_ids:
+            return []
+        async with pool.acquire() as conn:
+            return await get_primary_departments(
+                conn, primary_department_resource_ids, redis, bypass_cache
+            )
+
     (
         names_res,
         roles_res,
         depts_res,
         emails_res,
         profiles_res,
+        primary_depts_res,
     ) = await asyncio.gather(
         _get_names(),
         _get_roles(),
         _get_departments(),
         _get_emails(),
         _get_profiles(),
+        _get_primary_departments(),
     )
 
     # Step 3: extract values
@@ -194,15 +209,19 @@ async def resolve_profile_identity_context(
                 request_limit = rl_items[0].limit
                 request_limit_interval = rl_items[0].interval
 
-    # Primary department: find the one with is_primary=True on the resource
+    # Primary department: read from profile_primary_departments_junction →
+    # primary_departments_resource → departments_resource. settings_id falls
+    # out of the primary department's first setting.
     primary_department_id: UUID | None = None
     settings_id: UUID | None = None
-    for dept in depts_res:
-        if dept.is_primary:
-            primary_department_id = dept.id
-            if dept.setting_ids:
-                settings_id = dept.setting_ids[0]
-            break
+    if primary_depts_res:
+        primary_department_id = primary_depts_res[0].departments_id
+        primary_dept = next(
+            (d for d in depts_res if d.id == primary_department_id),
+            None,
+        )
+        if primary_dept and primary_dept.setting_ids:
+            settings_id = primary_dept.setting_ids[0]
 
     # Primary email: find the one with is_primary=True on the resource
     primary_email: str | None = None

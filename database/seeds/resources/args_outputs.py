@@ -1925,17 +1925,17 @@ SHARED_ARGS_OUTPUTS = {
         name="instructions_id",
         template="{{ instructions_id }}",
     ),
-    "is_primary": dict(
-        id=sid("args_output/is_primary"),
-        args_id=sid("arg/is_primary"),
-        name="is_primary",
-        template="{{ is_primary }}",
-    ),
     "item_ids": dict(
         id=sid("args_output/item_ids"),
         args_id=sid("arg/item_ids"),
         name="item_ids",
         template="{{ item_ids }}",
+    ),
+    "primary_department_id": dict(
+        id=sid("args_output/primary_department_id"),
+        args_id=sid("arg/primary_department_id"),
+        name="primary_department_id",
+        template="{{ primary_department_id }}",
     ),
     "key": dict(
         id=sid("args_output/key"),

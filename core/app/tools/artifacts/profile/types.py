@@ -20,6 +20,7 @@ class GetProfilesResponse(BaseModel):
     email_ids: list[UUID] | None = Field(None, description="Associated email junction IDs")
     profile_ids: list[UUID] | None = Field(None, description="Associated profile junction IDs")
     role_ids: list[UUID] | None = Field(None, description="Associated role junction IDs")
+    primary_department_ids: list[UUID] | None = Field(None, description="Associated primary_departments_resource junction IDs")
 
 
 class CreateProfileResponse(BaseModel):

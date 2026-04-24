@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.auth.types import AnalyticsFacets
-from app.infra.chat.types import (
+from app.infra.attempt.chat.types import (
     ChatSimulationOperational,
     RubricMapping,
     StandardGroupMapping,

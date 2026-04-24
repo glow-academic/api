@@ -686,8 +686,8 @@ tools = [
         name="Department Create",
         description="Create operation for Department",
         permission_ids=[sid("permission/department/create")],
-        args=["name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "settings_ids", "department_ids", "is_primary"],
-        args_outputs=["artifact_department", "operation_create", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "settings_ids", "department_ids", "is_primary"],
+        args=["name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "settings_ids", "department_ids"],
+        args_outputs=["artifact_department", "operation_create", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "settings_ids", "department_ids"],
         instruction_id=_iid("Department Create"),
     ),
     dict(
@@ -1776,8 +1776,8 @@ tools = [
         name="Profile Create",
         description="Create operation for Profile",
         permission_ids=[sid("permission/profile/create")],
-        args=["name_id", "name", "request_limit_id", "active_flag_id", "department_ids", "departments", "email_ids", "role_id"],
-        args_outputs=["artifact_profile", "operation_create", "name_id", "name", "request_limit_id", "active_flag_id", "department_ids", "departments", "email_ids", "role_id"],
+        args=["name_id", "name", "request_limit_id", "active_flag_id", "department_ids", "departments", "email_ids", "role_id", "primary_department_id"],
+        args_outputs=["artifact_profile", "operation_create", "name_id", "name", "request_limit_id", "active_flag_id", "department_ids", "departments", "email_ids", "role_id", "primary_department_id"],
         instruction_id=_iid("Profile Create"),
     ),
     dict(
@@ -1796,8 +1796,8 @@ tools = [
         name="Profile Draft",
         description="Draft operation for Profile",
         permission_ids=[sid("permission/profile/draft")],
-        args=["input_draft_id", "expected_version", "name", "name_id", "email", "request_limit", "active_flag_id", "department_ids", "email_ids", "role_id", "request_limit_ids"],
-        args_outputs=["artifact_profile", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "email", "request_limit", "active_flag_id", "department_ids", "email_ids", "role_id", "request_limit_ids"],
+        args=["input_draft_id", "expected_version", "name", "name_id", "email", "request_limit", "active_flag_id", "department_ids", "email_ids", "role_id", "request_limit_ids", "primary_department_id"],
+        args_outputs=["artifact_profile", "operation_draft", "input_draft_id", "expected_version", "name", "name_id", "email", "request_limit", "active_flag_id", "department_ids", "email_ids", "role_id", "request_limit_ids", "primary_department_id"],
         instruction_id=_iid("Profile Draft"),
     ),
     dict(
@@ -1886,8 +1886,8 @@ tools = [
         name="Profile Update",
         description="Update operation for Profile",
         permission_ids=[sid("permission/profile/update")],
-        args=["profile_id", "name_id", "name", "request_limit_id", "active_flag_id", "department_ids", "departments", "email_ids", "role_id"],
-        args_outputs=["artifact_profile", "operation_update", "profile_id", "name_id", "name", "request_limit_id", "active_flag_id", "department_ids", "departments", "email_ids", "role_id"],
+        args=["profile_id", "name_id", "name", "request_limit_id", "active_flag_id", "department_ids", "departments", "email_ids", "role_id", "primary_department_id"],
+        args_outputs=["artifact_profile", "operation_update", "profile_id", "name_id", "name", "request_limit_id", "active_flag_id", "department_ids", "departments", "email_ids", "role_id", "primary_department_id"],
         instruction_id=_iid("Profile Update"),
     ),
     dict(

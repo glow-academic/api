@@ -10,7 +10,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
-from app.infra.chat.permissions import (
+from app.infra.attempt.chat.permissions import (
     compute_pass_pct,
     compute_score_status,
     compute_show_continue,

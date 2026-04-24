@@ -55,7 +55,6 @@ class RubricDepartmentResource(BaseModel):
     description: str | None = Field(None, description="Department description")
     department_ids: list[UUID] = Field(default_factory=list, description="Associated department identifiers")
     setting_ids: list[UUID] = Field(default_factory=list, description="Associated setting identifiers")
-    is_primary: bool | None = Field(None, description="Whether this is the primary department")
     generated: bool | None = Field(None, description="Whether this was AI-generated")
     suggested: bool = Field(False, description="Whether this is a suggested option")
     selected: bool = Field(False, description="Whether this is currently selected")

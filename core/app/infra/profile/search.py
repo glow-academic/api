@@ -36,6 +36,9 @@ from app.tools.resources.departments.get import get_departments
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.emails.get import get_emails
 from app.tools.resources.names.get import get_names
+from app.tools.resources.primary_departments.get import (
+    get_primary_departments,
+)
 from app.tools.resources.profiles.get import (
     get_profiles as get_profiles_resource,
 )
@@ -140,6 +143,7 @@ async def search_profile_impl(
             emails=True,
             profiles=True,
             roles=True,
+            primary_departments=True,
         )
 
     # -- Step 5: Parallel hydration + facets --
@@ -149,6 +153,7 @@ async def search_profile_impl(
     all_department_ids: list[UUID] = []
     all_role_ids: list[UUID] = []
     all_profile_resource_ids: list[UUID] = []
+    all_primary_department_resource_ids: list[UUID] = []
 
     for a in artifacts:
         all_name_ids.extend(a.name_ids or [])
@@ -156,6 +161,7 @@ async def search_profile_impl(
         all_department_ids.extend(a.department_ids or [])
         all_role_ids.extend(a.role_ids or [])
         all_profile_resource_ids.extend(a.profile_ids or [])
+        all_primary_department_resource_ids.extend(a.primary_department_ids or [])
 
     async def _fetch_names() -> list:
         async with pool.acquire() as conn:
@@ -189,6 +195,12 @@ async def search_profile_impl(
                 conn, redis, search=role_search, profile=True, limit_count=100
             )
 
+    async def _fetch_primary_departments() -> list:
+        async with pool.acquire() as conn:
+            return await get_primary_departments(
+                conn, all_primary_department_resource_ids, redis
+            )
+
     (
         names_data,
         emails_data,
@@ -197,6 +209,7 @@ async def search_profile_impl(
         profiles_resource_data,
         department_facet,
         role_facet,
+        primary_departments_data,
     ) = await asyncio.gather(
         _fetch_names() if all_name_ids else _empty_list(),
         _fetch_emails() if all_email_ids else _empty_list(),
@@ -205,6 +218,7 @@ async def search_profile_impl(
         _fetch_profiles_resource() if all_profile_resource_ids else _empty_list(),
         _fetch_department_facet(),
         _fetch_role_facet(),
+        _fetch_primary_departments() if all_primary_department_resource_ids else _empty_list(),
     )
 
     # Build lookup maps
@@ -213,6 +227,8 @@ async def search_profile_impl(
     dept_map = {d.id: d for d in departments_data}
     role_map = {r.id: r for r in roles_data}
     profile_resource_map = {p.id: p for p in profiles_resource_data}
+    # id -> departments_id (the actual department being marked primary)
+    primary_department_map = {pd.id: pd.departments_id for pd in primary_departments_data}
 
     # -- Step 6: Build profile list with permissions --
 
@@ -246,13 +262,18 @@ async def search_profile_impl(
 
         # Resolve departments
         dept_ids_str: list[str] = []
-        primary_department_id: str | None = None
         for did in a.department_ids or []:
             dept = dept_map.get(did)
             if dept:
                 dept_ids_str.append(str(dept.id))
-                if dept.is_primary:
-                    primary_department_id = str(dept.id)
+
+        # Primary department comes from the junction, not a per-dept flag.
+        primary_department_id: str | None = None
+        for pdr_id in a.primary_department_ids or []:
+            target = primary_department_map.get(pdr_id)
+            if target:
+                primary_department_id = str(target)
+                break
 
         # Compute initials from name
         initials: str | None = None

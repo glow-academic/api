@@ -110,7 +110,7 @@ async def attempt_start_impl(
 
     if simulation_ids:
         try:
-            from app.infra.chat.permissions import compute_pass_pct
+            from app.infra.attempt.chat.permissions import compute_pass_pct
             from app.tools.artifacts.rubric.get import get_rubrics
             from app.tools.artifacts.rubric.search import search_rubrics
             from app.tools.resources.points.get import get_points

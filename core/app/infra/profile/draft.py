@@ -10,6 +10,9 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile.permissions import compute_can_draft
+from app.infra.profile.primary_department import (
+    resolve_primary_departments_id,
+)
 from app.infra.profile.refresh import refresh_profile_impl
 from app.infra.profile.types import (
     DraftFormState,
@@ -255,6 +258,7 @@ async def patch_profile_draft_impl(
                             department_ids=draft.department_ids,
                             email_ids=draft.email_ids,
                             role_ids=draft.role_ids,
+                            primary_department_ids=draft.primary_department_ids,
                             profile_ids=draft.profile_ids or [profile.profiles_id],
                             pending_ids=set(),
                         )
@@ -291,6 +295,15 @@ async def patch_profile_draft_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
+            primary_departments_resource_id: UUID | None = None
+            if request.primary_department_id is not None:
+                primary_departments_resource_id = await resolve_primary_departments_id(
+                    conn,
+                    redis,
+                    departments_id=request.primary_department_id,
+                    soft=soft,
+                )
+
             result = await create_profile_draft(
                 conn,
                 session_id=session_id,
@@ -302,6 +315,11 @@ async def patch_profile_draft_impl(
                 department_ids=request.department_ids,
                 email_ids=request.email_ids,
                 role_ids=[request.role_id] if request.role_id else None,
+                primary_department_ids=(
+                    [primary_departments_resource_id]
+                    if primary_departments_resource_id
+                    else None
+                ),
                 pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
@@ -373,6 +391,7 @@ async def patch_profile_draft_impl(
         email_ids=request.email_ids or [],
         role=resolved_role_name,
         role_id=request.role_id,
+        primary_department_id=request.primary_department_id,
         pending_ids=request.pending_ids or [],
     )
 

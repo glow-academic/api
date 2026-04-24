@@ -21,6 +21,11 @@ OWNER_COL = "profile_id"
 # (junction_table, resource_column, pk_constraint)
 SINGLE_JUNCTIONS: list[tuple[str, str, str]] = [
     ("profile_names_junction", "names_id", "profile_names_pkey"),
+    (
+        "profile_primary_departments_junction",
+        "primary_departments_id",
+        "profile_primary_departments_pkey",
+    ),
 ]
 
 MULTI_JUNCTIONS: list[tuple[str, str, str]] = [
@@ -77,6 +82,7 @@ async def create_profile(
     *,
     id: UUID | None = None,
     name_id: UUID | None = None,
+    primary_departments_id: UUID | None = None,
     department_ids: list[UUID] | None = None,
     flag_ids: list[UUID] | None = None,
     email_ids: list[UUID] | None = None,
@@ -104,7 +110,9 @@ async def create_profile(
     )
 
     # Single-select junctions
-    for (table, col, constraint), val in zip(SINGLE_JUNCTIONS, [name_id]):
+    for (table, col, constraint), val in zip(
+        SINGLE_JUNCTIONS, [name_id, primary_departments_id]
+    ):
         if val is not None:
             await upsert_single(
                 conn,

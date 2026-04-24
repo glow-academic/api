@@ -11,7 +11,7 @@ from app.events.types import (
     OperationEventConfig,
     require_authenticated_profile,
 )
-from app.infra.chat.types import (
+from app.infra.attempt.chat.types import (
     GetChatRequest,
     GetChatResponse,
 )

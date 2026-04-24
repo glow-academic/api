@@ -18,7 +18,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
-from app.infra.chat.context import resolve_chat_context
+from app.infra.attempt.chat.context import resolve_chat_context
 from app.infra.profile_identity_context import resolve_profile_identity_context
 
 PIPE = "|"
@@ -64,7 +64,7 @@ async def export_chat_impl(
     """
     from fastapi import HTTPException
 
-    from app.infra.chat.types import ExportChatApiResponse
+    from app.infra.attempt.chat.types import ExportChatApiResponse
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

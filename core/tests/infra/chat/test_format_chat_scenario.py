@@ -1,6 +1,6 @@
 """Tests for chat scenario formatter."""
 
-from app.infra.chat.format_chat_scenario import format_chat_scenario
+from app.infra.attempt.chat.format_chat_scenario import format_chat_scenario
 
 
 def test_format_chat_scenario_includes_statement_text():

@@ -42,7 +42,7 @@ async def test_sets_mcp_flag(conn, redis_client):
     assert result.generated is True
 
 
-async def test_round_trips_setting_links_and_primary_flag(conn, redis_client):
+async def test_round_trips_setting_links(conn, redis_client):
     setting = await create_setting(conn, "dept-setting", redis=redis_client)
 
     result = await create_department(
@@ -50,10 +50,8 @@ async def test_round_trips_setting_links_and_primary_flag(conn, redis_client):
         "linked-dept",
         redis=redis_client,
         setting_ids=[setting.id],
-        is_primary=True,
     )
 
     items = await get_departments(conn, [result.id], redis_client, bypass_cache=True)
 
     assert items[0].setting_ids == [setting.id]
-    assert items[0].is_primary is True

@@ -193,7 +193,6 @@ async def create_setting_graph_fixture(
             name=f"department-{tag}",
             description="Graph department",
             setting_ids=[setting_res.id],
-            is_primary=True,
             redis=redis_client,
         )
         profile_artifact_res = await create_profile_artifact(

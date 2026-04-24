@@ -10,8 +10,8 @@ from redis.asyncio import Redis
 
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.infra.chat.refresh import refresh_chat_impl
-from app.infra.chat.types import (
+from app.infra.attempt.chat.refresh import refresh_chat_impl
+from app.infra.attempt.chat.types import (
     ChatDraftFormState,
     PatchChatDraftApiRequest,
     PatchChatDraftApiResponse,

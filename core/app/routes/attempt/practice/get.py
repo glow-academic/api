@@ -23,7 +23,7 @@ from app.infra.analytics_facets import (
     AnalyticsFacetsConfig,
     resolve_analytics_facets,
 )
-from app.infra.chat.permissions import (
+from app.infra.attempt.chat.permissions import (
     compute_completion_pct,
     compute_pass_pct,
     compute_status,
@@ -36,7 +36,7 @@ from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.attempt.group import group_attempt_impl
 from app.infra.practice_context import resolve_practice_context
 from app.infra.auth.types import AnalyticsFilterFields
-from app.infra.chat.types import (
+from app.infra.attempt.chat.types import (
     ChatSimulationOperational,
     RubricMapping,
     StandardGroupMapping,

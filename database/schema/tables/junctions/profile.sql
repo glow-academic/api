@@ -93,6 +93,21 @@ CREATE TABLE public.profile_roles_junction (
 
 --
 
+-- Name: profile_primary_departments_junction; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.profile_primary_departments_junction (
+    profile_id uuid CONSTRAINT profile_primary_departments_profile_id_not_null NOT NULL,
+    primary_departments_id uuid CONSTRAINT profile_primary_departments_resource_id_not_null NOT NULL,
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT profile_primary_departments_created_at_not_null NOT NULL,
+    generated boolean DEFAULT false CONSTRAINT profile_primary_departments_generated_not_null NOT NULL,
+    mcp boolean DEFAULT false CONSTRAINT profile_primary_departments_mcp_not_null NOT NULL,
+    active boolean DEFAULT true CONSTRAINT profile_primary_departments_active_not_null NOT NULL
+);
+
+
+--
+
 -- Name: profile_departments_junction profile_departments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -143,6 +158,15 @@ ALTER TABLE ONLY public.profile_profiles_junction
 
 ALTER TABLE ONLY public.profile_roles_junction
     ADD CONSTRAINT profile_roles_pkey PRIMARY KEY (profile_id, roles_id);
+
+
+--
+
+-- Name: profile_primary_departments_junction profile_primary_departments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile_primary_departments_junction
+    ADD CONSTRAINT profile_primary_departments_pkey PRIMARY KEY (profile_id);
 
 
 --

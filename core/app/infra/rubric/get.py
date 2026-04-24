@@ -325,7 +325,6 @@ async def get_rubric_impl(
             description=item.description,
             department_ids=item.department_ids or [],
             setting_ids=item.setting_ids or [],
-            is_primary=item.is_primary,
             generated=item.generated,
             suggested=_decorate(item.id, "departments")[0],
             selected=_decorate(item.id, "departments")[1],

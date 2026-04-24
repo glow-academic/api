@@ -13,6 +13,9 @@ from app.infra.profile.permissions_context import (
     resolve_profile_permissions_context,
     resolve_profile_values,
 )
+from app.infra.profile.primary_department import (
+    resolve_primary_departments_id,
+)
 from app.infra.profile.refresh import refresh_profile_impl
 from app.infra.profile.types import (
     UpdateProfileApiRequest,
@@ -179,10 +182,20 @@ async def update_profile_impl(
 
         async with pool.acquire() as conn:
             async with conn.transaction():
+                primary_departments_id: object = _UNSET
+                if item.primary_department_id is not None:
+                    primary_departments_id = await resolve_primary_departments_id(
+                        conn,
+                        redis,
+                        departments_id=item.primary_department_id,
+                        soft=soft,
+                    )
+
                 await update_profile_artifact(
                     conn,
                     item.profile_id,
                     name_id=item.name_id if item.name_id else _UNSET,
+                    primary_departments_id=primary_departments_id,
                     department_ids=item.department_ids,
                     flag_ids=item.flag_ids or None,
                     email_ids=item.email_ids,
