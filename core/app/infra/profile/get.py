@@ -303,6 +303,7 @@ async def get_profile_impl(
         ProfileEmailResource(
             id=item.id,
             email=item.email,
+            is_primary=bool(getattr(item, "is_primary", False)),
             generated=item.generated,
             suggested=_decorate(item.id, "emails")[0],
             selected=_decorate(item.id, "emails")[1],

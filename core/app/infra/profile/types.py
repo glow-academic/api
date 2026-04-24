@@ -34,6 +34,7 @@ class ProfileEmailResource(BaseModel):
 
     id: UUID | None = Field(None, description="Unique resource identifier")
     email: str | None = Field(None, description="Email address")
+    is_primary: bool = Field(False, description="Whether this is the profile's primary email")
     generated: bool | None = Field(None, description="Whether the email was AI-generated")
     suggested: bool = Field(False, description="Whether this is a suggested option")
     selected: bool = Field(False, description="Whether this is currently selected")
