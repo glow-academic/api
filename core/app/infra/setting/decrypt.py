@@ -34,14 +34,13 @@ async def decrypt_setting_impl(
       3. Return typed response
     """
     # ── Step 1: Validate key belongs to setting ───────────────────────
-    async with pool.acquire() as conn:
-        settings = await get_settings(
-            conn,
-            [setting_id],
-            provider_keys=True,
-            auth_item_keys=True,
-            active=None,
-        )
+    settings = await get_settings(
+        pool,
+        [setting_id],
+        provider_keys=True,
+        auth_item_keys=True,
+        active=None,
+    )
 
     if not settings:
         raise HTTPException(status_code=404, detail="Setting not found")

@@ -97,18 +97,17 @@ async def export_auth_impl(
 
     # -- Step 3: Get auth artifacts with all junction IDs --
 
-    async with pool.acquire() as conn:
-        artifacts = await get_auths(
-            conn,
-            auth_ids,
-            names=True,
-            descriptions=True,
-            departments=True,
-            flags=True,
-            items=True,
-            protocols=True,
-            slugs=True,
-        )
+    artifacts = await get_auths(
+        pool,
+        auth_ids,
+        names=True,
+        descriptions=True,
+        departments=True,
+        flags=True,
+        items=True,
+        protocols=True,
+        slugs=True,
+    )
 
     # -- Step 4: Parallel resource hydration --
 

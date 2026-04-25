@@ -162,10 +162,7 @@ async def update_tool_impl(
                 instruction_id=item.instruction_id,
             )
 
-        # Combine active_flag_id with any other flag_ids
         combined_flag_ids = list(item.flag_ids or [])
-        if item.active_flag_id:
-            combined_flag_ids.append(item.active_flag_id)
 
         # Artifact update inside transaction
         async with pool.acquire() as conn:

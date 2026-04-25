@@ -232,12 +232,7 @@ async def update_simulation_impl(
                 scenario_flag_ids=item.scenario_flag_ids,
             )
 
-        # Combine dedicated *_flag_id fields into flag_ids for the artifact
-        combined_flag_ids: list[UUID] = []
-        if item.active_flag_id:
-            combined_flag_ids.append(item.active_flag_id)
-        if item.practice_flag_id:
-            combined_flag_ids.append(item.practice_flag_id)
+        combined_flag_ids: list[UUID] = list(item.flag_ids or [])
 
         # Artifact update inside transaction
         async with pool.acquire() as conn:

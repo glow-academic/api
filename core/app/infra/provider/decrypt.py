@@ -33,8 +33,7 @@ async def decrypt_provider_impl(
       3. Return typed response
     """
     # ── Step 1: Validate key belongs to provider ──────────────────────
-    async with pool.acquire() as conn:
-        providers = await get_providers(conn, [provider_id], keys=True, active=None)
+    providers = await get_providers(pool, [provider_id], keys=True, active=None)
 
     if not providers:
         raise HTTPException(status_code=404, detail="Provider not found")

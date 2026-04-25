@@ -105,22 +105,21 @@ async def export_model_impl(
 
     # ── Step 3: Get model artifacts with all junction IDs ────────────
 
-    async with pool.acquire() as conn:
-        artifacts = await get_models(
-            conn,
-            model_ids,
-            names=True,
-            descriptions=True,
-            departments=True,
-            flags=True,
-            values=True,
-            providers=True,
-            modalities=True,
-            temperature_levels=True,
-            reasoning_levels=True,
-            qualities=True,
-            voices=True,
-        )
+    artifacts = await get_models(
+        pool,
+        model_ids,
+        names=True,
+        descriptions=True,
+        departments=True,
+        flags=True,
+        values=True,
+        providers=True,
+        modalities=True,
+        temperature_levels=True,
+        reasoning_levels=True,
+        qualities=True,
+        voices=True,
+    )
 
     # ── Step 4: Parallel resource hydration ────────────────────────────
 

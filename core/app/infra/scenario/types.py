@@ -463,18 +463,7 @@ class CreateScenarioItem(ScopedItem):
         "description": "descriptions",
         "problem_statement_id": "problem_statements",
         "problem_statement": "problem_statements",
-        "active_flag_id": "flags",
-        "active_flag": "flags",
-        "objectives_enabled_flag_id": "flags",
-        "objectives_enabled_flag": "flags",
-        "images_enabled_flag_id": "flags",
-        "images_enabled_flag": "flags",
-        "video_enabled_flag_id": "flags",
-        "video_enabled_flag": "flags",
-        "questions_enabled_flag_id": "flags",
-        "questions_enabled_flag": "flags",
-        "problem_statement_enabled_flag_id": "flags",
-        "problem_statement_enabled_flag": "flags",
+        "flag_ids": "flags",
         "department_ids": "departments",
         "departments": "departments",
         "persona_ids": "personas",
@@ -506,13 +495,8 @@ class CreateScenarioItem(ScopedItem):
     description: str | None = Field(None, description="Description text value")
     problem_statement_id: UUID | None = Field(None, description="UUID of the problem statement resource")
     problem_statement: str | None = Field(None, description="Problem statement text value")
-    # Flag IDs (individual typed flags)
-    active_flag_id: UUID | None = Field(None, description="UUID of the active flag option")
-    objectives_enabled_flag_id: UUID | None = Field(None, description="UUID of the objectives enabled flag option")
-    images_enabled_flag_id: UUID | None = Field(None, description="UUID of the images enabled flag option")
-    video_enabled_flag_id: UUID | None = Field(None, description="UUID of the video enabled flag option")
-    questions_enabled_flag_id: UUID | None = Field(None, description="UUID of the questions enabled flag option")
-    problem_statement_enabled_flag_id: UUID | None = Field(None, description="UUID of the problem statement enabled flag option")
+    # Canonical flag list — server derives semantics by flag type/value
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
     # Multi-select resource IDs
     department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
     persona_ids: list[UUID] | None = Field(None, description="Associated persona UUIDs")
@@ -525,12 +509,6 @@ class CreateScenarioItem(ScopedItem):
     question_ids: list[UUID] | None = Field(None, description="Associated question UUIDs")
     option_ids: list[UUID] | None = Field(None, description="Associated option UUIDs")
     # Value-based fields for CSV import (resolved to IDs server-side)
-    active_flag: bool | None = Field(None, description="Active flag boolean value")
-    images_enabled_flag: bool | None = Field(None, description="Whether images are enabled")
-    objectives_enabled_flag: bool | None = Field(None, description="Whether objectives are enabled")
-    problem_statement_enabled_flag: bool | None = Field(None, description="Whether problem statement is enabled")
-    questions_enabled_flag: bool | None = Field(None, description="Whether questions are enabled")
-    video_enabled_flag: bool | None = Field(None, description="Whether video is enabled")
     departments: list[str] | None = Field(None, description="Department names for matching")
     personas: list[str] | None = Field(None, description="Persona names for matching")
     documents: list[str] | None = Field(None, description="Document names for matching")
@@ -580,15 +558,8 @@ class UpdateScenarioItem(ScopedItem):
     description: str | None = Field(None, description="Description text value")
     problem_statement_id: UUID | None = Field(None, description="UUID of the problem statement resource")
     problem_statement: str | None = Field(None, description="Problem statement text value")
-    # Canonical flag list — server merges with any typed *_flag_id fields below
+    # Canonical flag list — server derives semantics by flag type/value
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
-    # Flag IDs (individual typed flags — legacy; kept for CSV/import paths)
-    active_flag_id: UUID | None = Field(None, description="UUID of the active flag option")
-    objectives_enabled_flag_id: UUID | None = Field(None, description="UUID of the objectives enabled flag option")
-    images_enabled_flag_id: UUID | None = Field(None, description="UUID of the images enabled flag option")
-    video_enabled_flag_id: UUID | None = Field(None, description="UUID of the video enabled flag option")
-    questions_enabled_flag_id: UUID | None = Field(None, description="UUID of the questions enabled flag option")
-    problem_statement_enabled_flag_id: UUID | None = Field(None, description="UUID of the problem statement enabled flag option")
     # Multi-select resource IDs
     department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
     persona_ids: list[UUID] | None = Field(None, description="Associated persona UUIDs")
@@ -601,12 +572,6 @@ class UpdateScenarioItem(ScopedItem):
     question_ids: list[UUID] | None = Field(None, description="Associated question UUIDs")
     option_ids: list[UUID] | None = Field(None, description="Associated option UUIDs")
     # Value-based fields for CSV import (resolved to IDs server-side)
-    active_flag: bool | None = Field(None, description="Active flag boolean value")
-    images_enabled_flag: bool | None = Field(None, description="Whether images are enabled")
-    objectives_enabled_flag: bool | None = Field(None, description="Whether objectives are enabled")
-    problem_statement_enabled_flag: bool | None = Field(None, description="Whether problem statement is enabled")
-    questions_enabled_flag: bool | None = Field(None, description="Whether questions are enabled")
-    video_enabled_flag: bool | None = Field(None, description="Whether video is enabled")
     departments: list[str] | None = Field(None, description="Department names for matching")
     personas: list[str] | None = Field(None, description="Persona names for matching")
     documents: list[str] | None = Field(None, description="Document names for matching")

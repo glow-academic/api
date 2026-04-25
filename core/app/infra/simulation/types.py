@@ -585,10 +585,7 @@ class CreateSimulationItem(ScopedItem):
         "scenario_position_ids": "scenario_positions",
         "scenario_rubric_ids": "scenario_rubrics",
         "scenario_time_limit_ids": "scenario_time_limits",
-        "active_flag_id": "flags",
-        "active_flag": "flags",
-        "practice_flag": "flags",
-        "practice_flag_id": "flags",
+        "flag_ids": "flags",
     }
 
     id: UUID | None = Field(None, description="Client-provided UUID for the simulation")
@@ -600,6 +597,8 @@ class CreateSimulationItem(ScopedItem):
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="UUID of the description resource")
     description: str | None = Field(None, description="Description text value")
+    # Canonical flag list — server derives semantics by flag type/value
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
     # Multi-select IDs
     department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
     scenario_ids: list[UUID] | None = Field(None, description="Associated scenario UUIDs")
@@ -608,10 +607,6 @@ class CreateSimulationItem(ScopedItem):
     scenario_rubric_ids: list[UUID] | None = Field(None, description="Associated scenario rubric UUIDs")
     scenario_time_limit_ids: list[UUID] | None = Field(None, description="Associated scenario time limit UUIDs")
     # Value-based fields for CSV import (match-by-name resolution)
-    active_flag_id: UUID | None = Field(None, description="UUID of the flag option to set active status")
-    active_flag: bool | None = Field(None, description="Whether the simulation is active (resolved to flag_id)")
-    practice_flag: bool | None = Field(None, description="Whether this is a practice simulation")
-    practice_flag_id: UUID | None = Field(None, description="Practice flag resource UUID")
     departments: list[str] | None = Field(None, description="Department names for matching")
     scenarios: list[str] | None = Field(None, description="Scenario names for matching")
 
@@ -650,6 +645,8 @@ class UpdateSimulationItem(ScopedItem):
     name: str | None = Field(None, description="Display name value")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
     description: str | None = Field(None, description="Description text value")
+    # Canonical flag list — server derives semantics by flag type/value
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
     # Multi-select IDs
     department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
     scenario_ids: list[UUID] | None = Field(None, description="Associated scenario UUIDs")
@@ -658,10 +655,6 @@ class UpdateSimulationItem(ScopedItem):
     scenario_rubric_ids: list[UUID] | None = Field(None, description="Associated scenario rubric UUIDs")
     scenario_time_limit_ids: list[UUID] | None = Field(None, description="Associated scenario time limit UUIDs")
     # Value-based fields for CSV import (match-by-name resolution)
-    active_flag_id: UUID | None = Field(None, description="UUID of the flag option to set active status")
-    active_flag: bool | None = Field(None, description="Whether the simulation is active (resolved to flag_id)")
-    practice_flag: bool | None = Field(None, description="Whether this is a practice simulation")
-    practice_flag_id: UUID | None = Field(None, description="Practice flag resource UUID")
     departments: list[str] | None = Field(None, description="Department names for matching")
     scenarios: list[str] | None = Field(None, description="Scenario names for matching")
 

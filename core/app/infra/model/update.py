@@ -140,8 +140,6 @@ async def update_model_impl(
             )
 
         combined_flag_ids = list(item.flag_ids or [])
-        if item.active_flag_id:
-            combined_flag_ids.append(item.active_flag_id)
 
         async with pool.acquire() as conn:
             async with conn.transaction():

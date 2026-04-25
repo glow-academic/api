@@ -92,16 +92,15 @@ async def export_setting_impl(
 
     # -- Step 3: Get setting artifacts with all junction IDs --
 
-    async with pool.acquire() as conn:
-        artifacts = await get_settings(
-            conn,
-            setting_ids,
-            names=True,
-            descriptions=True,
-            departments=True,
-            flags=True,
-            colors=True,
-        )
+    artifacts = await get_settings(
+        pool,
+        setting_ids,
+        names=True,
+        descriptions=True,
+        departments=True,
+        flags=True,
+        colors=True,
+    )
 
     # -- Step 4: Parallel resource hydration --
 

@@ -101,20 +101,19 @@ async def export_agent_impl(
 
     # -- Step 3: Get agent artifacts with all junction IDs --
 
-    async with pool.acquire() as conn:
-        artifacts = await get_agents(
-            conn,
-            agent_ids,
-            names=True,
-            descriptions=True,
-            departments=True,
-            flags=True,
-            models=True,
-            reasoning_levels=True,
-            temperature_levels=True,
-            tools=True,
-            voices=True,
-        )
+    artifacts = await get_agents(
+        pool,
+        agent_ids,
+        names=True,
+        descriptions=True,
+        departments=True,
+        flags=True,
+        models=True,
+        reasoning_levels=True,
+        temperature_levels=True,
+        tools=True,
+        voices=True,
+    )
 
     # -- Step 4: Parallel resource hydration --
 

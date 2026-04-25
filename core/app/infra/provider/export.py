@@ -97,18 +97,17 @@ async def export_provider_impl(
 
     # ── Step 3: Get provider artifacts with all junction IDs ─────────
 
-    async with pool.acquire() as conn:
-        artifacts = await get_providers(
-            conn,
-            provider_ids,
-            names=True,
-            descriptions=True,
-            departments=True,
-            flags=True,
-            endpoints=True,
-            keys=True,
-            values=True,
-        )
+    artifacts = await get_providers(
+        pool,
+        provider_ids,
+        names=True,
+        descriptions=True,
+        departments=True,
+        flags=True,
+        endpoints=True,
+        keys=True,
+        values=True,
+    )
 
     # ── Step 4: Parallel resource hydration ────────────────────────────
 

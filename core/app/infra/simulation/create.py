@@ -224,11 +224,7 @@ async def create_simulation_impl(
     async with pool.acquire() as conn:
         async with conn.transaction():
             for idx, item in enumerate(items):
-                combined_flag_ids: list[UUID] = []
-                if item.active_flag_id:
-                    combined_flag_ids.append(item.active_flag_id)
-                if item.practice_flag_id:
-                    combined_flag_ids.append(item.practice_flag_id)
+                combined_flag_ids: list[UUID] = list(item.flag_ids or [])
 
                 result = await create_simulation_artifact(
                     conn,

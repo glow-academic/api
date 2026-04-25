@@ -1,13 +1,10 @@
 """Input: test.* events."""
 
 from . import (  # noqa: F401
-    end,
-    end_all,
+    complete,
     generate,
     generations,
     group,
-    join,
-    leave,
     next,
     problem,
     run,

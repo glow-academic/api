@@ -48,18 +48,8 @@ def _batch_department_scope(items: list[CreateScenarioItem]) -> list[str] | None
 
 
 def _collect_flag_ids(item: CreateScenarioItem) -> list[UUID] | None:
-    """Collect all non-None flag IDs from the item into a single list."""
-    flag_ids = []
-    for fid in [
-        item.active_flag_id,
-        item.objectives_enabled_flag_id,
-        item.images_enabled_flag_id,
-        item.video_enabled_flag_id,
-        item.questions_enabled_flag_id,
-        item.problem_statement_enabled_flag_id,
-    ]:
-        if fid is not None:
-            flag_ids.append(fid)
+    """Return the canonical flag_ids list (or None if empty)."""
+    flag_ids = list(item.flag_ids or [])
     return flag_ids if flag_ids else None
 
 
@@ -258,11 +248,6 @@ async def _create_scenarios(
                 problem_statement_ids=[item.problem_statement_id]
                 if item.problem_statement_id
                 else None,
-                images_enabled=item.images_enabled_flag,
-                objectives_enabled=item.objectives_enabled_flag,
-                problem_statement_enabled=item.problem_statement_enabled_flag,
-                questions_enabled=item.questions_enabled_flag,
-                video_enabled=item.video_enabled_flag,
             )
             snapshot_ids.append(scenarios_resource_id)
 

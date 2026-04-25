@@ -93,16 +93,15 @@ async def export_eval_impl(
 
     # ── Step 3: Get eval artifacts with all junction IDs ────────────
 
-    async with pool.acquire() as conn:
-        artifacts = await get_evals(
-            conn,
-            eval_ids,
-            names=True,
-            descriptions=True,
-            departments=True,
-            flags=True,
-            models=True,
-        )
+    artifacts = await get_evals(
+        pool,
+        eval_ids,
+        names=True,
+        descriptions=True,
+        departments=True,
+        flags=True,
+        models=True,
+    )
 
     # ── Step 4: Parallel resource hydration ────────────────────────────
 

@@ -54,18 +54,17 @@ async def chat_feedback_attempt_impl(
         )
 
     # Resolve score from standard, total from standard group
-    async with pool.acquire() as conn:
-        standards = await get_standards(conn, [standard_id], redis)
-        if not standards:
-            raise ValueError(f"Standard {standard_id} not found")
-        standard = standards[0]
-        score = standard.points or 0
+    standards = await get_standards(pool, [standard_id], redis)
+    if not standards:
+        raise ValueError(f"Standard {standard_id} not found")
+    standard = standards[0]
+    score = standard.points or 0
 
-        total = score
-        if standard.standard_group_id:
-            sgs = await get_standard_groups(conn, [standard.standard_group_id], redis)
-            if sgs:
-                total = sgs[0].points or score
+    total = score
+    if standard.standard_group_id:
+        sgs = await get_standard_groups(pool, [standard.standard_group_id], redis)
+        if sgs:
+            total = sgs[0].points or score
 
     async with pool.acquire() as conn:
         result = await create_attempt_feedback(

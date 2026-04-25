@@ -96,16 +96,15 @@ async def export_field_impl(
 
     # ── Step 3: Get field artifacts with all junction IDs ────────────
 
-    async with pool.acquire() as conn:
-        artifacts = await get_fields(
-            conn,
-            field_ids,
-            names=True,
-            descriptions=True,
-            departments=True,
-            flags=True,
-            conditional_parameters=True,
-        )
+    artifacts = await get_fields(
+        pool,
+        field_ids,
+        names=True,
+        descriptions=True,
+        departments=True,
+        flags=True,
+        conditional_parameters=True,
+    )
 
     # ── Step 4: Parallel resource hydration ────────────────────────────
 

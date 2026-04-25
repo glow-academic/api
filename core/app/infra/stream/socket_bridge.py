@@ -35,9 +35,11 @@ _SOCKET_EVENT_TO_PUBLIC: dict[tuple[str, str], dict[str, str]] = {
         "test.grade.progress": "artifacts.test.run.progress",
         "test.run.completed": "artifacts.test.run.replay_completed",
     },
-    ("test", "end"): {
-        "test.end.completed": "artifacts.test.invocation.ended",
-        "test_all_complete": "artifacts.test.ended",
+    ("test", "invocation_complete"): {
+        "test.end.completed": "artifacts.test.invocation.completed",
+    },
+    ("test", "complete"): {
+        "test_all_complete": "artifacts.test.completed",
     },
     ("test", "stop"): {
         "test.stop.completed": "artifacts.test.invocation.stopped",

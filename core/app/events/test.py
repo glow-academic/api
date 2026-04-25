@@ -17,8 +17,9 @@ from app.events.types import (
 from app.infra.test.client_types import (
     # Test domain event payloads (server → client)
     TestAllCompleteEvent,
+    TestCompletePayload,
     # Test lifecycle input payloads (client → server)
-    TestEndPayload,
+    TestInvocationCompletePayload,
     TestInvocationEndedEvent,
     TestInvocationResponseSavedEvent,
     TestInvocationStartedEvent,
@@ -96,20 +97,34 @@ TEST_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         },
         filter_events=default_filter_events,
     ),
-    "end": OperationEventConfig(
-        operation="end",
+    "complete": OperationEventConfig(
+        operation="complete",
+        scope="entity",
+        entity_key="test_id",
+        can_subscribe=require_authenticated_profile,
+        project_domain_from_audit=False,
+        lifecycle_models={
+            "started": TestCompletePayload,
+            "completed": TestAllCompleteEvent,
+            "failed": OperationErrorEvent,
+        },
+        domain_events={
+            "artifacts.test.completed": TestAllCompleteEvent,
+        },
+    ),
+    "invocation_complete": OperationEventConfig(
+        operation="invocation_complete",
         scope="entity",
         entity_key="invocation_id",
         can_subscribe=require_authenticated_profile,
         project_domain_from_audit=False,
         lifecycle_models={
-            "started": TestEndPayload,
-            "completed": TestAllCompleteEvent,
+            "started": TestInvocationCompletePayload,
+            "completed": TestInvocationEndedEvent,
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.test.invocation.ended": TestInvocationEndedEvent,
-            "artifacts.test.ended": TestAllCompleteEvent,
+            "artifacts.test.invocation.completed": TestInvocationEndedEvent,
         },
     ),
     "stop": OperationEventConfig(

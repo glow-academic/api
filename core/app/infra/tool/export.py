@@ -97,18 +97,17 @@ async def export_tool_impl(
 
     # -- Step 3: Get tool artifacts with all junction IDs --
 
-    async with pool.acquire() as conn:
-        artifacts = await get_tools(
-            conn,
-            tool_ids,
-            names=True,
-            descriptions=True,
-            departments=True,
-            flags=True,
-            args=True,
-            args_outputs=True,
-            arg_positions=True,
-        )
+    artifacts = await get_tools(
+        pool,
+        tool_ids,
+        names=True,
+        descriptions=True,
+        departments=True,
+        flags=True,
+        args=True,
+        args_outputs=True,
+        arg_positions=True,
+    )
 
     # -- Step 4: Parallel resource hydration --
 

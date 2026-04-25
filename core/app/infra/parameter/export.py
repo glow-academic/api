@@ -93,16 +93,15 @@ async def export_parameter_impl(
 
     # ── Step 3: Get parameter artifacts with all junction IDs ────────
 
-    async with pool.acquire() as conn:
-        artifacts = await get_parameters(
-            conn,
-            parameter_ids,
-            names=True,
-            descriptions=True,
-            departments=True,
-            flags=True,
-            fields=True,
-        )
+    artifacts = await get_parameters(
+        pool,
+        parameter_ids,
+        names=True,
+        descriptions=True,
+        departments=True,
+        flags=True,
+        fields=True,
+    )
 
     # ── Step 4: Parallel resource hydration ────────────────────────────
 

@@ -64,14 +64,14 @@ class TestGroupPayload(BaseModel):
 class TestInvocationCompletePayload(BaseModel):
     """Client-to-server: complete a single invocation within a test.
 
-    Mirrors AttemptChatCompletePayload — per-step completion with optional
-    grading.
+    Mirrors ``ChatCompleteRequest`` (/attempt/chat/complete) — completion is
+    a state transition only, not a grading operation. Grading is a separate
+    surface (``/test/grade``); call it before completion if needed.
     """
 
     test_id: UUID = Field(..., description="UUID of the test")
     test_invocation_id: UUID = Field(..., description="UUID of the test invocation")
-    run_id: UUID = Field(..., description="UUID of the completed run for grading")
-    grade: bool = Field(True, description="Whether to grade this run")
+    message: str = Field("", description="Optional completion message")
 
 
 class TestCompletePayload(BaseModel):

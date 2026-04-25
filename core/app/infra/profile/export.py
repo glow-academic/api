@@ -93,16 +93,15 @@ async def export_profile_impl(
 
     # ── Step 3: Get profile artifacts with all junction IDs ──────────
 
-    async with pool.acquire() as conn:
-        artifacts = await get_profiles(
-            conn,
-            profile_ids,
-            names=True,
-            departments=True,
-            flags=True,
-            emails=True,
-            roles=True,
-        )
+    artifacts = await get_profiles(
+        pool,
+        profile_ids,
+        names=True,
+        departments=True,
+        flags=True,
+        emails=True,
+        roles=True,
+    )
 
     # ── Step 4: Parallel resource hydration ────────────────────────────
 

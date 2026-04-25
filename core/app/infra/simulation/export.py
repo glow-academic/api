@@ -101,20 +101,19 @@ async def export_simulation_impl(
 
     # -- Step 3: Get simulation artifacts with all junction IDs --
 
-    async with pool.acquire() as conn:
-        artifacts = await get_simulations(
-            conn,
-            simulation_ids,
-            names=True,
-            descriptions=True,
-            departments=True,
-            flags=True,
-            scenarios=True,
-            scenario_flags=True,
-            scenario_positions=True,
-            scenario_rubrics=True,
-            scenario_time_limits=True,
-        )
+    artifacts = await get_simulations(
+        pool,
+        simulation_ids,
+        names=True,
+        descriptions=True,
+        departments=True,
+        flags=True,
+        scenarios=True,
+        scenario_flags=True,
+        scenario_positions=True,
+        scenario_rubrics=True,
+        scenario_time_limits=True,
+    )
 
     # -- Step 4: Parallel resource hydration --
 

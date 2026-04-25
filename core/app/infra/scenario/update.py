@@ -41,22 +41,8 @@ if TYPE_CHECKING:
 
 
 def _collect_flag_ids(item: UpdateScenarioItem) -> list[UUID] | None:
-    """Collect all non-None flag IDs from the item into a single list.
-
-    Merges the canonical `flag_ids` list with any individual typed `*_flag_id`
-    fields. De-duplicates while preserving insertion order (canonical wins).
-    """
+    """Return the canonical flag_ids list (or None if empty)."""
     flag_ids: list[UUID] = list(item.flag_ids or [])
-    for fid in [
-        item.active_flag_id,
-        item.objectives_enabled_flag_id,
-        item.images_enabled_flag_id,
-        item.video_enabled_flag_id,
-        item.questions_enabled_flag_id,
-        item.problem_statement_enabled_flag_id,
-    ]:
-        if fid is not None and fid not in flag_ids:
-            flag_ids.append(fid)
     return flag_ids if flag_ids else None
 
 
@@ -243,11 +229,6 @@ async def update_scenario_impl(
                 problem_statement_ids=[item.problem_statement_id]
                 if item.problem_statement_id
                 else None,
-                images_enabled=item.images_enabled_flag,
-                objectives_enabled=item.objectives_enabled_flag,
-                problem_statement_enabled=item.problem_statement_enabled_flag,
-                questions_enabled=item.questions_enabled_flag,
-                video_enabled=item.video_enabled_flag,
             )
 
         flag_ids = _collect_flag_ids(item)

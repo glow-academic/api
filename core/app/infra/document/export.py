@@ -94,16 +94,15 @@ async def export_document_impl(
 
     # ── Step 3: Get document artifacts with all junction IDs ────────────
 
-    async with pool.acquire() as conn:
-        artifacts = await get_documents(
-            conn,
-            document_ids,
-            names=True,
-            descriptions=True,
-            departments=True,
-            flags=True,
-            parameter_fields=True,
-        )
+    artifacts = await get_documents(
+        pool,
+        document_ids,
+        names=True,
+        descriptions=True,
+        departments=True,
+        flags=True,
+        parameter_fields=True,
+    )
 
     # ── Step 4: Parallel resource hydration ────────────────────────────
 
@@ -158,10 +157,9 @@ async def export_document_impl(
     # Parameter fields: two-hop (parameter_field → field → name)
     pf_field_id_map = {pf.id: pf.field_id for pf in parameter_fields_data}
     all_field_ids = list({fid for fid in pf_field_id_map.values() if fid})
-    async with pool.acquire() as conn:
-        fields_data = (
-            await get_fields(conn, all_field_ids, redis) if all_field_ids else []
-        )
+    fields_data = (
+        await get_fields(pool, all_field_ids, redis) if all_field_ids else []
+    )
     field_name_map = {f.id: f.name for f in fields_data}
     pf_name_map = {
         pf_id: field_name_map.get(field_id, "")

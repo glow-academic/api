@@ -205,10 +205,7 @@ async def create_tool_impl(
     async with pool.acquire() as conn:
         async with conn.transaction():
             for idx, item in enumerate(items):
-                # Combine active_flag_id with any other flag_ids
                 combined_flag_ids = list(item.flag_ids or [])
-                if item.active_flag_id:
-                    combined_flag_ids.append(item.active_flag_id)
 
                 result = await create_tool_artifact(
                     conn,

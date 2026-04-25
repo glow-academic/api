@@ -233,9 +233,6 @@ class CreateToolItem(ScopedItem):
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
     instruction_id: UUID | None = Field(None, description="Response template instruction resource UUID")
     tool_ids: list[UUID] | None = Field(None, description="Related tool identifiers")
-    # Value-based fields for CSV import (match-by-name resolution)
-    active_flag: bool | None = Field(None, description="Whether this tool is active")
-    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name_id": "names",
@@ -250,8 +247,6 @@ class CreateToolItem(ScopedItem):
         "permission_ids": "permissions",
         "instruction_id": "instructions",
         "tool_ids": "tools",
-        "active_flag": "flags",
-        "active_flag_id": "flags",
     }
 
 
@@ -295,9 +290,6 @@ class UpdateToolItem(ScopedItem):
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
     instruction_id: UUID | None = Field(None, description="Response template instruction resource UUID")
     tool_ids: list[UUID] | None = Field(None, description="Related tool identifiers")
-    # Value-based fields for CSV import (match-by-name resolution)
-    active_flag: bool | None = Field(None, description="Whether this tool is active")
-    active_flag_id: UUID | None = Field(None, description="Active flag resource UUID")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateToolItem.RESOURCE_TYPE_MAP
 

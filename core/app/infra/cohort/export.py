@@ -105,20 +105,19 @@ async def export_cohort_impl(
 
     # -- Step 3: Get cohort artifacts with all junction IDs --
 
-    async with pool.acquire() as conn:
-        artifacts = await get_cohorts(
-            conn,
-            cohort_ids,
-            names=True,
-            descriptions=True,
-            departments=True,
-            flags=True,
-            profiles=True,
-            profile_personas=True,
-            simulations=True,
-            simulation_availability=True,
-            simulation_positions=True,
-        )
+    artifacts = await get_cohorts(
+        pool,
+        cohort_ids,
+        names=True,
+        descriptions=True,
+        departments=True,
+        flags=True,
+        profiles=True,
+        profile_personas=True,
+        simulations=True,
+        simulation_availability=True,
+        simulation_positions=True,
+    )
 
     # -- Step 4: Parallel resource hydration --
 
