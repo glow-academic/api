@@ -62,14 +62,13 @@ async def resolve_profile_facts_filters(
     async def _fetch_departments() -> list[FilterOption]:
         if not need_departments or not department_ids:
             return []
-        async with pool.acquire() as c:
-            items = await get_departments(
-                c, department_ids, redis, bypass_cache=bypass_cache
-            )
-            return [
-                FilterOption(value=str(d.id), label=d.name or "")
-                for d in sorted(items, key=lambda d: d.name or "")
-            ]
+        items = await get_departments(
+            pool, department_ids, redis, bypass_cache=bypass_cache
+        )
+        return [
+            FilterOption(value=str(d.id), label=d.name or "")
+            for d in sorted(items, key=lambda d: d.name or "")
+        ]
 
     async def _fetch_cohorts() -> list[FilterOption]:
         if not need_cohorts or not cohort_ids:
@@ -139,14 +138,13 @@ async def resolve_pricing_filters(
     async def _fetch_departments() -> list[FilterOption]:
         if not need_departments or not department_ids:
             return []
-        async with pool.acquire() as c:
-            items = await get_departments(
-                c, department_ids, redis, bypass_cache=bypass_cache
-            )
-            return [
-                FilterOption(value=str(d.id), label=d.name or "")
-                for d in sorted(items, key=lambda d: d.name or "")
-            ]
+        items = await get_departments(
+            pool, department_ids, redis, bypass_cache=bypass_cache
+        )
+        return [
+            FilterOption(value=str(d.id), label=d.name or "")
+            for d in sorted(items, key=lambda d: d.name or "")
+        ]
 
     async def _fetch_date_range() -> tuple[str | None, str | None]:
         if not need_date_range:
@@ -225,14 +223,13 @@ async def resolve_benchmark_filters(
     async def _fetch_departments() -> list[FilterOption]:
         if not need_departments or not department_ids:
             return []
-        async with pool.acquire() as c:
-            items = await get_departments(
-                c, department_ids, redis, bypass_cache=bypass_cache
-            )
-            return [
-                FilterOption(value=str(d.id), label=d.name or "")
-                for d in sorted(items, key=lambda d: d.name or "")
-            ]
+        items = await get_departments(
+            pool, department_ids, redis, bypass_cache=bypass_cache
+        )
+        return [
+            FilterOption(value=str(d.id), label=d.name or "")
+            for d in sorted(items, key=lambda d: d.name or "")
+        ]
 
     async def _fetch_date_range() -> tuple[str | None, str | None]:
         if not need_date_range:

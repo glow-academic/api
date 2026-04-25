@@ -103,8 +103,8 @@ async def search_profile_impl(
     # -- Step 2: Scope by role hierarchy + optional role_filter --
     # Visible roles: roles at or below the requester's level (from DB).
 
+    all_roles = await get_roles(pool, None, redis)
     async with pool.acquire() as conn:
-        all_roles = await get_roles(conn, None, redis)
 
         # Show roles at or below the user's level
         allowed_role_names = {r.name for r in all_roles if r.level >= user_role_level}
@@ -167,24 +167,19 @@ async def search_profile_impl(
         all_primary_department_resource_ids.extend(a.primary_department_ids or [])
 
     async def _fetch_names() -> list:
-        async with pool.acquire() as conn:
-            return await get_names(conn, all_name_ids, redis)
+        return await get_names(pool, all_name_ids, redis)
 
     async def _fetch_emails() -> list:
-        async with pool.acquire() as conn:
-            return await get_emails(conn, all_email_ids, redis)
+        return await get_emails(pool, all_email_ids, redis)
 
     async def _fetch_departments() -> list:
-        async with pool.acquire() as conn:
-            return await get_departments(conn, all_department_ids, redis)
+        return await get_departments(pool, all_department_ids, redis)
 
     async def _fetch_roles() -> list:
-        async with pool.acquire() as conn:
-            return await get_roles(conn, all_role_ids, redis)
+        return await get_roles(pool, all_role_ids, redis)
 
     async def _fetch_profiles_resource() -> list:
-        async with pool.acquire() as conn:
-            return await get_profiles_resource(conn, all_profile_resource_ids, redis)
+        return await get_profiles_resource(pool, all_profile_resource_ids, redis)
 
     async def _fetch_department_facet() -> list:
         async with pool.acquire() as conn:

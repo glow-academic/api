@@ -98,8 +98,7 @@ async def export_pricing_impl(
             all_group_ids.add(r.group_id)
 
     all_name_ids = list(all_agent_ids | all_model_ids)
-    async with pool.acquire() as conn:
-        name_items = await get_names(conn, all_name_ids, redis) if all_name_ids else []
+    name_items = await get_names(pool, all_name_ids, redis) if all_name_ids else []
     name_map = {item.id: item.name for item in name_items if item.id and item.name}
 
     # Hydrate group names

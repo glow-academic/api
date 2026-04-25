@@ -159,13 +159,12 @@ async def get_health_internal(
         if common.profile:
             from app.tools.resources.profiles.get import get_profiles
 
-            async with pool.acquire() as conn:
-                config_profile = await get_profiles(
-                    conn,
-                    [common.profile.profiles_id],
-                    redis,
-                    bypass_cache,
-                )
+            config_profile = await get_profiles(
+                pool,
+                [common.profile.profiles_id],
+                redis,
+                bypass_cache,
+            )
 
         runs_today = common.runs if common.runs else None
 

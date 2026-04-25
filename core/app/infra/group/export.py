@@ -109,8 +109,7 @@ async def export_group_impl(
             all_model_ids.update(r.model_ids)
 
     all_name_ids = list(all_agent_ids | all_model_ids)
-    async with pool.acquire() as conn:
-        name_items = await get_names(conn, all_name_ids, redis) if all_name_ids else []
+    name_items = await get_names(pool, all_name_ids, redis) if all_name_ids else []
     name_map = {item.id: item.name for item in name_items if item.id and item.name}
 
     # -- Step 6: Generate ZIP (groups.csv + runs.csv) + upload --

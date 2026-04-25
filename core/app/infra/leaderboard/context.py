@@ -82,10 +82,9 @@ async def resolve_leaderboard_context(
             profile_ids_set.add(ac.profile_id)
 
     if profile_ids_set:
-        async with pool.acquire() as conn:
-            profiles_selected = await get_profiles(
-                conn, list(profile_ids_set), redis, bypass_cache
-            )
+        profiles_selected = await get_profiles(
+            pool, list(profile_ids_set), redis, bypass_cache
+        )
     else:
         profiles_selected = []
 
@@ -171,8 +170,7 @@ async def resolve_leaderboard_search_context(
     # Step 4: Parallel hydrate resources
 
     async def _get_profiles() -> list:
-        async with pool.acquire() as conn:
-            return await get_profiles(conn, list(profile_ids_set), redis, bypass_cache)
+        return await get_profiles(pool, list(profile_ids_set), redis, bypass_cache)
 
     async def _get_simulations() -> list:
         async with pool.acquire() as conn:

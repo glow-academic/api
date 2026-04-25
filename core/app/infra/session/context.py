@@ -61,8 +61,7 @@ async def resolve_session_context(
             return await search_groups(c, session_ids=[session_id], limit=10000)
 
     async def _fetch_actor_name() -> list:
-        async with pool.acquire() as c:
-            return await get_names(c, [profile_id], redis, bypass_cache=bypass_cache)
+        return await get_names(pool, [profile_id], redis, bypass_cache=bypass_cache)
 
     sessions, groups, actor_name_items = await asyncio.gather(
         _fetch_sessions(),
@@ -127,10 +126,9 @@ async def resolve_session_context(
     async def _get_names() -> list:
         if not name_ids_set:
             return []
-        async with pool.acquire() as c:
-            return await get_names(
-                c, list(name_ids_set), redis, bypass_cache=bypass_cache
-            )
+        return await get_names(
+            pool, list(name_ids_set), redis, bypass_cache=bypass_cache
+        )
 
     names_res = await _get_names()
 

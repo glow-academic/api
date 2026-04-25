@@ -58,8 +58,7 @@ async def resolve_group_context(
             return items
 
     async def _fetch_actor_name() -> list:
-        async with pool.acquire() as c:
-            return await get_names(c, [profile_id], redis, bypass_cache=bypass_cache)
+        return await get_names(pool, [profile_id], redis, bypass_cache=bypass_cache)
 
     async def _fetch_group_info() -> list:
         async with pool.acquire() as c:
@@ -116,10 +115,9 @@ async def resolve_group_context(
     async def _get_names() -> list:
         if not name_ids_set:
             return []
-        async with pool.acquire() as c:
-            return await get_names(
-                c, list(name_ids_set), redis, bypass_cache=bypass_cache
-            )
+        return await get_names(
+            pool, list(name_ids_set), redis, bypass_cache=bypass_cache
+        )
 
     async def _get_tools() -> list:
         if not tool_ids_set:

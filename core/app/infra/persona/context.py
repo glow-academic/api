@@ -162,8 +162,7 @@ async def resolve_persona_context(
     # Each branch acquires its own connection from the pool.
 
     async def _get_names() -> list:
-        async with pool.acquire() as conn:
-            return await get_names(conn, merged.name_ids, redis, bypass_cache)
+        return await get_names(pool, merged.name_ids, redis, bypass_cache)
 
     async def _search_names() -> list:
         async with pool.acquire() as conn:
@@ -276,10 +275,9 @@ async def resolve_persona_context(
             )
 
     async def _get_departments() -> list:
-        async with pool.acquire() as conn:
-            return await get_departments(
-                conn, merged.department_ids, redis, bypass_cache
-            )
+        return await get_departments(
+            pool, merged.department_ids, redis, bypass_cache
+        )
 
     async def _search_departments() -> list:
         async with pool.acquire() as conn:

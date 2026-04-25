@@ -539,8 +539,7 @@ async def export_home_client(
         return []
 
     async def _get_profiles() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_profiles(conn, list(all_profile_ids), redis)
+        return await get_profiles(pool, list(all_profile_ids), redis)
 
     async def _get_simulations() -> list[Any]:
         async with pool.acquire() as conn:
@@ -559,8 +558,7 @@ async def export_home_client(
             return await get_cohorts(conn, list(all_cohort_ids), redis)
 
     async def _get_departments() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_departments(conn, list(all_department_ids), redis)
+        return await get_departments(pool, list(all_department_ids), redis)
 
     (
         profiles_data,

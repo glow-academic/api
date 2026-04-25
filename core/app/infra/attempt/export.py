@@ -168,8 +168,7 @@ async def export_attempt_impl(
     async def _fetch_profiles() -> list:
         if not all_profile_ids:
             return []
-        async with pool.acquire() as c:
-            return await get_profiles(c, list(all_profile_ids), redis)
+        return await get_profiles(pool, list(all_profile_ids), redis)
 
     async def _fetch_simulations() -> list:
         if not all_simulation_ids:

@@ -162,8 +162,7 @@ async def create_denormalized_snapshot(
     async def _get_names() -> list:
         if not name_id:
             return []
-        async with pool.acquire() as conn:
-            return await get_names(conn, [name_id], redis, bypass_cache=True)
+        return await get_names(pool, [name_id], redis, bypass_cache=True)
 
     async def _get_descriptions() -> list:
         if not description_id:

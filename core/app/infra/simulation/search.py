@@ -184,8 +184,7 @@ async def search_simulation_impl(
     async def _fetch_names() -> list:
         if not all_name_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_names(conn, all_name_ids, redis)
+        return await get_names(pool, all_name_ids, redis)
 
     async def _fetch_scenarios() -> list:
         if not all_scenario_resource_ids:

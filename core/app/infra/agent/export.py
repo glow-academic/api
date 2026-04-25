@@ -141,16 +141,14 @@ async def export_agent_impl(
         return []
 
     async def _get_names() -> list:
-        async with pool.acquire() as conn:
-            return await get_names(conn, all_name_ids, redis)
+        return await get_names(pool, all_name_ids, redis)
 
     async def _get_descriptions() -> list:
         async with pool.acquire() as conn:
             return await get_descriptions(conn, all_description_ids, redis)
 
     async def _get_departments() -> list:
-        async with pool.acquire() as conn:
-            return await get_departments(conn, all_department_ids, redis)
+        return await get_departments(pool, all_department_ids, redis)
 
     async def _get_models() -> list:
         async with pool.acquire() as conn:

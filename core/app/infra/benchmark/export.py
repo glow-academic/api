@@ -133,14 +133,12 @@ async def export_benchmark_impl(
     async def _get_departments() -> list:
         if not all_department_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_departments(conn, list(all_department_ids), redis)
+        return await get_departments(pool, list(all_department_ids), redis)
 
     async def _get_profiles() -> list:
         if not all_profile_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_profiles(conn, list(all_profile_ids), redis)
+        return await get_profiles(pool, list(all_profile_ids), redis)
 
     departments_data, profiles_data = await asyncio.gather(
         _get_departments(),

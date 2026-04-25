@@ -187,8 +187,7 @@ async def export_activity_impl(
     async def _fetch_profiles() -> list:
         if not all_profile_ids:
             return []
-        async with pool.acquire() as c:
-            return await get_profiles(c, list(all_profile_ids), redis)
+        return await get_profiles(pool, list(all_profile_ids), redis)
 
     (profiles_data,) = await asyncio.gather(
         _fetch_profiles(),

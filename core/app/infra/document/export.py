@@ -121,8 +121,7 @@ async def export_document_impl(
     async def _fetch_names() -> list:
         if not all_name_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_names(conn, all_name_ids, redis)
+        return await get_names(pool, all_name_ids, redis)
 
     async def _fetch_descriptions() -> list:
         if not all_description_ids:
@@ -133,8 +132,7 @@ async def export_document_impl(
     async def _fetch_departments() -> list:
         if not all_department_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_departments(conn, all_department_ids, redis)
+        return await get_departments(pool, all_department_ids, redis)
 
     async def _fetch_parameter_fields() -> list:
         if not all_parameter_field_ids:

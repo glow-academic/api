@@ -134,8 +134,7 @@ async def resolve_model_context(
     active = artifact.active if artifact else True
 
     async def _get_names() -> list:
-        async with pool.acquire() as conn:
-            return await get_names(conn, merged.name_ids, redis, bypass_cache)
+        return await get_names(pool, merged.name_ids, redis, bypass_cache)
 
     async def _search_names() -> list:
         if names_selected_only:
@@ -191,8 +190,7 @@ async def resolve_model_context(
             )
 
     async def _get_departments() -> list:
-        async with pool.acquire() as conn:
-            return await get_departments(conn, merged.department_ids, redis, bypass_cache)
+        return await get_departments(pool, merged.department_ids, redis, bypass_cache)
 
     async def _search_departments() -> list:
         if departments_selected_only:

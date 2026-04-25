@@ -12,12 +12,21 @@ from app.utils.cache.set_cached import set_cached
 
 
 async def get_names(
-    conn: asyncpg.Connection,
+    pool_or_conn: asyncpg.Pool | asyncpg.Connection,
     ids: list[UUID],
     redis: Redis,
     bypass_cache: bool = False,
 ) -> list[GetNameResponse]:
-    """Fetch names_resource entries by IDs."""
+    """Fetch names_resource entries by IDs.
+
+    Accepts either a Pool or a Connection as the first arg:
+      - Pool (preferred for hot-path gathers): cache check happens BEFORE any
+        server conn is acquired. On hit (the common case behind the 5-way
+        profile_identity gather) zero pgbouncer conns are pinned.
+      - Connection (back-compat for callers already inside a transaction or
+        wider conn-using flow): uses the supplied conn. Cache-first
+        short-circuit still applies.
+    """
     if not ids:
         return []
 
@@ -31,15 +40,17 @@ async def get_names(
                 GetNameResponse.model_validate(item) for item in cached.get("items", [])
             ]
 
-    rows = await conn.fetch(
-        """
+    sql = """
         SELECT id, name, created_at, active, mcp, generated
         FROM names_resource
         WHERE id = ANY($1)
         ORDER BY array_position($1, id)
-    """,
-        ids,
-    )
+    """
+    if isinstance(pool_or_conn, asyncpg.Pool):
+        async with pool_or_conn.acquire() as conn:
+            rows = await conn.fetch(sql, ids)
+    else:
+        rows = await pool_or_conn.fetch(sql, ids)
 
     items = [
         GetNameResponse(

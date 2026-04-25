@@ -104,8 +104,7 @@ async def resolve_department_context(
     merged = _merge_junction_ids(artifact, draft)
 
     async def _get_names_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_names(conn, merged.name_ids, redis, bypass_cache)
+        return await get_names(pool, merged.name_ids, redis, bypass_cache)
 
     async def _search_names_suggestions() -> list[Any]:
         async with pool.acquire() as conn:

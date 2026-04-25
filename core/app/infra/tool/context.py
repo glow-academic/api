@@ -152,8 +152,7 @@ async def resolve_tool_context(
     active = artifact.active if artifact else True
 
     async def _get_names() -> list:
-        async with pool.acquire() as conn:
-            return await get_names(conn, merged.name_ids, redis, bypass_cache)
+        return await get_names(pool, merged.name_ids, redis, bypass_cache)
 
     async def _search_names() -> list:
         async with pool.acquire() as conn:

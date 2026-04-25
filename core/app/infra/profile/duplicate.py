@@ -108,7 +108,7 @@ async def duplicate_profile_impl(
         original = originals[0]
         original_name = "Unknown"
         if original.name_ids:
-            name_resources = await get_names(conn, original.name_ids, redis)
+            name_resources = await get_names(pool, original.name_ids, redis)
             if name_resources:
                 original_name = name_resources[0].name or "Unknown"
 

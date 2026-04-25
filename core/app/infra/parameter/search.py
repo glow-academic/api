@@ -162,8 +162,7 @@ async def search_parameter_impl(
     async def _get_names_data() -> list:
         if not all_name_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_names(conn, all_name_ids, redis)
+        return await get_names(pool, all_name_ids, redis)
 
     async def _get_descriptions_data() -> list:
         if not all_description_ids:

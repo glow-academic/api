@@ -272,8 +272,7 @@ async def resolve_chat_context(
     async def _get_names() -> list:
         if not enabled["names"]:
             return []
-        async with pool.acquire() as c:
-            return await get_names(c, name_ids, redis, bypass_cache)
+        return await get_names(pool, name_ids, redis, bypass_cache)
 
     async def _search_names() -> list:
         if not enabled["names"] or _is_locked("names"):
@@ -330,8 +329,7 @@ async def resolve_chat_context(
     async def _get_departments() -> list:
         if not enabled["departments"]:
             return []
-        async with pool.acquire() as c:
-            return await get_departments(c, department_ids, redis, bypass_cache)
+        return await get_departments(pool, department_ids, redis, bypass_cache)
 
     async def _search_departments() -> list:
         if not enabled["departments"]:

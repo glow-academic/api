@@ -146,10 +146,9 @@ async def resolve_benchmark_context(
     async def _get_departments() -> list:
         if not dept_ids_set:
             return []
-        async with pool.acquire() as c:
-            return await get_departments(
-                c, list(dept_ids_set), redis, bypass_cache=bypass_cache
-            )
+        return await get_departments(
+            pool, list(dept_ids_set), redis, bypass_cache=bypass_cache
+        )
 
     async def _get_rubrics() -> list:
         if not rubric_ids_set:

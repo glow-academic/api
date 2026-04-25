@@ -394,8 +394,7 @@ async def patch_tool_draft_impl(
 
     resolved_name = request.name
     if request.name_id and resolved_name is None:
-        async with pool.acquire() as conn:
-            matches = await get_names(conn, [request.name_id], redis, bypass_cache=True)
+        matches = await get_names(pool, [request.name_id], redis, bypass_cache=True)
         resolved_name = matches[0].name if matches else None
 
     resolved_description = request.description

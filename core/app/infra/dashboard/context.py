@@ -533,10 +533,9 @@ async def resolve_dashboard_context(
     async def _get_profiles() -> list:
         if not target_profile_id:
             return []
-        async with pool.acquire() as c:
-            return await get_profiles(
-                c, [target_profile_id], redis, bypass_cache=bypass_cache
-            )
+        return await get_profiles(
+            pool, [target_profile_id], redis, bypass_cache=bypass_cache
+        )
 
     (
         rubric_scores_result,
@@ -758,10 +757,9 @@ async def resolve_dashboard_search_context(
     async def _h_profiles() -> list:
         if not h_profile_ids:
             return []
-        async with pool.acquire() as c:
-            return await get_profiles(
-                c, list(h_profile_ids), redis, bypass_cache=bypass_cache
-            )
+        return await get_profiles(
+            pool, list(h_profile_ids), redis, bypass_cache=bypass_cache
+        )
 
     async def _h_personas() -> list:
         if not h_persona_ids:

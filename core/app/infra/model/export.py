@@ -153,16 +153,14 @@ async def export_model_impl(
         return []
 
     async def _fetch_names() -> list:
-        async with pool.acquire() as conn:
-            return await get_names(conn, all_name_ids, redis)
+        return await get_names(pool, all_name_ids, redis)
 
     async def _fetch_descriptions() -> list:
         async with pool.acquire() as conn:
             return await get_descriptions(conn, all_description_ids, redis)
 
     async def _fetch_departments() -> list:
-        async with pool.acquire() as conn:
-            return await get_departments(conn, all_department_ids, redis)
+        return await get_departments(pool, all_department_ids, redis)
 
     async def _fetch_values() -> list:
         async with pool.acquire() as conn:

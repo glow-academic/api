@@ -78,7 +78,7 @@ async def _resolve_entity_name(
         artifacts = await get_scenario_artifacts(conn, [entity_id], names=True)
         if not artifacts or not artifacts[0].name_ids:
             return None
-        names_data = await get_names(conn, artifacts[0].name_ids, redis)
+    names_data = await get_names(pool, artifacts[0].name_ids, redis)
     return names_data[0].name if names_data else None
 
 

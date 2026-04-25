@@ -186,14 +186,12 @@ async def search_cohort_impl(
     async def _fetch_names() -> list:
         if not all_name_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_names(conn, all_name_ids, redis)
+        return await get_names(pool, all_name_ids, redis)
 
     async def _fetch_profiles() -> list:
         if not all_profile_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_profiles_resource(conn, list(all_profile_ids), redis)
+        return await get_profiles_resource(pool, list(all_profile_ids), redis)
 
     async def _fetch_simulations() -> list:
         if not all_simulation_ids:
@@ -204,8 +202,7 @@ async def search_cohort_impl(
     async def _fetch_departments() -> list:
         if not all_department_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_departments(conn, list(all_department_ids), redis)
+        return await get_departments(pool, list(all_department_ids), redis)
 
     async def _fetch_profile_facet() -> list:
         async with pool.acquire() as conn:

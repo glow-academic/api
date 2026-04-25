@@ -295,8 +295,7 @@ async def resolve_practice_search_context(
             return await get_simulations(conn, list(sim_ids), redis, bypass_cache)
 
     async def _get_profiles() -> list:
-        async with pool.acquire() as conn:
-            return await get_profiles(conn, list(profile_ids), redis, bypass_cache)
+        return await get_profiles(pool, list(profile_ids), redis, bypass_cache)
 
     async def _get_personas() -> list:
         async with pool.acquire() as conn:

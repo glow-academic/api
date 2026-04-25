@@ -138,10 +138,9 @@ async def resolve_reports_context(
     async def _get_profiles() -> list:
         if not profile_ids_set:
             return []
-        async with pool.acquire() as c:
-            return await get_profiles(
-                c, list(profile_ids_set), redis, bypass_cache=bypass_cache
-            )
+        return await get_profiles(
+            pool, list(profile_ids_set), redis, bypass_cache=bypass_cache
+        )
 
     async def _get_scenarios() -> list:
         if not scenario_ids_set:

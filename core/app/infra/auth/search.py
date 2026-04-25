@@ -157,8 +157,7 @@ async def search_auth_impl(
     async def _fetch_names_data() -> list:
         if not all_name_ids:
             return []
-        async with pool.acquire() as c:
-            return await get_names(c, all_name_ids, redis)
+        return await get_names(pool, all_name_ids, redis)
 
     async def _fetch_descriptions_data() -> list:
         if not all_description_ids:

@@ -151,8 +151,7 @@ async def search_agent_impl(
     # Parallel: hydrate resources + facets
 
     async def _fetch_names() -> list:
-        async with pool.acquire() as conn:
-            return await get_names(conn, all_name_ids, redis)
+        return await get_names(pool, all_name_ids, redis)
 
     async def _fetch_models() -> list:
         async with pool.acquire() as conn:

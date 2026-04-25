@@ -12,12 +12,15 @@ from app.utils.cache.set_cached import set_cached
 
 
 async def get_roles(
-    conn: asyncpg.Connection,
+    pool_or_conn: asyncpg.Pool | asyncpg.Connection,
     ids: list[UUID] | None,
     redis: Redis,
     bypass_cache: bool = False,
 ) -> list[GetRoleResponse]:
-    """Fetch roles_resource entries by IDs, or all if ids is None."""
+    """Fetch roles_resource entries by IDs, or all if ids is None.
+
+    Accepts either a Pool or a Connection — see get_names for rationale.
+    """
     if ids is not None and not ids:
         return []
 
@@ -33,25 +36,27 @@ async def get_roles(
             ]
 
     if ids is not None:
-        rows = await conn.fetch(
-            """
+        sql = """
             SELECT id, name, description, icon_id, color_id, level,
                    permission_ids, request_limit_ids, created_at, active, generated, mcp
             FROM roles_resource
             WHERE id = ANY($1)
             ORDER BY array_position($1, id)
-        """,
-            ids,
-        )
+        """
+        args = (ids,)
     else:
-        rows = await conn.fetch(
-            """
+        sql = """
             SELECT id, name, description, icon_id, color_id, level,
                    permission_ids, request_limit_ids, created_at, active, generated, mcp
             FROM roles_resource
             ORDER BY created_at
-        """,
-        )
+        """
+        args = ()
+    if isinstance(pool_or_conn, asyncpg.Pool):
+        async with pool_or_conn.acquire() as conn:
+            rows = await conn.fetch(sql, *args)
+    else:
+        rows = await pool_or_conn.fetch(sql, *args)
 
     items = [
         GetRoleResponse(

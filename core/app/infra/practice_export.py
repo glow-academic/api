@@ -150,8 +150,7 @@ async def export_practice_client(
         return []
 
     async def _get_profiles() -> list:
-        async with pool.acquire() as conn:
-            return await get_profiles(conn, list(all_profile_ids), redis)
+        return await get_profiles(pool, list(all_profile_ids), redis)
 
     async def _get_simulations() -> list:
         async with pool.acquire() as conn:
@@ -166,8 +165,7 @@ async def export_practice_client(
             return await get_personas(conn, list(all_persona_ids), redis)
 
     async def _get_departments() -> list:
-        async with pool.acquire() as conn:
-            return await get_departments(conn, list(all_department_ids), redis)
+        return await get_departments(pool, list(all_department_ids), redis)
 
     (
         profiles_data,

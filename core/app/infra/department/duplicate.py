@@ -89,7 +89,7 @@ async def duplicate_department_impl(
     async with pool.acquire() as conn:
         original_name = "Unknown"
         if original.name_ids:
-            name_resources = await get_names(conn, original.name_ids, redis)
+            name_resources = await get_names(pool, original.name_ids, redis)
             if name_resources:
                 original_name = name_resources[0].name or "Unknown"
 

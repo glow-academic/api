@@ -56,8 +56,7 @@ async def build_profile_summary(
         )
 
     async def _fetch_roles() -> list:
-        async with pool.acquire() as c:
-            return await get_roles(c, None, redis)
+        return await get_roles(pool, None, redis)
 
     theme, roles_raw = await asyncio.gather(_fetch_theme(), _fetch_roles())
 

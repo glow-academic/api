@@ -101,7 +101,7 @@ async def delete_auth_impl(
         for artifact in artifacts:
             name = "Unknown"
             if artifact.name_ids:
-                name_resources = await get_names(conn, artifact.name_ids, redis)
+                name_resources = await get_names(pool, artifact.name_ids, redis)
                 if name_resources:
                     name = name_resources[0].name or "Unknown"
             name_map[artifact.id] = name

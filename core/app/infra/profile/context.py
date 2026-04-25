@@ -123,8 +123,7 @@ async def resolve_profile_context(
     active = artifact.active if artifact else True
 
     async def _get_names() -> list:
-        async with pool.acquire() as conn:
-            return await get_names(conn, merged.name_ids, redis, bypass_cache)
+        return await get_names(pool, merged.name_ids, redis, bypass_cache)
 
     async def _search_names() -> list:
         async with pool.acquire() as conn:
@@ -141,8 +140,7 @@ async def resolve_profile_context(
             )
 
     async def _get_emails() -> list:
-        async with pool.acquire() as conn:
-            return await get_emails(conn, merged.email_ids, redis, bypass_cache)
+        return await get_emails(pool, merged.email_ids, redis, bypass_cache)
 
     async def _search_emails() -> list:
         async with pool.acquire() as conn:
@@ -174,8 +172,7 @@ async def resolve_profile_context(
             )
 
     async def _get_departments() -> list:
-        async with pool.acquire() as conn:
-            return await get_departments(conn, merged.department_ids, redis, bypass_cache)
+        return await get_departments(pool, merged.department_ids, redis, bypass_cache)
 
     async def _search_departments() -> list:
         async with pool.acquire() as conn:
@@ -193,8 +190,7 @@ async def resolve_profile_context(
             )
 
     async def _get_roles() -> list:
-        async with pool.acquire() as conn:
-            return await get_roles(conn, merged.role_ids, redis, bypass_cache)
+        return await get_roles(pool, merged.role_ids, redis, bypass_cache)
 
     async def _search_roles() -> list:
         async with pool.acquire() as conn:
@@ -333,8 +329,7 @@ async def context_profile_impl(
     scoped_roles = sorted(SIMULATABLE_ROLES.get(identity.role, set()))
 
     async def _fetch_roles() -> list:
-        async with pool.acquire() as conn:
-            return await get_roles(conn, None, redis, bypass_cache=bypass_cache)
+        return await get_roles(pool, None, redis, bypass_cache=bypass_cache)
 
     async def _fetch_theme() -> ThemePrimitives | None:
         if not identity.settings_id:

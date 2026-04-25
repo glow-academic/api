@@ -161,8 +161,7 @@ async def search_rubric_impl(
         all_standard_ids.extend(a.standard_ids or [])
 
     async def _get_names() -> list:
-        async with pool.acquire() as conn:
-            return await get_names(conn, all_name_ids, redis)
+        return await get_names(pool, all_name_ids, redis)
 
     async def _get_descriptions() -> list:
         async with pool.acquire() as conn:

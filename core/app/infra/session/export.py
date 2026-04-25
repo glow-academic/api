@@ -146,14 +146,12 @@ async def export_session_impl(
     async def _fetch_profiles() -> list:
         if not all_profile_ids:
             return []
-        async with pool.acquire() as c:
-            return await get_profiles(c, list(all_profile_ids), redis)
+        return await get_profiles(pool, list(all_profile_ids), redis)
 
     async def _fetch_names() -> list:
         if not all_name_ids:
             return []
-        async with pool.acquire() as c:
-            return await get_names(c, all_name_ids, redis)
+        return await get_names(pool, all_name_ids, redis)
 
     profiles_data, name_items = await asyncio.gather(
         _fetch_profiles(),

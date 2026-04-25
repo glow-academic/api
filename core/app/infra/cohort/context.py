@@ -128,8 +128,7 @@ async def resolve_cohort_context(
     async def _get_names() -> list:
         if not _include("names"):
             return []
-        async with pool.acquire() as conn:
-            return await get_names(conn, merged.name_ids, redis, bypass_cache)
+        return await get_names(pool, merged.name_ids, redis, bypass_cache)
 
     async def _search_names() -> list:
         if not _include("names"):
@@ -197,10 +196,9 @@ async def resolve_cohort_context(
     async def _get_departments() -> list:
         if not _include("departments"):
             return []
-        async with pool.acquire() as conn:
-            return await get_departments(
-                conn, merged.department_ids, redis, bypass_cache=bypass_cache
-            )
+        return await get_departments(
+            pool, merged.department_ids, redis, bypass_cache=bypass_cache
+        )
 
     async def _search_departments() -> list:
         if not _include("departments"):
@@ -305,10 +303,9 @@ async def resolve_cohort_context(
             return []
         if not merged.profile_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_profiles(
-                conn, merged.profile_ids, redis, bypass_cache=bypass_cache
-            )
+        return await get_profiles(
+            pool, merged.profile_ids, redis, bypass_cache=bypass_cache
+        )
 
     async def _search_profiles() -> list:
         if not _include("profiles"):

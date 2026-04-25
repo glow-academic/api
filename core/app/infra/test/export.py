@@ -170,14 +170,12 @@ async def export_test_impl(
     async def _fetch_names() -> list:
         if not all_name_ids:
             return []
-        async with pool.acquire() as c:
-            return await get_names(c, list(all_name_ids), redis)
+        return await get_names(pool, list(all_name_ids), redis)
 
     async def _fetch_departments() -> list:
         if not all_department_ids:
             return []
-        async with pool.acquire() as c:
-            return await get_departments(c, list(all_department_ids), redis)
+        return await get_departments(pool, list(all_department_ids), redis)
 
     async def _fetch_voices() -> list:
         if not all_voice_ids:

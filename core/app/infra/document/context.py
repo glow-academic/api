@@ -114,8 +114,7 @@ async def resolve_document_context(
     active = artifact.active if artifact else True
 
     async def _get_names() -> list:
-        async with pool.acquire() as conn:
-            return await get_names(conn, merged.name_ids, redis, bypass_cache)
+        return await get_names(pool, merged.name_ids, redis, bypass_cache)
 
     async def _search_names() -> list:
         async with pool.acquire() as conn:
@@ -168,8 +167,7 @@ async def resolve_document_context(
             )
 
     async def _get_departments() -> list:
-        async with pool.acquire() as conn:
-            return await get_departments(conn, merged.department_ids, redis, bypass_cache=bypass_cache)
+        return await get_departments(pool, merged.department_ids, redis, bypass_cache=bypass_cache)
 
     async def _search_departments() -> list:
         async with pool.acquire() as conn:

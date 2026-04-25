@@ -122,20 +122,16 @@ async def export_profile_impl(
         return []
 
     async def _fetch_names() -> list:
-        async with pool.acquire() as conn:
-            return await get_names(conn, all_name_ids, redis)
+        return await get_names(pool, all_name_ids, redis)
 
     async def _fetch_departments() -> list:
-        async with pool.acquire() as conn:
-            return await get_departments(conn, all_department_ids, redis)
+        return await get_departments(pool, all_department_ids, redis)
 
     async def _fetch_emails() -> list:
-        async with pool.acquire() as conn:
-            return await get_emails(conn, all_email_ids, redis)
+        return await get_emails(pool, all_email_ids, redis)
 
     async def _fetch_roles() -> list:
-        async with pool.acquire() as conn:
-            return await get_roles(conn, all_role_ids, redis)
+        return await get_roles(pool, all_role_ids, redis)
 
     (
         names_data,

@@ -120,33 +120,32 @@ async def resolve_profile_identity_context(
 
     # Step 2: hydrate all resources in parallel
 
+    # The 5 primitives now take Pool instead of Connection — cache check
+    # happens before any server conn is acquired. On a cache hit (the 96%
+    # case) zero pgbouncer conns are pinned, removing the 5x fan-out
+    # pressure that previously saturated the pool under page-load bursts.
     async def _get_names() -> list:
         if not name_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_names(conn, name_ids, redis, bypass_cache)
+        return await get_names(pool, name_ids, redis, bypass_cache)
 
     async def _get_roles() -> list:
         if not role_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_roles(conn, role_ids, redis, bypass_cache)
+        return await get_roles(pool, role_ids, redis, bypass_cache)
 
     async def _get_departments() -> list:
         if not department_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_departments(conn, department_ids, redis, bypass_cache)
+        return await get_departments(pool, department_ids, redis, bypass_cache)
 
     async def _get_emails() -> list:
         if not email_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_emails(conn, email_ids, redis, bypass_cache)
+        return await get_emails(pool, email_ids, redis, bypass_cache)
 
     async def _get_profiles() -> list:
-        async with pool.acquire() as conn:
-            return await get_profiles(conn, profile_ids, redis, bypass_cache)
+        return await get_profiles(pool, profile_ids, redis, bypass_cache)
 
     async def _get_primary_departments() -> list:
         if not primary_department_resource_ids:
