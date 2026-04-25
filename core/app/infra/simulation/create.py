@@ -26,6 +26,7 @@ from app.tools.artifacts.simulation.create import (
     create_simulation as create_simulation_artifact,
 )
 from app.tools.artifacts.simulation.get import get_simulations
+from app.tools.resources.flags.get import get_flags
 
 
 from app.infra.simulation.types import (
@@ -203,13 +204,23 @@ async def create_simulation_impl(
     snapshot_ids: list[UUID] = []
     if not soft:
         for item in items:
+            practice = False
+            if item.flag_ids:
+                async with pool.acquire() as conn:
+                    flag_artifacts = await get_flags(
+                        conn,
+                        list(item.flag_ids),
+                        redis,
+                        bypass_cache=True,
+                    )
+                practice = any(flag.type == "practice" and flag.value is True for flag in flag_artifacts)
             simulations_resource_id = await create_denormalized_snapshot(
                 pool,
                 redis,
                 id=item.resource_id,
                 name_id=item.name_id,
                 description_id=item.description_id,
-                practice=bool(item.practice_flag_id),
+                practice=practice,
                 department_ids=item.department_ids,
                 scenario_ids=item.scenario_ids,
                 scenario_rubric_ids=item.scenario_rubric_ids,

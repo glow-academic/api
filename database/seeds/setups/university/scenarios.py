@@ -77,21 +77,33 @@ UPSET_STUDENT_VIDEO = sid("uni/videos-resource/upset-student")
 # Default toggle flags for all scenarios
 # ---------------------------------------------------------------------------
 
-_PRACTICE_FLAGS = dict(
-    problem_statement_enabled_flag=True,
-    objectives_enabled_flag=True,
-    images_enabled_flag=True,
-    questions_enabled_flag=False,
-    video_enabled_flag=False,
-)
+_SCENARIO_ACTIVE_TRUE = sid("flag/scenario-active")
+_PROBLEM_STATEMENT_TRUE = sid("flag/problem-statement")
+_OBJECTIVES_TRUE = sid("flag/objectives")
+_IMAGES_TRUE = sid("flag/images")
+_IMAGES_FALSE = sid("flag/images/false")
+_QUESTIONS_TRUE = sid("flag/questions")
+_QUESTIONS_FALSE = sid("flag/questions/false")
+_VIDEO_TRUE = sid("flag/video")
+_VIDEO_FALSE = sid("flag/video/false")
 
-_TRAINING_FLAGS = dict(
-    problem_statement_enabled_flag=True,
-    objectives_enabled_flag=True,
-    images_enabled_flag=False,
-    questions_enabled_flag=True,
-    video_enabled_flag=True,
-)
+_PRACTICE_FLAG_IDS = [
+    _SCENARIO_ACTIVE_TRUE,
+    _PROBLEM_STATEMENT_TRUE,
+    _OBJECTIVES_TRUE,
+    _IMAGES_TRUE,
+    _QUESTIONS_FALSE,
+    _VIDEO_FALSE,
+]
+
+_TRAINING_FLAG_IDS = [
+    _SCENARIO_ACTIVE_TRUE,
+    _PROBLEM_STATEMENT_TRUE,
+    _OBJECTIVES_TRUE,
+    _IMAGES_FALSE,
+    _QUESTIONS_TRUE,
+    _VIDEO_TRUE,
+]
 
 # ---------------------------------------------------------------------------
 # Scenario definitions
@@ -105,9 +117,8 @@ scenarios = [
         name="Confused Scenario",
         description="Practice scenario featuring a confused or uncertain student persona.",
         persona_ids=[CONFUSED_RESOURCE],
-        active_flag=True,
+        flag_ids=_PRACTICE_FLAG_IDS,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        **_PRACTICE_FLAGS,
     ),
     dict(
         id=HAPPY_SCENARIO,
@@ -115,9 +126,8 @@ scenarios = [
         name="Happy Scenario",
         description="Practice scenario featuring a cheerful and positive student persona.",
         persona_ids=[HAPPY_RESOURCE],
-        active_flag=True,
+        flag_ids=_PRACTICE_FLAG_IDS,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        **_PRACTICE_FLAGS,
     ),
     dict(
         id=PASSIVE_SCENARIO,
@@ -125,9 +135,8 @@ scenarios = [
         name="Passive Scenario",
         description="Practice scenario featuring a passive or hesitant student persona.",
         persona_ids=[PASSIVE_RESOURCE],
-        active_flag=True,
+        flag_ids=_PRACTICE_FLAG_IDS,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        **_PRACTICE_FLAGS,
     ),
     dict(
         id=AGGRESSIVE_SCENARIO,
@@ -135,18 +144,16 @@ scenarios = [
         name="Aggressive Scenario",
         description="Practice scenario featuring an aggressive or confrontational student persona.",
         persona_ids=[AGGRESSIVE_HIGH_RESOURCE],
-        active_flag=True,
+        flag_ids=_PRACTICE_FLAG_IDS,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        **_PRACTICE_FLAGS,
     ),
     dict(
         id=GENERAL_SCENARIO,
         resource_id=GENERAL_SCENARIO_RESOURCE,
         name="General Scenario",
         description="General purpose scenario for flexible practice across various situations.",
-        active_flag=True,
+        flag_ids=_PRACTICE_FLAG_IDS,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
-        **_PRACTICE_FLAGS,
     ),
     # ── Training Scenarios (with problem statements and multiple personas) ─
     dict(
@@ -161,7 +168,7 @@ scenarios = [
             "the violation, explain the consequences, and emphasize the importance of "
             "maintaining academic honesty."
         ),
-        active_flag=True,
+        flag_ids=_TRAINING_FLAG_IDS,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         document_ids=[ACADEMIC_INTEGRITY_POLICY_RESOURCE],
         video_ids=[ACADEMIC_INTEGRITY_VIDEO],
@@ -169,7 +176,6 @@ scenarios = [
         objective_ids=ACADEMIC_INTEGRITY_OBJECTIVES,
         question_ids=ACADEMIC_INTEGRITY_QUESTIONS,
         option_ids=ACADEMIC_INTEGRITY_OPTIONS,
-        **_TRAINING_FLAGS,
     ),
     dict(
         id=FERPA_SCENARIO,
@@ -183,7 +189,7 @@ scenarios = [
             "and questions whether this violates FERPA. The staff member must quickly "
             "address the situation and explain the importance of protecting student privacy."
         ),
-        active_flag=True,
+        flag_ids=_TRAINING_FLAG_IDS,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         document_ids=[FERPA_POLICY_RESOURCE],
         video_ids=[FERPA_VIDEO],
@@ -191,7 +197,6 @@ scenarios = [
         objective_ids=FERPA_OBJECTIVES,
         question_ids=FERPA_QUESTIONS,
         option_ids=FERPA_OPTIONS,
-        **_TRAINING_FLAGS,
     ),
     dict(
         id=UPSET_STUDENT_SCENARIO,
@@ -205,12 +210,11 @@ scenarios = [
             "must listen attentively, acknowledge the student's concerns, and offer to review "
             "the work together while providing constructive feedback."
         ),
-        active_flag=True,
+        flag_ids=_TRAINING_FLAG_IDS,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         video_ids=[UPSET_STUDENT_VIDEO],
         objective_ids=UPSET_STUDENT_OBJECTIVES,
         question_ids=UPSET_STUDENT_QUESTIONS,
         option_ids=UPSET_STUDENT_OPTIONS,
-        **_TRAINING_FLAGS,
     ),
 ]

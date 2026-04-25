@@ -41,7 +41,7 @@ setup_profiles = [
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
         primary_department_id=ORGANIZATION_DEPT_RESOURCE,
         role_id=ADMIN_ROLE,
-        active_flag_id=PROFILE_ACTIVE,
+        flag_ids=[PROFILE_ACTIVE],
     ),
     dict(
         id=ORG_INSTRUCTIONAL,
@@ -51,7 +51,7 @@ setup_profiles = [
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
         primary_department_id=ORGANIZATION_DEPT_RESOURCE,
         role_id=INSTRUCTIONAL_ROLE,
-        active_flag_id=PROFILE_ACTIVE,
+        flag_ids=[PROFILE_ACTIVE],
     ),
     dict(
         id=ORG_MEMBER,
@@ -61,7 +61,7 @@ setup_profiles = [
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
         primary_department_id=ORGANIZATION_DEPT_RESOURCE,
         role_id=MEMBER_GTA_ROLE,
-        active_flag_id=PROFILE_ACTIVE,
+        flag_ids=[PROFILE_ACTIVE],
     ),
     dict(
         id=ORG_GUEST,
@@ -71,6 +71,6 @@ setup_profiles = [
         department_ids=[ORGANIZATION_DEPT_RESOURCE],
         primary_department_id=ORGANIZATION_DEPT_RESOURCE,
         role_id=GUEST_ROLE,
-        active_flag_id=PROFILE_ACTIVE,
+        flag_ids=[PROFILE_ACTIVE],
     ),
 ]

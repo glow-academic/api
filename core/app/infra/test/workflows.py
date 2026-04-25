@@ -305,6 +305,7 @@ async def test_group_impl(
                     {
                         "sid": sid,
                         "profile_id": profile_id_str,
+                        "session_id": data.get("session_id"),
                         "test_id": str(test_id),
                         "test_invocation_id": str(test_invocation_id),
                         "run_id": str(next_run_id),
@@ -486,13 +487,13 @@ async def test_start_impl(
         return
 
     try:
-        uuid.UUID(profile_id_str)
+        profile_id = uuid.UUID(profile_id_str)
     except Exception as e:
         logger.exception(f"Invalid profile_id in test_start: {e}")
         return
 
-    benchmark_id_raw = data.get("benchmark_id")
-    benchmark_id = uuid.UUID(str(benchmark_id_raw)) if benchmark_id_raw else None
+    eval_id_raw = data.get("eval_id") or data.get("benchmark_id")
+    eval_id = uuid.UUID(str(eval_id_raw)) if eval_id_raw else None
     infinite_mode = data.get("infinite_mode", False)
     profiles_id_str = data.get("profiles_id")
     if not profiles_id_str:
@@ -517,13 +518,26 @@ async def test_start_impl(
         group_result = await resolve_group_impl(
             pool, redis,
             artifact_type="test",
-            profile_id=profiles_id,
+            profile_id=profile_id,
             session_id=session_id,
             include_history=False,
         )
         group_id = group_result.group_id
 
         async with pool.acquire() as conn:
+            # Resolve eval → parent benchmark + dynamic flag.
+            benchmark_id: uuid.UUID | None = None
+            is_dynamic = True
+            if eval_id:
+                from app.tools.entries.benchmark.search import search_benchmarks
+                benchmarks = await search_benchmarks(
+                    conn, eval_ids=[eval_id], limit=1, bypass_mv=True,
+                )
+                if not benchmarks:
+                    raise ValueError(f"No benchmark found for eval {eval_id}")
+                benchmark_id = benchmarks[0].benchmark_id
+                is_dynamic = benchmarks[0].dynamic
+
             run_id = (
                 await create_run(
                     conn,
@@ -537,16 +551,56 @@ async def test_start_impl(
                 call_id=call_id,
                 profiles_id=profiles_id,
                 infinite_mode=infinite_mode,
+                is_dynamic=is_dynamic,
             )
             test_id = result.id
 
-            if benchmark_id:
+            if benchmark_id is not None:
                 await create_benchmark_test(
                     conn,
                     benchmark_id=benchmark_id,
                     test_id=test_id,
                     session_id=session_id,
                 )
+
+            # Non-dynamic benchmarks: seed a test_invocation_entry per template.
+            # Mirrors how attempt_start_impl pulls home_chat / practice_chat
+            # templates and binds them to the new attempt.
+            if benchmark_id is not None and not is_dynamic:
+                from app.tools.entries.invocation.search import search_invocations
+                from app.tools.entries.test_invocation.create import (
+                    create_test_invocation,
+                )
+                templates = await search_invocations(
+                    conn, benchmark_ids=[benchmark_id], limit=1000,
+                )
+                for tmpl in templates:
+                    inv_run_id = (
+                        await create_run(
+                            conn, group_id=group_id, session_id=session_id,
+                        )
+                    ).id
+                    inv_call_id = (
+                        await create_call(
+                            conn, run_id=inv_run_id, session_id=session_id,
+                        )
+                    ).id
+                    await create_test_invocation(
+                        conn,
+                        test_id=test_id,
+                        call_id=inv_call_id,
+                        position=tmpl.position,
+                        use_custom=tmpl.use_custom,
+                        department_ids=list(tmpl.department_ids or []) or None,
+                        voice_ids=list(tmpl.voice_ids or []) or None,
+                        temperature_level_ids=list(tmpl.temperature_level_ids or []) or None,
+                        reasoning_level_ids=list(tmpl.reasoning_level_ids or []) or None,
+                        modality_ids=list(tmpl.modality_ids or []) or None,
+                        quality_ids=list(tmpl.quality_ids or []) or None,
+                        # agent_ids / rubric_ids: derived lazily downstream;
+                        # bundle_snapshot reads connections that may stay empty
+                        # at seeding without affecting proceed/run/grade.
+                    )
 
             generation_run_id = data.get("generation_run_id")
             if generation_run_id and redis:

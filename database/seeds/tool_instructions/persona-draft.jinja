@@ -9,7 +9,7 @@ Draft saved. ID: `{{ r.draft_id }}`.
 - **Color:** {% if fs.color_id %}`{{ fs.color_id }}`{% if fs.color %} — {{ fs.color }}{% endif %}{% else %}not set{% endif %}
 - **Icon:** {% if fs.icon_id %}`{{ fs.icon_id }}`{% if fs.icon %} — {{ fs.icon }}{% endif %}{% else %}not set{% endif %}
 - **Instructions:** {% if fs.instructions_id %}`{{ fs.instructions_id }}`{% if fs.instructions %} — {{ fs.instructions[:100] }}{% endif %}{% else %}not set{% endif %}
-- **Active:** {% if fs.active_flag_id %}`{{ fs.active_flag_id }}`{% else %}not set{% endif %}
+- **Flags:** {{ fs.flag_ids | length if fs.flag_ids else 0 }}
 - **Departments:** {{ fs.department_ids | length if fs.department_ids else 0 }}
 - **Examples:** {{ fs.example_ids | length if fs.example_ids else 0 }}
 - **Voices:** {{ fs.voice_ids | length if fs.voice_ids else 0 }}

@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "2.15.24"
+    "version": "2.15.26"
   },
   "paths": {
     "/persona/get": {
@@ -106614,11 +106614,11 @@
       },
       "TestStartPayload": {
         "properties": {
-          "benchmark_id": {
+          "eval_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Benchmark Id",
-            "description": "UUID of the benchmark to test against"
+            "title": "Eval Id",
+            "description": "UUID of the eval to test"
           },
           "infinite_mode": {
             "type": "boolean",
@@ -106629,10 +106629,10 @@
         },
         "type": "object",
         "required": [
-          "benchmark_id"
+          "eval_id"
         ],
         "title": "TestStartPayload",
-        "description": "Client-to-server: create a new test."
+        "description": "Client-to-server: create a new test.\n\nSurface field is the eval the user picks; the server resolves the\nunderlying benchmark via ``search_benchmarks(eval_ids=[eval_id])``.\nMirrors how /attempt/start accepts ``home_id``/``practice_id``."
       },
       "TestStatusSummary": {
         "properties": {

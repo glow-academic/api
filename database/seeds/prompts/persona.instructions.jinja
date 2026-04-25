@@ -52,7 +52,7 @@ For each requested resource below, pick or generate **one** value and include it
 **Instructions:** Write ONE behavioral instruction template defining tone, knowledge boundaries, and response patterns. Include `instructions` in the draft call.
 {% endif %}
 {% if 'flags' in resources %}
-**Active Flag:** Set `active_flag` to `true` to make the persona available, or leave unset for inactive. Use the `active_flag_id` from Persona_Get if available.
+**Flags:** Pass `flag_ids` (a list of flag option UUIDs) to set persona state. Include the persona_active flag's `id` from Persona_Get to make it available.
 {% endif %}
 {% if 'departments' in resources %}
 **Departments:** Select relevant department IDs from Persona_Get. Include `department_ids` in the draft call.

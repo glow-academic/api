@@ -98,8 +98,7 @@ rubrics = [
             "whether the trainee adapts language to the student's level of "
             "understanding and confirms comprehension before moving on."
         ),
-        active_flag=True,
-        simulation_rubric_flag=True,
+        flag_ids=[sid("flag/rubric-active"), sid("flag/simulation-rubric")],
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         standard_group_ids=_COMMUNICATION_SKILLS_SG_IDS,
         standard_ids=_COMMUNICATION_SKILLS_STD_IDS,
@@ -117,8 +116,7 @@ rubrics = [
             "references official guidelines rather than personal opinion "
             "when advising on academic policies."
         ),
-        active_flag=True,
-        video_rubric_flag=True,
+        flag_ids=[sid("flag/rubric-active"), sid("flag/video-rubric")],
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         standard_group_ids=_POLICY_KNOWLEDGE_SG_IDS,
         standard_ids=_POLICY_KNOWLEDGE_STD_IDS,
@@ -136,8 +134,7 @@ rubrics = [
             "calm and professional tone, and guides the conversation toward "
             "a constructive resolution."
         ),
-        active_flag=True,
-        simulation_rubric_flag=True,
+        flag_ids=[sid("flag/rubric-active"), sid("flag/simulation-rubric")],
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         standard_group_ids=_DE_ESCALATION_SG_IDS,
         standard_ids=_DE_ESCALATION_STD_IDS,

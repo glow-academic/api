@@ -62,7 +62,7 @@ auths = [
         description=f'{p.get("display_name", p["name"])} authentication',
         slug=p.get("slug", p["name"]),
         protocol=p.get("protocol", "oidc"),
-        active_flag=True,
+        flag_ids=[sid("flag/auth-active")],
         item_ids=AUTH_ITEM_IDS.get(p["name"], []),
     )
     for p in _auth_providers

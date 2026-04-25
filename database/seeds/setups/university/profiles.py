@@ -51,7 +51,7 @@ profiles = [
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         primary_department_id=UNIVERSITY_DEPT_RESOURCE,
         role_id=ADMIN_ROLE,
-        active_flag_id=PROFILE_ACTIVE,
+        flag_ids=[PROFILE_ACTIVE],
     ),
     # ── Professor Smith ──────────────────────────────────────────────────
     dict(
@@ -62,7 +62,7 @@ profiles = [
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         primary_department_id=UNIVERSITY_DEPT_RESOURCE,
         role_id=INSTRUCTIONAL_ROLE,
-        active_flag_id=PROFILE_ACTIVE,
+        flag_ids=[PROFILE_ACTIVE],
     ),
     # ── TA Johnson ───────────────────────────────────────────────────────
     dict(
@@ -73,7 +73,7 @@ profiles = [
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         primary_department_id=UNIVERSITY_DEPT_RESOURCE,
         role_id=MEMBER_UTA_ROLE,
-        active_flag_id=PROFILE_ACTIVE,
+        flag_ids=[PROFILE_ACTIVE],
     ),
     # ── Benchmark ──────────────────────────────────────────────────────
     dict(
@@ -84,7 +84,7 @@ profiles = [
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         primary_department_id=UNIVERSITY_DEPT_RESOURCE,
         role_id=BENCHMARK_ROLE,
-        active_flag_id=PROFILE_ACTIVE,
+        flag_ids=[PROFILE_ACTIVE],
     ),
 ]
 
@@ -114,7 +114,7 @@ setup_profiles = [
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         primary_department_id=UNIVERSITY_DEPT_RESOURCE,
         role_id=ADMIN_ROLE,
-        active_flag_id=PROFILE_ACTIVE,
+        flag_ids=[PROFILE_ACTIVE],
     ),
     dict(
         id=UNI_INSTRUCTIONAL,
@@ -124,7 +124,7 @@ setup_profiles = [
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         primary_department_id=UNIVERSITY_DEPT_RESOURCE,
         role_id=INSTRUCTIONAL_ROLE,
-        active_flag_id=PROFILE_ACTIVE,
+        flag_ids=[PROFILE_ACTIVE],
     ),
     dict(
         id=UNI_MEMBER,
@@ -134,7 +134,7 @@ setup_profiles = [
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         primary_department_id=UNIVERSITY_DEPT_RESOURCE,
         role_id=MEMBER_GTA_ROLE,
-        active_flag_id=PROFILE_ACTIVE,
+        flag_ids=[PROFILE_ACTIVE],
     ),
     dict(
         id=UNI_GUEST,
@@ -144,6 +144,6 @@ setup_profiles = [
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         primary_department_id=UNIVERSITY_DEPT_RESOURCE,
         role_id=GUEST_ROLE,
-        active_flag_id=PROFILE_ACTIVE,
+        flag_ids=[PROFILE_ACTIVE],
     ),
 ]

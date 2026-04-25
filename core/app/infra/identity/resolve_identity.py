@@ -432,6 +432,12 @@ async def _auto_create_guest_profile(
             except ValueError:
                 pass
 
+        # The azp claim only ever yields one department, so it is always the
+        # primary. Without this, the profile gets no primary_departments
+        # junction → no settings_id → tool_graph collapses → "No system/agent
+        # configuration found." on first generate.
+        primary_department_id = department_ids[0] if department_ids else None
+
         result = await resolve_profile_upsert(
             pool,
             redis,
@@ -439,6 +445,7 @@ async def _auto_create_guest_profile(
             emails=[email],
             role="Guest",
             department_ids=department_ids or None,
+            primary_department_id=primary_department_id,
         )
         logger.info(
             f"Auto-created guest profile {result.profile_id} for {email}"

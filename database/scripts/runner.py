@@ -177,8 +177,12 @@ async def _seed_colors(
     from app.tools.resources.colors.create import create_color
 
     for item in items:
-        color_type = item.pop("type", "primary")
-        await create_color(conn, redis=redis, color_type=color_type, **item)
+        # Don't pop — Python caches imports, so this items list is shared
+        # across setup iterations. Mutating it makes subsequent setups fall
+        # through to the default. Same fix applied to _seed_flags in 69ff2fc1.
+        clean = {k: v for k, v in item.items() if k != "type"}
+        color_type = item.get("type", "primary")
+        await create_color(conn, redis=redis, color_type=color_type, **clean)
     print(f"  OK: {len(items)} colors created")
 
 
@@ -242,8 +246,9 @@ async def _seed_thresholds(
     from app.tools.resources.thresholds.create import create_threshold
 
     for item in items:
-        threshold_type = item.pop("type", "success")
-        await create_threshold(conn, redis=redis, threshold_type=threshold_type, **item)
+        clean = {k: v for k, v in item.items() if k != "type"}
+        threshold_type = item.get("type", "success")
+        await create_threshold(conn, redis=redis, threshold_type=threshold_type, **clean)
     print(f"  OK: {len(items)} thresholds created")
 
 
@@ -253,8 +258,9 @@ async def _seed_points(
     from app.tools.resources.points.create import create_point
 
     for item in items:
-        point_type = item.pop("type", "total")
-        await create_point(conn, redis=redis, point_type=point_type, **item)
+        clean = {k: v for k, v in item.items() if k != "type"}
+        point_type = item.get("type", "total")
+        await create_point(conn, redis=redis, point_type=point_type, **clean)
     print(f"  OK: {len(items)} points created")
 
 
@@ -2055,6 +2061,9 @@ async def main_setup(setup: str = "university") -> None:
         print("\nBootstrapping setup profile...")
         bootstrap = setup_module.BOOTSTRAP_PROFILE
         seed_profile_id = bootstrap["id"]
+        from app.infra.profile.primary_department import (
+            resolve_primary_departments_id,
+        )
         from app.tools.artifacts.profile.create import (
             create_profile as create_profile_artifact,
         )
@@ -2079,6 +2088,14 @@ async def main_setup(setup: str = "university") -> None:
                     emails=[bootstrap["email"]] if bootstrap.get("email") else None,
                     primary_email=bootstrap.get("email"),
                 )
+                # Resolve primary_department_id → primary_departments_resource catalog
+                # id so create_profile_artifact writes the SINGLE_JUNCTION row that
+                # downstream settings_id lookup depends on.
+                primary_departments_id = await resolve_primary_departments_id(
+                    conn,
+                    redis_client,
+                    departments_id=bootstrap.get("primary_department_id"),
+                )
                 await create_profile_artifact(
                     conn,
                     id=bootstrap["id"],
@@ -2088,6 +2105,7 @@ async def main_setup(setup: str = "university") -> None:
                     profile_ids=[profile_resource.id],
                     email_ids=email_ids,
                     department_ids=bootstrap.get("department_ids"),
+                    primary_departments_id=primary_departments_id,
                     redis=redis_client,
                 )
         print(f"  OK: {bootstrap['name']} bootstrapped ({seed_profile_id})")

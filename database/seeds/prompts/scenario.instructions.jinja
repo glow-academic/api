@@ -46,7 +46,7 @@ For each requested resource below, pick or generate **one** value and include it
 **Problem Statements:** Write ONE clear problem statement describing the situation the trainee will face. Include `problem_statement` in the draft call.
 {% endif %}
 {% if 'flags' in resources %}
-**Active Flag:** Set `active_flag` to `true` to make the scenario available, or leave unset for inactive. Use the `active_flag_id` from Scenario_Get if available.
+**Flags:** Pass `flag_ids` (a list of flag option UUIDs) to set scenario state. Include the scenario_active flag's `id` from Scenario_Get to make it available.
 {% endif %}
 {% if 'departments' in resources %}
 **Departments:** Select relevant department IDs from Scenario_Get. Include `department_ids` in the draft call.

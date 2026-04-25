@@ -80,8 +80,6 @@ simulations = [
         scenario_ids=[CONFUSED_SCENARIO_RESOURCE],
         scenario_rubric_ids=CONFUSED_RUBRICS,
         flag_ids=[PRACTICE_FLAG, SIMULATION_ACTIVE_FLAG],
-        practice_flag_id=PRACTICE_FLAG,
-        active_flag_id=SIMULATION_ACTIVE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -92,8 +90,6 @@ simulations = [
         scenario_ids=[HAPPY_SCENARIO_RESOURCE],
         scenario_rubric_ids=HAPPY_RUBRICS,
         flag_ids=[PRACTICE_FLAG, SIMULATION_ACTIVE_FLAG],
-        practice_flag_id=PRACTICE_FLAG,
-        active_flag_id=SIMULATION_ACTIVE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -104,8 +100,6 @@ simulations = [
         scenario_ids=[PASSIVE_SCENARIO_RESOURCE],
         scenario_rubric_ids=PASSIVE_RUBRICS,
         flag_ids=[PRACTICE_FLAG, SIMULATION_ACTIVE_FLAG],
-        practice_flag_id=PRACTICE_FLAG,
-        active_flag_id=SIMULATION_ACTIVE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -116,8 +110,6 @@ simulations = [
         scenario_ids=[AGGRESSIVE_SCENARIO_RESOURCE],
         scenario_rubric_ids=AGGRESSIVE_RUBRICS,
         flag_ids=[PRACTICE_FLAG, SIMULATION_ACTIVE_FLAG],
-        practice_flag_id=PRACTICE_FLAG,
-        active_flag_id=SIMULATION_ACTIVE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -128,8 +120,6 @@ simulations = [
         scenario_ids=[GENERAL_SCENARIO_RESOURCE],
         scenario_rubric_ids=GENERAL_RUBRICS,
         flag_ids=[PRACTICE_FLAG, SIMULATION_ACTIVE_FLAG],
-        practice_flag_id=PRACTICE_FLAG,
-        active_flag_id=SIMULATION_ACTIVE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     # ── Training Simulations (multiple scenarios, structured) ──────────────
@@ -141,7 +131,6 @@ simulations = [
         scenario_ids=[ACADEMIC_INTEGRITY_SCENARIO_RESOURCE],
         scenario_rubric_ids=ACADEMIC_INTEGRITY_RUBRICS,
         flag_ids=[SIMULATION_ACTIVE_FLAG],
-        active_flag_id=SIMULATION_ACTIVE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -152,7 +141,6 @@ simulations = [
         scenario_ids=[FERPA_SCENARIO_RESOURCE],
         scenario_rubric_ids=FERPA_RUBRICS,
         flag_ids=[SIMULATION_ACTIVE_FLAG],
-        active_flag_id=SIMULATION_ACTIVE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
     dict(
@@ -163,7 +151,6 @@ simulations = [
         scenario_ids=[UPSET_STUDENT_SCENARIO_RESOURCE],
         scenario_rubric_ids=UPSET_STUDENT_RUBRICS,
         flag_ids=[SIMULATION_ACTIVE_FLAG],
-        active_flag_id=SIMULATION_ACTIVE_FLAG,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
     ),
 ]

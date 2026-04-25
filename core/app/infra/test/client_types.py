@@ -33,9 +33,14 @@ class TestLeavePayload(BaseModel):
 
 
 class TestStartPayload(BaseModel):
-    """Client-to-server: create a new test."""
+    """Client-to-server: create a new test.
 
-    benchmark_id: UUID = Field(..., description="UUID of the benchmark to test against")
+    Surface field is the eval the user picks; the server resolves the
+    underlying benchmark via ``search_benchmarks(eval_ids=[eval_id])``.
+    Mirrors how /attempt/start accepts ``home_id``/``practice_id``.
+    """
+
+    eval_id: UUID = Field(..., description="UUID of the eval to test")
     infinite_mode: bool = Field(False, description="Whether to run in infinite mode")
 
 

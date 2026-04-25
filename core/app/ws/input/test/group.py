@@ -101,7 +101,13 @@ async def test_group(sid: str, data: dict[str, Any]) -> None:
 
         await internal_sio.emit(
             "test.group.started",
-            {"sid": sid, "profile_id": profile_id_str, **payload.model_dump(mode="json"), "group_id": str(group_id)},
+            {
+                "sid": sid,
+                "profile_id": profile_id_str,
+                "session_id": session_id_str,
+                **payload.model_dump(mode="json"),
+                "group_id": str(group_id),
+            },
         )
     except Exception as e:
         logger.exception(f"Invalid request in test_group: {e}")

@@ -21,6 +21,7 @@ from redis.asyncio import Redis
 
 from app.infra.identity.simulatable import SIMULATABLE_ROLES
 from app.infra.profile.permissions_context import create_denormalized_snapshot
+from app.infra.profile.primary_department import resolve_primary_departments_id
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.profile.create import (
     create_profile as create_profile_artifact,
@@ -66,6 +67,7 @@ async def resolve_profile_upsert(
     primary_email_index: int = 0,
     active: bool = True,
     department_ids: list[UUID] | None = None,
+    primary_department_id: UUID | None = None,
     profile_id_new: UUID | None = None,
     current_profile_id: UUID | None = None,
     bypass_cache: bool = False,
@@ -148,6 +150,22 @@ async def resolve_profile_upsert(
                     flag_id = f.id
                     break
 
+            # Primary department: must be a member of department_ids. Resolve
+            # the raw departments_id to its primary_departments_resource catalog
+            # row (lookup-or-create) so the SINGLE_JUNCTION write hits a valid FK.
+            if primary_department_id is not None:
+                if department_ids and primary_department_id not in department_ids:
+                    raise ValueError(
+                        "primary_department_id must be one of department_ids"
+                    )
+                primary_departments_id = await resolve_primary_departments_id(
+                    conn,
+                    redis,
+                    departments_id=primary_department_id,
+                )
+            else:
+                primary_departments_id = None
+
             # ── Step 3: Find existing profile by primary email ──────────────────
             existing_ids: list[UUID] = []
             if primary_email_id:
@@ -176,6 +194,7 @@ async def resolve_profile_upsert(
                     email_ids=email_ids,
                     role_ids=[role_id],
                     department_ids=department_ids,
+                    primary_departments_id=primary_departments_id,
                     flag_ids=flag_ids,
                     profile_ids=[profiles_resource_id],
                     redis=redis,
@@ -189,6 +208,13 @@ async def resolve_profile_upsert(
                     conn, redis, name_id=name_id
                 )
 
+                # Only thread primary_departments_id when caller provided one,
+                # so the update preserves the existing junction when omitted
+                # (the artifact-update primitive uses _UNSET for "no change").
+                update_kwargs: dict = {}
+                if primary_departments_id is not None:
+                    update_kwargs["primary_departments_id"] = primary_departments_id
+
                 await update_profile_artifact_fn(
                     conn,
                     profile_id,
@@ -199,6 +225,7 @@ async def resolve_profile_upsert(
                     flag_ids=flag_ids,
                     profile_ids=[profiles_resource_id],
                     redis=redis,
+                    **update_kwargs,
                 )
 
             # ── Step 5: Create session (append-only) ────────────────────────────

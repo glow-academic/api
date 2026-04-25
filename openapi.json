@@ -16881,100 +16881,6 @@
         ]
       }
     },
-    "/test/join": {
-      "post": {
-        "tags": [
-          "test"
-        ],
-        "summary": "Test Join",
-        "description": "Join a test invocation room for real-time updates.",
-        "operationId": "test_join_test_join_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TestJoinRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TestJoinResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/test/leave": {
-      "post": {
-        "tags": [
-          "test"
-        ],
-        "summary": "Test Leave",
-        "description": "Leave a test invocation room, stopping real-time updates.",
-        "operationId": "test_leave_test_leave_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TestLeaveRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TestLeaveResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
     "/test/archive": {
       "post": {
         "tags": [
@@ -17284,19 +17190,18 @@
         ]
       }
     },
-    "/test/end": {
+    "/test/complete": {
       "post": {
         "tags": [
           "test"
         ],
-        "summary": "End Test",
-        "description": "End a single invocation within a test.\n\nBrowser client: sends grade=True, internal AI generates grade + feedback.\nAgent: can optionally provide score, passed, feedback to skip AI.",
-        "operationId": "end_test_test_end_post",
+        "summary": "Complete Test",
+        "operationId": "complete_test_test_complete_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EndTestApiRequest"
+                "$ref": "#/components/schemas/TestCompletePayload"
               }
             }
           },
@@ -17308,7 +17213,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EndTestApiResponse"
+                  "$ref": "#/components/schemas/TestCompleteInternalResult"
                 }
               }
             }
@@ -18027,6 +17932,53 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CreateInvocationApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/test/invocation/complete": {
+      "post": {
+        "tags": [
+          "test",
+          "invocation"
+        ],
+        "summary": "Complete Invocation",
+        "operationId": "complete_invocation_test_invocation_complete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestInvocationCompletePayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestInvocationCompleteInternalResult"
                 }
               }
             }
@@ -31539,31 +31491,6 @@
             "title": "Departments",
             "description": "Department names to match"
           },
-          "active_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag",
-            "description": "Whether this model is active"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Active flag resource UUID"
-          },
           "flag_ids": {
             "anyOf": [
               {
@@ -33382,83 +33309,21 @@
             "title": "Problem Statement",
             "description": "Problem statement text value"
           },
-          "active_flag_id": {
+          "flag_ids": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Active Flag Id",
-            "description": "UUID of the active flag option"
-          },
-          "objectives_enabled_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Objectives Enabled Flag Id",
-            "description": "UUID of the objectives enabled flag option"
-          },
-          "images_enabled_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Images Enabled Flag Id",
-            "description": "UUID of the images enabled flag option"
-          },
-          "video_enabled_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Video Enabled Flag Id",
-            "description": "UUID of the video enabled flag option"
-          },
-          "questions_enabled_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Questions Enabled Flag Id",
-            "description": "UUID of the questions enabled flag option"
-          },
-          "problem_statement_enabled_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Problem Statement Enabled Flag Id",
-            "description": "UUID of the problem statement enabled flag option"
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
           },
           "department_ids": {
             "anyOf": [
@@ -33619,78 +33484,6 @@
             ],
             "title": "Option Ids",
             "description": "Associated option UUIDs"
-          },
-          "active_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag",
-            "description": "Active flag boolean value"
-          },
-          "images_enabled_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Images Enabled Flag",
-            "description": "Whether images are enabled"
-          },
-          "objectives_enabled_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Objectives Enabled Flag",
-            "description": "Whether objectives are enabled"
-          },
-          "problem_statement_enabled_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Problem Statement Enabled Flag",
-            "description": "Whether problem statement is enabled"
-          },
-          "questions_enabled_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Questions Enabled Flag",
-            "description": "Whether questions are enabled"
-          },
-          "video_enabled_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Video Enabled Flag",
-            "description": "Whether video is enabled"
           },
           "departments": {
             "anyOf": [
@@ -33993,6 +33786,31 @@
             ],
             "title": "Flag Ids",
             "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "DEPRECATED \u2014 use flag_ids. UUID of the active flag option"
+          },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "DEPRECATED \u2014 use flag_ids. Whether the setting is active"
           },
           "department_ids": {
             "anyOf": [
@@ -34349,6 +34167,22 @@
             "title": "Description",
             "description": "Description text value"
           },
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
           "department_ids": {
             "anyOf": [
               {
@@ -34444,56 +34278,6 @@
             ],
             "title": "Scenario Time Limit Ids",
             "description": "Associated scenario time limit UUIDs"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "UUID of the flag option to set active status"
-          },
-          "active_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag",
-            "description": "Whether the simulation is active (resolved to flag_id)"
-          },
-          "practice_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Practice Flag",
-            "description": "Whether this is a practice simulation"
-          },
-          "practice_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Practice Flag Id",
-            "description": "Practice flag resource UUID"
           },
           "departments": {
             "anyOf": [
@@ -34800,31 +34584,6 @@
             ],
             "title": "Tool Ids",
             "description": "Related tool identifiers"
-          },
-          "active_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag",
-            "description": "Whether this tool is active"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Active flag resource UUID"
           }
         },
         "type": "object",
@@ -40879,127 +40638,6 @@
         ],
         "title": "EmulateProfileApiResponse",
         "description": "Response model for profile emulation."
-      },
-      "EndTestApiRequest": {
-        "properties": {
-          "test_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Test Id"
-          },
-          "test_invocation_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Test Invocation Id"
-          },
-          "run_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Run Id"
-          },
-          "grade": {
-            "type": "boolean",
-            "title": "Grade",
-            "default": true
-          },
-          "score": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Score"
-          },
-          "passed": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Passed"
-          },
-          "feedback": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Feedback"
-          }
-        },
-        "type": "object",
-        "required": [
-          "test_id",
-          "test_invocation_id",
-          "run_id"
-        ],
-        "title": "EndTestApiRequest"
-      },
-      "EndTestApiResponse": {
-        "properties": {
-          "invocation_id": {
-            "type": "string",
-            "title": "Invocation Id"
-          },
-          "grade_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grade Id"
-          },
-          "score": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Score"
-          },
-          "passed": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Passed"
-          },
-          "feedback": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Feedback"
-          }
-        },
-        "type": "object",
-        "required": [
-          "invocation_id"
-        ],
-        "title": "EndTestApiResponse"
       },
       "EvalDepartmentResource": {
         "properties": {
@@ -105002,6 +104640,40 @@
         ],
         "title": "TableInfo"
       },
+      "TestCompleteInternalResult": {
+        "properties": {
+          "test_id": {
+            "type": "string",
+            "title": "Test Id"
+          },
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_id"
+        ],
+        "title": "TestCompleteInternalResult"
+      },
+      "TestCompletePayload": {
+        "properties": {
+          "test_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Test Id",
+            "description": "UUID of the test"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_id"
+        ],
+        "title": "TestCompletePayload",
+        "description": "Client-to-server: complete the entire test.\n\nMirrors AttemptCompletePayload."
+      },
       "TestEntries": {
         "properties": {
           "tests": {
@@ -105127,69 +104799,52 @@
         "title": "TestEntries",
         "description": "Entry payloads grouped by type."
       },
-      "TestJoinRequest": {
+      "TestInvocationCompleteInternalResult": {
         "properties": {
-          "sid": {
-            "type": "string",
-            "title": "Sid"
-          },
           "invocation_id": {
             "type": "string",
-            "format": "uuid",
             "title": "Invocation Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "sid",
-          "invocation_id"
-        ],
-        "title": "TestJoinRequest"
-      },
-      "TestJoinResponse": {
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "title": "Success"
-          }
-        },
-        "type": "object",
-        "required": [
-          "success"
-        ],
-        "title": "TestJoinResponse"
-      },
-      "TestLeaveRequest": {
-        "properties": {
-          "sid": {
-            "type": "string",
-            "title": "Sid"
           },
-          "invocation_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Invocation Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "sid",
-          "invocation_id"
-        ],
-        "title": "TestLeaveRequest"
-      },
-      "TestLeaveResponse": {
-        "properties": {
           "success": {
             "type": "boolean",
-            "title": "Success"
+            "title": "Success",
+            "default": true
           }
         },
         "type": "object",
         "required": [
-          "success"
+          "invocation_id"
         ],
-        "title": "TestLeaveResponse"
+        "title": "TestInvocationCompleteInternalResult"
+      },
+      "TestInvocationCompletePayload": {
+        "properties": {
+          "test_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Test Id",
+            "description": "UUID of the test"
+          },
+          "test_invocation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Test Invocation Id",
+            "description": "UUID of the test invocation"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Optional completion message",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_id",
+          "test_invocation_id"
+        ],
+        "title": "TestInvocationCompletePayload",
+        "description": "Client-to-server: complete a single invocation within a test.\n\nMirrors ``ChatCompleteRequest`` (/attempt/chat/complete) \u2014 completion is\na state transition only, not a grading operation. Grading is a separate\nsurface (``/test/grade``); call it before completion if needed."
       },
       "TestNextPayload": {
         "properties": {
@@ -108988,31 +108643,6 @@
             "title": "Departments",
             "description": "Department names to match"
           },
-          "active_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag",
-            "description": "Whether this model is active"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Active flag resource UUID"
-          },
           "flag_ids": {
             "anyOf": [
               {
@@ -110622,84 +110252,6 @@
             "title": "Flag Ids",
             "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
           },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "UUID of the active flag option"
-          },
-          "objectives_enabled_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Objectives Enabled Flag Id",
-            "description": "UUID of the objectives enabled flag option"
-          },
-          "images_enabled_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Images Enabled Flag Id",
-            "description": "UUID of the images enabled flag option"
-          },
-          "video_enabled_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Video Enabled Flag Id",
-            "description": "UUID of the video enabled flag option"
-          },
-          "questions_enabled_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Questions Enabled Flag Id",
-            "description": "UUID of the questions enabled flag option"
-          },
-          "problem_statement_enabled_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Problem Statement Enabled Flag Id",
-            "description": "UUID of the problem statement enabled flag option"
-          },
           "department_ids": {
             "anyOf": [
               {
@@ -110859,78 +110411,6 @@
             ],
             "title": "Option Ids",
             "description": "Associated option UUIDs"
-          },
-          "active_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag",
-            "description": "Active flag boolean value"
-          },
-          "images_enabled_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Images Enabled Flag",
-            "description": "Whether images are enabled"
-          },
-          "objectives_enabled_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Objectives Enabled Flag",
-            "description": "Whether objectives are enabled"
-          },
-          "problem_statement_enabled_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Problem Statement Enabled Flag",
-            "description": "Whether problem statement is enabled"
-          },
-          "questions_enabled_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Questions Enabled Flag",
-            "description": "Whether questions are enabled"
-          },
-          "video_enabled_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Video Enabled Flag",
-            "description": "Whether video is enabled"
           },
           "departments": {
             "anyOf": [
@@ -111216,6 +110696,31 @@
             ],
             "title": "Flag Ids",
             "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
+          "active_flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag Id",
+            "description": "DEPRECATED \u2014 use flag_ids. UUID of the active flag option"
+          },
+          "active_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Flag",
+            "description": "DEPRECATED \u2014 use flag_ids. Whether the setting is active"
           },
           "department_ids": {
             "anyOf": [
@@ -111555,6 +111060,22 @@
             "title": "Description",
             "description": "Description text value"
           },
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
+          },
           "department_ids": {
             "anyOf": [
               {
@@ -111650,56 +111171,6 @@
             ],
             "title": "Scenario Time Limit Ids",
             "description": "Associated scenario time limit UUIDs"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "UUID of the flag option to set active status"
-          },
-          "active_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag",
-            "description": "Whether the simulation is active (resolved to flag_id)"
-          },
-          "practice_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Practice Flag",
-            "description": "Whether this is a practice simulation"
-          },
-          "practice_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Practice Flag Id",
-            "description": "Practice flag resource UUID"
           },
           "departments": {
             "anyOf": [
@@ -111989,31 +111460,6 @@
             ],
             "title": "Tool Ids",
             "description": "Related tool identifiers"
-          },
-          "active_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag",
-            "description": "Whether this tool is active"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "Active flag resource UUID"
           }
         },
         "type": "object",
