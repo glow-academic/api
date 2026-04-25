@@ -49,6 +49,7 @@ def wrap_emit_with_stream_bridge(
     artifact: str,
     operation: str,
     emit: EmitFn,
+    group_id: UUID | None = None,
     entity_id: UUID | None = None,
     call_id: UUID | None = None,
 ) -> EmitFn:
@@ -81,6 +82,18 @@ def wrap_emit_with_stream_bridge(
             if public_event_type is None:
                 continue
             target_entity_id = entity_id
+            # Prefer the explicit group_id; otherwise fish one out of event.data
+            # since attempt/test workflow events carry it in payload.
+            target_group_id = group_id
+            if target_group_id is None and isinstance(event.data, dict):
+                raw_gid = event.data.get("group_id")
+                if isinstance(raw_gid, str):
+                    try:
+                        target_group_id = UUID(raw_gid)
+                    except ValueError:
+                        target_group_id = None
+                elif isinstance(raw_gid, UUID):
+                    target_group_id = raw_gid
             dedupe_key = (
                 public_event_type,
                 target_entity_id,
@@ -96,6 +109,7 @@ def wrap_emit_with_stream_bridge(
                     artifact=artifact,
                     operation=operation,
                     created_at=created_at,
+                    group_id=target_group_id,
                     entity_id=target_entity_id,
                     payload=event.data,
                 )

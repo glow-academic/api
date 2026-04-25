@@ -39,8 +39,6 @@ from . import (  # noqa: F401
     # Lifecycle completed/failed handlers
     start,
     stop,
-    join,
-    leave,
     chat_voice,
     chat_silence,
 )

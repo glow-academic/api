@@ -1,61 +1,30 @@
-"""Stream session management — Redis-backed group subscriptions.
+"""Stream session management — legacy entity-scoped helpers.
 
-Profiles subscribe to groups. The SSE stream endpoint delivers events
-for all groups a profile has joined.
+The per-(artifact, group_id) stream model used by every artifact wraps
+``build_artifact_stream_impl`` directly with a group_id query param —
+no Redis-backed group subscription is needed.
 
-Redis key layout:
-  stream_groups:{profile_id} → SET of group_id strings (TTL 24h)
+The helpers below are the legacy SID-keyed entity store still used by
+``routes/test/join.py`` and ``routes/test/leave.py``; once those move to
+the per-artifact shape this module can be deleted entirely.
 """
 
 from __future__ import annotations
 
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from app.infra.globals import get_redis_client
 
 _TTL = 86400  # 24 hours
 
 
-def _key(profile_id: str) -> str:
-    return f"stream_groups:{profile_id}"
-
-
-async def join_group(profile_id: str, group_id: UUID) -> None:
-    """Subscribe a profile to a group's events."""
-    redis = get_redis_client()
-    key = _key(profile_id)
-    await redis.sadd(key, str(group_id))
-    await redis.expire(key, _TTL)
-
-
-async def leave_group(profile_id: str, group_id: UUID) -> None:
-    """Unsubscribe a profile from a group's events."""
-    redis = get_redis_client()
-    await redis.srem(_key(profile_id), str(group_id))
-
-
-async def get_joined_groups(profile_id: str) -> set[UUID]:
-    """Return all group_ids this profile is subscribed to."""
-    redis = get_redis_client()
-    members = await redis.smembers(_key(profile_id))
-    result: set[UUID] = set()
-    for m in members:
-        raw = m.decode() if isinstance(m, bytes) else m
-        try:
-            result.add(UUID(raw))
-        except ValueError:
-            pass
-    return result
-
-
 # ---------------------------------------------------------------------------
-# Legacy functions — kept for backward compat during migration
+# Legacy SID-keyed entity store (used by /test/join, /test/leave)
 # ---------------------------------------------------------------------------
 
 
 async def create_session(profile_id: UUID) -> str:
-    """Legacy: create a stream session. Use join_group instead."""
-    from uuid import uuid4
+    """Legacy: create a stream session."""
     redis = get_redis_client()
     sid = str(uuid4())
     await redis.setex(f"stream_sid:{sid}:profile", _TTL, str(profile_id))
@@ -78,7 +47,7 @@ async def get_session_profile(sid: str) -> UUID | None:
 
 
 async def join_entity(sid: str, artifact: str, entity_id: UUID) -> None:
-    """Legacy: add entity to session. Use join_group instead."""
+    """Legacy: add entity to session."""
     redis = get_redis_client()
     key = f"stream_sid:{sid}:entities"
     await redis.sadd(key, f"{artifact}:{entity_id}")

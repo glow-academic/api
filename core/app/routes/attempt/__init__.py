@@ -14,8 +14,6 @@ from app.routes.attempt.generations import router as generations_router
 from app.routes.attempt.get import router as get_router
 from app.routes.attempt.group import router as group_router
 from app.routes.attempt.image import router as image_router
-from app.routes.attempt.join import router as join_router
-from app.routes.attempt.leave import router as leave_router
 from app.routes.attempt.problem import router as problem_router
 from app.routes.attempt.refresh import router as refresh_router
 from app.routes.attempt.search import router as search_router
@@ -54,8 +52,6 @@ router.include_router(start_router)
 router.include_router(complete_router)
 router.include_router(stop_router)
 router.include_router(stream_router)
-router.include_router(join_router)
-router.include_router(leave_router)
 
 # Chat sub-router (chat-level + voice operations)
 router.include_router(chat_router)

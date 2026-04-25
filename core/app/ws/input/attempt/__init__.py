@@ -13,8 +13,6 @@ from . import (  # noqa: F401
     grade,
     group,
     image_download,
-    join,
-    leave,
     message,
     problem,
     refresh,
