@@ -263,8 +263,7 @@ async def _load_history(
     tool_ids = list({c.tool_id for c in call_items if c.tool_id})
     tool_name_map: dict[UUID, str] = {}
     if tool_ids:
-        async with pool.acquire() as conn:
-            tool_resources = await get_tools(conn, tool_ids, redis)
+        tool_resources = await get_tools(pool, tool_ids, redis)
         tool_name_map = {t.id: t.name for t in tool_resources if t.id and t.name}
 
     calls_by_id: dict[UUID, GroupCall] = {}

@@ -119,20 +119,17 @@ async def get_group_internal(
         async def _fetch_systems() -> list:
             if not all_system_ids:
                 return []
-            async with pool.acquire() as conn:
-                return await get_systems(conn, all_system_ids, redis, bypass_cache)
+            return await get_systems(pool, all_system_ids, redis, bypass_cache)
 
         async def _fetch_agents() -> list:
             if not all_agent_ids:
                 return []
-            async with pool.acquire() as conn:
-                return await get_agents(conn, all_agent_ids, redis, bypass_cache)
+            return await get_agents(pool, all_agent_ids, redis, bypass_cache)
 
         async def _fetch_tools_config() -> list:
             if not all_tool_ids:
                 return []
-            async with pool.acquire() as conn:
-                return await get_tools(conn, all_tool_ids, redis, bypass_cache)
+            return await get_tools(pool, all_tool_ids, redis, bypass_cache)
 
         config_systems, config_agents, config_tools = await asyncio.gather(
             _fetch_systems(),
@@ -144,8 +141,7 @@ async def get_group_internal(
             dict.fromkeys(agent.model_id for agent in config_agents if agent.model_id)
         )
         if model_ids:
-            async with pool.acquire() as conn:
-                config_models = await get_models(conn, model_ids, redis, bypass_cache)
+            config_models = await get_models(pool, model_ids, redis, bypass_cache)
 
         provider_ids = list(
             dict.fromkeys(
@@ -153,10 +149,8 @@ async def get_group_internal(
             )
         )
         if provider_ids:
-            async with pool.acquire() as conn:
-                config_providers = await get_providers(
-                    conn, provider_ids, redis, bypass_cache
-                )
+            config_providers = await get_providers(pool, provider_ids, redis, bypass_cache
+            )
 
         if common.profile:
             from app.tools.resources.profiles.get import get_profiles

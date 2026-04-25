@@ -47,11 +47,14 @@ async def get_practice_chats(
 
 
 async def get_practice_chat_entries_internal(
-    conn: asyncpg.Connection,
+    pool_or_conn: asyncpg.Pool | asyncpg.Connection,
     ids: list[UUID],
     bypass_cache: bool = False,
 ) -> list[dict]:
-    """Internal function to fetch practice_chat entries by IDs."""
+    """Internal function to fetch practice_chat entries by IDs.
+
+    Accepts either a Pool or a Connection — see get_names for rationale.
+    """
     if not ids:
         return []
 
@@ -66,8 +69,7 @@ async def get_practice_chat_entries_internal(
         if cached:
             return list(cached.get("items", []))
 
-    result = await conn.fetchval(
-        """
+    sql = """
         SELECT COALESCE(jsonb_agg(jsonb_build_object(
             'id', m.id,
             'practice_id', m.practice_id,
@@ -79,9 +81,12 @@ async def get_practice_chat_entries_internal(
         )), '[]'::jsonb)
         FROM practice_chat_mv m
         WHERE m.id = ANY($1)
-        """,
-        ids,
-    )
+        """
+    if isinstance(pool_or_conn, asyncpg.Pool):
+        async with pool_or_conn.acquire() as conn:
+            result = await conn.fetchval(sql, ids)
+    else:
+        result = await pool_or_conn.fetchval(sql, ids)
 
     items: list[dict] = (
         json.loads(result) if isinstance(result, str) else (result or [])

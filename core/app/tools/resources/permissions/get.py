@@ -12,12 +12,15 @@ from app.utils.cache.set_cached import set_cached
 
 
 async def get_permissions(
-    conn: asyncpg.Connection,
+    pool_or_conn: asyncpg.Pool | asyncpg.Connection,
     ids: list[UUID] | None,
     redis: Redis,
     bypass_cache: bool = False,
 ) -> list[GetPermissionResponse]:
-    """Fetch permissions_resource entries by IDs (or all if ids is None)."""
+    """Fetch permissions_resource entries by IDs (or all if ids is None).
+
+    Accepts either a Pool or a Connection — see get_names for rationale.
+    """
     tags = ["resources", "permissions"]
 
     if ids is not None and not ids:
@@ -37,27 +40,29 @@ async def get_permissions(
             ]
 
     if ids is not None:
-        rows = await conn.fetch(
-            """
+        sql = """
             SELECT id, artifact::text, operation::text, name, description,
                    active, generated, mcp, created_at
             FROM permissions_resource
             WHERE id = ANY($1)
             ORDER BY array_position($1, id)
-            """,
-            ids,
-        )
-    else:
-        rows = await conn.fetch(
             """
+        args = (ids,)
+    else:
+        sql = """
             SELECT id, artifact::text, operation::text, name, description,
                    active, generated, mcp, created_at
             FROM permissions_resource
             WHERE active = true
             ORDER BY artifact, operation
             """
-        )
+        args = ()
 
+    if isinstance(pool_or_conn, asyncpg.Pool):
+        async with pool_or_conn.acquire() as conn:
+            rows = await conn.fetch(sql, *args)
+    else:
+        rows = await pool_or_conn.fetch(sql, *args)
     items = [
         GetPermissionResponse(
             id=r["id"],

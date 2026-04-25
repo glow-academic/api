@@ -103,10 +103,8 @@ async def sync_home_practice_entries(
         return 0
 
     # ── Pass 1: Fetch simulations ──
-    async with pool.acquire() as conn:
-        simulations = await get_simulations(
-            conn, simulation_ids, get_redis_client(), bypass_cache=True
-        )
+    simulations = await get_simulations(pool, simulation_ids, get_redis_client(), bypass_cache=True
+    )
 
     if not simulations:
         return 0

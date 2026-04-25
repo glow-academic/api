@@ -235,8 +235,7 @@ async def _search_model_build(
         return await get_names(pool, all_name_ids, redis)
 
     async def _fetch_descriptions() -> list:
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _fetch_providers_resource() -> list:
         async with pool.acquire() as conn:

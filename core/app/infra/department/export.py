@@ -122,14 +122,12 @@ async def export_department_impl(
     async def _fetch_descriptions() -> list:
         if not all_description_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _fetch_settings() -> list:
         if not all_settings_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_settings(conn, all_settings_ids, redis)
+        return await get_settings(pool, all_settings_ids, redis)
 
     (
         names_data,

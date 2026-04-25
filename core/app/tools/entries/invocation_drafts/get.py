@@ -133,11 +133,14 @@ async def get_invocation_drafts(
 
 
 async def get_invocation_drafts_entries_internal(
-    conn: asyncpg.Connection,
+    pool_or_conn: asyncpg.Pool | asyncpg.Connection,
     ids: list[UUID],
     bypass_cache: bool = False,
 ) -> list[GetInvocationDraftResponse]:
-    """Cached wrapper for get_invocation_drafts."""
+    """Cached wrapper for get_invocation_drafts.
+
+    Accepts either a Pool or a Connection — see get_names for rationale.
+    """
     if not ids:
         return []
 
@@ -155,7 +158,11 @@ async def get_invocation_drafts_entries_internal(
                 for i in cached.get("items", [])
             ]
 
-    items = await get_invocation_drafts(conn, ids)
+    if isinstance(pool_or_conn, asyncpg.Pool):
+        async with pool_or_conn.acquire() as conn:
+            items = await get_invocation_drafts(conn, ids)
+    else:
+        items = await get_invocation_drafts(pool_or_conn, ids)
 
     await set_cached(
         cache_key_val,

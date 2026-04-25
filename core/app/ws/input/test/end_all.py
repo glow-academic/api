@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 internal_sio = get_internal_sio()
 
 
-@sio.event  # type: ignore
+@sio.on("test.end_all")  # type: ignore
 async def test_end_all(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = TestEndAllPayload(**data)

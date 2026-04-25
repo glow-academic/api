@@ -193,8 +193,7 @@ async def _search_department_build(
     async def _fetch_descriptions() -> list:
         if not all_description_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     # Build per-dept-resource maps for profile/setting/login junctions.
     # All queries are batched on the union of dept resource ids across artifacts.

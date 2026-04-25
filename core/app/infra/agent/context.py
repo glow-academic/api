@@ -277,8 +277,7 @@ async def resolve_agent_context(
             )
 
     async def _get_descriptions() -> list:
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, merged.description_ids, redis, bypass_cache)
+        return await get_descriptions(pool, merged.description_ids, redis, bypass_cache)
 
     async def _search_descriptions() -> list:
         async with pool.acquire() as conn:
@@ -295,8 +294,7 @@ async def resolve_agent_context(
             )
 
     async def _get_models() -> list:
-        async with pool.acquire() as conn:
-            return await get_models(conn, merged.model_ids, redis, bypass_cache)
+        return await get_models(pool, merged.model_ids, redis, bypass_cache)
 
     async def _search_models() -> list:
         async with pool.acquire() as conn:
@@ -314,8 +312,7 @@ async def resolve_agent_context(
     async def _get_prompts() -> list:
         if not prompt_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_prompts(conn, prompt_ids, redis, bypass_cache)
+        return await get_prompts(pool, prompt_ids, redis, bypass_cache)
 
     async def _search_prompts() -> list:
         async with pool.acquire() as conn:
@@ -333,8 +330,7 @@ async def resolve_agent_context(
     async def _get_instructions() -> list:
         if not instruction_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_instructions(conn, instruction_ids, redis, bypass_cache)
+        return await get_instructions(pool, instruction_ids, redis, bypass_cache)
 
     async def _search_instructions() -> list:
         async with pool.acquire() as conn:
@@ -349,8 +345,7 @@ async def resolve_agent_context(
             )
 
     async def _get_flags() -> list:
-        async with pool.acquire() as conn:
-            return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
+        return await get_flags(pool, merged.flag_ids, redis, bypass_cache)
 
     async def _search_flags() -> list:
         async with pool.acquire() as conn:
@@ -384,8 +379,7 @@ async def resolve_agent_context(
             )
 
     async def _get_tools() -> list:
-        async with pool.acquire() as conn:
-            return await get_tools(conn, merged.tool_ids, redis, bypass_cache)
+        return await get_tools(pool, merged.tool_ids, redis, bypass_cache)
 
     async def _search_tools() -> list:
         async with pool.acquire() as conn:
@@ -401,8 +395,7 @@ async def resolve_agent_context(
             )
 
     async def _get_temperature_levels() -> list:
-        async with pool.acquire() as conn:
-            return await get_temperature_levels(conn, merged.temperature_level_ids, redis, bypass_cache)
+        return await get_temperature_levels(pool, merged.temperature_level_ids, redis, bypass_cache)
 
     async def _search_temperature_levels() -> list:
         async with pool.acquire() as conn:
@@ -417,8 +410,7 @@ async def resolve_agent_context(
             )
 
     async def _get_reasoning_levels() -> list:
-        async with pool.acquire() as conn:
-            return await get_reasoning_levels(conn, merged.reasoning_level_ids, redis, bypass_cache)
+        return await get_reasoning_levels(pool, merged.reasoning_level_ids, redis, bypass_cache)
 
     async def _search_reasoning_levels() -> list:
         async with pool.acquire() as conn:
@@ -433,8 +425,7 @@ async def resolve_agent_context(
             )
 
     async def _get_voices() -> list:
-        async with pool.acquire() as conn:
-            return await get_voices(conn, merged.voice_ids, redis, bypass_cache)
+        return await get_voices(pool, merged.voice_ids, redis, bypass_cache)
 
     async def _search_voices() -> list:
         async with pool.acquire() as conn:
@@ -450,8 +441,7 @@ async def resolve_agent_context(
             )
 
     async def _get_qualities() -> list:
-        async with pool.acquire() as conn:
-            return await get_qualities(conn, merged.quality_ids, redis, bypass_cache)
+        return await get_qualities(pool, merged.quality_ids, redis, bypass_cache)
 
     async def _search_qualities() -> list:
         async with pool.acquire() as conn:
@@ -466,8 +456,7 @@ async def resolve_agent_context(
             )
 
     async def _get_rubrics() -> list:
-        async with pool.acquire() as conn:
-            return await get_rubrics(conn, merged.rubric_ids, redis, bypass_cache)
+        return await get_rubrics(pool, merged.rubric_ids, redis, bypass_cache)
 
     async def _search_rubrics() -> list:
         async with pool.acquire() as conn:

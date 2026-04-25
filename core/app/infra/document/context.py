@@ -131,8 +131,7 @@ async def resolve_document_context(
             )
 
     async def _get_descriptions() -> list:
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, merged.description_ids, redis, bypass_cache)
+        return await get_descriptions(pool, merged.description_ids, redis, bypass_cache)
 
     async def _search_descriptions() -> list:
         async with pool.acquire() as conn:
@@ -149,8 +148,7 @@ async def resolve_document_context(
             )
 
     async def _get_flags() -> list:
-        async with pool.acquire() as conn:
-            return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
+        return await get_flags(pool, merged.flag_ids, redis, bypass_cache)
 
     async def _search_flags() -> list:
         async with pool.acquire() as conn:
@@ -184,8 +182,7 @@ async def resolve_document_context(
             )
 
     async def _get_parameter_fields() -> list:
-        async with pool.acquire() as conn:
-            return await get_parameter_fields(conn, merged.parameter_field_ids, redis, bypass_cache)
+        return await get_parameter_fields(pool, merged.parameter_field_ids, redis, bypass_cache)
 
     async def _search_parameter_fields() -> list:
         if not merged.parameter_ids:
@@ -204,8 +201,7 @@ async def resolve_document_context(
     async def _get_parameters() -> list:
         if not merged.parameter_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_parameters(conn, merged.parameter_ids, redis, bypass_cache)
+        return await get_parameters(pool, merged.parameter_ids, redis, bypass_cache)
 
     async def _search_parameters() -> list:
         async with pool.acquire() as conn:
@@ -224,8 +220,7 @@ async def resolve_document_context(
             )
 
     async def _get_files() -> list:
-        async with pool.acquire() as conn:
-            return await get_files(conn, merged.file_ids, redis, bypass_cache)
+        return await get_files(pool, merged.file_ids, redis, bypass_cache)
 
     async def _search_files() -> list:
         async with pool.acquire() as conn:
@@ -241,8 +236,7 @@ async def resolve_document_context(
             )
 
     async def _get_images() -> list:
-        async with pool.acquire() as conn:
-            return await get_images(conn, merged.image_ids, redis, bypass_cache)
+        return await get_images(pool, merged.image_ids, redis, bypass_cache)
 
     async def _search_images() -> list:
         async with pool.acquire() as conn:
@@ -260,8 +254,7 @@ async def resolve_document_context(
             )
 
     async def _get_texts() -> list:
-        async with pool.acquire() as conn:
-            return await get_texts(conn, merged.text_ids, redis, bypass_cache)
+        return await get_texts(pool, merged.text_ids, redis, bypass_cache)
 
     async def _search_texts() -> list:
         async with pool.acquire() as conn:

@@ -220,8 +220,7 @@ async def _search_agent_build(
     async def _fetch_flag_rows() -> list:
         if not all_flag_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_flags(conn, list(all_flag_ids), redis)
+        return await get_flags(pool, list(all_flag_ids), redis)
 
     async def _fetch_department_facet() -> list:
         async with pool.acquire() as conn:

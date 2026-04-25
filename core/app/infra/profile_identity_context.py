@@ -150,10 +150,8 @@ async def resolve_profile_identity_context(
     async def _get_primary_departments() -> list:
         if not primary_department_resource_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_primary_departments(
-                conn, primary_department_resource_ids, redis, bypass_cache
-            )
+        return await get_primary_departments(pool, primary_department_resource_ids, redis, bypass_cache
+        )
 
     (
         names_res,
@@ -190,8 +188,7 @@ async def resolve_profile_identity_context(
         # Resolve permissions from permission_ids to derive artifacts + operations
         perm_ids = r.permission_ids or []
         if perm_ids:
-            async with pool.acquire() as conn:
-                perms = await get_permissions(conn, perm_ids, redis, bypass_cache)
+            perms = await get_permissions(pool, perm_ids, redis, bypass_cache)
             role_permissions = [(p.artifact, p.operation) for p in perms]
             # Derive unique artifact strings for sidebar visibility
             role_artifacts = list(dict.fromkeys(p.artifact for p in perms))
@@ -202,8 +199,7 @@ async def resolve_profile_identity_context(
     if roles_res:
         rl_ids = roles_res[0].request_limit_ids or []
         if rl_ids:
-            async with pool.acquire() as conn:
-                rl_items = await get_request_limits(conn, rl_ids, redis, bypass_cache)
+            rl_items = await get_request_limits(pool, rl_ids, redis, bypass_cache)
             if rl_items:
                 request_limit = rl_items[0].limit
                 request_limit_interval = rl_items[0].interval

@@ -93,11 +93,14 @@ async def get_invocations(
 
 
 async def get_invocation_entries_internal(
-    conn: asyncpg.Connection,
+    pool_or_conn: asyncpg.Pool | asyncpg.Connection,
     ids: list[UUID],
     bypass_cache: bool = False,
 ) -> list[GetInvocationResponse]:
-    """Cached wrapper for get_invocations."""
+    """Cached wrapper for get_invocations.
+
+    Accepts either a Pool or a Connection — see get_names for rationale.
+    """
     if not ids:
         return []
 
@@ -114,7 +117,11 @@ async def get_invocation_entries_internal(
                 GetInvocationResponse.model_validate(i) for i in cached.get("items", [])
             ]
 
-    items = await get_invocations(conn, ids)
+    if isinstance(pool_or_conn, asyncpg.Pool):
+        async with pool_or_conn.acquire() as conn:
+            items = await get_invocations(conn, ids)
+    else:
+        items = await get_invocations(pool_or_conn, ids)
 
     await set_cached(
         cache_key_val,

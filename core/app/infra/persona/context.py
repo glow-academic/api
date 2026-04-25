@@ -179,10 +179,8 @@ async def resolve_persona_context(
             )
 
     async def _get_descriptions() -> list:
-        async with pool.acquire() as conn:
-            return await get_descriptions(
-                conn, merged.description_ids, redis, bypass_cache
-            )
+        return await get_descriptions(pool, merged.description_ids, redis, bypass_cache
+        )
 
     async def _search_descriptions() -> list:
         async with pool.acquire() as conn:
@@ -199,8 +197,7 @@ async def resolve_persona_context(
             )
 
     async def _get_colors() -> list:
-        async with pool.acquire() as conn:
-            return await get_colors(conn, merged.color_ids, redis, bypass_cache)
+        return await get_colors(pool, merged.color_ids, redis, bypass_cache)
 
     async def _search_colors() -> list:
         async with pool.acquire() as conn:
@@ -218,8 +215,7 @@ async def resolve_persona_context(
             )
 
     async def _get_icons() -> list:
-        async with pool.acquire() as conn:
-            return await get_icons(conn, merged.icon_ids, redis, bypass_cache)
+        return await get_icons(pool, merged.icon_ids, redis, bypass_cache)
 
     async def _search_icons() -> list:
         async with pool.acquire() as conn:
@@ -237,10 +233,8 @@ async def resolve_persona_context(
             )
 
     async def _get_instructions() -> list:
-        async with pool.acquire() as conn:
-            return await get_instructions(
-                conn, merged.instruction_ids, redis, bypass_cache
-            )
+        return await get_instructions(pool, merged.instruction_ids, redis, bypass_cache
+        )
 
     async def _search_instructions() -> list:
         async with pool.acquire() as conn:
@@ -258,8 +252,7 @@ async def resolve_persona_context(
             )
 
     async def _get_flags() -> list:
-        async with pool.acquire() as conn:
-            return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
+        return await get_flags(pool, merged.flag_ids, redis, bypass_cache)
 
     async def _search_flags() -> list:
         async with pool.acquire() as conn:
@@ -294,10 +287,8 @@ async def resolve_persona_context(
             )
 
     async def _get_parameter_fields() -> list:
-        async with pool.acquire() as conn:
-            return await get_parameter_fields(
-                conn, merged.parameter_field_ids, redis, bypass_cache
-            )
+        return await get_parameter_fields(pool, merged.parameter_field_ids, redis, bypass_cache
+        )
 
     async def _search_parameter_fields() -> list:
         if not param_ids:
@@ -311,8 +302,7 @@ async def resolve_persona_context(
             )
 
     async def _get_examples() -> list:
-        async with pool.acquire() as conn:
-            return await get_examples(conn, merged.example_ids, redis, bypass_cache)
+        return await get_examples(pool, merged.example_ids, redis, bypass_cache)
 
     async def _search_examples() -> list:
         async with pool.acquire() as conn:
@@ -332,8 +322,7 @@ async def resolve_persona_context(
             )
 
     async def _get_voices() -> list:
-        async with pool.acquire() as conn:
-            return await get_voices(conn, merged.voice_ids, redis, bypass_cache)
+        return await get_voices(pool, merged.voice_ids, redis, bypass_cache)
 
     async def _search_voices() -> list:
         async with pool.acquire() as conn:
@@ -350,8 +339,7 @@ async def resolve_persona_context(
     async def _get_parameters() -> list:
         if not param_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_parameters(conn, param_ids, redis, bypass_cache)
+        return await get_parameters(pool, param_ids, redis, bypass_cache)
 
     async def _search_parameters() -> list:
         async with pool.acquire() as conn:
@@ -450,10 +438,8 @@ async def resolve_persona_context(
         all_cond_ids.extend(getattr(f, "conditional_parameter_ids", None) or [])
     cond_ids_unique = list(set(all_cond_ids))
     if cond_ids_unique:
-        async with pool.acquire() as conn:
-            conditional_params = await get_conditional_parameters(
-                conn, cond_ids_unique, redis, bypass_cache
-            )
+        conditional_params = await get_conditional_parameters(pool, cond_ids_unique, redis, bypass_cache
+        )
     else:
         conditional_params = []
 

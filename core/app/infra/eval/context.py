@@ -148,8 +148,7 @@ async def resolve_eval_context(
             )
 
     async def _get_descriptions() -> list:
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, merged.description_ids, redis, bypass_cache)
+        return await get_descriptions(pool, merged.description_ids, redis, bypass_cache)
 
     async def _search_descriptions() -> list:
         async with pool.acquire() as conn:
@@ -165,8 +164,7 @@ async def resolve_eval_context(
             )
 
     async def _get_flags() -> list:
-        async with pool.acquire() as conn:
-            return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
+        return await get_flags(pool, merged.flag_ids, redis, bypass_cache)
 
     async def _search_flags() -> list:
         async with pool.acquire() as conn:
@@ -202,8 +200,7 @@ async def resolve_eval_context(
             )
 
     async def _get_models() -> list:
-        async with pool.acquire() as conn:
-            return await get_models(conn, merged.model_ids, redis, bypass_cache)
+        return await get_models(pool, merged.model_ids, redis, bypass_cache)
 
     async def _search_models() -> list:
         async with pool.acquire() as conn:
@@ -218,8 +215,7 @@ async def resolve_eval_context(
             )
 
     async def _get_model_flags() -> list:
-        async with pool.acquire() as conn:
-            return await get_model_flags(conn, merged.model_flag_ids, redis, bypass_cache)
+        return await get_model_flags(pool, merged.model_flag_ids, redis, bypass_cache)
 
     async def _search_model_flags() -> list:
         async with pool.acquire() as conn:
@@ -263,8 +259,7 @@ async def resolve_eval_context(
             )
 
     async def _get_model_rubrics() -> list:
-        async with pool.acquire() as conn:
-            return await get_model_rubrics(conn, merged.model_rubric_ids, redis, bypass_cache)
+        return await get_model_rubrics(pool, merged.model_rubric_ids, redis, bypass_cache)
 
     async def _search_model_rubrics() -> list:
         async with pool.acquire() as conn:
@@ -278,8 +273,7 @@ async def resolve_eval_context(
             )
 
     async def _get_model_positions() -> list:
-        async with pool.acquire() as conn:
-            return await get_model_positions(conn, merged.model_position_ids, redis, bypass_cache)
+        return await get_model_positions(pool, merged.model_position_ids, redis, bypass_cache)
 
     async def _search_model_positions() -> list:
         async with pool.acquire() as conn:

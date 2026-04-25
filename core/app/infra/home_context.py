@@ -139,10 +139,8 @@ async def resolve_home_context(
 
     # Step 6: Parallel hydrate resources
     async def _get_simulations() -> list:
-        async with pool.acquire() as conn:
-            return await get_simulations(
-                conn, simulation_ids_deduped, redis, bypass_cache
-            )
+        return await get_simulations(pool, simulation_ids_deduped, redis, bypass_cache
+        )
 
     async def _get_cohorts() -> list:
         async with pool.acquire() as conn:
@@ -151,18 +149,14 @@ async def resolve_home_context(
             )
 
     async def _get_personas() -> list:
-        async with pool.acquire() as conn:
-            return await get_personas(conn, list(all_persona_ids), redis, bypass_cache)
+        return await get_personas(pool, list(all_persona_ids), redis, bypass_cache)
 
     async def _get_rubrics() -> list:
-        async with pool.acquire() as conn:
-            return await get_rubrics(conn, list(all_rubric_ids), redis, bypass_cache)
+        return await get_rubrics(pool, list(all_rubric_ids), redis, bypass_cache)
 
     async def _get_standard_groups() -> list:
-        async with pool.acquire() as conn:
-            return await get_standard_groups(
-                conn, list(all_standard_group_ids), redis, bypass_cache
-            )
+        return await get_standard_groups(pool, list(all_standard_group_ids), redis, bypass_cache
+        )
 
     async def _search_standards() -> list:
         async with pool.acquire() as conn:
@@ -300,21 +294,17 @@ async def resolve_home_search_context(
 
     # Parallel hydrate
     async def _get_simulations() -> list:
-        async with pool.acquire() as conn:
-            return await get_simulations(conn, list(sim_ids), redis, bypass_cache)
+        return await get_simulations(pool, list(sim_ids), redis, bypass_cache)
 
     async def _get_profiles() -> list:
         return await get_profiles(pool, list(profile_ids), redis, bypass_cache)
 
     async def _get_personas() -> list:
-        async with pool.acquire() as conn:
-            return await get_personas(conn, list(persona_ids), redis, bypass_cache)
+        return await get_personas(pool, list(persona_ids), redis, bypass_cache)
 
     async def _get_scenarios() -> list:
-        async with pool.acquire() as conn:
-            return await get_scenarios(
-                conn, list(scenario_ids_set), redis, bypass_cache
-            )
+        return await get_scenarios(pool, list(scenario_ids_set), redis, bypass_cache
+        )
 
     (
         simulations_selected,

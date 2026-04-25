@@ -420,8 +420,7 @@ async def patch_agent_draft_impl(
     # Re-derive denormalized flag bool from final flag_ids.
     echoed_active: bool | None = request.active
     if request.flag_ids:
-        async with pool.acquire() as conn:
-            selected_flags = await get_flags(conn, request.flag_ids, redis)
+        selected_flags = await get_flags(pool, request.flag_ids, redis)
         for row in selected_flags:
             rtype = getattr(row, "type", None) or getattr(row, "name", None)
             rval = getattr(row, "value", None)

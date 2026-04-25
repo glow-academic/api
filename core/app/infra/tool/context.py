@@ -180,8 +180,7 @@ async def resolve_tool_context(
             )
 
     async def _get_descriptions() -> list:
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, merged.description_ids, redis, bypass_cache)
+        return await get_descriptions(pool, merged.description_ids, redis, bypass_cache)
 
     async def _search_descriptions() -> list:
         async with pool.acquire() as conn:
@@ -198,8 +197,7 @@ async def resolve_tool_context(
             )
 
     async def _get_flags() -> list:
-        async with pool.acquire() as conn:
-            return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
+        return await get_flags(pool, merged.flag_ids, redis, bypass_cache)
 
     async def _search_flags() -> list:
         async with pool.acquire() as conn:
@@ -216,10 +214,8 @@ async def resolve_tool_context(
         return [flag for flag in results if getattr(flag, "type", None) in TOOL_FLAG_TYPES]
 
     async def _get_departments() -> list:
-        async with pool.acquire() as conn:
-            return await get_departments(
-                conn, merged.department_ids, redis, bypass_cache
-            )
+        return await get_departments(pool, merged.department_ids, redis, bypass_cache
+        )
 
     async def _search_departments_facet() -> list:
         async with pool.acquire() as conn:
@@ -236,8 +232,7 @@ async def resolve_tool_context(
             )
 
     async def _get_args() -> list:
-        async with pool.acquire() as conn:
-            return await get_args(conn, merged.args_ids, redis, bypass_cache=bypass_cache)
+        return await get_args(pool, merged.args_ids, redis, bypass_cache=bypass_cache)
 
     async def _search_args() -> list:
         async with pool.acquire() as conn:
@@ -254,13 +249,11 @@ async def resolve_tool_context(
             )
 
     async def _get_arg_positions() -> list:
-        async with pool.acquire() as conn:
-            return await get_arg_positions(
-                conn,
-                merged.arg_position_ids,
-                redis,
-                bypass_cache=bypass_cache,
-            )
+        return await get_arg_positions(pool,
+            merged.arg_position_ids,
+            redis,
+            bypass_cache=bypass_cache,
+        )
 
     async def _search_arg_positions() -> list:
         if arg_positions_search:
@@ -277,13 +270,11 @@ async def resolve_tool_context(
             )
 
     async def _get_args_outputs() -> list:
-        async with pool.acquire() as conn:
-            return await get_args_outputs(
-                conn,
-                merged.args_output_ids,
-                redis,
-                bypass_cache=bypass_cache,
-            )
+        return await get_args_outputs(pool,
+            merged.args_output_ids,
+            redis,
+            bypass_cache=bypass_cache,
+        )
 
     async def _search_args_outputs() -> list:
         async with pool.acquire() as conn:
@@ -301,8 +292,7 @@ async def resolve_tool_context(
             )
 
     async def _get_permissions() -> list:
-        async with pool.acquire() as conn:
-            return await get_permissions(conn, merged.permission_ids, redis, bypass_cache)
+        return await get_permissions(pool, merged.permission_ids, redis, bypass_cache)
 
     async def _search_permissions() -> list:
         async with pool.acquire() as conn:
@@ -317,10 +307,8 @@ async def resolve_tool_context(
         return [item for item in results if item.id not in selected_ids]
 
     async def _get_instructions() -> list:
-        async with pool.acquire() as conn:
-            return await get_instructions(
-                conn, merged.instruction_ids, redis, bypass_cache=bypass_cache,
-            )
+        return await get_instructions(pool, merged.instruction_ids, redis, bypass_cache=bypass_cache,
+        )
 
     async def _search_instructions() -> list:
         async with pool.acquire() as conn:

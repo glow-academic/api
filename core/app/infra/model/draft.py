@@ -494,20 +494,17 @@ async def patch_model_draft_impl(
 
     resolved_description = request.description
     if request.description_id and resolved_description is None:
-        async with pool.acquire() as conn:
-            matches = await get_descriptions(conn, [request.description_id], redis, bypass_cache=True)
+        matches = await get_descriptions(pool, [request.description_id], redis, bypass_cache=True)
         resolved_description = matches[0].description if matches else None
 
     resolved_value = request.value
     if request.value_id and resolved_value is None:
-        async with pool.acquire() as conn:
-            matches = await get_values(conn, [request.value_id], redis, bypass_cache=True)
+        matches = await get_values(pool, [request.value_id], redis, bypass_cache=True)
         resolved_value = matches[0].value if matches else None
 
     resolved_provider = request.provider
     if request.provider_id and resolved_provider is None:
-        async with pool.acquire() as conn:
-            matches = await get_providers(conn, [request.provider_id], redis, bypass_cache=True)
+        matches = await get_providers(pool, [request.provider_id], redis, bypass_cache=True)
         resolved_provider = matches[0].name if matches else None
 
     # Re-derive denorm bools from final flag_ids so client echo matches what
@@ -516,10 +513,8 @@ async def patch_model_draft_impl(
         f: getattr(request, f, None) for f in MODEL_DENORM_FLAG_FIELDS
     }
     if request.flag_ids:
-        async with pool.acquire() as conn:
-            flag_rows = await get_flags(
-                conn, request.flag_ids, redis, bypass_cache=True
-            )
+        flag_rows = await get_flags(pool, request.flag_ids, redis, bypass_cache=True
+        )
         type_to_field = {v: k for k, v in MODEL_DENORM_FLAG_FIELDS.items()}
         for row in flag_rows:
             rtype = getattr(row, "type", None) or getattr(row, "name", None)

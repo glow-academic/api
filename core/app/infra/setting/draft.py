@@ -576,8 +576,7 @@ async def patch_setting_draft_impl(
 
     resolved_description = request.description
     if request.description_id and resolved_description is None:
-        async with pool.acquire() as conn:
-            descriptions = await get_descriptions(conn, [request.description_id], redis)
+        descriptions = await get_descriptions(pool, [request.description_id], redis)
         resolved_description = descriptions[0].description if descriptions else None
 
     # Re-derive denormalized flag booleans from the final flag_ids so the client

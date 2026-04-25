@@ -120,13 +120,11 @@ async def resolve_department_context(
             )
 
     async def _get_descriptions_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_descriptions(
-                conn,
-                merged.description_ids,
-                redis,
-                bypass_cache,
-            )
+        return await get_descriptions(pool,
+            merged.description_ids,
+            redis,
+            bypass_cache,
+        )
 
     async def _search_descriptions_suggestions() -> list[Any]:
         async with pool.acquire() as conn:
@@ -142,8 +140,7 @@ async def resolve_department_context(
             )
 
     async def _get_flags_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
+        return await get_flags(pool, merged.flag_ids, redis, bypass_cache)
 
     async def _search_flags_suggestions() -> list[Any]:
         async with pool.acquire() as conn:
@@ -159,8 +156,7 @@ async def resolve_department_context(
             )
 
     async def _get_settings_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_settings(conn, merged.setting_ids, redis, bypass_cache)
+        return await get_settings(pool, merged.setting_ids, redis, bypass_cache)
 
     async def _search_settings_suggestions() -> list[Any]:
         async with pool.acquire() as conn:

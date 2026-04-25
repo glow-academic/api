@@ -156,39 +156,31 @@ async def export_model_impl(
         return await get_names(pool, all_name_ids, redis)
 
     async def _fetch_descriptions() -> list:
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _fetch_departments() -> list:
         return await get_departments(pool, all_department_ids, redis)
 
     async def _fetch_values() -> list:
-        async with pool.acquire() as conn:
-            return await get_values(conn, all_value_ids, redis)
+        return await get_values(pool, all_value_ids, redis)
 
     async def _fetch_providers() -> list:
-        async with pool.acquire() as conn:
-            return await get_providers(conn, all_provider_ids, redis)
+        return await get_providers(pool, all_provider_ids, redis)
 
     async def _fetch_modalities() -> list:
-        async with pool.acquire() as conn:
-            return await get_modalities(conn, all_modality_ids, redis)
+        return await get_modalities(pool, all_modality_ids, redis)
 
     async def _fetch_temperature_levels() -> list:
-        async with pool.acquire() as conn:
-            return await get_temperature_levels(conn, all_temperature_level_ids, redis)
+        return await get_temperature_levels(pool, all_temperature_level_ids, redis)
 
     async def _fetch_reasoning_levels() -> list:
-        async with pool.acquire() as conn:
-            return await get_reasoning_levels(conn, all_reasoning_level_ids, redis)
+        return await get_reasoning_levels(pool, all_reasoning_level_ids, redis)
 
     async def _fetch_qualities() -> list:
-        async with pool.acquire() as conn:
-            return await get_qualities(conn, all_quality_ids, redis)
+        return await get_qualities(pool, all_quality_ids, redis)
 
     async def _fetch_voices() -> list:
-        async with pool.acquire() as conn:
-            return await get_voices(conn, all_voice_ids, redis)
+        return await get_voices(pool, all_voice_ids, redis)
 
     (
         names_data,

@@ -9,7 +9,7 @@ from app.utils.logging.db_logger import get_logger
 logger = get_logger(__name__)
 
 
-@sio.event  # type: ignore
+@sio.on("test.leave")  # type: ignore
 async def test_leave(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = TestLeavePayload(**data)

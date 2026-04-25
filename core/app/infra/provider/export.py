@@ -136,23 +136,19 @@ async def export_provider_impl(
         return await get_names(pool, all_name_ids, redis)
 
     async def _fetch_descriptions() -> list:
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _fetch_departments() -> list:
         return await get_departments(pool, all_department_ids, redis)
 
     async def _fetch_endpoints() -> list:
-        async with pool.acquire() as conn:
-            return await get_endpoints(conn, all_endpoint_ids, redis)
+        return await get_endpoints(pool, all_endpoint_ids, redis)
 
     async def _fetch_keys() -> list:
-        async with pool.acquire() as conn:
-            return await get_keys(conn, all_key_ids, redis)
+        return await get_keys(pool, all_key_ids, redis)
 
     async def _fetch_values() -> list:
-        async with pool.acquire() as conn:
-            return await get_values(conn, all_value_ids, redis)
+        return await get_values(pool, all_value_ids, redis)
 
     (
         names_data,

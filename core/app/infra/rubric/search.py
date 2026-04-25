@@ -246,20 +246,16 @@ async def _search_rubric_build(
         return await get_names(pool, all_name_ids, redis)
 
     async def _get_descriptions() -> list:
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _get_points() -> list:
-        async with pool.acquire() as conn:
-            return await get_points(conn, all_point_ids, redis)
+        return await get_points(pool, all_point_ids, redis)
 
     async def _get_standard_groups() -> list:
-        async with pool.acquire() as conn:
-            return await get_standard_groups(conn, all_standard_group_ids, redis)
+        return await get_standard_groups(pool, all_standard_group_ids, redis)
 
     async def _get_standards() -> list:
-        async with pool.acquire() as conn:
-            return await get_standards(conn, all_standard_ids, redis)
+        return await get_standards(pool, all_standard_ids, redis)
 
     async def _search_departments() -> list:
         async with pool.acquire() as conn:

@@ -149,10 +149,8 @@ async def resolve_cohort_context(
     async def _get_descriptions() -> list:
         if not _include("descriptions"):
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(
-                conn, merged.description_ids, redis, bypass_cache
-            )
+        return await get_descriptions(pool, merged.description_ids, redis, bypass_cache
+        )
 
     async def _search_descriptions() -> list:
         if not _include("descriptions"):
@@ -173,8 +171,7 @@ async def resolve_cohort_context(
     async def _get_flags() -> list:
         if not _include("flags"):
             return []
-        async with pool.acquire() as conn:
-            return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
+        return await get_flags(pool, merged.flag_ids, redis, bypass_cache)
 
     async def _search_flags() -> list:
         if not _include("flags"):
@@ -221,10 +218,8 @@ async def resolve_cohort_context(
     async def _get_simulations() -> list:
         if not _include("simulations"):
             return []
-        async with pool.acquire() as conn:
-            return await get_simulations(
-                conn, merged.simulation_ids, redis, bypass_cache=bypass_cache
-            )
+        return await get_simulations(pool, merged.simulation_ids, redis, bypass_cache=bypass_cache
+        )
 
     async def _search_simulations() -> list:
         if not _include("simulations"):
@@ -249,10 +244,8 @@ async def resolve_cohort_context(
             return []
         if not merged.simulation_position_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_simulation_positions(
-                conn, merged.simulation_position_ids, redis, bypass_cache=bypass_cache
-            )
+        return await get_simulation_positions(pool, merged.simulation_position_ids, redis, bypass_cache=bypass_cache
+        )
 
     async def _search_simulation_positions() -> list:
         if not _include("simulation_positions"):
@@ -274,13 +267,11 @@ async def resolve_cohort_context(
             return []
         if not merged.simulation_availability_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_simulation_availability(
-                conn,
-                merged.simulation_availability_ids,
-                redis,
-                bypass_cache=bypass_cache,
-            )
+        return await get_simulation_availability(pool,
+            merged.simulation_availability_ids,
+            redis,
+            bypass_cache=bypass_cache,
+        )
 
     async def _search_simulation_availability() -> list:
         if not _include("simulation_availability"):
@@ -330,10 +321,8 @@ async def resolve_cohort_context(
             return []
         if not merged.profile_persona_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_profile_personas(
-                conn, merged.profile_persona_ids, redis, bypass_cache=bypass_cache
-            )
+        return await get_profile_personas(pool, merged.profile_persona_ids, redis, bypass_cache=bypass_cache
+        )
 
     async def _search_personas() -> list:
         if not _include("personas"):

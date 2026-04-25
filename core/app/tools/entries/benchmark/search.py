@@ -14,6 +14,7 @@ MV_NAME = "benchmark_mv"
 async def search_benchmarks(
     conn: asyncpg.Connection,
     department_ids: list[UUID] | None = None,
+    eval_ids: list[UUID] | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     limit: int = 20,
@@ -29,12 +30,14 @@ async def search_benchmarks(
                department_ids, invocation_entry_ids, created_at, updated_at, active
         FROM {source}
         WHERE ($1::uuid[] IS NULL OR department_ids && $1)
-          AND ($2::timestamptz IS NULL OR created_at >= $2)
-          AND ($3::timestamptz IS NULL OR created_at <= $3)
+          AND ($2::uuid[] IS NULL OR eval_ids && $2)
+          AND ($3::timestamptz IS NULL OR created_at >= $3)
+          AND ($4::timestamptz IS NULL OR created_at <= $4)
         ORDER BY created_at DESC
-        LIMIT $4 OFFSET $5
+        LIMIT $5 OFFSET $6
         """,
         department_ids,
+        eval_ids,
         date_from,
         date_to,
         limit,

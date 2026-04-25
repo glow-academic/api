@@ -12,12 +12,15 @@ from app.utils.cache.set_cached import set_cached
 
 
 async def get_videos(
-    conn: asyncpg.Connection,
+    pool_or_conn: asyncpg.Pool | asyncpg.Connection,
     ids: list[UUID],
     redis: Redis,
     bypass_cache: bool = False,
 ) -> list[GetVideoResponse]:
-    """Fetch videos_resource entries by IDs."""
+    """Fetch videos_resource entries by IDs.
+
+    Accepts either a Pool or a Connection — see get_names for rationale.
+    """
     if not ids:
         return []
 
@@ -32,8 +35,7 @@ async def get_videos(
                 for item in cached.get("items", [])
             ]
 
-    rows = await conn.fetch(
-        """
+    sql = """
         SELECT r.id, r.name, r.description,
                r.created_at, r.active, r.generated, r.mcp,
                mv.length_seconds
@@ -41,9 +43,12 @@ async def get_videos(
         LEFT JOIN videos_mv mv ON mv.videos_id = r.id
         WHERE r.id = ANY($1)
         ORDER BY array_position($1, r.id)
-    """,
-        ids,
-    )
+    """
+    if isinstance(pool_or_conn, asyncpg.Pool):
+        async with pool_or_conn.acquire() as conn:
+            rows = await conn.fetch(sql, ids)
+    else:
+        rows = await pool_or_conn.fetch(sql, ids)
 
     items = [
         GetVideoResponse(

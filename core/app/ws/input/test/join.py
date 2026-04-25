@@ -12,7 +12,7 @@ logger = get_logger(__name__)
 internal_sio = get_internal_sio()
 
 
-@sio.event  # type: ignore
+@sio.on("test.join")  # type: ignore
 async def test_join(sid: str, data: dict[str, Any]) -> None:
     try:
         payload = TestJoinPayload(**data)

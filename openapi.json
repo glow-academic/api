@@ -33994,31 +33994,6 @@
             "title": "Flag Ids",
             "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
           },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "DEPRECATED \u2014 use flag_ids. UUID of the active flag option"
-          },
-          "active_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag",
-            "description": "DEPRECATED \u2014 use flag_ids. Whether the setting is active"
-          },
           "department_ids": {
             "anyOf": [
               {
@@ -111241,31 +111216,6 @@
             ],
             "title": "Flag Ids",
             "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
-          },
-          "active_flag_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag Id",
-            "description": "DEPRECATED \u2014 use flag_ids. UUID of the active flag option"
-          },
-          "active_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Flag",
-            "description": "DEPRECATED \u2014 use flag_ids. Whether the setting is active"
           },
           "department_ids": {
             "anyOf": [

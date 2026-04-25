@@ -29,8 +29,7 @@ async def get_agent_system_prompt(
     if not resources or not resources[0].prompt_id:
         return None
 
-    async with pool.acquire() as conn:
-        prompts = await get_prompts(conn, [resources[0].prompt_id], redis, bypass_cache)
+    prompts = await get_prompts(pool, [resources[0].prompt_id], redis, bypass_cache)
     if not prompts:
         return None
     return prompts[0].system_prompt or None

@@ -124,8 +124,7 @@ async def export_setting_impl(
     async def _fetch_descriptions() -> list:
         if not all_description_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _fetch_departments() -> list:
         if not all_department_ids:
@@ -135,8 +134,7 @@ async def export_setting_impl(
     async def _fetch_colors() -> list:
         if not all_color_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_colors(conn, all_color_ids, redis)
+        return await get_colors(pool, all_color_ids, redis)
 
     (
         names_data,

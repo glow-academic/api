@@ -2356,8 +2356,8 @@ tools = [
         name="Setting Create",
         description="Create operation for Setting",
         permission_ids=[sid("permission/setting/create")],
-        args=["name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "department_ids", "departments", "color_ids", "auth_ids", "provider_ids", "provider_key_ids", "auth_item_key_ids", "auth_item_value_ids", "system_ids", "threshold_ids", "setting_resource_ids"],
-        args_outputs=["artifact_setting", "operation_create", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "department_ids", "departments", "color_ids", "auth_ids", "provider_ids", "provider_key_ids", "auth_item_key_ids", "auth_item_value_ids", "system_ids", "threshold_ids", "setting_resource_ids"],
+        args=["name_id", "name", "description_id", "description", "flag_ids", "department_ids", "departments", "color_ids", "auth_ids", "provider_ids", "provider_key_ids", "auth_item_key_ids", "auth_item_value_ids", "system_ids", "threshold_ids", "setting_resource_ids"],
+        args_outputs=["artifact_setting", "operation_create", "name_id", "name", "description_id", "description", "flag_ids", "department_ids", "departments", "color_ids", "auth_ids", "provider_ids", "provider_key_ids", "auth_item_key_ids", "auth_item_value_ids", "system_ids", "threshold_ids", "setting_resource_ids"],
         instruction_id=_iid("Setting Create"),
     ),
     dict(
@@ -2456,8 +2456,8 @@ tools = [
         name="Setting Update",
         description="Update operation for Setting",
         permission_ids=[sid("permission/setting/update")],
-        args=["id", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "department_ids", "departments", "color_ids", "auth_ids", "provider_ids", "provider_key_ids", "auth_item_key_ids", "auth_item_value_ids", "system_ids", "threshold_ids", "setting_resource_ids"],
-        args_outputs=["artifact_setting", "operation_update", "id", "name_id", "name", "description_id", "description", "active_flag_id", "active_flag", "department_ids", "departments", "color_ids", "auth_ids", "provider_ids", "provider_key_ids", "auth_item_key_ids", "auth_item_value_ids", "system_ids", "threshold_ids", "setting_resource_ids"],
+        args=["id", "name_id", "name", "description_id", "description", "flag_ids", "department_ids", "departments", "color_ids", "auth_ids", "provider_ids", "provider_key_ids", "auth_item_key_ids", "auth_item_value_ids", "system_ids", "threshold_ids", "setting_resource_ids"],
+        args_outputs=["artifact_setting", "operation_update", "id", "name_id", "name", "description_id", "description", "flag_ids", "department_ids", "departments", "color_ids", "auth_ids", "provider_ids", "provider_key_ids", "auth_item_key_ids", "auth_item_value_ids", "system_ids", "threshold_ids", "setting_resource_ids"],
         instruction_id=_iid("Setting Update"),
     ),
     dict(

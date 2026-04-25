@@ -212,10 +212,8 @@ async def resolve_simulation_context(
     async def _get_descriptions_selected() -> list:
         if not _include("descriptions"):
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(
-                conn, merged.description_ids, redis, bypass_cache
-            )
+        return await get_descriptions(pool, merged.description_ids, redis, bypass_cache
+        )
 
     async def _search_descriptions_suggestions() -> list:
         if not _include("descriptions"):
@@ -299,10 +297,8 @@ async def resolve_simulation_context(
     async def _get_scenario_flags_selected() -> list:
         if not _include("scenario_flags"):
             return []
-        async with pool.acquire() as conn:
-            return await get_scenario_flags(
-                conn, merged.scenario_flag_ids, redis, bypass_cache
-            )
+        return await get_scenario_flags(pool, merged.scenario_flag_ids, redis, bypass_cache
+        )
 
     async def _search_scenario_flag_types_all() -> list:
         if not _include("scenario_flags"):
@@ -321,10 +317,8 @@ async def resolve_simulation_context(
     async def _get_scenario_positions_selected() -> list:
         if not _include("scenario_positions"):
             return []
-        async with pool.acquire() as conn:
-            return await get_scenario_positions(
-                conn, merged.scenario_position_ids, redis, bypass_cache
-            )
+        return await get_scenario_positions(pool, merged.scenario_position_ids, redis, bypass_cache
+        )
 
     async def _search_scenario_positions_suggestions() -> list:
         if not _include("scenario_positions"):
@@ -340,10 +334,8 @@ async def resolve_simulation_context(
     async def _get_scenario_rubrics_selected() -> list:
         if not _include("scenario_rubrics"):
             return []
-        async with pool.acquire() as conn:
-            return await get_scenario_rubrics(
-                conn, merged.scenario_rubric_ids, redis, bypass_cache
-            )
+        return await get_scenario_rubrics(pool, merged.scenario_rubric_ids, redis, bypass_cache
+        )
 
     async def _search_scenario_rubrics_suggestions() -> list:
         if not _include("scenario_rubrics"):
@@ -359,10 +351,8 @@ async def resolve_simulation_context(
     async def _get_scenario_time_limits_selected() -> list:
         if not _include("scenario_time_limits"):
             return []
-        async with pool.acquire() as conn:
-            return await get_scenario_time_limits(
-                conn, merged.scenario_time_limit_ids, redis, bypass_cache
-            )
+        return await get_scenario_time_limits(pool, merged.scenario_time_limit_ids, redis, bypass_cache
+        )
 
     async def _search_scenario_time_limits_suggestions() -> list:
         if not _include("scenario_time_limits"):
@@ -378,8 +368,7 @@ async def resolve_simulation_context(
     async def _get_rubrics_catalog() -> list:
         if not _include("rubrics"):
             return []
-        async with pool.acquire() as conn:
-            return await get_rubrics(conn, None, redis, bypass_cache)
+        return await get_rubrics(pool, None, redis, bypass_cache)
 
     (
         names_selected,

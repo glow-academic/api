@@ -349,14 +349,12 @@ async def _search_scenario_build(
     async def _get_objectives() -> list:
         if not all_objective_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_objectives(conn, list(all_objective_ids), redis)
+        return await get_objectives(pool, list(all_objective_ids), redis)
 
     async def _get_fields() -> list:
         if not all_field_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_fields(conn, list(all_field_ids), redis)
+        return await get_fields(pool, list(all_field_ids), redis)
 
     async def _get_scenarios_resource() -> list:
         if not all_scenario_resource_ids:

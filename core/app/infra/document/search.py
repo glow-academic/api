@@ -253,8 +253,7 @@ async def _search_document_build(
     async def _fetch_flag_rows() -> list:
         if not all_flag_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_flags(conn, all_flag_ids, redis)
+        return await get_flags(pool, all_flag_ids, redis)
 
     async def _fetch_file_extensions() -> dict[UUID, str | None]:
         """Map files_resource.id -> file extension via file_uploads_entry + uploads_entry."""

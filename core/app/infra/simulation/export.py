@@ -141,8 +141,7 @@ async def export_simulation_impl(
     async def _fetch_descriptions() -> list:
         if not all_description_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _fetch_departments() -> list:
         if not all_department_ids:
@@ -158,16 +157,13 @@ async def export_simulation_impl(
     async def _fetch_scenario_positions() -> list:
         if not all_scenario_position_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_scenario_positions(conn, all_scenario_position_ids, redis)
+        return await get_scenario_positions(pool, all_scenario_position_ids, redis)
 
     async def _fetch_scenario_time_limits() -> list:
         if not all_scenario_time_limit_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_scenario_time_limits(
-                conn, all_scenario_time_limit_ids, redis
-            )
+        return await get_scenario_time_limits(pool, all_scenario_time_limit_ids, redis
+        )
 
     (
         names_data,

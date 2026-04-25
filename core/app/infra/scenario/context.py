@@ -186,10 +186,8 @@ async def resolve_scenario_context(
             )
 
     async def _get_descriptions() -> list:
-        async with pool.acquire() as conn:
-            return await get_descriptions(
-                conn, merged.description_ids, redis, bypass_cache
-            )
+        return await get_descriptions(pool, merged.description_ids, redis, bypass_cache
+        )
 
     async def _search_descriptions() -> list:
         async with pool.acquire() as conn:
@@ -204,10 +202,8 @@ async def resolve_scenario_context(
             )
 
     async def _get_problem_statements() -> list:
-        async with pool.acquire() as conn:
-            return await get_problem_statements(
-                conn, merged.problem_statement_ids, redis, bypass_cache
-            )
+        return await get_problem_statements(pool, merged.problem_statement_ids, redis, bypass_cache
+        )
 
     async def _search_problem_statements() -> list:
         async with pool.acquire() as conn:
@@ -223,8 +219,7 @@ async def resolve_scenario_context(
             )
 
     async def _get_flags() -> list:
-        async with pool.acquire() as conn:
-            return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
+        return await get_flags(pool, merged.flag_ids, redis, bypass_cache)
 
     async def _search_flags() -> list:
         async with pool.acquire() as conn:
@@ -259,8 +254,7 @@ async def resolve_scenario_context(
             )
 
     async def _get_personas() -> list:
-        async with pool.acquire() as conn:
-            return await get_personas(conn, merged.persona_ids, redis, bypass_cache)
+        return await get_personas(pool, merged.persona_ids, redis, bypass_cache)
 
     async def _search_personas() -> list:
         async with pool.acquire() as conn:
@@ -279,8 +273,7 @@ async def resolve_scenario_context(
             )
 
     async def _get_documents() -> list:
-        async with pool.acquire() as conn:
-            return await get_documents(conn, merged.document_ids, redis, bypass_cache)
+        return await get_documents(pool, merged.document_ids, redis, bypass_cache)
 
     async def _search_documents() -> list:
         async with pool.acquire() as conn:
@@ -301,8 +294,7 @@ async def resolve_scenario_context(
     async def _get_parameters() -> list:
         if not param_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_parameters(conn, param_ids, redis, bypass_cache)
+        return await get_parameters(pool, param_ids, redis, bypass_cache)
 
     async def _search_parameters() -> list:
         async with pool.acquire() as conn:
@@ -334,10 +326,8 @@ async def resolve_scenario_context(
             return scenario_params + video_params
 
     async def _get_parameter_fields() -> list:
-        async with pool.acquire() as conn:
-            return await get_parameter_fields(
-                conn, merged.parameter_field_ids, redis, bypass_cache
-            )
+        return await get_parameter_fields(pool, merged.parameter_field_ids, redis, bypass_cache
+        )
 
     async def _search_parameter_fields() -> list:
         if not param_ids:
@@ -356,12 +346,10 @@ async def resolve_scenario_context(
             )
 
     async def _get_objectives() -> list:
-        async with pool.acquire() as conn:
-            return await get_objectives(conn, merged.objective_ids, redis, bypass_cache)
+        return await get_objectives(pool, merged.objective_ids, redis, bypass_cache)
 
     async def _get_images() -> list:
-        async with pool.acquire() as conn:
-            return await get_images(conn, merged.image_ids, redis, bypass_cache)
+        return await get_images(pool, merged.image_ids, redis, bypass_cache)
 
     async def _search_images() -> list:
         async with pool.acquire() as conn:
@@ -377,8 +365,7 @@ async def resolve_scenario_context(
             )
 
     async def _get_videos() -> list:
-        async with pool.acquire() as conn:
-            return await get_videos(conn, merged.video_ids, redis, bypass_cache)
+        return await get_videos(pool, merged.video_ids, redis, bypass_cache)
 
     async def _search_videos() -> list:
         async with pool.acquire() as conn:
@@ -394,8 +381,7 @@ async def resolve_scenario_context(
             )
 
     async def _get_questions() -> list:
-        async with pool.acquire() as conn:
-            return await get_questions(conn, merged.question_ids, redis, bypass_cache)
+        return await get_questions(pool, merged.question_ids, redis, bypass_cache)
 
     async def _search_questions() -> list:
         async with pool.acquire() as conn:
@@ -411,8 +397,7 @@ async def resolve_scenario_context(
             )
 
     async def _get_options() -> list:
-        async with pool.acquire() as conn:
-            return await get_options(conn, merged.option_ids, redis, bypass_cache)
+        return await get_options(pool, merged.option_ids, redis, bypass_cache)
 
     async def _search_options() -> list:
         async with pool.acquire() as conn:
@@ -517,10 +502,8 @@ async def resolve_scenario_context(
         all_cond_ids.extend(getattr(f, "conditional_parameter_ids", None) or [])
     cond_ids_unique = list(set(all_cond_ids))
     if cond_ids_unique:
-        async with pool.acquire() as conn:
-            conditional_params = await get_conditional_parameters(
-                conn, cond_ids_unique, redis, bypass_cache
-            )
+        conditional_params = await get_conditional_parameters(pool, cond_ids_unique, redis, bypass_cache
+        )
     else:
         conditional_params = []
 
@@ -532,10 +515,8 @@ async def resolve_scenario_context(
         all_persona_pf_ids.extend(getattr(d, "parameter_field_ids", None) or [])
     persona_pf_ids_unique = list(set(all_persona_pf_ids))
     if persona_pf_ids_unique:
-        async with pool.acquire() as conn:
-            persona_parameter_fields = await get_parameter_fields(
-                conn, persona_pf_ids_unique, redis, bypass_cache
-            )
+        persona_parameter_fields = await get_parameter_fields(pool, persona_pf_ids_unique, redis, bypass_cache
+        )
     else:
         persona_parameter_fields = []
 

@@ -310,16 +310,12 @@ async def patch_invocation_draft_impl(
         from app.tools.resources.flags.get import get_flags
         from app.tools.resources.model_flags.get import get_model_flags
 
-        async with pool.acquire() as conn:
-            junction_rows = await get_model_flags(
-                conn, list(request.model_flag_ids), redis, bypass_cache=True
-            )
+        junction_rows = await get_model_flags(pool, list(request.model_flag_ids), redis, bypass_cache=True
+        )
         flag_ids_needed = [r.flag_id for r in junction_rows if r.flag_id]
         if flag_ids_needed:
-            async with pool.acquire() as conn:
-                flag_rows = await get_flags(
-                    conn, flag_ids_needed, redis, bypass_cache=True
-                )
+            flag_rows = await get_flags(pool, flag_ids_needed, redis, bypass_cache=True
+            )
             flags_by_id = {r.id: r for r in flag_rows if getattr(r, "id", None)}
             for jr in junction_rows:
                 fr = flags_by_id.get(jr.flag_id)

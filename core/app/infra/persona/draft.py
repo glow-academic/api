@@ -186,8 +186,7 @@ async def _resolve_creatable_values(
             all_pf = await search_parameter_fields(conn, redis)
         field_ids_list = [pf.field_id for pf in all_pf if pf.field_id]
         if field_ids_list:
-            async with pool.acquire() as conn:
-                fields_list = await get_fields(conn, field_ids_list, redis)
+            fields_list = await get_fields(pool, field_ids_list, redis)
         else:
             fields_list = []
         field_name_map = {f.id: f.name for f in fields_list if f.name}

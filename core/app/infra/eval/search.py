@@ -260,14 +260,12 @@ async def _search_eval_build(
     async def _fetch_descriptions() -> list:
         if not all_description_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _fetch_flags() -> list:
         if not all_flag_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_flags(conn, all_flag_ids, redis)
+        return await get_flags(pool, all_flag_ids, redis)
 
     async def _fetch_department_facet() -> list:
         async with pool.acquire() as conn:

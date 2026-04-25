@@ -144,10 +144,8 @@ async def resolve_parameter_context(
             )
 
     async def _get_descriptions_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_descriptions(
-                conn, merged.description_ids, redis, bypass_cache
-            )
+        return await get_descriptions(pool, merged.description_ids, redis, bypass_cache
+        )
 
     async def _search_descriptions_suggestions() -> list[Any]:
         async with pool.acquire() as conn:
@@ -163,8 +161,7 @@ async def resolve_parameter_context(
             )
 
     async def _get_flags_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
+        return await get_flags(pool, merged.flag_ids, redis, bypass_cache)
 
     async def _search_flags_suggestions() -> list[Any]:
         async with pool.acquire() as conn:
@@ -201,10 +198,8 @@ async def resolve_parameter_context(
             )
 
     async def _get_parameter_fields_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_parameter_fields(
-                conn, merged.field_ids, redis, bypass_cache
-            )
+        return await get_parameter_fields(pool, merged.field_ids, redis, bypass_cache
+        )
 
     async def _search_parameter_fields_suggestions() -> list[Any]:
         async with pool.acquire() as conn:
@@ -254,8 +249,7 @@ async def resolve_parameter_context(
         key=str,
     )
     if field_ids:
-        async with pool.acquire() as conn:
-            fields = await get_fields(conn, field_ids, redis, bypass_cache)
+        fields = await get_fields(pool, field_ids, redis, bypass_cache)
     else:
         fields = []
 

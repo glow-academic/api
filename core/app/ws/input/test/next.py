@@ -1,37 +1,41 @@
-"""Input: test_next — find next pending invocation/run."""
+"""Input: test.next — canonical WS handler."""
 
 from typing import Any
 
-from app.infra.globals import get_internal_sio, sio
-from app.infra.websocket.find_profile_by_socket import find_profile_by_socket
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, sio
+from app.infra.identity.socket import resolve_socket_identity
 from app.infra.test.client_types import TestNextPayload
-from app.infra.websocket.test_types import TestErrorData
-from app.utils.logging.db_logger import get_logger
-
-logger = get_logger(__name__)
-
-internal_sio = get_internal_sio()
+from app.infra.test.next import TestNextInternalResult, test_next_internal_impl
 
 
-@sio.event  # type: ignore
+@sio.on("test.next")  # type: ignore
 async def test_next(sid: str, data: dict[str, Any]) -> None:
+    identity = await resolve_socket_identity(sid)
+    if not identity:
+        return
+
     try:
         payload = TestNextPayload(**data)
-        profile_id_str = await find_profile_by_socket(sid)
-        if not profile_id_str:
-            await internal_sio.emit(
-                "test.next.error",
-                TestErrorData(sid=sid, rooms=[sid], message="Profile not found. Please reconnect.", error_type="auth").model_dump(mode="json"),
-            )
-            return
+    except Exception:
+        return
 
-        await internal_sio.emit(
-            "test_next",
-            {"sid": sid, "profile_id": profile_id_str, **payload.model_dump(mode="json")},
-        )
-    except Exception as e:
-        logger.exception(f"Invalid request in test_next: {e}")
-        await internal_sio.emit(
-            "test.next.error",
-            TestErrorData(sid=sid, rooms=[sid], message=f"Invalid request: {e}", error_type="validation").model_dump(mode="json"),
-        )
+    pool = get_pool()
+    redis = get_redis_client()
+
+    runner_data: dict[str, Any] = {
+        "sid": sid,
+        "profile_id": str(identity.profile_id),
+        "session_id": str(identity.session_id),
+        **payload.model_dump(mode="json"),
+    }
+
+    await run_artifact_operation_with_audit(
+        pool, redis,
+        artifact="test", operation="next",
+        profile_id=identity.profile_id, session_id=identity.session_id,
+        sid=sid, rooms=[sid],
+        runner=lambda: test_next_internal_impl(runner_data, audit=False),
+        arguments=payload.model_dump(mode="json"),
+        response_model=TestNextInternalResult,
+    )

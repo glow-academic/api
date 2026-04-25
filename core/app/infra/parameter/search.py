@@ -227,14 +227,12 @@ async def _search_parameter_build(
     async def _get_descriptions_data() -> list:
         if not all_description_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _get_parameter_fields_data() -> list:
         if not all_field_junction_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_parameter_fields(conn, all_field_junction_ids, redis)
+        return await get_parameter_fields(pool, all_field_junction_ids, redis)
 
     async def _search_scenarios() -> list:
         async with pool.acquire() as conn:

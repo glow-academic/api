@@ -167,8 +167,7 @@ async def export_scenario_impl(
     async def _get_descriptions() -> list:
         if not all_description_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _get_departments() -> list:
         if not all_department_ids:
@@ -178,56 +177,47 @@ async def export_scenario_impl(
     async def _get_documents() -> list:
         if not all_document_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_documents(conn, all_document_ids, redis)
+        return await get_documents(pool, all_document_ids, redis)
 
     async def _get_images() -> list:
         if not all_image_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_images(conn, all_image_ids, redis)
+        return await get_images(pool, all_image_ids, redis)
 
     async def _get_objectives() -> list:
         if not all_objective_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_objectives(conn, all_objective_ids, redis)
+        return await get_objectives(pool, all_objective_ids, redis)
 
     async def _get_options() -> list:
         if not all_option_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_options(conn, all_option_ids, redis)
+        return await get_options(pool, all_option_ids, redis)
 
     async def _get_parameter_fields() -> list:
         if not all_parameter_field_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_parameter_fields(conn, all_parameter_field_ids, redis)
+        return await get_parameter_fields(pool, all_parameter_field_ids, redis)
 
     async def _get_personas() -> list:
         if not all_persona_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_personas(conn, all_persona_ids, redis)
+        return await get_personas(pool, all_persona_ids, redis)
 
     async def _get_problem_statements() -> list:
         if not all_problem_statement_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_problem_statements(conn, all_problem_statement_ids, redis)
+        return await get_problem_statements(pool, all_problem_statement_ids, redis)
 
     async def _get_questions() -> list:
         if not all_question_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_questions(conn, all_question_ids, redis)
+        return await get_questions(pool, all_question_ids, redis)
 
     async def _get_videos() -> list:
         if not all_video_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_videos(conn, all_video_ids, redis)
+        return await get_videos(pool, all_video_ids, redis)
 
     (
         names_data,
@@ -276,8 +266,7 @@ async def export_scenario_impl(
     pf_field_id_map = {pf.id: pf.field_id for pf in parameter_fields_data}
     all_field_ids = list({fid for fid in pf_field_id_map.values() if fid})
     if all_field_ids:
-        async with pool.acquire() as conn:
-            fields_data = await get_fields(conn, all_field_ids, redis)
+        fields_data = await get_fields(pool, all_field_ids, redis)
     else:
         fields_data = []
     field_name_map = {f.id: f.name for f in fields_data}

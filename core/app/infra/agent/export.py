@@ -144,31 +144,25 @@ async def export_agent_impl(
         return await get_names(pool, all_name_ids, redis)
 
     async def _get_descriptions() -> list:
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _get_departments() -> list:
         return await get_departments(pool, all_department_ids, redis)
 
     async def _get_models() -> list:
-        async with pool.acquire() as conn:
-            return await get_models(conn, all_model_ids, redis)
+        return await get_models(pool, all_model_ids, redis)
 
     async def _get_reasoning_levels() -> list:
-        async with pool.acquire() as conn:
-            return await get_reasoning_levels(conn, all_reasoning_level_ids, redis)
+        return await get_reasoning_levels(pool, all_reasoning_level_ids, redis)
 
     async def _get_temperature_levels() -> list:
-        async with pool.acquire() as conn:
-            return await get_temperature_levels(conn, all_temperature_level_ids, redis)
+        return await get_temperature_levels(pool, all_temperature_level_ids, redis)
 
     async def _get_tools() -> list:
-        async with pool.acquire() as conn:
-            return await get_tools(conn, all_tool_ids, redis)
+        return await get_tools(pool, all_tool_ids, redis)
 
     async def _get_voices() -> list:
-        async with pool.acquire() as conn:
-            return await get_voices(conn, all_voice_ids, redis)
+        return await get_voices(pool, all_voice_ids, redis)
 
     (
         names_data,

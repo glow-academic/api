@@ -263,10 +263,8 @@ async def _search_profile_build(
             )
 
     async def _fetch_primary_departments() -> list:
-        async with pool.acquire() as conn:
-            return await get_primary_departments(
-                conn, all_primary_department_resource_ids, redis
-            )
+        return await get_primary_departments(pool, all_primary_department_resource_ids, redis
+        )
 
     (
         names_data,

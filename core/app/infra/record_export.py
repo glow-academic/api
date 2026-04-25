@@ -165,26 +165,22 @@ async def export_record_client(
     async def _get_simulations() -> list:
         if not all_simulation_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_simulations(conn, list(all_simulation_ids), redis)
+        return await get_simulations(pool, list(all_simulation_ids), redis)
 
     async def _get_scenarios() -> list:
         if not all_scenario_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_scenarios(conn, list(all_scenario_ids), redis)
+        return await get_scenarios(pool, list(all_scenario_ids), redis)
 
     async def _get_personas() -> list:
         if not all_persona_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_personas(conn, list(all_persona_ids), redis)
+        return await get_personas(pool, list(all_persona_ids), redis)
 
     async def _get_cohorts() -> list:
         if not all_cohort_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_cohorts(conn, list(all_cohort_ids), redis)
+        return await get_cohorts(pool, list(all_cohort_ids), redis)
 
     async def _get_departments() -> list:
         if not all_department_ids:

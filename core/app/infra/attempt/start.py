@@ -213,8 +213,7 @@ async def attempt_start_impl(
     sim_name = None
     sim_desc = None
     if simulation_ids:
-        async with pool.acquire() as conn:
-            simulations = await get_simulations(conn, simulation_ids[:1], redis, bypass_cache=True)
+        simulations = await get_simulations(pool, simulation_ids[:1], redis, bypass_cache=True)
         if simulations:
             sim_name = simulations[0].name
             sim_desc = simulations[0].description

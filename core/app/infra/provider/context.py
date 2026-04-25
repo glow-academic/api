@@ -152,10 +152,8 @@ async def resolve_provider_context(
             )
 
     async def _get_descriptions() -> list:
-        async with pool.acquire() as conn:
-            return await get_descriptions(
-                conn, merged.description_ids, redis, bypass_cache
-            )
+        return await get_descriptions(pool, merged.description_ids, redis, bypass_cache
+        )
 
     async def _search_descriptions() -> list:
         if descriptions_selected_only:
@@ -173,8 +171,7 @@ async def resolve_provider_context(
             )
 
     async def _get_flags() -> list:
-        async with pool.acquire() as conn:
-            return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
+        return await get_flags(pool, merged.flag_ids, redis, bypass_cache)
 
     async def _search_flags() -> list:
         if flags_selected_only:
@@ -232,8 +229,7 @@ async def resolve_provider_context(
             )
 
     async def _get_endpoints() -> list:
-        async with pool.acquire() as conn:
-            return await get_endpoints(conn, merged.endpoint_ids, redis, bypass_cache)
+        return await get_endpoints(pool, merged.endpoint_ids, redis, bypass_cache)
 
     async def _search_endpoints() -> list:
         if endpoints_selected_only:
@@ -250,8 +246,7 @@ async def resolve_provider_context(
             )
 
     async def _get_keys() -> list:
-        async with pool.acquire() as conn:
-            return await get_keys(conn, merged.key_ids, redis, bypass_cache)
+        return await get_keys(pool, merged.key_ids, redis, bypass_cache)
 
     async def _search_keys() -> list:
         if keys_selected_only:

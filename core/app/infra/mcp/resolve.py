@@ -63,16 +63,13 @@ async def resolve_mcp_context(
     if identity.settings_id is None:
         return base
 
-    async with pool.acquire() as conn:
-        settings = await get_settings(
-            conn, [identity.settings_id], redis, bypass_cache
-        )
+    settings = await get_settings(pool, [identity.settings_id], redis, bypass_cache
+    )
     mcp_id = settings[0].mcp_id if settings else None
     if mcp_id is None:
         return base
 
-    async with pool.acquire() as conn:
-        mcp_resources = await get_mcp(conn, [mcp_id], redis, bypass_cache)
+    mcp_resources = await get_mcp(pool, [mcp_id], redis, bypass_cache)
     agent_resource_id = next(
         (m.agent_id for m in mcp_resources if m.active and m.agent_id),
         None,

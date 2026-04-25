@@ -37,8 +37,7 @@ async def _item_is_template(
     """Return True if any flag_id in the list resolves to a template flag row."""
     if not flag_ids:
         return False
-    async with pool.acquire() as conn:
-        rows = await get_flags(conn, list(flag_ids), redis, bypass_cache=True)
+    rows = await get_flags(pool, list(flag_ids), redis, bypass_cache=True)
     return any(
         (getattr(row, "type", None) == "template" and getattr(row, "value", None) is True)
         for row in rows
@@ -136,13 +135,11 @@ async def create_document_impl(
                 artifact = artifacts[0]
                 template = False
                 if artifact.flag_ids:
-                    async with pool.acquire() as conn:
-                        flag_artifacts = await get_flags(
-                            conn,
-                            list(artifact.flag_ids),
-                            redis,
-                            bypass_cache=True,
-                        )
+                    flag_artifacts = await get_flags(pool,
+                        list(artifact.flag_ids),
+                        redis,
+                        bypass_cache=True,
+                    )
                     template = any(flag.type == "template" for flag in flag_artifacts)
 
                 await create_denormalized_snapshot(

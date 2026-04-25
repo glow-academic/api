@@ -152,8 +152,7 @@ async def resolve_model_context(
             )
 
     async def _get_descriptions() -> list:
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, merged.description_ids, redis, bypass_cache)
+        return await get_descriptions(pool, merged.description_ids, redis, bypass_cache)
 
     async def _search_descriptions() -> list:
         if descriptions_selected_only:
@@ -171,8 +170,7 @@ async def resolve_model_context(
             )
 
     async def _get_flags() -> list:
-        async with pool.acquire() as conn:
-            return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
+        return await get_flags(pool, merged.flag_ids, redis, bypass_cache)
 
     async def _search_flags() -> list:
         if flags_selected_only:
@@ -211,8 +209,7 @@ async def resolve_model_context(
     async def _get_values() -> list:
         if not merged.value_id:
             return []
-        async with pool.acquire() as conn:
-            return await get_values(conn, [merged.value_id], redis, bypass_cache)
+        return await get_values(pool, [merged.value_id], redis, bypass_cache)
 
     async def _search_values() -> list:
         if values_selected_only:
@@ -232,8 +229,7 @@ async def resolve_model_context(
     async def _get_providers() -> list:
         if not merged.provider_id:
             return []
-        async with pool.acquire() as conn:
-            return await get_providers(conn, [merged.provider_id], redis, bypass_cache=bypass_cache)
+        return await get_providers(pool, [merged.provider_id], redis, bypass_cache=bypass_cache)
 
     async def _search_providers() -> list:
         if providers_selected_only:
@@ -252,8 +248,7 @@ async def resolve_model_context(
             )
 
     async def _get_modalities() -> list:
-        async with pool.acquire() as conn:
-            return await get_modalities(conn, merged.modality_ids, redis, bypass_cache)
+        return await get_modalities(pool, merged.modality_ids, redis, bypass_cache)
 
     async def _search_modalities() -> list:
         if modalities_selected_only:
@@ -270,13 +265,11 @@ async def resolve_model_context(
             )
 
     async def _get_temperature_levels() -> list:
-        async with pool.acquire() as conn:
-            return await get_temperature_levels(
-                conn,
-                merged.temperature_level_ids,
-                redis,
-                bypass_cache,
-            )
+        return await get_temperature_levels(pool,
+            merged.temperature_level_ids,
+            redis,
+            bypass_cache,
+        )
 
     async def _search_temperature_levels() -> list:
         if temperature_levels_selected_only:
@@ -293,8 +286,7 @@ async def resolve_model_context(
             )
 
     async def _get_pricing() -> list:
-        async with pool.acquire() as conn:
-            return await get_pricing(conn, merged.pricing_ids, redis, bypass_cache)
+        return await get_pricing(pool, merged.pricing_ids, redis, bypass_cache)
 
     async def _search_pricing() -> list:
         if pricing_selected_only:
@@ -312,8 +304,7 @@ async def resolve_model_context(
             )
 
     async def _get_reasoning_levels() -> list:
-        async with pool.acquire() as conn:
-            return await get_reasoning_levels(conn, merged.reasoning_level_ids, redis, bypass_cache)
+        return await get_reasoning_levels(pool, merged.reasoning_level_ids, redis, bypass_cache)
 
     async def _search_reasoning_levels() -> list:
         if reasoning_levels_selected_only:
@@ -330,8 +321,7 @@ async def resolve_model_context(
             )
 
     async def _get_qualities() -> list:
-        async with pool.acquire() as conn:
-            return await get_qualities(conn, merged.quality_ids, redis, bypass_cache)
+        return await get_qualities(pool, merged.quality_ids, redis, bypass_cache)
 
     async def _search_qualities() -> list:
         if qualities_selected_only:
@@ -348,8 +338,7 @@ async def resolve_model_context(
             )
 
     async def _get_voices() -> list:
-        async with pool.acquire() as conn:
-            return await get_voices(conn, merged.voice_ids, redis, bypass_cache)
+        return await get_voices(pool, merged.voice_ids, redis, bypass_cache)
 
     async def _search_voices() -> list:
         if voices_selected_only:

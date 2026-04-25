@@ -66,8 +66,7 @@ async def resolve_system_context(
       4. Parallel: providers + args + args_outputs
     """
     # Step 1: fetch system
-    async with pool.acquire() as conn:
-        systems = await get_systems(conn, [system_id], redis, bypass_cache)
+    systems = await get_systems(pool, [system_id], redis, bypass_cache)
     if not systems:
         return None
 
@@ -93,8 +92,7 @@ async def resolve_system_context(
         )
 
     # Step 2: fetch agents
-    async with pool.acquire() as conn:
-        agents = await get_agents(conn, agent_ids, redis, bypass_cache)
+    agents = await get_agents(pool, agent_ids, redis, bypass_cache)
 
     # Collect IDs for next level
     model_ids = list({a.model_id for a in agents if a.model_id})
@@ -108,32 +106,27 @@ async def resolve_system_context(
     async def _get_models() -> list:
         if not model_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_models(conn, model_ids, redis, bypass_cache)
+        return await get_models(pool, model_ids, redis, bypass_cache)
 
     async def _get_tools() -> list:
         if not tool_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_tools(conn, tool_ids, redis, bypass_cache)
+        return await get_tools(pool, tool_ids, redis, bypass_cache)
 
     async def _get_prompts() -> list:
         if not prompt_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_prompts(conn, prompt_ids, redis, bypass_cache)
+        return await get_prompts(pool, prompt_ids, redis, bypass_cache)
 
     async def _get_instructions() -> list:
         if not instruction_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_instructions(conn, instruction_ids, redis, bypass_cache)
+        return await get_instructions(pool, instruction_ids, redis, bypass_cache)
 
     async def _get_rubrics() -> list:
         if not rubric_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_rubrics(conn, rubric_ids, redis, bypass_cache)
+        return await get_rubrics(pool, rubric_ids, redis, bypass_cache)
 
     (
         models,
@@ -155,10 +148,8 @@ async def resolve_system_context(
         if getattr(t, "instruction_id", None)
     })
     if tool_instruction_ids:
-        async with pool.acquire() as conn:
-            tool_instructions_list = await get_instructions(
-                conn, tool_instruction_ids, redis, bypass_cache
-            )
+        tool_instructions_list = await get_instructions(pool, tool_instruction_ids, redis, bypass_cache
+        )
     else:
         tool_instructions_list = []
 
@@ -173,26 +164,22 @@ async def resolve_system_context(
     async def _get_providers() -> list:
         if not provider_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_providers(conn, provider_ids, redis, bypass_cache)
+        return await get_providers(pool, provider_ids, redis, bypass_cache)
 
     async def _get_args() -> list:
         if not args_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_args(conn, args_ids, redis, bypass_cache)
+        return await get_args(pool, args_ids, redis, bypass_cache)
 
     async def _get_args_outputs() -> list:
         if not args_output_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_args_outputs(conn, args_output_ids, redis, bypass_cache)
+        return await get_args_outputs(pool, args_output_ids, redis, bypass_cache)
 
     async def _get_permissions() -> list:
         if not permission_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_permissions(conn, permission_ids, redis, bypass_cache)
+        return await get_permissions(pool, permission_ids, redis, bypass_cache)
 
     providers, args_list, args_outputs_list, permissions_list = await asyncio.gather(
         _get_providers(),

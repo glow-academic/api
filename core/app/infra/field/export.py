@@ -128,8 +128,7 @@ async def export_field_impl(
     async def _fetch_descriptions() -> list:
         if not all_description_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _fetch_departments() -> list:
         if not all_department_ids:
@@ -139,10 +138,8 @@ async def export_field_impl(
     async def _fetch_conditional_parameters() -> list:
         if not all_conditional_parameter_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_conditional_parameters(
-                conn, all_conditional_parameter_ids, redis
-            )
+        return await get_conditional_parameters(pool, all_conditional_parameter_ids, redis
+        )
 
     (
         names_data,
@@ -165,8 +162,7 @@ async def export_field_impl(
     cp_param_id_map = {cp.id: cp.parameter_id for cp in conditional_parameters_data}
     all_param_ids = list({pid for pid in cp_param_id_map.values() if pid})
     if all_param_ids:
-        async with pool.acquire() as conn:
-            params_data = await get_parameters(conn, all_param_ids, redis)
+        params_data = await get_parameters(pool, all_param_ids, redis)
     else:
         params_data = []
     param_name_map = {p.id: p.name for p in params_data}

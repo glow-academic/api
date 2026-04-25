@@ -165,8 +165,7 @@ async def resolve_rubric_context(
             )
 
     async def _get_descriptions_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, merged.description_ids, redis, bypass_cache)
+        return await get_descriptions(pool, merged.description_ids, redis, bypass_cache)
 
     async def _search_descriptions_suggestions() -> list[Any]:
         async with pool.acquire() as conn:
@@ -182,8 +181,7 @@ async def resolve_rubric_context(
             )
 
     async def _get_flags_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
+        return await get_flags(pool, merged.flag_ids, redis, bypass_cache)
 
     async def _search_flags_suggestions() -> list[Any]:
         async with pool.acquire() as conn:
@@ -216,8 +214,7 @@ async def resolve_rubric_context(
             )
 
     async def _get_points_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_points(conn, merged.point_ids, redis, bypass_cache)
+        return await get_points(pool, merged.point_ids, redis, bypass_cache)
 
     async def _search_points_suggestions() -> list[Any]:
         async with pool.acquire() as conn:
@@ -233,8 +230,7 @@ async def resolve_rubric_context(
             )
 
     async def _get_standard_groups_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_standard_groups(conn, merged.standard_group_ids, redis, bypass_cache)
+        return await get_standard_groups(pool, merged.standard_group_ids, redis, bypass_cache)
 
     async def _search_standard_groups_suggestions() -> list[Any]:
         async with pool.acquire() as conn:
@@ -250,8 +246,7 @@ async def resolve_rubric_context(
             )
 
     async def _get_standards_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_standards(conn, merged.standard_ids, redis, bypass_cache)
+        return await get_standards(pool, merged.standard_ids, redis, bypass_cache)
 
     async def _search_standards_suggestions() -> list[Any]:
         async with pool.acquire() as conn:

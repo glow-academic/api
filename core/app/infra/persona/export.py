@@ -155,32 +155,27 @@ async def export_persona_impl(
     async def _get_descriptions() -> list:
         if not all_description_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _get_colors() -> list:
         if not all_color_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_colors(conn, all_color_ids, redis)
+        return await get_colors(pool, all_color_ids, redis)
 
     async def _get_icons() -> list:
         if not all_icon_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_icons(conn, all_icon_ids, redis)
+        return await get_icons(pool, all_icon_ids, redis)
 
     async def _get_instructions() -> list:
         if not all_instruction_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_instructions(conn, all_instruction_ids, redis)
+        return await get_instructions(pool, all_instruction_ids, redis)
 
     async def _get_examples() -> list:
         if not all_example_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_examples(conn, all_example_ids, redis)
+        return await get_examples(pool, all_example_ids, redis)
 
     async def _get_departments() -> list:
         if not all_department_ids:
@@ -190,14 +185,12 @@ async def export_persona_impl(
     async def _get_parameter_fields() -> list:
         if not all_parameter_field_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_parameter_fields(conn, all_parameter_field_ids, redis)
+        return await get_parameter_fields(pool, all_parameter_field_ids, redis)
 
     async def _get_voices() -> list:
         if not all_voice_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_voices(conn, all_voice_ids, redis)
+        return await get_voices(pool, all_voice_ids, redis)
 
     (
         names_data,
@@ -235,8 +228,7 @@ async def export_persona_impl(
     pf_field_id_map = {pf.id: pf.field_id for pf in parameter_fields_data}
     all_field_ids = list({fid for fid in pf_field_id_map.values() if fid})
     if all_field_ids:
-        async with pool.acquire() as conn:
-            fields_data = await get_fields(conn, all_field_ids, redis)
+        fields_data = await get_fields(pool, all_field_ids, redis)
     else:
         fields_data = []
     field_name_map = {f.id: f.name for f in fields_data}

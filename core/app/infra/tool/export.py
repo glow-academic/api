@@ -135,8 +135,7 @@ async def export_tool_impl(
     async def _fetch_descriptions() -> list:
         if not all_description_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _fetch_departments() -> list:
         if not all_department_ids:
@@ -146,20 +145,17 @@ async def export_tool_impl(
     async def _fetch_args() -> list:
         if not all_args_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_args(conn, all_args_ids, redis)
+        return await get_args(pool, all_args_ids, redis)
 
     async def _fetch_arg_positions() -> list:
         if not all_arg_positions_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_arg_positions(conn, all_arg_positions_ids, redis)
+        return await get_arg_positions(pool, all_arg_positions_ids, redis)
 
     async def _fetch_args_outputs() -> list:
         if not all_args_outputs_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_args_outputs(conn, all_args_outputs_ids, redis)
+        return await get_args_outputs(pool, all_args_outputs_ids, redis)
 
     (
         names_data,

@@ -1,50 +1,46 @@
-"""Input: test_start — create a new test."""
+"""Input: test.start — canonical WS handler.
+
+Mirrors ws/input/attempt/start.py. Runs ``test_start_internal_impl`` directly
+through the audit framework so ``test.start.completed`` (with ``test_id`` and
+``invocation_id``) flows back to the client over Socket.IO.
+"""
 
 from typing import Any
 
-from app.infra.globals import get_internal_sio, sio
-from app.infra.websocket.find_profile_by_socket import find_profile_by_socket
-from app.infra.websocket.find_session_by_socket import find_session_by_socket
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, sio
+from app.infra.identity.socket import resolve_socket_identity
 from app.infra.test.client_types import TestStartPayload
-from app.infra.websocket.test_types import TestErrorData
-from app.utils.logging.db_logger import get_logger
-
-logger = get_logger(__name__)
-
-internal_sio = get_internal_sio()
+from app.infra.test.start import TestStartInternalResult, test_start_internal_impl
 
 
-@sio.event  # type: ignore
+@sio.on("test.start")  # type: ignore
 async def test_start(sid: str, data: dict[str, Any]) -> None:
+    identity = await resolve_socket_identity(sid)
+    if not identity:
+        return
+
     try:
         payload = TestStartPayload(**data)
-        profile_id_str = await find_profile_by_socket(sid)
-        if not profile_id_str:
-            await internal_sio.emit(
-                "test.start.error",
-                TestErrorData(
-                    sid=sid, message="Profile not found. Please reconnect.", error_type="auth",
-                ).model_dump(mode="json"),
-            )
-            return
+    except Exception:
+        return
 
-        session_id_str = await find_session_by_socket(sid)
-        if not session_id_str:
-            await internal_sio.emit(
-                "test.start.error",
-                TestErrorData(
-                    sid=sid, message="Session not found. Please reconnect.", error_type="auth",
-                ).model_dump(mode="json"),
-            )
-            return
+    pool = get_pool()
+    redis = get_redis_client()
 
-        await internal_sio.emit(
-            "test_start",
-            {"sid": sid, "profile_id": profile_id_str, "session_id": session_id_str, **payload.model_dump(mode="json")},
-        )
-    except Exception as e:
-        logger.exception(f"Invalid request in test_start: {e}")
-        await internal_sio.emit(
-            "test.start.error",
-            TestErrorData(sid=sid, message=f"Invalid request: {e}", error_type="start").model_dump(mode="json"),
-        )
+    runner_data: dict[str, Any] = {
+        "sid": sid,
+        "profile_id": str(identity.profile_id),
+        "session_id": str(identity.session_id),
+        **payload.model_dump(mode="json"),
+    }
+
+    await run_artifact_operation_with_audit(
+        pool, redis,
+        artifact="test", operation="start",
+        profile_id=identity.profile_id, session_id=identity.session_id,
+        sid=sid, rooms=[sid],
+        runner=lambda: test_start_internal_impl(runner_data, audit=False),
+        arguments=payload.model_dump(mode="json"),
+        response_model=TestStartInternalResult,
+    )

@@ -322,20 +322,17 @@ async def _search_persona_build(
     async def _get_descriptions() -> list:
         if not all_description_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _get_colors() -> list:
         if not all_color_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_colors(conn, all_color_ids, redis)
+        return await get_colors(pool, all_color_ids, redis)
 
     async def _get_icons() -> list:
         if not all_icon_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_icons(conn, all_icon_ids, redis)
+        return await get_icons(pool, all_icon_ids, redis)
 
     async def _get_profile_persona_counts() -> dict[UUID, int]:
         return await _fetch_profile_persona_counts(pool, redis, artifacts)

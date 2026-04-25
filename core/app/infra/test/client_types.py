@@ -61,8 +61,12 @@ class TestGroupPayload(BaseModel):
     prev_run_id: UUID | None = Field(None, description="Previous run ID; None starts from first run")
 
 
-class TestEndPayload(BaseModel):
-    """Client-to-server: end a single invocation within a test."""
+class TestInvocationCompletePayload(BaseModel):
+    """Client-to-server: complete a single invocation within a test.
+
+    Mirrors AttemptChatCompletePayload — per-step completion with optional
+    grading.
+    """
 
     test_id: UUID = Field(..., description="UUID of the test")
     test_invocation_id: UUID = Field(..., description="UUID of the test invocation")
@@ -70,10 +74,19 @@ class TestEndPayload(BaseModel):
     grade: bool = Field(True, description="Whether to grade this run")
 
 
-class TestEndAllPayload(BaseModel):
-    """Client-to-server: end all remaining invocations in a test."""
+class TestCompletePayload(BaseModel):
+    """Client-to-server: complete the entire test.
+
+    Mirrors AttemptCompletePayload.
+    """
 
     test_id: UUID = Field(..., description="UUID of the test")
+
+
+# Legacy aliases — kept so any lingering imports still resolve. Drop once all
+# references migrate to the canonical names.
+TestEndPayload = TestInvocationCompletePayload
+TestEndAllPayload = TestCompletePayload
 
 
 class TestStopPayload(BaseModel):

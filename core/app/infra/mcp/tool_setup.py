@@ -56,8 +56,7 @@ async def build_agent_tool_defs(
     if not tool_ids:
         return []
 
-    async with pool.acquire() as conn:
-        tools = await get_tools(conn, tool_ids, redis, bypass_cache)
+    tools = await get_tools(pool, tool_ids, redis, bypass_cache)
     tools = [t for t in tools if t.active]
     if not tools:
         return []
@@ -68,20 +67,16 @@ async def build_agent_tool_defs(
     instruction_ids = list({t.instruction_id for t in tools if t.instruction_id})
 
     async def _fetch_args() -> list:
-        async with pool.acquire() as conn:
-            return await get_args(conn, arg_ids, redis, bypass_cache)
+        return await get_args(pool, arg_ids, redis, bypass_cache)
 
     async def _fetch_args_outputs() -> list:
-        async with pool.acquire() as conn:
-            return await get_args_outputs(conn, arg_output_ids, redis, bypass_cache)
+        return await get_args_outputs(pool, arg_output_ids, redis, bypass_cache)
 
     async def _fetch_permissions() -> list:
-        async with pool.acquire() as conn:
-            return await get_permissions(conn, perm_ids, redis, bypass_cache)
+        return await get_permissions(pool, perm_ids, redis, bypass_cache)
 
     async def _fetch_instructions() -> list:
-        async with pool.acquire() as conn:
-            return await get_instructions(conn, instruction_ids, redis, bypass_cache)
+        return await get_instructions(pool, instruction_ids, redis, bypass_cache)
 
     args, args_outputs, permissions, instructions = await asyncio.gather(
         _fetch_args(),

@@ -243,8 +243,7 @@ async def resolve_setting_context(
             )
 
     async def _get_descriptions_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, merged.description_ids, redis, bypass_cache)
+        return await get_descriptions(pool, merged.description_ids, redis, bypass_cache)
 
     async def _search_descriptions_suggestions() -> list[Any]:
         if _selected_only(descriptions_selected_only):
@@ -262,8 +261,7 @@ async def resolve_setting_context(
             )
 
     async def _get_colors_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_colors(conn, merged.color_ids, redis, bypass_cache)
+        return await get_colors(pool, merged.color_ids, redis, bypass_cache)
 
     async def _search_colors_suggestions() -> list[Any]:
         if _selected_only(colors_selected_only):
@@ -284,8 +282,7 @@ async def resolve_setting_context(
             )
 
     async def _get_flags_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
+        return await get_flags(pool, merged.flag_ids, redis, bypass_cache)
 
     async def _search_flags_suggestions() -> list[Any]:
         if _selected_only(flags_selected_only):
@@ -325,8 +322,7 @@ async def resolve_setting_context(
             )
 
     async def _get_logins_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_logins(conn, merged.logins_ids, redis, bypass_cache)
+        return await get_logins(pool, merged.logins_ids, redis, bypass_cache)
 
     async def _search_logins_suggestions() -> list[Any]:
         if _selected_only(logins_selected_only):
@@ -343,8 +339,7 @@ async def resolve_setting_context(
             )
 
     async def _get_systems_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_systems(conn, merged.systems_ids, redis, bypass_cache)
+        return await get_systems(pool, merged.systems_ids, redis, bypass_cache)
 
     async def _search_systems_suggestions() -> list[Any]:
         if _selected_only(systems_selected_only):
@@ -362,8 +357,7 @@ async def resolve_setting_context(
             )
 
     async def _get_mcp_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_mcp(conn, merged.mcp_ids, redis, bypass_cache)
+        return await get_mcp(pool, merged.mcp_ids, redis, bypass_cache)
 
     async def _search_mcp_suggestions() -> list[Any]:
         if _selected_only(mcp_selected_only):
@@ -380,8 +374,7 @@ async def resolve_setting_context(
             )
 
     async def _get_thresholds_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_thresholds(conn, merged.threshold_ids, redis, bypass_cache)
+        return await get_thresholds(pool, merged.threshold_ids, redis, bypass_cache)
 
     async def _search_thresholds_suggestions() -> list[Any]:
         if _selected_only(thresholds_selected_only):
@@ -401,8 +394,7 @@ async def resolve_setting_context(
             )
 
     async def _get_provider_keys_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_provider_keys(conn, merged.provider_key_ids, redis, bypass_cache)
+        return await get_provider_keys(pool, merged.provider_key_ids, redis, bypass_cache)
 
     async def _search_provider_keys_suggestions() -> list[Any]:
         if _selected_only(provider_keys_selected_only):
@@ -420,8 +412,7 @@ async def resolve_setting_context(
             )
 
     async def _get_auth_item_keys_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_auth_item_keys(conn, merged.auth_item_key_ids, redis, bypass_cache)
+        return await get_auth_item_keys(pool, merged.auth_item_key_ids, redis, bypass_cache)
 
     async def _search_auth_item_keys_suggestions() -> list[Any]:
         if _selected_only(auth_item_keys_selected_only):
@@ -439,8 +430,7 @@ async def resolve_setting_context(
             )
 
     async def _get_auth_item_values_selected() -> list[Any]:
-        async with pool.acquire() as conn:
-            return await get_auth_item_values(conn, merged.auth_item_value_ids, redis, bypass_cache)
+        return await get_auth_item_values(pool, merged.auth_item_value_ids, redis, bypass_cache)
 
     async def _search_provider_catalog() -> list[Any]:
         async with pool.acquire() as conn:

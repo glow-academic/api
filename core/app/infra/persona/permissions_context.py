@@ -293,8 +293,7 @@ async def resolve_persona_values(
             all_pf = await search_parameter_fields(conn, redis)
         field_ids_list = [pf.field_id for pf in all_pf if pf.field_id]
         if field_ids_list:
-            async with pool.acquire() as conn:
-                fields_list = await get_fields(conn, field_ids_list, redis)
+            fields_list = await get_fields(pool, field_ids_list, redis)
         else:
             fields_list = []
         field_name_map = {f.id: f.name for f in fields_list if f.name}
@@ -366,36 +365,29 @@ async def create_denormalized_snapshot(
     async def _get_descriptions() -> list:
         if not description_id:
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(
-                conn, [description_id], redis, bypass_cache=True
-            )
+        return await get_descriptions(pool, [description_id], redis, bypass_cache=True
+        )
 
     async def _get_colors() -> list:
         if not color_id:
             return []
-        async with pool.acquire() as conn:
-            return await get_colors(conn, [color_id], redis, bypass_cache=True)
+        return await get_colors(pool, [color_id], redis, bypass_cache=True)
 
     async def _get_icons() -> list:
         if not icon_id:
             return []
-        async with pool.acquire() as conn:
-            return await get_icons(conn, [icon_id], redis, bypass_cache=True)
+        return await get_icons(pool, [icon_id], redis, bypass_cache=True)
 
     async def _get_instructions() -> list:
         if not instructions_id:
             return []
-        async with pool.acquire() as conn:
-            return await get_instructions(
-                conn, [instructions_id], redis, bypass_cache=True
-            )
+        return await get_instructions(pool, [instructions_id], redis, bypass_cache=True
+        )
 
     async def _get_examples() -> list:
         if not example_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_examples(conn, example_ids, redis, bypass_cache=True)
+        return await get_examples(pool, example_ids, redis, bypass_cache=True)
 
     (
         names,

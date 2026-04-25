@@ -219,8 +219,7 @@ async def _search_field_build(
     async def _fetch_descriptions() -> list:
         if not all_description_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _fetch_parameter_facet() -> list:
         async with pool.acquire() as conn:

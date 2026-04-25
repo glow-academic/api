@@ -252,8 +252,7 @@ async def create_attempt_chat_impl(
     from app.infra.attempt.department import resolve_attempt_department
     from app.tools.entries.chat.get import get_chat_entries_internal
 
-    async with pool.acquire() as conn:
-        templates = await get_chat_entries_internal(conn, [request.chat_id], bypass_cache=True)
+    templates = await get_chat_entries_internal(pool, [request.chat_id], bypass_cache=True)
     if not templates:
         raise HTTPException(404, "Chat template not found.")
     tmpl = templates[0]

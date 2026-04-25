@@ -281,8 +281,7 @@ async def _search_simulation_build(
     async def _fetch_flag_rows() -> list:
         if not all_flag_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_flags(conn, list(all_flag_ids), redis)
+        return await get_flags(pool, list(all_flag_ids), redis)
 
     (
         names_data,

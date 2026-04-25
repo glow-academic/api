@@ -182,8 +182,7 @@ async def export_reports_impl(
     async def _get_voices() -> list:
         if not all_voice_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_voices(conn, list(all_voice_ids), redis)
+        return await get_voices(pool, list(all_voice_ids), redis)
 
     names_data, departments_data, voices_data = await asyncio.gather(
         _get_names(),

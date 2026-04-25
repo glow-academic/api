@@ -149,8 +149,7 @@ async def export_cohort_impl(
     async def _fetch_descriptions() -> list:
         if not all_description_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, all_description_ids, redis)
+        return await get_descriptions(pool, all_description_ids, redis)
 
     async def _fetch_departments() -> list:
         if not all_department_ids:
@@ -160,24 +159,19 @@ async def export_cohort_impl(
     async def _fetch_simulations() -> list:
         if not all_simulation_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_simulations(conn, all_simulation_ids, redis)
+        return await get_simulations(pool, all_simulation_ids, redis)
 
     async def _fetch_simulation_positions() -> list:
         if not all_simulation_position_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_simulation_positions(
-                conn, all_simulation_position_ids, redis
-            )
+        return await get_simulation_positions(pool, all_simulation_position_ids, redis
+        )
 
     async def _fetch_simulation_availability() -> list:
         if not all_simulation_availability_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_simulation_availability(
-                conn, all_simulation_availability_ids, redis
-            )
+        return await get_simulation_availability(pool, all_simulation_availability_ids, redis
+        )
 
     async def _fetch_profiles() -> list:
         if not all_profile_ids:
@@ -187,8 +181,7 @@ async def export_cohort_impl(
     async def _fetch_profile_personas() -> list:
         if not all_profile_persona_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_profile_personas(conn, all_profile_persona_ids, redis)
+        return await get_profile_personas(pool, all_profile_persona_ids, redis)
 
     (
         names_data,

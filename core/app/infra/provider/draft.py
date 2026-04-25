@@ -406,13 +406,11 @@ async def patch_provider_draft_impl(
 
     resolved_description = request.description
     if request.description_id and resolved_description is None:
-        async with pool.acquire() as conn:
-            matches = await get_descriptions(
-                conn,
-                [request.description_id],
-                redis,
-                bypass_cache=True,
-            )
+        matches = await get_descriptions(pool,
+            [request.description_id],
+            redis,
+            bypass_cache=True,
+        )
         resolved_description = matches[0].description if matches else None
 
     resolved_department_names: list[str] = []
@@ -437,20 +435,17 @@ async def patch_provider_draft_impl(
 
     resolved_value = request.value
     if request.value_id and resolved_value is None:
-        async with pool.acquire() as conn:
-            matches = await get_values(conn, [request.value_id], redis, bypass_cache=True)
+        matches = await get_values(pool, [request.value_id], redis, bypass_cache=True)
         resolved_value = matches[0].value if matches else None
 
     resolved_endpoint = request.endpoint
     resolved_endpoint_ids = request.endpoint_ids or []
     if resolved_endpoint_ids and resolved_endpoint is None:
-        async with pool.acquire() as conn:
-            matches = await get_endpoints(
-                conn,
-                resolved_endpoint_ids,
-                redis,
-                bypass_cache=True,
-            )
+        matches = await get_endpoints(pool,
+            resolved_endpoint_ids,
+            redis,
+            bypass_cache=True,
+        )
         resolved_endpoint = matches[0].base_url if matches else None
 
     resolved_key = request.key
@@ -460,8 +455,7 @@ async def patch_provider_draft_impl(
     if resolved_key_ids and (
         resolved_key is None or resolved_key_name is None or resolved_key_description is None
     ):
-        async with pool.acquire() as conn:
-            matches = await get_keys(conn, resolved_key_ids, redis, bypass_cache=True)
+        matches = await get_keys(pool, resolved_key_ids, redis, bypass_cache=True)
         if matches:
             resolved_key = resolved_key if resolved_key is not None else matches[0].key
             resolved_key_name = (

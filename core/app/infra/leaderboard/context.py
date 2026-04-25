@@ -173,14 +173,11 @@ async def resolve_leaderboard_search_context(
         return await get_profiles(pool, list(profile_ids_set), redis, bypass_cache)
 
     async def _get_simulations() -> list:
-        async with pool.acquire() as conn:
-            return await get_simulations(conn, list(sim_ids_set), redis, bypass_cache)
+        return await get_simulations(pool, list(sim_ids_set), redis, bypass_cache)
 
     async def _get_scenarios() -> list:
-        async with pool.acquire() as conn:
-            return await get_scenarios(
-                conn, list(scenario_ids_set), redis, bypass_cache
-            )
+        return await get_scenarios(pool, list(scenario_ids_set), redis, bypass_cache
+        )
 
     profiles_selected, simulations_selected, scenarios_selected = await asyncio.gather(
         _get_profiles() if profile_ids_set else _empty_list(),

@@ -14,12 +14,15 @@ from app.utils.cache.set_cached import set_cached
 
 
 async def get_primary_departments(
-    conn: asyncpg.Connection,
+    pool_or_conn: asyncpg.Pool | asyncpg.Connection,
     ids: list[UUID],
     redis: Redis,
     bypass_cache: bool = False,
 ) -> list[GetPrimaryDepartmentResponse]:
-    """Fetch primary_departments_resource entries by IDs."""
+    """Fetch primary_departments_resource entries by IDs.
+
+    Accepts either a Pool or a Connection — see get_names for rationale.
+    """
     if not ids:
         return []
 
@@ -37,15 +40,17 @@ async def get_primary_departments(
                 for item in cached.get("items", [])
             ]
 
-    rows = await conn.fetch(
-        """
+    sql = """
         SELECT id, departments_id, created_at, active, generated, mcp
         FROM primary_departments_resource
         WHERE id = ANY($1)
         ORDER BY array_position($1, id)
-        """,
-        ids,
-    )
+        """
+    if isinstance(pool_or_conn, asyncpg.Pool):
+        async with pool_or_conn.acquire() as conn:
+            rows = await conn.fetch(sql, ids)
+    else:
+        rows = await pool_or_conn.fetch(sql, ids)
 
     items = [
         GetPrimaryDepartmentResponse(

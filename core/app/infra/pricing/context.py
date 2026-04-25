@@ -74,20 +74,17 @@ async def resolve_pricing_context(
     async def _get_agents() -> list:
         if not agent_ids_set:
             return []
-        async with pool.acquire() as conn:
-            return await get_agents(conn, list(agent_ids_set), redis, bypass_cache)
+        return await get_agents(pool, list(agent_ids_set), redis, bypass_cache)
 
     async def _get_models() -> list:
         if not model_ids_set:
             return []
-        async with pool.acquire() as conn:
-            return await get_models(conn, list(model_ids_set), redis, bypass_cache)
+        return await get_models(pool, list(model_ids_set), redis, bypass_cache)
 
     async def _get_pricing() -> list:
         if not pricing_ids_set:
             return []
-        async with pool.acquire() as conn:
-            return await get_pricing(conn, list(pricing_ids_set), redis, bypass_cache)
+        return await get_pricing(pool, list(pricing_ids_set), redis, bypass_cache)
 
     agents_selected, models_selected, pricing_selected = await asyncio.gather(
         _get_agents(),
@@ -191,20 +188,17 @@ async def resolve_pricing_search_context(
     async def _get_agents() -> list:
         if not agent_ids_set:
             return []
-        async with pool.acquire() as conn:
-            return await get_agents(conn, list(agent_ids_set), redis, bypass_cache)
+        return await get_agents(pool, list(agent_ids_set), redis, bypass_cache)
 
     async def _get_models() -> list:
         if not model_ids_set:
             return []
-        async with pool.acquire() as conn:
-            return await get_models(conn, list(model_ids_set), redis, bypass_cache)
+        return await get_models(pool, list(model_ids_set), redis, bypass_cache)
 
     async def _get_pricing() -> list:
         if not pricing_ids_set:
             return []
-        async with pool.acquire() as conn:
-            return await get_pricing(conn, list(pricing_ids_set), redis, bypass_cache)
+        return await get_pricing(pool, list(pricing_ids_set), redis, bypass_cache)
 
     async def _get_names() -> list:
         if not all_name_ids:

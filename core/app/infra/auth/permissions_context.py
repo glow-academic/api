@@ -206,22 +206,18 @@ async def create_denormalized_snapshot(
     async def _get_descriptions() -> list:
         if not description_id:
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(
-                conn, [description_id], redis, bypass_cache=True
-            )
+        return await get_descriptions(pool, [description_id], redis, bypass_cache=True
+        )
 
     async def _get_slug() -> list:
         if not slug_id:
             return []
-        async with pool.acquire() as conn:
-            return await get_slugs(conn, [slug_id], redis, bypass_cache=True)
+        return await get_slugs(pool, [slug_id], redis, bypass_cache=True)
 
     async def _get_protocols() -> list:
         if not protocol_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_protocols(conn, protocol_ids, redis, bypass_cache=True)
+        return await get_protocols(pool, protocol_ids, redis, bypass_cache=True)
 
     names, descriptions, slugs, protocols = await asyncio.gather(
         _get_names(),

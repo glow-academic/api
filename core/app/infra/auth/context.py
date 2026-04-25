@@ -119,8 +119,7 @@ async def resolve_auth_context(
             )
 
     async def _get_descriptions() -> list:
-        async with pool.acquire() as conn:
-            return await get_descriptions(conn, merged.description_ids, redis, bypass_cache)
+        return await get_descriptions(pool, merged.description_ids, redis, bypass_cache)
 
     async def _search_descriptions() -> list:
         async with pool.acquire() as conn:
@@ -137,8 +136,7 @@ async def resolve_auth_context(
             )
 
     async def _get_flags() -> list:
-        async with pool.acquire() as conn:
-            return await get_flags(conn, merged.flag_ids, redis, bypass_cache)
+        return await get_flags(pool, merged.flag_ids, redis, bypass_cache)
 
     async def _search_flags() -> list:
         async with pool.acquire() as conn:
@@ -175,8 +173,7 @@ async def resolve_auth_context(
             )
 
     async def _get_protocols() -> list:
-        async with pool.acquire() as conn:
-            return await get_protocols(conn, merged.protocol_ids, redis, bypass_cache)
+        return await get_protocols(pool, merged.protocol_ids, redis, bypass_cache)
 
     async def _search_protocols() -> list:
         async with pool.acquire() as conn:
@@ -192,8 +189,7 @@ async def resolve_auth_context(
             )
 
     async def _get_slugs() -> list:
-        async with pool.acquire() as conn:
-            return await get_slugs(conn, merged.slug_ids, redis, bypass_cache)
+        return await get_slugs(pool, merged.slug_ids, redis, bypass_cache)
 
     async def _search_slugs() -> list:
         async with pool.acquire() as conn:
@@ -209,8 +205,7 @@ async def resolve_auth_context(
             )
 
     async def _get_items() -> list:
-        async with pool.acquire() as conn:
-            return await get_items(conn, merged.item_ids, redis, bypass_cache)
+        return await get_items(pool, merged.item_ids, redis, bypass_cache)
 
     async def _search_items() -> list:
         async with pool.acquire() as conn:

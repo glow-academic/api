@@ -139,13 +139,11 @@ async def update_simulation_impl(
                 artifact = artifacts[0]
                 practice = False
                 if artifact.flag_ids:
-                    async with pool.acquire() as conn:
-                        flag_artifacts = await get_flags(
-                            conn,
-                            list(artifact.flag_ids),
-                            redis,
-                            bypass_cache=True,
-                        )
+                    flag_artifacts = await get_flags(pool,
+                        list(artifact.flag_ids),
+                        redis,
+                        bypass_cache=True,
+                    )
                     practice = any(flag.type == "practice" for flag in flag_artifacts)
 
                 await create_denormalized_snapshot(

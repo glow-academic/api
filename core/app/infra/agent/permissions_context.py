@@ -202,16 +202,13 @@ async def create_denormalized_snapshot(
     async def _get_descriptions() -> list:
         if not description_id:
             return []
-        async with pool.acquire() as conn:
-            return await get_descriptions(
-                conn, [description_id], redis, bypass_cache=True
-            )
+        return await get_descriptions(pool, [description_id], redis, bypass_cache=True
+        )
 
     async def _get_voices() -> list:
         if not voice_ids:
             return []
-        async with pool.acquire() as conn:
-            return await get_voices(conn, voice_ids, redis, bypass_cache=True)
+        return await get_voices(pool, voice_ids, redis, bypass_cache=True)
 
     names, descriptions, voices = await asyncio.gather(
         _get_names(),
