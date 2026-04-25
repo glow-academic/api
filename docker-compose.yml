@@ -40,9 +40,13 @@ services:
       volume-init:
         condition: service_completed_successfully
     healthcheck:
-      # When DB_BACKUP is set, wait for restore to complete before accepting connections
+      # When DB_BACKUP is set, wait for restore to complete before accepting
+      # connections. Marker lives at $PGDATA/.restore_complete (written by
+      # custom-entrypoint.sh's 99-mark-ready.sh init script in v2.15.10+).
+      # Glob-match across PG major-version subdirs so the path doesn't break
+      # on Postgres upgrades.
       test: >
-        if [ -n "${DB_BACKUP:-}" ] && [ ! -f /var/lib/postgresql/.restore_complete ]; then
+        if [ -n "${DB_BACKUP:-}" ] && ! ls /var/lib/postgresql/*/docker/.restore_complete >/dev/null 2>&1 && ! ls /var/lib/postgresql/.restore_complete >/dev/null 2>&1; then
           exit 1
         fi &&
         pg_isready -U ${DB_USER:-myuser} -d glowapi &&
