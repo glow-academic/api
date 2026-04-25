@@ -1,8 +1,8 @@
 """Setting drafts list logic — composable infra architecture.
 
 Composes existing black-box tools:
-  1. resolve_profile_identity_context — profile (profiles_id)
-  2. search_setting_drafts — declarative filter by profile ownership
+  1. resolve_profile_identity_context — profile auth gate + session
+  2. search_setting_drafts — declarative filter by session
 """
 
 from __future__ import annotations
@@ -24,11 +24,11 @@ async def list_setting_drafts_impl(
     profile_id: UUID,
     bypass_cache: bool = False,
 ) -> ArtifactContext:
-    """List setting drafts owned by the current profile.
+    """List setting drafts for the caller's current session.
 
     Flow:
-      1. resolve_profile_identity_context → profiles_id
-      2. search_setting_drafts(profile_ids=[profiles_id]) → entries
+      1. resolve_profile_identity_context → auth + session_id
+      2. search_setting_drafts(session_ids=[session_id]) → entries
       3. Return ArtifactContext(resources={}, entries={"drafts": [...]})
     """
     from fastapi import HTTPException
@@ -45,12 +45,12 @@ async def list_setting_drafts_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    # ── Step 2: Search drafts by ownership ─────────────────────────────
+    # ── Step 2: Search drafts by session ───────────────────────────────
 
     async with pool.acquire() as conn:
         drafts = await search_setting_drafts(
             conn,
-            profile_ids=[profile.profiles_id],
+            session_ids=[profile.session_id] if profile.session_id else None,
         )
 
     # ── Step 3: Return canonical ArtifactContext ───────────────────────

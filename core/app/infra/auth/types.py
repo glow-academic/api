@@ -590,6 +590,7 @@ class ListAuthApiResponse(BaseModel):
     actor_name: str | None = Field(None, description="Display name of the acting user")
     auths: list[ListAuthApiAuth] | None = Field(None, description="List of auth provider items")
     department_filter: ListFilterSection | None = Field(None, description="Filter options for departments")
+    flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
     total_count: int | None = Field(None, description="Total number of auth providers")
 
 

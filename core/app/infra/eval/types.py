@@ -234,6 +234,7 @@ class ListEvalApiResponse(BaseModel):
     actor_name: str | None = Field(None, description="Display name of the current user")
     evals: list[ListEvalApiEval] | None = Field(None, description="List of evals")
     department_filter: ListFilterSection | None = Field(None, description="Filter options for departments in list UI")
+    flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
     total_count: int | None = Field(None, description="Total number of matching records")
     user_role: str | None = Field(None, description="Role of the current user")
 

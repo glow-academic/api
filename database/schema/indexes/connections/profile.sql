@@ -34,6 +34,14 @@ CREATE INDEX idx_profile_drafts_names_resource_id ON public.profile_drafts_names
 
 --
 
+-- Name: idx_profile_drafts_primary_departments_resource_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_profile_drafts_primary_departments_resource_id ON public.profile_drafts_primary_departments_connection USING btree (primary_departments_id);
+
+
+--
+
 -- Name: idx_profile_drafts_roles_resource_id; Type: INDEX; Schema: public; Owner: -
 --
 

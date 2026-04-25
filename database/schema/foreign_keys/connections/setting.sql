@@ -164,24 +164,6 @@ ALTER TABLE ONLY public.setting_drafts_names_connection
 
 --
 
--- Name: setting_drafts_profiles_connection setting_drafts_profiles_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.setting_drafts_profiles_connection
-    ADD CONSTRAINT setting_drafts_profiles_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.setting_drafts_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: setting_drafts_profiles_connection setting_drafts_profiles_connection_profiles_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.setting_drafts_profiles_connection
-    ADD CONSTRAINT setting_drafts_profiles_connection_profiles_id_fkey FOREIGN KEY (profiles_id) REFERENCES public.profiles_resource(id);
-
-
---
-
 -- Name: setting_drafts_provider_keys_connection setting_drafts_provider_keys_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -196,6 +178,24 @@ ALTER TABLE ONLY public.setting_drafts_provider_keys_connection
 
 ALTER TABLE ONLY public.setting_drafts_provider_keys_connection
     ADD CONSTRAINT setting_drafts_provider_keys_connection_provider_keys_id_fkey FOREIGN KEY (provider_keys_id) REFERENCES public.provider_keys_resource(id);
+
+
+--
+
+-- Name: setting_drafts_providers_connection setting_drafts_providers_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_drafts_providers_connection
+    ADD CONSTRAINT setting_drafts_providers_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.setting_drafts_entry(id) ON DELETE CASCADE;
+
+
+--
+
+-- Name: setting_drafts_providers_connection setting_drafts_providers_connection_providers_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_drafts_providers_connection
+    ADD CONSTRAINT setting_drafts_providers_connection_providers_id_fkey FOREIGN KEY (providers_id) REFERENCES public.providers_resource(id);
 
 
 --

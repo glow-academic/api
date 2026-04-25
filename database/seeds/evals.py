@@ -1,10 +1,29 @@
 """Module 08 — Eval seed definitions.
 
-Each dict maps directly to CreateEvalItem fields.
-String fields (name, description) are resolved by the _impl function.
+Each eval dict maps directly to CreateEvalItem fields. Beyond the static
+{name, description, flag_ids}, every eval is wired to:
+
+  * model_ids           — every model from glow-deploy.yaml (full coverage)
+  * model_flag_ids      — one (model, use_custom=true) row per model
+  * model_rubric_ids    — one (model, eval-rubric) row per model
+  * model_position_ids  — one (model, value=index) row per model, value is
+                          the model's index inside this eval's model list
+
+These per-(model, *) sub-resource rows live in `model_flags_resource`,
+`model_rubrics_resource`, `model_positions_resource`. Their deterministic IDs
+are derived here and re-exported as `model_flags`, `model_rubrics`, and
+`model_positions` so the runner can pre-create the resource rows BEFORE the
+eval module runs (eval junction inserts FK to those rows).
+
+Threading sub-resources end-to-end is what unblocks `sync_benchmark_entries`
+during eval create — without `model_ids`, that helper short-circuits to 0
+and benchmark cards never appear.
 """
 
+from uuid import UUID
+
 from database.seeds.ids import sid
+from database.seeds.models import models as _model_seeds
 
 # ---------------------------------------------------------------------------
 # Referenced IDs from module 01 resources
@@ -14,6 +33,9 @@ from database.seeds.ids import sid
 GROUPS_FLAG = sid("flag/groups")
 DYNAMIC_FLAG = sid("flag/dynamic")
 EVAL_ACTIVE_FLAG = sid("flag/eval-active")
+
+# `use_custom=true` flag (variant emitted by `_flag_pair("use-custom", ...)`).
+USE_CUSTOM_TRUE_FLAG = sid("flag/use-custom")
 
 # Common flag set shared by all evals
 _EVAL_FLAGS = [GROUPS_FLAG, DYNAMIC_FLAG, EVAL_ACTIVE_FLAG]
@@ -47,10 +69,127 @@ TOOL_AGENT_EVAL = sid("eval/tool-agent")
 TRAINING_AGENT_EVAL = sid("eval/training-agent")
 
 # ---------------------------------------------------------------------------
+# Eval → rubric mapping (1:1)
+# ---------------------------------------------------------------------------
+# Each eval gets a dedicated rubric resource. The *-agent evals follow the
+# `*-rubric` slug; run/group have explicit run-rubric / group-rubric entries
+# added in seeds/rubrics.py.
+
+EVAL_RUBRIC_SLUGS: dict[UUID, str] = {
+    RUN_EVAL: "run-rubric",
+    GROUP_EVAL: "group-rubric",
+    AGENT_AGENT_EVAL: "agent-rubric",
+    AUTH_AGENT_EVAL: "auth-rubric",
+    BENCHMARK_AGENT_EVAL: "benchmark-rubric",
+    CHAT_AGENT_AGENT_EVAL: "chat-agent-rubric",
+    COHORT_AGENT_EVAL: "cohort-rubric",
+    DEPARTMENT_AGENT_EVAL: "department-rubric",
+    DOCUMENT_AGENT_EVAL: "document-rubric",
+    EVAL_AGENT_EVAL: "eval-rubric",
+    FIELD_AGENT_EVAL: "field-rubric",
+    GRADE_AGENT_AGENT_EVAL: "grade-agent-rubric",
+    MODEL_AGENT_EVAL: "model-rubric",
+    PARAMETER_AGENT_EVAL: "parameter-rubric",
+    PERSONA_AGENT_EVAL: "persona-rubric",
+    PROFILE_AGENT_EVAL: "profile-rubric",
+    PROVIDER_AGENT_EVAL: "provider-rubric",
+    RUBRIC_AGENT_EVAL: "rubric-rubric",
+    SCENARIO_AGENT_EVAL: "scenario-rubric",
+    SETTING_AGENT_EVAL: "setting-rubric",
+    SIMULATION_AGENT_EVAL: "simulation-rubric",
+    TOOL_AGENT_EVAL: "tool-rubric",
+    TRAINING_AGENT_EVAL: "training-rubric",
+}
+
+EVAL_SLUG_BY_ID: dict[UUID, str] = {
+    eval_id: rubric_slug.replace("-rubric", "") if rubric_slug.endswith("-rubric") else rubric_slug
+    for eval_id, rubric_slug in EVAL_RUBRIC_SLUGS.items()
+}
+# A few evals don't follow the simple slug stripping above. Use the eval's
+# bare slug (last segment after `eval/`) for position id derivation so the
+# sids stay readable + collision-free.
+_EVAL_SHORT_SLUGS: dict[UUID, str] = {
+    RUN_EVAL: "run",
+    GROUP_EVAL: "group",
+    AGENT_AGENT_EVAL: "agent-agent",
+    AUTH_AGENT_EVAL: "auth-agent",
+    BENCHMARK_AGENT_EVAL: "benchmark-agent",
+    CHAT_AGENT_AGENT_EVAL: "chat-agent-agent",
+    COHORT_AGENT_EVAL: "cohort-agent",
+    DEPARTMENT_AGENT_EVAL: "department-agent",
+    DOCUMENT_AGENT_EVAL: "document-agent",
+    EVAL_AGENT_EVAL: "eval-agent",
+    FIELD_AGENT_EVAL: "field-agent",
+    GRADE_AGENT_AGENT_EVAL: "grade-agent-agent",
+    MODEL_AGENT_EVAL: "model-agent",
+    PARAMETER_AGENT_EVAL: "parameter-agent",
+    PERSONA_AGENT_EVAL: "persona-agent",
+    PROFILE_AGENT_EVAL: "profile-agent",
+    PROVIDER_AGENT_EVAL: "provider-agent",
+    RUBRIC_AGENT_EVAL: "rubric-agent",
+    SCENARIO_AGENT_EVAL: "scenario-agent",
+    SETTING_AGENT_EVAL: "setting-agent",
+    SIMULATION_AGENT_EVAL: "simulation-agent",
+    TOOL_AGENT_EVAL: "tool-agent",
+    TRAINING_AGENT_EVAL: "training-agent",
+}
+
+# ---------------------------------------------------------------------------
+# Per-eval × per-model cross-product helpers
+# ---------------------------------------------------------------------------
+# All evals share the same model coverage: every model seeded from
+# glow-deploy.yaml. Listing once and reusing keeps benchmark sync deterministic.
+
+_MODEL_RESOURCE_IDS: list[UUID] = [m["resource_id"] for m in _model_seeds]
+_MODEL_NAMES_BY_RESOURCE_ID: dict[UUID, str] = {
+    m["resource_id"]: m["name"] for m in _model_seeds
+}
+
+
+def _model_flag_id(model_resource_id: UUID) -> UUID:
+    """Deterministic id for the (model, use_custom=true) sub-resource row."""
+    name = _MODEL_NAMES_BY_RESOURCE_ID[model_resource_id]
+    return sid(f"model-flag/{name}/use-custom")
+
+
+def _model_rubric_id(model_resource_id: UUID, rubric_slug: str) -> UUID:
+    """Deterministic id for the (model, rubric) sub-resource row."""
+    name = _MODEL_NAMES_BY_RESOURCE_ID[model_resource_id]
+    return sid(f"model-rubric/{name}/{rubric_slug}")
+
+
+def _model_position_id(model_resource_id: UUID, eval_slug: str, position: int) -> UUID:
+    """Deterministic id for the (model, eval, position) sub-resource row."""
+    name = _MODEL_NAMES_BY_RESOURCE_ID[model_resource_id]
+    return sid(f"model-position/{name}/{eval_slug}/{position}")
+
+
+def _ids_for_eval(eval_id: UUID) -> dict:
+    """Build the four cross-product id lists for a single eval entry."""
+    rubric_slug = EVAL_RUBRIC_SLUGS[eval_id]
+    short_slug = _EVAL_SHORT_SLUGS[eval_id]
+    model_flag_ids = [_model_flag_id(mid) for mid in _MODEL_RESOURCE_IDS]
+    model_rubric_ids = [
+        _model_rubric_id(mid, rubric_slug) for mid in _MODEL_RESOURCE_IDS
+    ]
+    model_position_ids = [
+        _model_position_id(mid, short_slug, idx)
+        for idx, mid in enumerate(_MODEL_RESOURCE_IDS)
+    ]
+    return dict(
+        model_ids=list(_MODEL_RESOURCE_IDS),
+        model_flag_ids=model_flag_ids,
+        model_rubric_ids=model_rubric_ids,
+        model_position_ids=model_position_ids,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Eval definitions
 # ---------------------------------------------------------------------------
+# Each entry is the static metadata; cross-product fields are merged in below.
 
-evals = [
+_eval_meta = [
     dict(
         id=RUN_EVAL,
         name="Run Evaluation",
@@ -190,3 +329,52 @@ evals = [
         flag_ids=_EVAL_FLAGS,
     ),
 ]
+
+evals: list[dict] = [
+    {**meta, **_ids_for_eval(meta["id"])} for meta in _eval_meta
+]
+
+
+# ---------------------------------------------------------------------------
+# Cross-product sub-resource lists for the runner
+# ---------------------------------------------------------------------------
+# These are flat lists of dicts (id, model_id, …) that the runner inserts
+# directly into model_flags_resource / model_rubrics_resource /
+# model_positions_resource BEFORE the eval module runs, so eval junction
+# inserts FK-resolve. Deduped by id.
+
+_seen_flag: set[UUID] = set()
+model_flags: list[dict] = []
+for _mid in _MODEL_RESOURCE_IDS:
+    _id = _model_flag_id(_mid)
+    if _id in _seen_flag:
+        continue
+    _seen_flag.add(_id)
+    model_flags.append(
+        dict(id=_id, model_id=_mid, flag_id=USE_CUSTOM_TRUE_FLAG)
+    )
+
+
+_seen_rubric: set[UUID] = set()
+model_rubrics: list[dict] = []
+for _eval_id, _rubric_slug in EVAL_RUBRIC_SLUGS.items():
+    _rubric_resource_id = sid(f"rubric-resource/{_rubric_slug}")
+    for _mid in _MODEL_RESOURCE_IDS:
+        _id = _model_rubric_id(_mid, _rubric_slug)
+        if _id in _seen_rubric:
+            continue
+        _seen_rubric.add(_id)
+        model_rubrics.append(
+            dict(id=_id, model_id=_mid, rubric_id=_rubric_resource_id)
+        )
+
+
+_seen_position: set[UUID] = set()
+model_positions: list[dict] = []
+for _eval_id, _short_slug in _EVAL_SHORT_SLUGS.items():
+    for _idx, _mid in enumerate(_MODEL_RESOURCE_IDS):
+        _id = _model_position_id(_mid, _short_slug, _idx)
+        if _id in _seen_position:
+            continue
+        _seen_position.add(_id)
+        model_positions.append(dict(id=_id, model_id=_mid, value=_idx))

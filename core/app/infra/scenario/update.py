@@ -41,8 +41,12 @@ if TYPE_CHECKING:
 
 
 def _collect_flag_ids(item: UpdateScenarioItem) -> list[UUID] | None:
-    """Collect all non-None flag IDs from the item into a single list."""
-    flag_ids = []
+    """Collect all non-None flag IDs from the item into a single list.
+
+    Merges the canonical `flag_ids` list with any individual typed `*_flag_id`
+    fields. De-duplicates while preserving insertion order (canonical wins).
+    """
+    flag_ids: list[UUID] = list(item.flag_ids or [])
     for fid in [
         item.active_flag_id,
         item.objectives_enabled_flag_id,
@@ -51,7 +55,7 @@ def _collect_flag_ids(item: UpdateScenarioItem) -> list[UUID] | None:
         item.questions_enabled_flag_id,
         item.problem_statement_enabled_flag_id,
     ]:
-        if fid is not None:
+        if fid is not None and fid not in flag_ids:
             flag_ids.append(fid)
     return flag_ids if flag_ids else None
 

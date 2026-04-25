@@ -32,6 +32,8 @@ from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.agent.get import get_agents
 from app.tools.artifacts.agent.search import search_agents
 from app.tools.resources.departments.search import search_departments
+from app.tools.resources.flags.get import get_flags
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.models.get import (
     get_models as get_models_resource,
 )
@@ -81,9 +83,11 @@ async def search_agent_impl(
     department_search: str | None = None,
     model_search: str | None = None,
     tool_search: str | None = None,
+    flag_search: str | None = None,
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
+    **_kwargs,
 ) -> ListAgentApiResponse:
     """Agent search using composable infra functions."""
     from fastapi import HTTPException
@@ -134,12 +138,15 @@ async def search_agent_impl(
     all_name_ids: list[UUID] = []
     all_description_ids: list[UUID] = []
     all_model_ids: set[UUID] = set()
+    all_flag_ids: set[UUID] = set()
 
     for a in artifacts:
         all_name_ids.extend(a.name_ids or [])
         all_description_ids.extend(a.description_ids or [])
         for mid in a.model_ids or []:
             all_model_ids.add(mid)
+        for fid in a.flag_ids or []:
+            all_flag_ids.add(fid)
 
     # Parallel: hydrate resources + facets
 
@@ -150,6 +157,12 @@ async def search_agent_impl(
     async def _fetch_models() -> list:
         async with pool.acquire() as conn:
             return await get_models_resource(conn, list(all_model_ids), redis)
+
+    async def _fetch_flag_rows() -> list:
+        if not all_flag_ids:
+            return []
+        async with pool.acquire() as conn:
+            return await get_flags(conn, list(all_flag_ids), redis)
 
     async def _fetch_department_facet() -> list:
         async with pool.acquire() as conn:
@@ -169,18 +182,28 @@ async def search_agent_impl(
                 conn, redis, search=tool_search, agent=True, limit_count=100
             )
 
+    async def _fetch_flag_facet() -> list:
+        async with pool.acquire() as conn:
+            return await search_flags(
+                conn, redis, search=flag_search, agent=True, limit_count=100
+            )
+
     (
         names_data,
         models_data,
+        flag_rows_data,
         department_facet,
         model_facet,
         tool_facet,
+        flag_facet,
     ) = await asyncio.gather(
         _fetch_names() if all_name_ids else _empty_list(),
         _fetch_models() if all_model_ids else _empty_list(),
+        _fetch_flag_rows(),
         _fetch_department_facet(),
         _fetch_model_facet(),
         _fetch_tool_facet(),
+        _fetch_flag_facet(),
     )
 
     # Build lookup maps
@@ -190,6 +213,13 @@ async def search_agent_impl(
         m_id = getattr(m, "id", None)
         if m_id:
             model_map[m_id] = (m.name, m.description)
+
+    # Flag id -> (type, value) for per-row boolean derivation
+    flag_meta_map: dict[UUID, tuple[str | None, bool | None]] = {
+        f.id: (getattr(f, "type", None), getattr(f, "value", None))
+        for f in flag_rows_data
+        if getattr(f, "id", None)
+    }
 
     # -- Step 6: Build agent list with permissions --
     # We need active_settings_count per agent — approximate from the artifacts
@@ -223,6 +253,16 @@ async def search_agent_impl(
         if model_id and model_id in model_map:
             model_name, model_description = model_map[model_id]
 
+        # is_inactive mirrors artifact-level active flag (matches Document/Tool).
+        # is_mcp comes from the mcp flag selected via flag_ids.
+        is_inactive = not a.active
+        is_mcp = False
+        for fid in a.flag_ids or []:
+            ftype, fvalue = flag_meta_map.get(fid, (None, None))
+            if ftype == "mcp" and fvalue is True:
+                is_mcp = True
+                break
+
         api_agents.append(
             ListAgentApiAgent(
                 agent_id=a.id,
@@ -236,6 +276,9 @@ async def search_agent_impl(
                 role=None,
                 updated_at=a.updated_at,
                 department_ids=dept_ids_str,
+                flag_ids=list(a.flag_ids or []),
+                is_inactive=is_inactive,
+                is_mcp=is_mcp,
                 can_edit=can_edit_val,
                 can_duplicate=can_duplicate_val,
                 can_delete=can_delete_val,
@@ -272,12 +315,21 @@ async def search_agent_impl(
         search=tool_search,
     )
 
+    flag_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+            for f in flag_facet
+        ],
+        search=flag_search,
+    )
+
     return ListAgentApiResponse(
         actor_name=actor_name,
         agents=api_agents,
         department_filter=department_filter,
         model_filter=model_filter,
         tool_filter=tool_filter,
+        flag_filter=flag_filter,
         total_count=total_count,
     )
 

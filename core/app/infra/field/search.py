@@ -34,6 +34,7 @@ from app.tools.artifacts.field.get import get_fields
 from app.tools.artifacts.field.search import search_fields
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.get import get_descriptions
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 from app.tools.resources.parameters.search import (
     search_parameters as search_parameters_resource,
@@ -80,9 +81,11 @@ async def search_field_impl(
     parameter_search: str | None = None,
     persona_search: str | None = None,
     department_search: str | None = None,
+    flag_search: str | None = None,
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
+    **_kwargs,
 ) -> ListFieldApiResponse:
     """Field search using composable infra functions.
 
@@ -178,6 +181,12 @@ async def search_field_impl(
                 conn, redis, search=department_search, field=True, limit_count=100
             )
 
+    async def _fetch_flag_facet() -> list:
+        async with pool.acquire() as conn:
+            return await search_flags(
+                conn, redis, search=flag_search, field=True, limit_count=100
+            )
+
     # Per-field permissions context (gives us active_parameter_count)
     async def _fetch_perm(artifact_id: UUID) -> object:
         async with pool.acquire() as conn:
@@ -191,6 +200,7 @@ async def search_field_impl(
         parameter_facet,
         persona_facet,
         department_facet,
+        flag_facet,
         *perm_results,
     ) = await asyncio.gather(
         _fetch_names(),
@@ -198,6 +208,7 @@ async def search_field_impl(
         _fetch_parameter_facet(),
         _fetch_persona_facet(),
         _fetch_department_facet(),
+        _fetch_flag_facet(),
         *perm_tasks,
     )
 
@@ -279,12 +290,21 @@ async def search_field_impl(
         search=department_search,
     )
 
+    flag_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+            for f in flag_facet
+        ],
+        search=flag_search,
+    )
+
     return ListFieldApiResponse(
         actor_name=actor_name,
         fields=fields,
         parameter_filter=parameter_filter,
         persona_filter=persona_filter,
         department_filter=department_filter,
+        flag_filter=flag_filter,
         total_count=total_count,
     )
 

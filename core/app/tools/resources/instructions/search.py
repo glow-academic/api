@@ -12,9 +12,9 @@ from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
 from app.utils.cache.set_cached import set_cached
 
-JUNCTION_ARTIFACTS = ["persona"]
+JUNCTION_ARTIFACTS = ["persona", "tool"]
 
-DRAFT_ARTIFACTS = ["persona"]
+DRAFT_ARTIFACTS = ["persona", "tool"]
 
 
 async def search_instructions(
@@ -29,6 +29,7 @@ async def search_instructions(
     bypass_cache: bool = False,
     *,
     persona: bool = False,
+    tool: bool = False,
 ) -> list[GetInstructionResponse]:
     """Search instructions with optional artifact/draft filters."""
     if limit_count <= 0:
@@ -36,6 +37,7 @@ async def search_instructions(
 
     artifact_filters = {
         "persona": persona,
+        "tool": tool,
     }
 
     tags = ["resources", "instructions"]

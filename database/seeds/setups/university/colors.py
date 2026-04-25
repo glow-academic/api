@@ -39,21 +39,14 @@ ALL_COLOR_IDS = [
 # ---------------------------------------------------------------------------
 
 colors = [
-    dict(id=C_PRIMARY, name="Custom", description="Custom color", hex_code="#171717"),
-    dict(id=C_ACCENT, name="Custom", description="Custom color", hex_code="#f5f5f5"),
-    dict(id=C_SUCCESS, name="Custom", description="Custom color", hex_code="#009e34"),
-    dict(id=C_WARNING, name="Custom", description="Custom color", hex_code="#ea8100"),
-    dict(id=C_ERROR, name="Custom", description="Custom color", hex_code="#e7000b"),
-    dict(
-        id=C_SIDEBAR_BG, name="Custom", description="Custom color", hex_code="#fafafa"
-    ),
-    dict(
-        id=C_SIDEBAR_PRIMARY,
-        name="Custom",
-        description="Custom color",
-        hex_code="#171717",
-    ),
-    dict(id=C_CHART_2, name="Custom", description="Custom color", hex_code="#404040"),
-    dict(id=C_CHART_4, name="Custom", description="Custom color", hex_code="#b0b0b0"),
-    dict(id=C_CHART_5, name="Custom", description="Custom color", hex_code="#e0e0e0"),
+    dict(id=C_PRIMARY, name="Custom", description="Custom color", hex_code="#171717", type="primary"),
+    dict(id=C_ACCENT, name="Custom", description="Custom color", hex_code="#f5f5f5", type="accent"),
+    dict(id=C_SUCCESS, name="Custom", description="Custom color", hex_code="#009e34", type="success"),
+    dict(id=C_WARNING, name="Custom", description="Custom color", hex_code="#ea8100", type="warning"),
+    dict(id=C_ERROR, name="Custom", description="Custom color", hex_code="#e7000b", type="danger"),
+    dict(id=C_SIDEBAR_BG, name="Custom", description="Custom color", hex_code="#fafafa", type="background"),
+    dict(id=C_SIDEBAR_PRIMARY, name="Custom", description="Custom color", hex_code="#171717", type="foreground"),
+    dict(id=C_CHART_2, name="Custom", description="Custom color", hex_code="#404040", type="chart2"),
+    dict(id=C_CHART_4, name="Custom", description="Custom color", hex_code="#b0b0b0", type="chart4"),
+    dict(id=C_CHART_5, name="Custom", description="Custom color", hex_code="#e0e0e0", type="chart5"),
 ]

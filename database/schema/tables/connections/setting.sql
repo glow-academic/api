@@ -163,21 +163,6 @@ CREATE TABLE public.setting_drafts_names_connection (
 
 --
 
--- Name: setting_drafts_profiles_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.setting_drafts_profiles_connection (
-    draft_id uuid NOT NULL,
-    profiles_id uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    generated boolean DEFAULT false NOT NULL,
-    mcp boolean DEFAULT false NOT NULL,
-    active boolean DEFAULT true NOT NULL
-);
-
-
---
-
 -- Name: setting_drafts_provider_keys_connection; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -188,6 +173,21 @@ CREATE TABLE public.setting_drafts_provider_keys_connection (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL
+);
+
+
+--
+
+-- Name: setting_drafts_providers_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.setting_drafts_providers_connection (
+    draft_id uuid NOT NULL,
+    providers_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
 );
 
 
@@ -307,20 +307,20 @@ ALTER TABLE ONLY public.setting_drafts_names_connection
 
 --
 
--- Name: setting_drafts_profiles_connection setting_drafts_profiles_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.setting_drafts_profiles_connection
-    ADD CONSTRAINT setting_drafts_profiles_connection_pkey PRIMARY KEY (draft_id, profiles_id);
-
-
---
-
 -- Name: setting_drafts_provider_keys_connection setting_drafts_provider_keys_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.setting_drafts_provider_keys_connection
     ADD CONSTRAINT setting_drafts_provider_keys_connection_pkey PRIMARY KEY (draft_id, provider_keys_id);
+
+
+--
+
+-- Name: setting_drafts_providers_connection setting_drafts_providers_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_drafts_providers_connection
+    ADD CONSTRAINT setting_drafts_providers_connection_pkey PRIMARY KEY (draft_id, providers_id);
 
 
 --

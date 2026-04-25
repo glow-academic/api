@@ -36,6 +36,7 @@ from app.tools.artifacts.rubric.get import get_rubrics
 from app.tools.artifacts.rubric.search import search_rubrics
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.get import get_descriptions
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 from app.tools.resources.points.get import get_points
 from app.tools.resources.simulations.search import (
@@ -87,9 +88,11 @@ async def search_rubric_impl(
     # Facet search text
     department_search: str | None = None,
     simulation_search: str | None = None,
+    flag_search: str | None = None,
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
+    **_kwargs,
 ) -> ListRubricApiResponse:
     """Rubric search using composable infra functions."""
     from fastapi import HTTPException
@@ -189,6 +192,12 @@ async def search_rubric_impl(
                 conn, redis, search=simulation_search, simulation=True, limit_count=100
             )
 
+    async def _search_flags() -> list:
+        async with pool.acquire() as conn:
+            return await search_flags(
+                conn, redis, search=flag_search, rubric=True, limit_count=100
+            )
+
     (
         names_data,
         descriptions_data,
@@ -197,6 +206,7 @@ async def search_rubric_impl(
         standards_data,
         department_facet,
         simulation_facet,
+        flag_facet,
     ) = await asyncio.gather(
         _get_names() if all_name_ids else _empty_list(),
         _get_descriptions() if all_description_ids else _empty_list(),
@@ -205,6 +215,7 @@ async def search_rubric_impl(
         _get_standards() if all_standard_ids else _empty_list(),
         _search_departments(),
         _search_simulations(),
+        _search_flags(),
     )
 
     # Build lookup maps
@@ -305,6 +316,7 @@ async def search_rubric_impl(
                 can_delete=can_delete,
                 can_duplicate=can_duplicate,
                 standard_group_ids=rubric_sg_ids,
+                is_inactive=not a.active,
             )
         )
 
@@ -332,6 +344,14 @@ async def search_rubric_impl(
         search=simulation_search,
     )
 
+    flag_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+            for f in flag_facet
+        ],
+        search=flag_search,
+    )
+
     return ListRubricApiResponse(
         actor_name=actor_name,
         rubrics=rubrics_list,
@@ -339,6 +359,7 @@ async def search_rubric_impl(
         standards=all_standards_out,
         department_filter=department_filter,
         simulation_filter=simulation_filter,
+        flag_filter=flag_filter,
         total_count=total_count,
     )
 

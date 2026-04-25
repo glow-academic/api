@@ -44,6 +44,32 @@ _MODEL_ACTIVE_FLAG_ID: UUID | None = next(
     (f["id"] for f in _all_flags if f.get("type") == "model_active"), None
 )
 
+# All True-variant flag IDs that gate model sub-resources (modalities,
+# pricing, etc). Attaching every seeded model to all of these keeps the
+# server-side flag catalog populated so new models created via the UI see
+# the corresponding toggles in the basic step. Toggling a flag OFF in the UI
+# simply removes its id from `flag_ids`; the catalog stays intact because
+# at least one seeded model still references it.
+_MODEL_FEATURE_FLAG_TYPES: list[str] = [
+    "model_modalities_enabled",
+    "model_temperature_enabled",
+    "model_pricing_enabled",
+    "model_voices_enabled",
+    "model_reasoning_levels_enabled",
+    "model_qualities_enabled",
+]
+_MODEL_FEATURE_FLAG_IDS: list[UUID] = [
+    fid
+    for t in _MODEL_FEATURE_FLAG_TYPES
+    for fid in [
+        next(
+            (f["id"] for f in _all_flags if f.get("type") == t and f.get("value") is True),
+            None,
+        )
+    ]
+    if fid is not None
+]
+
 # ---------------------------------------------------------------------------
 # Load deploy config
 # ---------------------------------------------------------------------------
@@ -163,8 +189,12 @@ for _m in _config_models_raw:
     if _voices_cfg and isinstance(_voices_cfg, list):
         _voice_ids = _collect_voices(_name, _voices_cfg)
 
-    # Flags
-    _flag_ids = [_MODEL_ACTIVE_FLAG_ID] if _MODEL_ACTIVE_FLAG_ID else []
+    # Flags — model_active plus all feature-gate True variants so the
+    # `search_flags(model=True)` catalog stays populated.
+    _flag_ids: list[UUID] = []
+    if _MODEL_ACTIVE_FLAG_ID:
+        _flag_ids.append(_MODEL_ACTIVE_FLAG_ID)
+    _flag_ids.extend(_MODEL_FEATURE_FLAG_IDS)
 
     models.append(dict(
         id=sid(f"model/{_name}"),

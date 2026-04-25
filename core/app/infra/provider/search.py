@@ -34,6 +34,7 @@ from app.tools.artifacts.provider.get import get_providers
 from app.tools.artifacts.provider.search import search_providers
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.get import get_descriptions
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.models.search import (
     search_models as search_models_resource,
 )
@@ -87,9 +88,11 @@ async def search_provider_impl(
     # Facet search text
     department_search: str | None = None,
     model_search: str | None = None,
+    flag_search: str | None = None,
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
+    **_kwargs,
 ) -> ListProviderApiResponse:
     """Provider search using composable infra functions."""
     from fastapi import HTTPException
@@ -229,6 +232,12 @@ async def search_provider_impl(
                 conn, redis, search=model_search, limit_count=100
             )
 
+    async def _fetch_flag_facet() -> list:
+        async with pool.acquire() as conn:
+            return await search_flags(
+                conn, redis, search=flag_search, provider=True, limit_count=100
+            )
+
     (
         names_data,
         descriptions_data,
@@ -236,6 +245,7 @@ async def search_provider_impl(
         providers_resource_data,
         department_facet,
         model_facet,
+        flag_facet,
     ) = await asyncio.gather(
         _fetch_names() if all_name_ids else _empty_list(),
         _fetch_descriptions() if all_description_ids else _empty_list(),
@@ -244,6 +254,7 @@ async def search_provider_impl(
         # Facets
         _fetch_department_facet(),
         _fetch_model_facet(),
+        _fetch_flag_facet(),
     )
 
     # Build lookup maps
@@ -301,6 +312,7 @@ async def search_provider_impl(
                 description=desc_obj.description if desc_obj else None,
                 value=value_obj.value if value_obj else None,
                 active=a.active,
+                is_inactive=not a.active,
                 updated_at=a.updated_at,
                 department_ids=dept_ids,
                 model_usage_count=active_model_count,
@@ -342,12 +354,21 @@ async def search_provider_impl(
         selected_ids=filter_status if filter_status else None,
     )
 
+    flag_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+            for f in flag_facet
+        ],
+        search=flag_search,
+    )
+
     return ListProviderApiResponse(
         actor_name=actor_name,
         providers=providers_list,
         department_filter=department_filter,
         model_filter=model_filter,
         status_filter=status_filter,
+        flag_filter=flag_filter,
         total_count=total_count,
     )
 

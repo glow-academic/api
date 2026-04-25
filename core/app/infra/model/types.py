@@ -233,6 +233,7 @@ class ListModelApiResponse(BaseModel):
     provider_filter: ListFilterSection | None = Field(None, description="Provider filter options")
     department_filter: ListFilterSection | None = Field(None, description="Department filter options")
     agent_filter: ListFilterSection | None = Field(None, description="Agent filter options")
+    flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
     total_count: int | None = Field(None, description="Total number of models")
 
 
@@ -449,6 +450,23 @@ class DuplicateModelApiResponse(BaseModel):
 # =============================================================================
 
 
+class PricingDraftValue(BaseModel):
+    """Value-object for inline-creating a pricing_resource row from the model editor.
+
+    Entries without `id` are created server-side; resulting IDs merge into
+    pricing_ids. Mirrors the standard_groups pattern so the model draft can
+    accept either existing pricing rows or new authored ones in the same
+    request.
+    """
+
+    id: UUID | None = Field(None, description="Existing pricing UUID, if any")
+    pricing_type: str = Field(..., description="Pricing role (e.g. 'input_tokens', 'output_tokens')")
+    price: float = Field(..., description="Price amount")
+    unit_name: str = Field(..., description="Display label for the rate unit (e.g. '1M tokens')")
+    unit_category: str = Field(..., description="Unit category (e.g. 'tokens', 'requests', 'minutes')")
+    unit_value: int = Field(..., description="Numeric multiplier for the unit (e.g. 1000000 for 1M)")
+
+
 class PatchModelDraftApiRequest(ScopedItem):
     """Request model for canonical model draft endpoint."""
 
@@ -515,7 +533,10 @@ class PatchModelDraftApiRequest(ScopedItem):
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     modalities: list[str] | None = Field(None, description="Modality labels to match")
     modality_ids: list[UUID] | None = Field(None, description="Modality identifiers")
-    pricing: list[str] | None = Field(None, description="Pricing types to match")
+    pricing: list[PricingDraftValue] | None = Field(
+        None,
+        description="Inline-create pricing entries. Entries without id are created; resulting IDs merge into pricing_ids.",
+    )
     pricing_ids: list[UUID] | None = Field(None, description="Pricing tier identifiers")
     qualities: list[str] | None = Field(None, description="Quality labels to match")
     quality_ids: list[UUID] | None = Field(None, description="Quality level identifiers")
@@ -548,6 +569,10 @@ class DraftFormState(BaseModel):
     department_ids: list[UUID] = Field(default_factory=list, description="Department identifiers")
     modality_ids: list[UUID] = Field(default_factory=list, description="Modality identifiers")
     pricing_ids: list[UUID] = Field(default_factory=list, description="Pricing tier identifiers")
+    pricing: list[PricingDraftValue] = Field(
+        default_factory=list,
+        description="Resolved inline-created pricing entries (all ids filled in).",
+    )
     quality_ids: list[UUID] = Field(default_factory=list, description="Quality level identifiers")
     reasoning_level_ids: list[UUID] = Field(default_factory=list, description="Reasoning level identifiers")
     temperature_level_ids: list[UUID] = Field(default_factory=list, description="Temperature level identifiers")

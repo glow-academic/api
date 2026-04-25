@@ -404,6 +404,7 @@ class ListPersonaApiResponse(BaseModel):
     icon_filter: ListFilterSection | None = Field(None, description="Icon filter options for bulk edit")
     voice_filter: ListFilterSection | None = Field(None, description="Voice filter options for bulk edit")
     instruction_filter: ListFilterSection | None = Field(None, description="Instruction filter options for bulk edit")
+    flag_filter: ListFilterSection | None = Field(None, description="Flag filter options for bulk edit")
     total_count: int | None = Field(None, description="Total number of personas matching filters")
 
 

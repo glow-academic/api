@@ -14,6 +14,7 @@ from app.routes.tool.generate import router as generate_router
 from app.routes.tool.generations import router as generations_router
 from app.routes.tool.get import router as get_router
 from app.routes.tool.group import router as group_router
+from app.routes.tool.preview import router as preview_router
 from app.routes.tool.problem import router as problem_router
 from app.routes.tool.refresh import router as refresh_router
 from app.routes.tool.search import router as search_router
@@ -37,6 +38,7 @@ router.include_router(generations_router)
 router.include_router(csv_router)
 router.include_router(context_router)
 router.include_router(group_router)
+router.include_router(preview_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
 router.include_router(stream_router)

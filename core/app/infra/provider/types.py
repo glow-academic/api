@@ -143,6 +143,7 @@ class ListProviderApiProvider(BaseModel):
     description: str | None = Field(None, description="Provider description text")
     value: str | None = Field(None, description="Internal value or model identifier")
     active: bool | None = Field(None, description="Whether this provider is currently active")
+    is_inactive: bool | None = Field(None, description="Whether the provider is inactive")
     updated_at: datetime | None = Field(None, description="Timestamp of last update")
     department_ids: list[UUID] | None = Field(None, description="Associated department identifiers")
     model_usage_count: int | None = Field(None, description="Number of models using this provider")
@@ -158,6 +159,7 @@ class ListProviderApiResponse(BaseModel):
     department_filter: ListFilterSection | None = Field(None, description="Department filter options")
     model_filter: ListFilterSection | None = Field(None, description="Model filter options")
     status_filter: ListFilterSection | None = Field(None, description="Status filter options")
+    flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
     total_count: int | None = Field(None, description="Total number of providers")
 
 
@@ -311,7 +313,15 @@ class DeleteProviderApiResponse(BaseModel):
 
 
 class DuplicateProviderApiRequest(BaseModel):
-    provider_id: UUID = Field(..., description="Provider identifier to duplicate")
+    """Request model for duplicate provider endpoint.
+
+    Canonical shape: ``id`` (matches DuplicatePersonaApiRequest). The legacy
+    ``provider_id`` field is preserved for backwards compatibility with older
+    clients but ``id`` is preferred.
+    """
+
+    id: UUID | None = Field(None, description="UUID of the provider to duplicate")
+    provider_id: UUID | None = Field(None, description="Legacy alias for id — prefer id")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
     accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 

@@ -12,6 +12,8 @@ from redis.asyncio import Redis
 
 from app.infra.flag_icons import hydrate_flag_icons
 from app.infra.types import ArtifactContext, ResourcePair
+from app.tools.artifacts.auth.get import get_auths as get_auth_artifacts
+from app.tools.artifacts.auth.search import search_auths as search_auth_artifacts
 from app.tools.artifacts.setting.get import get_settings as get_setting_artifacts
 from app.tools.entries.setting_drafts.get import get_setting_drafts
 from app.tools.resources.agents.search import search_agents
@@ -62,6 +64,8 @@ class _MergedIds:
     provider_key_ids: list[UUID]
     auth_item_key_ids: list[UUID]
     auth_item_value_ids: list[UUID]
+    auth_ids: list[UUID]
+    provider_ids: list[UUID]
 
 
 def _coalesce_limit(value: int | None, fallback: int) -> int:
@@ -87,6 +91,8 @@ def _merge_junction_ids(artifact: Any, draft: Any) -> _MergedIds:
     provider_key_ids = list(artifact.provider_key_ids or []) if artifact else []
     auth_item_key_ids = list(artifact.auth_item_keys_ids or []) if artifact else []
     auth_item_value_ids = list(getattr(artifact, "auth_item_value_ids", None) or []) if artifact else []
+    auth_ids = list(getattr(artifact, "auth_ids", None) or []) if artifact else []
+    provider_ids = list(getattr(artifact, "provider_ids", None) or []) if artifact else []
 
     if draft:
         if draft.name_ids:
@@ -112,6 +118,10 @@ def _merge_junction_ids(artifact: Any, draft: Any) -> _MergedIds:
         if draft.auth_item_key_ids:
             auth_item_key_ids = list(draft.auth_item_key_ids)
         # auth_item_values draft connection not yet wired; fall through to artifact.
+        if getattr(draft, "auth_ids", None):
+            auth_ids = list(draft.auth_ids)
+        if getattr(draft, "provider_ids", None):
+            provider_ids = list(draft.provider_ids)
 
     return _MergedIds(
         name_ids=name_ids,
@@ -126,6 +136,8 @@ def _merge_junction_ids(artifact: Any, draft: Any) -> _MergedIds:
         provider_key_ids=provider_key_ids,
         auth_item_key_ids=auth_item_key_ids,
         auth_item_value_ids=auth_item_value_ids,
+        auth_ids=auth_ids,
+        provider_ids=provider_ids,
     )
 
 
@@ -434,12 +446,14 @@ async def resolve_setting_context(
 
     async def _search_provider_catalog() -> list[Any]:
         async with pool.acquire() as conn:
+            # Don't filter by user_dept_ids: providers are seeded with empty
+            # department_ids ({}) so an overlap filter excludes every row.
+            # The Setting page already scopes selection via the picker.
             return await search_providers(
                 conn,
                 redis,
                 search=None,
-                limit_count=100,
-                department_ids=user_dept_ids,
+                limit_count=200,
                 bypass_cache=bypass_cache,
                 provider=True,
             )
@@ -468,8 +482,8 @@ async def resolve_setting_context(
 
     async def _search_profile_catalog() -> list[Any]:
         async with pool.acquire() as conn:
-            # setting_profiles_junction is empty for new settings; drop the
-            # artifact filter so the Logins picker sees the full catalog.
+            # profiles is a pure catalog consumed by the Logins picker —
+            # there is no setting-scoped profile junction.
             return await search_profiles(
                 conn,
                 redis,
@@ -479,9 +493,8 @@ async def resolve_setting_context(
             )
 
     async def _search_auth_catalog() -> list[Any]:
+        # Resource rows (id, name, slug, protocol, …) used by the picker.
         async with pool.acquire() as conn:
-            # setting_auths_junction is empty for new settings; drop the
-            # artifact filter so the Logins picker sees the full catalog.
             return await search_auths(
                 conn,
                 redis,
@@ -489,6 +502,7 @@ async def resolve_setting_context(
                 limit_count=200,
                 bypass_cache=bypass_cache,
             )
+
 
     async def _search_icon_catalog() -> list[Any]:
         async with pool.acquire() as conn:
@@ -588,6 +602,27 @@ async def resolve_setting_context(
         or getattr(item, "type", None) in SETTING_FLAG_NAMES
     ]
 
+    # Build resource_auth_id → list[item_id] using artifact black boxes.
+    # auth_items_junction lives on auth_artifact, not auths_resource, so we
+    # ask the artifact to walk it for us. `get_auths(items=True, auths=True)`
+    # returns each artifact with its `item_ids` (junction-resolved) and
+    # `auth_ids` (linked auths_resource ids), letting us key the map by the
+    # resource id the picker uses without any inline SQL.
+    item_ids_by_auth_resource: dict[UUID, list[UUID]] = {}
+    async with pool.acquire() as conn:
+        auth_artifact_ids, _ = await search_auth_artifacts(
+            conn, limit_count=500,
+        )
+    if auth_artifact_ids:
+        async with pool.acquire() as conn:
+            auth_artifacts = await get_auth_artifacts(
+                conn, auth_artifact_ids, items=True, auths=True,
+            )
+        for art in auth_artifacts:
+            item_ids = list(getattr(art, "item_ids", None) or [])
+            for resource_id in (getattr(art, "auth_ids", None) or []):
+                item_ids_by_auth_resource[resource_id] = item_ids
+
     pending_ids: set[UUID] = set()
     if draft:
         pending_ids.update(draft.pending_name_ids or [])
@@ -638,5 +673,8 @@ async def resolve_setting_context(
             "auths": auths_catalog,
             "icons": icons_catalog,
             "agents": agents_catalog,
+            "selected_auth_ids": set(merged.auth_ids or []),
+            "selected_provider_ids": set(merged.provider_ids or []),
+            "item_ids_by_auth": item_ids_by_auth_resource,
         },
     )

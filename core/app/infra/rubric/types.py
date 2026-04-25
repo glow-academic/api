@@ -510,6 +510,7 @@ class ListRubricApiRubric(BaseModel):
     can_delete: bool | None = Field(None, description="Whether the current user can delete")
     can_duplicate: bool | None = Field(None, description="Whether the current user can duplicate")
     standard_group_ids: list[UUID] | None = Field(None, description="Associated standard group UUIDs")
+    is_inactive: bool | None = Field(None, description="Whether the rubric is inactive")
 
 
 class ListRubricApiStandardGroup(BaseModel):
@@ -536,6 +537,7 @@ class ListRubricApiResponse(BaseModel):
     standards: list[ListRubricApiStandard] | None = Field(None, description="List of standards")
     department_filter: ListFilterSection | None = Field(None, description="Filter options for departments in list UI")
     simulation_filter: ListFilterSection | None = Field(None, description="Filter options for simulations in list UI")
+    flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
     total_count: int | None = Field(None, description="Total number of matching records")
 
 

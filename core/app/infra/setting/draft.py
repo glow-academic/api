@@ -37,8 +37,10 @@ from app.tools.resources.mcp.search import search_mcp
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
 from app.tools.resources.names.search import search_names
+from app.tools.resources.keys.create import create_key
 from app.tools.resources.provider_keys.create import create_provider_key
 from app.tools.resources.provider_keys.search import search_provider_keys
+from app.utils.auth.encrypt_api_key import encrypt_api_key
 
 async def _resolve_creatable_values(
     pool: asyncpg.Pool,
@@ -168,49 +170,91 @@ async def _resolve_creatable_values(
         if not any(error.field == "departments" for error in errors):
             request.department_ids = resolved_ids
 
-    # Provider keys value-array: resolve id=null entries by searching for an
-    # existing junction by (provider_id, key_id); create one if none exists.
+    # Provider keys value-array: two flows.
+    #   • key_value present → encrypt, create a fresh keys_resource row, then
+    #     create a provider_keys_resource row linking (provider_id, new key_id).
+    #   • key_id present → look up existing junction by (provider_id, key_id);
+    #     create one if none exists.
     if request.provider_keys:
         resolved_ids: list[UUID] = []
         async with pool.acquire() as conn:
             for value in request.provider_keys:
                 if value.id is None:
-                    matches = await search_provider_keys(
-                        conn,
-                        redis,
-                        limit_count=1,
-                        provider_ids=[value.provider_id],
-                        key_ids=[value.key_id],
-                        bypass_cache=True,
-                    )
-                    if matches and matches[0].id:
-                        value.id = matches[0].id
-                    else:
+                    if value.key_value:
+                        encrypted = encrypt_api_key(value.key_value)
+                        new_key = await create_key(
+                            conn,
+                            redis,
+                            name=value.key_name or "API Key",
+                            key=encrypted,
+                        )
                         created = await create_provider_key(
                             conn,
                             provider_id=value.provider_id,
-                            key_id=value.key_id,
+                            key_id=new_key.id,
                             redis=redis,
                         )
                         value.id = created.id
+                        value.key_id = new_key.id
+                        # Don't echo the plaintext back to the client.
+                        value.key_value = None
+                    elif value.key_id is not None:
+                        matches = await search_provider_keys(
+                            conn,
+                            redis,
+                            limit_count=1,
+                            provider_ids=[value.provider_id],
+                            key_ids=[value.key_id],
+                            bypass_cache=True,
+                        )
+                        if matches and matches[0].id:
+                            value.id = matches[0].id
+                        else:
+                            created = await create_provider_key(
+                                conn,
+                                provider_id=value.provider_id,
+                                key_id=value.key_id,
+                                redis=redis,
+                            )
+                            value.id = created.id
                 if value.id:
                     resolved_ids.append(value.id)
         request.provider_key_ids = _merge_unique(request.provider_key_ids, resolved_ids)
 
-    # Auth item keys value-array: (auth_id, item_id, key_id) — upsert via ON CONFLICT.
+    # Auth item keys value-array: same two flows as provider_keys, scoped to
+    # (auth_id, item_id, key_id) instead of (provider_id, key_id).
     if request.auth_item_keys:
         resolved_ids = []
         async with pool.acquire() as conn:
             for value in request.auth_item_keys:
                 if value.id is None:
-                    created = await create_auth_item_key(
-                        conn,
-                        auth_id=value.auth_id,
-                        item_id=value.item_id,
-                        key_id=value.key_id,
-                        redis=redis,
-                    )
-                    value.id = created.id
+                    if value.key_value:
+                        encrypted = encrypt_api_key(value.key_value)
+                        new_key = await create_key(
+                            conn,
+                            redis,
+                            name=value.key_name or "Auth Secret",
+                            key=encrypted,
+                        )
+                        created = await create_auth_item_key(
+                            conn,
+                            auth_id=value.auth_id,
+                            item_id=value.item_id,
+                            key_id=new_key.id,
+                            redis=redis,
+                        )
+                        value.id = created.id
+                        value.key_id = new_key.id
+                        value.key_value = None
+                    elif value.key_id is not None:
+                        created = await create_auth_item_key(
+                            conn,
+                            auth_id=value.auth_id,
+                            item_id=value.item_id,
+                            key_id=value.key_id,
+                            redis=redis,
+                        )
+                        value.id = created.id
                 if value.id:
                     resolved_ids.append(value.id)
         request.auth_item_key_ids = _merge_unique(request.auth_item_key_ids, resolved_ids)
@@ -463,6 +507,7 @@ async def patch_setting_draft_impl(
                             id=idempotency_key,
                             soft=False,
                             agent_ids=draft.agent_ids,
+                            auth_ids=draft.auth_ids,
                             auth_item_key_ids=draft.auth_item_key_ids,
                             color_ids=draft.color_ids,
                             department_ids=draft.department_ids,
@@ -470,7 +515,7 @@ async def patch_setting_draft_impl(
                             flag_ids=draft.flag_ids,
                             item_ids=draft.item_ids,
                             name_ids=draft.name_ids,
-                            profile_ids=[profile.profiles_id],
+                            provider_ids=draft.provider_ids,
                             provider_key_ids=draft.provider_key_ids,
                             threshold_ids=draft.threshold_ids,
                             mcp_ids=draft.mcp_ids,
@@ -509,13 +554,14 @@ async def patch_setting_draft_impl(
                 id=target_draft_id,
                 soft=soft,
                 agent_ids=request.system_ids,
+                auth_ids=request.auth_ids,
                 auth_item_key_ids=request.auth_item_key_ids,
                 color_ids=request.color_ids,
                 department_ids=request.department_ids,
                 description_ids=[request.description_id] if request.description_id else None,
                 flag_ids=request.flag_ids or None,
                 name_ids=[request.name_id] if request.name_id else None,
-                profile_ids=[profile.profiles_id],
+                provider_ids=request.provider_ids,
                 provider_key_ids=request.provider_key_ids,
                 threshold_ids=request.threshold_ids,
                 mcp_ids=[request.mcp_id] if request.mcp_id else None,
@@ -577,6 +623,8 @@ async def patch_setting_draft_impl(
         provider_key_ids=request.provider_key_ids or [],
         auth_item_key_ids=request.auth_item_key_ids or [],
         auth_item_value_ids=request.auth_item_value_ids or [],
+        auth_ids=request.auth_ids or [],
+        provider_ids=request.provider_ids or [],
         provider_keys=request.provider_keys or [],
         auth_item_keys=request.auth_item_keys or [],
         auth_item_values=request.auth_item_values or [],

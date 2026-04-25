@@ -39,6 +39,7 @@ from app.tools.resources.colors.search import search_colors
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.fields.search import search_fields
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.icons.get import get_icons
 from app.tools.resources.icons.search import search_icons
 from app.tools.resources.instructions.search import search_instructions
@@ -143,6 +144,7 @@ async def search_persona_impl(
     icon_search: str | None = None,
     voice_search: str | None = None,
     instruction_search: str | None = None,
+    flag_search: str | None = None,
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
@@ -313,6 +315,12 @@ async def search_persona_impl(
                 limit_count=100,
             )
 
+    async def _get_flag_facet() -> list:
+        async with pool.acquire() as conn:
+            return await search_flags(
+                conn, redis, search=flag_search, persona=True, limit_count=100
+            )
+
     (
         names_data,
         descriptions_data,
@@ -326,6 +334,7 @@ async def search_persona_impl(
         icon_facet,
         voice_facet,
         instruction_facet,
+        flag_facet,
     ) = await asyncio.gather(
         _get_names(),
         _get_descriptions(),
@@ -339,6 +348,7 @@ async def search_persona_impl(
         _get_icon_facet(),
         _get_voice_facet(),
         _get_instruction_facet(),
+        _get_flag_facet(),
     )
 
     # Build lookup maps
@@ -467,6 +477,14 @@ async def search_persona_impl(
         search=instruction_search,
     )
 
+    flag_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+            for f in flag_facet
+        ],
+        search=flag_search,
+    )
+
     return ListPersonaApiResponse(
         actor_name=actor_name,
         personas=personas,
@@ -477,6 +495,7 @@ async def search_persona_impl(
         icon_filter=icon_filter,
         voice_filter=voice_filter,
         instruction_filter=instruction_filter,
+        flag_filter=flag_filter,
         total_count=total_count,
     )
 

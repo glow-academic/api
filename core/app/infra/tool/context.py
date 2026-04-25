@@ -24,6 +24,8 @@ from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.get import get_flags
 from app.tools.resources.flags.search import search_flags
+from app.tools.resources.instructions.get import get_instructions
+from app.tools.resources.instructions.search import search_instructions
 from app.tools.resources.names.get import get_names
 from app.tools.resources.names.search import search_names
 from app.tools.resources.permissions.get import get_permissions
@@ -41,6 +43,7 @@ class _MergedIds:
     arg_position_ids: list[UUID]
     args_output_ids: list[UUID]
     permission_ids: list[UUID]
+    instruction_ids: list[UUID]
 
 
 def _merge_junction_ids(artifact, draft) -> _MergedIds:
@@ -51,6 +54,7 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
     arg_position_ids = list(artifact.arg_positions_ids or []) if artifact else []
     args_output_ids = list(artifact.args_outputs_ids or []) if artifact else []
     permission_ids = list(artifact.permission_ids or []) if artifact else []
+    instruction_ids = list(artifact.instruction_ids or []) if artifact else []
 
     if draft:
         if draft.name_ids:
@@ -67,6 +71,8 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
             args_output_ids = list(draft.args_output_ids)
         if draft.permission_ids:
             permission_ids = list(draft.permission_ids)
+        if getattr(draft, "instruction_ids", None):
+            instruction_ids = list(draft.instruction_ids)
 
     return _MergedIds(
         name_ids=name_ids,
@@ -76,6 +82,7 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
         arg_position_ids=arg_position_ids,
         args_output_ids=args_output_ids,
         permission_ids=permission_ids,
+        instruction_ids=instruction_ids,
     )
 
 
@@ -93,6 +100,7 @@ async def resolve_tool_context(
     arg_positions_search: str | None = None,
     args_outputs_search: str | None = None,
     permissions_search: str | None = None,
+    instructions_search: str | None = None,
     names_limit: int | None = None,
     descriptions_limit: int | None = None,
     flags_limit: int | None = None,
@@ -100,6 +108,7 @@ async def resolve_tool_context(
     arg_positions_limit: int | None = None,
     args_outputs_limit: int | None = None,
     permissions_limit: int | None = None,
+    instructions_limit: int | None = None,
     names_selected_only: bool | None = None,
     descriptions_selected_only: bool | None = None,
     flags_selected_only: bool | None = None,
@@ -107,6 +116,7 @@ async def resolve_tool_context(
     arg_positions_selected_only: bool | None = None,
     args_outputs_selected_only: bool | None = None,
     permissions_selected_only: bool | None = None,
+    instructions_selected_only: bool | None = None,
     bypass_cache: bool = False,
 ) -> ArtifactContext:
     """Resolve a tool artifact into fully hydrated resources."""
@@ -126,6 +136,7 @@ async def resolve_tool_context(
                 arg_positions=True,
                 args_outputs=True,
                 permissions=True,
+                instructions=True,
             )
 
     async def _fetch_draft() -> list:
@@ -275,6 +286,28 @@ async def resolve_tool_context(
         selected_ids = set(merged.permission_ids)
         return [item for item in results if item.id not in selected_ids]
 
+    async def _get_instructions() -> list:
+        async with pool.acquire() as conn:
+            return await get_instructions(
+                conn, merged.instruction_ids, redis, bypass_cache=bypass_cache,
+            )
+
+    async def _search_instructions() -> list:
+        async with pool.acquire() as conn:
+            # Don't intersect on tool_instructions_junction — a fresh tool
+            # draft has no junction rows yet, which would zero out the
+            # catalog. Pattern matches auth/cohort/etc. catalog searches.
+            return await search_instructions(
+                conn,
+                redis,
+                search=instructions_search,
+                limit_count=instructions_limit or 20,
+                draft_id=group_id,
+                suggest_source="selected" if instructions_selected_only else "all",
+                exclude_ids=merged.instruction_ids,
+                bypass_cache=bypass_cache,
+            )
+
     (
         names_selected,
         names_suggestions,
@@ -290,6 +323,8 @@ async def resolve_tool_context(
         args_outputs_suggestions,
         permissions_selected,
         permissions_suggestions,
+        instructions_selected,
+        instructions_suggestions,
     ) = await asyncio.gather(
         _get_names(),
         _search_names(),
@@ -305,6 +340,8 @@ async def resolve_tool_context(
         _search_args_outputs(),
         _get_permissions(),
         _search_permissions(),
+        _get_instructions(),
+        _search_instructions(),
     )
 
     pending_ids: set[UUID] = set()
@@ -317,6 +354,7 @@ async def resolve_tool_context(
         pending_ids.update(draft.pending_arg_position_ids or [])
         pending_ids.update(draft.pending_args_output_ids or [])
         pending_ids.update(draft.pending_permission_ids or [])
+        pending_ids.update(getattr(draft, "pending_instruction_ids", None) or [])
 
     # Hydrate SVG icons onto each flag (icon_id → icon markup).
     async with pool.acquire() as conn:
@@ -356,6 +394,10 @@ async def resolve_tool_context(
             "permissions": ResourcePair(
                 selected=dedupe_by_id(permissions_selected),
                 suggestions=dedupe_by_id(permissions_suggestions),
+            ),
+            "instructions": ResourcePair(
+                selected=dedupe_by_id(instructions_selected),
+                suggestions=dedupe_by_id(instructions_suggestions),
             ),
         },
         entries={"pending_ids": pending_ids},

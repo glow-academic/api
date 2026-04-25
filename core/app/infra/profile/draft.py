@@ -30,6 +30,8 @@ from app.tools.resources.emails.search import search_emails
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
+from app.tools.resources.request_limits.create import create_request_limit
+from app.tools.resources.roles.create import create_role
 from app.tools.resources.roles.search import search_roles
 
 
@@ -148,6 +150,59 @@ async def _resolve_creatable_values(
                     message=f'Role "{request.role}" not found',
                 )
             )
+
+    # Inline-creatable role: create nested request_limits first, then create
+    # the role with the merged permission_ids + request_limit_ids. Roles are
+    # immutable on this surface, so when role_draft.id is set we just thread
+    # the existing role_id through.
+    role_draft = getattr(request, "role_draft", None)
+    if role_draft is not None:
+        if role_draft.id is not None:
+            request.role_id = role_draft.id
+        else:
+            if not role_draft.name:
+                errors.append(
+                    SaveProfileFieldError(
+                        field="role_draft.name",
+                        message="Role name is required when creating a new role",
+                    )
+                )
+            else:
+                resolved_limit_ids: list[UUID] = list(role_draft.request_limit_ids or [])
+                resolved_seen = set(resolved_limit_ids)
+                async with pool.acquire() as conn:
+                    for limit_value in role_draft.request_limits or []:
+                        if limit_value.id is not None:
+                            if limit_value.id not in resolved_seen:
+                                resolved_limit_ids.append(limit_value.id)
+                                resolved_seen.add(limit_value.id)
+                            continue
+                        created_limit = await create_request_limit(
+                            conn,
+                            limit=limit_value.limit,
+                            redis=redis,
+                            interval=limit_value.interval,
+                        )
+                        limit_value.id = created_limit.id
+                        if created_limit.id not in resolved_seen:
+                            resolved_limit_ids.append(created_limit.id)
+                            resolved_seen.add(created_limit.id)
+
+                async with pool.acquire() as conn:
+                    new_role = await create_role(
+                        conn,
+                        redis,
+                        name=role_draft.name,
+                        description=role_draft.description or "",
+                        icon_id=role_draft.icon_id,
+                        color_id=role_draft.color_id,
+                        level=role_draft.level,
+                        permission_ids=list(role_draft.permission_ids or []),
+                        request_limit_ids=resolved_limit_ids,
+                    )
+                role_draft.id = new_role.id
+                role_draft.request_limit_ids = resolved_limit_ids
+                request.role_id = new_role.id
 
     # Resolve denormalized flag booleans to canonical flag_ids.
     denorm_flag_values: dict[str, bool] = {}

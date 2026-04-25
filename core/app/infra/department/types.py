@@ -9,6 +9,7 @@ from typing import ClassVar
 
 from pydantic import BaseModel, Field
 
+from app.infra.api_types import ListFilterSection
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.department_drafts.types import (
     GetDepartmentDraftResponse,
@@ -365,6 +366,7 @@ class ListDepartmentApiDepartment(BaseModel):
 class ListDepartmentApiResponse(BaseModel):
     actor_name: str | None = Field(None, description="Display name of the acting user")
     departments: list[ListDepartmentApiDepartment] | None = Field(None, description="List of department items")
+    flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
     total_count: int | None = Field(None, description="Total number of departments")
 
 

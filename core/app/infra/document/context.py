@@ -36,7 +36,7 @@ from app.tools.resources.parameters.search import search_parameters
 from app.tools.resources.texts.get import get_texts
 from app.tools.resources.texts.search import search_texts
 
-DOCUMENT_FLAG_TYPES = {"document_active", "template"}
+DOCUMENT_FLAG_TYPES = {"document_active", "document_template"}
 
 
 async def resolve_document_context(

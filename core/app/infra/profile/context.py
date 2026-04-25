@@ -22,6 +22,8 @@ from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 from app.tools.resources.names.search import search_names
 from app.tools.resources.roles.get import get_roles
+from app.tools.resources.permissions.search import search_permissions
+from app.tools.resources.request_limits.search import search_request_limits
 from app.tools.resources.roles.search import search_roles
 
 PROFILE_FLAG_TYPES = {"profile_active"}
@@ -208,6 +210,28 @@ async def resolve_profile_context(
                 profile=True,
             )
 
+    async def _search_permissions_catalog() -> list:
+        # Full permissions catalog so the role editor can render the
+        # artifact × operation grid client-side.
+        async with pool.acquire() as conn:
+            return await search_permissions(
+                conn,
+                redis,
+                search=None,
+                limit_count=1000,
+                bypass_cache=bypass_cache,
+            )
+
+    async def _search_request_limits_catalog() -> list:
+        async with pool.acquire() as conn:
+            return await search_request_limits(
+                conn,
+                redis,
+                search=None,
+                limit_count=200,
+                bypass_cache=bypass_cache,
+            )
+
     (
         names_selected,
         names_suggestions,
@@ -219,6 +243,8 @@ async def resolve_profile_context(
         departments_suggestions,
         roles_selected,
         roles_suggestions,
+        permissions_catalog,
+        request_limits_catalog,
     ) = await asyncio.gather(
         _get_names(),
         _search_names(),
@@ -230,6 +256,8 @@ async def resolve_profile_context(
         _search_departments(),
         _get_roles(),
         _search_roles(),
+        _search_permissions_catalog(),
+        _search_request_limits_catalog(),
     )
 
     filtered_flag_suggestions = [
@@ -264,7 +292,11 @@ async def resolve_profile_context(
             ),
             "roles": ResourcePair(selected=roles_selected, suggestions=roles_suggestions),
         },
-        entries={"pending_ids": pending_ids},
+        entries={
+            "pending_ids": pending_ids,
+            "permissions": permissions_catalog,
+            "request_limits": request_limits_catalog,
+        },
     )
 
 

@@ -40,10 +40,23 @@ from app.tools.resources.fields.search import (
     search_fields as search_fields_resource,
 )
 from app.tools.resources.files.get import get_files as get_uploads
+from app.tools.resources.flags.get import get_flags
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 from app.tools.resources.scenarios.search import (
     search_scenarios as search_scenarios_resource,
 )
+
+
+def _extension_from_path(file_path: str | None) -> str | None:
+    """Derive a lowercase file extension (no dot) from an uploads_entry.file_path."""
+    if not file_path:
+        return None
+    name = file_path.rsplit("/", 1)[-1]
+    if "." not in name:
+        return None
+    ext = name.rsplit(".", 1)[1].strip().lower()
+    return ext or None
 
 DOCUMENT_IMPORT_FIELDS: list[dict[str, Any]] = [
     {
@@ -90,9 +103,11 @@ async def search_document_impl(
     scenario_search: str | None = None,
     field_search: str | None = None,
     department_search: str | None = None,
+    flag_search: str | None = None,
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
+    **_kwargs,
 ) -> ListDocumentApiResponse:
     """Document search using composable infra functions.
 
@@ -153,13 +168,16 @@ async def search_document_impl(
 
     all_name_ids: list[UUID] = []
     all_files_ids: list[UUID] = []
+    all_flag_ids: list[UUID] = []
 
     for a in artifacts:
         all_name_ids.extend(a.name_ids or [])
         all_files_ids.extend(a.files_ids or [])
+        all_flag_ids.extend(a.flag_ids or [])
 
     # Deduplicate files IDs
     all_files_ids = list(set(all_files_ids))
+    all_flag_ids = list(set(all_flag_ids))
 
     async def _fetch_names() -> list:
         if not all_name_ids:
@@ -172,6 +190,30 @@ async def search_document_impl(
             return []
         async with pool.acquire() as conn:
             return await get_uploads(conn, all_files_ids, redis)
+
+    async def _fetch_flag_rows() -> list:
+        if not all_flag_ids:
+            return []
+        async with pool.acquire() as conn:
+            return await get_flags(conn, all_flag_ids, redis)
+
+    async def _fetch_file_extensions() -> dict[UUID, str | None]:
+        """Map files_resource.id -> file extension via file_uploads_entry + uploads_entry."""
+        if not all_files_ids:
+            return {}
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT DISTINCT ON (fue.file_id) fue.file_id, ue.file_path
+                FROM file_uploads_entry fue
+                JOIN uploads_entry ue ON ue.id = fue.upload_id
+                WHERE fue.active = true
+                  AND fue.file_id = ANY($1)
+                ORDER BY fue.file_id, fue.created_at DESC
+                """,
+                all_files_ids,
+            )
+        return {r["file_id"]: _extension_from_path(r["file_path"]) for r in rows}
 
     async def _fetch_scenario_facet() -> list:
         async with pool.acquire() as conn:
@@ -191,6 +233,12 @@ async def search_document_impl(
                 conn, redis, search=department_search, document=True, limit_count=100
             )
 
+    async def _fetch_flag_facet() -> list:
+        async with pool.acquire() as conn:
+            return await search_flags(
+                conn, redis, search=flag_search, document=True, limit_count=100
+            )
+
     # Per-document permissions context (gives us active_scenario_count)
     async def _fetch_perm(artifact_id: UUID) -> DocumentPermissionsContext:
         async with pool.acquire() as conn:
@@ -201,18 +249,31 @@ async def search_document_impl(
     (
         names_data,
         uploads_data,
+        flag_rows_data,
+        extension_map,
         scenario_facet,
         field_facet,
         department_facet,
+        flag_facet,
         *perm_results,
     ) = await asyncio.gather(
         _fetch_names(),
         _fetch_uploads(),
+        _fetch_flag_rows(),
+        _fetch_file_extensions(),
         _fetch_scenario_facet(),
         _fetch_field_facet(),
         _fetch_department_facet(),
+        _fetch_flag_facet(),
         *perm_tasks,
     )
+
+    # Build flag lookup: id -> (type, value) so we can derive booleans per-row
+    flag_meta_map: dict[UUID, tuple[str | None, bool | None]] = {
+        f.id: (getattr(f, "type", None), getattr(f, "value", None))
+        for f in flag_rows_data
+        if getattr(f, "id", None)
+    }
 
     # Build lookup maps
     name_map = {n.id: n for n in names_data}
@@ -250,6 +311,15 @@ async def search_document_impl(
 
         # Resolve first file_id for preview thumbnail
         file_id: UUID | None = (a.files_ids or [None])[0] if a.files_ids else None
+        extension = extension_map.get(file_id) if file_id else None
+
+        # Derive per-row flag state booleans from flag_ids
+        is_template = False
+        for fid in a.flag_ids or []:
+            ftype, fvalue = flag_meta_map.get(fid, (None, None))
+            if ftype == "document_template" and fvalue is True:
+                is_template = True
+                break
 
         documents.append(
             ListDocumentApiDocument(
@@ -258,7 +328,10 @@ async def search_document_impl(
                 department_ids=dept_ids_str,
                 scenario_ids=None,
                 field_ids=None,
+                flag_ids=list(a.flag_ids or []),
                 is_inactive=is_inactive,
+                is_template=is_template,
+                extension=extension,
                 num_scenarios=active_scenario_count,
                 active_scenario_count=active_scenario_count,
                 file_id=file_id,
@@ -298,12 +371,21 @@ async def search_document_impl(
         search=department_search,
     )
 
+    flag_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+            for f in flag_facet
+        ],
+        search=flag_search,
+    )
+
     return ListDocumentApiResponse(
         actor_name=actor_name,
         documents=documents,
         scenario_filter=scenario_filter,
         field_filter=field_filter,
         department_filter=department_filter,
+        flag_filter=flag_filter,
         total_count=total_count,
     )
 

@@ -31,6 +31,7 @@ from app.tools.resources.modalities.search import search_modalities
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
 from app.tools.resources.names.search import search_names
+from app.tools.resources.pricing.create import create_pricing
 from app.tools.resources.pricing.search import search_pricing
 from app.tools.resources.providers.get import get_providers
 from app.tools.resources.providers.search import search_providers
@@ -208,19 +209,41 @@ async def _resolve_creatable_values(
         if not any(error.field == "modalities" for error in errors):
             request.modality_ids = resolved_ids
 
-    if request.pricing is not None and request.pricing_ids is None:
+    # Inline-created pricing rows: entries without id are created here. The
+    # value list is updated in place so the form_state echo carries resolved
+    # ids back to the client; ids merge into request.pricing_ids so the
+    # downstream draft row sees a single flat list.
+    if request.pricing:
+        resolved_pricing_ids: list[UUID] = []
         async with pool.acquire() as conn:
-            existing = await search_pricing(conn, redis, search=None, limit_count=1000, model=True)
-        pricing_map = {item.pricing_type.lower(): item.id for item in existing if item.pricing_type and item.id}
-        resolved_ids = []
-        for pricing in request.pricing:
-            pricing_id = pricing_map.get(pricing.lower())
-            if pricing_id:
-                resolved_ids.append(pricing_id)
-            else:
-                errors.append(SaveModelFieldError(field="pricing", message=f'Pricing "{pricing}" not found'))
-        if not any(error.field == "pricing" for error in errors):
-            request.pricing_ids = resolved_ids
+            for value in request.pricing:
+                if value.id is None:
+                    created = await create_pricing(
+                        conn,
+                        pricing_type=value.pricing_type,
+                        price=value.price,
+                        unit_name=value.unit_name,
+                        unit_category=value.unit_category,
+                        unit_value=value.unit_value,
+                        redis=redis,
+                    )
+                    if created.id is None:
+                        errors.append(
+                            SaveModelFieldError(
+                                field="pricing",
+                                message=f'Failed to create pricing "{value.pricing_type}"',
+                            )
+                        )
+                        continue
+                    value.id = created.id
+                resolved_pricing_ids.append(value.id)
+        existing_ids = list(request.pricing_ids or [])
+        seen = set(existing_ids)
+        for pid in resolved_pricing_ids:
+            if pid not in seen:
+                existing_ids.append(pid)
+                seen.add(pid)
+        request.pricing_ids = existing_ids
 
     if request.qualities is not None and request.quality_ids is None:
         async with pool.acquire() as conn:
@@ -525,6 +548,7 @@ async def patch_model_draft_impl(
         department_ids=request.department_ids or [],
         modality_ids=request.modality_ids or [],
         pricing_ids=request.pricing_ids or [],
+        pricing=request.pricing or [],
         quality_ids=request.quality_ids or [],
         reasoning_level_ids=request.reasoning_level_ids or [],
         temperature_level_ids=request.temperature_level_ids or [],

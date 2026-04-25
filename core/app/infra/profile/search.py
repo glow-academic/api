@@ -35,6 +35,7 @@ from app.tools.artifacts.profile.search import search_profiles
 from app.tools.resources.departments.get import get_departments
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.emails.get import get_emails
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 from app.tools.resources.primary_departments.get import (
     get_primary_departments,
@@ -61,9 +62,11 @@ async def search_profile_impl(
     cohort_search: str | None = None,
     department_search: str | None = None,
     role_search: str | None = None,
+    flag_search: str | None = None,
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
+    **_kwargs,
 ) -> ListProfilesApiResponse:
     """Profile search using composable infra functions.
 
@@ -195,6 +198,12 @@ async def search_profile_impl(
                 conn, redis, search=role_search, profile=True, limit_count=100
             )
 
+    async def _fetch_flag_facet() -> list:
+        async with pool.acquire() as conn:
+            return await search_flags(
+                conn, redis, search=flag_search, profile=True, limit_count=100
+            )
+
     async def _fetch_primary_departments() -> list:
         async with pool.acquire() as conn:
             return await get_primary_departments(
@@ -209,6 +218,7 @@ async def search_profile_impl(
         profiles_resource_data,
         department_facet,
         role_facet,
+        flag_facet,
         primary_departments_data,
     ) = await asyncio.gather(
         _fetch_names() if all_name_ids else _empty_list(),
@@ -218,6 +228,7 @@ async def search_profile_impl(
         _fetch_profiles_resource() if all_profile_resource_ids else _empty_list(),
         _fetch_department_facet(),
         _fetch_role_facet(),
+        _fetch_flag_facet(),
         _fetch_primary_departments() if all_primary_department_resource_ids else _empty_list(),
     )
 
@@ -323,6 +334,7 @@ async def search_profile_impl(
                 can_delete=can_delete,
                 can_emulate=can_emulate,
                 is_emulated=is_emulated,
+                is_inactive=not a.active,
             )
         )
 
@@ -347,11 +359,20 @@ async def search_profile_impl(
         search=role_search,
     )
 
+    flag_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+            for f in flag_facet
+        ],
+        search=flag_search,
+    )
+
     return ListProfilesApiResponse(
         actor_name=actor_name,
         profiles=profiles_list,
         department_filter=department_filter,
         role_filter=role_filter_section,
+        flag_filter=flag_filter,
         total_count=total_count,
     )
 

@@ -52,12 +52,20 @@ async def duplicate_provider(
             )
             group_id = group_result.group_id
 
+        # Accept either canonical `id` or legacy `provider_id` from the request.
+        provider_id = request.id or request.provider_id
+        if provider_id is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Provider id is required (provide 'id' or legacy 'provider_id').",
+            )
+
         async def _runner() -> DuplicateProviderApiResponse:
             return await duplicate_provider_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
-                id=request.provider_id,
+                id=provider_id,
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,

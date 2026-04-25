@@ -32,12 +32,18 @@ from app.tools.resources.models.search import search_models
 from app.tools.resources.names.get import get_names
 from app.tools.resources.names.search import search_names
 
-EVAL_FLAG_NAMES = {"eval_active", "dynamic", ""}
+# Eval-level flags exposed in the Flags step card. Three toggles only:
+#   - eval_active : on/off gate (matches setting_active, model_active, …)
+#   - eval_dynamic: live invocation per run vs. grade pre-generated output
+#   - eval_groups : expose group-based runs (infinite mode) on the eval card
+EVAL_FLAG_NAMES = {"eval_active", "eval_dynamic", "eval_groups"}
 
-# Flag types that can appear per-model on an eval (cross-product with
-# selected models to build the ModelFlags picker suggestions). Mirrors
-# SCENARIO_FLAG_TYPES_ORDERED in simulation/context.py.
-MODEL_FLAG_TYPES_ORDERED = ["model_active"]
+# Flag types that can appear per-model on an eval. The ModelFlags picker
+# materializes the toggle onto invocation_entry.use_custom at sync time, so
+# the only flag type that belongs here is `use_custom`. Catalog model_*
+# flags (model_active, model_modalities_enabled, …) are owned by the Model
+# artifact, not by an eval × model junction.
+MODEL_FLAG_TYPES_ORDERED = ["use_custom"]
 
 
 class EvalModelFlagEnriched(BaseModel):
@@ -169,11 +175,14 @@ async def resolve_eval_context(
                 conn,
                 redis,
                 search=flags_search,
-                limit_count=_limit(flags_limit, 200),
+                limit_count=_limit(flags_limit, 500),
                 offset_count=0,
                 exclude_ids=merged.flag_ids,
                 bypass_cache=bypass_cache,
-                eval=True,
+                # No `eval=True` artifact filter — that junction (`eval_flags_junction`)
+                # is per-eval-artifact, so it'd exclude `eval_dynamic` /
+                # `eval_groups` until at least one eval has linked them. We
+                # filter by flag *type* downstream via EVAL_FLAG_NAMES.
             )
 
     async def _get_departments() -> list:
@@ -238,20 +247,21 @@ async def resolve_eval_context(
             )
 
     async def _search_model_flag_types() -> list:
-        # All flag resources that can appear per-model (model_active today).
-        # Used to build the cross-product of selected-model × flag-type
-        # suggestion rows — without this, a freshly selected model has no
-        # flag options in the picker because `model_flags_junction` has no
-        # row for that (model, flag) pair yet.
+        # Per-model flag types for the eval × model picker. Today the only
+        # entry in MODEL_FLAG_TYPES_ORDERED is `use_custom` — a generic flag
+        # that materializes onto each invocation_entry.use_custom column at
+        # benchmark sync time. We don't artifact-filter here: `use_custom`
+        # is a generic flag (no `model_flags_junction` row), so `model=True`
+        # would exclude it. Downstream filtering by MODEL_FLAG_TYPES_ORDERED
+        # narrows the result to just the types this picker exposes.
         async with pool.acquire() as conn:
             return await search_flags(
                 conn,
                 redis,
-                limit_count=50,
+                limit_count=500,
                 offset_count=0,
                 exclude_ids=None,
                 bypass_cache=bypass_cache,
-                model=True,
             )
 
     async def _get_model_rubrics() -> list:
@@ -324,8 +334,17 @@ async def resolve_eval_context(
         _search_rubrics_all(),
     )
 
+    # Filter both pools to only the three eval-level flag types — anything
+    # else (e.g. a stale link to a non-eval flag, or generic catalog flags
+    # the search picked up) gets dropped before it reaches the picker.
+    def _is_eval_flag(item: object) -> bool:
+        return (
+            getattr(item, "name", None) in EVAL_FLAG_NAMES
+            or getattr(item, "type", None) in EVAL_FLAG_NAMES
+        )
+    flags_selected = [item for item in flags_selected if _is_eval_flag(item)]
     flags_suggestions_filtered = [
-        item for item in flags_suggestions if getattr(item, "name", None) in EVAL_FLAG_NAMES
+        item for item in flags_suggestions if _is_eval_flag(item)
     ]
 
     pending_ids: set[UUID] = set()
@@ -464,8 +483,18 @@ async def resolve_eval_context(
             # Flag catalog rows for model-scoped flag types (hydrated with
             # icon SVG). Used by eval/get.py to build the cross-product
             # model_flag_options list and to enrich selected junction rows
-            # with their (type, value) tuple.
-            "model_flag_type_rows": list(model_flag_types_all),
+            # with their (type, value) tuple. Filter to MODEL_FLAG_TYPES_ORDERED
+            # so the picker only renders the per-(eval × model) types this
+            # surface owns (today: just `use_custom`). Keep BOTH true/false
+            # rows per type so the cross-product can emit both Switch states.
+            "model_flag_type_rows": [
+                row
+                for row in model_flag_types_all
+                if (
+                    getattr(row, "type", None) in MODEL_FLAG_TYPES_ORDERED
+                    or getattr(row, "name", None) in MODEL_FLAG_TYPES_ORDERED
+                )
+            ],
         },
     )
 

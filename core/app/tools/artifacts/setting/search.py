@@ -24,7 +24,7 @@ async def search_settings(
     auth_ids: list[UUID] | None = None,
     color_ids: list[UUID] | None = None,
     flag_ids: list[UUID] | None = None,
-    profile_ids: list[UUID] | None = None,
+    provider_ids: list[UUID] | None = None,
     provider_key_ids: list[UUID] | None = None,
     setting_ids: list[UUID] | None = None,
     system_ids: list[UUID] | None = None,
@@ -139,15 +139,15 @@ async def search_settings(
             ids=flag_ids,
         )
 
-    if profile_ids:
+    if provider_ids:
         idx = add_junction_filter(
             conditions,
             params,
             idx,
-            junction_table="setting_profiles_junction",
+            junction_table="setting_providers_junction",
             owner_col=OWNER_COL,
-            resource_col="profiles_id",
-            ids=profile_ids,
+            resource_col="providers_id",
+            ids=provider_ids,
         )
 
     if provider_key_ids:

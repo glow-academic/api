@@ -26,7 +26,7 @@ class GetSettingDraftResponse(BaseModel):
     flag_ids: list[UUID] = Field(..., description="Associated flag UUIDs")
     item_ids: list[UUID] = Field(..., description="Associated item UUIDs")
     name_ids: list[UUID] = Field(..., description="Associated name UUIDs")
-    profile_ids: list[UUID] = Field(..., description="Associated profile UUIDs")
+    provider_ids: list[UUID] = Field(..., description="Associated provider UUIDs")
     provider_key_ids: list[UUID] = Field(..., description="Associated provider key UUIDs")
     threshold_ids: list[UUID] = Field(..., description="Associated threshold UUIDs")
     mcp_ids: list[UUID] | None = None
@@ -40,7 +40,7 @@ class GetSettingDraftResponse(BaseModel):
     pending_flag_ids: list[UUID] = Field(default_factory=list, description="Pending flag UUIDs")
     pending_item_ids: list[UUID] = Field(default_factory=list, description="Pending item UUIDs")
     pending_name_ids: list[UUID] = Field(default_factory=list, description="Pending name UUIDs")
-    pending_profile_ids: list[UUID] = Field(default_factory=list, description="Pending profile UUIDs")
+    pending_provider_ids: list[UUID] = Field(default_factory=list, description="Pending provider UUIDs")
     pending_provider_key_ids: list[UUID] = Field(default_factory=list, description="Pending provider key UUIDs")
     pending_threshold_ids: list[UUID] = Field(default_factory=list, description="Pending threshold UUIDs")
     pending_mcp_ids: list[UUID] | None = None

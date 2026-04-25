@@ -330,34 +330,26 @@ CREATE INDEX setting_names_setting_id_idx ON public.setting_names_junction USING
 
 --
 
--- Name: setting_profiles_active_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: setting_providers_active_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX setting_profiles_active_idx ON public.setting_profiles_junction USING btree (active);
-
-
---
-
--- Name: setting_profiles_generated_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX setting_profiles_generated_idx ON public.setting_profiles_junction USING btree (generated);
+CREATE INDEX setting_providers_active_idx ON public.setting_providers_junction USING btree (active);
 
 
 --
 
--- Name: setting_profiles_mcp_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: setting_providers_providers_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX setting_profiles_mcp_idx ON public.setting_profiles_junction USING btree (mcp);
+CREATE INDEX setting_providers_providers_id_idx ON public.setting_providers_junction USING btree (providers_id);
 
 
 --
 
--- Name: setting_profiles_setting_id_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: setting_providers_setting_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX setting_profiles_setting_id_idx ON public.setting_profiles_junction USING btree (setting_id);
+CREATE INDEX setting_providers_setting_id_idx ON public.setting_providers_junction USING btree (setting_id);
 
 
 --

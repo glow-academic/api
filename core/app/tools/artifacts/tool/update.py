@@ -35,6 +35,11 @@ MULTI_JUNCTIONS: list[tuple[str, str, str]] = [
     ("tool_args_junction", "args_id", "tool_args_pkey"),
     ("tool_args_outputs_junction", "args_outputs_id", "tool_args_outputs_pkey"),
     ("tool_permissions_junction", "permissions_id", "tool_permissions_junction_pkey"),
+    (
+        "tool_instructions_junction",
+        "instructions_id",
+        "tool_instructions_junction_pkey",
+    ),
     ("tool_tools_junction", "tools_id", "tool_tools_junction_pkey"),
 ]
 
@@ -52,6 +57,7 @@ async def update_tool(
     args_ids: list[UUID] | None = None,
     args_outputs_ids: list[UUID] | None = None,
     permission_ids: list[UUID] | None = None,
+    instruction_ids: list[UUID] | None = None,
     flag_ids: list[UUID] | None = None,
     tool_ids: list[UUID] | None = None,
     # Base columns
@@ -103,6 +109,7 @@ async def update_tool(
         args_ids,
         args_outputs_ids,
         permission_ids,
+        instruction_ids,
         tool_ids,
     ]
     for (table, col, constraint), vals in zip(MULTI_JUNCTIONS, multi_vals):

@@ -182,24 +182,6 @@ ALTER TABLE ONLY public.setting_names_junction
 
 --
 
--- Name: setting_profiles_junction setting_profiles_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.setting_profiles_junction
-    ADD CONSTRAINT setting_profiles_profile_id_fkey FOREIGN KEY (profiles_id) REFERENCES public.profiles_resource(id) ON DELETE CASCADE;
-
-
---
-
--- Name: setting_profiles_junction setting_profiles_setting_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.setting_profiles_junction
-    ADD CONSTRAINT setting_profiles_setting_id_fkey FOREIGN KEY (setting_id) REFERENCES public.setting_artifact(id) ON DELETE CASCADE;
-
-
---
-
 -- Name: setting_provider_keys_junction setting_provider_keys_junction_provider_key_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -214,6 +196,24 @@ ALTER TABLE ONLY public.setting_provider_keys_junction
 
 ALTER TABLE ONLY public.setting_provider_keys_junction
     ADD CONSTRAINT setting_provider_keys_junction_setting_id_fkey FOREIGN KEY (setting_id) REFERENCES public.setting_artifact(id) ON DELETE CASCADE;
+
+
+--
+
+-- Name: setting_providers_junction setting_providers_providers_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_providers_junction
+    ADD CONSTRAINT setting_providers_providers_id_fkey FOREIGN KEY (providers_id) REFERENCES public.providers_resource(id) ON DELETE CASCADE;
+
+
+--
+
+-- Name: setting_providers_junction setting_providers_setting_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_providers_junction
+    ADD CONSTRAINT setting_providers_setting_id_fkey FOREIGN KEY (setting_id) REFERENCES public.setting_artifact(id) ON DELETE CASCADE;
 
 
 --

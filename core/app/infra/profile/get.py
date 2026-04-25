@@ -33,6 +33,8 @@ from app.infra.profile.permissions import (
 from app.infra.profile.permissions_context import resolve_profile_permissions_context
 from app.infra.profile.types import (
     GetProfileApiResponse,
+    ProfilePermissionResource,
+    ProfileRequestLimitResource,
     ProfileDepartmentResource,
     ProfileEmailResource,
     ProfileFlagResource,
@@ -352,6 +354,8 @@ async def get_profile_impl(
             color_id=item.color_id,
             color_hex=role_color_by_id.get(item.color_id) if item.color_id else None,
             level=item.level,
+            permission_ids=list(getattr(item, "permission_ids", None) or []),
+            request_limit_ids=list(getattr(item, "request_limit_ids", None) or []),
             generated=item.generated,
             suggested=_decorate(item.id, "roles")[0],
             selected=_decorate(item.id, "roles")[1],
@@ -392,4 +396,24 @@ async def get_profile_impl(
         roles=_filter_items(roles, "roles", selected_only=selected_only, suggested_only=suggested_only)
         if include["roles"]
         else None,
+        permissions=[
+            ProfilePermissionResource(
+                id=p.id,
+                artifact=p.artifact,
+                operation=p.operation,
+                name=p.name,
+                description=p.description,
+            )
+            for p in profile_ctx.entries.get("permissions", []) or []
+            if getattr(p, "id", None)
+        ] or None,
+        request_limits=[
+            ProfileRequestLimitResource(
+                id=rl.id,
+                limit=rl.limit,
+                interval=str(rl.interval) if rl.interval is not None else None,
+            )
+            for rl in profile_ctx.entries.get("request_limits", []) or []
+            if getattr(rl, "id", None)
+        ] or None,
     )

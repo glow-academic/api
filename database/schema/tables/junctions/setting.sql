@@ -152,21 +152,6 @@ CREATE TABLE public.setting_names_junction (
 
 --
 
--- Name: setting_profiles_junction; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.setting_profiles_junction (
-    setting_id uuid CONSTRAINT setting_profiles_setting_id_not_null NOT NULL,
-    active boolean DEFAULT true CONSTRAINT setting_profiles_active_not_null NOT NULL,
-    created_at timestamp with time zone DEFAULT now() CONSTRAINT setting_profiles_created_at_not_null NOT NULL,
-    generated boolean DEFAULT false CONSTRAINT setting_profiles_generated_not_null NOT NULL,
-    mcp boolean DEFAULT false CONSTRAINT setting_profiles_mcp_not_null NOT NULL,
-    profiles_id uuid CONSTRAINT setting_profiles_junction_profile_id_not_null NOT NULL
-);
-
-
---
-
 -- Name: setting_provider_keys_junction; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -175,6 +160,21 @@ CREATE TABLE public.setting_provider_keys_junction (
     provider_keys_id uuid CONSTRAINT setting_provider_keys_junction_provider_key_id_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+
+-- Name: setting_providers_junction; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.setting_providers_junction (
+    setting_id uuid NOT NULL,
+    providers_id uuid NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL
 );
@@ -317,20 +317,20 @@ ALTER TABLE ONLY public.setting_names_junction
 
 --
 
--- Name: setting_profiles_junction setting_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.setting_profiles_junction
-    ADD CONSTRAINT setting_profiles_pkey PRIMARY KEY (setting_id, profiles_id);
-
-
---
-
 -- Name: setting_provider_keys_junction setting_provider_keys_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.setting_provider_keys_junction
     ADD CONSTRAINT setting_provider_keys_junction_pkey PRIMARY KEY (setting_id, provider_keys_id);
+
+
+--
+
+-- Name: setting_providers_junction setting_providers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_providers_junction
+    ADD CONSTRAINT setting_providers_pkey PRIMARY KEY (setting_id, providers_id);
 
 
 --

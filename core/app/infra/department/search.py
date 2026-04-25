@@ -29,6 +29,7 @@ from app.infra.department.permissions_context import (
     resolve_department_permissions_context,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.infra.department.types import (
     ListDepartmentApiDepartment,
     ListDepartmentApiResponse,
@@ -41,6 +42,7 @@ from app.tools.artifacts.profile.search import (
     search_profiles as search_profile_artifacts,
 )
 from app.tools.resources.descriptions.get import get_descriptions
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 
 DEPARTMENT_IMPORT_FIELDS: list[dict[str, Any]] = [
@@ -74,9 +76,12 @@ async def search_department_impl(
     profile_id: UUID,
     # Main filters
     search: str | None = None,
+    # Facet search text
+    flag_search: str | None = None,
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
+    **_kwargs,
 ) -> ListDepartmentApiResponse:
     """Department search using composable infra functions.
 
@@ -162,6 +167,12 @@ async def search_department_impl(
         async with pool.acquire() as conn:
             return await _staff_count_for_department(conn, dept_ids)
 
+    async def _fetch_flag_facet() -> list:
+        async with pool.acquire() as conn:
+            return await search_flags(
+                conn, redis, search=flag_search, department=True, limit_count=100
+            )
+
     perm_tasks = [_fetch_perm(a.id) for a in artifacts]
     staff_tasks = [_fetch_staff(a.department_ids) for a in artifacts]
 
@@ -169,16 +180,18 @@ async def search_department_impl(
     results = await asyncio.gather(
         _fetch_names(),
         _fetch_descriptions(),
+        _fetch_flag_facet(),
         *perm_tasks,
         *staff_tasks,
     )
 
     names_data = results[0]
     descriptions_data = results[1]
+    flag_facet = results[2]
 
     n = len(artifacts)
-    perm_contexts = results[2 : 2 + n]
-    staff_counts = results[2 + n : 2 + 2 * n]
+    perm_contexts = results[3 : 3 + n]
+    staff_counts = results[3 + n : 3 + 2 * n]
 
     # Build lookup maps
     name_map = {n.id: n for n in names_data}
@@ -224,9 +237,18 @@ async def search_department_impl(
             )
         )
 
+    flag_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+            for f in flag_facet
+        ],
+        search=flag_search,
+    )
+
     return ListDepartmentApiResponse(
         actor_name=actor_name,
         departments=departments,
+        flag_filter=flag_filter,
         total_count=total_count,
     )
 

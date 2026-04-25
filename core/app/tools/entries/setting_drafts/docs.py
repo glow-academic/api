@@ -31,8 +31,8 @@ async def get_setting_drafts_docs(conn: asyncpg.Connection) -> DocsResponse:
     flags_connection = await get_table_info(conn, "setting_drafts_flags_connection")
     items_connection = await get_table_info(conn, "setting_drafts_items_connection")
     names_connection = await get_table_info(conn, "setting_drafts_names_connection")
-    profiles_connection = await get_table_info(
-        conn, "setting_drafts_profiles_connection"
+    providers_connection = await get_table_info(
+        conn, "setting_drafts_providers_connection"
     )
     provider_keys_connection = await get_table_info(
         conn, "setting_drafts_provider_keys_connection"
@@ -54,7 +54,7 @@ async def get_setting_drafts_docs(conn: asyncpg.Connection) -> DocsResponse:
             flags_connection,
             items_connection,
             names_connection,
-            profiles_connection,
+            providers_connection,
             provider_keys_connection,
             thresholds_connection,
         ]

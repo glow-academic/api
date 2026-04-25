@@ -74,18 +74,18 @@ CREATE INDEX idx_setting_drafts_names_resource_id ON public.setting_drafts_names
 
 --
 
--- Name: idx_setting_drafts_profiles_resource_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_setting_drafts_profiles_resource_id ON public.setting_drafts_profiles_connection USING btree (profiles_id);
-
-
---
-
 -- Name: idx_setting_drafts_provider_keys_resource_id; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_setting_drafts_provider_keys_resource_id ON public.setting_drafts_provider_keys_connection USING btree (provider_keys_id);
+
+
+--
+
+-- Name: idx_setting_drafts_providers_resource_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_setting_drafts_providers_resource_id ON public.setting_drafts_providers_connection USING btree (providers_id);
 
 
 --

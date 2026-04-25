@@ -74,6 +74,24 @@ ALTER TABLE ONLY public.profile_drafts_names_connection
 
 --
 
+-- Name: profile_drafts_primary_departments_connection profile_drafts_primary_departments_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile_drafts_primary_departments_connection
+    ADD CONSTRAINT profile_drafts_primary_departments_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.profile_drafts_entry(id) ON DELETE CASCADE;
+
+
+--
+
+-- Name: profile_drafts_primary_departments_connection profile_drafts_primary_departments_connection_resource_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile_drafts_primary_departments_connection
+    ADD CONSTRAINT profile_drafts_primary_departments_connection_resource_id_fkey FOREIGN KEY (primary_departments_id) REFERENCES public.primary_departments_resource(id);
+
+
+--
+
 -- Name: profile_drafts_profiles_connection profile_drafts_profiles_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -124,24 +142,6 @@ ALTER TABLE ONLY public.profile_personas_calls_connection
 
 ALTER TABLE ONLY public.profile_personas_calls_connection
     ADD CONSTRAINT profile_personas_calls_connection_profile_personas_id_fkey FOREIGN KEY (profile_personas_id) REFERENCES public.profile_personas_resource(id) ON DELETE CASCADE;
-
-
---
-
--- Name: profile_drafts_primary_departments_connection profile_drafts_primary_departments_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_drafts_primary_departments_connection
-    ADD CONSTRAINT profile_drafts_primary_departments_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.profile_drafts_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: profile_drafts_primary_departments_connection profile_drafts_primary_departments_connection_resource_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_drafts_primary_departments_connection
-    ADD CONSTRAINT profile_drafts_primary_departments_connection_resource_id_fkey FOREIGN KEY (primary_departments_id) REFERENCES public.primary_departments_resource(id);
 
 
 --

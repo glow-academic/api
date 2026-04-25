@@ -41,6 +41,7 @@ from app.tools.resources.fields.get import get_fields as get_fields_resource
 from app.tools.resources.fields.search import (
     search_fields as search_fields_resource,
 )
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 from app.tools.resources.parameter_fields.get import get_parameter_fields
 from app.tools.resources.scenarios.search import (
@@ -85,9 +86,11 @@ async def search_parameter_impl(
     scenario_search: str | None = None,
     field_search: str | None = None,
     department_search: str | None = None,
+    flag_search: str | None = None,
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
+    **_kwargs,
 ) -> ListParameterApiResponse:
     """Parameter search using composable infra functions.
 
@@ -192,6 +195,12 @@ async def search_parameter_impl(
                 conn, redis, search=department_search, parameter=True, limit_count=100
             )
 
+    async def _search_flags() -> list:
+        async with pool.acquire() as conn:
+            return await search_flags(
+                conn, redis, search=flag_search, parameter=True, limit_count=100
+            )
+
     async def _get_perm(artifact_id: UUID) -> ParameterPermissionsContext:
         async with pool.acquire() as conn:
             return await resolve_parameter_permissions_context(conn, artifact_id)
@@ -205,6 +214,7 @@ async def search_parameter_impl(
         scenario_facet,
         field_facet,
         department_facet,
+        flag_facet,
         *perm_results,
     ) = await asyncio.gather(
         _get_names_data(),
@@ -213,6 +223,7 @@ async def search_parameter_impl(
         _search_scenarios(),
         _search_fields(),
         _search_depts(),
+        _search_flags(),
         *perm_tasks,
     )
 
@@ -268,6 +279,7 @@ async def search_parameter_impl(
                 name=name_obj.name if name_obj else None,
                 description=desc_obj.description if desc_obj else None,
                 active=a.active,
+                is_inactive=not a.active,
                 department_ids=dept_ids_str,
                 scenario_ids=None,
                 num_items=len(a.field_ids or []),
@@ -312,12 +324,21 @@ async def search_parameter_impl(
         search=department_search,
     )
 
+    flag_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+            for f in flag_facet
+        ],
+        search=flag_search,
+    )
+
     return ListParameterApiResponse(
         actor_name=actor_name,
         parameters=parameters,
         scenario_filter=scenario_filter,
         field_filter=field_filter,
         department_filter=department_filter,
+        flag_filter=flag_filter,
         total_count=total_count,
     )
 

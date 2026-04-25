@@ -167,6 +167,7 @@ class ListParameterApiParameter(BaseModel):
     name: str | None = Field(None, description="Display name of the parameter")
     description: str | None = Field(None, description="Parameter description text")
     active: bool | None = Field(None, description="Whether this parameter is currently active")
+    is_inactive: bool | None = Field(None, description="Whether the parameter is inactive")
     department_ids: list[str] | None = Field(None, description="Associated department identifiers")
     scenario_ids: list[UUID] | None = Field(None, description="Associated scenario identifiers")
     document_ids: list[UUID] | None = Field(None, description="Associated document identifiers")
@@ -184,6 +185,7 @@ class ListParameterApiResponse(BaseModel):
     scenario_filter: ListFilterSection | None = Field(None, description="Scenario filter options")
     field_filter: ListFilterSection | None = Field(None, description="Field filter options")
     department_filter: ListFilterSection | None = Field(None, description="Department filter options")
+    flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
     total_count: int | None = Field(None, description="Total number of parameters")
 
 

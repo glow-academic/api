@@ -152,6 +152,7 @@ class ListFieldApiResponse(BaseModel):
     parameter_filter: ListFilterSection | None = Field(None, description="Filter options for parameters")
     persona_filter: ListFilterSection | None = Field(None, description="Filter options for personas")
     department_filter: ListFilterSection | None = Field(None, description="Filter options for departments")
+    flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
     total_count: int | None = Field(None, description="Total number of fields")
 
 

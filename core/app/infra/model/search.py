@@ -37,6 +37,7 @@ from app.tools.resources.agents.search import (
 )
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.get import get_descriptions
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 from app.tools.resources.providers.get import (
     get_providers as get_providers_resource,
@@ -83,9 +84,11 @@ async def search_model_impl(
     provider_search: str | None = None,
     department_search: str | None = None,
     agent_search: str | None = None,
+    flag_search: str | None = None,
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
+    **_kwargs,
 ) -> ListModelApiResponse:
     """Model search using composable infra functions."""
     from fastapi import HTTPException
@@ -198,6 +201,12 @@ async def search_model_impl(
                 conn, redis, search=agent_search, agent=True, limit_count=100
             )
 
+    async def _fetch_flag_facet() -> list:
+        async with pool.acquire() as conn:
+            return await search_flags(
+                conn, redis, search=flag_search, model=True, limit_count=100
+            )
+
     (
         names_data,
         descriptions_data,
@@ -205,6 +214,7 @@ async def search_model_impl(
         provider_facet,
         department_facet,
         agent_facet,
+        flag_facet,
     ) = await asyncio.gather(
         _fetch_names() if all_name_ids else _empty_list(),
         _fetch_descriptions() if all_description_ids else _empty_list(),
@@ -212,6 +222,7 @@ async def search_model_impl(
         _fetch_provider_facet(),
         _fetch_department_facet(),
         _fetch_agent_facet(),
+        _fetch_flag_facet(),
     )
 
     # Build lookup maps
@@ -311,12 +322,21 @@ async def search_model_impl(
         search=agent_search,
     )
 
+    flag_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+            for f in flag_facet
+        ],
+        search=flag_search,
+    )
+
     return ListModelApiResponse(
         actor_name=actor_name,
         models=models_list,
         provider_filter=provider_filter,
         department_filter=department_filter,
         agent_filter=agent_filter,
+        flag_filter=flag_filter,
         total_count=total_count,
     )
 

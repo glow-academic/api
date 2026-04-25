@@ -23,7 +23,7 @@ async def create_setting_draft(
     flag_ids: list[UUID] | None = None,
     item_ids: list[UUID] | None = None,
     name_ids: list[UUID] | None = None,
-    profile_ids: list[UUID] | None = None,
+    provider_ids: list[UUID] | None = None,
     provider_key_ids: list[UUID] | None = None,
     threshold_ids: list[UUID] | None = None,
     mcp_ids: list[UUID] | None = None,
@@ -71,7 +71,7 @@ async def create_setting_draft(
         ("setting_drafts_flags_connection", "flags_id", flag_ids or []),
         ("setting_drafts_items_connection", "items_id", item_ids or []),
         ("setting_drafts_names_connection", "names_id", name_ids or []),
-        ("setting_drafts_profiles_connection", "profiles_id", profile_ids or []),
+        ("setting_drafts_providers_connection", "providers_id", provider_ids or []),
         (
             "setting_drafts_provider_keys_connection",
             "provider_keys_id",

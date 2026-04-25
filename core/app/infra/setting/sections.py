@@ -155,6 +155,29 @@ def build_setting_get_result(
     # auth_item_values: selected only, no suggestions pool
     all_auth_item_values = list(resource_pairs["auth_item_values"].selected)
 
+    # Filter child rows to only those whose parent is in the selected
+    # auths/providers set. Selected child rows always pass through (so an
+    # already-saved key remains visible even if its parent gets unselected).
+    _sel_auth_ids: set = setting.entries.get("selected_auth_ids", set())
+    _sel_provider_ids: set = setting.entries.get("selected_provider_ids", set())
+    if _sel_provider_ids:
+        all_provider_keys = [
+            it for it in all_provider_keys
+            if (getattr(it, "provider_id", None) in _sel_provider_ids)
+            or (it.id in selected_ids.get("provider_keys", set()))
+        ]
+    if _sel_auth_ids:
+        all_auth_item_keys = [
+            it for it in all_auth_item_keys
+            if (getattr(it, "auth_id", None) in _sel_auth_ids)
+            or (it.id in selected_ids.get("auth_item_keys", set()))
+        ]
+        all_auth_item_values = [
+            it for it in all_auth_item_values
+            if (getattr(it, "auth_id", None) in _sel_auth_ids)
+            or (it.id in selected_ids.get("auth_item_values", set()))
+        ]
+
     names = [
         SettingNameResource(
             id=item.id,
@@ -326,11 +349,19 @@ def build_setting_get_result(
         for item in all_auth_item_values
     ]
 
+    selected_provider_ids: set = setting.entries.get("selected_provider_ids", set())
+    selected_auth_ids: set = setting.entries.get("selected_auth_ids", set())
+
     providers_catalog = [
         SettingProviderCatalogResource(
+            id=item.id,
             provider_id=item.id,
             name=item.name,
             description=item.description,
+            generated=getattr(item, "generated", None),
+            suggested=False,
+            selected=bool(item.id and item.id in selected_provider_ids),
+            pending=bool(item.id and item.id in pending_ids),
         )
         for item in setting.entries.get("providers", [])
     ]
@@ -363,11 +394,16 @@ def build_setting_get_result(
     ]
     auths_catalog = [
         SettingAuthCatalogResource(
+            id=item.id,
             auth_id=item.id,
             name=item.name,
             description=item.description,
             slug=item.slug,
             protocol=item.protocol,
+            generated=getattr(item, "generated", None),
+            suggested=False,
+            selected=bool(item.id and item.id in selected_auth_ids),
+            pending=bool(item.id and item.id in pending_ids),
         )
         for item in setting.entries.get("auths", [])
     ]
@@ -402,6 +438,16 @@ def build_setting_get_result(
         for key in setting.entries.get("keys", [])
         if key.id
     ]
+    # Build (auth × item) options using the per-auth item_ids map that
+    # context.py built via the auth-artifact black box (auth_items_junction
+    # lookup). Each auth has its own items_resource rows, so we only pair an
+    # auth with its own claim items rather than the global items catalog.
+    _items_by_id = {
+        item.id: item
+        for item in setting.entries.get("items", [])
+        if getattr(item, "id", None)
+    }
+    _item_ids_by_auth: dict = setting.entries.get("item_ids_by_auth", {})
     auth_item_key_options = [
         SettingAuthItemKeyOption(
             auth_id=auth.id,
@@ -414,8 +460,8 @@ def build_setting_get_result(
         )
         for auth in setting.entries.get("auths", [])
         if auth.id
-        for item in setting.entries.get("items", [])
-        if item.id
+        for item_id in (_item_ids_by_auth.get(auth.id) or [])
+        if (item := _items_by_id.get(item_id))
         for key in setting.entries.get("keys", [])
         if key.id
     ]
@@ -430,8 +476,8 @@ def build_setting_get_result(
         )
         for auth in setting.entries.get("auths", [])
         if auth.id
-        for item in setting.entries.get("items", [])
-        if item.id
+        for item_id in (_item_ids_by_auth.get(auth.id) or [])
+        if (item := _items_by_id.get(item_id))
     ]
     mcp_options = [
         SettingMcpOption(

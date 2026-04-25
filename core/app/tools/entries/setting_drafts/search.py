@@ -11,7 +11,6 @@ from app.tools.entries.setting_drafts.types import GetSettingDraftResponse
 async def search_setting_drafts(
     conn: asyncpg.Connection,
     session_ids: list[UUID] | None = None,
-    profile_ids: list[UUID] | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     mcp: bool | None = None,
@@ -42,8 +41,8 @@ async def search_setting_drafts(
             COALESCE(ARRAY_AGG(DISTINCT it.items_id) FILTER (WHERE it.items_id IS NOT NULL AND it.active = false), '{}') AS pending_item_ids,
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL), '{}') AS name_ids,
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = false), '{}') AS pending_name_ids,
-            COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL), '{}') AS profile_ids,
-            COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL AND p.active = false), '{}') AS pending_profile_ids,
+            COALESCE(ARRAY_AGG(DISTINCT pv.providers_id) FILTER (WHERE pv.providers_id IS NOT NULL), '{}') AS provider_ids,
+            COALESCE(ARRAY_AGG(DISTINCT pv.providers_id) FILTER (WHERE pv.providers_id IS NOT NULL AND pv.active = false), '{}') AS pending_provider_ids,
             COALESCE(ARRAY_AGG(DISTINCT pk.provider_keys_id) FILTER (WHERE pk.provider_keys_id IS NOT NULL), '{}') AS provider_key_ids,
             COALESCE(ARRAY_AGG(DISTINCT pk.provider_keys_id) FILTER (WHERE pk.provider_keys_id IS NOT NULL AND pk.active = false), '{}') AS pending_provider_key_ids,
             COALESCE(ARRAY_AGG(DISTINCT th.thresholds_id) FILTER (WHERE th.thresholds_id IS NOT NULL), '{}') AS threshold_ids
@@ -59,22 +58,20 @@ async def search_setting_drafts(
         LEFT JOIN setting_drafts_flags_connection f ON f.draft_id = d.id
         LEFT JOIN setting_drafts_items_connection it ON it.draft_id = d.id
         LEFT JOIN setting_drafts_names_connection n ON n.draft_id = d.id
-        LEFT JOIN setting_drafts_profiles_connection p ON p.draft_id = d.id
+        LEFT JOIN setting_drafts_providers_connection pv ON pv.draft_id = d.id
         LEFT JOIN setting_drafts_provider_keys_connection pk ON pk.draft_id = d.id
         LEFT JOIN setting_drafts_thresholds_connection th ON th.draft_id = d.id
         WHERE d.active = true
           AND ($1::uuid[] IS NULL OR d.session_id = ANY($1))
-          AND ($2::uuid[] IS NULL OR p.profiles_id = ANY($2))
-          AND ($3::timestamptz IS NULL OR d.created_at >= $3)
-          AND ($4::timestamptz IS NULL OR d.created_at <= $4)
-          AND ($5::boolean IS NULL OR d.mcp = $5)
+          AND ($2::timestamptz IS NULL OR d.created_at >= $2)
+          AND ($3::timestamptz IS NULL OR d.created_at <= $3)
+          AND ($4::boolean IS NULL OR d.mcp = $4)
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
                  d.session_id
         ORDER BY d.created_at DESC
-        LIMIT $6 OFFSET $7
+        LIMIT $5 OFFSET $6
         """,
         session_ids,
-        profile_ids,
         date_from,
         date_to,
         mcp,
@@ -99,7 +96,7 @@ async def search_setting_drafts(
             flag_ids=r["flag_ids"],
             item_ids=r["item_ids"],
             name_ids=r["name_ids"],
-            profile_ids=r["profile_ids"],
+            provider_ids=r["provider_ids"],
             provider_key_ids=r["provider_key_ids"],
             threshold_ids=r["threshold_ids"],
             pending_agent_ids=r["pending_agent_ids"],
@@ -111,7 +108,7 @@ async def search_setting_drafts(
             pending_flag_ids=r["pending_flag_ids"],
             pending_item_ids=r["pending_item_ids"],
             pending_name_ids=r["pending_name_ids"],
-            pending_profile_ids=r["pending_profile_ids"],
+            pending_provider_ids=r["pending_provider_ids"],
             pending_provider_key_ids=r["pending_provider_key_ids"],
             pending_threshold_ids=r["pending_threshold_ids"],
         )

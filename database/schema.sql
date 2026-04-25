@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict thIKsdl1sXBgrTevnzucfRImt2ddqgVWEqumhkqTJPV75gfFc2R9zhTpsYheb1T
+\restrict iHDDqUyAyoQMYApTcYWZsrhoyu0D8COlJdKJZvFMdc0V3GHNVxg7H8mectND2wV
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -4463,8 +4463,7 @@ CREATE TABLE public.departments_resource (
     name text,
     description text,
     department_ids uuid[] DEFAULT ARRAY[]::uuid[],
-    setting_ids uuid[] DEFAULT ARRAY[]::uuid[],
-    is_primary boolean DEFAULT false NOT NULL
+    setting_ids uuid[] DEFAULT ARRAY[]::uuid[]
 );
 
 
@@ -8696,6 +8695,20 @@ CREATE TABLE public.pricing_resource (
 
 
 --
+-- Name: primary_departments_resource; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.primary_departments_resource (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    departments_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
 -- Name: problem_statements_calls_connection; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8911,6 +8924,20 @@ CREATE TABLE public.profile_drafts_names_connection (
 
 
 --
+-- Name: profile_drafts_primary_departments_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.profile_drafts_primary_departments_connection (
+    draft_id uuid NOT NULL,
+    primary_departments_id uuid CONSTRAINT profile_drafts_primary_departme_primary_departments_id_not_null NOT NULL,
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT profile_drafts_primary_departments_connecti_created_at_not_null NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false CONSTRAINT profile_drafts_primary_departments_connectio_generated_not_null NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
 -- Name: profile_drafts_profiles_connection; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9006,6 +9033,20 @@ CREATE TABLE public.profile_personas_resource (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL
+);
+
+
+--
+-- Name: profile_primary_departments_junction; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.profile_primary_departments_junction (
+    profile_id uuid NOT NULL,
+    primary_departments_id uuid CONSTRAINT profile_primary_departments_jun_primary_departments_id_not_null NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
 );
 
 
@@ -11036,20 +11077,6 @@ CREATE TABLE public.setting_drafts_names_connection (
 
 
 --
--- Name: setting_drafts_profiles_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.setting_drafts_profiles_connection (
-    draft_id uuid NOT NULL,
-    profiles_id uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    generated boolean DEFAULT false NOT NULL,
-    mcp boolean DEFAULT false NOT NULL,
-    active boolean DEFAULT true NOT NULL
-);
-
-
---
 -- Name: setting_drafts_provider_keys_connection; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -11060,6 +11087,20 @@ CREATE TABLE public.setting_drafts_provider_keys_connection (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL
+);
+
+
+--
+-- Name: setting_drafts_providers_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.setting_drafts_providers_connection (
+    draft_id uuid NOT NULL,
+    providers_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
 );
 
 
@@ -11134,20 +11175,6 @@ CREATE TABLE public.setting_names_junction (
 
 
 --
--- Name: setting_profiles_junction; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.setting_profiles_junction (
-    setting_id uuid CONSTRAINT setting_profiles_setting_id_not_null NOT NULL,
-    active boolean DEFAULT true CONSTRAINT setting_profiles_active_not_null NOT NULL,
-    created_at timestamp with time zone DEFAULT now() CONSTRAINT setting_profiles_created_at_not_null NOT NULL,
-    generated boolean DEFAULT false CONSTRAINT setting_profiles_generated_not_null NOT NULL,
-    mcp boolean DEFAULT false CONSTRAINT setting_profiles_mcp_not_null NOT NULL,
-    profiles_id uuid CONSTRAINT setting_profiles_junction_profile_id_not_null NOT NULL
-);
-
-
---
 -- Name: setting_provider_keys_junction; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -11156,6 +11183,20 @@ CREATE TABLE public.setting_provider_keys_junction (
     provider_keys_id uuid CONSTRAINT setting_provider_keys_junction_provider_key_id_not_null NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     active boolean DEFAULT true NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL
+);
+
+
+--
+-- Name: setting_providers_junction; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.setting_providers_junction (
+    setting_id uuid NOT NULL,
+    providers_id uuid NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL
 );
@@ -16960,6 +17001,22 @@ ALTER TABLE ONLY public.pricing_resource
 
 
 --
+-- Name: primary_departments_resource primary_departments_resource_departments_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.primary_departments_resource
+    ADD CONSTRAINT primary_departments_resource_departments_id_unique UNIQUE (departments_id);
+
+
+--
+-- Name: primary_departments_resource primary_departments_resource_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.primary_departments_resource
+    ADD CONSTRAINT primary_departments_resource_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: problem_statements_calls_connection problem_statements_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -17032,6 +17089,14 @@ ALTER TABLE ONLY public.profile_drafts_names_connection
 
 
 --
+-- Name: profile_drafts_primary_departments_connection profile_drafts_primary_departments_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile_drafts_primary_departments_connection
+    ADD CONSTRAINT profile_drafts_primary_departments_connection_pkey PRIMARY KEY (draft_id, primary_departments_id);
+
+
+--
 -- Name: profile_drafts_profiles_connection profile_drafts_profiles_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -17093,6 +17158,14 @@ ALTER TABLE ONLY public.profile_personas_resource
 
 ALTER TABLE ONLY public.profile_personas_resource
     ADD CONSTRAINT profile_personas_resource_profile_persona_unique UNIQUE (profile_id, persona_id);
+
+
+--
+-- Name: profile_primary_departments_junction profile_primary_departments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile_primary_departments_junction
+    ADD CONSTRAINT profile_primary_departments_pkey PRIMARY KEY (profile_id);
 
 
 --
@@ -18192,19 +18265,19 @@ ALTER TABLE ONLY public.setting_drafts_names_connection
 
 
 --
--- Name: setting_drafts_profiles_connection setting_drafts_profiles_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.setting_drafts_profiles_connection
-    ADD CONSTRAINT setting_drafts_profiles_connection_pkey PRIMARY KEY (draft_id, profiles_id);
-
-
---
 -- Name: setting_drafts_provider_keys_connection setting_drafts_provider_keys_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.setting_drafts_provider_keys_connection
     ADD CONSTRAINT setting_drafts_provider_keys_connection_pkey PRIMARY KEY (draft_id, provider_keys_id);
+
+
+--
+-- Name: setting_drafts_providers_connection setting_drafts_providers_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_drafts_providers_connection
+    ADD CONSTRAINT setting_drafts_providers_connection_pkey PRIMARY KEY (draft_id, providers_id);
 
 
 --
@@ -18248,19 +18321,19 @@ ALTER TABLE ONLY public.setting_names_junction
 
 
 --
--- Name: setting_profiles_junction setting_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.setting_profiles_junction
-    ADD CONSTRAINT setting_profiles_pkey PRIMARY KEY (setting_id, profiles_id);
-
-
---
 -- Name: setting_provider_keys_junction setting_provider_keys_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.setting_provider_keys_junction
     ADD CONSTRAINT setting_provider_keys_junction_pkey PRIMARY KEY (setting_id, provider_keys_id);
+
+
+--
+-- Name: setting_providers_junction setting_providers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_providers_junction
+    ADD CONSTRAINT setting_providers_pkey PRIMARY KEY (setting_id, providers_id);
 
 
 --
@@ -24473,6 +24546,13 @@ CREATE INDEX idx_pricing_resource_unit_category ON public.pricing_resource USING
 
 
 --
+-- Name: idx_primary_departments_resource_departments_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_primary_departments_resource_departments_id ON public.primary_departments_resource USING btree (departments_id);
+
+
+--
 -- Name: idx_problem_statements_mcp; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -24557,6 +24637,13 @@ CREATE INDEX idx_profile_drafts_names_resource_id ON public.profile_drafts_names
 
 
 --
+-- Name: idx_profile_drafts_primary_departments_resource_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_profile_drafts_primary_departments_resource_id ON public.profile_drafts_primary_departments_connection USING btree (primary_departments_id);
+
+
+--
 -- Name: idx_profile_drafts_roles_resource_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -24617,6 +24704,13 @@ CREATE INDEX idx_profile_personas_resource_persona_id ON public.profile_personas
 --
 
 CREATE INDEX idx_profile_personas_resource_profile_id ON public.profile_personas_resource USING btree (profile_id);
+
+
+--
+-- Name: idx_profile_primary_departments_primary_departments_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_profile_primary_departments_primary_departments_id ON public.profile_primary_departments_junction USING btree (primary_departments_id);
 
 
 --
@@ -25677,17 +25771,17 @@ CREATE INDEX idx_setting_drafts_names_resource_id ON public.setting_drafts_names
 
 
 --
--- Name: idx_setting_drafts_profiles_resource_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_setting_drafts_profiles_resource_id ON public.setting_drafts_profiles_connection USING btree (profiles_id);
-
-
---
 -- Name: idx_setting_drafts_provider_keys_resource_id; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_setting_drafts_provider_keys_resource_id ON public.setting_drafts_provider_keys_connection USING btree (provider_keys_id);
+
+
+--
+-- Name: idx_setting_drafts_providers_resource_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_setting_drafts_providers_resource_id ON public.setting_drafts_providers_connection USING btree (providers_id);
 
 
 --
@@ -28946,31 +29040,24 @@ CREATE INDEX setting_names_setting_id_idx ON public.setting_names_junction USING
 
 
 --
--- Name: setting_profiles_active_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: setting_providers_active_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX setting_profiles_active_idx ON public.setting_profiles_junction USING btree (active);
-
-
---
--- Name: setting_profiles_generated_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX setting_profiles_generated_idx ON public.setting_profiles_junction USING btree (generated);
+CREATE INDEX setting_providers_active_idx ON public.setting_providers_junction USING btree (active);
 
 
 --
--- Name: setting_profiles_mcp_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: setting_providers_providers_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX setting_profiles_mcp_idx ON public.setting_profiles_junction USING btree (mcp);
+CREATE INDEX setting_providers_providers_id_idx ON public.setting_providers_junction USING btree (providers_id);
 
 
 --
--- Name: setting_profiles_setting_id_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: setting_providers_setting_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX setting_profiles_setting_id_idx ON public.setting_profiles_junction USING btree (setting_id);
+CREATE INDEX setting_providers_setting_id_idx ON public.setting_providers_junction USING btree (setting_id);
 
 
 --
@@ -34957,6 +35044,14 @@ ALTER TABLE ONLY public.pricing_calls_connection
 
 
 --
+-- Name: primary_departments_resource primary_departments_resource_departments_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.primary_departments_resource
+    ADD CONSTRAINT primary_departments_resource_departments_id_fkey FOREIGN KEY (departments_id) REFERENCES public.departments_resource(id) ON DELETE CASCADE;
+
+
+--
 -- Name: problem_statements_calls_connection problem_statements_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -35058,6 +35153,22 @@ ALTER TABLE ONLY public.profile_drafts_names_connection
 
 ALTER TABLE ONLY public.profile_drafts_names_connection
     ADD CONSTRAINT profile_drafts_names_connection_names_id_fkey FOREIGN KEY (names_id) REFERENCES public.names_resource(id);
+
+
+--
+-- Name: profile_drafts_primary_departments_connection profile_drafts_primary_departments_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile_drafts_primary_departments_connection
+    ADD CONSTRAINT profile_drafts_primary_departments_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.profile_drafts_entry(id) ON DELETE CASCADE;
+
+
+--
+-- Name: profile_drafts_primary_departments_connection profile_drafts_primary_departments_connection_resource_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile_drafts_primary_departments_connection
+    ADD CONSTRAINT profile_drafts_primary_departments_connection_resource_id_fkey FOREIGN KEY (primary_departments_id) REFERENCES public.primary_departments_resource(id);
 
 
 --
@@ -35170,6 +35281,22 @@ ALTER TABLE ONLY public.profile_personas_resource
 
 ALTER TABLE ONLY public.profile_personas_resource
     ADD CONSTRAINT profile_personas_resource_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES public.profiles_resource(id) ON DELETE CASCADE;
+
+
+--
+-- Name: profile_primary_departments_junction profile_primary_departments_primary_departments_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile_primary_departments_junction
+    ADD CONSTRAINT profile_primary_departments_primary_departments_id_fkey FOREIGN KEY (primary_departments_id) REFERENCES public.primary_departments_resource(id) ON DELETE CASCADE;
+
+
+--
+-- Name: profile_primary_departments_junction profile_primary_departments_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile_primary_departments_junction
+    ADD CONSTRAINT profile_primary_departments_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES public.profile_artifact(id) ON DELETE CASCADE;
 
 
 --
@@ -36925,22 +37052,6 @@ ALTER TABLE ONLY public.setting_drafts_names_connection
 
 
 --
--- Name: setting_drafts_profiles_connection setting_drafts_profiles_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.setting_drafts_profiles_connection
-    ADD CONSTRAINT setting_drafts_profiles_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.setting_drafts_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: setting_drafts_profiles_connection setting_drafts_profiles_connection_profiles_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.setting_drafts_profiles_connection
-    ADD CONSTRAINT setting_drafts_profiles_connection_profiles_id_fkey FOREIGN KEY (profiles_id) REFERENCES public.profiles_resource(id);
-
-
---
 -- Name: setting_drafts_provider_keys_connection setting_drafts_provider_keys_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -36954,6 +37065,22 @@ ALTER TABLE ONLY public.setting_drafts_provider_keys_connection
 
 ALTER TABLE ONLY public.setting_drafts_provider_keys_connection
     ADD CONSTRAINT setting_drafts_provider_keys_connection_provider_keys_id_fkey FOREIGN KEY (provider_keys_id) REFERENCES public.provider_keys_resource(id);
+
+
+--
+-- Name: setting_drafts_providers_connection setting_drafts_providers_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_drafts_providers_connection
+    ADD CONSTRAINT setting_drafts_providers_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.setting_drafts_entry(id) ON DELETE CASCADE;
+
+
+--
+-- Name: setting_drafts_providers_connection setting_drafts_providers_connection_providers_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_drafts_providers_connection
+    ADD CONSTRAINT setting_drafts_providers_connection_providers_id_fkey FOREIGN KEY (providers_id) REFERENCES public.providers_resource(id);
 
 
 --
@@ -37037,22 +37164,6 @@ ALTER TABLE ONLY public.setting_names_junction
 
 
 --
--- Name: setting_profiles_junction setting_profiles_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.setting_profiles_junction
-    ADD CONSTRAINT setting_profiles_profile_id_fkey FOREIGN KEY (profiles_id) REFERENCES public.profiles_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: setting_profiles_junction setting_profiles_setting_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.setting_profiles_junction
-    ADD CONSTRAINT setting_profiles_setting_id_fkey FOREIGN KEY (setting_id) REFERENCES public.setting_artifact(id) ON DELETE CASCADE;
-
-
---
 -- Name: setting_provider_keys_junction setting_provider_keys_junction_provider_key_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -37066,6 +37177,22 @@ ALTER TABLE ONLY public.setting_provider_keys_junction
 
 ALTER TABLE ONLY public.setting_provider_keys_junction
     ADD CONSTRAINT setting_provider_keys_junction_setting_id_fkey FOREIGN KEY (setting_id) REFERENCES public.setting_artifact(id) ON DELETE CASCADE;
+
+
+--
+-- Name: setting_providers_junction setting_providers_providers_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_providers_junction
+    ADD CONSTRAINT setting_providers_providers_id_fkey FOREIGN KEY (providers_id) REFERENCES public.providers_resource(id) ON DELETE CASCADE;
+
+
+--
+-- Name: setting_providers_junction setting_providers_setting_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.setting_providers_junction
+    ADD CONSTRAINT setting_providers_setting_id_fkey FOREIGN KEY (setting_id) REFERENCES public.setting_artifact(id) ON DELETE CASCADE;
 
 
 --
@@ -39224,5 +39351,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict thIKsdl1sXBgrTevnzucfRImt2ddqgVWEqumhkqTJPV75gfFc2R9zhTpsYheb1T
+\unrestrict iHDDqUyAyoQMYApTcYWZsrhoyu0D8COlJdKJZvFMdc0V3GHNVxg7H8mectND2wV
 

@@ -74,6 +74,24 @@ ALTER TABLE ONLY public.profile_names_junction
 
 --
 
+-- Name: profile_primary_departments_junction profile_primary_departments_primary_departments_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile_primary_departments_junction
+    ADD CONSTRAINT profile_primary_departments_primary_departments_id_fkey FOREIGN KEY (primary_departments_id) REFERENCES public.primary_departments_resource(id) ON DELETE CASCADE;
+
+
+--
+
+-- Name: profile_primary_departments_junction profile_primary_departments_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile_primary_departments_junction
+    ADD CONSTRAINT profile_primary_departments_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES public.profile_artifact(id) ON DELETE CASCADE;
+
+
+--
+
 -- Name: profile_profiles_junction profile_profiles_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -106,24 +124,6 @@ ALTER TABLE ONLY public.profile_roles_junction
 
 ALTER TABLE ONLY public.profile_roles_junction
     ADD CONSTRAINT profile_roles_role_id_fkey FOREIGN KEY (roles_id) REFERENCES public.roles_resource(id) ON DELETE CASCADE;
-
-
---
-
--- Name: profile_primary_departments_junction profile_primary_departments_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_primary_departments_junction
-    ADD CONSTRAINT profile_primary_departments_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES public.profile_artifact(id) ON DELETE CASCADE;
-
-
---
-
--- Name: profile_primary_departments_junction profile_primary_departments_primary_departments_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_primary_departments_junction
-    ADD CONSTRAINT profile_primary_departments_primary_departments_id_fkey FOREIGN KEY (primary_departments_id) REFERENCES public.primary_departments_resource(id) ON DELETE CASCADE;
 
 
 --

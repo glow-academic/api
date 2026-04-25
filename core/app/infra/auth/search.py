@@ -39,6 +39,7 @@ from app.tools.artifacts.auth.search import (
 )
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.get import get_descriptions
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 
 
@@ -52,9 +53,11 @@ async def search_auth_impl(
     filter_department_ids: list[UUID] | None = None,
     # Facet search text
     department_search: str | None = None,
+    flag_search: str | None = None,
     # Pagination
     page_size: int = 1000,
     page_offset: int = 0,
+    **_kwargs,
 ) -> ListAuthApiResponse:
     """Auth search using composable infra functions.
 
@@ -97,6 +100,9 @@ async def search_auth_impl(
             department_facet = await search_departments(
                 conn, redis, search=department_search, auth=True, limit_count=100
             )
+            flag_facet = await search_flags(
+                conn, redis, search=flag_search, auth=True, limit_count=100
+            )
 
         department_filter = ListFilterSection(
             options=[
@@ -109,10 +115,19 @@ async def search_auth_impl(
             search=department_search,
         )
 
+        flag_filter = ListFilterSection(
+            options=[
+                ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+                for f in flag_facet
+            ],
+            search=flag_search,
+        )
+
         return ListAuthApiResponse(
             actor_name=actor_name,
             auths=[],
             department_filter=department_filter,
+            flag_filter=flag_filter,
             total_count=0,
         )
 
@@ -157,6 +172,12 @@ async def search_auth_impl(
                 c, redis, search=department_search, auth=True, limit_count=100
             )
 
+    async def _fetch_flag_facet() -> list:
+        async with pool.acquire() as c:
+            return await search_flags(
+                c, redis, search=flag_search, auth=True, limit_count=100
+            )
+
     async def _fetch_perms(artifact_id: UUID) -> AuthPermissionsContext:
         async with pool.acquire() as c:
             return await resolve_auth_permissions_context(c, artifact_id)
@@ -167,11 +188,13 @@ async def search_auth_impl(
         names_data,
         descriptions_data,
         department_facet,
+        flag_facet,
         *perm_results,
     ) = await asyncio.gather(
         _fetch_names_data(),
         _fetch_descriptions_data(),
         _fetch_department_facet(),
+        _fetch_flag_facet(),
         *perm_tasks,
     )
 
@@ -230,10 +253,19 @@ async def search_auth_impl(
         search=department_search,
     )
 
+    flag_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+            for f in flag_facet
+        ],
+        search=flag_search,
+    )
+
     return ListAuthApiResponse(
         actor_name=actor_name,
         auths=auths_list,
         department_filter=department_filter,
+        flag_filter=flag_filter,
         total_count=total_count,
     )
 

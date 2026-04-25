@@ -725,6 +725,30 @@
         ],
         "summary": "Persona Stream",
         "operationId": "persona_stream_persona_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -733,13 +757,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/scenario/get": {
@@ -1481,6 +1510,30 @@
         ],
         "summary": "Scenario Stream",
         "operationId": "scenario_stream_scenario_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1489,13 +1542,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/scenario/image/upload": {
@@ -2631,6 +2689,30 @@
         ],
         "summary": "Simulation Stream",
         "operationId": "simulation_stream_simulation_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2639,13 +2721,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/document/search": {
@@ -3387,6 +3474,30 @@
         ],
         "summary": "Document Stream",
         "operationId": "document_stream_document_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -3395,13 +3506,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/document/text/upload": {
@@ -4377,6 +4493,30 @@
         ],
         "summary": "Department Stream",
         "operationId": "department_stream_department_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -4385,13 +4525,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/cohort/search": {
@@ -5133,6 +5278,30 @@
         ],
         "summary": "Cohort Stream",
         "operationId": "cohort_stream_cohort_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -5141,13 +5310,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/eval/search": {
@@ -5889,6 +6063,30 @@
         ],
         "summary": "Eval Stream",
         "operationId": "eval_stream_eval_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -5897,13 +6095,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/rubric/get": {
@@ -6641,6 +6844,30 @@
         ],
         "summary": "Rubric Stream",
         "operationId": "rubric_stream_rubric_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6649,13 +6876,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/setting/search": {
@@ -7444,6 +7676,30 @@
         ],
         "summary": "Setting Stream",
         "operationId": "setting_stream_setting_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -7452,13 +7708,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/agent/context": {
@@ -8200,6 +8461,30 @@
         ],
         "summary": "Agent Stream",
         "operationId": "agent_stream_agent_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -8208,13 +8493,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/model/get": {
@@ -8956,6 +9246,30 @@
         ],
         "summary": "Model Stream",
         "operationId": "model_stream_model_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -8964,13 +9278,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/provider/search": {
@@ -9759,6 +10078,30 @@
         ],
         "summary": "Provider Stream",
         "operationId": "provider_stream_provider_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -9767,13 +10110,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/parameter/get": {
@@ -10515,6 +10863,30 @@
         ],
         "summary": "Parameter Stream",
         "operationId": "parameter_stream_parameter_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -10523,13 +10895,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/field/get": {
@@ -11271,6 +11648,30 @@
         ],
         "summary": "Field Stream",
         "operationId": "field_stream_field_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -11279,13 +11680,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/profile/get": {
@@ -11933,6 +12339,30 @@
         ],
         "summary": "Profile Stream",
         "operationId": "profile_stream_profile_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -11941,13 +12371,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/profile/context": {
@@ -12778,6 +13213,59 @@
         ]
       }
     },
+    "/auth/stream": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Auth Stream",
+        "operationId": "auth_stream_auth_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/tool/search": {
       "post": {
         "tags": [
@@ -13416,6 +13904,53 @@
         ]
       }
     },
+    "/tool/preview": {
+      "post": {
+        "tags": [
+          "tool"
+        ],
+        "summary": "Preview Tool",
+        "description": "Render output templates against mock arg values.",
+        "operationId": "preview_tool_tool_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewToolApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewToolApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/tool/problem": {
       "post": {
         "tags": [
@@ -13517,6 +14052,30 @@
         ],
         "summary": "Tool Stream",
         "operationId": "tool_stream_tool_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -13525,13 +14084,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/attempt/get": {
@@ -14132,6 +14696,30 @@
         ],
         "summary": "Attempt Stream",
         "operationId": "attempt_stream_attempt_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -14140,43 +14728,6 @@
                 "schema": {}
               }
             }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/attempt/join": {
-      "post": {
-        "tags": [
-          "attempt"
-        ],
-        "summary": "Attempt Join",
-        "description": "Subscribe to events for a group.",
-        "operationId": "attempt_join_attempt_join_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AttemptJoinRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AttemptJoinResponse"
-                }
-              }
-            }
           },
           "422": {
             "description": "Validation Error",
@@ -14188,59 +14739,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/attempt/leave": {
-      "post": {
-        "tags": [
-          "attempt"
-        ],
-        "summary": "Attempt Leave",
-        "description": "Unsubscribe from events for a group.",
-        "operationId": "attempt_leave_attempt_leave_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AttemptLeaveRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AttemptLeaveResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/attempt/chat/create": {
@@ -21942,65 +22441,6 @@
         "type": "object",
         "title": "AttemptEntries",
         "description": "Entry payloads grouped by entry type."
-      },
-      "AttemptJoinRequest": {
-        "properties": {
-          "group_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Group Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "group_id"
-        ],
-        "title": "AttemptJoinRequest"
-      },
-      "AttemptJoinResponse": {
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "title": "Success"
-          },
-          "group_id": {
-            "type": "string",
-            "title": "Group Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "success",
-          "group_id"
-        ],
-        "title": "AttemptJoinResponse"
-      },
-      "AttemptLeaveRequest": {
-        "properties": {
-          "group_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Group Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "group_id"
-        ],
-        "title": "AttemptLeaveRequest"
-      },
-      "AttemptLeaveResponse": {
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "title": "Success"
-          }
-        },
-        "type": "object",
-        "required": [
-          "success"
-        ],
-        "title": "AttemptLeaveResponse"
       },
       "AttemptOptionValue": {
         "properties": {
@@ -29799,12 +30239,6 @@
             ],
             "title": "Department Ids",
             "description": "Sub-department UUIDs to assign"
-          },
-          "is_primary": {
-            "type": "boolean",
-            "title": "Is Primary",
-            "description": "Whether this is the primary department",
-            "default": false
           }
         },
         "type": "object",
@@ -31936,6 +32370,19 @@
             ],
             "title": "Role Id",
             "description": "Role resource UUID"
+          },
+          "primary_department_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Department Id",
+            "description": "UUID of the department to designate as primary"
           }
         },
         "type": "object",
@@ -33498,6 +33945,38 @@
             ],
             "title": "Auth Item Value Ids",
             "description": "Auth item value UUIDs"
+          },
+          "auth_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Ids",
+            "description": "Auth resource UUIDs to assign"
+          },
+          "provider_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Ids",
+            "description": "Provider resource UUIDs to assign"
           },
           "setting_resource_ids": {
             "anyOf": [
@@ -39551,11 +40030,31 @@
       },
       "DuplicateProviderApiRequest": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "UUID of the provider to duplicate"
+          },
           "provider_id": {
-            "type": "string",
-            "format": "uuid",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Provider Id",
-            "description": "Provider identifier to duplicate"
+            "description": "Legacy alias for id \u2014 prefer id"
           },
           "idempotency_key": {
             "anyOf": [
@@ -39578,10 +40077,8 @@
           }
         },
         "type": "object",
-        "required": [
-          "provider_id"
-        ],
-        "title": "DuplicateProviderApiRequest"
+        "title": "DuplicateProviderApiRequest",
+        "description": "Request model for duplicate provider endpoint.\n\nCanonical shape: ``id`` (matches DuplicatePersonaApiRequest). The legacy\n``provider_id`` field is preserved for backwards compatibility with older\nclients but ``id`` is preferred."
       },
       "DuplicateProviderApiResponse": {
         "properties": {
@@ -49647,7 +50144,7 @@
           "names": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+                "$ref": "#/components/schemas/app__infra__attempt__chat__types__SectionFilter"
               },
               {
                 "type": "null"
@@ -49657,7 +50154,7 @@
           "descriptions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+                "$ref": "#/components/schemas/app__infra__attempt__chat__types__SectionFilter"
               },
               {
                 "type": "null"
@@ -49667,7 +50164,7 @@
           "flags": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+                "$ref": "#/components/schemas/app__infra__attempt__chat__types__SectionFilter"
               },
               {
                 "type": "null"
@@ -49677,7 +50174,7 @@
           "departments": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+                "$ref": "#/components/schemas/app__infra__attempt__chat__types__SectionFilter"
               },
               {
                 "type": "null"
@@ -49687,7 +50184,7 @@
           "personas": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+                "$ref": "#/components/schemas/app__infra__attempt__chat__types__SectionFilter"
               },
               {
                 "type": "null"
@@ -49697,7 +50194,7 @@
           "documents": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+                "$ref": "#/components/schemas/app__infra__attempt__chat__types__SectionFilter"
               },
               {
                 "type": "null"
@@ -49707,7 +50204,7 @@
           "parameter_fields": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+                "$ref": "#/components/schemas/app__infra__attempt__chat__types__SectionFilter"
               },
               {
                 "type": "null"
@@ -49717,7 +50214,7 @@
           "scenarios": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+                "$ref": "#/components/schemas/app__infra__attempt__chat__types__SectionFilter"
               },
               {
                 "type": "null"
@@ -49727,7 +50224,7 @@
           "fields": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+                "$ref": "#/components/schemas/app__infra__attempt__chat__types__SectionFilter"
               },
               {
                 "type": "null"
@@ -49737,7 +50234,7 @@
           "questions": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+                "$ref": "#/components/schemas/app__infra__attempt__chat__types__SectionFilter"
               },
               {
                 "type": "null"
@@ -49747,7 +50244,7 @@
           "options": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+                "$ref": "#/components/schemas/app__infra__attempt__chat__types__SectionFilter"
               },
               {
                 "type": "null"
@@ -49757,7 +50254,7 @@
           "videos": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+                "$ref": "#/components/schemas/app__infra__attempt__chat__types__SectionFilter"
               },
               {
                 "type": "null"
@@ -49767,7 +50264,7 @@
           "images": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+                "$ref": "#/components/schemas/app__infra__attempt__chat__types__SectionFilter"
               },
               {
                 "type": "null"
@@ -49777,7 +50274,7 @@
           "problem_statements": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+                "$ref": "#/components/schemas/app__infra__attempt__chat__types__SectionFilter"
               },
               {
                 "type": "null"
@@ -49787,7 +50284,7 @@
           "objectives": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__infra__chat__types__SectionFilter"
+                "$ref": "#/components/schemas/app__infra__attempt__chat__types__SectionFilter"
               },
               {
                 "type": "null"
@@ -57002,6 +57499,36 @@
             ],
             "title": "Roles",
             "description": "Role resources"
+          },
+          "permissions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ProfilePermissionResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Permissions",
+            "description": "Permission catalog for the role editor"
+          },
+          "request_limits": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ProfileRequestLimitResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Limits",
+            "description": "Request-limit catalog for the role editor"
           }
         },
         "type": "object",
@@ -57096,6 +57623,15 @@
             "title": "Role Ids",
             "description": "Associated role UUIDs"
           },
+          "primary_department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Primary Department Ids",
+            "description": "Associated primary_departments_resource UUIDs"
+          },
           "pending_department_ids": {
             "items": {
               "type": "string",
@@ -57140,6 +57676,15 @@
             "type": "array",
             "title": "Pending Role Ids",
             "description": "Pending role UUIDs"
+          },
+          "pending_primary_department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pending Primary Department Ids",
+            "description": "Pending primary_departments UUIDs"
           }
         },
         "type": "object",
@@ -60065,14 +60610,14 @@
             "title": "Name Ids",
             "description": "Associated name UUIDs"
           },
-          "profile_ids": {
+          "provider_ids": {
             "items": {
               "type": "string",
               "format": "uuid"
             },
             "type": "array",
-            "title": "Profile Ids",
-            "description": "Associated profile UUIDs"
+            "title": "Provider Ids",
+            "description": "Associated provider UUIDs"
           },
           "provider_key_ids": {
             "items": {
@@ -60203,14 +60748,14 @@
             "title": "Pending Name Ids",
             "description": "Pending name UUIDs"
           },
-          "pending_profile_ids": {
+          "pending_provider_ids": {
             "items": {
               "type": "string",
               "format": "uuid"
             },
             "type": "array",
-            "title": "Pending Profile Ids",
-            "description": "Pending profile UUIDs"
+            "title": "Pending Provider Ids",
+            "description": "Pending provider UUIDs"
           },
           "pending_provider_key_ids": {
             "items": {
@@ -60278,7 +60823,7 @@
           "flag_ids",
           "item_ids",
           "name_ids",
-          "profile_ids",
+          "provider_ids",
           "provider_key_ids",
           "threshold_ids"
         ],
@@ -62350,6 +62895,17 @@
               }
             ],
             "description": "Filter options for permissions"
+          },
+          "instructions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__tool__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for instructions"
           }
         },
         "type": "object",
@@ -62599,6 +63155,21 @@
             ],
             "title": "Permissions",
             "description": "Permission resources"
+          },
+          "instructions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ToolInstructionResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instructions",
+            "description": "Instruction resources (single-select)"
           }
         },
         "type": "object",
@@ -69244,6 +69815,46 @@
             "title": "Department Ids",
             "description": "Associated department UUIDs"
           },
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids",
+            "description": "Currently selected flag option UUIDs"
+          },
+          "is_inactive": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Inactive",
+            "description": "Whether the agent is inactive (derived from agent_active flag)"
+          },
+          "is_mcp": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Mcp",
+            "description": "Whether the agent is exposed via MCP (derived from mcp flag)"
+          },
           "can_edit": {
             "anyOf": [
               {
@@ -69346,6 +69957,17 @@
               }
             ],
             "description": "Filter options for tools"
+          },
+          "flag_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags in list UI"
           },
           "total_count": {
             "anyOf": [
@@ -69522,6 +70144,17 @@
               }
             ],
             "description": "Filter options for departments"
+          },
+          "flag_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags in list UI"
           },
           "total_count": {
             "anyOf": [
@@ -70365,6 +70998,17 @@
             "title": "Departments",
             "description": "List of department items"
           },
+          "flag_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags in list UI"
+          },
           "total_count": {
             "anyOf": [
               {
@@ -70467,6 +71111,22 @@
             "title": "Field Ids",
             "description": "Associated field UUIDs"
           },
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids",
+            "description": "Currently selected flag option UUIDs"
+          },
           "is_inactive": {
             "anyOf": [
               {
@@ -70477,7 +71137,31 @@
               }
             ],
             "title": "Is Inactive",
-            "description": "Whether the document is inactive"
+            "description": "Whether the document is inactive (derived from document_active flag)"
+          },
+          "is_template": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Template",
+            "description": "Whether the document is a template (derived from document_template flag)"
+          },
+          "extension": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extension",
+            "description": "File extension derived from the primary file (e.g. 'pdf', 'docx', 'txt')"
           },
           "num_scenarios": {
             "anyOf": [
@@ -70631,6 +71315,17 @@
               }
             ],
             "description": "Filter options for departments in list UI"
+          },
+          "flag_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags in list UI"
           },
           "total_count": {
             "anyOf": [
@@ -70856,6 +71551,17 @@
               }
             ],
             "description": "Filter options for departments in list UI"
+          },
+          "flag_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags in list UI"
           },
           "total_count": {
             "anyOf": [
@@ -71098,6 +71804,17 @@
               }
             ],
             "description": "Filter options for departments"
+          },
+          "flag_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags in list UI"
           },
           "total_count": {
             "anyOf": [
@@ -71896,6 +72613,17 @@
             ],
             "description": "Agent filter options"
           },
+          "flag_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags in list UI"
+          },
           "total_count": {
             "anyOf": [
               {
@@ -72152,6 +72880,17 @@
               }
             ],
             "description": "Department filter options"
+          },
+          "flag_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags in list UI"
           },
           "total_count": {
             "anyOf": [
@@ -72498,6 +73237,17 @@
               }
             ],
             "description": "Instruction filter options for bulk edit"
+          },
+          "flag_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Flag filter options for bulk edit"
           },
           "total_count": {
             "anyOf": [
@@ -73052,6 +73802,17 @@
             ],
             "description": "Filter options for roles"
           },
+          "flag_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags in list UI"
+          },
           "total_count": {
             "anyOf": [
               {
@@ -73291,6 +74052,17 @@
               }
             ],
             "description": "Status filter options"
+          },
+          "flag_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags in list UI"
           },
           "total_count": {
             "anyOf": [
@@ -73548,6 +74320,17 @@
               }
             ],
             "description": "Filter options for simulations in list UI"
+          },
+          "flag_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags in list UI"
           },
           "total_count": {
             "anyOf": [
@@ -74744,6 +75527,17 @@
             ],
             "title": "Keys",
             "description": "List of key items"
+          },
+          "flag_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags in list UI"
           }
         },
         "type": "object",
@@ -75122,6 +75916,22 @@
             "title": "Department Ids",
             "description": "Associated department UUIDs"
           },
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids",
+            "description": "Currently selected flag option UUIDs"
+          },
           "is_inactive": {
             "anyOf": [
               {
@@ -75132,7 +75942,19 @@
               }
             ],
             "title": "Is Inactive",
-            "description": "Whether the simulation is inactive"
+            "description": "Whether the simulation is inactive (derived from simulation_active flag)"
+          },
+          "is_practice": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Practice",
+            "description": "Whether this is a practice simulation (derived from practice flag)"
           },
           "practice_simulation": {
             "anyOf": [
@@ -75144,7 +75966,7 @@
               }
             ],
             "title": "Practice Simulation",
-            "description": "Whether this is a practice simulation"
+            "description": "Legacy alias for is_practice \u2014 prefer is_practice"
           },
           "generated": {
             "anyOf": [
@@ -75329,6 +76151,28 @@
             ],
             "description": "Creatable filter options"
           },
+          "agent_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for agents that reference these tools"
+          },
+          "flag_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for flags in list UI"
+          },
           "total_count": {
             "anyOf": [
               {
@@ -75395,6 +76239,34 @@
             ],
             "title": "Active",
             "description": "Whether this tool is currently active"
+          },
+          "is_inactive": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Inactive",
+            "description": "Whether this tool is inactive (derived from tool_active flag)"
+          },
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids",
+            "description": "Currently selected flag option UUIDs"
           },
           "updated_at": {
             "anyOf": [
@@ -78909,7 +79781,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/app__infra__chat__types__DraftImageValue"
+                  "$ref": "#/components/schemas/app__infra__attempt__chat__types__DraftImageValue"
                 },
                 "type": "array"
               },
@@ -78938,7 +79810,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/app__infra__chat__types__DraftVideoValue"
+                  "$ref": "#/components/schemas/app__infra__attempt__chat__types__DraftVideoValue"
                 },
                 "type": "array"
               },
@@ -78967,7 +79839,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/app__infra__chat__types__DraftQuestionValue"
+                  "$ref": "#/components/schemas/app__infra__attempt__chat__types__DraftQuestionValue"
                 },
                 "type": "array"
               },
@@ -78996,7 +79868,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/app__infra__chat__types__DraftOptionValue"
+                  "$ref": "#/components/schemas/app__infra__attempt__chat__types__DraftOptionValue"
                 },
                 "type": "array"
               },
@@ -81471,7 +82343,7 @@
             "anyOf": [
               {
                 "items": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/PricingDraftValue"
                 },
                 "type": "array"
               },
@@ -81480,7 +82352,7 @@
               }
             ],
             "title": "Pricing",
-            "description": "Pricing types to match"
+            "description": "Inline-create pricing entries. Entries without id are created; resulting IDs merge into pricing_ids."
           },
           "pricing_ids": {
             "anyOf": [
@@ -82474,7 +83346,7 @@
               }
             ],
             "title": "Role",
-            "description": "Role name to resolve"
+            "description": "Role name to resolve (single-name shortcut; legacy)"
           },
           "role_id": {
             "anyOf": [
@@ -82488,6 +83360,30 @@
             ],
             "title": "Role Id",
             "description": "Role resource UUID"
+          },
+          "role_draft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProfileRoleDraftValue"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Inline-creatable role; id=null asks server to create with permissions/limits"
+          },
+          "primary_department_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Department Id",
+            "description": "UUID of the department to designate as primary"
           },
           "pending_ids": {
             "anyOf": [
@@ -84051,6 +84947,38 @@
             "title": "Auth Item Value Ids",
             "description": "Auth item value UUIDs"
           },
+          "auth_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Ids",
+            "description": "Auth resource UUIDs to assign"
+          },
+          "provider_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Ids",
+            "description": "Provider resource UUIDs to assign"
+          },
           "provider_keys": {
             "anyOf": [
               {
@@ -84828,6 +85756,21 @@
             ],
             "title": "Args Outputs",
             "description": "Argument outputs to create inline"
+          },
+          "args_drafts": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ToolArgDraftValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Args Drafts",
+            "description": "Unified per-arg drafts for the Arguments step card. When present, takes precedence over the flat arg_ids/arg_position_ids/args_output_ids triple."
           },
           "instruction_id": {
             "anyOf": [
@@ -86020,6 +86963,68 @@
         "title": "PersonaVoiceResource",
         "description": "Voice resource for persona."
       },
+      "PreviewToolApiRequest": {
+        "properties": {
+          "args": {
+            "items": {
+              "$ref": "#/components/schemas/ToolPreviewArg"
+            },
+            "type": "array",
+            "title": "Args",
+            "description": "Args available as Jinja variables"
+          },
+          "outputs": {
+            "items": {
+              "$ref": "#/components/schemas/ToolPreviewOutput"
+            },
+            "type": "array",
+            "title": "Outputs",
+            "description": "Output templates to render"
+          },
+          "mock": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Mock",
+            "description": "Mock values keyed by arg name"
+          }
+        },
+        "type": "object",
+        "title": "PreviewToolApiRequest",
+        "description": "Render a tool's outputs against mock arg values."
+      },
+      "PreviewToolApiResponse": {
+        "properties": {
+          "outputs": {
+            "items": {
+              "$ref": "#/components/schemas/ToolPreviewOutputResult"
+            },
+            "type": "array",
+            "title": "Outputs",
+            "description": "Rendered output blocks"
+          },
+          "type_hints": {
+            "items": {
+              "$ref": "#/components/schemas/ToolPreviewArgHint"
+            },
+            "type": "array",
+            "title": "Type Hints",
+            "description": "Per-arg usage/filter hints"
+          },
+          "undeclared": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Undeclared",
+            "description": "Variable names referenced by templates but not declared in args"
+          }
+        },
+        "type": "object",
+        "title": "PreviewToolApiResponse",
+        "description": "Response for the tool preview endpoint."
+      },
       "PreviousChatOption": {
         "properties": {
           "chat_entry_id": {
@@ -86150,6 +87155,58 @@
         ],
         "title": "PricingDailyItem",
         "description": "A single day+model aggregation bucket."
+      },
+      "PricingDraftValue": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Existing pricing UUID, if any"
+          },
+          "pricing_type": {
+            "type": "string",
+            "title": "Pricing Type",
+            "description": "Pricing role (e.g. 'input_tokens', 'output_tokens')"
+          },
+          "price": {
+            "type": "number",
+            "title": "Price",
+            "description": "Price amount"
+          },
+          "unit_name": {
+            "type": "string",
+            "title": "Unit Name",
+            "description": "Display label for the rate unit (e.g. '1M tokens')"
+          },
+          "unit_category": {
+            "type": "string",
+            "title": "Unit Category",
+            "description": "Unit category (e.g. 'tokens', 'requests', 'minutes')"
+          },
+          "unit_value": {
+            "type": "integer",
+            "title": "Unit Value",
+            "description": "Numeric multiplier for the unit (e.g. 1000000 for 1M)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pricing_type",
+          "price",
+          "unit_name",
+          "unit_category",
+          "unit_value"
+        ],
+        "title": "PricingDraftValue",
+        "description": "Value-object for inline-creating a pricing_resource row from the model editor.\n\nEntries without `id` are created server-side; resulting IDs merge into\npricing_ids. Mirrors the standard_groups pattern so the model draft can\naccept either existing pricing rows or new authored ones in the same\nrequest."
       },
       "PricingGroupItem": {
         "properties": {
@@ -88497,6 +89554,152 @@
         "title": "ProfileNameResource",
         "description": "Name resource for profile."
       },
+      "ProfilePermissionResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Permission resource identifier"
+          },
+          "artifact": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifact",
+            "description": "Artifact key (e.g. 'agent', 'profile')"
+          },
+          "operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operation",
+            "description": "Operation key (e.g. 'create', 'update')"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Description text"
+          }
+        },
+        "type": "object",
+        "title": "ProfilePermissionResource",
+        "description": "Permission catalog row \u2014 one per (artifact, operation) pair."
+      },
+      "ProfileRequestLimitDraftValue": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Existing request_limits_resource id when known"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "description": "Maximum requests per interval"
+          },
+          "interval": {
+            "type": "string",
+            "title": "Interval",
+            "description": "Postgres interval string (e.g. '1 day', '30 minutes', '2 hours')"
+          }
+        },
+        "type": "object",
+        "required": [
+          "limit",
+          "interval"
+        ],
+        "title": "ProfileRequestLimitDraftValue",
+        "description": "Draft value for an inline-creatable request limit (limit, interval).\n\nid=null asks the server to create a new request_limits_resource row.\nid present means the caller is re-linking an existing limit."
+      },
+      "ProfileRequestLimitResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Request limit resource identifier"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Maximum number of requests per interval"
+          },
+          "interval": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval",
+            "description": "Postgres interval string (e.g. '1 day', '30 minutes')"
+          }
+        },
+        "type": "object",
+        "title": "ProfileRequestLimitResource",
+        "description": "Request-limit catalog/echo row."
+      },
       "ProfileResultItem": {
         "properties": {
           "success": {
@@ -88545,6 +89748,108 @@
         ],
         "title": "ProfileResultItem",
         "description": "Per-item result within a bulk create/update response."
+      },
+      "ProfileRoleDraftValue": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Existing roles_resource id when re-linking"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Role name (required when creating)"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Role description"
+          },
+          "icon_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Id",
+            "description": "Icon resource identifier"
+          },
+          "color_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color Id",
+            "description": "Color resource identifier"
+          },
+          "level": {
+            "type": "integer",
+            "title": "Level",
+            "description": "Role level for assignment filtering",
+            "default": 99
+          },
+          "permission_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Permission Ids",
+            "description": "Permission resource UUIDs to attach"
+          },
+          "request_limit_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Request Limit Ids",
+            "description": "Existing request_limits_resource ids"
+          },
+          "request_limits": {
+            "items": {
+              "$ref": "#/components/schemas/ProfileRequestLimitDraftValue"
+            },
+            "type": "array",
+            "title": "Request Limits",
+            "description": "Inline-creatable request limits; id=null entries are created server-side"
+          }
+        },
+        "type": "object",
+        "title": "ProfileRoleDraftValue",
+        "description": "Draft value for an inline-creatable role.\n\nRoles are immutable on this surface \u2014 the user can either re-link an\nexisting role (id present) or create a new one (id=null + name + \u2026).\nNested request_limits with id=null are inline-created first; their\nresolved ids merge into request_limit_ids before role creation."
       },
       "ProfileRoleResource": {
         "properties": {
@@ -88670,6 +89975,24 @@
             ],
             "title": "Level",
             "description": "Role level for assignment filtering"
+          },
+          "permission_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Permission Ids",
+            "description": "Permission resource UUIDs attached to this role"
+          },
+          "request_limit_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Request Limit Ids",
+            "description": "Request limit resource UUIDs attached to this role"
           },
           "generated": {
             "anyOf": [
@@ -92550,18 +93873,6 @@
             "type": "array",
             "title": "Setting Ids",
             "description": "Associated setting identifiers"
-          },
-          "is_primary": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Is Primary",
-            "description": "Whether this is the primary department"
           },
           "generated": {
             "anyOf": [
@@ -99019,6 +100330,19 @@
       },
       "SettingAuthCatalogResource": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Auth provider identifier (canonical for picker selection)"
+          },
           "auth_id": {
             "anyOf": [
               {
@@ -99030,7 +100354,7 @@
               }
             ],
             "title": "Auth Id",
-            "description": "Auth provider identifier"
+            "description": "Auth provider identifier (alias for id)"
           },
           "name": {
             "anyOf": [
@@ -99079,6 +100403,36 @@
             ],
             "title": "Protocol",
             "description": "Auth protocol"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
@@ -99112,20 +100466,50 @@
             "description": "Claim item identifier"
           },
           "key_id": {
-            "type": "string",
-            "format": "uuid",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Key Id",
-            "description": "Key identifier"
+            "description": "Existing keys_resource id (optional when key_value provided)"
+          },
+          "key_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Value",
+            "description": "Plaintext key/secret. Server encrypts and creates a keys_resource row."
+          },
+          "key_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Name",
+            "description": "Optional display name for the new keys_resource row"
           }
         },
         "type": "object",
         "required": [
           "auth_id",
-          "item_id",
-          "key_id"
+          "item_id"
         ],
         "title": "SettingAuthItemKeyDraftValue",
-        "description": "Draft value object for an inline-creatable (auth \u00d7 item \u00d7 key) triple."
+        "description": "Draft value object for an inline-creatable (auth \u00d7 item \u00d7 key) triple.\n\nSame two flows as SettingProviderKeyDraftValue: server encrypts\n`key_value` and creates a fresh `keys_resource` row when supplied."
       },
       "SettingAuthItemKeyOption": {
         "properties": {
@@ -100645,6 +102029,19 @@
       },
       "SettingProviderCatalogResource": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Provider identifier (canonical for picker selection)"
+          },
           "provider_id": {
             "anyOf": [
               {
@@ -100656,7 +102053,7 @@
               }
             ],
             "title": "Provider Id",
-            "description": "Provider identifier"
+            "description": "Provider identifier (alias for id)"
           },
           "name": {
             "anyOf": [
@@ -100681,6 +102078,36 @@
             ],
             "title": "Description",
             "description": "Provider description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether this was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
           }
         },
         "type": "object",
@@ -100708,19 +102135,49 @@
             "description": "Provider identifier"
           },
           "key_id": {
-            "type": "string",
-            "format": "uuid",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Key Id",
-            "description": "Key identifier"
+            "description": "Existing keys_resource id (optional when key_value provided)"
+          },
+          "key_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Value",
+            "description": "Plaintext API key. Server encrypts and creates a keys_resource row."
+          },
+          "key_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Name",
+            "description": "Optional display name for the new keys_resource row"
           }
         },
         "type": "object",
         "required": [
-          "provider_id",
-          "key_id"
+          "provider_id"
         ],
         "title": "SettingProviderKeyDraftValue",
-        "description": "Draft value object for an inline-creatable (provider \u00d7 key) pair."
+        "description": "Draft value object for an inline-creatable (provider \u00d7 key) pair.\n\nTwo flows:\n- Create-by-value: caller supplies `key_value` (and optional `key_name`).\n  Server encrypts it, creates a fresh `keys_resource` row, and links a\n  `provider_keys_resource` row for (provider_id, new_key_id).\n- Re-link existing: caller supplies `key_id` referencing an existing\n  `keys_resource` row. Server upserts the junction."
       },
       "SettingProviderKeyOption": {
         "properties": {
@@ -103915,6 +105372,100 @@
         "title": "TimerData",
         "description": "Timer information."
       },
+      "ToolArgDraftValue": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Existing args_resource id when re-linking"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Argument name"
+          },
+          "field_type": {
+            "type": "string",
+            "title": "Field Type",
+            "description": "Argument type (string, number, boolean, array)",
+            "default": "string"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Argument description",
+            "default": ""
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required",
+            "description": "Whether the argument is required",
+            "default": false
+          },
+          "default_value": {
+            "type": "string",
+            "title": "Default Value",
+            "description": "Default value",
+            "default": ""
+          },
+          "outputs": {
+            "items": {
+              "$ref": "#/components/schemas/ToolArgOutputDraftValue"
+            },
+            "type": "array",
+            "title": "Outputs",
+            "description": "Per-arg jinja output templates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ToolArgDraftValue",
+        "description": "Unified per-arg draft value for the Arguments step card.\n\nEach entry maps 1:1 to one row of the Arguments list. Position is the\n*index* of the entry \u2014 the resolver creates/finds an arg_positions_resource\nrow matching (args_id, value=index). Outputs nest under their owning arg.\nSaved rows (id set) stay immutable; the client surfaces them as chips and\ncloning into a fresh draft to edit (Roles pattern)."
+      },
+      "ToolArgOutputDraftValue": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Existing args_outputs_resource id when re-linking"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Output name"
+          },
+          "template": {
+            "type": "string",
+            "title": "Template",
+            "description": "Jinja template \u2014 variables drawn from the arg's name and any other selected args",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ToolArgOutputDraftValue",
+        "description": "Output-template draft value for an inline-creatable args_outputs row.\n\nid null \u2192 server creates an args_outputs_resource row scoped to the\nenclosing arg's resolved id. id set \u2192 row is re-linked unchanged\n(saved rows are immutable on this surface)."
+      },
       "ToolArgOutputResource": {
         "properties": {
           "id": {
@@ -104389,6 +105940,80 @@
         "title": "ToolFlagResource",
         "description": "Flag option row \u2014 one per (name, type, value) entry in flags_resource."
       },
+      "ToolInstructionResource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Instruction resource identifier"
+          },
+          "template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template",
+            "description": "Instruction template body"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Instruction display name (when present)"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the instruction was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ToolInstructionResource",
+        "description": "Instruction resource for a tool."
+      },
       "ToolNameResource": {
         "properties": {
           "id": {
@@ -104546,6 +106171,122 @@
         },
         "type": "object",
         "title": "ToolPermissionResource"
+      },
+      "ToolPreviewArg": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Argument name (used as the Jinja variable)"
+          },
+          "field_type": {
+            "type": "string",
+            "title": "Field Type",
+            "description": "Argument type \u2014 drives mock-value coercion",
+            "default": "string"
+          },
+          "default_value": {
+            "type": "string",
+            "title": "Default Value",
+            "description": "Fallback if mock value isn't provided",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ToolPreviewArg",
+        "description": "Per-arg shape for preview rendering."
+      },
+      "ToolPreviewArgHint": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Argument name"
+          },
+          "used": {
+            "type": "boolean",
+            "title": "Used",
+            "description": "Whether any template references this arg",
+            "default": false
+          },
+          "filters": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Filters",
+            "description": "Jinja filters applied to this arg across templates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ToolPreviewArgHint",
+        "description": "Per-arg type/usage hint inferred from the templates."
+      },
+      "ToolPreviewOutput": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Output name (echoed in the response)"
+          },
+          "template": {
+            "type": "string",
+            "title": "Template",
+            "description": "Jinja template body",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ToolPreviewOutput",
+        "description": "Per-output shape for preview rendering."
+      },
+      "ToolPreviewOutputResult": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Output name (echoes the request)"
+          },
+          "compiled": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compiled",
+            "description": "Rendered template string when successful"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error",
+            "description": "Jinja error message when rendering or parsing failed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ToolPreviewOutputResult",
+        "description": "Per-output preview result."
       },
       "ToolResultItem": {
         "properties": {
@@ -107528,6 +109269,19 @@
             ],
             "title": "Role Id",
             "description": "Role resource UUID"
+          },
+          "primary_department_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Department Id",
+            "description": "UUID of the department to designate as primary"
           }
         },
         "type": "object",
@@ -108199,6 +109953,22 @@
             ],
             "title": "Problem Statement",
             "description": "Problem statement text value"
+          },
+          "flag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Ids",
+            "description": "Selected flag option UUIDs \u2014 canonical; server derives semantics by flag type/value"
           },
           "active_flag_id": {
             "anyOf": [
@@ -108960,6 +110730,38 @@
             "title": "Auth Item Value Ids",
             "description": "Auth item value UUIDs"
           },
+          "auth_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Ids",
+            "description": "Auth resource UUIDs to assign"
+          },
+          "provider_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Ids",
+            "description": "Provider resource UUIDs to assign"
+          },
           "setting_resource_ids": {
             "anyOf": [
               {
@@ -109516,6 +111318,19 @@
             "title": "Permission Ids",
             "description": "Permission identifiers"
           },
+          "instruction_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instruction Id",
+            "description": "Response template instruction resource UUID"
+          },
           "tool_ids": {
             "anyOf": [
               {
@@ -109995,6 +111810,211 @@
         "type": "object",
         "title": "SectionFilter"
       },
+      "app__infra__attempt__chat__types__DraftImageValue": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the image"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Description of the image"
+          },
+          "upload_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upload Id",
+            "description": "UUID of the uploaded file"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "description"
+        ],
+        "title": "DraftImageValue",
+        "description": "Value for creating an image via the draft endpoint."
+      },
+      "app__infra__attempt__chat__types__DraftOptionValue": {
+        "properties": {
+          "option_text": {
+            "type": "string",
+            "title": "Option Text",
+            "description": "Display text for the option"
+          },
+          "question_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Id",
+            "description": "UUID of the parent question"
+          }
+        },
+        "type": "object",
+        "required": [
+          "option_text"
+        ],
+        "title": "DraftOptionValue",
+        "description": "Value for creating an option via the draft endpoint."
+      },
+      "app__infra__attempt__chat__types__DraftQuestionValue": {
+        "properties": {
+          "question_text": {
+            "type": "string",
+            "title": "Question Text",
+            "description": "Text of the question"
+          },
+          "time": {
+            "type": "integer",
+            "title": "Time",
+            "description": "Video timestamp in seconds",
+            "default": 30
+          },
+          "allow_multiple": {
+            "type": "boolean",
+            "title": "Allow Multiple",
+            "description": "Whether multiple answers are allowed",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_text"
+        ],
+        "title": "DraftQuestionValue",
+        "description": "Value for creating a question via the draft endpoint."
+      },
+      "app__infra__attempt__chat__types__DraftVideoValue": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the video"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Description of the video"
+          },
+          "upload_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upload Id",
+            "description": "UUID of the uploaded file"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "description"
+        ],
+        "title": "DraftVideoValue",
+        "description": "Value for creating a video via the draft endpoint."
+      },
+      "app__infra__attempt__chat__types__SectionFilter": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Filter options by search text"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Max options to return"
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected",
+            "description": "Only return selected items"
+          },
+          "suggested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested",
+            "description": "Only return suggested items"
+          },
+          "include": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include",
+            "description": "Include this section in the response"
+          },
+          "parameter_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Ids",
+            "description": "Parameter IDs to filter parameter_fields by"
+          }
+        },
+        "type": "object",
+        "title": "SectionFilter",
+        "description": "Per-section filter options for chat GET requests."
+      },
       "app__infra__auth__types__DraftFormState": {
         "properties": {
           "name": {
@@ -110199,211 +112219,6 @@
         "type": "object",
         "title": "SectionFilter",
         "description": "Per-section filter options for GET requests."
-      },
-      "app__infra__chat__types__DraftImageValue": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "Name of the image"
-          },
-          "description": {
-            "type": "string",
-            "title": "Description",
-            "description": "Description of the image"
-          },
-          "upload_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Upload Id",
-            "description": "UUID of the uploaded file"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "description"
-        ],
-        "title": "DraftImageValue",
-        "description": "Value for creating an image via the draft endpoint."
-      },
-      "app__infra__chat__types__DraftOptionValue": {
-        "properties": {
-          "option_text": {
-            "type": "string",
-            "title": "Option Text",
-            "description": "Display text for the option"
-          },
-          "question_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Question Id",
-            "description": "UUID of the parent question"
-          }
-        },
-        "type": "object",
-        "required": [
-          "option_text"
-        ],
-        "title": "DraftOptionValue",
-        "description": "Value for creating an option via the draft endpoint."
-      },
-      "app__infra__chat__types__DraftQuestionValue": {
-        "properties": {
-          "question_text": {
-            "type": "string",
-            "title": "Question Text",
-            "description": "Text of the question"
-          },
-          "time": {
-            "type": "integer",
-            "title": "Time",
-            "description": "Video timestamp in seconds",
-            "default": 30
-          },
-          "allow_multiple": {
-            "type": "boolean",
-            "title": "Allow Multiple",
-            "description": "Whether multiple answers are allowed",
-            "default": false
-          }
-        },
-        "type": "object",
-        "required": [
-          "question_text"
-        ],
-        "title": "DraftQuestionValue",
-        "description": "Value for creating a question via the draft endpoint."
-      },
-      "app__infra__chat__types__DraftVideoValue": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "Name of the video"
-          },
-          "description": {
-            "type": "string",
-            "title": "Description",
-            "description": "Description of the video"
-          },
-          "upload_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Upload Id",
-            "description": "UUID of the uploaded file"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "description"
-        ],
-        "title": "DraftVideoValue",
-        "description": "Value for creating a video via the draft endpoint."
-      },
-      "app__infra__chat__types__SectionFilter": {
-        "properties": {
-          "search": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Search",
-            "description": "Filter options by search text"
-          },
-          "limit": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Limit",
-            "description": "Max options to return"
-          },
-          "selected": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Selected",
-            "description": "Only return selected items"
-          },
-          "suggested": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Suggested",
-            "description": "Only return suggested items"
-          },
-          "include": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Include",
-            "description": "Include this section in the response"
-          },
-          "parameter_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parameter Ids",
-            "description": "Parameter IDs to filter parameter_fields by"
-          }
-        },
-        "type": "object",
-        "title": "SectionFilter",
-        "description": "Per-section filter options for chat GET requests."
       },
       "app__infra__cohort__types__DraftFormState": {
         "properties": {
@@ -112047,6 +113862,14 @@
             "title": "Pricing Ids",
             "description": "Pricing tier identifiers"
           },
+          "pricing": {
+            "items": {
+              "$ref": "#/components/schemas/PricingDraftValue"
+            },
+            "type": "array",
+            "title": "Pricing",
+            "description": "Resolved inline-created pricing entries (all ids filled in)."
+          },
           "quality_ids": {
             "items": {
               "type": "string",
@@ -112719,6 +114542,30 @@
             ],
             "title": "Role Id",
             "description": "Assigned role resource UUID"
+          },
+          "role_draft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProfileRoleDraftValue"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Echoed role draft with resolved request_limit_ids after inline-create"
+          },
+          "primary_department_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Department Id",
+            "description": "Assigned primary department UUID"
           },
           "pending_ids": {
             "items": {
@@ -113682,6 +115529,24 @@
             "title": "Auth Item Value Ids",
             "description": "Assigned auth item value UUIDs"
           },
+          "auth_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Auth Ids",
+            "description": "Assigned auth resource UUIDs"
+          },
+          "provider_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Provider Ids",
+            "description": "Assigned provider resource UUIDs"
+          },
           "provider_keys": {
             "items": {
               "$ref": "#/components/schemas/SettingProviderKeyDraftValue"
@@ -114201,6 +116066,14 @@
             "type": "array",
             "title": "Args Outputs Ids",
             "description": "Legacy alias for argument output identifiers"
+          },
+          "args_drafts": {
+            "items": {
+              "$ref": "#/components/schemas/ToolArgDraftValue"
+            },
+            "type": "array",
+            "title": "Args Drafts",
+            "description": "Echoed unified per-arg drafts after resolution (ids filled in, outputs nested)"
           },
           "instruction_id": {
             "anyOf": [

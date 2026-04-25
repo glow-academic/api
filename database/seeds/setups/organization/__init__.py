@@ -39,6 +39,7 @@ MODULES = [
     "personas",
     "fields",
     "parameters",
+    "colors",
     "settings",
     "profiles",
 ]

@@ -580,7 +580,9 @@ class UpdateScenarioItem(ScopedItem):
     description: str | None = Field(None, description="Description text value")
     problem_statement_id: UUID | None = Field(None, description="UUID of the problem statement resource")
     problem_statement: str | None = Field(None, description="Problem statement text value")
-    # Flag IDs (individual typed flags)
+    # Canonical flag list — server merges with any typed *_flag_id fields below
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    # Flag IDs (individual typed flags — legacy; kept for CSV/import paths)
     active_flag_id: UUID | None = Field(None, description="UUID of the active flag option")
     objectives_enabled_flag_id: UUID | None = Field(None, description="UUID of the objectives enabled flag option")
     images_enabled_flag_id: UUID | None = Field(None, description="UUID of the images enabled flag option")

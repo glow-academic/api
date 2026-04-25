@@ -613,6 +613,9 @@ class ListAgentApiAgent(BaseModel):
     role: str | None = Field(None, description="Agent role identifier")
     updated_at: dt.datetime | None = Field(None, description="Last updated timestamp")
     department_ids: list[str] | None = Field(None, description="Associated department UUIDs")
+    flag_ids: list[UUID] | None = Field(None, description="Currently selected flag option UUIDs")
+    is_inactive: bool | None = Field(None, description="Whether the agent is inactive (derived from agent_active flag)")
+    is_mcp: bool | None = Field(None, description="Whether the agent is exposed via MCP (derived from mcp flag)")
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     can_duplicate: bool | None = Field(None, description="Whether the current user can duplicate")
     can_delete: bool | None = Field(None, description="Whether the current user can delete")
@@ -626,6 +629,7 @@ class ListAgentApiResponse(BaseModel):
     department_filter: ListFilterSection | None = Field(None, description="Filter options for departments")
     model_filter: ListFilterSection | None = Field(None, description="Filter options for models")
     tool_filter: ListFilterSection | None = Field(None, description="Filter options for tools")
+    flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
     total_count: int | None = Field(None, description="Total number of matching records")
 
 

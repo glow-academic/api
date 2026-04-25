@@ -269,7 +269,10 @@ class ListDocumentApiDocument(BaseModel):
     department_ids: list[str] | None = Field(None, description="Associated department IDs")
     scenario_ids: list[UUID] | None = Field(None, description="Associated scenario UUIDs")
     field_ids: list[UUID] | None = Field(None, description="Associated field UUIDs")
-    is_inactive: bool | None = Field(None, description="Whether the document is inactive")
+    flag_ids: list[UUID] | None = Field(None, description="Currently selected flag option UUIDs")
+    is_inactive: bool | None = Field(None, description="Whether the document is inactive (derived from document_active flag)")
+    is_template: bool | None = Field(None, description="Whether the document is a template (derived from document_template flag)")
+    extension: str | None = Field(None, description="File extension derived from the primary file (e.g. 'pdf', 'docx', 'txt')")
     num_scenarios: int | None = Field(None, description="Total number of scenarios")
     active_scenario_count: int | None = Field(None, description="Number of active scenarios")
     file_id: UUID | None = Field(None, description="Associated file resource UUID")
@@ -288,6 +291,7 @@ class ListDocumentApiResponse(BaseModel):
     scenario_filter: ListFilterSection | None = Field(None, description="Filter options for scenarios in list UI")
     field_filter: ListFilterSection | None = Field(None, description="Filter options for fields in list UI")
     department_filter: ListFilterSection | None = Field(None, description="Filter options for departments in list UI")
+    flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
     total_count: int | None = Field(None, description="Total number of matching records")
 
 

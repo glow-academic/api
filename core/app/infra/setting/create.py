@@ -124,13 +124,19 @@ async def create_setting_impl(
     async with pool.acquire() as conn:
         async with conn.transaction():
             for idx, item in enumerate(items):
+                # Canonical flag state: prefer item.flag_ids; fall back to legacy
+                # active_flag_id during the transition.
+                combined_flag_ids: list[UUID] = list(item.flag_ids or [])
+                if not combined_flag_ids and item.active_flag_id:
+                    combined_flag_ids.append(item.active_flag_id)
+
                 result = await create_setting_artifact(
                     conn,
                     id=item.id,
                     name_id=item.name_id,
                     description_id=item.description_id,
                     department_ids=item.department_ids,
-                    flag_ids=[item.active_flag_id] if item.active_flag_id else None,
+                    flag_ids=combined_flag_ids or None,
                     color_ids=item.color_ids,
                     logins_ids=item.logins_ids,
                     system_ids=item.system_ids,
@@ -139,6 +145,8 @@ async def create_setting_impl(
                     provider_key_ids=item.provider_key_ids,
                     auth_item_key_ids=item.auth_item_key_ids,
                     auth_item_value_ids=item.auth_item_value_ids,
+                    auth_ids=item.auth_ids,
+                    provider_ids=item.provider_ids,
                     setting_ids=(
                         [snapshot_ids[idx]]
                         if snapshot_ids

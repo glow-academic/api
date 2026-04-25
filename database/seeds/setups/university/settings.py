@@ -7,12 +7,14 @@ Names and descriptions are CREATED as new resources.
 Provider keys and auth item keys are created by the keys module and linked here.
 """
 
+from database.seeds.auths import AUTH_RESOURCE_IDS
 from database.seeds.ids import sid
 from database.seeds.logins import (
     AUTH_LOGIN_IDS,
     build_profile_logins,
 )
 from database.seeds.mcps import MCP_COMPOSER
+from database.seeds.providers import PROVIDER_IDS
 from database.seeds.setups.university.departments import (
     UNIVERSITY_DEPT,
     UNIVERSITY_DEPT_RESOURCE,
@@ -65,6 +67,13 @@ UNIVERSITY_SETTING_RESOURCE = sid("uni/setting-resource/university")
 # Setting definitions
 # ---------------------------------------------------------------------------
 
+_UNI_AUTH_IDS = [
+    AUTH_RESOURCE_IDS[name]
+    for name in ("microsoft", "google", "learnloop")
+    if name in AUTH_RESOURCE_IDS
+]
+_UNI_PROVIDER_IDS = [PROVIDER_IDS[name] for name in ("learnloop",) if name in PROVIDER_IDS]
+
 settings = [
     dict(
         id=UNIVERSITY_SETTING,
@@ -73,6 +82,8 @@ settings = [
         description="Department-specific settings for the University, linking authentication, AI systems, and grading thresholds.",
         active_flag=True,
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
+        auth_ids=_UNI_AUTH_IDS or None,
+        provider_ids=_UNI_PROVIDER_IDS or None,
         provider_key_ids=PROVIDER_KEY_IDS,
         auth_item_key_ids=AUTH_ITEM_KEY_IDS,
         auth_item_value_ids=AUTH_ITEM_VALUE_IDS,

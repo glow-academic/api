@@ -31,6 +31,16 @@ async def provider_duplicate(sid: str, data: dict[str, Any]) -> None:
     pool = get_pool()
     redis = get_redis_client()
 
+    provider_id = payload.id or payload.provider_id
+    if provider_id is None:
+        await internal_sio.emit("provider.duplicate.failed", {
+            "sid": sid,
+            "rooms": [sid],
+            "message": "Provider id is required (provide 'id' or legacy 'provider_id').",
+            "error_type": "validation",
+        })
+        return
+
     await run_artifact_operation_with_audit(
         pool,
         redis,
@@ -44,7 +54,7 @@ async def provider_duplicate(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            id=payload.provider_id,
+            id=provider_id,
             session_id=identity.session_id,
             accept=payload.accept,
             idempotency_key=payload.idempotency_key,

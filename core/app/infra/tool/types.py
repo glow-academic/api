@@ -81,6 +81,18 @@ class ToolArgOutputResource(BaseModel):
     pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
+class ToolInstructionResource(BaseModel):
+    """Instruction resource for a tool."""
+
+    id: UUID | None = Field(None, description="Instruction resource identifier")
+    template: str | None = Field(None, description="Instruction template body")
+    name: str | None = Field(None, description="Instruction display name (when present)")
+    generated: bool | None = Field(None, description="Whether the instruction was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
 class ToolPermissionResource(BaseModel):
     id: UUID | None = Field(None, description="Permission resource identifier")
     artifact: str | None = Field(None, description="Permission artifact type")
@@ -113,6 +125,7 @@ class GetToolApiRequest(BaseModel):
     arg_positions: SectionFilter | None = Field(None, description="Filter options for arg positions")
     args_outputs: SectionFilter | None = Field(None, description="Filter options for arg outputs")
     permissions: SectionFilter | None = Field(None, description="Filter options for permissions")
+    instructions: SectionFilter | None = Field(None, description="Filter options for instructions")
 
 
 class GetToolApiResponse(BaseModel):
@@ -135,6 +148,7 @@ class GetToolApiResponse(BaseModel):
     arg_positions: list[ToolArgPositionResource] | None = Field(None, description="Argument position resources")
     args_outputs: list[ToolArgOutputResource] | None = Field(None, description="Argument output resources")
     permissions: list[ToolPermissionResource] | None = Field(None, description="Permission resources")
+    instructions: list[ToolInstructionResource] | None = Field(None, description="Instruction resources (single-select)")
 
 
 class ListToolApiTool(BaseModel):
@@ -142,6 +156,8 @@ class ListToolApiTool(BaseModel):
     name: str | None = Field(None, description="Display name of the tool")
     description: str | None = Field(None, description="Tool description text")
     active: bool | None = Field(None, description="Whether this tool is currently active")
+    is_inactive: bool | None = Field(None, description="Whether this tool is inactive (derived from tool_active flag)")
+    flag_ids: list[UUID] | None = Field(None, description="Currently selected flag option UUIDs")
     updated_at: datetime | None = Field(None, description="Timestamp of last update")
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     can_duplicate: bool | None = Field(None, description="Whether the current user can duplicate")
@@ -153,6 +169,8 @@ class ListToolApiResponse(BaseModel):
     tools: list[ListToolApiTool] | None = Field(None, description="List of tool entries")
     department_filter: ListFilterSection | None = Field(None, description="Department filter options")
     creatable_filter: ListFilterSection | None = Field(None, description="Creatable filter options")
+    agent_filter: ListFilterSection | None = Field(None, description="Filter options for agents that reference these tools")
+    flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
     total_count: int | None = Field(None, description="Total number of tools")
 
 
@@ -214,6 +232,7 @@ class CreateToolItem(ScopedItem):
         "args_ids": "args",
         "args_outputs_ids": "args_outputs",
         "permission_ids": "permissions",
+        "instruction_id": "instructions",
         "tool_ids": "tools",
         "active_flag": "flags",
         "active_flag_id": "flags",
@@ -258,6 +277,7 @@ class UpdateToolItem(ScopedItem):
     args_ids: list[UUID] | None = Field(None, description="Argument identifiers")
     args_outputs_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
+    instruction_id: UUID | None = Field(None, description="Response template instruction resource UUID")
     tool_ids: list[UUID] | None = Field(None, description="Related tool identifiers")
     # Value-based fields for CSV import (match-by-name resolution)
     active_flag: bool | None = Field(None, description="Whether this tool is active")
@@ -346,6 +366,38 @@ class CreateArgsOutputInput(BaseModel):
     template: str = Field("", description="Output template")
 
 
+class ToolArgOutputDraftValue(BaseModel):
+    """Output-template draft value for an inline-creatable args_outputs row.
+
+    id null → server creates an args_outputs_resource row scoped to the
+    enclosing arg's resolved id. id set → row is re-linked unchanged
+    (saved rows are immutable on this surface).
+    """
+
+    id: UUID | None = Field(None, description="Existing args_outputs_resource id when re-linking")
+    name: str = Field(..., description="Output name")
+    template: str = Field("", description="Jinja template — variables drawn from the arg's name and any other selected args")
+
+
+class ToolArgDraftValue(BaseModel):
+    """Unified per-arg draft value for the Arguments step card.
+
+    Each entry maps 1:1 to one row of the Arguments list. Position is the
+    *index* of the entry — the resolver creates/finds an arg_positions_resource
+    row matching (args_id, value=index). Outputs nest under their owning arg.
+    Saved rows (id set) stay immutable; the client surfaces them as chips and
+    cloning into a fresh draft to edit (Roles pattern).
+    """
+
+    id: UUID | None = Field(None, description="Existing args_resource id when re-linking")
+    name: str = Field(..., description="Argument name")
+    field_type: str = Field("string", description="Argument type (string, number, boolean, array)")
+    description: str = Field("", description="Argument description")
+    required: bool = Field(False, description="Whether the argument is required")
+    default_value: str = Field("", description="Default value")
+    outputs: list[ToolArgOutputDraftValue] = Field(default_factory=list, description="Per-arg jinja output templates")
+
+
 class PatchToolDraftApiRequest(ScopedItem):
     """Request model for canonical tool draft endpoint."""
 
@@ -369,6 +421,7 @@ class PatchToolDraftApiRequest(ScopedItem):
     args_output_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
     args_outputs_ids: list[UUID] | None = Field(None, description="Legacy alias for argument output identifiers")
     args_outputs: list[CreateArgsOutputInput] | None = Field(None, description="Argument outputs to create inline")
+    args_drafts: list[ToolArgDraftValue] | None = Field(None, description="Unified per-arg drafts for the Arguments step card. When present, takes precedence over the flat arg_ids/arg_position_ids/args_output_ids triple.")
     instruction_id: UUID | None = Field(None, description="Instruction resource identifier")
     instruction_ids: list[UUID] | None = Field(None, description="Instruction resource identifiers")
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
@@ -407,6 +460,7 @@ class DraftFormState(BaseModel):
     arg_position_ids: list[UUID] = Field(..., description="Argument position identifiers")
     args_output_ids: list[UUID] = Field(..., description="Argument output identifiers")
     args_outputs_ids: list[UUID] = Field(..., description="Legacy alias for argument output identifiers")
+    args_drafts: list[ToolArgDraftValue] = Field(default_factory=list, description="Echoed unified per-arg drafts after resolution (ids filled in, outputs nested)")
     instruction_id: UUID | None = Field(None, description="Instruction resource identifier")
     instruction_ids: list[UUID] = Field(default_factory=list, description="Instruction resource identifiers")
     permission_ids: list[UUID] = Field(..., description="Permission identifiers")
@@ -503,3 +557,55 @@ class ProblemToolApiResponse(BaseModel):
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+
+
+# =============================================================================
+# Preview Types — server-side Jinja render for the Arguments step card
+# =============================================================================
+
+
+class ToolPreviewArg(BaseModel):
+    """Per-arg shape for preview rendering."""
+
+    name: str = Field(..., description="Argument name (used as the Jinja variable)")
+    field_type: str = Field("string", description="Argument type — drives mock-value coercion")
+    default_value: str = Field("", description="Fallback if mock value isn't provided")
+
+
+class ToolPreviewOutput(BaseModel):
+    """Per-output shape for preview rendering."""
+
+    name: str = Field(..., description="Output name (echoed in the response)")
+    template: str = Field("", description="Jinja template body")
+
+
+class PreviewToolApiRequest(BaseModel):
+    """Render a tool's outputs against mock arg values."""
+
+    args: list[ToolPreviewArg] = Field(default_factory=list, description="Args available as Jinja variables")
+    outputs: list[ToolPreviewOutput] = Field(default_factory=list, description="Output templates to render")
+    mock: dict[str, str] = Field(default_factory=dict, description="Mock values keyed by arg name")
+
+
+class ToolPreviewOutputResult(BaseModel):
+    """Per-output preview result."""
+
+    name: str = Field(..., description="Output name (echoes the request)")
+    compiled: str | None = Field(None, description="Rendered template string when successful")
+    error: str | None = Field(None, description="Jinja error message when rendering or parsing failed")
+
+
+class ToolPreviewArgHint(BaseModel):
+    """Per-arg type/usage hint inferred from the templates."""
+
+    name: str = Field(..., description="Argument name")
+    used: bool = Field(False, description="Whether any template references this arg")
+    filters: list[str] = Field(default_factory=list, description="Jinja filters applied to this arg across templates")
+
+
+class PreviewToolApiResponse(BaseModel):
+    """Response for the tool preview endpoint."""
+
+    outputs: list[ToolPreviewOutputResult] = Field(default_factory=list, description="Rendered output blocks")
+    type_hints: list[ToolPreviewArgHint] = Field(default_factory=list, description="Per-arg usage/filter hints")
+    undeclared: list[str] = Field(default_factory=list, description="Variable names referenced by templates but not declared in args")

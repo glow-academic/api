@@ -32,8 +32,10 @@ from app.infra.tool.types import (
 from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.tool.get import get_tools
 from app.tools.artifacts.tool.search import search_tools
+from app.tools.resources.agents.search import search_agents
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.get import get_descriptions
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 
 TOOL_IMPORT_FIELDS: list[dict[str, Any]] = [
@@ -62,11 +64,15 @@ async def search_tool_impl(
     search: str | None = None,
     filter_department_ids: list[UUID] | None = None,
     filter_creatable: list[str] | None = None,
+    filter_agent_ids: list[UUID] | None = None,
     # Facet search text
     department_search: str | None = None,
+    flag_search: str | None = None,
+    agent_search: str | None = None,
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
+    **_kwargs,
 ) -> ListToolApiResponse:
     """Tool search using composable infra functions."""
     from fastapi import HTTPException
@@ -86,6 +92,11 @@ async def search_tool_impl(
 
     # ── Step 2: Reverse lookups ────────────────────────────────────────
 
+    # filter_agent_ids reverse-lookup is not yet wired — agents reference
+    # tools_resource IDs while the artifact list is keyed on tool_artifact IDs,
+    # which requires a separate cross-walk. The agent_filter facet is exposed
+    # so the client can render the picker; selection-driven filtering is a
+    # follow-up.
     tool_resource_ids: list[UUID] | None = None
 
     # ── Step 3: Search tools ────────────────────────────────────────
@@ -142,14 +153,38 @@ async def search_tool_impl(
                 conn, redis, search=department_search, tool=True, limit_count=100
             )
 
+    async def _fetch_flag_facet() -> list:
+        async with pool.acquire() as conn:
+            return await search_flags(
+                conn, redis, search=flag_search, tool=True, limit_count=100
+            )
+
+    async def _fetch_agent_facet() -> list:
+        """Agents that reference at least one tool. Filters to the names+ids
+        the client needs to render an agent picker on the tools list page."""
+        async with pool.acquire() as conn:
+            agent_rows = await search_agents(
+                conn,
+                redis,
+                search=agent_search,
+                limit_count=200,
+            )
+        # Keep only agents that actually reference a tool; otherwise the picker
+        # would be cluttered with agents that have nothing to filter against.
+        return [a for a in agent_rows if getattr(a, "tool_ids", None)]
+
     (
         names_data,
         descriptions_data,
         department_facet,
+        flag_facet,
+        agent_facet,
     ) = await asyncio.gather(
         _fetch_names(),
         _fetch_descriptions(),
         _fetch_department_facet(),
+        _fetch_flag_facet(),
+        _fetch_agent_facet(),
     )
 
     # Build lookup maps
@@ -182,6 +217,8 @@ async def search_tool_impl(
                 name=name_obj.name if name_obj else None,
                 description=desc_obj.description if desc_obj else None,
                 active=a.active,
+                is_inactive=not a.active,
+                flag_ids=list(a.flag_ids or []),
                 updated_at=a.updated_at,
                 can_edit=can_edit,
                 can_duplicate=can_duplicate,
@@ -211,11 +248,29 @@ async def search_tool_impl(
         selected_ids=filter_creatable if filter_creatable else None,
     )
 
+    flag_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+            for f in flag_facet
+        ],
+        search=flag_search,
+    )
+
+    agent_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(ag.id), name=ag.name, count=0) for ag in agent_facet
+        ],
+        selected_ids=[str(aid) for aid in filter_agent_ids] if filter_agent_ids else None,
+        search=agent_search,
+    )
+
     return ListToolApiResponse(
         actor_name=actor_name,
         tools=tools_list,
         department_filter=department_filter,
         creatable_filter=creatable_filter,
+        agent_filter=agent_filter,
+        flag_filter=flag_filter,
         total_count=total_count,
     )
 

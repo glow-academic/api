@@ -32,7 +32,9 @@ from app.tools.artifacts.setting.get import get_settings
 from app.tools.artifacts.setting.search import (
     search_settings as search_setting_artifacts,
 )
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.resources.descriptions.get import get_descriptions
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 
 SETTING_IMPORT_FIELDS: list[dict[str, Any]] = [
@@ -71,6 +73,8 @@ async def search_setting_impl(
     redis: Redis,
     *,
     profile_id: UUID,
+    flag_search: str | None = None,
+    **_kwargs,
 ) -> ListSettingApiResponse:
     """Setting search using composable infra functions.
 
@@ -107,7 +111,7 @@ async def search_setting_impl(
         )
 
     if not setting_ids:
-        return _empty_response(actor_name)
+        return _empty_response(actor_name, user_role=profile.role)
 
     # ── Step 3: Get setting artifacts with junction IDs ────────────────
 
@@ -142,12 +146,20 @@ async def search_setting_impl(
         async with pool.acquire() as conn:
             return await get_descriptions(conn, all_description_ids, redis)
 
+    async def _fetch_flag_facet() -> list:
+        async with pool.acquire() as conn:
+            return await search_flags(
+                conn, redis, search=flag_search, setting=True, limit_count=100
+            )
+
     (
         names_data,
         descriptions_data,
+        flag_facet,
     ) = await asyncio.gather(
         _fetch_names(),
         _fetch_descriptions(),
+        _fetch_flag_facet(),
     )
 
     # Build lookup maps
@@ -182,6 +194,7 @@ async def search_setting_impl(
                 settings_id=a.id,
                 created_at=a.created_at,
                 active=a.active,
+                is_inactive=not a.active,
                 name=name_obj.name if name_obj else None,
                 description=desc_obj.description if desc_obj else None,
                 department_ids=dept_ids_str,
@@ -191,11 +204,20 @@ async def search_setting_impl(
             )
         )
 
+    flag_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+            for f in flag_facet
+        ],
+        search=flag_search,
+    )
+
     return ListSettingApiResponse(
         actor_name=actor_name,
-        role_level=user_role_level, role_permissions=profile.role_permissions,
+        user_role=profile.role,
         settings=settings_list,
         keys=None,
+        flag_filter=flag_filter,
     )
 
 
@@ -204,11 +226,11 @@ async def search_setting_impl(
 
 def _empty_response(
     actor_name: str | None = None,
-    role_level: int = 99,
+    user_role: str | None = None,
 ) -> ListSettingApiResponse:
     return ListSettingApiResponse(
         actor_name=actor_name,
-        role_level=user_role_level, role_permissions=profile.role_permissions,
+        user_role=user_role,
         settings=[],
         keys=None,
     )

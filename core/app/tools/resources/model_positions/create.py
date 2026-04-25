@@ -19,11 +19,12 @@ async def create_model_position(
     mcp: bool = False,
     soft: bool = False,
 ) -> GetModelPositionResponse:
-    """Create a model_position resource (plain INSERT — no unique constraint)."""
+    """Create a model_position resource. Idempotent on explicit id via ON CONFLICT."""
     model_position_id = await conn.fetchval(
         """
         INSERT INTO model_positions_resource (id, model_id, value, active, mcp, generated)
         VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, $4)
+        ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         model_id,

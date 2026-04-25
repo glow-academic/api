@@ -221,6 +221,9 @@ async def create_tool_impl(
                     args_ids=item.args_ids,
                     args_outputs_ids=item.args_outputs_ids,
                     permission_ids=item.permission_ids,
+                    instruction_ids=[item.instruction_id]
+                    if item.instruction_id
+                    else None,
                     tool_ids=[snapshot_ids[idx]] if snapshot_ids else None,
                     soft=soft,
                 )

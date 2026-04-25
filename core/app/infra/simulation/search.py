@@ -38,6 +38,7 @@ from app.tools.resources.cohorts.search import (
     search_cohorts as search_cohorts_resource,
 )
 from app.tools.resources.departments.search import search_departments
+from app.tools.resources.flags.get import get_flags
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 from app.tools.resources.personas.get import (
@@ -169,11 +170,14 @@ async def search_simulation_impl(
 
     all_name_ids: list[UUID] = []
     all_scenario_resource_ids: set[UUID] = set()
+    all_flag_ids: set[UUID] = set()
 
     for a in artifacts:
         all_name_ids.extend(a.name_ids or [])
         for sid in a.scenario_ids or []:
             all_scenario_resource_ids.add(sid)
+        for fid in a.flag_ids or []:
+            all_flag_ids.add(fid)
 
     # Parallel: hydrate resources + facets
 
@@ -215,6 +219,12 @@ async def search_simulation_impl(
                 conn, redis, search=flag_search, simulation=True, limit_count=100
             )
 
+    async def _fetch_flag_rows() -> list:
+        if not all_flag_ids:
+            return []
+        async with pool.acquire() as conn:
+            return await get_flags(conn, list(all_flag_ids), redis)
+
     (
         names_data,
         scenarios_data,
@@ -222,6 +232,7 @@ async def search_simulation_impl(
         cohort_facet,
         department_facet,
         flag_facet,
+        flag_rows_data,
     ) = await asyncio.gather(
         _fetch_names(),
         _fetch_scenarios(),
@@ -229,10 +240,18 @@ async def search_simulation_impl(
         _fetch_cohort_facet(),
         _fetch_department_facet(),
         _fetch_flag_facet(),
+        _fetch_flag_rows(),
     )
 
     # Build lookup maps
     name_map = {n.id: n for n in names_data}
+
+    # Flag id -> (type, value)
+    flag_meta_map: dict[UUID, tuple[str | None, bool | None]] = {
+        f.id: (getattr(f, "type", None), getattr(f, "value", None))
+        for f in flag_rows_data
+        if getattr(f, "id", None)
+    }
 
     # Collect persona IDs from scenarios for color dot rendering
     all_persona_ids: set[UUID] = set()
@@ -304,8 +323,15 @@ async def search_simulation_impl(
         )
         can_duplicate_val = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
-        # Determine practice flag from flags junction
+        # is_inactive mirrors artifact-level active flag.
+        # is_practice comes from the practice flag selected via flag_ids.
         is_inactive = not a.active
+        is_practice = False
+        for fid in a.flag_ids or []:
+            ftype, fvalue = flag_meta_map.get(fid, (None, None))
+            if ftype == "practice" and fvalue is True:
+                is_practice = True
+                break
 
         api_simulations.append(
             ListSimulationApiSimulation(
@@ -313,8 +339,10 @@ async def search_simulation_impl(
                 name=name_obj.name if name_obj else None,
                 description=None,
                 department_ids=dept_ids_str,
+                flag_ids=list(a.flag_ids or []),
                 is_inactive=is_inactive,
-                practice_simulation=None,
+                is_practice=is_practice,
+                practice_simulation=is_practice,
                 generated=a.generated,
                 mcp=a.mcp,
                 scenario_ids=[str(sid) for sid in (a.scenario_ids or [])],

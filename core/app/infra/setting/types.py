@@ -8,6 +8,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.infra.api_types import ListFilterSection
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.setting_drafts.types import GetSettingDraftResponse
 
@@ -151,11 +152,16 @@ class SettingProfileCatalogResource(BaseModel):
 
 
 class SettingAuthCatalogResource(BaseModel):
-    auth_id: UUID | None = Field(None, description="Auth provider identifier")
+    id: UUID | None = Field(None, description="Auth provider identifier (canonical for picker selection)")
+    auth_id: UUID | None = Field(None, description="Auth provider identifier (alias for id)")
     name: str | None = Field(None, description="Auth display name")
     description: str | None = Field(None, description="Auth description")
     slug: str | None = Field(None, description="Auth slug")
     protocol: str | None = Field(None, description="Auth protocol")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
 class SettingIconCatalogResource(BaseModel):
@@ -213,20 +219,36 @@ class SettingMcpOption(BaseModel):
 
 
 class SettingProviderKeyDraftValue(BaseModel):
-    """Draft value object for an inline-creatable (provider × key) pair."""
+    """Draft value object for an inline-creatable (provider × key) pair.
+
+    Two flows:
+    - Create-by-value: caller supplies `key_value` (and optional `key_name`).
+      Server encrypts it, creates a fresh `keys_resource` row, and links a
+      `provider_keys_resource` row for (provider_id, new_key_id).
+    - Re-link existing: caller supplies `key_id` referencing an existing
+      `keys_resource` row. Server upserts the junction.
+    """
 
     id: UUID | None = Field(None, description="Existing provider_keys_resource id when known")
     provider_id: UUID = Field(..., description="Provider identifier")
-    key_id: UUID = Field(..., description="Key identifier")
+    key_id: UUID | None = Field(None, description="Existing keys_resource id (optional when key_value provided)")
+    key_value: str | None = Field(None, description="Plaintext API key. Server encrypts and creates a keys_resource row.")
+    key_name: str | None = Field(None, description="Optional display name for the new keys_resource row")
 
 
 class SettingAuthItemKeyDraftValue(BaseModel):
-    """Draft value object for an inline-creatable (auth × item × key) triple."""
+    """Draft value object for an inline-creatable (auth × item × key) triple.
+
+    Same two flows as SettingProviderKeyDraftValue: server encrypts
+    `key_value` and creates a fresh `keys_resource` row when supplied.
+    """
 
     id: UUID | None = Field(None, description="Existing auth_item_keys_resource id when known")
     auth_id: UUID = Field(..., description="Auth provider identifier")
     item_id: UUID = Field(..., description="Claim item identifier")
-    key_id: UUID = Field(..., description="Key identifier")
+    key_id: UUID | None = Field(None, description="Existing keys_resource id (optional when key_value provided)")
+    key_value: str | None = Field(None, description="Plaintext key/secret. Server encrypts and creates a keys_resource row.")
+    key_name: str | None = Field(None, description="Optional display name for the new keys_resource row")
 
 
 class SettingAuthItemValueDraftValue(BaseModel):
@@ -309,9 +331,14 @@ class SettingLoginsResource(BaseModel):
 
 
 class SettingProviderCatalogResource(BaseModel):
-    provider_id: UUID | None = Field(None, description="Provider identifier")
+    id: UUID | None = Field(None, description="Provider identifier (canonical for picker selection)")
+    provider_id: UUID | None = Field(None, description="Provider identifier (alias for id)")
     name: str | None = Field(None, description="Provider display name")
     description: str | None = Field(None, description="Provider description")
+    generated: bool | None = Field(None, description="Whether this was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
 class SettingKeyCatalogResource(BaseModel):
@@ -439,9 +466,13 @@ class CreateSettingItem(ScopedItem):
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="UUID of the description resource")
     description: str | None = Field(None, description="Description value to resolve or create")
-    # Optional flag
-    active_flag_id: UUID | None = Field(None, description="UUID of the active flag option")
-    active_flag: bool | None = Field(None, description="Whether the setting is active")
+    # Canonical flag state — ids of selected flag-resource rows. Server derives
+    # semantics by flag type/value.
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    # Legacy single-flag fields (deprecated — use `flag_ids`). Retained as
+    # aliases so older callers (CSV import, seeded tools) keep working.
+    active_flag_id: UUID | None = Field(None, description="DEPRECATED — use flag_ids. UUID of the active flag option")
+    active_flag: bool | None = Field(None, description="DEPRECATED — use flag_ids. Whether the setting is active")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     departments: list[str] | None = Field(None, description="Department names to resolve")
@@ -453,6 +484,8 @@ class CreateSettingItem(ScopedItem):
     provider_key_ids: list[UUID] | None = Field(None, description="Provider key UUIDs")
     auth_item_key_ids: list[UUID] | None = Field(None, description="Auth item key UUIDs")
     auth_item_value_ids: list[UUID] | None = Field(None, description="Auth item value UUIDs")
+    auth_ids: list[UUID] | None = Field(None, description="Auth resource UUIDs to assign")
+    provider_ids: list[UUID] | None = Field(None, description="Provider resource UUIDs to assign")
     setting_resource_ids: list[UUID] | None = Field(None, description="Setting resource UUIDs")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
@@ -460,6 +493,7 @@ class CreateSettingItem(ScopedItem):
         "name": "names",
         "description_id": "descriptions",
         "description": "descriptions",
+        "flag_ids": "flags",
         "active_flag_id": "flags",
         "active_flag": "flags",
         "department_ids": "departments",
@@ -472,6 +506,8 @@ class CreateSettingItem(ScopedItem):
         "provider_key_ids": "provider_keys",
         "auth_item_key_ids": "auth_item_keys",
         "auth_item_value_ids": "auth_item_values",
+        "auth_ids": "auths",
+        "provider_ids": "providers",
         "setting_resource_ids": "setting_resources",
     }
 
@@ -506,9 +542,13 @@ class UpdateSettingItem(ScopedItem):
     name: str | None = Field(None, description="Name value to resolve or create")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
     description: str | None = Field(None, description="Description value to resolve or create")
-    # Optional flag
-    active_flag_id: UUID | None = Field(None, description="UUID of the active flag option")
-    active_flag: bool | None = Field(None, description="Whether the setting is active")
+    # Canonical flag state — ids of selected flag-resource rows. Server derives
+    # semantics by flag type/value.
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    # Legacy single-flag fields (deprecated — use `flag_ids`). Retained as
+    # aliases so older callers (CSV import, seeded tools) keep working.
+    active_flag_id: UUID | None = Field(None, description="DEPRECATED — use flag_ids. UUID of the active flag option")
+    active_flag: bool | None = Field(None, description="DEPRECATED — use flag_ids. Whether the setting is active")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     departments: list[str] | None = Field(None, description="Department names to resolve")
@@ -520,6 +560,8 @@ class UpdateSettingItem(ScopedItem):
     provider_key_ids: list[UUID] | None = Field(None, description="Provider key UUIDs")
     auth_item_key_ids: list[UUID] | None = Field(None, description="Auth item key UUIDs")
     auth_item_value_ids: list[UUID] | None = Field(None, description="Auth item value UUIDs")
+    auth_ids: list[UUID] | None = Field(None, description="Auth resource UUIDs to assign")
+    provider_ids: list[UUID] | None = Field(None, description="Provider resource UUIDs to assign")
     setting_resource_ids: list[UUID] | None = Field(None, description="Setting resource UUIDs")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateSettingItem.RESOURCE_TYPE_MAP
@@ -575,6 +617,8 @@ class PatchSettingDraftApiRequest(ScopedItem):
     provider_key_ids: list[UUID] | None = Field(None, description="Provider key UUIDs")
     auth_item_key_ids: list[UUID] | None = Field(None, description="Auth item key UUIDs")
     auth_item_value_ids: list[UUID] | None = Field(None, description="Auth item value UUIDs")
+    auth_ids: list[UUID] | None = Field(None, description="Auth resource UUIDs to assign")
+    provider_ids: list[UUID] | None = Field(None, description="Provider resource UUIDs to assign")
     provider_keys: list[SettingProviderKeyDraftValue] | None = Field(None, description="Inline-creatable (provider × key) value entries; id=null requests server to resolve or create")
     auth_item_keys: list[SettingAuthItemKeyDraftValue] | None = Field(None, description="Inline-creatable (auth × key) value entries")
     auth_item_values: list[SettingAuthItemValueDraftValue] | None = Field(None, description="Inline-creatable (auth × item × value) entries")
@@ -600,6 +644,8 @@ class PatchSettingDraftApiRequest(ScopedItem):
         "provider_key_ids": "provider_keys",
         "auth_item_key_ids": "auth_item_keys",
         "auth_item_value_ids": "auth_item_values",
+        "auth_ids": "auths",
+        "provider_ids": "providers",
     }
 
 
@@ -620,6 +666,8 @@ class DraftFormState(BaseModel):
     provider_key_ids: list[UUID] = Field(default_factory=list, description="Assigned provider key UUIDs")
     auth_item_key_ids: list[UUID] = Field(default_factory=list, description="Assigned auth item key UUIDs")
     auth_item_value_ids: list[UUID] = Field(default_factory=list, description="Assigned auth item value UUIDs")
+    auth_ids: list[UUID] = Field(default_factory=list, description="Assigned auth resource UUIDs")
+    provider_ids: list[UUID] = Field(default_factory=list, description="Assigned provider resource UUIDs")
     provider_keys: list[SettingProviderKeyDraftValue] = Field(default_factory=list, description="Echoed (provider × key) value entries with resolved ids")
     auth_item_keys: list[SettingAuthItemKeyDraftValue] = Field(default_factory=list, description="Echoed (auth × key) value entries with resolved ids")
     auth_item_values: list[SettingAuthItemValueDraftValue] = Field(default_factory=list, description="Echoed (auth × item × value) entries with resolved ids")
@@ -655,6 +703,7 @@ class ListSettingApiSetting(BaseModel):
     settings_id: UUID | None = Field(None, description="Unique setting identifier")
     created_at: datetime | None = Field(None, description="Timestamp when setting was created")
     active: bool | None = Field(None, description="Whether the setting is currently active")
+    is_inactive: bool | None = Field(None, description="Whether the setting is inactive")
     name: str | None = Field(None, description="Setting display name")
     description: str | None = Field(None, description="Setting description text")
     department_ids: list[str] | None = Field(None, description="Associated department IDs")
@@ -682,6 +731,7 @@ class ListSettingApiResponse(BaseModel):
     user_role: str | None = Field(None, description="Role of the acting user")
     settings: list[ListSettingApiSetting] | None = Field(None, description="List of setting items")
     keys: list[ListSettingApiKey] | None = Field(None, description="List of key items")
+    flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
 
 
 # ========== Delete Endpoint Types ==========

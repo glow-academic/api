@@ -19,11 +19,12 @@ async def create_model_flag(
     mcp: bool = False,
     soft: bool = False,
 ) -> GetModelFlagResponse:
-    """Create a model_flag resource (plain INSERT — no unique constraint)."""
+    """Create a model_flag resource. Idempotent on explicit id via ON CONFLICT."""
     model_flag_id = await conn.fetchval(
         """
         INSERT INTO model_flags_resource (id, model_id, flag_id, active, mcp, generated)
         VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, $4)
+        ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         model_id,

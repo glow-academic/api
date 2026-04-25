@@ -36,6 +36,7 @@ from app.tools.artifacts.eval.search import (
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.flags.get import get_flags
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 
 EVAL_IMPORT_FIELDS: list[dict[str, Any]] = [
@@ -72,9 +73,11 @@ async def search_eval_impl(
     filter_department_ids: list[UUID] | None = None,
     # Facet search text
     department_search: str | None = None,
+    flag_search: str | None = None,
     # Pagination
     page_size: int = 50,
     page_offset: int = 0,
+    **_kwargs,
 ) -> ListEvalApiResponse:
     """Eval search using composable infra functions.
 
@@ -117,6 +120,9 @@ async def search_eval_impl(
             department_facet = await search_departments(
                 conn, redis, search=department_search, eval=True, limit_count=100
             )
+            flag_facet = await search_flags(
+                conn, redis, search=flag_search, eval=True, limit_count=100
+            )
 
         department_filter = ListFilterSection(
             options=[
@@ -129,12 +135,21 @@ async def search_eval_impl(
             search=department_search,
         )
 
+        flag_filter = ListFilterSection(
+            options=[
+                ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+                for f in flag_facet
+            ],
+            search=flag_search,
+        )
+
         return ListEvalApiResponse(
             actor_name=actor_name,
             evals=[],
             department_filter=department_filter,
+            flag_filter=flag_filter,
             total_count=0,
-            role_level=user_role_level, role_permissions=profile.role_permissions,
+            user_role=profile.role,
         )
 
     # ── Step 3: Get eval artifacts with junction IDs ──────────────────
@@ -184,16 +199,24 @@ async def search_eval_impl(
                 conn, redis, search=department_search, eval=True, limit_count=100
             )
 
+    async def _fetch_flag_facet() -> list:
+        async with pool.acquire() as conn:
+            return await search_flags(
+                conn, redis, search=flag_search, eval=True, limit_count=100
+            )
+
     (
         names_data,
         descriptions_data,
         flags_data,
         department_facet,
+        flag_facet,
     ) = await asyncio.gather(
         _fetch_names(),
         _fetch_descriptions(),
         _fetch_flags(),
         _fetch_department_facet(),
+        _fetch_flag_facet(),
     )
 
     flag_map = {f.id: f for f in flags_data}
@@ -256,12 +279,21 @@ async def search_eval_impl(
         search=department_search,
     )
 
+    flag_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+            for f in flag_facet
+        ],
+        search=flag_search,
+    )
+
     return ListEvalApiResponse(
         actor_name=actor_name,
         evals=evals_list,
         department_filter=department_filter,
+        flag_filter=flag_filter,
         total_count=total_count,
-        role_level=user_role_level, role_permissions=profile.role_permissions,
+        user_role=profile.role,
     )
 
 

@@ -568,6 +568,82 @@ async def _run_auth_module_seeds(
     print(f"  OK: {len(auths)} auths created")
 
 
+async def _run_model_flag_module_seeds(
+    pool: asyncpg.Pool,
+    redis: Redis,
+) -> None:
+    """Module 07a — Create model_flags_resource rows.
+
+    Pre-creates one (model, use_custom=true) row per seeded model so the
+    eval module's eval_model_flags_junction inserts FK-resolve. Calls the
+    black-box `create_model_flag` helper, which is idempotent on explicit
+    id (ON CONFLICT DO UPDATE).
+    """
+    from app.tools.resources.model_flags.create import create_model_flag
+    from database.seeds.model_flags import model_flags
+
+    async with pool.acquire() as conn:
+        for row in model_flags:
+            await create_model_flag(
+                conn,
+                row["model_id"],
+                row["flag_id"],
+                redis,
+                id=row["id"],
+            )
+    print(f"  OK: {len(model_flags)} model_flags created")
+
+
+async def _run_model_rubric_module_seeds(
+    pool: asyncpg.Pool,
+    redis: Redis,
+) -> None:
+    """Module 07b — Create model_rubrics_resource rows.
+
+    Pre-creates one (model, rubric) row per (model × rubric-used-by-eval)
+    pair so the eval module's eval_model_rubrics_junction inserts
+    FK-resolve. Calls the black-box `create_model_rubric` helper.
+    """
+    from app.tools.resources.model_rubrics.create import create_model_rubric
+    from database.seeds.model_rubrics import model_rubrics
+
+    async with pool.acquire() as conn:
+        for row in model_rubrics:
+            await create_model_rubric(
+                conn,
+                row["model_id"],
+                row["rubric_id"],
+                redis,
+                id=row["id"],
+            )
+    print(f"  OK: {len(model_rubrics)} model_rubrics created")
+
+
+async def _run_model_position_module_seeds(
+    pool: asyncpg.Pool,
+    redis: Redis,
+) -> None:
+    """Module 07c — Create model_positions_resource rows.
+
+    Pre-creates one (model, value=index) row per (model × eval) pair so the
+    eval module's eval_model_positions_junction inserts FK-resolve. Calls
+    the black-box `create_model_position` helper.
+    """
+    from app.tools.resources.model_positions.create import create_model_position
+    from database.seeds.model_positions import model_positions
+
+    async with pool.acquire() as conn:
+        for row in model_positions:
+            await create_model_position(
+                conn,
+                row["model_id"],
+                row["value"],
+                redis,
+                id=row["id"],
+            )
+    print(f"  OK: {len(model_positions)} model_positions created")
+
+
 async def _run_eval_module_seeds(
     pool: asyncpg.Pool,
     redis: Redis,
@@ -2048,14 +2124,29 @@ async def main_setup(setup: str = "university") -> None:
         print("\nSeeding auth...")
         await _run_auth_module_seeds(pool, redis_client)
 
+        # Rubrics must run before evals — the eval seed dicts attach a
+        # per-model rubric (model_rubrics_resource.rubric_id) that FKs to
+        # rubrics_resource.id. The same applies to the three model_* steps:
+        # they materialize the per-(model, *) resource rows that the eval
+        # junction inserts reference, so they all run between rubrics and
+        # evals to satisfy FKs and unblock benchmark sync on eval create.
+        print("\nSeeding rubrics...")
+        await _run_rubric_module_seeds(pool, redis_client)
+
+        print("\nSeeding model flags...")
+        await _run_model_flag_module_seeds(pool, redis_client)
+
+        print("\nSeeding model rubrics...")
+        await _run_model_rubric_module_seeds(pool, redis_client)
+
+        print("\nSeeding model positions...")
+        await _run_model_position_module_seeds(pool, redis_client)
+
         print("\nSeeding evals...")
         await _run_eval_module_seeds(pool, redis_client)
 
         print("\nSeeding systems...")
         await _run_system_module_seeds(pool, redis_client)
-
-        print("\nSeeding rubrics...")
-        await _run_rubric_module_seeds(pool, redis_client)
 
         print("\nSeeding tool instructions...")
         await _run_tool_instruction_seeds(pool, redis_client)

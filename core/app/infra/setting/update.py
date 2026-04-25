@@ -184,6 +184,12 @@ async def update_setting_impl(
                 mcp_id=item.mcp_id,
             )
 
+        # Canonical flag state: prefer item.flag_ids; fall back to legacy
+        # active_flag_id during the transition.
+        combined_flag_ids: list[UUID] = list(item.flag_ids or [])
+        if not combined_flag_ids and item.active_flag_id:
+            combined_flag_ids.append(item.active_flag_id)
+
         async with pool.acquire() as conn:
             async with conn.transaction():
                 await update_setting_artifact(
@@ -192,7 +198,7 @@ async def update_setting_impl(
                     name_id=item.name_id if item.name_id else _UNSET,
                     description_id=item.description_id if item.description_id else _UNSET,
                     department_ids=item.department_ids,
-                    flag_ids=[item.active_flag_id] if item.active_flag_id else None,
+                    flag_ids=combined_flag_ids or None,
                     color_ids=item.color_ids,
                     logins_ids=item.logins_ids,
                     system_ids=item.system_ids,
@@ -201,6 +207,8 @@ async def update_setting_impl(
                     provider_key_ids=item.provider_key_ids,
                     auth_item_key_ids=item.auth_item_key_ids,
                     auth_item_value_ids=item.auth_item_value_ids,
+                    auth_ids=item.auth_ids,
+                    provider_ids=item.provider_ids,
                     setting_ids=(
                         [setting_resource_id]
                         if setting_resource_id

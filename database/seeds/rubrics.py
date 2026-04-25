@@ -217,4 +217,16 @@ rubrics = [
         "TA Rubric",
         "Evaluates teaching assistants on their pedagogical effectiveness, student interaction quality, and session management",
     ),
+    # Eval-meta rubrics — used by the run/group benchmark evals which don't
+    # follow the *-agent slug pattern but still need a 1:1 dedicated rubric.
+    _rubric(
+        "run-rubric",
+        "Run Rubric",
+        "Rubric for evaluating individual run quality",
+    ),
+    _rubric(
+        "group-rubric",
+        "Group Rubric",
+        "Rubric for evaluating chat group quality",
+    ),
 ]

@@ -12,6 +12,7 @@ from database.seeds.setups.organization.departments import (
 )
 from database.seeds.dynamic_keys import AUTH_ITEM_KEY_IDS, PROVIDER_KEY_IDS
 from database.seeds.setting import ALL_SYSTEMS
+from database.seeds.setups.organization.colors import ALL_COLOR_IDS
 
 # ---------------------------------------------------------------------------
 # Pre-existing threshold resource IDs
@@ -58,6 +59,7 @@ settings = [
         auth_item_key_ids=AUTH_ITEM_KEY_IDS,
         system_ids=SYSTEMS,
         threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
+        color_ids=ALL_COLOR_IDS,
         logins_ids=AUTH_LOGIN_IDS or None,
     ),
 ]

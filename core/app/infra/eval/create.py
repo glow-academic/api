@@ -183,6 +183,7 @@ async def create_eval_impl(
                     model_rubric_ids=item.model_rubric_ids or [],
                     model_position_ids=item.model_position_ids or [],
                     department_ids=item.department_ids or [],
+                    flag_ids=item.flag_ids or [],
                 )
             except Exception as sync_err:
                 logger.warning(f"sync_benchmark_entries failed (non-fatal): {sync_err}")

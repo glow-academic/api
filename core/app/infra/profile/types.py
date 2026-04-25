@@ -66,10 +66,62 @@ class ProfileRoleResource(BaseModel):
     color_id: UUID | None = Field(None, description="Color identifier for the role")
     color_hex: str | None = Field(None, description="Resolved role color hex code")
     level: int | None = Field(None, description="Role level for assignment filtering")
+    permission_ids: list[UUID] = Field(default_factory=list, description="Permission resource UUIDs attached to this role")
+    request_limit_ids: list[UUID] = Field(default_factory=list, description="Request limit resource UUIDs attached to this role")
     generated: bool | None = Field(None, description="Whether the role was AI-generated")
     suggested: bool = Field(False, description="Whether this is a suggested option")
     selected: bool = Field(False, description="Whether this is currently selected")
     pending: bool = Field(False, description="Whether this selection is pending acceptance")
+
+
+class ProfilePermissionResource(BaseModel):
+    """Permission catalog row — one per (artifact, operation) pair."""
+
+    id: UUID | None = Field(None, description="Permission resource identifier")
+    artifact: str | None = Field(None, description="Artifact key (e.g. 'agent', 'profile')")
+    operation: str | None = Field(None, description="Operation key (e.g. 'create', 'update')")
+    name: str | None = Field(None, description="Display name")
+    description: str | None = Field(None, description="Description text")
+
+
+class ProfileRequestLimitResource(BaseModel):
+    """Request-limit catalog/echo row."""
+
+    id: UUID | None = Field(None, description="Request limit resource identifier")
+    limit: int | None = Field(None, description="Maximum number of requests per interval")
+    interval: str | None = Field(None, description="Postgres interval string (e.g. '1 day', '30 minutes')")
+
+
+class ProfileRequestLimitDraftValue(BaseModel):
+    """Draft value for an inline-creatable request limit (limit, interval).
+
+    id=null asks the server to create a new request_limits_resource row.
+    id present means the caller is re-linking an existing limit.
+    """
+
+    id: UUID | None = Field(None, description="Existing request_limits_resource id when known")
+    limit: int = Field(..., description="Maximum requests per interval")
+    interval: str = Field(..., description="Postgres interval string (e.g. '1 day', '30 minutes', '2 hours')")
+
+
+class ProfileRoleDraftValue(BaseModel):
+    """Draft value for an inline-creatable role.
+
+    Roles are immutable on this surface — the user can either re-link an
+    existing role (id present) or create a new one (id=null + name + …).
+    Nested request_limits with id=null are inline-created first; their
+    resolved ids merge into request_limit_ids before role creation.
+    """
+
+    id: UUID | None = Field(None, description="Existing roles_resource id when re-linking")
+    name: str | None = Field(None, description="Role name (required when creating)")
+    description: str | None = Field(None, description="Role description")
+    icon_id: UUID | None = Field(None, description="Icon resource identifier")
+    color_id: UUID | None = Field(None, description="Color resource identifier")
+    level: int = Field(99, description="Role level for assignment filtering")
+    permission_ids: list[UUID] = Field(default_factory=list, description="Permission resource UUIDs to attach")
+    request_limit_ids: list[UUID] = Field(default_factory=list, description="Existing request_limits_resource ids")
+    request_limits: list[ProfileRequestLimitDraftValue] = Field(default_factory=list, description="Inline-creatable request limits; id=null entries are created server-side")
 
 
 class ProfileFlagResource(BaseModel):
@@ -152,6 +204,8 @@ class GetProfileApiResponse(BaseModel):
     flags: list[ProfileFlagResource] | None = Field(None, description="Flag resources (one per flags_resource row, value=true/false)")
     departments: list[ProfileDepartmentResource] | None = Field(None, description="Department resources")
     roles: list[ProfileRoleResource] | None = Field(None, description="Role resources")
+    permissions: list[ProfilePermissionResource] | None = Field(None, description="Permission catalog for the role editor")
+    request_limits: list[ProfileRequestLimitResource] | None = Field(None, description="Request-limit catalog for the role editor")
 
 
 class GetProfileDraftsApiResponse(BaseModel):
@@ -353,8 +407,9 @@ class PatchProfileDraftApiRequest(ScopedItem):
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     departments: list[str] | None = Field(None, description="Department names to resolve")
     email_ids: list[UUID] | None = Field(None, description="Email resource UUIDs")
-    role: str | None = Field(None, description="Role name to resolve")
+    role: str | None = Field(None, description="Role name to resolve (single-name shortcut; legacy)")
     role_id: UUID | None = Field(None, description="Role resource UUID")
+    role_draft: ProfileRoleDraftValue | None = Field(None, description="Inline-creatable role; id=null asks server to create with permissions/limits")
     primary_department_id: UUID | None = Field(None, description="UUID of the department to designate as primary")
     pending_ids: list[UUID] | None = Field(None, description="Resources to keep dormant")
     idempotency_key: UUID | None = Field(None, description="Idempotency key for draft writes")
@@ -374,6 +429,7 @@ class DraftFormState(BaseModel):
     email_ids: list[UUID] = Field(..., description="Assigned email resource UUIDs")
     role: str | None = Field(None, description="Assigned role name")
     role_id: UUID | None = Field(None, description="Assigned role resource UUID")
+    role_draft: ProfileRoleDraftValue | None = Field(None, description="Echoed role draft with resolved request_limit_ids after inline-create")
     primary_department_id: UUID | None = Field(None, description="Assigned primary department UUID")
     pending_ids: list[UUID] = Field(default_factory=list, description="Pending resource UUIDs")
 
@@ -465,6 +521,7 @@ class ListProfilesApiProfile(BaseModel):
     can_delete: bool | None = Field(None, description="Whether the actor can delete this profile")
     can_emulate: bool | None = Field(None, description="Whether the actor can emulate this profile")
     is_emulated: bool | None = Field(None, description="Whether this profile is currently being emulated by the actor")
+    is_inactive: bool | None = Field(None, description="Whether the profile is inactive")
 
 
 class ListProfilesApiResponse(BaseModel):
@@ -474,6 +531,7 @@ class ListProfilesApiResponse(BaseModel):
     profiles: list[ListProfilesApiProfile] | None = Field(None, description="List of profile items")
     department_filter: ListFilterSection | None = Field(None, description="Filter options for departments")
     role_filter: ListFilterSection | None = Field(None, description="Filter options for roles")
+    flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
     total_count: int | None = Field(None, description="Total number of profiles")
 
 

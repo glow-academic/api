@@ -66,6 +66,14 @@ CREATE INDEX idx_profile_names_mcp ON public.profile_names_junction USING btree 
 
 --
 
+-- Name: idx_profile_primary_departments_primary_departments_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_profile_primary_departments_primary_departments_id ON public.profile_primary_departments_junction USING btree (primary_departments_id);
+
+
+--
+
 -- Name: profile_departments_department_id_v7_idx; Type: INDEX; Schema: public; Owner: -
 --
 
