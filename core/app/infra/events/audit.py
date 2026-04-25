@@ -14,6 +14,11 @@ from redis.asyncio import Redis
 
 from app.infra.common_context import resolve_common_context
 from app.infra.globals import UPLOAD_FOLDER, get_internal_sio
+from app.infra.stream.emitter import (
+    emit_artifact_operation_failure,
+    emit_artifact_operation_finished,
+    emit_artifact_operation_started,
+)
 from app.infra.tool_graph import SettingsToolGraph
 from app.infra.tools.entries.create_tool_call import create_tool_call
 
@@ -152,6 +157,15 @@ async def run_artifact_operation_with_audit(
                 "group_id": str(effective_group_id) if effective_group_id else None,
                 **arguments,
             })
+            await emit_artifact_operation_started(
+                artifact=artifact,
+                operation=operation,
+                arguments=arguments,
+                group_id=effective_group_id,
+                entity_id=entity_id,
+                call_id=cid,
+                tool_id=tool_id,
+            )
 
         async with pool.acquire() as conn:
             audit_result = await create_tool_call(
@@ -201,6 +215,16 @@ async def run_artifact_operation_with_audit(
             "message": str(tool_error),
             "error_type": type(tool_error).__name__,
         })
+        await emit_artifact_operation_failure(
+            artifact=artifact,
+            operation=operation,
+            arguments=arguments,
+            message=str(tool_error),
+            error_type=type(tool_error).__name__,
+            group_id=effective_group_id,
+            entity_id=entity_id,
+            tool_id=tool_id,
+        )
         raise tool_error
 
     # --- Completed ---
@@ -219,6 +243,16 @@ async def run_artifact_operation_with_audit(
         "group_id": str(effective_group_id) if effective_group_id else None,
         **output,
     })
+    await emit_artifact_operation_finished(
+        artifact=artifact,
+        operation=operation,
+        arguments=arguments,
+        output=output if isinstance(output, dict) else {},
+        group_id=effective_group_id,
+        entity_id=entity_id,
+        call_id=call_upload_id,
+        tool_id=tool_id,
+    )
 
     if response_model is not None:
         return response_model.model_validate(result_data)

@@ -55,6 +55,7 @@ def build_operation_events(
     tool_id: UUID | None,
     arguments: dict,
     output: dict,
+    group_id: UUID | None = None,
 ) -> list[EventEnvelope]:
     """Project operation input/output into lifecycle + domain events."""
     config = get_artifact_events_config(artifact)
@@ -102,6 +103,7 @@ def build_operation_events(
                 artifact=artifact,
                 operation=operation,
                 created_at=created_at,
+                group_id=group_id,
                 entity_id=lifecycle_entity_id,
                 call_id=call_id,
                 tool_id=tool_id,
@@ -120,6 +122,7 @@ def build_operation_events(
                 artifact=artifact,
                 operation=operation,
                 created_at=created_at,
+                group_id=group_id,
                 entity_id=lifecycle_entity_id,
                 call_id=call_id,
                 tool_id=tool_id,
@@ -143,6 +146,7 @@ def build_operation_events(
                         artifact=artifact,
                         operation=operation,
                         created_at=created_at,
+                        group_id=group_id,
                         entity_id=target_entity_id,
                         call_id=call_id,
                         tool_id=tool_id,

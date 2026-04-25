@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request
+from uuid import UUID
+
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
 from app.infra.auth.stream import stream_auth_impl
@@ -12,7 +14,10 @@ router = APIRouter()
 
 
 @router.get("/stream")
-async def auth_stream(http_request: Request) -> StreamingResponse:
+async def auth_stream(
+    http_request: Request,
+    group_id: UUID | None = Query(default=None),
+) -> StreamingResponse:
     profile_id = getattr(http_request.state, "profile_id", None)
     if not profile_id:
         raise HTTPException(status_code=401, detail="Profile ID is required.")
@@ -21,4 +26,5 @@ async def auth_stream(http_request: Request) -> StreamingResponse:
         get_pool(), get_redis_client(),
         profile_id=profile_id,
         session_id=session_id,
+        group_id=group_id,
     )
