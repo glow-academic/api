@@ -298,6 +298,41 @@ async def lifespan(app: FastAPI) -> AsyncIterator[Any]:
         except Exception as e:
             logger.warning(f"Keycloak sync error (non-blocking): {e}")
 
+        # MV refresh scheduler — debounces REFRESH MATERIALIZED VIEW calls
+        # across the whole instance + replicas. Caller path enqueues O(1)
+        # in Redis; one worker per MV per replica drains via Redis lock.
+        # All targets registered from the central MV_REGISTRY in
+        # app/infra/refresh/config.py — primitives loaded dynamically from
+        # `app.tools.entries.{dir}.refresh.{fn}`. No SQL written here.
+        import importlib
+
+        from app.infra.refresh.config import MV_REGISTRY
+        from app.infra.refresh.scheduler import MVRefresher
+
+        if pool is not None and _globals.redis_client is not None:
+            mv_refresher = MVRefresher(pool, _globals.redis_client)
+            registered: list[str] = []
+            for mv_name, (entries_dir, fn_name, interval_s) in MV_REGISTRY.items():
+                try:
+                    module = importlib.import_module(
+                        f"app.tools.entries.{entries_dir}.refresh"
+                    )
+                    refresh_fn = getattr(module, fn_name)
+                except (ImportError, AttributeError) as e:
+                    logger.warning(
+                        f"MVRefresher: skipping {mv_name} — could not load "
+                        f"app.tools.entries.{entries_dir}.refresh.{fn_name}: {e!r}"
+                    )
+                    continue
+                mv_refresher.register(mv_name, refresh_fn, interval_s=interval_s)
+                registered.append(mv_name)
+            await stack.enter_async_context(mv_refresher)
+            _globals.mv_refresher = mv_refresher
+            logger.info(
+                f"MVRefresher registered for {len(registered)} MV target(s) "
+                f"from MV_REGISTRY"
+            )
+
         # Import MCP server for lifespan management. We register its
         # __aexit__ via a wrapper that times and bounds the teardown so
         # we can distinguish a FastMCP hang from other stages.

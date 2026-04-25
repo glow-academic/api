@@ -229,11 +229,20 @@ _db_pool: asyncpg.Pool | None = None
 _test_container: Any | None = None
 _test_db_url: str | None = None
 
+# Lazily set in lifespan after the pool + redis are ready. Imported via
+# get_mv_refresher() so callers don't take a hard dependency at import time.
+mv_refresher: Any | None = None
+
 _CONTAINER_INFO_FILE = Path("/tmp/glow_test_container.json")  # noqa: S108
 
 
 def get_pool() -> asyncpg.Pool | None:
     return _db_pool
+
+
+def get_mv_refresher() -> Any | None:
+    """The lifespan-managed MVRefresher singleton, or None pre-startup."""
+    return mv_refresher
 
 
 def _try_reuse_container() -> str | None:

@@ -1,4 +1,4 @@
-"""Leaderboard refresh logic — composable infra architecture.
+"""Leaderboard refresh — debounced via MVRefresher (uses shared enqueue helper).
 
 No dedicated entry refresh tools — permission check + cache invalidation only.
 """
@@ -10,14 +10,16 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
-from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.refresh.queue import enqueue_refreshes
 from app.infra.refresh.types import RefreshResponse
+
+ARTIFACT_TYPE = "leaderboard"
 
 # Tags to invalidate — artifact cache + resource caches
 _TAGS = ["leaderboard", "artifacts"]
 
 # No dedicated entry MVs to refresh
-_VIEWS: list[str] = []
+ALL_TARGETS: list[str] = []
 
 
 async def refresh_leaderboard_impl(
@@ -25,34 +27,23 @@ async def refresh_leaderboard_impl(
     redis: Redis | None,
     *,
     profile_id: UUID,
+    session_id: UUID | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    operation_key: UUID | None = None,
+    **_kwargs,
 ) -> RefreshResponse:
-    """Leaderboard refresh using composable infra functions.
-
-    Flow:
-      1. resolve_profile_identity_context — permission check
-      2. Invalidate cache tags
-    """
-    from fastapi import HTTPException
-
-    # ── Step 1: Permission check ─────────────────────────────────────────
-
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
-
-    if profile is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Profile not found. Please sign in again.",
-        )
-
-    # ── Step 2: Invalidate cache tags ────────────────────────────────────
-
-    if redis is not None:
-        from app.utils.cache.invalidate_tags import invalidate_tags
-
-        await invalidate_tags(_TAGS, redis=redis)
-
-    return RefreshResponse(
-        success=True,
-        refreshed_views=_VIEWS,
-        invalidated_tags=_TAGS,
+    """Leaderboard refresh — permission-check + enqueue (no MVs)."""
+    effective_op_key = operation_key or idempotency_key
+    return await enqueue_refreshes(
+        pool, redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        artifact_type=ARTIFACT_TYPE,
+        targets=ALL_TARGETS,
+        idempotency_key=effective_op_key,
+        tags=_TAGS,
+        soft=soft,
+        accept=accept,
     )

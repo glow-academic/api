@@ -1,55 +1,23 @@
-"""Cohort refresh logic — composable infra architecture.
-
-Canonical refresh function for cohort MVs. Composes black-box entry tools:
-  1. resolve_profile_identity_context — profile (role)
-  2. refresh entry MVs (granular by target)
-  3. create_refresh — record in refreshes_entry
-  4. invalidate_tags — cache invalidation
-
-Supports soft/accept lifecycle:
-  - soft=True: record intent only, don't execute refresh
-  - accept=True: execute the pending refresh
-  - accept=False: no-op
-"""
+"""Cohort refresh — debounced via MVRefresher (uses shared enqueue helper)."""
 
 from __future__ import annotations
 
-import asyncio
 from uuid import UUID
 
 import asyncpg
-from fastapi import HTTPException
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
-from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.refresh.queue import enqueue_refreshes
 from app.infra.refresh.types import RefreshResponse
 
-# Black-box entry refresh tools — cohort-specific
-from app.tools.entries.cohort_drafts.refresh import refresh_cohort_drafts
-# Black-box entry refresh tools — shared infrastructure
-from app.tools.entries.calls.refresh import refresh_calls_internal
-from app.tools.entries.groups.refresh import refresh_groups
-from app.tools.entries.group_names.refresh import refresh_group_names
-from app.tools.entries.messages.refresh import refresh_messages_internal
-from app.tools.entries.refreshes.create import create_refresh
-from app.tools.entries.runs.refresh import refresh_runs_internal
+ARTIFACT_TYPE = "cohort"
 
 # All cohort MV targets (cohort-specific + shared infrastructure)
 ALL_TARGETS = [
     "cohort_drafts_mv",
     "runs_mv", "messages_mv", "calls_mv", "groups_mv", "group_names_mv",
 ]
-
-# Target → refresh function mapping
-_REFRESH_FNS = {
-    "cohort_drafts_mv": refresh_cohort_drafts,
-    "runs_mv": refresh_runs_internal,
-    "messages_mv": refresh_messages_internal,
-    "calls_mv": refresh_calls_internal,
-    "groups_mv": refresh_groups,
-    "group_names_mv": refresh_group_names,
-}
 
 # Tags to invalidate — artifact cache + resource caches
 _TAGS = ["cohorts", "artifacts"]
@@ -87,18 +55,7 @@ async def refresh_cohort_impl(
     operation_key: UUID | None = None,
     **_kwargs,
 ) -> RefreshResponse:
-    """Cohort refresh using composable infra functions.
-
-    Accepts either a RefreshCohortApiRequest (HTTP/WS) or kwargs (internal).
-
-    Flow:
-      1. resolve_profile_identity_context — permission check
-      2. Determine targets
-      3. Soft: record intent only. Accept: execute. Reject: no-op.
-      4. Execute refresh + record in refreshes_entry
-      5. Invalidate cache tags
-    """
-    # Unpack request if provided
+    """Cohort refresh — permission-check + enqueue, no synchronous MV refresh."""
     if request is not None:
         targets = targets or request.targets
         idempotency_key = idempotency_key or request.idempotency_key
@@ -106,99 +63,16 @@ async def refresh_cohort_impl(
             accept = request.accept
 
     effective_targets = targets or ALL_TARGETS
-    effective_operation_key = operation_key or idempotency_key
+    effective_op_key = operation_key or idempotency_key
 
-    # ── Step 1: Permission check ─────────────────────────────────────────
-
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
-
-    if profile is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Profile not found. Please sign in again.",
-        )
-
-    # ── Short-circuit: ack path ──────────────────────────────────────────
-    if accept is not None and idempotency_key is not None:
-        if accept:
-            await _execute_refreshes(pool, effective_targets, redis=redis)
-            if session_id and effective_operation_key:
-                async with pool.acquire() as conn:
-                    for target in effective_targets:
-                        await create_refresh(
-                            conn, operation_key=effective_operation_key,
-                            artifact_type="cohort", target=target,
-                            session_id=session_id,
-                        )
-            if redis is not None:
-                from app.utils.cache.invalidate_tags import invalidate_tags
-
-                await invalidate_tags(_TAGS, redis=redis)
-        return RefreshResponse(
-            success=True,
-            refreshed_views=effective_targets if accept else [],
-            invalidated_tags=_TAGS if accept else [],
-            idempotency_key=idempotency_key,
-        )
-
-    # ── Step 2: Soft — record intent only ────────────────────────────────
-
-    if soft:
-        if session_id and effective_operation_key:
-            async with pool.acquire() as conn:
-                for target in effective_targets:
-                    await create_refresh(
-                        conn, operation_key=effective_operation_key,
-                        artifact_type="cohort", target=target,
-                        session_id=session_id,
-                    )
-        return RefreshResponse(
-            success=True,
-            refreshed_views=[],
-            invalidated_tags=[],
-            idempotency_key=effective_operation_key,
-        )
-
-    # ── Step 3: Execute refresh + record ─────────────────────────────────
-
-    await _execute_refreshes(pool, effective_targets, redis=redis)
-
-    if session_id and effective_operation_key:
-        async with pool.acquire() as conn:
-            for target in effective_targets:
-                await create_refresh(
-                    conn, operation_key=effective_operation_key,
-                    artifact_type="cohort", target=target,
-                    session_id=session_id,
-                )
-
-    # ── Step 4: Invalidate cache tags ────────────────────────────────────
-
-    if redis is not None:
-        from app.utils.cache.invalidate_tags import invalidate_tags
-
-        await invalidate_tags(_TAGS, redis=redis)
-
-    return RefreshResponse(
-        success=True,
-        refreshed_views=effective_targets,
-        invalidated_tags=_TAGS,
-        idempotency_key=effective_operation_key,
+    return await enqueue_refreshes(
+        pool, redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        artifact_type=ARTIFACT_TYPE,
+        targets=effective_targets,
+        idempotency_key=effective_op_key,
+        tags=_TAGS,
+        soft=soft,
+        accept=accept,
     )
-
-
-# ---------------------------------------------------------------------------
-# Internal
-# ---------------------------------------------------------------------------
-
-
-async def _execute_refreshes(pool: asyncpg.Pool, targets: list[str], redis: Redis | None = None) -> None:
-    """Execute MV refreshes in parallel for the given targets."""
-
-    async def _refresh(target: str) -> None:
-        fn = _REFRESH_FNS.get(target)
-        if fn:
-            async with pool.acquire() as conn:
-                await fn(conn, redis=redis)
-
-    await asyncio.gather(*[_refresh(t) for t in targets])
