@@ -656,7 +656,14 @@ async def _execute_agent_dispatch(
                         "group_id": str(group_id),
                         "tool_call_id": tool_call_id,
                         "tool_name": tool_name,
-                        "success": tool_result.get("success", False) if isinstance(tool_result, dict) else False,
+                        # Convention: only failures write success=False (see
+                        # create_tool_call.py exception path). A result dict
+                        # missing the key means the impl returned a plain
+                        # response — i.e. it succeeded. Default False here
+                        # would flip the client's toolStatus to "error" for
+                        # every successful tool that doesn't explicitly
+                        # serialize success=True.
+                        "success": tool_result.get("success", True) if isinstance(tool_result, dict) else True,
                     },
                 )
 
