@@ -128,11 +128,19 @@ services:
       - DATABASE_URL=postgres://${DB_USER:-myuser}:${DB_PASSWORD:-mypassword}@database:5432/glowapi
       - POOL_MODE=session
       - MAX_CLIENT_CONN=1000
-      - DEFAULT_POOL_SIZE=25
-      - MIN_POOL_SIZE=5
-      - RESERVE_POOL_SIZE=5
+      # In session mode each client conn pins a server conn for its
+      # whole session. The 5-way asyncio.gather in
+      # resolve_profile_identity_context holds 5 server conns per
+      # /context request; with N concurrent /context calls per page
+      # load that's 5N. The previous 25/100 ceiling saturated at
+      # ~5 concurrent /context calls and clients queued past the
+      # nginx 60s upstream timeout → 504s. Bumped to 100/200 to
+      # absorb the fan-out until the gather is collapsed (v2.15.20).
+      - DEFAULT_POOL_SIZE=100
+      - MIN_POOL_SIZE=20
+      - RESERVE_POOL_SIZE=20
       - RESERVE_POOL_TIMEOUT=3
-      - MAX_DB_CONNECTIONS=100
+      - MAX_DB_CONNECTIONS=200
       - SERVER_IDLE_TIMEOUT=600
       - AUTH_TYPE=scram-sha-256
     depends_on:
