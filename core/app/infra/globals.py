@@ -332,7 +332,14 @@ async def init_db_pool() -> None:
     pool_config: dict[str, Any] = {
         "min_size": 10,
         "max_size": 100,
-        "command_timeout": 30,
+        # 60s budget per query. v2.15.14 dropped this to 30s for fail-fast
+        # under stale-conn theory, but in practice the cold-cache burst on
+        # fresh deploys (Redis empty → every /persona/context page-context
+        # call fans out to DB simultaneously) genuinely needs >30s for the
+        # slowest of the 5 parallel queries to clear, especially on a fresh
+        # pgbouncer pool. 60s tolerates the cold spike; max_inactive=30s
+        # still evicts stale conns, so we keep both protections.
+        "command_timeout": 60,
         "max_queries": 50000,
         # Aggressive idle eviction: recycle pool conns before the stack
         # underneath (pgbouncer, docker net, OS TCP) silently drops them.
