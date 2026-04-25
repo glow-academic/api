@@ -30,6 +30,12 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 # Entry tool docs
 from app.tools.entries.activity.docs import get_activity_docs
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 _PAGE_METADATA = PageMetadataConfig(
     list_title="Activity",
     list_description="Track user engagement and usage metrics.",
@@ -46,7 +52,34 @@ async def page_context_activity_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    bypass_cache: bool = False,
     **_kwargs,
+) -> ComposedContextResponse:
+    """activity page context — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("activity/page_context", {
+            "profile_id": str(profile_id),
+            "entity_id": str(entity_id) if entity_id else None,
+        }),
+        tags=["context", "activity", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ComposedContextResponse,
+        builder=lambda: _page_context_activity_build(
+            pool, redis,
+            profile_id=profile_id,
+            entity_id=entity_id,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _page_context_activity_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    entity_id: UUID | None = None,
 ) -> ComposedContextResponse:
     """Activity page context.
 

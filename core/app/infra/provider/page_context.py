@@ -49,6 +49,12 @@ from app.tools.resources.names.docs import get_names_docs
 from app.tools.resources.names.get import get_names
 from app.tools.resources.values.docs import get_values_docs
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 _PAGE_METADATA = PageMetadataConfig(
     list_title="Providers",
     list_description="Manage AI service provider configurations.",
@@ -79,7 +85,34 @@ async def page_context_provider_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    bypass_cache: bool = False,
     **_kwargs,
+) -> ComposedContextResponse:
+    """provider page context — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("provider/page_context", {
+            "profile_id": str(profile_id),
+            "entity_id": str(entity_id) if entity_id else None,
+        }),
+        tags=["context", "provider", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ComposedContextResponse,
+        builder=lambda: _page_context_provider_build(
+            pool, redis,
+            profile_id=profile_id,
+            entity_id=entity_id,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _page_context_provider_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    entity_id: UUID | None = None,
 ) -> ComposedContextResponse:
     """Provider page context.
 

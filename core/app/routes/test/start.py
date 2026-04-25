@@ -13,6 +13,7 @@ router = APIRouter()
 
 class StartTestApiResponse(BaseModel):
     test_id: str
+    invocation_id: str | None = None
 
 
 @router.post("/start", response_model=StartTestApiResponse)
@@ -37,4 +38,7 @@ async def start_test(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    return StartTestApiResponse(test_id=result.test_id)
+    return StartTestApiResponse(
+        test_id=result.test_id,
+        invocation_id=result.invocation_id,
+    )

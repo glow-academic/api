@@ -60,6 +60,12 @@ from app.tools.resources.scenario_time_limits.docs import (
 )
 from app.tools.resources.scenarios.docs import get_scenarios_docs
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 _PAGE_METADATA = PageMetadataConfig(
     list_title="Simulations",
     list_description="Manage assessment experiences combining scenarios.",
@@ -90,7 +96,34 @@ async def page_context_simulation_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    bypass_cache: bool = False,
     **_kwargs,
+) -> ComposedContextResponse:
+    """simulation page context — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("simulation/page_context", {
+            "profile_id": str(profile_id),
+            "entity_id": str(entity_id) if entity_id else None,
+        }),
+        tags=["context", "simulation", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ComposedContextResponse,
+        builder=lambda: _page_context_simulation_build(
+            pool, redis,
+            profile_id=profile_id,
+            entity_id=entity_id,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _page_context_simulation_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    entity_id: UUID | None = None,
 ) -> ComposedContextResponse:
     """Simulation page context.
 

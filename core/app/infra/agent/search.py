@@ -45,6 +45,12 @@ from app.tools.resources.tools.search import (
     search_tools as search_tools_resource,
 )
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 AGENT_IMPORT_FIELDS: list[dict[str, Any]] = [
     {
         "key": "name",
@@ -74,6 +80,61 @@ async def search_agent_impl(
     redis: Redis,
     *,
     profile_id: UUID,
+    search: str | None = None,
+    filter_department_ids: list[UUID] | None = None,
+    filter_model_ids: list[UUID] | None = None,
+    filter_tool_ids: list[UUID] | None = None,
+    department_search: str | None = None,
+    model_search: str | None = None,
+    tool_search: str | None = None,
+    flag_search: str | None = None,
+    page_size: int = 12,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+    **_kwargs,
+) -> ListAgentApiResponse:
+    """agent search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("agent/search", {
+            "profile_id": str(profile_id),
+            "search": search,
+            "filter_department_ids": [str(x) for x in filter_department_ids] if filter_department_ids else None,
+            "filter_model_ids": [str(x) for x in filter_model_ids] if filter_model_ids else None,
+            "filter_tool_ids": [str(x) for x in filter_tool_ids] if filter_tool_ids else None,
+            "department_search": department_search,
+            "model_search": model_search,
+            "tool_search": tool_search,
+            "flag_search": flag_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "agent", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ListAgentApiResponse,
+        builder=lambda: _search_agent_build(
+            pool, redis,
+            profile_id=profile_id,
+            search=search,
+            filter_department_ids=filter_department_ids,
+            filter_model_ids=filter_model_ids,
+            filter_tool_ids=filter_tool_ids,
+            department_search=department_search,
+            model_search=model_search,
+            tool_search=tool_search,
+            flag_search=flag_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_agent_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
     # Main filters
     search: str | None = None,
     filter_department_ids: list[UUID] | None = None,
@@ -87,7 +148,6 @@ async def search_agent_impl(
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
-    **_kwargs,
 ) -> ListAgentApiResponse:
     """Agent search using composable infra functions."""
     from fastapi import HTTPException

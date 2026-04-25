@@ -20,6 +20,8 @@ from app.tools.resources.args.get import get_args
 from app.tools.resources.args.search import search_args
 from app.tools.resources.args_outputs.get import get_args_outputs
 from app.tools.resources.args_outputs.search import search_args_outputs
+from app.tools.resources.departments.get import get_departments
+from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.get import get_flags
@@ -39,6 +41,7 @@ class _MergedIds:
     name_ids: list[UUID]
     description_ids: list[UUID]
     flag_ids: list[UUID]
+    department_ids: list[UUID]
     args_ids: list[UUID]
     arg_position_ids: list[UUID]
     args_output_ids: list[UUID]
@@ -50,6 +53,7 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
     name_ids = list(artifact.name_ids or []) if artifact else []
     description_ids = list(artifact.description_ids or []) if artifact else []
     flag_ids = list(artifact.flag_ids or []) if artifact else []
+    department_ids = list(artifact.department_ids or []) if artifact else []
     args_ids = list(artifact.args_ids or []) if artifact else []
     arg_position_ids = list(artifact.arg_positions_ids or []) if artifact else []
     args_output_ids = list(artifact.args_outputs_ids or []) if artifact else []
@@ -63,6 +67,8 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
             description_ids = list(draft.description_ids)
         if draft.flag_ids:
             flag_ids = list(draft.flag_ids)
+        if getattr(draft, "department_ids", None):
+            department_ids = list(draft.department_ids)
         if draft.arg_ids:
             args_ids = list(draft.arg_ids)
         if draft.arg_position_ids:
@@ -78,6 +84,7 @@ def _merge_junction_ids(artifact, draft) -> _MergedIds:
         name_ids=name_ids,
         description_ids=description_ids,
         flag_ids=flag_ids,
+        department_ids=department_ids,
         args_ids=args_ids,
         arg_position_ids=arg_position_ids,
         args_output_ids=args_output_ids,
@@ -96,6 +103,7 @@ async def resolve_tool_context(
     names_search: str | None = None,
     descriptions_search: str | None = None,
     flags_search: str | None = None,
+    departments_search: str | None = None,
     args_search: str | None = None,
     arg_positions_search: str | None = None,
     args_outputs_search: str | None = None,
@@ -104,6 +112,7 @@ async def resolve_tool_context(
     names_limit: int | None = None,
     descriptions_limit: int | None = None,
     flags_limit: int | None = None,
+    departments_limit: int | None = None,
     args_limit: int | None = None,
     arg_positions_limit: int | None = None,
     args_outputs_limit: int | None = None,
@@ -112,6 +121,7 @@ async def resolve_tool_context(
     names_selected_only: bool | None = None,
     descriptions_selected_only: bool | None = None,
     flags_selected_only: bool | None = None,
+    departments_selected_only: bool | None = None,
     args_selected_only: bool | None = None,
     arg_positions_selected_only: bool | None = None,
     args_outputs_selected_only: bool | None = None,
@@ -132,6 +142,7 @@ async def resolve_tool_context(
                 names=True,
                 descriptions=True,
                 flags=True,
+                departments=True,
                 args=True,
                 arg_positions=True,
                 args_outputs=True,
@@ -203,6 +214,26 @@ async def resolve_tool_context(
                 bypass_cache=bypass_cache,
             )
         return [flag for flag in results if getattr(flag, "type", None) in TOOL_FLAG_TYPES]
+
+    async def _get_departments() -> list:
+        async with pool.acquire() as conn:
+            return await get_departments(
+                conn, merged.department_ids, redis, bypass_cache
+            )
+
+    async def _search_departments_facet() -> list:
+        async with pool.acquire() as conn:
+            return await search_departments(
+                conn,
+                redis,
+                search=departments_search,
+                limit_count=departments_limit or 20,
+                offset_count=0,
+                suggest_source="selected" if departments_selected_only else "all",
+                exclude_ids=merged.department_ids,
+                bypass_cache=bypass_cache,
+                tool=True,
+            )
 
     async def _get_args() -> list:
         async with pool.acquire() as conn:
@@ -314,6 +345,8 @@ async def resolve_tool_context(
         descriptions_suggestions,
         flags_selected,
         flags_suggestions,
+        departments_selected,
+        departments_suggestions,
         args_selected,
         args_suggestions,
         arg_positions_selected,
@@ -331,6 +364,8 @@ async def resolve_tool_context(
         _search_descriptions(),
         _get_flags(),
         _search_flags(),
+        _get_departments(),
+        _search_departments_facet(),
         _get_args(),
         _search_args(),
         _get_arg_positions(),
@@ -377,6 +412,10 @@ async def resolve_tool_context(
             "flags": ResourcePair(
                 selected=dedupe_by_id(flags_selected),
                 suggestions=dedupe_by_id(flags_suggestions),
+            ),
+            "departments": ResourcePair(
+                selected=dedupe_by_id(departments_selected),
+                suggestions=dedupe_by_id(departments_suggestions),
             ),
             "args": ResourcePair(
                 selected=dedupe_by_id(args_selected),

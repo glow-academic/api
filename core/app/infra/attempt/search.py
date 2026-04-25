@@ -24,8 +24,74 @@ from app.tools.entries.attempt.search import search_attempts
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.simulations.search import search_simulations
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 
 async def search_attempt_impl(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    search: str | None = None,
+    simulation_ids: list[UUID] | None = None,
+    department_ids: list[UUID] | None = None,
+    practice: bool | None = None,
+    is_archived: bool | None = None,
+    infinite_mode: bool | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    simulation_search: str | None = None,
+    department_search: str | None = None,
+    page_size: int = 20,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+) -> SearchAttemptApiResponse:
+    """attempt search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("attempt/search", {
+            "profile_id": str(profile_id),
+            "search": search,
+            "simulation_ids": [str(x) for x in simulation_ids] if simulation_ids else None,
+            "department_ids": [str(x) for x in department_ids] if department_ids else None,
+            "practice": practice,
+            "is_archived": is_archived,
+            "infinite_mode": infinite_mode,
+            "start_date": start_date,
+            "end_date": end_date,
+            "simulation_search": simulation_search,
+            "department_search": department_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "attempt", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=SearchAttemptApiResponse,
+        builder=lambda: _search_attempt_build(
+            pool, redis,
+            profile_id=profile_id,
+            search=search,
+            simulation_ids=simulation_ids,
+            department_ids=department_ids,
+            practice=practice,
+            is_archived=is_archived,
+            infinite_mode=infinite_mode,
+            start_date=start_date,
+            end_date=end_date,
+            simulation_search=simulation_search,
+            department_search=department_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_attempt_build(
     pool: asyncpg.Pool,
     redis: Redis,
     *,

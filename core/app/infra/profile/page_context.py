@@ -48,6 +48,12 @@ from app.tools.resources.names.get import get_names
 from app.tools.resources.request_limits.docs import get_request_limits_docs
 from app.tools.resources.roles.docs import get_roles_docs
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 _PAGE_METADATA = PageMetadataConfig(
     list_title="Profiles",
     list_description="Manage user accounts and permissions.",
@@ -78,7 +84,34 @@ async def page_context_profile_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    bypass_cache: bool = False,
     **_kwargs,
+) -> ComposedContextResponse:
+    """profile page context — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("profile/page_context", {
+            "profile_id": str(profile_id),
+            "entity_id": str(entity_id) if entity_id else None,
+        }),
+        tags=["context", "profile", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ComposedContextResponse,
+        builder=lambda: _page_context_profile_build(
+            pool, redis,
+            profile_id=profile_id,
+            entity_id=entity_id,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _page_context_profile_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    entity_id: UUID | None = None,
 ) -> ComposedContextResponse:
     """Profile page context.
 

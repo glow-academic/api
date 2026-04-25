@@ -44,6 +44,12 @@ from app.tools.resources.providers.get import (
 )
 from app.tools.resources.values.get import get_values
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 PROVIDER_IMPORT_FIELDS: list[dict[str, Any]] = [
     {
         "key": "name",
@@ -80,6 +86,58 @@ async def search_provider_impl(
     redis: Redis,
     *,
     profile_id: UUID,
+    search: str | None = None,
+    filter_department_ids: list[UUID] | None = None,
+    filter_model_ids: list[UUID] | None = None,
+    filter_status: list[str] | None = None,
+    department_search: str | None = None,
+    model_search: str | None = None,
+    flag_search: str | None = None,
+    page_size: int = 12,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+    **_kwargs,
+) -> ListProviderApiResponse:
+    """provider search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("provider/search", {
+            "profile_id": str(profile_id),
+            "search": search,
+            "filter_department_ids": [str(x) for x in filter_department_ids] if filter_department_ids else None,
+            "filter_model_ids": [str(x) for x in filter_model_ids] if filter_model_ids else None,
+            "filter_status": sorted(filter_status) if filter_status else None,
+            "department_search": department_search,
+            "model_search": model_search,
+            "flag_search": flag_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "provider", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ListProviderApiResponse,
+        builder=lambda: _search_provider_build(
+            pool, redis,
+            profile_id=profile_id,
+            search=search,
+            filter_department_ids=filter_department_ids,
+            filter_model_ids=filter_model_ids,
+            filter_status=filter_status,
+            department_search=department_search,
+            model_search=model_search,
+            flag_search=flag_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_provider_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
     # Main filters
     search: str | None = None,
     filter_department_ids: list[UUID] | None = None,
@@ -92,7 +150,6 @@ async def search_provider_impl(
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
-    **_kwargs,
 ) -> ListProviderApiResponse:
     """Provider search using composable infra functions."""
     from fastapi import HTTPException

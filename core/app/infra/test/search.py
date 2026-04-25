@@ -24,8 +24,65 @@ from app.tools.entries.test.search import search_tests
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.evals.search import search_evals
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 
 async def search_test_impl(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    eval_ids: list[UUID] | None = None,
+    department_ids: list[UUID] | None = None,
+    is_archived: bool | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    eval_search: str | None = None,
+    department_search: str | None = None,
+    page_size: int = 20,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+) -> SearchTestApiResponse:
+    """test search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("test/search", {
+            "profile_id": str(profile_id),
+            "eval_ids": [str(x) for x in eval_ids] if eval_ids else None,
+            "department_ids": [str(x) for x in department_ids] if department_ids else None,
+            "is_archived": is_archived,
+            "start_date": start_date,
+            "end_date": end_date,
+            "eval_search": eval_search,
+            "department_search": department_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "test", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=SearchTestApiResponse,
+        builder=lambda: _search_test_build(
+            pool, redis,
+            profile_id=profile_id,
+            eval_ids=eval_ids,
+            department_ids=department_ids,
+            is_archived=is_archived,
+            start_date=start_date,
+            end_date=end_date,
+            eval_search=eval_search,
+            department_search=department_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_test_build(
     pool: asyncpg.Pool,
     redis: Redis,
     *,

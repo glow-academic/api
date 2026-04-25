@@ -105,6 +105,16 @@ class ToolPermissionResource(BaseModel):
     pending: bool = Field(False, description="Whether this item is pending acceptance")
 
 
+class ToolDepartmentResource(BaseModel):
+    department_id: UUID | None = Field(None, description="Department identifier")
+    name: str | None = Field(None, description="Department name")
+    description: str | None = Field(None, description="Department description")
+    generated: bool | None = Field(None, description="Whether the department was AI-generated")
+    suggested: bool = Field(False, description="Whether this item is suggested")
+    selected: bool = Field(False, description="Whether this item is selected")
+    pending: bool = Field(False, description="Whether this item is pending acceptance")
+
+
 class SectionFilter(BaseModel):
     search: str | None = Field(None, description="Filter options by search text")
     limit: int | None = Field(None, description="Max options to return")
@@ -126,6 +136,7 @@ class GetToolApiRequest(BaseModel):
     args_outputs: SectionFilter | None = Field(None, description="Filter options for arg outputs")
     permissions: SectionFilter | None = Field(None, description="Filter options for permissions")
     instructions: SectionFilter | None = Field(None, description="Filter options for instructions")
+    departments: SectionFilter | None = Field(None, description="Filter options for departments")
 
 
 class GetToolApiResponse(BaseModel):
@@ -149,6 +160,7 @@ class GetToolApiResponse(BaseModel):
     args_outputs: list[ToolArgOutputResource] | None = Field(None, description="Argument output resources")
     permissions: list[ToolPermissionResource] | None = Field(None, description="Permission resources")
     instructions: list[ToolInstructionResource] | None = Field(None, description="Instruction resources (single-select)")
+    departments: list[ToolDepartmentResource] | None = Field(None, description="Department resources")
 
 
 class ListToolApiTool(BaseModel):
@@ -158,6 +170,9 @@ class ListToolApiTool(BaseModel):
     active: bool | None = Field(None, description="Whether this tool is currently active")
     is_inactive: bool | None = Field(None, description="Whether this tool is inactive (derived from tool_active flag)")
     flag_ids: list[UUID] | None = Field(None, description="Currently selected flag option UUIDs")
+    permission_ids: list[UUID] = Field(default_factory=list, description="Permission resource UUIDs assigned to this tool")
+    agent_ids: list[UUID] = Field(default_factory=list, description="Agent artifact UUIDs that reference this tool")
+    department_ids: list[UUID] = Field(default_factory=list, description="Department resource UUIDs assigned to this tool")
     updated_at: datetime | None = Field(None, description="Timestamp of last update")
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     can_duplicate: bool | None = Field(None, description="Whether the current user can duplicate")
@@ -171,6 +186,7 @@ class ListToolApiResponse(BaseModel):
     creatable_filter: ListFilterSection | None = Field(None, description="Creatable filter options")
     agent_filter: ListFilterSection | None = Field(None, description="Filter options for agents that reference these tools")
     flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
+    permissions_filter: ListFilterSection | None = Field(None, description="Filter options for permissions in list UI")
     total_count: int | None = Field(None, description="Total number of tools")
 
 

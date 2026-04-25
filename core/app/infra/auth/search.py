@@ -42,8 +42,57 @@ from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 
 async def search_auth_impl(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    search: str | None = None,
+    filter_department_ids: list[UUID] | None = None,
+    department_search: str | None = None,
+    flag_search: str | None = None,
+    page_size: int = 1000,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+    **_kwargs,
+) -> ListAuthApiResponse:
+    """auth search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("auth/search", {
+            "profile_id": str(profile_id),
+            "search": search,
+            "filter_department_ids": [str(x) for x in filter_department_ids] if filter_department_ids else None,
+            "department_search": department_search,
+            "flag_search": flag_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "auth", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ListAuthApiResponse,
+        builder=lambda: _search_auth_build(
+            pool, redis,
+            profile_id=profile_id,
+            search=search,
+            filter_department_ids=filter_department_ids,
+            department_search=department_search,
+            flag_search=flag_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_auth_build(
     pool: asyncpg.Pool,
     redis: Redis,
     *,
@@ -57,7 +106,6 @@ async def search_auth_impl(
     # Pagination
     page_size: int = 1000,
     page_offset: int = 0,
-    **_kwargs,
 ) -> ListAuthApiResponse:
     """Auth search using composable infra functions.
 
@@ -142,7 +190,49 @@ async def search_auth_impl(
             departments=True,
             flags=True,
             items=True,
+            auths=True,
         )
+
+    # Build per-auth setting_ids map (setting_artifact ids that reference any
+    # of this auth's auths_resource rows via setting_auths_junction).
+    settings_by_auth_resource: dict[UUID, list[UUID]] = {}
+    all_auth_resource_ids: list[UUID] = []
+    for a in artifacts:
+        all_auth_resource_ids.extend(a.auth_ids or [])
+    if all_auth_resource_ids:
+        async with pool.acquire() as conn:
+            setting_rows = await conn.fetch(
+                """
+                SELECT auths_id,
+                       ARRAY_AGG(DISTINCT setting_id)
+                         FILTER (WHERE setting_id IS NOT NULL) AS setting_ids
+                FROM setting_auths_junction
+                WHERE auths_id = ANY($1) AND active = true
+                GROUP BY auths_id
+                """,
+                all_auth_resource_ids,
+            )
+        for r in setting_rows:
+            settings_by_auth_resource[r["auths_id"]] = list(r["setting_ids"] or [])
+
+    # Build per-auth auth_item_key_ids map (auth_item_keys_resource rows owned
+    # by this auth_artifact via auth_item_keys_resource.auth_id).
+    auth_item_keys_by_auth: dict[UUID, list[UUID]] = {}
+    if auth_ids:
+        async with pool.acquire() as conn:
+            key_rows = await conn.fetch(
+                """
+                SELECT auth_id,
+                       ARRAY_AGG(DISTINCT id)
+                         FILTER (WHERE id IS NOT NULL) AS key_ids
+                FROM auth_item_keys_resource
+                WHERE auth_id = ANY($1) AND active = true
+                GROUP BY auth_id
+                """,
+                auth_ids,
+            )
+        for r in key_rows:
+            auth_item_keys_by_auth[r["auth_id"]] = list(r["key_ids"] or [])
 
     # ── Step 4: Parallel hydration + facets ────────────────────────────
 
@@ -225,6 +315,15 @@ async def search_auth_impl(
         )
         can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
+        # Aggregate setting_ids across this auth's auths_resource rows.
+        auth_setting_ids: list[UUID] = []
+        seen_setting_ids: set[UUID] = set()
+        for ar_id in a.auth_ids or []:
+            for sid in settings_by_auth_resource.get(ar_id, []):
+                if sid not in seen_setting_ids:
+                    seen_setting_ids.add(sid)
+                    auth_setting_ids.append(sid)
+
         auths_list.append(
             ListAuthApiAuth(
                 auth_id=a.id,
@@ -232,6 +331,8 @@ async def search_auth_impl(
                 description=desc_obj.description if desc_obj else None,
                 item_count=item_count,
                 department_ids=dept_ids_str,
+                setting_ids=auth_setting_ids,
+                auth_item_key_ids=list(auth_item_keys_by_auth.get(a.id, [])),
                 is_inactive=not a.active,
                 can_edit=can_edit,
                 can_duplicate=can_duplicate,

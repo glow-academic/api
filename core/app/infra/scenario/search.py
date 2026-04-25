@@ -62,6 +62,12 @@ from app.tools.resources.simulations.search import (
     search_simulations as search_simulations_resource,
 )
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 SCENARIO_IMPORT_FIELDS: list[ImportField] = [
     ImportField(
         key="name",
@@ -156,6 +162,60 @@ SCENARIO_IMPORT_FIELDS: list[ImportField] = [
 
 
 async def search_scenario_impl(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    search: str | None = None,
+    persona_ids: list[UUID] | None = None,
+    simulation_ids: list[UUID] | None = None,
+    filter_department_ids: list[UUID] | None = None,
+    persona_search: str | None = None,
+    simulation_search: str | None = None,
+    department_search: str | None = None,
+    flag_search: str | None = None,
+    page_size: int = 10,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+) -> ListScenarioApiResponse:
+    """scenario search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("scenario/search", {
+            "profile_id": str(profile_id),
+            "search": search,
+            "persona_ids": [str(x) for x in persona_ids] if persona_ids else None,
+            "simulation_ids": [str(x) for x in simulation_ids] if simulation_ids else None,
+            "filter_department_ids": [str(x) for x in filter_department_ids] if filter_department_ids else None,
+            "persona_search": persona_search,
+            "simulation_search": simulation_search,
+            "department_search": department_search,
+            "flag_search": flag_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "scenario", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ListScenarioApiResponse,
+        builder=lambda: _search_scenario_build(
+            pool, redis,
+            profile_id=profile_id,
+            search=search,
+            persona_ids=persona_ids,
+            simulation_ids=simulation_ids,
+            filter_department_ids=filter_department_ids,
+            persona_search=persona_search,
+            simulation_search=simulation_search,
+            department_search=department_search,
+            flag_search=flag_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_scenario_build(
     pool: asyncpg.Pool,
     redis: Redis,
     *,

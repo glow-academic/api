@@ -17,6 +17,12 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
@@ -86,9 +92,41 @@ async def page_context_persona_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
-    """Persona page context.
+    """Persona page context — big-cache wrapped.
+
+    Big cache (L3): per-(profile, entity) dedupe of the assembled response.
+    On hit, all the orchestration work below is skipped — single Redis read.
+    On miss, the full builder runs and the result is cached for 30s.
+    Cache busts via tags on artifact writes (the existing per-artifact
+    refresh path already invalidates these tags).
+    """
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("persona/page_context", {
+            "profile_id": str(profile_id),
+            "entity_id": str(entity_id) if entity_id else None,
+        }),
+        tags=["context", "persona", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ComposedContextResponse,
+        builder=lambda: _page_context_persona_build(
+            pool, redis, profile_id=profile_id, entity_id=entity_id,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _page_context_persona_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    entity_id: UUID | None = None,
+) -> ComposedContextResponse:
+    """Uncached builder for page_context_persona_impl.
 
     Flow:
       1. resolve_profile_identity_context -> profile identity (kept, not discarded)

@@ -515,6 +515,7 @@ class ListProfilesApiProfile(BaseModel):
     initials: str | None = Field(None, description="User initials for avatar display")
     department_ids: list[str] | None = Field(None, description="Associated department IDs")
     primary_department_id: str | None = Field(None, description="Primary department ID")
+    permission_ids: list[UUID] = Field(default_factory=list, description="Permission resource UUIDs granted via the profile's role")
     # Computed in Python
     can_edit: bool | None = Field(None, description="Whether the actor can edit this profile")
     can_duplicate: bool | None = Field(None, description="Whether the actor can duplicate this profile")
@@ -532,6 +533,7 @@ class ListProfilesApiResponse(BaseModel):
     department_filter: ListFilterSection | None = Field(None, description="Filter options for departments")
     role_filter: ListFilterSection | None = Field(None, description="Filter options for roles")
     flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
+    permissions_filter: ListFilterSection | None = Field(None, description="Filter options for permissions in list UI")
     total_count: int | None = Field(None, description="Total number of profiles")
 
 

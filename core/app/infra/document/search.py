@@ -47,6 +47,12 @@ from app.tools.resources.scenarios.search import (
     search_scenarios as search_scenarios_resource,
 )
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 
 def _extension_from_path(file_path: str | None) -> str | None:
     """Derive a lowercase file extension (no dot) from an uploads_entry.file_path."""
@@ -94,6 +100,61 @@ async def search_document_impl(
     redis: Redis,
     *,
     profile_id: UUID,
+    search: str | None = None,
+    scenario_ids: list[UUID] | None = None,
+    field_ids: list[UUID] | None = None,
+    filter_department_ids: list[UUID] | None = None,
+    scenario_search: str | None = None,
+    field_search: str | None = None,
+    department_search: str | None = None,
+    flag_search: str | None = None,
+    page_size: int = 12,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+    **_kwargs,
+) -> ListDocumentApiResponse:
+    """document search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("document/search", {
+            "profile_id": str(profile_id),
+            "search": search,
+            "scenario_ids": [str(x) for x in scenario_ids] if scenario_ids else None,
+            "field_ids": [str(x) for x in field_ids] if field_ids else None,
+            "filter_department_ids": [str(x) for x in filter_department_ids] if filter_department_ids else None,
+            "scenario_search": scenario_search,
+            "field_search": field_search,
+            "department_search": department_search,
+            "flag_search": flag_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "document", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ListDocumentApiResponse,
+        builder=lambda: _search_document_build(
+            pool, redis,
+            profile_id=profile_id,
+            search=search,
+            scenario_ids=scenario_ids,
+            field_ids=field_ids,
+            filter_department_ids=filter_department_ids,
+            scenario_search=scenario_search,
+            field_search=field_search,
+            department_search=department_search,
+            flag_search=flag_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_document_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
     # Main filters
     search: str | None = None,
     scenario_ids: list[UUID] | None = None,
@@ -107,7 +168,6 @@ async def search_document_impl(
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
-    **_kwargs,
 ) -> ListDocumentApiResponse:
     """Document search using composable infra functions.
 

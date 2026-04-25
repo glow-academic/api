@@ -46,8 +46,72 @@ from app.tools.resources.profiles.get import (
 from app.tools.resources.roles.get import get_roles
 from app.tools.resources.roles.search import search_roles
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 
 async def search_profile_impl(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    actor_profile_id: UUID | None = None,
+    search: str | None = None,
+    cohort_ids: list[UUID] | None = None,
+    filter_department_ids: list[UUID] | None = None,
+    role_filter: str | None = None,
+    cohort_search: str | None = None,
+    department_search: str | None = None,
+    role_search: str | None = None,
+    flag_search: str | None = None,
+    page_size: int = 12,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+    **_kwargs,
+) -> ListProfilesApiResponse:
+    """profile search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("profile/search", {
+            "profile_id": str(profile_id),
+            "actor_profile_id": str(actor_profile_id) if actor_profile_id else None,
+            "search": search,
+            "cohort_ids": [str(x) for x in cohort_ids] if cohort_ids else None,
+            "filter_department_ids": [str(x) for x in filter_department_ids] if filter_department_ids else None,
+            "role_filter": role_filter,
+            "cohort_search": cohort_search,
+            "department_search": department_search,
+            "role_search": role_search,
+            "flag_search": flag_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "profile", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ListProfilesApiResponse,
+        builder=lambda: _search_profile_build(
+            pool, redis,
+            profile_id=profile_id,
+            actor_profile_id=actor_profile_id,
+            search=search,
+            cohort_ids=cohort_ids,
+            filter_department_ids=filter_department_ids,
+            role_filter=role_filter,
+            cohort_search=cohort_search,
+            department_search=department_search,
+            role_search=role_search,
+            flag_search=flag_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_profile_build(
     pool: asyncpg.Pool,
     redis: Redis,
     *,
@@ -66,7 +130,6 @@ async def search_profile_impl(
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
-    **_kwargs,
 ) -> ListProfilesApiResponse:
     """Profile search using composable infra functions.
 
@@ -255,16 +318,18 @@ async def search_profile_impl(
                 if e.is_primary:
                     primary_email = e.email
 
-        # Resolve role from roles_resource
+        # Resolve role from roles_resource (also yields permission_ids)
         target_role: str | None = None
         target_role_name: str | None = None
         target_level: int | None = None
+        target_permission_ids: list[UUID] = []
         if a.role_ids:
             role_obj = role_map.get(a.role_ids[0])
             if role_obj:
                 target_role = role_obj.name
                 target_role_name = role_obj.name
                 target_level = role_obj.level
+                target_permission_ids = list(role_obj.permission_ids or [])
 
         # Resolve departments
         dept_ids_str: list[str] = []
@@ -324,6 +389,7 @@ async def search_profile_impl(
                 initials=initials,
                 department_ids=dept_ids_str if dept_ids_str else None,
                 primary_department_id=primary_department_id,
+                permission_ids=target_permission_ids,
                 can_edit=can_edit,
                 can_duplicate=can_duplicate,
                 can_delete=can_delete,

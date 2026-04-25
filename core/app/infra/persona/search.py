@@ -53,6 +53,12 @@ from app.tools.resources.scenarios.search import (
 )
 from app.tools.resources.voices.search import search_voices
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 PERSONA_IMPORT_FIELDS: list[ImportField] = [
     ImportField(
         key="name",
@@ -131,6 +137,73 @@ async def search_persona_impl(
     redis: Redis,
     *,
     profile_id: UUID,
+    search: str | None = None,
+    scenario_ids: list[UUID] | None = None,
+    field_ids: list[UUID] | None = None,
+    filter_department_ids: list[UUID] | None = None,
+    scenario_search: str | None = None,
+    field_search: str | None = None,
+    department_search: str | None = None,
+    color_search: str | None = None,
+    icon_search: str | None = None,
+    voice_search: str | None = None,
+    instruction_search: str | None = None,
+    flag_search: str | None = None,
+    page_size: int = 12,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+    **_kwargs,
+) -> ListPersonaApiResponse:
+    """persona search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("persona/search", {
+            "profile_id": str(profile_id),
+            "search": search,
+            "scenario_ids": [str(x) for x in scenario_ids] if scenario_ids else None,
+            "field_ids": [str(x) for x in field_ids] if field_ids else None,
+            "filter_department_ids": [str(x) for x in filter_department_ids] if filter_department_ids else None,
+            "scenario_search": scenario_search,
+            "field_search": field_search,
+            "department_search": department_search,
+            "color_search": color_search,
+            "icon_search": icon_search,
+            "voice_search": voice_search,
+            "instruction_search": instruction_search,
+            "flag_search": flag_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "persona", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ListPersonaApiResponse,
+        builder=lambda: _search_persona_build(
+            pool, redis,
+            profile_id=profile_id,
+            search=search,
+            scenario_ids=scenario_ids,
+            field_ids=field_ids,
+            filter_department_ids=filter_department_ids,
+            scenario_search=scenario_search,
+            field_search=field_search,
+            department_search=department_search,
+            color_search=color_search,
+            icon_search=icon_search,
+            voice_search=voice_search,
+            instruction_search=instruction_search,
+            flag_search=flag_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_persona_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
     # Main filters
     search: str | None = None,
     scenario_ids: list[UUID] | None = None,
@@ -148,7 +221,6 @@ async def search_persona_impl(
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
-    **_kwargs,
 ) -> ListPersonaApiResponse:
     """Persona search using composable infra functions.
 

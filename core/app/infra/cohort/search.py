@@ -53,6 +53,12 @@ from app.tools.resources.simulations.search import (
     search_simulations as search_simulations_resource,
 )
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 COHORT_IMPORT_FIELDS: list[dict[str, Any]] = [
     {
         "key": "name",
@@ -99,6 +105,60 @@ COHORT_IMPORT_FIELDS: list[dict[str, Any]] = [
 
 
 async def search_cohort_impl(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    search: str | None = None,
+    filter_profile_ids: list[UUID] | None = None,
+    filter_simulation_ids: list[UUID] | None = None,
+    filter_department_ids: list[UUID] | None = None,
+    profile_search: str | None = None,
+    simulation_search: str | None = None,
+    department_search: str | None = None,
+    flag_search: str | None = None,
+    page_size: int = 10,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+) -> ListCohortApiResponse:
+    """cohort search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("cohort/search", {
+            "profile_id": str(profile_id),
+            "search": search,
+            "filter_profile_ids": [str(x) for x in filter_profile_ids] if filter_profile_ids else None,
+            "filter_simulation_ids": [str(x) for x in filter_simulation_ids] if filter_simulation_ids else None,
+            "filter_department_ids": [str(x) for x in filter_department_ids] if filter_department_ids else None,
+            "profile_search": profile_search,
+            "simulation_search": simulation_search,
+            "department_search": department_search,
+            "flag_search": flag_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "cohort", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ListCohortApiResponse,
+        builder=lambda: _search_cohort_build(
+            pool, redis,
+            profile_id=profile_id,
+            search=search,
+            filter_profile_ids=filter_profile_ids,
+            filter_simulation_ids=filter_simulation_ids,
+            filter_department_ids=filter_department_ids,
+            profile_search=profile_search,
+            simulation_search=simulation_search,
+            department_search=department_search,
+            flag_search=flag_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_cohort_build(
     pool: asyncpg.Pool,
     redis: Redis,
     *,

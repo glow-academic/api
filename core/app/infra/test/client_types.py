@@ -170,3 +170,41 @@ class TestErrorEvent(BaseModel):
     run_id: str | None = Field(None, description="UUID of the test run")
     message: str = Field(..., description="Error message")
     error_type: str | None = Field(None, description="Classification of the error")
+
+
+# ---------------------------------------------------------------------------
+# Canonical invocation-level lifecycle events (chat-equivalent on the test side)
+# ---------------------------------------------------------------------------
+
+
+class TestInvocationStartedEvent(BaseModel):
+    """Server-to-client: a test invocation started executing."""
+
+    test_id: str = Field(..., description="UUID of the parent test")
+    invocation_id: str = Field(..., description="UUID of the test invocation")
+    is_dynamic: bool = Field(False, description="Whether the test is dynamic")
+
+
+class TestInvocationEndedEvent(BaseModel):
+    """Server-to-client: a single invocation within a test ended."""
+
+    test_id: str = Field(..., description="UUID of the parent test")
+    invocation_id: str = Field(..., description="UUID of the test invocation")
+    success: bool = Field(True, description="Whether the invocation ended cleanly")
+    message: str | None = Field(None, description="Optional end message")
+
+
+class TestInvocationStoppedEvent(BaseModel):
+    """Server-to-client: a single invocation within a test was stopped."""
+
+    invocation_id: str = Field(..., description="UUID of the test invocation")
+    success: bool = Field(True, description="Whether the stop succeeded")
+    message: str | None = Field(None, description="Optional stop message")
+
+
+class TestInvocationResponseSavedEvent(BaseModel):
+    """Server-to-client: an invocation run produced a persisted response."""
+
+    invocation_id: str = Field(..., description="UUID of the test invocation")
+    run_id: str = Field(..., description="UUID of the test run")
+    response_id: str | None = Field(None, description="UUID of the saved response")

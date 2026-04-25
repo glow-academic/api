@@ -27,6 +27,7 @@ from app.infra.tool.types import (
     ToolArgOutputResource,
     ToolArgPositionResource,
     ToolArgResource,
+    ToolDepartmentResource,
     ToolDescriptionResource,
     ToolFlagResource,
     ToolInstructionResource,
@@ -38,6 +39,7 @@ SECTIONS = [
     "names",
     "descriptions",
     "flags",
+    "departments",
     "args",
     "arg_positions",
     "args_outputs",
@@ -140,6 +142,7 @@ async def get_tool_impl(
         names_search=_sf(resolved_filters, "names", "search"),
         descriptions_search=_sf(resolved_filters, "descriptions", "search"),
         flags_search=_sf(resolved_filters, "flags", "search"),
+        departments_search=_sf(resolved_filters, "departments", "search"),
         args_search=_sf(resolved_filters, "args", "search"),
         arg_positions_search=_sf(resolved_filters, "arg_positions", "search"),
         args_outputs_search=_sf(resolved_filters, "args_outputs", "search"),
@@ -148,6 +151,7 @@ async def get_tool_impl(
         names_limit=_sf(resolved_filters, "names", "limit"),
         descriptions_limit=_sf(resolved_filters, "descriptions", "limit"),
         flags_limit=_sf(resolved_filters, "flags", "limit"),
+        departments_limit=_sf(resolved_filters, "departments", "limit"),
         args_limit=_sf(resolved_filters, "args", "limit"),
         arg_positions_limit=_sf(resolved_filters, "arg_positions", "limit"),
         args_outputs_limit=_sf(resolved_filters, "args_outputs", "limit"),
@@ -156,6 +160,7 @@ async def get_tool_impl(
         names_selected_only=_sf(resolved_filters, "names", "selected"),
         descriptions_selected_only=_sf(resolved_filters, "descriptions", "selected"),
         flags_selected_only=_sf(resolved_filters, "flags", "selected"),
+        departments_selected_only=_sf(resolved_filters, "departments", "selected"),
         args_selected_only=_sf(resolved_filters, "args", "selected"),
         arg_positions_selected_only=_sf(resolved_filters, "arg_positions", "selected"),
         args_outputs_selected_only=_sf(resolved_filters, "args_outputs", "selected"),
@@ -190,6 +195,9 @@ async def get_tool_impl(
     descriptions_suggestions = tool_ctx.resources["descriptions"].suggestions
     flags_selected = tool_ctx.resources["flags"].selected
     flags_suggestions = tool_ctx.resources["flags"].suggestions
+    departments_pair = tool_ctx.resources.get("departments")
+    departments_selected = departments_pair.selected if departments_pair else []
+    departments_suggestions = departments_pair.suggestions if departments_pair else []
     args_selected = tool_ctx.resources["args"].selected
     args_suggestions = tool_ctx.resources["args"].suggestions
     arg_positions_selected = tool_ctx.resources["arg_positions"].selected
@@ -205,6 +213,7 @@ async def get_tool_impl(
     all_names = dedupe_by_id(names_selected + names_suggestions)
     all_descriptions = dedupe_by_id(descriptions_selected + descriptions_suggestions)
     all_flags = dedupe_by_id(flags_selected + flags_suggestions)
+    all_departments = dedupe_by_id(departments_selected + departments_suggestions)
     all_args = dedupe_by_id(args_selected + args_suggestions)
     all_arg_positions = dedupe_by_id(arg_positions_selected + arg_positions_suggestions)
     all_args_outputs = dedupe_by_id(args_outputs_selected + args_outputs_suggestions)
@@ -215,6 +224,7 @@ async def get_tool_impl(
         "names": {item.id for item in names_selected if item.id},
         "descriptions": {item.id for item in descriptions_selected if item.id},
         "flags": {item.id for item in flags_selected if item.id},
+        "departments": {item.id for item in departments_selected if item.id},
         "args": {item.id for item in args_selected if item.id},
         "arg_positions": {item.id for item in arg_positions_selected if item.id},
         "args_outputs": {item.id for item in args_outputs_selected if item.id},
@@ -225,6 +235,7 @@ async def get_tool_impl(
         "names": {item.id for item in names_suggestions if item.id},
         "descriptions": {item.id for item in descriptions_suggestions if item.id},
         "flags": {item.id for item in flags_suggestions if item.id},
+        "departments": {item.id for item in departments_suggestions if item.id},
         "args": {item.id for item in args_suggestions if item.id},
         "arg_positions": {item.id for item in arg_positions_suggestions if item.id},
         "args_outputs": {item.id for item in args_outputs_suggestions if item.id},
@@ -354,6 +365,18 @@ async def get_tool_impl(
         for item in all_instructions
         if item.id
     ]
+    departments = [
+        ToolDepartmentResource(
+            department_id=getattr(item, "id", None),
+            name=getattr(item, "name", None),
+            description=getattr(item, "description", None),
+            generated=getattr(item, "generated", None),
+            selected=getattr(item, "id", None) in selected_ids["departments"],
+            suggested=getattr(item, "id", None) in suggested_ids["departments"],
+            pending=_pending(getattr(item, "id", None)),
+        )
+        for item in all_departments
+    ]
 
     return GetToolApiResponse(
         actor_name=actor.name,
@@ -375,4 +398,5 @@ async def get_tool_impl(
         args_outputs=_filter_items(args_outputs, "args_outputs", selected_only=selected_only, suggested_only=suggested_only) if include["args_outputs"] else None,
         permissions=_filter_items(permissions, "permissions", selected_only=selected_only, suggested_only=suggested_only) if include["permissions"] else None,
         instructions=_filter_items(instructions, "instructions", selected_only=selected_only, suggested_only=suggested_only) if include["instructions"] else None,
+        departments=_filter_items(departments, "departments", selected_only=selected_only, suggested_only=suggested_only) if include["departments"] else None,
     )

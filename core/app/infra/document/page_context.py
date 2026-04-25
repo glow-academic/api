@@ -54,6 +54,12 @@ from app.tools.resources.parameter_fields.docs import (
 from app.tools.resources.parameters.docs import get_parameters_docs
 from app.tools.resources.texts.docs import get_texts_docs
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 _PAGE_METADATA = PageMetadataConfig(
     list_title="Documents",
     list_description="Manage structured content templates.",
@@ -84,7 +90,34 @@ async def page_context_document_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    bypass_cache: bool = False,
     **_kwargs,
+) -> ComposedContextResponse:
+    """document page context — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("document/page_context", {
+            "profile_id": str(profile_id),
+            "entity_id": str(entity_id) if entity_id else None,
+        }),
+        tags=["context", "document", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ComposedContextResponse,
+        builder=lambda: _page_context_document_build(
+            pool, redis,
+            profile_id=profile_id,
+            entity_id=entity_id,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _page_context_document_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    entity_id: UUID | None = None,
 ) -> ComposedContextResponse:
     """Document page context.
 

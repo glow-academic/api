@@ -187,9 +187,19 @@ class MVRefresher:
 
             # 5. Run the existing per-target refresh primitive. The primitive
             # owns its own DB connection acquisition + cache invalidation.
+            # Some primitives accept (conn, redis), others only (conn) — try
+            # the rich signature first, fall back to bare conn on TypeError
+            # so we don't have to keep the registry in lock-step with every
+            # leaf primitive's signature drift.
             t0 = time.monotonic()
             async with self._pool.acquire() as conn:
-                await refresh_fn(conn, self._redis)
+                try:
+                    await refresh_fn(conn, self._redis)
+                except TypeError as e:
+                    if "positional argument" in str(e) or "unexpected keyword" in str(e):
+                        await refresh_fn(conn)
+                    else:
+                        raise
             duration_ms = int((time.monotonic() - t0) * 1000)
             logger.info(
                 f"[mv-refresher:{target}] refreshed in {duration_ms}ms"

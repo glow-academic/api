@@ -578,6 +578,8 @@ class ListAuthApiAuth(BaseModel):
     description: str | None = Field(None, description="Auth provider description text")
     item_count: int | None = Field(None, description="Number of auth items")
     department_ids: list[str] | None = Field(None, description="Associated department IDs")
+    setting_ids: list[UUID] = Field(default_factory=list, description="Setting artifact UUIDs that reference this auth")
+    auth_item_key_ids: list[UUID] = Field(default_factory=list, description="Auth item key resource UUIDs owned by this auth")
     is_inactive: bool | None = Field(None, description="Whether the auth provider is inactive")
     can_edit: bool | None = Field(None, description="Whether the actor can edit this auth")
     can_duplicate: bool | None = Field(None, description="Whether the actor can duplicate this auth")
@@ -591,6 +593,8 @@ class ListAuthApiResponse(BaseModel):
     auths: list[ListAuthApiAuth] | None = Field(None, description="List of auth provider items")
     department_filter: ListFilterSection | None = Field(None, description="Filter options for departments")
     flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
+    settings_filter: ListFilterSection | None = Field(None, description="Filter options for settings in list UI")
+    auth_item_keys_filter: ListFilterSection | None = Field(None, description="Filter options for auth item keys in list UI")
     total_count: int | None = Field(None, description="Total number of auth providers")
 
 

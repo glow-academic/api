@@ -46,6 +46,12 @@ from app.tools.resources.providers.search import (
     search_providers as search_providers_resource,
 )
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 MODEL_IMPORT_FIELDS: list[dict[str, Any]] = [
     {
         "key": "name",
@@ -75,6 +81,61 @@ async def search_model_impl(
     redis: Redis,
     *,
     profile_id: UUID,
+    search: str | None = None,
+    filter_provider_ids: list[UUID] | None = None,
+    filter_department_ids: list[UUID] | None = None,
+    filter_agent_ids: list[UUID] | None = None,
+    provider_search: str | None = None,
+    department_search: str | None = None,
+    agent_search: str | None = None,
+    flag_search: str | None = None,
+    page_size: int = 12,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+    **_kwargs,
+) -> ListModelApiResponse:
+    """model search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("model/search", {
+            "profile_id": str(profile_id),
+            "search": search,
+            "filter_provider_ids": [str(x) for x in filter_provider_ids] if filter_provider_ids else None,
+            "filter_department_ids": [str(x) for x in filter_department_ids] if filter_department_ids else None,
+            "filter_agent_ids": [str(x) for x in filter_agent_ids] if filter_agent_ids else None,
+            "provider_search": provider_search,
+            "department_search": department_search,
+            "agent_search": agent_search,
+            "flag_search": flag_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "model", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ListModelApiResponse,
+        builder=lambda: _search_model_build(
+            pool, redis,
+            profile_id=profile_id,
+            search=search,
+            filter_provider_ids=filter_provider_ids,
+            filter_department_ids=filter_department_ids,
+            filter_agent_ids=filter_agent_ids,
+            provider_search=provider_search,
+            department_search=department_search,
+            agent_search=agent_search,
+            flag_search=flag_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_model_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
     # Main filters
     search: str | None = None,
     filter_provider_ids: list[UUID] | None = None,
@@ -88,7 +149,6 @@ async def search_model_impl(
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
-    **_kwargs,
 ) -> ListModelApiResponse:
     """Model search using composable infra functions."""
     from fastapi import HTTPException

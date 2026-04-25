@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "2.15.21"
+    "version": "2.15.22"
   },
   "paths": {
     "/persona/get": {
@@ -19246,6 +19246,58 @@
         ]
       }
     },
+    "/test/invocation/create": {
+      "post": {
+        "tags": [
+          "test",
+          "invocation"
+        ],
+        "summary": "Create Invocation Endpoint",
+        "description": "Create an invocation within a test.",
+        "operationId": "create_invocation_endpoint_test_invocation_create_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvocationApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateInvocationApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "test",
+          "invocation"
+        ]
+      }
+    },
     "/test/invocation/draft": {
       "patch": {
         "tags": [
@@ -32540,6 +32592,171 @@
           "invocation_id"
         ],
         "title": "CreateGradeApiRequest"
+      },
+      "CreateInvocationApiRequest": {
+        "properties": {
+          "test_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Test Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "default": ""
+          },
+          "use_custom": {
+            "type": "boolean",
+            "title": "Use Custom",
+            "default": false
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position",
+            "default": 0
+          },
+          "agent_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Ids"
+          },
+          "rubric_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubric Ids"
+          },
+          "quality_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Ids"
+          },
+          "department_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Ids"
+          },
+          "voice_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Ids"
+          },
+          "reasoning_level_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Level Ids"
+          },
+          "temperature_level_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature Level Ids"
+          },
+          "modality_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modality Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_id"
+        ],
+        "title": "CreateInvocationApiRequest",
+        "description": "Create a test_invocation_entry on an existing test, optionally with\nmulti-select resource selections supplied by the user."
+      },
+      "CreateInvocationApiResponse": {
+        "properties": {
+          "invocation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Invocation Id",
+            "description": "UUID of the created test invocation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invocation_id"
+        ],
+        "title": "CreateInvocationApiResponse"
       },
       "CreateModelApiRequest": {
         "properties": {
@@ -64314,6 +64531,17 @@
               }
             ],
             "description": "Filter options for instructions"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/app__infra__tool__types__SectionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for departments"
           }
         },
         "type": "object",
@@ -64578,6 +64806,21 @@
             ],
             "title": "Instructions",
             "description": "Instruction resources (single-select)"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ToolDepartmentResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departments",
+            "description": "Department resources"
           }
         },
         "type": "object",
@@ -71460,6 +71703,24 @@
             "title": "Department Ids",
             "description": "Associated department IDs"
           },
+          "setting_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Setting Ids",
+            "description": "Setting artifact UUIDs that reference this auth"
+          },
+          "auth_item_key_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Auth Item Key Ids",
+            "description": "Auth item key resource UUIDs owned by this auth"
+          },
           "is_inactive": {
             "anyOf": [
               {
@@ -71563,6 +71824,28 @@
               }
             ],
             "description": "Filter options for flags in list UI"
+          },
+          "settings_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for settings in list UI"
+          },
+          "auth_item_keys_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for auth item keys in list UI"
           },
           "total_count": {
             "anyOf": [
@@ -72312,6 +72595,33 @@
             "title": "Staff Count",
             "description": "Number of staff in the department"
           },
+          "profile_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Profile Ids",
+            "description": "Profile artifact UUIDs assigned to this department"
+          },
+          "setting_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Setting Ids",
+            "description": "Setting artifact UUIDs scoped to this department"
+          },
+          "login_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Login Ids",
+            "description": "Login resource UUIDs reachable via this department's settings"
+          },
           "is_inactive": {
             "anyOf": [
               {
@@ -72416,6 +72726,39 @@
               }
             ],
             "description": "Filter options for flags in list UI"
+          },
+          "profile_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for profiles in list UI"
+          },
+          "settings_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for settings in list UI"
+          },
+          "logins_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for logins in list UI"
           },
           "total_count": {
             "anyOf": [
@@ -72806,6 +73149,24 @@
             "title": "Department Ids",
             "description": "Associated department IDs"
           },
+          "model_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Model Ids",
+            "description": "Model resource UUIDs assigned to this eval"
+          },
+          "rubric_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Rubric Ids",
+            "description": "Rubric artifact UUIDs assigned to this eval (via model_rubrics_resource)"
+          },
           "is_inactive": {
             "anyOf": [
               {
@@ -72970,6 +73331,28 @@
               }
             ],
             "description": "Filter options for flags in list UI"
+          },
+          "model_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for models in list UI"
+          },
+          "rubric_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for rubrics in list UI"
           },
           "total_count": {
             "anyOf": [
@@ -75106,6 +75489,15 @@
             "title": "Primary Department Id",
             "description": "Primary department ID"
           },
+          "permission_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Permission Ids",
+            "description": "Permission resource UUIDs granted via the profile's role"
+          },
           "can_edit": {
             "anyOf": [
               {
@@ -75244,6 +75636,17 @@
               }
             ],
             "description": "Filter options for flags in list UI"
+          },
+          "permissions_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for permissions in list UI"
           },
           "total_count": {
             "anyOf": [
@@ -75776,6 +76179,17 @@
             ],
             "description": "Filter options for flags in list UI"
           },
+          "eval_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for evals in list UI"
+          },
           "total_count": {
             "anyOf": [
               {
@@ -75960,6 +76374,15 @@
             ],
             "title": "Standard Group Ids",
             "description": "Associated standard group UUIDs"
+          },
+          "eval_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Eval Ids",
+            "description": "Eval artifact UUIDs that reference this rubric (via model_rubrics_resource)"
           },
           "is_inactive": {
             "anyOf": [
@@ -76994,6 +77417,39 @@
               }
             ],
             "description": "Filter options for flags in list UI"
+          },
+          "providers_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for providers in list UI"
+          },
+          "auth_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for auths in list UI"
+          },
+          "systems_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for systems in list UI"
           }
         },
         "type": "object",
@@ -77090,6 +77546,33 @@
             ],
             "title": "Department Ids",
             "description": "Associated department IDs"
+          },
+          "provider_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Provider Ids",
+            "description": "Provider resource UUIDs assigned to this setting"
+          },
+          "auth_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Auth Ids",
+            "description": "Auth resource UUIDs assigned to this setting"
+          },
+          "system_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "System Ids",
+            "description": "System resource UUIDs assigned to this setting"
           },
           "can_edit": {
             "anyOf": [
@@ -77641,6 +78124,17 @@
             ],
             "description": "Filter options for flags in list UI"
           },
+          "permissions_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListFilterSection"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter options for permissions in list UI"
+          },
           "total_count": {
             "anyOf": [
               {
@@ -77735,6 +78229,33 @@
             ],
             "title": "Flag Ids",
             "description": "Currently selected flag option UUIDs"
+          },
+          "permission_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Permission Ids",
+            "description": "Permission resource UUIDs assigned to this tool"
+          },
+          "agent_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Agent Ids",
+            "description": "Agent artifact UUIDs that reference this tool"
+          },
+          "department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Department Ids",
+            "description": "Department resource UUIDs assigned to this tool"
           },
           "updated_at": {
             "anyOf": [
@@ -105810,6 +106331,17 @@
           "test_id": {
             "type": "string",
             "title": "Test Id"
+          },
+          "invocation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invocation Id"
           }
         },
         "type": "object",
@@ -107202,6 +107734,79 @@
         },
         "type": "object",
         "title": "ToolArgResource"
+      },
+      "ToolDepartmentResource": {
+        "properties": {
+          "department_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Id",
+            "description": "Department identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Department name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Department description"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated",
+            "description": "Whether the department was AI-generated"
+          },
+          "suggested": {
+            "type": "boolean",
+            "title": "Suggested",
+            "description": "Whether this item is suggested",
+            "default": false
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "description": "Whether this item is selected",
+            "default": false
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "Whether this item is pending acceptance",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ToolDepartmentResource"
       },
       "ToolDescriptionResource": {
         "properties": {

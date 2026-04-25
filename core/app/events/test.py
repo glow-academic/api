@@ -19,6 +19,10 @@ from app.infra.test.client_types import (
     TestAllCompleteEvent,
     # Test lifecycle input payloads (client → server)
     TestEndPayload,
+    TestInvocationEndedEvent,
+    TestInvocationResponseSavedEvent,
+    TestInvocationStartedEvent,
+    TestInvocationStoppedEvent,
     TestProgressEvent,
     TestRunCompleteEvent,
     TestRunStartEvent,
@@ -60,6 +64,17 @@ TEST_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         },
         domain_events={
             "artifacts.test.started": TestStartedEvent,
+            "artifacts.test.invocation.started": TestInvocationStartedEvent,
+        },
+    ),
+    "invocation_create": OperationEventConfig(
+        operation="invocation_create",
+        scope="entity",
+        entity_key="test_id",
+        can_subscribe=require_authenticated_profile,
+        project_domain_from_audit=False,
+        domain_events={
+            "artifacts.test.invocation.created": TestInvocationStartedEvent,
         },
     ),
     "run": OperationEventConfig(
@@ -77,6 +92,7 @@ TEST_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "artifacts.test.run.replay_started": TestRunStartEvent,
             "artifacts.test.run.progress": TestProgressEvent,
             "artifacts.test.run.replay_completed": TestRunCompleteEvent,
+            "artifacts.test.invocation.response.saved": TestInvocationResponseSavedEvent,
         },
         filter_events=default_filter_events,
     ),
@@ -92,6 +108,7 @@ TEST_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
+            "artifacts.test.invocation.ended": TestInvocationEndedEvent,
             "artifacts.test.ended": TestAllCompleteEvent,
         },
     ),
@@ -107,7 +124,7 @@ TEST_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.test.stopped": TestStoppedEvent,
+            "artifacts.test.invocation.stopped": TestInvocationStoppedEvent,
         },
     ),
     "refresh": OperationEventConfig(

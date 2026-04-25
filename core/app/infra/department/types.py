@@ -356,6 +356,9 @@ class ListDepartmentApiDepartment(BaseModel):
     name: str | None = Field(None, description="Department display name")
     description: str | None = Field(None, description="Department description text")
     staff_count: int | None = Field(None, description="Number of staff in the department")
+    profile_ids: list[UUID] = Field(default_factory=list, description="Profile artifact UUIDs assigned to this department")
+    setting_ids: list[UUID] = Field(default_factory=list, description="Setting artifact UUIDs scoped to this department")
+    login_ids: list[UUID] = Field(default_factory=list, description="Login resource UUIDs reachable via this department's settings")
     is_inactive: bool | None = Field(None, description="Whether the department is inactive")
     can_edit: bool | None = Field(None, description="Whether the actor can edit this department")
     can_duplicate: bool | None = Field(None, description="Whether the actor can duplicate this department")
@@ -367,6 +370,9 @@ class ListDepartmentApiResponse(BaseModel):
     actor_name: str | None = Field(None, description="Display name of the acting user")
     departments: list[ListDepartmentApiDepartment] | None = Field(None, description="List of department items")
     flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
+    profile_filter: ListFilterSection | None = Field(None, description="Filter options for profiles in list UI")
+    settings_filter: ListFilterSection | None = Field(None, description="Filter options for settings in list UI")
+    logins_filter: ListFilterSection | None = Field(None, description="Filter options for logins in list UI")
     total_count: int | None = Field(None, description="Total number of departments")
 
 

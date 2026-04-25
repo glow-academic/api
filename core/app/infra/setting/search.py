@@ -37,6 +37,12 @@ from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 SETTING_IMPORT_FIELDS: list[dict[str, Any]] = [
     {
         "key": "name",
@@ -74,7 +80,34 @@ async def search_setting_impl(
     *,
     profile_id: UUID,
     flag_search: str | None = None,
+    bypass_cache: bool = False,
     **_kwargs,
+) -> ListSettingApiResponse:
+    """setting search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("setting/search", {
+            "profile_id": str(profile_id),
+            "flag_search": flag_search,
+        }),
+        tags=["search", "setting", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ListSettingApiResponse,
+        builder=lambda: _search_setting_build(
+            pool, redis,
+            profile_id=profile_id,
+            flag_search=flag_search,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_setting_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    flag_search: str | None = None,
 ) -> ListSettingApiResponse:
     """Setting search using composable infra functions.
 
@@ -123,6 +156,9 @@ async def search_setting_impl(
             descriptions=True,
             departments=True,
             flags=True,
+            providers=True,
+            auths=True,
+            systems=True,
         )
 
     # ── Step 4: Parallel hydration + keys fetch ────────────────────────
@@ -197,6 +233,9 @@ async def search_setting_impl(
                 name=name_obj.name if name_obj else None,
                 description=desc_obj.description if desc_obj else None,
                 department_ids=dept_ids_str,
+                provider_ids=list(a.provider_ids or []),
+                auth_ids=list(a.auth_ids or []),
+                system_ids=list(a.systems_ids or []),
                 can_edit=can_edit,
                 can_delete=can_delete,
                 can_duplicate=can_duplicate,

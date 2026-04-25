@@ -92,17 +92,28 @@ async def enqueue_refreshes(
                     session_id=session_id,
                 )
 
-    # 2. soft mode is "record intent without enqueue" — used by chains that
-    # plan to ack later. Skip the Redis flag flip.
+    # 2. Synchronous tag invalidation — busts big-cache (L3) entries
+    # immediately so the user's next read sees their write. Runs even in
+    # soft mode: soft means "don't run the MV refresh yet" but the data
+    # has already changed and stale cache entries must go. The MV refresh
+    # itself is async in the worker, but cache correctness can't wait.
+    if redis is not None and response_tags:
+        from app.utils.cache.invalidate_tags import invalidate_tags
+        await invalidate_tags(response_tags, redis=redis)
+
+    # 3. soft mode = "record intent without enqueue" — caller will ack later
+    # to actually run the MV refresh. We've already invalidated cache above,
+    # so reads stay correct in the meantime (they'll cache-miss and rebuild
+    # from the new data).
     if soft:
         return RefreshResponse(
             success=True,
             refreshed_views=[],
-            invalidated_tags=[],
+            invalidated_tags=response_tags,
             idempotency_key=op_key,
         )
 
-    # 3. O(1) Redis enqueue — wakes the per-MV worker.
+    # 4. O(1) Redis enqueue — wakes the per-MV worker.
     if redis is not None:
         for target in targets:
             await enqueue_pending(redis, target)

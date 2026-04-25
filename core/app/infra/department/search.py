@@ -45,6 +45,12 @@ from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 DEPARTMENT_IMPORT_FIELDS: list[dict[str, Any]] = [
     {
         "key": "name",
@@ -74,6 +80,43 @@ async def search_department_impl(
     redis: Redis,
     *,
     profile_id: UUID,
+    search: str | None = None,
+    flag_search: str | None = None,
+    page_size: int = 12,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+    **_kwargs,
+) -> ListDepartmentApiResponse:
+    """department search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("department/search", {
+            "profile_id": str(profile_id),
+            "search": search,
+            "flag_search": flag_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "department", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ListDepartmentApiResponse,
+        builder=lambda: _search_department_build(
+            pool, redis,
+            profile_id=profile_id,
+            search=search,
+            flag_search=flag_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_department_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
     # Main filters
     search: str | None = None,
     # Facet search text
@@ -81,7 +124,6 @@ async def search_department_impl(
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
-    **_kwargs,
 ) -> ListDepartmentApiResponse:
     """Department search using composable infra functions.
 
@@ -154,6 +196,69 @@ async def search_department_impl(
         async with pool.acquire() as conn:
             return await get_descriptions(conn, all_description_ids, redis)
 
+    # Build per-dept-resource maps for profile/setting/login junctions.
+    # All queries are batched on the union of dept resource ids across artifacts.
+    all_dept_resource_ids: list[UUID] = []
+    for a in artifacts:
+        all_dept_resource_ids.extend(a.department_ids or [])
+
+    profiles_by_dept_resource: dict[UUID, list[UUID]] = {}
+    settings_by_dept_resource: dict[UUID, list[UUID]] = {}
+    logins_by_setting: dict[UUID, list[UUID]] = {}
+
+    if all_dept_resource_ids:
+        async with pool.acquire() as conn:
+            prof_rows = await conn.fetch(
+                """
+                SELECT departments_id,
+                       ARRAY_AGG(DISTINCT profile_id)
+                         FILTER (WHERE profile_id IS NOT NULL) AS profile_ids
+                FROM profile_departments_junction
+                WHERE departments_id = ANY($1) AND active = true
+                GROUP BY departments_id
+                """,
+                all_dept_resource_ids,
+            )
+            set_rows = await conn.fetch(
+                """
+                SELECT departments_id,
+                       ARRAY_AGG(DISTINCT setting_id)
+                         FILTER (WHERE setting_id IS NOT NULL) AS setting_ids
+                FROM setting_departments_junction
+                WHERE departments_id = ANY($1) AND active = true
+                GROUP BY departments_id
+                """,
+                all_dept_resource_ids,
+            )
+        for r in prof_rows:
+            profiles_by_dept_resource[r["departments_id"]] = list(
+                r["profile_ids"] or []
+            )
+        for r in set_rows:
+            settings_by_dept_resource[r["departments_id"]] = list(
+                r["setting_ids"] or []
+            )
+
+        # Hop 2: from the discovered setting_ids, fetch logins_resource ids.
+        all_setting_ids: list[UUID] = []
+        for sids in settings_by_dept_resource.values():
+            all_setting_ids.extend(sids)
+        if all_setting_ids:
+            async with pool.acquire() as conn:
+                login_rows = await conn.fetch(
+                    """
+                    SELECT setting_id,
+                           ARRAY_AGG(DISTINCT logins_id)
+                             FILTER (WHERE logins_id IS NOT NULL) AS login_ids
+                    FROM setting_logins_junction
+                    WHERE setting_id = ANY($1) AND active = true
+                    GROUP BY setting_id
+                    """,
+                    all_setting_ids,
+                )
+            for r in login_rows:
+                logins_by_setting[r["setting_id"]] = list(r["login_ids"] or [])
+
     # Per-department: resolve permissions context + staff count
     # permissions_context gives us usage_count
     # search_profiles with department_ids gives us staff_count via total_count
@@ -222,12 +327,36 @@ async def search_department_impl(
         )
         can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
+        # Aggregate profile/setting/login ids across this dept's resource rows.
+        dept_profile_ids: list[UUID] = []
+        dept_setting_ids: list[UUID] = []
+        dept_login_ids: list[UUID] = []
+        seen_p: set[UUID] = set()
+        seen_s: set[UUID] = set()
+        seen_l: set[UUID] = set()
+        for dr_id in a.department_ids or []:
+            for pid in profiles_by_dept_resource.get(dr_id, []):
+                if pid not in seen_p:
+                    seen_p.add(pid)
+                    dept_profile_ids.append(pid)
+            for sid in settings_by_dept_resource.get(dr_id, []):
+                if sid not in seen_s:
+                    seen_s.add(sid)
+                    dept_setting_ids.append(sid)
+                for lid in logins_by_setting.get(sid, []):
+                    if lid not in seen_l:
+                        seen_l.add(lid)
+                        dept_login_ids.append(lid)
+
         departments.append(
             ListDepartmentApiDepartment(
                 department_id=a.id,
                 name=name_obj.name if name_obj else None,
                 description=desc_obj.description if desc_obj else None,
                 staff_count=staff_count,
+                profile_ids=dept_profile_ids,
+                setting_ids=dept_setting_ids,
+                login_ids=dept_login_ids,
                 is_inactive=is_inactive,
                 can_edit=can_edit,
                 can_duplicate=can_duplicate,

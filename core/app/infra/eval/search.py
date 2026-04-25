@@ -39,6 +39,12 @@ from app.tools.resources.flags.get import get_flags
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 EVAL_IMPORT_FIELDS: list[dict[str, Any]] = [
     {
         "key": "name",
@@ -68,6 +74,49 @@ async def search_eval_impl(
     redis: Redis,
     *,
     profile_id: UUID,
+    search: str | None = None,
+    filter_department_ids: list[UUID] | None = None,
+    department_search: str | None = None,
+    flag_search: str | None = None,
+    page_size: int = 50,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+    **_kwargs,
+) -> ListEvalApiResponse:
+    """eval search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("eval/search", {
+            "profile_id": str(profile_id),
+            "search": search,
+            "filter_department_ids": [str(x) for x in filter_department_ids] if filter_department_ids else None,
+            "department_search": department_search,
+            "flag_search": flag_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "eval", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ListEvalApiResponse,
+        builder=lambda: _search_eval_build(
+            pool, redis,
+            profile_id=profile_id,
+            search=search,
+            filter_department_ids=filter_department_ids,
+            department_search=department_search,
+            flag_search=flag_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_eval_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
     # Main filters
     search: str | None = None,
     filter_department_ids: list[UUID] | None = None,
@@ -77,7 +126,6 @@ async def search_eval_impl(
     # Pagination
     page_size: int = 50,
     page_offset: int = 0,
-    **_kwargs,
 ) -> ListEvalApiResponse:
     """Eval search using composable infra functions.
 
@@ -162,7 +210,36 @@ async def search_eval_impl(
             descriptions=True,
             departments=True,
             flags=True,
+            models=True,
+            model_rubrics=True,
         )
+
+    # Resolve rubric_artifact_ids per model_rubrics_resource row:
+    # model_rubrics_resource.rubric_id → rubrics_resource.id; reverse-walk
+    # rubric_rubrics_junction.rubrics_id → rubric_artifact.id.
+    rubric_artifact_ids_by_model_rubric: dict[UUID, list[UUID]] = {}
+    all_model_rubric_ids: list[UUID] = []
+    for a in artifacts:
+        all_model_rubric_ids.extend(a.model_rubric_ids or [])
+    if all_model_rubric_ids:
+        async with pool.acquire() as conn:
+            mr_rows = await conn.fetch(
+                """
+                SELECT mrr.id AS model_rubric_id,
+                       ARRAY_AGG(DISTINCT rrj.rubric_id)
+                         FILTER (WHERE rrj.rubric_id IS NOT NULL) AS rubric_ids
+                FROM model_rubrics_resource mrr
+                LEFT JOIN rubric_rubrics_junction rrj
+                  ON rrj.rubrics_id = mrr.rubric_id AND rrj.active = true
+                WHERE mrr.id = ANY($1) AND mrr.active = true
+                GROUP BY mrr.id
+                """,
+                all_model_rubric_ids,
+            )
+        for r in mr_rows:
+            rubric_artifact_ids_by_model_rubric[r["model_rubric_id"]] = list(
+                r["rubric_ids"] or []
+            )
 
     # ── Step 4: Parallel hydration + facets ────────────────────────────
 
@@ -247,12 +324,23 @@ async def search_eval_impl(
         can_delete = compute_can_delete(role_level=user_role_level, role_permissions=profile.role_permissions)
         can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
+        # Aggregate rubric_artifact_ids across this eval's model_rubrics rows.
+        eval_rubric_ids: list[UUID] = []
+        seen_rubric_ids: set[UUID] = set()
+        for mr_id in a.model_rubric_ids or []:
+            for rid in rubric_artifact_ids_by_model_rubric.get(mr_id, []):
+                if rid not in seen_rubric_ids:
+                    seen_rubric_ids.add(rid)
+                    eval_rubric_ids.append(rid)
+
         evals_list.append(
             ListEvalApiEval(
                 eval_id=a.id,
                 name=name_obj.name if name_obj else None,
                 description=desc_obj.description if desc_obj else None,
                 department_ids=dept_ids_str,
+                model_ids=list(a.model_ids or []),
+                rubric_ids=eval_rubric_ids,
                 is_inactive=not a.active,
                 is_dynamic=is_dynamic,
                 use_groups=use_groups,

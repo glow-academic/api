@@ -43,6 +43,12 @@ from app.tools.resources.personas.search import (
     search_personas as search_personas_resource,
 )
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 FIELD_IMPORT_FIELDS: list[dict[str, Any]] = [
     {
         "key": "name",
@@ -72,6 +78,61 @@ async def search_field_impl(
     redis: Redis,
     *,
     profile_id: UUID,
+    search: str | None = None,
+    parameter_ids: list[UUID] | None = None,
+    persona_ids: list[UUID] | None = None,
+    filter_department_ids: list[UUID] | None = None,
+    parameter_search: str | None = None,
+    persona_search: str | None = None,
+    department_search: str | None = None,
+    flag_search: str | None = None,
+    page_size: int = 12,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+    **_kwargs,
+) -> ListFieldApiResponse:
+    """field search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("field/search", {
+            "profile_id": str(profile_id),
+            "search": search,
+            "parameter_ids": [str(x) for x in parameter_ids] if parameter_ids else None,
+            "persona_ids": [str(x) for x in persona_ids] if persona_ids else None,
+            "filter_department_ids": [str(x) for x in filter_department_ids] if filter_department_ids else None,
+            "parameter_search": parameter_search,
+            "persona_search": persona_search,
+            "department_search": department_search,
+            "flag_search": flag_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "field", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ListFieldApiResponse,
+        builder=lambda: _search_field_build(
+            pool, redis,
+            profile_id=profile_id,
+            search=search,
+            parameter_ids=parameter_ids,
+            persona_ids=persona_ids,
+            filter_department_ids=filter_department_ids,
+            parameter_search=parameter_search,
+            persona_search=persona_search,
+            department_search=department_search,
+            flag_search=flag_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_field_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
     # Main filters
     search: str | None = None,
     parameter_ids: list[UUID] | None = None,
@@ -85,7 +146,6 @@ async def search_field_impl(
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
-    **_kwargs,
 ) -> ListFieldApiResponse:
     """Field search using composable infra functions.
 

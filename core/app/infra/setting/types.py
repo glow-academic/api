@@ -707,6 +707,9 @@ class ListSettingApiSetting(BaseModel):
     name: str | None = Field(None, description="Setting display name")
     description: str | None = Field(None, description="Setting description text")
     department_ids: list[str] | None = Field(None, description="Associated department IDs")
+    provider_ids: list[UUID] = Field(default_factory=list, description="Provider resource UUIDs assigned to this setting")
+    auth_ids: list[UUID] = Field(default_factory=list, description="Auth resource UUIDs assigned to this setting")
+    system_ids: list[UUID] = Field(default_factory=list, description="System resource UUIDs assigned to this setting")
     # Computed in Python
     can_edit: bool | None = Field(None, description="Whether the actor can edit this setting")
     can_delete: bool | None = Field(None, description="Whether the actor can delete this setting")
@@ -732,6 +735,9 @@ class ListSettingApiResponse(BaseModel):
     settings: list[ListSettingApiSetting] | None = Field(None, description="List of setting items")
     keys: list[ListSettingApiKey] | None = Field(None, description="List of key items")
     flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
+    providers_filter: ListFilterSection | None = Field(None, description="Filter options for providers in list UI")
+    auth_filter: ListFilterSection | None = Field(None, description="Filter options for auths in list UI")
+    systems_filter: ListFilterSection | None = Field(None, description="Filter options for systems in list UI")
 
 
 # ========== Delete Endpoint Types ==========

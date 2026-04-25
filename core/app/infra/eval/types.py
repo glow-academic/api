@@ -216,6 +216,8 @@ class ListEvalApiEval(BaseModel):
     name: str | None = Field(None, description="Eval name")
     description: str | None = Field(None, description="Eval description")
     department_ids: list[str] | None = Field(None, description="Associated department IDs")
+    model_ids: list[UUID] = Field(default_factory=list, description="Model resource UUIDs assigned to this eval")
+    rubric_ids: list[UUID] = Field(default_factory=list, description="Rubric artifact UUIDs assigned to this eval (via model_rubrics_resource)")
     is_inactive: bool | None = Field(None, description="Whether the eval is inactive")
     is_dynamic: bool | None = Field(None, description="Whether the eval uses dynamic mode")
     use_groups: bool | None = Field(None, description="Whether the eval uses groups")
@@ -235,6 +237,8 @@ class ListEvalApiResponse(BaseModel):
     evals: list[ListEvalApiEval] | None = Field(None, description="List of evals")
     department_filter: ListFilterSection | None = Field(None, description="Filter options for departments in list UI")
     flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
+    model_filter: ListFilterSection | None = Field(None, description="Filter options for models in list UI")
+    rubric_filter: ListFilterSection | None = Field(None, description="Filter options for rubrics in list UI")
     total_count: int | None = Field(None, description="Total number of matching records")
     user_role: str | None = Field(None, description="Role of the current user")
 

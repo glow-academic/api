@@ -38,6 +38,12 @@ from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 TOOL_IMPORT_FIELDS: list[dict[str, Any]] = [
     {
         "key": "name",
@@ -60,6 +66,58 @@ async def search_tool_impl(
     redis: Redis,
     *,
     profile_id: UUID,
+    search: str | None = None,
+    filter_department_ids: list[UUID] | None = None,
+    filter_creatable: list[str] | None = None,
+    filter_agent_ids: list[UUID] | None = None,
+    department_search: str | None = None,
+    flag_search: str | None = None,
+    agent_search: str | None = None,
+    page_size: int = 12,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+    **_kwargs,
+) -> ListToolApiResponse:
+    """tool search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("tool/search", {
+            "profile_id": str(profile_id),
+            "search": search,
+            "filter_department_ids": [str(x) for x in filter_department_ids] if filter_department_ids else None,
+            "filter_creatable": sorted(filter_creatable) if filter_creatable else None,
+            "filter_agent_ids": [str(x) for x in filter_agent_ids] if filter_agent_ids else None,
+            "department_search": department_search,
+            "flag_search": flag_search,
+            "agent_search": agent_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "tool", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ListToolApiResponse,
+        builder=lambda: _search_tool_build(
+            pool, redis,
+            profile_id=profile_id,
+            search=search,
+            filter_department_ids=filter_department_ids,
+            filter_creatable=filter_creatable,
+            filter_agent_ids=filter_agent_ids,
+            department_search=department_search,
+            flag_search=flag_search,
+            agent_search=agent_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_tool_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
     # Main filters
     search: str | None = None,
     filter_department_ids: list[UUID] | None = None,
@@ -72,7 +130,6 @@ async def search_tool_impl(
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
-    **_kwargs,
 ) -> ListToolApiResponse:
     """Tool search using composable infra functions."""
     from fastapi import HTTPException
@@ -124,7 +181,30 @@ async def search_tool_impl(
             descriptions=True,
             departments=True,
             flags=True,
+            permissions=True,
         )
+
+    # Build per-tool agent_ids map (agent_artifact ids referencing this tool).
+    # tool_agents_junction.agents_id → agents_resource.id; reverse-walk
+    # agent_agents_junction.agents_id → agent_artifact.id.
+    agent_ids_by_tool: dict[UUID, list[UUID]] = {}
+    if tool_ids_list:
+        async with pool.acquire() as conn:
+            agent_rows = await conn.fetch(
+                """
+                SELECT taj.tool_id,
+                       ARRAY_AGG(DISTINCT aaj.agent_id)
+                         FILTER (WHERE aaj.agent_id IS NOT NULL) AS agent_ids
+                FROM tool_agents_junction taj
+                LEFT JOIN agent_agents_junction aaj
+                  ON aaj.agents_id = taj.agents_id AND aaj.active = true
+                WHERE taj.tool_id = ANY($1) AND taj.active = true
+                GROUP BY taj.tool_id
+                """,
+                tool_ids_list,
+            )
+        for r in agent_rows:
+            agent_ids_by_tool[r["tool_id"]] = list(r["agent_ids"] or [])
 
     # ── Step 5: Parallel hydration + facets ────────────────────────────
 
@@ -218,6 +298,9 @@ async def search_tool_impl(
                 active=a.active,
                 is_inactive=not a.active,
                 flag_ids=list(a.flag_ids or []),
+                permission_ids=list(a.permission_ids or []),
+                agent_ids=list(agent_ids_by_tool.get(a.id, [])),
+                department_ids=list(a.department_ids or []),
                 updated_at=a.updated_at,
                 can_edit=can_edit,
                 can_duplicate=can_duplicate,

@@ -27,6 +27,7 @@ _SOCKET_EVENT_TO_PUBLIC: dict[tuple[str, str], dict[str, str]] = {
     },
     ("test", "start"): {
         "test.start.completed": "artifacts.test.started",
+        "test.run.invocation_started": "artifacts.test.invocation.started",
     },
     ("test", "run"): {
         "test.run.started": "artifacts.test.run.replay_started",
@@ -35,11 +36,11 @@ _SOCKET_EVENT_TO_PUBLIC: dict[tuple[str, str], dict[str, str]] = {
         "test.run.completed": "artifacts.test.run.replay_completed",
     },
     ("test", "end"): {
-        "test.end.completed": "artifacts.test.ended",
+        "test.end.completed": "artifacts.test.invocation.ended",
         "test_all_complete": "artifacts.test.ended",
     },
     ("test", "stop"): {
-        "test.stop.completed": "artifacts.test.stopped",
+        "test.stop.completed": "artifacts.test.invocation.stopped",
     },
 }
 

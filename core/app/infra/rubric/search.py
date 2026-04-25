@@ -45,6 +45,12 @@ from app.tools.resources.simulations.search import (
 from app.tools.resources.standard_groups.get import get_standard_groups
 from app.tools.resources.standards.get import get_standards
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 RUBRIC_IMPORT_FIELDS: list[dict[str, Any]] = [
     {
         "key": "name",
@@ -81,6 +87,55 @@ async def search_rubric_impl(
     redis: Redis,
     *,
     profile_id: UUID,
+    search: str | None = None,
+    filter_department_ids: list[UUID] | None = None,
+    filter_simulation_ids: list[UUID] | None = None,
+    department_search: str | None = None,
+    simulation_search: str | None = None,
+    flag_search: str | None = None,
+    page_size: int = 12,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+    **_kwargs,
+) -> ListRubricApiResponse:
+    """rubric search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("rubric/search", {
+            "profile_id": str(profile_id),
+            "search": search,
+            "filter_department_ids": [str(x) for x in filter_department_ids] if filter_department_ids else None,
+            "filter_simulation_ids": [str(x) for x in filter_simulation_ids] if filter_simulation_ids else None,
+            "department_search": department_search,
+            "simulation_search": simulation_search,
+            "flag_search": flag_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "rubric", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ListRubricApiResponse,
+        builder=lambda: _search_rubric_build(
+            pool, redis,
+            profile_id=profile_id,
+            search=search,
+            filter_department_ids=filter_department_ids,
+            filter_simulation_ids=filter_simulation_ids,
+            department_search=department_search,
+            simulation_search=simulation_search,
+            flag_search=flag_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_rubric_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
     # Main filters
     search: str | None = None,
     filter_department_ids: list[UUID] | None = None,
@@ -92,7 +147,6 @@ async def search_rubric_impl(
     # Pagination
     page_size: int = 12,
     page_offset: int = 0,
-    **_kwargs,
 ) -> ListRubricApiResponse:
     """Rubric search using composable infra functions."""
     from fastapi import HTTPException
@@ -143,7 +197,35 @@ async def search_rubric_impl(
             points=True,
             standard_groups=True,
             standards=True,
+            rubrics=True,
         )
+
+    # Build per-rubric eval_ids map (eval_artifact ids referencing this rubric).
+    # Path: rubric_artifact → rubrics_resource (a.rubric_ids) → model_rubrics_resource
+    # (joined on rubric_id) → eval_model_rubrics_junction → eval_artifact.id.
+    eval_ids_by_rubric_resource: dict[UUID, list[UUID]] = {}
+    all_rubric_resource_ids: list[UUID] = []
+    for a in artifacts:
+        all_rubric_resource_ids.extend(a.rubric_ids or [])
+    if all_rubric_resource_ids:
+        async with pool.acquire() as conn:
+            eval_rows = await conn.fetch(
+                """
+                SELECT mrr.rubric_id AS rubric_resource_id,
+                       ARRAY_AGG(DISTINCT emrj.eval_id)
+                         FILTER (WHERE emrj.eval_id IS NOT NULL) AS eval_ids
+                FROM model_rubrics_resource mrr
+                LEFT JOIN eval_model_rubrics_junction emrj
+                  ON emrj.model_rubrics_id = mrr.id AND emrj.active = true
+                WHERE mrr.rubric_id = ANY($1) AND mrr.active = true
+                GROUP BY mrr.rubric_id
+                """,
+                all_rubric_resource_ids,
+            )
+        for r in eval_rows:
+            eval_ids_by_rubric_resource[r["rubric_resource_id"]] = list(
+                r["eval_ids"] or []
+            )
 
     # ── Step 5: Parallel hydration + facets ────────────────────────────
 
@@ -300,6 +382,15 @@ async def search_rubric_impl(
         )
         can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
+        # Aggregate eval_ids across this rubric's rubrics_resource rows.
+        rubric_eval_ids: list[UUID] = []
+        seen_eval_ids: set[UUID] = set()
+        for rr_id in a.rubric_ids or []:
+            for eid in eval_ids_by_rubric_resource.get(rr_id, []):
+                if eid not in seen_eval_ids:
+                    seen_eval_ids.add(eid)
+                    rubric_eval_ids.append(eid)
+
         rubrics_list.append(
             ListRubricApiRubric(
                 rubric_id=a.id,
@@ -315,6 +406,7 @@ async def search_rubric_impl(
                 can_delete=can_delete,
                 can_duplicate=can_duplicate,
                 standard_group_ids=rubric_sg_ids,
+                eval_ids=rubric_eval_ids,
                 is_inactive=not a.active,
             )
         )

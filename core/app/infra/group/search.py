@@ -22,8 +22,56 @@ from app.infra.group.types import (
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.groups.search import search_groups
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 
 async def search_group_impl(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    session_id: UUID | None = None,
+    search: str | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    page_size: int = 20,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+) -> GetGroupListResponse:
+    """group search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("group/search", {
+            "profile_id": str(profile_id),
+            "session_id": str(session_id) if session_id else None,
+            "search": search,
+            "date_from": date_from.isoformat() if date_from else None,
+            "date_to": date_to.isoformat() if date_to else None,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "group", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=GetGroupListResponse,
+        builder=lambda: _search_group_build(
+            pool, redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            search=search,
+            date_from=date_from,
+            date_to=date_to,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_group_build(
     pool: asyncpg.Pool,
     redis: Redis,
     *,

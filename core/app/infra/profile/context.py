@@ -26,6 +26,12 @@ from app.tools.resources.permissions.search import search_permissions
 from app.tools.resources.request_limits.search import search_request_limits
 from app.tools.resources.roles.search import search_roles
 
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
 PROFILE_FLAG_TYPES = {"profile_active"}
 
 
@@ -297,6 +303,42 @@ async def resolve_profile_context(
 
 
 async def context_profile_impl(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    session_id: UUID | None = None,
+    bypass_cache: bool = False,
+    is_emulation: bool = False,
+    emulation_depth: int = 0,
+) -> 'ProfileContextApiResponse':
+    """profile context — big-cache wrapped."""
+    from app.infra.profile.types import ProfileContextApiResponse
+
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("profile/context", {
+            "profile_id": str(profile_id),
+            "session_id": str(session_id) if session_id else None,
+            "is_emulation": is_emulation,
+            "emulation_depth": emulation_depth,
+        }),
+        tags=["context", "profile", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ProfileContextApiResponse,
+        builder=lambda: _context_profile_build(
+            pool, redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            bypass_cache=bypass_cache,
+            is_emulation=is_emulation,
+            emulation_depth=emulation_depth,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _context_profile_build(
     pool: asyncpg.Pool,
     redis: Redis,
     *,
