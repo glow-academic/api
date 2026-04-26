@@ -93,7 +93,14 @@ async def audio_session_start_impl(
     *,
     emit: EmitFn,
 ) -> None:
-    """Translate attempt.generate.audio.session_start → attempt_audio_ready."""
+    """Translate attempt.generate.audio.session_start → attempt.chat.voice_ready.
+
+    Client subscribes to ``attempt.chat.voice_ready`` (see
+    glow-client hooks/use-attempt-voice.ts) — the older
+    ``attempt.audio_start.completed`` name was renamed but the impl was
+    left behind, so the mic UI never armed and voice sessions appeared
+    to hang after the realtime provider session opened.
+    """
     group_id = data.get("group_id")
     sid = data.get("sid")
     if not sid or not group_id:
@@ -103,7 +110,7 @@ async def audio_session_start_impl(
     await emit(
         [
             internal_event(
-                "attempt.audio_start.completed",
+                "attempt.chat.voice_ready",
                 AttemptAudioReadyData(
                     sid=sid,
                     chat_id=chat_id,
@@ -334,7 +341,13 @@ async def audio_stop_impl(
     emit: EmitFn,
     cleanup_audio_session_fn: Callable[[Any], Awaitable[None]] | None = None,
 ) -> None:
-    """Clean up audio session and emit attempt_audio_ended."""
+    """Clean up audio session and emit attempt.chat.voice_ended.
+
+    Paired with audio_session_start_impl — same rename: client listens for
+    ``attempt.chat.voice_ended`` (use-attempt-voice.ts), the legacy
+    ``attempt.audio_stop.completed`` name was retired with the rest of
+    the chat→voice migration.
+    """
     from app.infra.websocket.audio_lifecycle import cleanup_audio_session
 
     sid = data.get("sid")
@@ -350,7 +363,7 @@ async def audio_stop_impl(
     await emit(
         [
             internal_event(
-                "attempt.audio_stop.completed",
+                "attempt.chat.voice_ended",
                 AttemptAudioEndedData(
                     sid=sid,
                     chat_id=chat_id,
